@@ -100,8 +100,9 @@
             <section id="pantalla-aventuras" class="pantalla" hidden></section>
             <section id="pantalla-logros" class="pantalla" hidden></section>
             <section id="pantalla-tienda" class="pantalla" hidden></section>
-            <!-- Se abre tocando el avatar (no tiene pestaña propia) -->
+            <!-- Se abren desde otras pantallas (no tienen pestaña propia) -->
             <section id="pantalla-personaje" class="pantalla" hidden></section>
+            <section id="pantalla-arcade" class="pantalla" hidden></section>
         </main>
 
         <!-- Barra de pestañas de abajo (como en las apps de iPhone) -->
@@ -278,6 +279,34 @@
             </section>
         </div>
     </dialog>
+
+
+    <!-- ========== Minijuego en pantalla completa ========== -->
+    <div id="minijuego" class="minijuego" hidden>
+        <div class="minijuego-caja">
+            <div class="minijuego-barra">
+                <span class="titulo-juego" id="mj-titulo"></span>
+                <button type="button" class="boton-icono" id="mj-salir" aria-label="Salir del minijuego">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <p class="minijuego-marcador" id="mj-marcador"></p>
+            <canvas id="mj-lienzo" class="minijuego-lienzo"></canvas>
+            <p class="nota" id="mj-ayuda"></p>
+
+            <!-- Resultado al terminar -->
+            <div class="minijuego-final" id="mj-final" hidden>
+                <p class="etiqueta">Fin de la partida</p>
+                <p class="minijuego-puntos" id="mj-puntos"></p>
+                <p id="mj-record"></p>
+                <p class="minijuego-premio" id="mj-premio"></p>
+                <div class="botones-dialogo">
+                    <button type="button" class="boton boton-secundario" id="mj-cerrar">Salir</button>
+                    <button type="button" class="boton boton-principal" id="mj-otra">Otra vez</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
     <!-- ========== Celebraciones (subir de nivel, logros, jefes...) ========== -->

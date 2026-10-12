@@ -11,7 +11,7 @@
 //
 // Si agregas o renombras archivos, súmalos a ARCHIVOS y cambia VERSION.
 
-const VERSION = "vida-rpg-v4";
+const VERSION = "vida-rpg-v5";
 
 const ARCHIVOS = [
     "./",
@@ -20,11 +20,13 @@ const ARCHIVOS = [
     "./manifest.json",
     "./js/app.js",
     "./js/acciones.js",
+    "./js/arcade.js",
     "./js/avatar.js",
     "./js/datos.js",
     "./js/dibujo.js",
     "./js/fechas.js",
     "./js/juego.js",
+    "./js/minijuegos.js",
     "./js/seguridad.js",
     "./js/vistas.js",
     "./fuentes/orbitron-700.woff2",

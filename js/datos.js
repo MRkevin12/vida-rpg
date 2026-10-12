@@ -36,6 +36,7 @@ export function estadoInicial() {
             equipado: { cabeza: null, mano: null, espalda: null, fondo: null },
         },
         mascota: { nombre: "Chispa" },
+        arcade: { usadas: 0, records: {} },   // fichas gastadas y mejor puntaje de cada minijuego
 
         ultimaVisita: null,   // último día que abriste la app (para el bonus de regreso)
         ultimoAvisoEscudo: null,
@@ -57,6 +58,10 @@ function completar(guardado) {
             equipado: { ...base.avatar.equipado, ...avatar.equipado },
         },
         mascota: { ...base.mascota, ...guardado.mascota },
+        arcade: {
+            usadas: guardado.arcade?.usadas || 0,
+            records: { ...guardado.arcade?.records },
+        },
     };
 }
 

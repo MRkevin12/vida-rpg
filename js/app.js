@@ -12,6 +12,8 @@ import * as juego from "./juego.js";
 import * as vistas from "./vistas.js";
 import * as seguridad from "./seguridad.js";
 import * as avatar from "./avatar.js";
+import * as arcade from "./arcade.js";
+import * as minijuegos from "./minijuegos.js";
 import { dibujarAvatar } from "./dibujo.js";
 import { hoy, fechaLegible, diasEntre } from "./fechas.js";
 
@@ -32,6 +34,7 @@ const DIBUJAR = {
     logros: vistas.pantallaLogros,
     tienda: vistas.pantallaTienda,
     personaje: vistas.pantallaPersonaje,
+    arcade: vistas.pantallaArcade,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -241,6 +244,58 @@ function olvidePin() {
     if (!confirm("Se borrará tu progreso de este teléfono. ¿Seguro?")) return;
     reiniciarPartida();
     cerrarTeclado();
+}
+
+
+// ===== Minijuegos =====
+
+let partida = null;        // el minijuego que se está jugando (para poder detenerlo)
+let juegoActual = null;    // qué minijuego es ("carrera", "lluvia" o "golpe")
+
+async function jugarMinijuego(tipo) {
+    // Gastar la ficha (si no hay, ejecutar() muestra el mensaje y devuelve null).
+    if (!ejecutar(() => acciones.empezarPartida(estado, tipo))) return;
+
+    const minijuego = arcade.JUEGOS[tipo];
+    juegoActual = tipo;
+    $("#mj-titulo").textContent = `${minijuego.icono} ${minijuego.nombre}`;
+    $("#mj-final").hidden = true;
+    $("#mj-marcador").textContent = "Cargando…";
+    $("#minijuego").hidden = false;   // primero se muestra, para que el lienzo tenga tamaño
+
+    partida = await minijuegos.jugar(tipo, {
+        lienzo: $("#mj-lienzo"),
+        avatarSvg: dibujarAvatar(avatarActual(), { batalla: true }),
+        marcador: $("#mj-marcador"),
+        ayuda: $("#mj-ayuda"),
+        alTerminar: (puntos) => terminarMinijuego(tipo, puntos),
+    });
+}
+
+function terminarMinijuego(tipo, puntos) {
+    partida = null;
+    const resultado = ejecutar(() => acciones.terminarPartida(estado, tipo, puntos));
+    if (!resultado) return;
+
+    const atributo = juego.ATRIBUTOS[arcade.JUEGOS[tipo].atributo];
+    $("#mj-puntos").textContent = `${resultado.puntos} ${resultado.puntos === 1 ? "punto" : "puntos"}`;
+    $("#mj-record").textContent = resultado.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${resultado.record}`;
+    $("#mj-premio").textContent = `+${resultado.premio.monedas} 🪙 · +${resultado.premio.xp} XP de ${atributo.icono} ${atributo.nombre}`;
+    const fichas = arcade.fichasDisponibles(estado);
+    $("#mj-otra").disabled = fichas < 1;
+    $("#mj-otra").textContent = fichas ? `Otra vez · 🎟️ ${fichas}` : "Sin fichas";
+    $("#mj-final").hidden = false;
+}
+
+function cerrarMinijuego() {
+    if (partida) {
+        // A mitad de partida: se termina y cuentan los puntos que llevabas.
+        if (!confirm("¿Terminar la partida ahora? Cuentan los puntos que llevas.")) return;
+        partida.detener();
+        return;
+    }
+    $("#minijuego").hidden = true;
+    dibujarPantalla();
 }
 
 
@@ -477,7 +532,9 @@ function rellenarOpciones() {
         <p><strong>Avatar:</strong> evoluciona en los niveles ${avatar.ETAPAS.slice(1).map((e) => `${e.desde} (${e.nombre})`).join(", ")}.
            Tu clase es tu atributo más alto. Cada atributo cambia algo visible en los niveles 3 y 6.
            Su ánimo depende de tu racha: tras 3 días sin misiones se duerme.</p>
-        <p><strong>Mascota:</strong> eclosiona con 10 misiones diarias completadas y es adulta con 50.</p>`;
+        <p><strong>Mascota:</strong> eclosiona con 10 misiones diarias completadas y es adulta con 50.</p>
+        <p><strong>Minijuegos:</strong> empiezas con ${arcade.FICHAS_DE_REGALO} fichas y ganas 1 por cada misión diaria completada.
+           Cada partida da hasta ${arcade.MAX_MONEDAS} monedas y ${arcade.MAX_XP} XP según tus puntos.</p>`;
 }
 
 // Preparativos especiales al abrir algunas ventanas.
@@ -661,6 +718,8 @@ const ACCIONES = {
         }
     },
 
+    jugar: (boton) => jugarMinijuego(boton.dataset.juego),
+
     comprar: (boton) => {
         const objeto = avatar.OBJETOS[boton.dataset.id];
         if (objeto && confirm(`¿Comprar «${objeto.nombre}» por ${objeto.precio} monedas?`)) {
@@ -781,6 +840,11 @@ function conectarEventos() {
     });
 
     $("#celebracion").addEventListener("click", siguienteCelebracion);
+
+    // Botones de la ventana del minijuego.
+    $("#mj-salir").addEventListener("click", cerrarMinijuego);
+    $("#mj-cerrar").addEventListener("click", cerrarMinijuego);
+    $("#mj-otra").addEventListener("click", () => jugarMinijuego(juegoActual));
 
     // Teclado del PIN: con el dedo...
     $("#teclado").addEventListener("click", (evento) => {

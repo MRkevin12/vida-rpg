@@ -1921,6 +1921,154 @@ textarea:focus {
 }
 
 
+/* ===== Arcade (minijuegos) ===== */
+.chip-arcade {
+    color: #c4b5fd;
+    border-color: rgba(139, 92, 246, 0.55);
+    cursor: pointer;
+}
+
+.acceso-arcade {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    text-align: left;
+    border-color: rgba(139, 92, 246, 0.55);
+    cursor: pointer;
+}
+
+.acceso-arcade > span:nth-child(2) {
+    flex: 1;
+    display: grid;
+    gap: 2px;
+}
+
+.acceso-arcade-icono {
+    font-size: 2rem;
+}
+
+.arcade-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.arcade-heroe {
+    flex: 0 0 84px;
+}
+
+.fichas {
+    margin: 4px 0;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #c4b5fd;
+}
+
+.minijuego-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.minijuego-cabecera h3 {
+    margin-bottom: 4px;
+    font-size: 1.05rem;
+}
+
+.minijuego-icono {
+    font-size: 2.2rem;
+}
+
+.minijuego-tarjeta .boton {
+    margin-top: 10px;
+}
+
+/* Ventana del minijuego: ocupa toda la pantalla */
+.minijuego {
+    position: fixed;
+    inset: 0;
+    z-index: 12;   /* debajo de celebraciones (20) y del PIN (30) */
+    display: grid;
+    place-items: center;
+    padding: calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 8px);
+    background:
+        radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.2), transparent 50%),
+        var(--fondo);
+}
+
+.minijuego-caja {
+    position: relative;
+    width: min(520px, 100%);
+    display: grid;
+    gap: 8px;
+}
+
+.minijuego-barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.minijuego-marcador {
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--oro);
+    font-variant-numeric: tabular-nums;
+}
+
+.minijuego-lienzo {
+    display: block;
+    width: 100%;
+    height: min(58vh, 430px);
+    background: #120a24;
+    border: 1px solid var(--borde);
+    border-radius: 16px;
+    touch-action: none;   /* el dedo mueve el juego, no la página */
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.minijuego-final {
+    position: absolute;
+    inset: 40px 0 0;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 8px;
+    padding: 20px;
+    text-align: center;
+    background: rgba(18, 10, 36, 0.94);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    border-radius: 16px;
+    animation: entrar-celebracion 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.minijuego-final .etiqueta {
+    color: var(--oro);
+}
+
+.minijuego-puntos {
+    font-family: "Orbitron", sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.minijuego-premio {
+    font-weight: 700;
+    color: var(--oro);
+}
+
+.minijuego-final .botones-dialogo {
+    width: 100%;
+    margin-top: 8px;
+}
+
+
 /* ===== Celebraciones y avisos ===== */
 .celebracion {
     position: fixed;

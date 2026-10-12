@@ -8,6 +8,7 @@
 
 import * as juego from "./juego.js";
 import * as avatar from "./avatar.js";
+import * as arcade from "./arcade.js";
 import { hoy, diasEntre, sumarDias } from "./fechas.js";
 
 
@@ -398,6 +399,39 @@ export function equiparObjeto(estado, id) {
 
 export function nombrarMascota(estado, nombre) {
     estado.mascota.nombre = validarNombre(nombre, 20);
+}
+
+
+// ===== Minijuegos =====
+
+// La ficha se gasta al EMPEZAR (si sales a la mitad, igual se gastó).
+export function empezarPartida(estado, tipo) {
+    if (!arcade.JUEGOS[tipo]) throw new Error("Ese minijuego no existe.");
+    if (arcade.fichasDisponibles(estado) < 1) {
+        throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
+    }
+    estado.arcade.usadas += 1;
+}
+
+export function terminarPartida(estado, tipo, puntosObtenidos) {
+    const juego = arcade.JUEGOS[tipo];
+    const puntos = Math.max(0, Math.floor(Number(puntosObtenidos) || 0));
+    const premio = arcade.premio(tipo, puntos);
+    ganar(estado, { ...premio, atributo: juego.atributo });
+
+    const anterior = estado.arcade.records[tipo] || 0;
+    const nuevoRecord = puntos > anterior;
+    if (nuevoRecord) estado.arcade.records[tipo] = puntos;
+
+    return {
+        puntos,
+        premio,
+        record: estado.arcade.records[tipo] || 0,
+        nuevoRecord: nuevoRecord && puntos > 0,
+        celebraciones: nuevoRecord && anterior > 0
+            ? [{ icono: "🏅", etiqueta: "¡Nuevo récord!", titulo: `${puntos} puntos`, detalle: juego.nombre }]
+            : [],
+    };
 }
 
 

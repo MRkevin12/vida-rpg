@@ -9,6 +9,7 @@
 
 import * as juego from "./juego.js";
 import * as avatar from "./avatar.js";
+import * as arcade from "./arcade.js";
 import { dibujarAvatar, dibujarMascota, dibujarJefe } from "./dibujo.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, desdeTexto } from "./fechas.js";
 
@@ -84,6 +85,8 @@ export function pantallaHoy(estado, ctx) {
         <div class="chips">
             <span class="chip chip-racha">🔥 ${plural(racha.actual, "día", "días")}</span>
             <span class="chip">🛡️ ${racha.escudos}/${ESCUDOS.maximo}</span>
+            <button type="button" class="chip chip-arcade" data-accion="ir" data-pantalla="arcade">
+                🎮 ${plural(arcade.fichasDisponibles(estado), "ficha", "fichas")}</button>
             ${todoListo ? '<span class="chip chip-oro">✨ Día perfecto</span>' : ""}
         </div>
 
@@ -279,6 +282,13 @@ export function pantallaAventuras(estado, ctx) {
     const derrotados = jefes.filter((j) => j.derrotadoEn);
 
     return `
+        <button type="button" class="panel acceso-arcade" data-accion="ir" data-pantalla="arcade">
+            <span class="acceso-arcade-icono">🕹️</span>
+            <span><b>Arcade del héroe</b>
+                <span class="mini texto-suave">3 minijuegos con tu avatar · 🎟️ ${plural(arcade.fichasDisponibles(estado), "ficha", "fichas")}</span></span>
+            <span class="heroe-ver">Jugar ›</span>
+        </button>
+
         ${cabeceraSeccion("Misiones principales", "principal", "+ Nueva")}
         <p class="nota">Objetivos grandes divididos en pasos. Cada paso: +${PREMIOS.submision.xp} XP.
            Al terminar todos: +${PREMIOS.principal.xp} XP y ${PREMIOS.principal.monedas} monedas.</p>
@@ -460,6 +470,43 @@ function tarjetaLogro(logro, estado, ctx) {
             ${logro.recompensa ? `<span class="logro-premio">🪙 ${logro.recompensa}</span>` : ""}
             ${botonCerrar("borrar-logro", logro.id, `Borrar ${logro.nombre}`)}
         </li>`;
+}
+
+
+// ===== Pantalla: Arcade (minijuegos) =====
+
+export function pantallaArcade(estado, ctx) {
+    const fichas = arcade.fichasDisponibles(estado);
+    const tarjetas = Object.entries(arcade.JUEGOS).map(([clave, j]) => {
+        const record = estado.arcade.records[clave] || 0;
+        return `
+            <article class="panel minijuego-tarjeta">
+                <div class="minijuego-cabecera">
+                    <span class="minijuego-icono">${j.icono}</span>
+                    <div>
+                        <h3>${j.nombre}</h3>
+                        ${chipAtributo(j.atributo)}
+                    </div>
+                </div>
+                <p class="nota">${j.descripcion}</p>
+                <p class="mini">🏅 Récord: <b>${record}</b> pts</p>
+                <button type="button" class="boton boton-principal boton-ancho" data-accion="jugar" data-juego="${clave}"
+                        ${fichas ? "" : "disabled"}>Jugar · 🎟️ 1 ficha</button>
+            </article>`;
+    }).join("");
+
+    return `
+        <section class="panel arcade-cabecera">
+            <div class="arcade-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
+            <div>
+                <h2 class="titulo-juego">Arcade del héroe</h2>
+                <p class="fichas">🎟️ ${plural(fichas, "ficha", "fichas")}</p>
+                <p class="nota">Ganas <b>1 ficha</b> por cada misión diaria completada. Cada partida da monedas y XP
+                   según tus puntos (máx. ${arcade.MAX_MONEDAS} 🪙 y ${arcade.MAX_XP} XP).</p>
+            </div>
+        </section>
+        ${fichas ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
+        ${tarjetas}`;
 }
 
 
