@@ -15,14 +15,18 @@ import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as minijuegos from "./minijuegos.js";
+import * as sonido from "./sonido.js";
+import { calcularResumen } from "./resumen.js";
 import { dibujarAvatar } from "./dibujo.js";
-import { hoy, fechaLegible, diasEntre } from "./fechas.js";
+import { hoy, fechaLegible, diasEntre, sumarDias, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
 
 
 // ===== Estado de la app =====
 let estado = datos.cargar();     // la partida completa
 let pantallaActual = "hoy";      // qué pestaña se está viendo
 let diaSeleccionado = null;      // día tocado en el calendario
+let diaVisto = "hoy";            // en la pantalla Hoy: "hoy" o "ayer" (por si olvidaste marcar algo)
+let rangoResumen = 7;            // en Progreso: el resumen muestra los últimos 7 o 30 días
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -304,6 +308,7 @@ async function jugarMinijuego(tipo) {
         marcador: $("#mj-marcador"),
         ayuda: $("#mj-ayuda"),
         alTerminar: (puntos) => terminarMinijuego(tipo, puntos),
+        sonar,
     });
 }
 
@@ -320,6 +325,7 @@ function terminarMinijuego(tipo, puntos) {
     $("#mj-otra").disabled = fichas < 1;
     $("#mj-otra").textContent = fichas ? `Otra vez · 🎟️ ${fichas}` : "Sin fichas";
     $("#mj-final").hidden = false;
+    if (resultado.nuevoRecord) sonar("logro");
 }
 
 function cerrarMinijuego() {
@@ -331,6 +337,13 @@ function cerrarMinijuego() {
     }
     $("#minijuego").hidden = true;
     dibujarPantalla();
+}
+
+
+// ===== Sonido =====
+// Suena solo si el sonido está encendido en Ajustes.
+function sonar(nombre) {
+    if (estado.ajustes.sonido) sonido.sonar(nombre);
 }
 
 
@@ -415,6 +428,8 @@ function dibujarPantalla(efectos = {}) {
         info,
         avatar: avatar.describirAvatar(estado, fecha, info),
         diaSeleccionado,
+        fechaVista: fechaVista(),
+        rangoResumen,
         recordarRespaldo: necesitaRespaldo(fecha),
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
     };
@@ -448,7 +463,13 @@ function mostrarSeccion(nombre) {
     }
 }
 
+// La fecha que muestra la pantalla Hoy (hoy, o ayer si lo elegiste).
+function fechaVista() {
+    return diaVisto === "ayer" ? sumarDias(hoy(), -1) : hoy();
+}
+
 function cambiarPantalla(nombre) {
+    diaVisto = "hoy";   // al cambiar de pantalla siempre se vuelve a "hoy"
     mostrarSeccion(nombre);
     dibujarPantalla();
     window.scrollTo(0, 0);
@@ -501,6 +522,10 @@ function siguienteCelebracion() {
         capa.hidden = true;
         return;
     }
+    // Cada celebración suena distinto: subir de nivel, derrotar a un jefe o lo demás.
+    if (celebracion.tipo === "nivel") sonar("nivel");
+    else if (celebracion.imagen) sonar("victoria");
+    else sonar("logro");
     // Al subir de nivel o evolucionar, se muestra el avatar celebrando;
     // al derrotar a un jefe, su retrato.
     if (celebracion.avatar) {
@@ -566,6 +591,13 @@ function rellenarOpciones() {
                 <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
             </label>`).join(""));
     }
+    for (const grupo of document.querySelectorAll('[data-opciones="dias"]')) {
+        grupo.insertAdjacentHTML("beforeend", DIAS_LETRAS.map((letra, dia) => `
+            <label class="pildora" title="${DIAS_CORTOS[dia]}">
+                <input type="checkbox" name="dias" value="${dia}" checked>
+                <span>${letra}</span>
+            </label>`).join(""));
+    }
     $("#logro-tipo").innerHTML = Object.entries(juego.TIPOS_LOGRO)
         .map(([clave, t]) => `<option value="${clave}">${t.texto}</option>`).join("");
 
@@ -594,18 +626,66 @@ function rellenarOpciones() {
            Cada partida da hasta ${arcade.MAX_MONEDAS} monedas y ${arcade.MAX_XP} XP según tus puntos.</p>`;
 }
 
-// Preparativos especiales al abrir algunas ventanas.
+// Preparativos al abrir cada ventana. Si reciben un elemento (una misión, un logro…),
+// la ventana se abre en modo EDICIÓN con sus datos; si no, en modo CREAR.
 const PREPARAR = {
-    logro() {
+    mision(mision) {
+        const formulario = $("#dialogo-mision form");
+        modoEdicion(formulario, mision, { crear: ["Nueva misión diaria", "Crear misión"], editar: ["Editar misión", "Guardar cambios"] });
+        // Días: al crear, todos marcados; al editar, los de la misión.
+        for (const casilla of formulario.querySelectorAll('input[name="dias"]')) {
+            casilla.checked = !mision || !mision.dias || mision.dias.includes(Number(casilla.value));
+        }
+        if (mision) {
+            formulario.elements.nombre.value = mision.nombre;
+            formulario.elements.dificultad.value = mision.dificultad;
+            formulario.elements.atributo.value = mision.atributo;
+        }
+    },
+    recompensa(recompensa) {
+        const formulario = $("#dialogo-recompensa form");
+        modoEdicion(formulario, recompensa, { crear: ["Nueva recompensa", "Agregar a la tienda"], editar: ["Editar recompensa", "Guardar cambios"] });
+        if (recompensa) {
+            formulario.elements.nombre.value = recompensa.nombre;
+            formulario.elements.costo.value = recompensa.costo;
+        }
+    },
+    logro(logro) {
+        const formulario = $("#dialogo-logro form");
+        modoEdicion(formulario, logro, { crear: ["Nuevo logro", "Crear logro"], editar: ["Editar logro", "Guardar cambios"] });
+
         const activas = estado.misiones.filter((m) => !m.archivadaEn);
         $("#logro-mision").innerHTML = activas.length
             ? activas.map((m) => `<option value="${m.id}">${vistas.esc(m.nombre)}</option>`).join("")
             : '<option value="">(primero crea una misión diaria)</option>';
+
+        const tipo = $("#logro-tipo");
+        tipo.disabled = false;
+        $("#campo-recompensa").hidden = false;
+        formulario.elements.recompensa.disabled = false;
+        if (logro) {
+            formulario.elements.nombre.value = logro.nombre;
+            formulario.elements.icono.value = logro.icono || "";
+            formulario.elements.descripcion.value = logro.descripcion || "";
+            formulario.elements.objetivo.value = logro.objetivo;
+            formulario.elements.recompensa.value = logro.recompensa;
+            tipo.value = logro.tipo;
+        }
         mostrarCamposLogro();
+        if (logro) {
+            // Al editar no se cambia la condición; y si ya lo conseguiste, tampoco la meta ni el premio.
+            tipo.disabled = true;
+            for (const selector of ["#campo-mision", "#campo-atributo"]) ocultarCampo($(selector), true);
+            if (logro.desbloqueadoEn) {
+                ocultarCampo($("#campo-objetivo"), true);
+                ocultarCampo($("#campo-recompensa"), true);
+            }
+        }
     },
     ajustes() {
         mostrarVersion();
         $("#ajustes-nombre").value = estado.personaje.nombre;
+        $("#ajustes-sonido").checked = estado.ajustes.sonido;
         $("#ajustes-ultimo-respaldo").textContent = estado.ultimoRespaldo
             ? `Última copia: ${fechaLegible(estado.ultimoRespaldo)}.`
             : "Todavía no has hecho ninguna copia.";
@@ -621,27 +701,40 @@ const PREPARAR = {
     },
 };
 
-function abrirDialogo(nombre) {
+// Pone un formulario en modo "crear" o "editar": título, texto del botón,
+// los botones que solo sirven al editar y el id oculto del elemento.
+function modoEdicion(formulario, elemento, textos) {
+    const [titulo, boton] = elemento ? textos.editar : textos.crear;
+    formulario.querySelector("[data-titulo]").textContent = titulo;
+    formulario.querySelector("[data-enviar]").textContent = boton;
+    formulario.querySelector("[data-solo-editar]").hidden = !elemento;
+    formulario.elements.id.value = elemento ? elemento.id : "";
+}
+
+// Oculta (o muestra) un campo y desactiva sus controles para que el formulario no los pida.
+function ocultarCampo(campo, oculto) {
+    campo.hidden = oculto;
+    for (const control of campo.querySelectorAll("input, select")) control.disabled = oculto;
+}
+
+// El id del elemento que se está editando en la ventana de un botón.
+function idEnEdicion(boton) {
+    return Number(boton.closest("form").elements.id.value);
+}
+
+function abrirDialogo(nombre, elemento = null) {
     const dialogo = $(`#dialogo-${nombre}`);
     for (const formulario of dialogo.querySelectorAll("form")) formulario.reset();
-    PREPARAR[nombre]?.();
+    PREPARAR[nombre]?.(elemento);
     dialogo.showModal();
 }
 
 // En el logro, mostrar solo los campos que usa el tipo de condición elegido.
-// Los campos ocultos se desactivan (disabled) para que el formulario no los pida.
 function mostrarCamposLogro() {
     const campo = juego.TIPOS_LOGRO[$("#logro-tipo").value].campo;
-    const visibles = {
-        "#campo-mision": campo === "mision",
-        "#campo-atributo": campo === "atributo",
-        "#campo-objetivo": campo !== "manual",   // un logro personal no tiene meta numérica
-    };
-    for (const [selector, visible] of Object.entries(visibles)) {
-        const elemento = $(selector);
-        elemento.hidden = !visible;
-        for (const control of elemento.querySelectorAll("input, select")) control.disabled = !visible;
-    }
+    ocultarCampo($("#campo-mision"), campo !== "mision");
+    ocultarCampo($("#campo-atributo"), campo !== "atributo");
+    ocultarCampo($("#campo-objetivo"), campo === "manual");   // un logro personal no tiene meta numérica
 }
 
 
@@ -728,22 +821,42 @@ const ACCIONES = {
 
     "alternar-mision": (boton) => {
         const id = Number(boton.dataset.id);
+        const fecha = fechaVista();   // hoy, o ayer si estás corrigiendo el día anterior
         const estabaHecha = boton.getAttribute("aria-pressed") === "true";
         const resultado = estabaHecha
-            ? ejecutar(() => acciones.desmarcarMision(estado, id))
-            : ejecutar(() => acciones.completarMision(estado, id), { recienHecha: id });
-        if (resultado) flotarXp(`.mision[data-id="${id}"]`, resultado.xp);
+            ? ejecutar(() => acciones.desmarcarMision(estado, id, fecha))
+            : ejecutar(() => acciones.completarMision(estado, id, fecha), { recienHecha: id });
+        if (!resultado) return;
+        sonar(estabaHecha ? "desmarcar" : "completar");
+        flotarXp(`.mision[data-id="${id}"]`, resultado.xp);
+    },
+    "ver-fecha": (boton) => {
+        diaVisto = boton.dataset.dia;
+        dibujarPantalla();
+    },
+    "editar-mision": (boton) => {
+        abrirDialogo("mision", estado.misiones.find((m) => m.id === Number(boton.dataset.id)));
+    },
+    // Estos tres botones están dentro de la ventana de editar misión.
+    "mover-mision": (boton) => {
+        ejecutar(() => acciones.moverMision(estado, idEnEdicion(boton), Number(boton.dataset.direccion)));
     },
     "archivar-mision": (boton) => {
-        if (confirm("¿Archivar esta misión? Dejará de aparecer, pero su historial se guarda.")) {
-            ejecutar(() => acciones.archivarMision(estado, Number(boton.dataset.id)));
+        if (confirm("¿Archivar esta misión? Dejará de aparecer, pero su historial se guarda y la puedes restaurar.")) {
+            const id = idEnEdicion(boton);
+            boton.closest("dialog").close();
+            ejecutar(() => acciones.archivarMision(estado, id));
         }
     },
+    "restaurar-mision": (boton) => ejecutar(() => acciones.restaurarMision(estado, Number(boton.dataset.id))),
+    "restaurar-principal": (boton) => ejecutar(() => acciones.restaurarPrincipal(estado, Number(boton.dataset.id))),
 
     "alternar-submision": (boton) => {
         const id = Number(boton.dataset.id);
         const resultado = ejecutar(() => acciones.alternarSubmision(estado, id, Number(boton.dataset.sub)));
-        if (resultado) flotarXp(`.tarjeta[data-id="${id}"]`, resultado.xp);
+        if (!resultado) return;
+        sonar(resultado.xp > 0 ? "completar" : "desmarcar");
+        flotarXp(`.tarjeta[data-id="${id}"]`, resultado.xp);
     },
     "borrar-submision": (boton) => {
         ejecutar(() => acciones.borrarSubmision(estado, Number(boton.dataset.id), Number(boton.dataset.sub)));
@@ -754,9 +867,14 @@ const ACCIONES = {
         }
     },
 
+    "editar-logro": (boton) => {
+        abrirDialogo("logro", estado.logros.find((l) => l.id === Number(boton.dataset.id)));
+    },
     "borrar-logro": (boton) => {
         if (confirm("¿Borrar este logro?")) {
-            ejecutar(() => acciones.borrarLogro(estado, Number(boton.dataset.id)));
+            const id = idEnEdicion(boton);
+            boton.closest("dialog").close();
+            ejecutar(() => acciones.borrarLogro(estado, id));
         }
     },
     lograr: (boton) => {
@@ -770,20 +888,26 @@ const ACCIONES = {
     comprar: (boton) => {
         const objeto = avatar.OBJETOS[boton.dataset.id];
         if (objeto && confirm(`¿Comprar «${objeto.nombre}» por ${objeto.precio} monedas?`)) {
-            ejecutar(() => acciones.comprarObjeto(estado, boton.dataset.id));
+            if (ejecutar(() => acciones.comprarObjeto(estado, boton.dataset.id))) sonar("moneda");
         }
     },
     equipar: (boton) => ejecutar(() => acciones.equiparObjeto(estado, boton.dataset.id)),
+    apariencia: (boton) => ejecutar(() => acciones.cambiarApariencia(estado, boton.dataset.campo, boton.dataset.valor)),
 
     canjear: (boton) => {
         const recompensa = estado.recompensas.find((r) => r.id === Number(boton.dataset.id));
         if (recompensa && confirm(`¿Canjear «${recompensa.nombre}» por ${recompensa.costo} monedas?`)) {
-            ejecutar(() => acciones.canjear(estado, recompensa.id));
+            if (ejecutar(() => acciones.canjear(estado, recompensa.id))) sonar("moneda");
         }
+    },
+    "editar-recompensa": (boton) => {
+        abrirDialogo("recompensa", estado.recompensas.find((r) => r.id === Number(boton.dataset.id)));
     },
     "borrar-recompensa": (boton) => {
         if (confirm("¿Quitar esta recompensa de la tienda?")) {
-            ejecutar(() => acciones.borrarRecompensa(estado, Number(boton.dataset.id)));
+            const id = idEnEdicion(boton);
+            boton.closest("dialog").close();
+            ejecutar(() => acciones.borrarRecompensa(estado, id));
         }
     },
 
@@ -795,6 +919,19 @@ const ACCIONES = {
         boton.classList.add("elegido");
         const racha = juego.calcularRacha(estado, hoy());
         $("#cal-detalle").innerHTML = vistas.detalleDia(estado, diaSeleccionado, racha);
+    },
+
+    // Resumen: cambiar entre 7 y 30 días.
+    "rango-resumen": (boton) => {
+        rangoResumen = Number(boton.dataset.dias);
+        dibujarPantalla();
+    },
+    // Tocar una columna de la gráfica: muestra los números de ese día.
+    "ver-columna": (columna) => {
+        const dia = calcularResumen(estado, hoy(), rangoResumen).porDia[Number(columna.dataset.i)];
+        document.querySelector(".columna.elegida")?.classList.remove("elegida");
+        columna.classList.add("elegida");
+        $("#resumen-detalle").innerHTML = vistas.textoDiaResumen(dia);
     },
 
     "activar-pin": () => crearPin(),
@@ -826,10 +963,11 @@ const FORMULARIOS = {
         entrarAlJuego();
         return true;
     },
-    mision: (valores) => ejecutar(() => acciones.crearMision(estado, valores)),
+    // Si el formulario trae un id, se está editando; si no, creando.
+    mision: (valores) => ejecutar(() => (valores.id ? acciones.editarMision(estado, valores) : acciones.crearMision(estado, valores))),
     principal: (valores) => ejecutar(() => acciones.crearPrincipal(estado, valores)),
-    logro: (valores) => ejecutar(() => acciones.crearLogro(estado, valores)),
-    recompensa: (valores) => ejecutar(() => acciones.crearRecompensa(estado, valores)),
+    logro: (valores) => ejecutar(() => (valores.id ? acciones.editarLogro(estado, valores) : acciones.crearLogro(estado, valores))),
+    recompensa: (valores) => ejecutar(() => (valores.id ? acciones.editarRecompensa(estado, valores) : acciones.crearRecompensa(estado, valores))),
     mascota(valores) {
         const resultado = ejecutar(() => acciones.nombrarMascota(estado, valores.nombre));
         if (resultado) avisar(`🐾 Tu mascota ahora se llama ${estado.mascota.nombre}`);
@@ -849,6 +987,7 @@ const FORMULARIOS = {
 
 function conectarEventos() {
     document.addEventListener("click", (evento) => {
+        if (estado.ajustes.sonido) sonido.despertar();   // el audio solo arranca tras un toque
         const boton = evento.target.closest("[data-accion]");
         if (boton && !boton.disabled) ACCIONES[boton.dataset.accion]?.(boton);
     });
@@ -858,7 +997,10 @@ function conectarEventos() {
         const tipo = formulario.dataset.form;
         if (!tipo) return;
         evento.preventDefault(); // no recargar la página
-        const valores = Object.fromEntries(new FormData(formulario));
+        const datosFormulario = new FormData(formulario);
+        const valores = Object.fromEntries(datosFormulario);
+        // Las casillas de los días de la semana comparten nombre: las leemos todas.
+        if (formulario.querySelector('input[name="dias"]')) valores.dias = datosFormulario.getAll("dias");
         const salioBien = FORMULARIOS[tipo](valores, formulario);
         const dialogo = formulario.closest("dialog");
         if (salioBien && dialogo && tipo !== "renombrar") dialogo.close();
@@ -872,6 +1014,12 @@ function conectarEventos() {
     }
 
     $("#logro-tipo").addEventListener("change", mostrarCamposLogro);
+
+    // Interruptor de sonido (Ajustes): al encenderlo suena una muestra.
+    $("#ajustes-sonido").addEventListener("change", (evento) => {
+        ejecutar(() => acciones.cambiarAjuste(estado, "sonido", evento.target.checked));
+        sonar("completar");
+    });
 
     $("#archivo-respaldo").addEventListener("change", (evento) => {
         const archivo = evento.target.files[0];
@@ -934,6 +1082,7 @@ function conectarEventos() {
 
 // Al volver a la app: redibujar (por si cambió el día) y revisar el bonus de regreso.
 function alVolver() {
+    diaVisto = "hoy";   // por si cambió el día mientras la app estaba cerrada
     refrescar();
     revisarAlAbrir();
 }

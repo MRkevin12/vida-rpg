@@ -73,6 +73,39 @@ export const OBJETOS = {
                        logro: { tipo: "logros", meta: 10, texto: "Conseguir 10 logros" } },
 };
 
+// Apariencia: para que el avatar se parezca a ti (se elige en la pantalla Personaje).
+export const APARIENCIA = {
+    piel: {
+        clara:  { nombre: "Clara",  color: "#f0c9a4", sombra: "#c99a70" },
+        media:  { nombre: "Media",  color: "#d9a67c", sombra: "#b07a52" },
+        canela: { nombre: "Canela", color: "#bd8454", sombra: "#93603a" },
+        morena: { nombre: "Morena", color: "#8f5c3c", sombra: "#6c4128" },
+        oscura: { nombre: "Oscura", color: "#5e3b27", sombra: "#402618" },
+    },
+    pelo: {
+        negro:   { nombre: "Negro",         color: "#16110e" },
+        castano: { nombre: "Castaño",       color: "#3a2416" },
+        claro:   { nombre: "Castaño claro", color: "#6b4a2a" },
+        rubio:   { nombre: "Rubio",         color: "#b8924a" },
+        rojizo:  { nombre: "Rojizo",        color: "#8a3b1c" },
+        cano:    { nombre: "Canoso",        color: "#9a9aa0" },
+    },
+    peinado: {
+        corto:  { nombre: "Corto" },
+        rapado: { nombre: "Rapado" },
+        largo:  { nombre: "Largo" },
+        calvo:  { nombre: "Calvo" },
+    },
+    barba: {
+        ninguna:  { nombre: "Sin barba" },
+        bigote:   { nombre: "Bigote" },
+        candado:  { nombre: "Candado" },
+        completa: { nombre: "Barba" },
+    },
+};
+
+export const APARIENCIA_INICIAL = { piel: "media", pelo: "castano", peinado: "corto", barba: "ninguna" };
+
 // 7. Mascota: crece con las misiones diarias que completas.
 export const ETAPAS_MASCOTA = [
     { clave: "huevo",  nombre: "Huevo",  desde: 0 },
@@ -196,6 +229,7 @@ export function describirAvatar(estado, hoy, info) {
         animo,
         diasSinMision: diasSinMision(estado, hoy),
         equipado,
+        apariencia: { ...APARIENCIA_INICIAL, ...estado.apariencia },
         mascota: {
             nombre: estado.mascota.nombre,
             etapa: etapaSegun(ETAPAS_MASCOTA, totalMisiones),

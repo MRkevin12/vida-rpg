@@ -142,7 +142,8 @@ export function danoPorCategoria(estado) {
     const dificultadDe = new Map(estado.misiones.map((m) => [m.id, m.dificultad]));
     for (const c of estado.completadas) {
         if (!(c.atributo in dano)) continue;
-        const dificultad = dificultadDe.get(c.misionId) || "normal";
+        // La dificultad que tenía al completarla (los registros viejos no la guardaban).
+        const dificultad = c.dificultad || dificultadDe.get(c.misionId) || "normal";
         dano[c.atributo] += DANO.diaria[dificultad] || DANO.diaria.normal;
     }
     for (const p of estado.principales) {

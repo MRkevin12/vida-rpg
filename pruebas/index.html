@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pruebas · Vida RPG</title>
+    <link rel="icon" href="../iconos/icono-192.png">
+    <style>
+        body {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 24px 16px 48px;
+            font-family: system-ui, sans-serif;
+            line-height: 1.45;
+            color: #ece9fb;
+            background: #0b0816;
+        }
+        h1 { font-size: 1.4rem; }
+        p { color: #9c95c0; }
+        #total { font-size: 1.1rem; font-weight: 700; }
+        #total.bien { color: #34d399; }
+        #total.mal { color: #fb7185; }
+        ul { padding: 0; list-style: none; }
+        li {
+            margin-bottom: 6px;
+            padding: 10px 12px;
+            background: #15102a;
+            border: 1px solid #2c2352;
+            border-radius: 10px;
+        }
+        li.mal { border-color: #fb7185; }
+        li small { display: block; margin-top: 4px; color: #fb7185; }
+        a { color: #a78bfa; }
+    </style>
+</head>
+<body>
+    <h1>Pruebas de Vida RPG</h1>
+    <p>Comprueban las reglas del juego con partidas en memoria. No tocan tu partida guardada.
+       <a href="../">Volver a la app</a></p>
+    <p id="total">Ejecutando…</p>
+    <ul id="lista"></ul>
+    <script type="module" src="./pruebas.js"></script>
+</body>
+</html>

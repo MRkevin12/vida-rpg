@@ -82,38 +82,81 @@ export function renombrar(estado, nombre) {
 
 // ===== Misiones diarias =====
 
-export function crearMision(estado, { nombre, dificultad, atributo }) {
+// Los días de la semana vienen del formulario como lista de números (0 = lunes … 6 = domingo).
+// Si están los 7, guardamos null, que significa "todos los días".
+function validarDias(dias) {
+    if (dias === undefined || dias === null) return null;
+    const lista = [...new Set(dias.map(Number))].filter((d) => Number.isInteger(d) && d >= 0 && d <= 6).sort();
+    if (lista.length === 0) throw new Error("Elige al menos un día de la semana.");
+    return lista.length === 7 ? null : lista;
+}
+
+export function crearMision(estado, { nombre, dificultad, atributo, dias }) {
     if (!juego.DIFICULTADES[dificultad]) throw new Error("Elige una dificultad.");
     estado.misiones.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
         dificultad,
         atributo: validarAtributo(atributo),
+        dias: validarDias(dias),
         creadaEn: hoy(),
         archivadaEn: null,
+        pausas: [],
     });
 }
 
-export function completarMision(estado, id) {
+// Editar una misión. Lo que ya completaste no cambia: cada registro del
+// historial guardó su propia XP, dificultad y atributo.
+export function editarMision(estado, { id, nombre, dificultad, atributo, dias }) {
+    const mision = buscar(estado.misiones, Number(id), "esa misión");
+    if (!juego.DIFICULTADES[dificultad]) throw new Error("Elige una dificultad.");
+    mision.nombre = validarNombre(nombre, 60);
+    mision.dificultad = dificultad;
+    mision.atributo = validarAtributo(atributo);
+    mision.dias = validarDias(dias);
+}
+
+// Mover una misión un puesto arriba (-1) o abajo (+1) entre las que no están archivadas.
+export function moverMision(estado, id, direccion) {
+    const visibles = estado.misiones.filter((m) => !m.archivadaEn);
+    const posicion = visibles.findIndex((m) => m.id === id);
+    const vecina = visibles[posicion + direccion];
+    if (posicion === -1 || !vecina) return;   // ya está en el borde
+    const a = estado.misiones.indexOf(visibles[posicion]);
+    const b = estado.misiones.indexOf(vecina);
+    [estado.misiones[a], estado.misiones[b]] = [estado.misiones[b], estado.misiones[a]];   // intercambiar
+}
+
+// Solo se puede marcar hoy o ayer (por si se te olvidó).
+function validarFecha(fecha) {
+    const actual = hoy();
+    if (fecha !== actual && fecha !== sumarDias(actual, -1)) {
+        throw new Error("Solo puedes marcar misiones de hoy o de ayer.");
+    }
+    return fecha;
+}
+
+export function completarMision(estado, id, fecha = hoy()) {
     const mision = buscar(estado.misiones, id, "esa misión");
-    const fecha = hoy();
-    if (mision.archivadaEn) throw new Error("Esa misión está archivada.");
+    validarFecha(fecha);
+    if (!juego.tocaEseDia(mision, fecha)) throw new Error("Esa misión no tocaba ese día.");
     if (estado.completadas.some((c) => c.misionId === id && c.fecha === fecha)) {
-        throw new Error("Ya completaste esta misión hoy.");
+        throw new Error("Esa misión ya estaba completada ese día.");
     }
 
     const { xp, monedas } = juego.DIFICULTADES[mision.dificultad];
-    // Guardamos cuánto dio, para poder restarlo exacto si la desmarcas.
-    estado.completadas.push({ misionId: id, fecha, xp, monedas, atributo: mision.atributo });
+    // Guardamos cuánto dio (y su dificultad y atributo de ese momento), para poder
+    // restarlo exacto si la desmarcas y para que editar la misión no cambie el pasado.
+    estado.completadas.push({ misionId: id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad });
     ganar(estado, { xp, monedas, atributo: mision.atributo });
     return { xp };
 }
 
-// Deshace la misión de hoy (por si la marcaste por error).
-export function desmarcarMision(estado, id) {
-    const fecha = hoy();
+// Deshace una misión de hoy o de ayer (por si la marcaste por error).
+export function desmarcarMision(estado, id, fecha = hoy()) {
+    validarFecha(fecha);
     const posicion = estado.completadas.findIndex((c) => c.misionId === id && c.fecha === fecha);
-    if (posicion === -1) throw new Error("Esa misión no estaba completada hoy.");
+    if (posicion === -1) throw new Error("Esa misión no estaba completada ese día.");
 
     const [completada] = estado.completadas.splice(posicion, 1); // la quita de la lista
     ganar(estado, { xp: -completada.xp, monedas: -completada.monedas, atributo: completada.atributo });
@@ -123,6 +166,15 @@ export function desmarcarMision(estado, id) {
 // Archivar = deja de aparecer, pero su historial se conserva (calendario, logros).
 export function archivarMision(estado, id) {
     buscar(estado.misiones, id, "esa misión").archivadaEn = hoy();
+}
+
+// Recuperar una misión archivada. El tiempo que estuvo archivada se guarda como
+// una "pausa", para que esos días no cuenten como fallados.
+export function restaurarMision(estado, id) {
+    const mision = buscar(estado.misiones, id, "esa misión");
+    if (!mision.archivadaEn) return;
+    mision.pausas = [...(mision.pausas || []), { desde: mision.archivadaEn, hasta: hoy() }];
+    mision.archivadaEn = null;
 }
 
 
@@ -206,6 +258,10 @@ export function borrarSubmision(estado, principalId, subId) {
 
 export function archivarPrincipal(estado, id) {
     buscar(estado.principales, id, "esa misión principal").archivada = true;
+}
+
+export function restaurarPrincipal(estado, id) {
+    buscar(estado.principales, id, "esa misión principal").archivada = false;
 }
 
 
@@ -292,6 +348,24 @@ export function crearLogro(estado, { nombre, tipo, objetivo, misionId, atributo,
     estado.logros.push(logro);
 }
 
+// Editar un logro. La condición (tipo, misión, atributo) no se cambia: para eso se crea otro.
+// Si ya está conseguido, la meta y el premio tampoco (ya se entregó).
+export function editarLogro(estado, { id, nombre, descripcion, icono, objetivo, recompensa }) {
+    const logro = buscar(estado.logros, Number(id), "ese logro");
+    const textoDescripcion = String(descripcion || "").trim();
+    if (textoDescripcion.length > 300) throw new Error("La descripción puede tener máximo 300 letras.");
+    const textoIcono = String(icono || "").trim();
+    if (textoIcono.length > 8) throw new Error("El ícono debe ser un solo emoji.");
+
+    logro.nombre = validarNombre(nombre, 60);
+    logro.descripcion = textoDescripcion;
+    logro.icono = textoIcono;
+    if (!logro.desbloqueadoEn) {
+        if (logro.tipo !== "manual") logro.objetivo = validarEntero(objetivo, 1, 100000, "La meta");
+        logro.recompensa = validarEntero(recompensa, 0, 100000, "La recompensa");
+    }
+}
+
 export function borrarLogro(estado, id) {
     estado.logros = estado.logros.filter((logro) => logro.id !== id);
 }
@@ -337,6 +411,12 @@ export function crearRecompensa(estado, { nombre, costo }) {
         nombre: validarNombre(nombre, 60),
         costo: validarEntero(costo, 1, 1000000, "El precio"),
     });
+}
+
+export function editarRecompensa(estado, { id, nombre, costo }) {
+    const recompensa = buscar(estado.recompensas, Number(id), "esa recompensa");
+    recompensa.nombre = validarNombre(nombre, 60);
+    recompensa.costo = validarEntero(costo, 1, 1000000, "El precio");
 }
 
 export function borrarRecompensa(estado, id) {
@@ -390,6 +470,19 @@ export function equiparObjeto(estado, id) {
 
 export function nombrarMascota(estado, nombre) {
     estado.mascota.nombre = validarNombre(nombre, 20);
+}
+
+// Apariencia del avatar: tono de piel, color de pelo, peinado y barba.
+export function cambiarApariencia(estado, campo, valor) {
+    const opciones = avatar.APARIENCIA[campo];
+    if (!opciones || !opciones[valor]) throw new Error("Esa opción no existe.");
+    estado.apariencia[campo] = valor;
+}
+
+// Preferencias de la app (por ahora: sonido encendido o apagado).
+export function cambiarAjuste(estado, clave, valor) {
+    if (!(clave in estado.ajustes)) throw new Error("Ese ajuste no existe.");
+    estado.ajustes[clave] = Boolean(valor);
 }
 
 

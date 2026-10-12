@@ -90,9 +90,43 @@ export function contarPorFecha(completadas) {
     return conteo;
 }
 
-// Cuántas misiones diarias existían ese día (creadas antes y no archivadas todavía).
+// Qué misiones completaste cada día: Map { "2026-10-12" => Set { 1, 4 }, ... }
+export function hechasPorFecha(completadas) {
+    const mapa = new Map();
+    for (const c of completadas) {
+        if (!mapa.has(c.fecha)) mapa.set(c.fecha, new Set());
+        mapa.get(c.fecha).add(c.misionId);
+    }
+    return mapa;
+}
+
+// ¿Le tocaba esta misión ese día?
+// mision.dias: lista de días de la semana (0 = lunes … 6 = domingo), o null = todos.
+// mision.pausas: temporadas en que estuvo archivada: [{ desde, hasta }].
+export function tocaEseDia(mision, fecha, diaSemana = diaDeSemana(fecha)) {
+    if (mision.creadaEn > fecha) return false;                             // todavía no existía
+    if (mision.archivadaEn && mision.archivadaEn <= fecha) return false;   // ya estaba archivada
+    if ((mision.pausas || []).some((p) => p.desde <= fecha && fecha < p.hasta)) return false;
+    if (mision.dias && !mision.dias.includes(diaSemana)) return false;     // ese día de la semana no toca
+    return true;
+}
+
+// Las misiones que tocaban ese día.
+export function misionesDelDia(misiones, fecha) {
+    const diaSemana = diaDeSemana(fecha);
+    return misiones.filter((m) => tocaEseDia(m, fecha, diaSemana));
+}
+
+// Cuántas misiones tocaban ese día. Si es 0, es día de descanso.
 export function misionesActivasEn(misiones, fecha) {
-    return misiones.filter((m) => m.creadaEn <= fecha && (!m.archivadaEn || m.archivadaEn > fecha)).length;
+    return misionesDelDia(misiones, fecha).length;
+}
+
+// Día perfecto: completaste TODAS las misiones que tocaban (y había al menos una).
+export function esDiaPerfecto(misiones, fecha, hechas) {
+    const programadas = misionesDelDia(misiones, fecha);
+    const completadas = hechas.get(fecha);
+    return programadas.length > 0 && Boolean(completadas) && programadas.every((m) => completadas.has(m.id));
 }
 
 // Calcula la racha "simulando" día por día desde que creaste el personaje.
@@ -122,7 +156,7 @@ export function calcularRacha(estado, hoy) {
         if (conteo.has(fecha)) {
             sumarUnDia();
         } else if (misionesActivasEn(estado.misiones, fecha) === 0) {
-            // Ese día no tenías misiones: no suma ni rompe la racha.
+            // Día de descanso (no tocaba ninguna misión): no suma ni rompe la racha.
         } else if (escudos > 0) {
             escudos -= 1;            // el escudo se gasta...
             protegidos.add(fecha);   // ...y la racha sigue viva
@@ -151,7 +185,7 @@ export function nivelCalor(hechas, total) {
 
 // Prepara los datos del mapa de calor: 53 semanas (un año), de lunes a domingo.
 export function datosCalendario(estado, hoy, racha, semanas = 53) {
-    const conteo = contarPorFecha(estado.completadas);
+    const hechasDia = hechasPorFecha(estado.completadas);
     const lunesDeEstaSemana = sumarDias(hoy, -diaDeSemana(hoy));
     const inicio = sumarDias(lunesDeEstaSemana, -(semanas - 1) * 7);
     const dias = [];
@@ -163,32 +197,32 @@ export function datosCalendario(estado, hoy, racha, semanas = 53) {
         } else if (fecha < estado.personaje.creadoEn) {
             dias.push({ fecha, tipo: "antes" });
         } else {
-            const hechas = conteo.get(fecha) || 0;
-            const total = misionesActivasEn(estado.misiones, fecha);
-            dias.push({
-                fecha,
-                tipo: "dia",
-                hechas,
-                total,
-                nivel: nivelCalor(hechas, total),
-                protegido: racha.protegidos.has(fecha),
-            });
+            const { hechas, total } = cumplimientoDelDia(estado.misiones, fecha, hechasDia);
+            let nivel = nivelCalor(hechas, total);
+            // Hiciste algo aunque ese día no tocara nada (cambiaste los días después): se pinta suave.
+            if (nivel === 0 && hechasDia.has(fecha)) nivel = 1;
+            dias.push({ fecha, tipo: "dia", hechas, total, nivel, protegido: racha.protegidos.has(fecha) });
         }
     }
     return { dias, semanas };
 }
 
+// De las misiones que tocaban ese día, cuántas completaste.
+export function cumplimientoDelDia(misiones, fecha, hechasDia) {
+    const programadas = misionesDelDia(misiones, fecha);
+    const completadas = hechasDia.get(fecha);
+    const hechas = completadas ? programadas.filter((m) => completadas.has(m.id)).length : 0;
+    return { hechas, total: programadas.length };
+}
+
 // Resumen general que usan varias pantallas y los logros.
 export function resumen(estado, hoy) {
-    const conteo = contarPorFecha(estado.completadas);
+    const hechasDia = hechasPorFecha(estado.completadas);
     let diasPerfectos = 0;
 
     if (estado.personaje) {
         for (let fecha = estado.personaje.creadoEn; fecha <= hoy; fecha = sumarDias(fecha, 1)) {
-            const total = misionesActivasEn(estado.misiones, fecha);
-            if (total > 0 && (conteo.get(fecha) || 0) >= total) {
-                diasPerfectos += 1;
-            }
+            if (esDiaPerfecto(estado.misiones, fecha, hechasDia)) diasPerfectos += 1;
         }
     }
 

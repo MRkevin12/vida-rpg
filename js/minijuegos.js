@@ -232,7 +232,8 @@ function cartel(g, ancho, alto, titulo, subtitulo) {
 // tipo: "carrera" | "lluvia" | "golpe"
 // retratos: direcciones de las pinturas de tus jefes (para "Golpe preciso")
 // alTerminar(puntos) se llama una sola vez cuando acaba la partida.
-export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, ayuda, alTerminar }) {
+// sonar(nombre) reproduce un sonido (app.js decide si el sonido está encendido).
+export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, ayuda, alTerminar, sonar = () => {} }) {
     const crear = { carrera, lluvia, golpe }[tipo];
 
     // Preparamos las imágenes: tu avatar (convertido a mapa de bits) y el retrato de un jefe.
@@ -253,7 +254,7 @@ export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, 
     const g = lienzo.getContext("2d");
     g.setTransform(escala, 0, 0, escala, 0, 0);
 
-    const juego = crear({ ancho, alto, heroe, rival });
+    const juego = crear({ ancho, alto, heroe, rival, sonar });
     ayuda.textContent = juego.ayuda;
 
     let anterior = performance.now();
@@ -327,7 +328,7 @@ export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, 
 
 // ===== Juego 1: Carrera del héroe =====
 
-function carrera({ ancho, alto, heroe }) {
+function carrera({ ancho, alto, heroe, sonar }) {
     // f agranda todo si el lienzo es alto, para que el héroe no se vea diminuto.
     // El salto también se escala, así que dura lo mismo y sube en proporción.
     const f = Math.max(1, alto / 300);
@@ -356,6 +357,7 @@ function carrera({ ancho, alto, heroe }) {
             if (h.enSuelo && !juego.termino) {
                 h.vy = -780 * f;
                 h.enSuelo = false;
+                sonar("salto");
             }
         },
         actualizar(dt) {
@@ -392,6 +394,7 @@ function carrera({ ancho, alto, heroe }) {
                 const c = { x: o.x + o.t * 0.2, y: suelo - o.t * 0.78, w: o.t * 0.6, h: o.t * 0.72 };
                 if (!juego.termino && choca(caja, c)) {
                     juego.termino = true;
+                    sonar("fallo");
                     textos.agregar("¡AY!", h.x + hw / 2, h.y, "#fb7185", 24);
                 }
             }
@@ -399,6 +402,7 @@ function carrera({ ancho, alto, heroe }) {
                 if (!m.tomada && choca(caja, { x: m.x - 10, y: m.y - 10, w: 20, h: 20 })) {
                     m.tomada = true;
                     recogidas += 1;
+                    sonar("moneda");
                     textos.agregar("+5", m.x, m.y - 10);
                 }
             }
@@ -457,7 +461,7 @@ function carrera({ ancho, alto, heroe }) {
 
 // ===== Juego 2: Lluvia de monedas =====
 
-function lluvia({ ancho, alto, heroe }) {
+function lluvia({ ancho, alto, heroe, sonar }) {
     const hw = 60;
     const hh = 80;
     const piso = alto - 6;
@@ -510,10 +514,12 @@ function lluvia({ ancho, alto, heroe }) {
                     c.tomada = true;
                     if (c.tipo === "bomba") {
                         vidas -= 1;
+                        sonar("impacto");
                         temblor = 0.35;
                         textos.agregar("💥", c.x, c.y, "#fb7185", 26);
                     } else {
                         juego.puntos += c.valor;
+                        sonar("moneda");
                         textos.agregar(`+${c.valor}`, c.x, c.y - 8, c.tipo === "gema" ? "#67e8f9" : ORO);
                     }
                 }
@@ -557,7 +563,7 @@ function lluvia({ ancho, alto, heroe }) {
 
 // ===== Juego 3: Golpe preciso =====
 
-function golpe({ ancho, alto, heroe, rival }) {
+function golpe({ ancho, alto, heroe, rival, sonar }) {
     const RONDAS = 5;
     const VIDA = 300;
     const ZONAS = [   // qué tan cerca del centro tocaste
@@ -595,6 +601,7 @@ function golpe({ ancho, alto, heroe, rival }) {
             vida = Math.max(0, vida - valor);
             textos.agregar(zona ? zona.texto : "Fallaste", ancho / 2, alto * 0.2,
                            zona ? zona.color : "#94a3b8", zona && valor === 100 ? 26 : 20);
+            sonar(valor ? "impacto" : "fallo");
             if (valor) {
                 textos.agregar(`-${valor}`, ancho * 0.94 - am / 2, suelo - tm * 0.6, "#fb7185", 18);
                 temblor = 0.4;

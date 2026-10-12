@@ -11,9 +11,8 @@
 //
 // Las clases CSS (pj, aura, llama, orbe, mascota…) son las que animan.
 
-const PIEL = "#d9a67c";
-const PIEL_SOMBRA = "#b07a52";
-const PELO = "#2a1c14";
+import { APARIENCIA, APARIENCIA_INICIAL } from "./avatar.js";
+
 const TRAZO = "#14101e";      // contorno oscuro
 const ORO = "#d4a72c";
 const ORO_OSCURO = "#8a6a12";
@@ -30,6 +29,12 @@ let contador = 0; // cada dibujo usa ids distintos para sus degradados
 // sinEfectos = true: además sin aura, fuego ni brillo (para los minijuegos)
 export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = false } = {}) {
     const id = `av${++contador}`;
+
+    // Colores de piel y pelo según la apariencia elegida (d.tono se usa en todo el dibujo).
+    const apariencia = { ...APARIENCIA_INICIAL, ...d.apariencia };
+    const piel = APARIENCIA.piel[apariencia.piel] || APARIENCIA.piel.media;
+    const pelo = APARIENCIA.pelo[apariencia.pelo] || APARIENCIA.pelo.castano;
+    d = { ...d, apariencia, tono: { piel: piel.color, sombra: piel.sombra, pelo: pelo.color } };
 
     const capas = [
         batalla ? "" : fondo(d, id),
@@ -250,7 +255,7 @@ function torso(d) {
                     <path d="M109.5 103.5 L115 103.5" stroke="${ORO}" stroke-width="1.4"/>`;
     }
 
-    return `<path d="M96 52 L104 52 L104.5 60 L95.5 60 Z" fill="${PIEL_SOMBRA}"/>
+    return `<path d="M96 52 L104 52 L104.5 60 L95.5 60 Z" fill="${d.tono.sombra}"/>
             <path d="M79 61 Q100 55 121 61 L115 100 Q116 106 117 110 Q100 116 83 110 Q84 106 85 100 Z"
                   fill="${tela}" stroke="${TRAZO}" stroke-width="1" stroke-linejoin="round"/>
             <path d="M100 58 L121 61 L115 100 Q116 106 117 110 Q108 113 100 114 Z" fill="${sombra}" opacity=".35"/>
@@ -271,7 +276,7 @@ function brazos(d) {
                 <path d="${camino}" fill="none" stroke="${tela}" stroke-width="${grosor}" stroke-linecap="round" stroke-linejoin="round"/>
                 ${d.etapa.clave === "novato" && !fuerte ? "" : `<path d="M${codo + (mano - codo) * 0.35} 95.5 L${mano} 107" stroke="${CUERO}" stroke-width="${grosor + 0.4}" stroke-linecap="butt"/>`}`;
     };
-    const mano = (x) => `<circle cx="${x}" cy="112" r="4" fill="${PIEL}" stroke="${TRAZO}" stroke-width=".8"/>`;
+    const mano = (x) => `<circle cx="${x}" cy="112" r="4" fill="${d.tono.piel}" stroke="${TRAZO}" stroke-width=".8"/>`;
 
     // Intelecto alto: libro de hechizos bajo el brazo izquierdo.
     const libro = d.rasgos.intelecto >= 2
@@ -343,8 +348,8 @@ function cabeza(d) {
     const cejas = dormido
         ? ""
         : animo === "llamas"
-            ? `<path d="M93.3 37.6 L98.4 39.2 M106.7 37.6 L101.6 39.2" stroke="${PELO}" stroke-width="1.3" stroke-linecap="round"/>`
-            : `<path d="M93.6 38.6 L98.2 38.9 M106.4 38.6 L101.8 38.9" stroke="${PELO}" stroke-width="1.1" stroke-linecap="round"/>`;
+            ? `<path d="M93.3 37.6 L98.4 39.2 M106.7 37.6 L101.6 39.2" stroke="${d.tono.pelo}" stroke-width="1.3" stroke-linecap="round"/>`
+            : `<path d="M93.6 38.6 L98.2 38.9 M106.4 38.6 L101.8 38.9" stroke="${d.tono.pelo}" stroke-width="1.1" stroke-linecap="round"/>`;
 
     // Boca: seria por defecto; media sonrisa si está contento (más con carisma).
     let boca;
@@ -363,14 +368,34 @@ function cabeza(d) {
            <path d="M98.7 41.2 h2.6 M93.3 41 L90.8 40.2 M106.7 41 L109.2 40.2" stroke="#c9b458" stroke-width=".7"/>`
         : "";
 
+    // Peinado: corto, rapado, largo (cae detrás de la cara) o calvo.
+    const peinado = d.apariencia.peinado;
+    const melena = peinado === "largo"
+        ? `<path d="M89.8 40 Q88.2 28.4 100 28 Q111.8 28.4 110.2 40 L112 57 Q106.5 59.5 105 53 L95 53 Q93.5 59.5 88 57 Z" fill="${d.tono.pelo}" stroke="${TRAZO}" stroke-width=".6"/>`
+        : "";
+    const cabello = peinado === "calvo"
+        ? ""
+        : peinado === "rapado"
+            ? `<path d="M90.7 39.4 Q89.8 30 100 29.6 Q110.2 30 109.3 39.4 Q107.6 33.8 100 33.2 Q92.4 33.8 90.7 39.4 Z" fill="${d.tono.pelo}" opacity=".8"/>`
+            : `<path d="M90.4 41 Q88.6 29 100 28.4 Q111.4 29 109.6 41 Q108.6 35.6 104.6 34.6 Q99.6 36.4 94.4 35 Q91.4 36.6 90.4 41 Z" fill="${d.tono.pelo}"/>`;
+
+    // Barba: bigote, candado (bigote y mentón) o completa.
+    const barbas = {
+        bigote: `<path d="M96.4 47.2 Q100 45.4 103.6 47.2 Q100 48.1 96.4 47.2 Z" fill="${d.tono.pelo}"/>`,
+        candado: `<path d="M96.2 47 Q100 45.4 103.8 47 L103.2 51.4 Q100 54.6 96.8 51.4 Z" fill="${d.tono.pelo}"/>`,
+        completa: `<path d="M90.9 42 Q91.4 50 100 54.5 Q108.6 50 109.1 42 Q107.8 46.6 104 47 Q100 45.6 96 47 Q92.2 46.6 90.9 42 Z" fill="${d.tono.pelo}"/>`,
+    };
+    const barba = barbas[d.apariencia.barba] || "";
+
     const rostro = `
-        <path d="M90.6 41 Q90 44 91.2 45.5 M109.4 41 Q110 44 108.8 45.5" stroke="${PIEL_SOMBRA}" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        ${melena}
+        <path d="M90.6 41 Q90 44 91.2 45.5 M109.4 41 Q110 44 108.8 45.5" stroke="${d.tono.sombra}" stroke-width="2.2" stroke-linecap="round" fill="none"/>
         <path d="M90.8 40 Q90.6 30.6 100 30.5 Q109.4 30.6 109.2 40 Q109.2 48.5 100 54 Q90.8 48.5 90.8 40 Z"
-              fill="${PIEL}" stroke="${TRAZO}" stroke-width=".9" stroke-linejoin="round"/>
-        <path d="M100 30.5 Q109.4 30.6 109.2 40 Q109.2 48.5 100 54 Z" fill="${PIEL_SOMBRA}" opacity=".28"/>
-        <path d="M90.4 41 Q88.6 29 100 28.4 Q111.4 29 109.6 41 Q108.6 35.6 104.6 34.6 Q99.6 36.4 94.4 35 Q91.4 36.6 90.4 41 Z" fill="${PELO}"/>
+              fill="${d.tono.piel}" stroke="${TRAZO}" stroke-width=".9" stroke-linejoin="round"/>
+        <path d="M100 30.5 Q109.4 30.6 109.2 40 Q109.2 48.5 100 54 Z" fill="${d.tono.sombra}" opacity=".28"/>
+        ${cabello}${barba}
         ${cejas}${ojo(96)}${ojo(104)}
-        <path d="M100 41.6 L99.3 45.3 L100.7 45.6" fill="none" stroke="${PIEL_SOMBRA}" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M100 41.6 L99.3 45.3 L100.7 45.6" fill="none" stroke="${d.tono.sombra}" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round"/>
         ${boca}${lentes}`;
 
     // Dormido: la cabeza cae un poco hacia adelante.

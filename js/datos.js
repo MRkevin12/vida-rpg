@@ -17,8 +17,9 @@ export function estadoInicial() {
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
 
-        misiones: [],         // diarias: { id, nombre, dificultad, atributo, creadaEn, archivadaEn }
-        completadas: [],      // historial: { misionId, fecha, xp, monedas, atributo }
+        misiones: [],         // diarias: { id, nombre, dificultad, atributo, dias, creadaEn, archivadaEn, pausas }
+                              //   dias: días de la semana que toca (0 = lunes … 6 = domingo) o null = todos
+        completadas: [],      // historial: { misionId, fecha, xp, monedas, atributo, dificultad }
 
         principales: [],      // { id, nombre, atributo, creadaEn, completadaEn, archivada,
                               //   submisiones: [{ id, nombre, hecha }] }
@@ -38,6 +39,8 @@ export function estadoInicial() {
         mascota: { nombre: "Chispa" },
         arcade: { usadas: 0, records: {} },   // fichas gastadas y mejor puntaje de cada minijuego
         campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
+        apariencia: { piel: "media", pelo: "castano", peinado: "corto", barba: "ninguna" },   // cómo se ve tu avatar
+        ajustes: { sonido: true },            // preferencias de la app
 
         ultimaVisita: null,   // último día que abriste la app (para el bonus de regreso)
         ultimoAvisoEscudo: null,
@@ -64,6 +67,8 @@ function completar(guardado) {
             records: { ...guardado.arcade?.records },
         },
         campana: { recompensados: { ...guardado.campana?.recompensados } },
+        apariencia: { ...base.apariencia, ...guardado.apariencia },
+        ajustes: { ...base.ajustes, ...guardado.ajustes },
     };
 }
 

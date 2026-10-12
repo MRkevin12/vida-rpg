@@ -14,6 +14,10 @@ const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
 export const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun",
                              "jul", "ago", "sep", "oct", "nov", "dic"];
 
+// Días de la semana empezando en lunes (como en diaDeSemana: 0 = lunes … 6 = domingo).
+export const DIAS_LETRAS = ["L", "M", "X", "J", "V", "S", "D"];
+export const DIAS_CORTOS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
+
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
 

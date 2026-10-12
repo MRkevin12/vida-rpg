@@ -9,7 +9,7 @@
 //   1. Responder AL INSTANTE con la copia guardada (funciona en modo avión).
 //   2. Si hay internet, descargar la versión nueva por detrás para la próxima vez.
 //
-// IMPORTANTE: cada vez que publiques cambios, sube VERSION (v6 → v7…).
+// IMPORTANTE: cada vez que publiques cambios, sube VERSION (v8 → v9…).
 // Así el teléfono detecta la versión nueva y la app muestra el aviso «Actualizar».
 // Si agregas o renombras archivos, súmalos también a ARCHIVOS.
 //
@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v7";
+const VERSION = "vida-rpg-v8";
 
 const ARCHIVOS = [
     "./",
@@ -34,7 +34,9 @@ const ARCHIVOS = [
     "./js/fechas.js",
     "./js/juego.js",
     "./js/minijuegos.js",
+    "./js/resumen.js",
     "./js/seguridad.js",
+    "./js/sonido.js",
     "./js/vistas.js",
     "./fuentes/orbitron-700.woff2",
     "./fuentes/orbitron-800.woff2",
@@ -90,7 +92,10 @@ self.addEventListener("activate", (evento) => {
 self.addEventListener("fetch", (evento) => {
     const peticion = evento.request;
     // Solo archivos normales (GET) de nuestro propio sitio.
-    if (peticion.method !== "GET" || new URL(peticion.url).origin !== self.location.origin) return;
+    const direccion = new URL(peticion.url);
+    if (peticion.method !== "GET" || direccion.origin !== self.location.origin) return;
+    // La página de pruebas no es parte de la app: siempre se pide a internet, sin guardarla.
+    if (direccion.pathname.includes("/pruebas/")) return;
 
     // Descargar la versión nueva (si hay internet) y guardarla para la próxima vez.
     // cache: "no-cache" = preguntarle a GitHub si cambió, aunque el navegador tenga una copia.

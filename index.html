@@ -136,16 +136,29 @@
          El título lleva autofocus para que el teclado no salte solo al abrir. -->
 
     <dialog id="dialogo-mision" class="dialogo">
+        <!-- Sirve para crear y para editar: si el campo oculto "id" tiene un número, se está editando. -->
         <form data-form="mision" class="formulario">
-            <h2 class="titulo-juego" tabindex="-1" autofocus>Nueva misión diaria</h2>
-            <label>¿Qué hábito quieres cumplir cada día?
+            <h2 class="titulo-juego" tabindex="-1" autofocus data-titulo>Nueva misión diaria</h2>
+            <input type="hidden" name="id">
+            <label>¿Qué hábito quieres cumplir?
                 <input type="text" name="nombre" maxlength="60" required autocomplete="off" placeholder="Ej: Ir al gym">
             </label>
             <fieldset class="opciones" data-opciones="dificultad"><legend>Dificultad</legend></fieldset>
             <fieldset class="opciones opciones-4" data-opciones="atributo"><legend>Atributo que mejora</legend></fieldset>
+            <fieldset class="opciones opciones-7" data-opciones="dias">
+                <legend>¿Qué días toca? <span class="texto-suave">(los demás son descanso)</span></legend>
+            </fieldset>
             <div class="botones-dialogo">
                 <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
-                <button type="submit" class="boton boton-principal">Crear misión</button>
+                <button type="submit" class="boton boton-principal" data-enviar>Crear misión</button>
+            </div>
+            <!-- Solo al editar: cambiar el orden y archivar -->
+            <div class="solo-editar" data-solo-editar hidden>
+                <div class="botones-dialogo">
+                    <button type="button" class="boton boton-secundario" data-accion="mover-mision" data-direccion="-1">↑ Subir</button>
+                    <button type="button" class="boton boton-secundario" data-accion="mover-mision" data-direccion="1">↓ Bajar</button>
+                </div>
+                <button type="button" class="boton boton-peligro boton-ancho" data-accion="archivar-mision">Archivar misión</button>
             </div>
         </form>
     </dialog>
@@ -169,7 +182,8 @@
 
     <dialog id="dialogo-logro" class="dialogo">
         <form data-form="logro" class="formulario">
-            <h2 class="titulo-juego" tabindex="-1" autofocus>Nuevo logro</h2>
+            <h2 class="titulo-juego" tabindex="-1" autofocus data-titulo>Nuevo logro</h2>
+            <input type="hidden" name="id">
             <div class="dos-columnas columnas-icono">
                 <label>Ícono
                     <input type="text" name="icono" maxlength="8" autocomplete="off" placeholder="🏆" aria-label="Ícono (un emoji)">
@@ -192,20 +206,24 @@
                 <label id="campo-objetivo">Meta (N)
                     <input type="number" name="objetivo" min="1" max="100000" step="1" value="30" required inputmode="numeric">
                 </label>
-                <label>Premio 🪙
+                <label id="campo-recompensa">Premio 🪙
                     <input type="number" name="recompensa" min="0" max="100000" step="1" value="50" required inputmode="numeric">
                 </label>
             </div>
             <div class="botones-dialogo">
                 <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
-                <button type="submit" class="boton boton-principal">Crear logro</button>
+                <button type="submit" class="boton boton-principal" data-enviar>Crear logro</button>
+            </div>
+            <div class="solo-editar" data-solo-editar hidden>
+                <button type="button" class="boton boton-peligro boton-ancho" data-accion="borrar-logro">Borrar logro</button>
             </div>
         </form>
     </dialog>
 
     <dialog id="dialogo-recompensa" class="dialogo">
         <form data-form="recompensa" class="formulario">
-            <h2 class="titulo-juego" tabindex="-1" autofocus>Nueva recompensa</h2>
+            <h2 class="titulo-juego" tabindex="-1" autofocus data-titulo>Nueva recompensa</h2>
+            <input type="hidden" name="id">
             <label>Premio real
                 <input type="text" name="nombre" maxlength="60" required autocomplete="off" placeholder="Ej: Pedir una pizza">
             </label>
@@ -214,7 +232,10 @@
             </label>
             <div class="botones-dialogo">
                 <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
-                <button type="submit" class="boton boton-principal">Agregar a la tienda</button>
+                <button type="submit" class="boton boton-principal" data-enviar>Agregar a la tienda</button>
+            </div>
+            <div class="solo-editar" data-solo-editar hidden>
+                <button type="button" class="boton boton-peligro boton-ancho" data-accion="borrar-recompensa">Quitar de la tienda</button>
             </div>
         </form>
     </dialog>
@@ -230,6 +251,13 @@
                 <input type="text" name="nombre" id="ajustes-nombre" maxlength="30" required autocomplete="off" aria-label="Nombre del personaje">
                 <button type="submit" class="boton boton-chico">Renombrar</button>
             </form>
+
+            <section class="ajustes-bloque">
+                <label class="interruptor">
+                    <span><b>🔊 Sonidos</b><br><span class="nota">Al completar misiones, subir de nivel y derrotar jefes.</span></span>
+                    <input type="checkbox" id="ajustes-sonido">
+                </label>
+            </section>
 
             <section class="ajustes-bloque">
                 <h3>🔒 Bloqueo con PIN</h3>

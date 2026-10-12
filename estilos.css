@@ -664,6 +664,12 @@ button {
     animation: destello 0.7s ease-out;
 }
 
+/* Misión que no se puede marcar ahora (toca otro día o está archivada) */
+.mision.apagada {
+    padding-left: 14px;
+    opacity: 0.75;
+}
+
 .boton-check {
     flex-shrink: 0;
     width: 46px;
@@ -1654,6 +1660,324 @@ textarea:focus {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+}
+
+/* Días de la semana: 7 casillas en una fila */
+.opciones-7 {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.opciones-7 .pildora span {
+    padding: 10px 0;
+}
+
+/* Botones que solo aparecen al editar (mover, archivar, borrar) */
+.solo-editar {
+    display: grid;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--borde);
+}
+
+/* Selector de dos opciones (Ayer / Hoy, 7 días / 30 días) */
+.selector {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+    padding: 4px;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+}
+
+.selector button {
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--texto-suave);
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+}
+
+.selector button[aria-pressed="true"] {
+    color: #fff;
+    background: rgba(139, 92, 246, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.7);
+}
+
+/* Interruptor (encendido / apagado) */
+.interruptor {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.interruptor input {
+    flex-shrink: 0;
+    width: 52px;
+    height: 30px;
+    margin: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.interruptor input::before {
+    content: "";
+    display: block;
+    width: 22px;
+    height: 22px;
+    margin: 3px;
+    background: var(--texto-suave);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.interruptor input:checked {
+    background: rgba(52, 211, 153, 0.3);
+    border-color: var(--verde);
+}
+
+.interruptor input:checked::before {
+    background: var(--verde);
+    transform: translateX(22px);
+}
+
+
+/* ===== Progreso: resumen con gráficas ===== */
+.resumen {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+}
+
+.resumen .subtitulo {
+    margin: 8px 0 -4px;
+}
+
+/* Fichas con los números principales */
+.fichas-dato {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.ficha-dato {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+}
+
+.ficha-etiqueta {
+    font-size: 0.78rem;
+    color: var(--texto-suave);
+}
+
+.ficha-valor {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.ficha-valor::first-letter {
+    text-transform: uppercase;
+}
+
+.ficha-valor small {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--texto-suave);
+}
+
+.ficha-nota {
+    font-size: 0.74rem;
+    line-height: 1.3;
+    color: var(--texto-suave);
+}
+
+/* Gráfica de columnas */
+.grafica {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.grafica line {
+    stroke: var(--borde);
+    stroke-width: 1;
+}
+
+.grafica text {
+    font-size: 9px;
+    fill: var(--texto-suave);
+}
+
+.grafica .columna {
+    cursor: pointer;
+}
+
+.grafica .franja {
+    fill: transparent;
+}
+
+.grafica .columna.elegida .franja {
+    fill: rgba(255, 255, 255, 0.07);
+}
+
+.grafica .columna.elegida text {
+    fill: var(--texto);
+    font-weight: 700;
+}
+
+.tabla-datos {
+    width: 100%;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    border-collapse: collapse;
+}
+
+.tabla-datos th,
+.tabla-datos td {
+    padding: 6px 4px;
+    text-align: right;
+    border-bottom: 1px solid var(--borde);
+}
+
+.tabla-datos th {
+    font-weight: 600;
+    color: var(--texto-suave);
+}
+
+.tabla-datos th:first-child,
+.tabla-datos td:first-child {
+    text-align: left;
+}
+
+/* Medidores: una barra por misión (cuánto la cumpliste) */
+.medidores,
+.barras-atributo {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.medidor-fila {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 5px;
+    font-size: 0.88rem;
+}
+
+.medidor-fila .texto-suave {
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.medidor {
+    height: 8px;
+    background: rgba(139, 92, 246, 0.2);   /* el mismo violeta, más apagado */
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.medidor > div {
+    height: 100%;
+    background: var(--violeta);
+    border-radius: 4px;
+}
+
+/* Barras por atributo */
+.barras-atributo li {
+    display: grid;
+    grid-template-columns: 96px 1fr 26px;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+}
+
+.ba-pista {
+    display: block;
+    height: 14px;
+}
+
+.ba-pista i {
+    display: block;
+    min-width: 2px;
+    height: 100%;
+    border-radius: 0 4px 4px 0;   /* base recta, punta redondeada */
+}
+
+.ba-valor {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* ===== Personaje: apariencia ===== */
+.apariencia-grupo {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.apariencia-titulo {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.apariencia-titulo small {
+    margin-left: 6px;
+    font-size: 0.82rem;
+    font-weight: 400;
+    color: var(--texto-suave);
+}
+
+.apariencia .selector button {
+    padding: 6px 2px;
+    font-size: 0.82rem;
+}
+
+/* Círculos de color (piel y pelo) */
+.muestras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.muestra {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: var(--color-muestra);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.muestra[aria-pressed="true"] {
+    border-color: #fff;
+    box-shadow: 0 0 0 3px var(--violeta);
 }
 
 
