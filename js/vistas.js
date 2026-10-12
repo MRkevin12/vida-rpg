@@ -12,6 +12,8 @@ import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
+import * as torre from "./torre.js";
+import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
@@ -966,7 +968,26 @@ export function pantallaArcade(estado, ctx) {
             </article>`;
     }).join("");
 
+    // La Torre: el minijuego grande, arriba de todo.
+    const partida = estado.arcade.torre;
+    const recordTorre = estado.arcade.records.torre || 0;
+    const tarjetaTorre = `
+        <article class="panel torre-tarjeta">
+            <div class="torre-portada" style="background-image: url(${rutaPintura("torre")})">
+                <span class="torre-portada-titulo">🗼 Torre del héroe</span>
+            </div>
+            <p class="nota">Sube piso a piso peleando por turnos contra los monstruos de tus campañas. Antes de cada
+               turno ves qué planea el monstruo: ataca, lanza un hechizo, defiéndete o toma una poción. Al ganar eliges
+               una mejora. <b>Tu poder sale de los niveles de tus atributos reales.</b></p>
+            <p class="mini">🏅 Récord: ${recordTorre ? `${plural(recordTorre, "piso superado", "pisos superados")}` : "todavía ninguno"}
+               · Premio: ${torre.PREMIO.monedasPorPiso} 🪙 y ${torre.PREMIO.xpPorPiso} XP de Carisma por piso
+               (máx. ${torre.PREMIO.maxMonedas} 🪙 y ${torre.PREMIO.maxXp} XP)</p>
+            <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" ${partida || fichas ? "" : "disabled"}>
+                ${partida ? `Continuar · piso ${partida.piso}` : "Subir a la torre · 🎟️ 1 ficha"}</button>
+        </article>`;
+
     return `
+        ${tarjetaTorre}
         <section class="panel arcade-cabecera">
             <div class="arcade-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
             <div>
@@ -978,6 +999,130 @@ export function pantallaArcade(estado, ctx) {
         </section>
         ${fichas ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
         ${tarjetas}`;
+}
+
+
+// ===== La Torre del héroe (pantalla completa) =====
+// t = { partida, avatar (SVG del héroe), eventos (lo que acaba de pasar), resultado (al cobrar), record, fichas }
+
+export function pantallaTorre(t) {
+    if (t.resultado) return finalTorre(t);
+    const p = t.partida;
+    const h = p.heroe;
+    const m = p.enemigo;
+    const eventos = t.eventos || [];
+    const del = (quien, tipo) => eventos.find((e) => e.quien === quien && (!tipo || e.tipo === tipo));
+
+    // Lo que acaba de pasar, para las animaciones.
+    const golpeHeroe = eventos.find((e) => e.quien === "heroe" && e.dano);
+    const golpeEnemigo = eventos.find((e) => e.quien === "enemigo" && e.dano);
+    const curaHeroe = eventos.find((e) => e.quien === "heroe" && e.cura);
+    const curaEnemigo = del("enemigo", "curar");
+    const numero = (texto, clase, retraso = 0) =>
+        `<span class="dano ${clase}" style="animation-delay: ${retraso}ms" aria-hidden="true">${texto}</span>`;
+
+    const visual = campana.estadoVisual((m.vida / m.vidaMax) * 100);
+    const intencion = torre.textoIntencion(m);
+    const vida = (actual, maximo, clase) => `
+        <div class="barra barra-vida barra-mini ${clase}"><div class="barra-relleno" style="width: ${(actual / maximo) * 100}%"></div></div>
+        <span class="mini"><b>${actual}</b> / ${maximo}</span>`;
+
+    const escena = `
+        <div class="torre-escena" style="background-image: url(${rutaPintura("torre")})">
+            <div class="torre-lado torre-heroe ${golpeHeroe ? "atacar" : ""} ${golpeEnemigo ? "herido" : ""} ${del("heroe", "defender") ? "defiende" : ""}">
+                <div class="torre-avatar">${t.avatar}</div>
+                ${golpeEnemigo ? numero(`−${golpeEnemigo.dano}`, "", 520) : ""}
+                ${curaHeroe ? numero(`+${curaHeroe.cura}`, "cura") : ""}
+                ${del("heroe", "hechizo") ? '<span class="torre-rayo" aria-hidden="true"></span>' : ""}
+                ${vida(h.vida, h.vidaMax, "barra-heroe")}
+            </div>
+            <div class="torre-lado torre-enemigo ${golpeHeroe ? "golpeado" : ""} ${del("enemigo", "furia") ? "furia" : ""}">
+                ${p.fase === "batalla" ? `<p class="torre-intencion">${intencion.icono} ${intencion.texto}</p>` : ""}
+                <figure class="retrato ${p.fase === "batalla" ? visual : "derrotado"}">
+                    <img src="${campana.imagenDe(m.id)}" alt="${esc(m.nombre)}">
+                    ${golpeHeroe ? '<span class="impacto"></span>' : ""}
+                </figure>
+                ${golpeHeroe ? numero(`−${golpeHeroe.dano}${golpeHeroe.critico ? "!" : ""}`, golpeHeroe.critico ? "critico" : "", 280) : ""}
+                ${curaEnemigo ? numero(`+${curaEnemigo.cura}`, "cura", 520) : ""}
+                <b class="torre-nombre">${m.guardian ? "👑 " : ""}${esc(m.nombre)}</b>
+                <span class="mini texto-suave">${esc(m.titulo)}</span>
+                ${vida(m.vida, m.vidaMax, "")}
+            </div>
+        </div>`;
+
+    const botones = `
+        <div class="torre-acciones">
+            <button type="button" class="boton boton-secundario" data-accion="torre-accion" data-torre="atacar">
+                ⚔️ Atacar<small>${Math.round(h.ataque * 0.85)}–${Math.round(h.ataque * 1.15)} de daño</small></button>
+            <button type="button" class="boton boton-secundario" data-accion="torre-accion" data-torre="hechizo" ${h.mana ? "" : "disabled"}>
+                🔮 Hechizo<small>~${h.hechizo} · quedan ${h.mana}/${h.manaMax}</small></button>
+            <button type="button" class="boton boton-secundario" data-accion="torre-accion" data-torre="defender">
+                🛡️ Defender<small>bloquea ${Math.round(h.defensa * 100)} % · +${h.curaDefensa} vida</small></button>
+            <button type="button" class="boton boton-secundario" data-accion="torre-accion" data-torre="pocion" ${h.pociones ? "" : "disabled"}>
+                🧪 Poción<small>+35 % de vida · quedan ${h.pociones}</small></button>
+        </div>`;
+
+    // Ventanas encima de la batalla: elegir mejora, o la caída.
+    // Si aparecen justo después de un golpe, esperan un instante para que se vea el golpe final.
+    const espera = eventos.length ? "tras-golpe" : "";
+    let encima = "";
+    if (p.fase === "mejora") {
+        encima = `
+            <div class="torre-ventana ${espera}">
+                <p class="etiqueta">¡Piso ${p.piso} superado!</p>
+                <h3 class="titulo-juego">Elige una mejora</h3>
+                <div class="torre-mejoras">${p.opciones.map((clave) => {
+                    const mejora = torre.MEJORAS[clave];
+                    return `<button type="button" class="torre-mejora" data-accion="torre-mejora" data-mejora="${clave}">
+                                <span class="torre-mejora-icono">${mejora.icono}</span><b>${mejora.nombre}</b><small>${mejora.texto}</small></button>`;
+                }).join("")}</div>
+            </div>`;
+    } else if (p.fase === "fin") {
+        const pisos = torre.pisosSuperados(p);
+        const premio = torre.premio(pisos);
+        encima = `
+            <div class="torre-ventana ${espera}">
+                <p class="etiqueta">Fin de la subida</p>
+                <h3 class="titulo-juego">Caíste en el piso ${p.piso}</h3>
+                <p>Superaste <b>${plural(pisos, "piso", "pisos")}</b>.</p>
+                <p class="minijuego-premio">+${premio.monedas} 🪙 · +${premio.xp} XP de 💬 Carisma</p>
+                <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-cobrar">Cobrar premio</button>
+            </div>`;
+    }
+
+    return `
+        <div class="minijuego-barra">
+            <span class="titulo-juego">🗼 Piso ${p.piso}${torre.esGuardian(p.piso) ? " · Guardián" : ""}</span>
+            <button type="button" class="boton-icono" data-accion="torre-salir" aria-label="Salir de la torre">${ICONOS.cerrar}</button>
+        </div>
+        ${escena}
+        <p class="torre-registro" role="status">${esc(p.registro)}</p>
+        ${p.fase === "batalla" ? botones : ""}
+        ${p.fase === "batalla" ? `<button type="button" class="enlace torre-rendirse" data-accion="torre-rendirse">Rendirse y cobrar lo ganado</button>` : ""}
+        ${encima}`;
+}
+
+function finalTorre(t) {
+    const r = t.resultado;
+    return `
+        <div class="minijuego-barra">
+            <span class="titulo-juego">🗼 Torre del héroe</span>
+            <button type="button" class="boton-icono" data-accion="torre-salir" aria-label="Salir de la torre">${ICONOS.cerrar}</button>
+        </div>
+        <div class="torre-escena torre-escena-final" style="background-image: url(${rutaPintura("torre")})">
+            <div class="torre-avatar">${t.avatar}</div>
+        </div>
+        <div class="torre-ventana torre-ventana-fija">
+            <p class="etiqueta">Premio cobrado</p>
+            <p class="minijuego-puntos">${plural(r.pisos, "piso", "pisos")}</p>
+            <p>${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${plural(r.record, "piso", "pisos")}`}</p>
+            <p class="minijuego-premio">+${r.premio.monedas} 🪙 · +${r.premio.xp} XP de 💬 Carisma</p>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="torre-salir">Salir</button>
+                <button type="button" class="boton boton-principal" data-accion="torre-abrir" ${t.fichas ? "" : "disabled"}>
+                    ${t.fichas ? `Otra vez · 🎟️ ${t.fichas}` : "Sin fichas"}</button>
+            </div>
+        </div>`;
 }
 
 

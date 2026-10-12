@@ -21,6 +21,7 @@ export function sombrero(id, p) {
                     <path d="M107.6 31.6 Q112 21 119.6 18.4 Q117.4 25.6 111.6 32.6 Z" fill="#e9eef7" ${borde(0.6)}/>
                     <path d="M108.6 31.4 Q113 24 118.4 19.6" fill="none" stroke="#9fb0c9" stroke-width=".5"/>
                     <path d="M89 38.2 C86.4 29.4 92 23.4 101 23.2 C110.4 23 115.6 28.6 114 35 C113.2 38 110.8 38.8 108.6 38 Q100 34.2 89 38.2 Z" fill="url(#${p.id}-gorra)" ${borde()}/>
+                    <path d="M89 38.2 C86.4 29.4 92 23.4 101 23.2 C110.4 23 115.6 28.6 114 35 C113.2 38 110.8 38.8 108.6 38 Q100 34.2 89 38.2 Z" fill="${p.m("tejido")}" opacity=".22"/>
                     <path d="M94 26.4 Q99.4 30 108.6 28.6 M97.4 24.4 Q104 27.4 112.6 30.6" fill="none" stroke="${TRAZO}" stroke-width=".45" opacity=".4"/>
                     <path d="M92 28.6 Q95.4 25.4 100 25" fill="none" stroke="#fff" stroke-width="1" opacity=".3" stroke-linecap="round"/>
                     <path d="M88.8 37.6 Q100 33 110.8 37.4 L111 40 Q100 35.8 88.6 40.2 Z" fill="#2b3f5c" ${borde(0.75)}/>
@@ -30,6 +31,7 @@ export function sombrero(id, p) {
             return `<defs>${mate(`${p.id}-mago`, "#3a2a78", 0.2, 0.55)}</defs>
                     <ellipse cx="100" cy="36.4" rx="19.6" ry="4.4" fill="#1e1547" ${borde()}/>
                     <path d="M91.4 35.4 Q95.2 25 100.6 17.8 Q105.6 13.4 110 16.2 Q106 17.4 105.6 21.6 Q108 28 108.8 35.4 Q100 38.6 91.4 35.4 Z" fill="url(#${p.id}-mago)" ${borde()}/>
+                    <path d="M91.4 35.4 Q95.2 25 100.6 17.8 Q105.6 13.4 110 16.2 Q106 17.4 105.6 21.6 Q108 28 108.8 35.4 Q100 38.6 91.4 35.4 Z" fill="${p.m("tejido")}" opacity=".22"/>
                     <path d="M97.6 24.4 Q100.6 19.4 104.4 17" fill="none" stroke="#fff" stroke-width=".9" opacity=".3" stroke-linecap="round"/>
                     <ellipse cx="100" cy="35.6" rx="19" ry="3.9" fill="url(#${p.id}-mago)" ${borde(0.75)}/>
                     <path d="M92 31.4 Q100 34.6 108.2 31.4 L108.8 35 Q100 38.2 91.4 35 Z" fill="${p.m("oro")}" ${borde(0.6)}/>
@@ -47,6 +49,9 @@ export function sombrero(id, p) {
                     <path d="M90 36.6 Q100 31.4 110 36.6 L109.6 40 Q100 35.2 90.4 40 Z" fill="${p.m("acero")}" ${borde(0.75)}/>
                     <path d="M93.4 36.6 L96.4 35.4 M98.4 34.8 L101.6 34.8 M103.6 35.4 L106.6 36.6" stroke="${TRAZO}" stroke-width=".8" stroke-linecap="round" opacity=".75"/>
                     <path d="M100 24.4 L100 33.4" stroke="#fff" stroke-width="1.1" opacity=".55"/>
+                    <g fill="${p.m("oro")}" stroke="${TRAZO}" stroke-width=".3">
+                        <circle cx="91.6" cy="38" r=".7"/><circle cx="95.6" cy="36.4" r=".7"/><circle cx="104.4" cy="36.4" r=".7"/><circle cx="108.4" cy="38" r=".7"/>
+                        <circle cx="90.6" cy="44.6" r=".65"/><circle cx="109.4" cy="44.6" r=".65"/></g>
                     <path d="M92.4 30.4 Q94.6 26.6 98.4 25.6" fill="none" stroke="#fff" stroke-width="1" opacity=".45" stroke-linecap="round"/>`;
 
         case "corona":          // corona de oro con gemas
@@ -78,6 +83,7 @@ export function arma(id, p) {
         case "espada-madera":   // espada de entrenamiento, de madera
             return `<defs>${mate(`${p.id}-madera`, "#b98a52", 0.3, 0.45)}</defs>
                     <path d="M-2.3 -4 L-2.3 -46 Q0 -52.6 2.3 -46 L2.3 -4 Z" fill="url(#${p.id}-madera)" ${borde(0.75)}/>
+                    <path d="M0 -4 L0 -50 L2.3 -46 L2.3 -4 Z" fill="#000" opacity=".16"/>
                     <path d="M0 -6 L0 -45 M-1.1 -12 L-1.1 -30 M1.1 -22 L1.1 -40" stroke="#7a5326" stroke-width=".4" opacity=".7"/>
                     <path d="M2.3 -30 l-1.4 1.2 l1.4 1.4" fill="none" stroke="${TRAZO}" stroke-width=".5"/>
                     <rect x="-7" y="-5" width="14" height="3.2" rx="1.4" fill="#7a5326" ${borde(0.7)}/>
@@ -89,7 +95,9 @@ export function arma(id, p) {
             return `<defs>${halo(`${p.id}-runa`, "#ff3b4e", 0.7)}</defs>
                     <ellipse class="orbe" cx="0" cy="-33" rx="9" ry="34" fill="url(#${p.id}-runa)"/>
                     <path d="M-2.9 -5 L-2.9 -55 L0 -64 L2.9 -55 L2.9 -5 Z" fill="${p.m("acero")}" ${borde(0.8)}/>
+                    <path d="M0 -6 L0 -63.4 L2.9 -55 L2.9 -5 Z" fill="#000" opacity=".22"/>
                     <path d="M0 -6 L0 -57" stroke="${TRAZO}" stroke-width="1.5" opacity=".35"/>
+                    ${destello(-1.6, -60, 2.2, "chispa", "#fff")}
                     <path d="M-1.9 -8 L-1.9 -54" stroke="#fff" stroke-width=".7" opacity=".7"/>
                     <path class="orbe" d="M0 -14 l-1 -2 l1 -2 l1 2 Z M0 -26 l-1 -2 l1 -2 l1 2 Z M0 -38 l-1 -2 l1 -2 l1 2 Z M0 -50 l-1 -2 l1 -2 l1 2 Z" fill="#ff4d5e"/>
                     <path d="M-9.6 -7.4 Q-8 -4 -3 -5.4 L3 -5.4 Q8 -4 9.6 -7.4 Q9.4 -1.6 3 -1.4 L-3 -1.4 Q-9.4 -1.6 -9.6 -7.4 Z" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".7" stroke-linejoin="round"/>
@@ -103,6 +111,7 @@ export function arma(id, p) {
                           ${mate(`${p.id}-cuarzo`, "#7fe0ff", 0.6, 0.45)}</defs>
                     <path d="M-1.9 72 Q-2.6 20 -1.7 -38 L1.7 -38 Q2.6 20 1.9 72 Z" fill="url(#${p.id}-vara)" ${borde(0.75)}/>
                     <path d="M-0.5 60 Q-1 20 -0.4 -34" fill="none" stroke="#fff" stroke-width=".6" opacity=".25"/>
+                    <path d="M0.9 66 Q1.4 40 0.8 10 M-1.2 30 Q-1.4 0 -1 -30 M0.6 0 Q1 -18 0.7 -36" fill="none" stroke="#2a180c" stroke-width=".35" opacity=".6"/>
                     <path d="M-2.2 -8 h4.4 v2.6 h-4.4 Z M-2.3 20 h4.6 v2.6 h-4.6 Z" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".45"/>
                     <path d="M-1.7 -38 Q-7.6 -41 -6.6 -49 Q-4.4 -44 -1.2 -43 Z M1.7 -38 Q7.6 -41 6.6 -49 Q4.4 -44 1.2 -43 Z" fill="url(#${p.id}-vara)" ${borde(0.7)}/>
                     <circle class="orbe" cx="0" cy="-50" r="11" fill="url(#${p.id}-cristal)"/>
@@ -138,11 +147,13 @@ export function capa(e, p, color, conOro) {
     const H = e.H;
     const ancho = H + 15;
     const x = (k) => (100 + ancho * k).toFixed(1);   // k de -1 (borde izquierdo) a 1 (derecho)
-    return `<defs>${mate(`${p.id}-capa`, color, 0.16, 0.55)}</defs>
-            <path d="M${100 - H + 3} 61.4 Q100 55.6 ${100 + H - 3} 61.4 C${100 + H + 6} 92 ${100 + H + 13} 132 ${x(1)} 168
+    const forma = `M${100 - H + 3} 61.4 Q100 55.6 ${100 + H - 3} 61.4 C${100 + H + 6} 92 ${100 + H + 13} 132 ${x(1)} 168
                      Q${x(0.83)} 174.4 ${x(0.66)} 169 Q${x(0.48)} 175.4 ${x(0.3)} 170 Q${x(0.14)} 175.8 100 171
                      Q${x(-0.14)} 175.8 ${x(-0.3)} 170 Q${x(-0.48)} 175.4 ${x(-0.66)} 169 Q${x(-0.83)} 174.4 ${x(-1)} 168
-                     C${100 - H - 13} 132 ${100 - H - 6} 92 ${100 - H + 3} 61.4 Z" fill="url(#${p.id}-capa)" ${borde(0.9)}/>
+                     C${100 - H - 13} 132 ${100 - H - 6} 92 ${100 - H + 3} 61.4 Z`;
+    return `<defs>${mate(`${p.id}-capa`, color, 0.16, 0.55)}</defs>
+            <path d="${forma}" fill="url(#${p.id}-capa)" ${borde(0.9)}/>
+            <path d="${forma}" fill="${p.m("tejido")}" opacity=".16"/>
             <!-- pliegues: franjas oscuras que bajan hasta el borde -->
             <g fill="${TRAZO}" opacity=".2">
                 <path d="M${100 - H + 5} 64 C${100 - H - 2} 100 ${x(-0.74)} 140 ${x(-0.66)} 169 Q${x(-0.58)} 172.4 ${x(-0.5)} 172 C${x(-0.56)} 140 ${100 - H + 4} 100 ${100 - H + 8} 64 Z"/>

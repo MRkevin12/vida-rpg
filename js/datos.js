@@ -50,7 +50,8 @@ export function estadoInicial() {
             equipado: { cabeza: null, mano: null, espalda: null, fondo: null },
         },
         mascota: { nombre: "Chispa" },
-        arcade: { usadas: 0, records: {} },   // fichas gastadas y mejor puntaje de cada minijuego
+        arcade: { usadas: 0, records: {}, torre: null },   // fichas gastadas, mejor puntaje de cada minijuego
+                                              //   y la partida de la Torre en curso (ver torre.js), o null
         campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
         // Cómo se ve tu avatar (las opciones están en avatar.js → APARIENCIA).
         apariencia: { cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
@@ -93,6 +94,7 @@ function completar(guardado) {
         arcade: {
             usadas: guardado.arcade?.usadas || 0,
             records: { ...guardado.arcade?.records },
+            torre: guardado.arcade?.torre || null,
         },
         campana: { recompensados: { ...guardado.campana?.recompensados } },
         apariencia: { ...base.apariencia, ...guardado.apariencia },

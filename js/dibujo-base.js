@@ -9,7 +9,9 @@
 // La luz viene siempre de ARRIBA A LA IZQUIERDA: cada forma es más clara
 // por ese lado y más oscura por el otro. Eso es lo que la hace ver con volumen.
 
-export const TRAZO = "#120c1c";       // contorno oscuro
+// El contorno es oscuro pero un poco transparente: deja ver el color de abajo,
+// así el borde se ve como una sombra y no como una raya de caricatura.
+export const TRAZO = "rgba(18, 10, 28, .82)";
 export const SOMBRA = "#150a33";      // las sombras tiran a violeta (se ve más rico que el negro)
 
 let contador = 0;
@@ -49,15 +51,42 @@ export function mate(id, color, luz = 0.22, sombra = 0.42) {
             </linearGradient>`;
 }
 
-// Material brillante (acero, oro): con una franja de luz, como el metal pulido.
-export function metal(id, color) {
-    return `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0.6">
-                <stop offset="0" stop-color="${aclarar(color, 0.35)}"/>
-                <stop offset=".22" stop-color="${aclarar(color, 0.75)}"/>
-                <stop offset=".4" stop-color="${color}"/>
-                <stop offset=".72" stop-color="${oscurecer(color, 0.5)}"/>
-                <stop offset="1" stop-color="${oscurecer(color, 0.25)}"/>
+// Piel: como la mate, pero la sombra tira a rojizo (la luz atraviesa un poco
+// la piel y sale cálida; por eso una sombra gris se ve "de plástico").
+export function piel(id, color) {
+    return `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0.45">
+                <stop offset="0" stop-color="${aclarar(color, 0.18)}"/>
+                <stop offset=".42" stop-color="${color}"/>
+                <stop offset=".78" stop-color="${mezclar(color, "#9a3c2e", 0.18)}"/>
+                <stop offset="1" stop-color="${mezclar(oscurecer(color, 0.32), "#7a2a24", 0.2)}"/>
             </linearGradient>`;
+}
+
+// Material brillante (acero, oro). El metal pulido es un espejo: refleja el cielo
+// (franja muy clara), la línea oscura del horizonte y, debajo, la luz que rebota del suelo.
+export function metal(id, color) {
+    return `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0.7">
+                <stop offset="0" stop-color="${aclarar(color, 0.45)}"/>
+                <stop offset=".16" stop-color="${aclarar(color, 0.88)}"/>
+                <stop offset=".3" stop-color="${color}"/>
+                <stop offset=".46" stop-color="${oscurecer(color, 0.62)}"/>
+                <stop offset=".53" stop-color="${aclarar(color, 0.14)}"/>
+                <stop offset=".76" stop-color="${oscurecer(color, 0.36)}"/>
+                <stop offset="1" stop-color="${oscurecer(color, 0.12)}"/>
+            </linearGradient>`;
+}
+
+// Texturas: dibujos diminutos que se repiten. Se ponen ENCIMA de la tela o el cuero,
+// casi transparentes, para que no se vean como un color liso.
+export function tejido(id) {      // tela: líneas finas en diagonal, como la trama
+    return `<pattern id="${id}" width="1.5" height="1.5" patternUnits="userSpaceOnUse" patternTransform="rotate(38)">
+                <rect width="1.5" height=".5" fill="#000" opacity=".55"/><rect y=".75" width="1.5" height=".2" fill="#fff" opacity=".35"/></pattern>`;
+}
+
+export function grano(id) {       // cuero: poros y arrugas pequeñas
+    return `<pattern id="${id}" width="3.2" height="3.2" patternUnits="userSpaceOnUse">
+                <circle cx=".7" cy=".9" r=".38" fill="#000" opacity=".5"/><circle cx="2.3" cy="2.2" r=".3" fill="#000" opacity=".4"/>
+                <circle cx="2.5" cy=".5" r=".26" fill="#fff" opacity=".3"/><path d="M.2 2.6 q.8 -.4 1.4 .2" stroke="#000" stroke-width=".2" fill="none" opacity=".45"/></pattern>`;
 }
 
 // Luz redonda que se desvanece (auras, brillos, sombras en el suelo).

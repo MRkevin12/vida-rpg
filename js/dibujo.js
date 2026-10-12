@@ -14,7 +14,7 @@
 // en estilos.css. Aquí solo se dibuja; nada se mueve desde JavaScript.
 
 import { APARIENCIA, APARIENCIA_INICIAL, CLASES, OBJETOS } from "./avatar.js";
-import { nuevoId, mate, metal, halo, aclarar, oscurecer, mezclar, pivote } from "./dibujo-base.js";
+import { nuevoId, mate, metal, piel as materialPiel, tejido, grano, halo, aclarar, oscurecer, mezclar, pivote, SOMBRA } from "./dibujo-base.js";
 import { esqueleto, cuello, cara, lentes, barba, pelo } from "./dibujo-cuerpo.js";
 import { piernas, torso, bufanda, brazo, hombreras } from "./dibujo-ropa.js";
 import { sombrero, arma, capa, alas, libro, miniatura, INCLINACION, TAPA_PELO } from "./dibujo-objetos.js";
@@ -24,7 +24,9 @@ import { cuerpoMascota, dibujarMascota } from "./dibujo-mascota.js";
 export { dibujarMascota };
 
 const ETAPAS = ["novato", "aventurero", "heroe", "leyenda"];
-const ESCALA_CABEZA = 1.2;
+// La cabeza va un poco más grande que la real para que la cara se distinga en pequeño
+// (1,12: lo justo; más se ve de caricatura).
+const ESCALA_CABEZA = 1.12;
 
 
 // ===== La paleta =====
@@ -46,7 +48,7 @@ function crearPaleta(d) {
     const acero = etapa === 3 ? "#66718f" : "#a9b3c4";   // la leyenda lleva acero oscuro, azulado
 
     const colores = {
-        piel: mate(`${id}-piel`, piel.color, 0.16, 0.36),
+        piel: materialPiel(`${id}-piel`, piel.color),
         pelo: mate(`${id}-pelo`, pelo, 0.3, 0.45),
         tela: mate(`${id}-tela`, tela, 0.2, 0.48),
         lino: mate(`${id}-lino`, "#d9cfb8", 0.2, 0.4),
@@ -59,6 +61,9 @@ function crearPaleta(d) {
         gema: mate(`${id}-gema`, d.clase.color, 0.55, 0.4),
         "gema-luz": halo(`${id}-gema-luz`, d.clase.color, 0.7),
         suelo: halo(`${id}-suelo`, "#000000", 0.6, 0.6),
+        ao: halo(`${id}-ao`, SOMBRA, 0.55, 0.45),     // sombra suave de contacto ("oclusión")
+        tejido: tejido(`${id}-tejido`),
+        grano: grano(`${id}-grano`),
     };
 
     return {
@@ -134,7 +139,9 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         p.etapa === 3 && !sinEfectos ? aura(p) : "",
         d.animo === "llamas" && !sinEfectos ? llamas(p) : "",
         d.animo === "feliz" && !sinEfectos ? resplandor(p) : "",
-        mini ? "" : `<ellipse cx="100" cy="183.4" rx="34" ry="6" fill="${p.m("suelo")}"/>`,
+        // Sombra en el suelo: una amplia y suave, y otra más oscura justo bajo los pies.
+        mini ? "" : `<ellipse cx="100" cy="183.4" rx="34" ry="6" fill="${p.m("suelo")}"/>
+                     <ellipse cx="101" cy="181.8" rx="19" ry="2.6" fill="${p.m("ao")}"/>`,
         '<g class="pj">',
         espalda,
         mini ? "" : piernas(d, e, p),
@@ -144,6 +151,8 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         brazoDerecho,
         cuello(e, p),
         torso(d, e, p),
+        // La cabeza le hace sombra al pecho (la luz viene de arriba).
+        `<ellipse cx="101" cy="62.6" rx="${e.fem ? 8 : 9.5}" ry="3.6" fill="${p.m("ao")}"/>`,
         izquierdo.frente,
         manoDerecha,
         bufanda(d, e, p),

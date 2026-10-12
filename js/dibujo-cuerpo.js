@@ -45,10 +45,12 @@ export function formaTorso(e, bajo = 110) {
 
 // Varias formas con UN solo contorno alrededor (sin rayas donde se juntan):
 // primero se pintan todas con borde oscuro grueso y encima todas con su color.
-export function silueta(formas, relleno, grosor = 0.85) {
+// textura (opcional): la trama de la tela o el grano del cuero, encima y casi transparente.
+export function silueta(formas, relleno, grosor = 0.85, textura = "") {
     const caminos = formas.map((d) => `<path d="${d}"/>`).join("");
     return `<g fill="${TRAZO}" stroke="${TRAZO}" stroke-width="${grosor * 2}" stroke-linejoin="round">${caminos}</g>
-            <g fill="${relleno}">${caminos}</g>`;
+            <g fill="${relleno}">${caminos}</g>
+            ${textura ? `<g fill="${textura}" opacity=".2">${caminos}</g>` : ""}`;
 }
 
 // Las dos cápsulas de una pierna o un brazo: [de arriba a la articulación, de ahí hacia abajo].
@@ -120,7 +122,9 @@ export function cara(d, e, p) {
     } else {
         ojoIzq = `<path d="M93.8 41.7 Q96 ${41.7 - alto * 0.78} 98.4 41.6 Q96.1 ${41.7 + alto * 0.62} 93.8 41.7 Z" fill="#f6f1e7"/>
                   <circle cx="96.25" cy="41.55" r="1.3" fill="${p.ojos}"/>
+                  <circle cx="96.25" cy="41.55" r="1.18" fill="none" stroke="${oscurecer(p.ojos, 0.55)}" stroke-width=".26"/>
                   <circle cx="96.25" cy="41.55" r=".62" fill="${TRAZO}"/>
+                  <path d="M94.1 41.3 Q96 ${41.5 - alto * 0.7} 98.2 41.2" fill="none" stroke="${p.pielSombra}" stroke-width=".55" opacity=".55"/>
                   <path d="M93.5 41.8 Q96 ${41.5 - alto * 0.86} 98.6 41.5" fill="none" stroke="${TRAZO}" stroke-width="${e.fem ? 0.95 : 0.75}" stroke-linecap="round"/>
                   ${e.fem ? `<path d="M93.6 41.7 L92.5 40.8" stroke="${TRAZO}" stroke-width=".7" stroke-linecap="round"/>` : ""}`;
     }
@@ -168,6 +172,10 @@ export function cara(d, e, p) {
         <path d="M104.5 30 C109 31.5 109.8 34 109.6 38 L109.4 43 C109.2 47 108 49.6 105.9 51.8 C104 53.6 102 54.3 100.6 54.4 C104 51 106.4 46 106.2 40 C106.1 36 105.6 32.5 104.5 30 Z" fill="${p.pielSombra}" opacity=".5"/>
         <ellipse cx="96.3" cy="34.6" rx="3.4" ry="1.9" fill="#fff" opacity=".13"/>
         <path d="M92.6 46.2 Q94.6 47.6 96.4 46.4" fill="none" stroke="#fff" stroke-width=".8" opacity=".1" stroke-linecap="round"/>
+        <!-- cuencas de los ojos (un poco hundidas), mejillas y la sombra bajo el labio -->
+        <g fill="${p.pielSombra}" opacity=".3"><ellipse cx="96.2" cy="40.4" rx="3.3" ry="1.7"/><ellipse cx="103.8" cy="40.4" rx="3.3" ry="1.7"/></g>
+        <g fill="#c4584a" opacity=".13"><ellipse cx="93.8" cy="46.4" rx="2.5" ry="1.4"/><ellipse cx="106.2" cy="46.4" rx="2.5" ry="1.4"/></g>
+        <ellipse cx="100" cy="52.6" rx="2.2" ry=".8" fill="${p.pielSombra}" opacity=".35"/>
         ${pecas}${cicatriz}
         ${cejaIzq}<g transform="translate(200 0) scale(-1 1)">${cejaIzq}</g>
         <g class="ojos">${ojoIzq}<g transform="translate(200 0) scale(-1 1)">${ojoIzq}</g>${brillos}</g>
@@ -223,6 +231,9 @@ export function pelo(d, p) {
     const borde = `stroke="${TRAZO}" stroke-width=".7" stroke-linejoin="round"`;
     const brillo = (camino, grosor = 0.8) =>
         `<path d="${camino}" fill="none" stroke="${p.peloLuz}" stroke-width="${grosor}" stroke-linecap="round" opacity=".75"/>`;
+    // Mechones: líneas finas y oscuras que siguen la dirección del pelo (le dan textura).
+    const mechones = (...caminos) => caminos.map((camino) =>
+        `<path d="${camino}" fill="none" stroke="${oscurecer(p.pelo, 0.5)}" stroke-width=".32" stroke-linecap="round" opacity=".6"/>`).join("");
 
     switch (d.apariencia.peinado) {
         case "calvo":
@@ -234,20 +245,20 @@ export function pelo(d, p) {
         case "largo":
             return {
                 atras: `<path d="M89.3 40 C87.6 28 93 26.2 100 26.2 C107 26.2 112.4 28 110.7 40 C111.9 52 114.8 62 114.4 75 Q110.6 78.6 107 75.4 L106 58 L94 58 L93 75.4 Q89.4 78.6 85.6 75 C85.2 62 88.1 52 89.3 40 Z" fill="${color}" ${borde}/>
-                        ${brillo("M88.6 52 Q87.2 62 87.6 72", 0.7)}${brillo("M111.6 54 Q112.6 63 112.2 71", 0.6)}`,
+                        ${brillo("M88.6 52 Q87.2 62 87.6 72", 0.7)}${brillo("M111.6 54 Q112.6 63 112.2 71", 0.6)}${mechones("M89.6 48 Q88.6 60 89.4 71", "M110.4 48 Q111.4 60 110.6 71", "M91 54 Q90.6 62 91.2 70")}`,
                 frente: `<path d="M90.3 42 C89 33 92.6 27.5 100 27.3 C107.4 27.5 111 33 109.7 42 C108.6 36.8 105.2 33.6 100 31.8 C94.8 33.6 91.4 36.8 90.3 42 Z" fill="${color}" ${borde}/>
                          <path d="M90.4 40 C88.6 46 88 53 88.6 59.6 Q90.4 59 91.2 56 C90.8 50 91.2 45 92.3 42 Z" fill="${color}"/>
                          <path d="M109.6 40 C111.4 46 112 53 111.4 59.6 Q109.6 59 108.8 56 C109.2 50 108.8 45 107.7 42 Z" fill="${color}"/>
-                         ${brillo("M93.4 32.6 Q96 29.6 99.4 29.2")}${brillo("M89.6 45 Q89 51 89.4 56", 0.6)}`,
+                         ${brillo("M93.4 32.6 Q96 29.6 99.4 29.2")}${brillo("M89.6 45 Q89 51 89.4 56", 0.6)}${mechones("M91.6 38.6 Q92.6 33 97.8 29.8", "M102.4 29.8 Q107.4 33 108.4 38.6", "M95.6 33.6 Q99.4 30.8 104 31.4")}`,
             };
 
         case "recogido":   // coleta alta que cae sobre un hombro
             return {
                 atras: `<path d="M105.6 28.8 C113 27.2 117.8 33 116.6 41 C115.8 49 117 56 114.8 63.4 Q112.4 65.2 110.5 63 C111.6 55 110 47 110.8 40 C111.2 35 109.4 31.6 105.6 30.4 Z" fill="${color}" ${borde}/>
-                        ${brillo("M113.6 34 Q115 42 114 52", 0.7)}
+                        ${brillo("M113.6 34 Q115 42 114 52", 0.7)}${mechones("M112.2 36 Q113.6 46 112.6 58", "M115 38 Q115.8 47 114.6 56")}
                         <ellipse cx="109.4" cy="30.2" rx="2.2" ry="1.5" fill="${p.borde}" stroke="${TRAZO}" stroke-width=".6" transform="rotate(25 109.4 30.2)"/>`,
                 frente: `<path d="M90.3 40.8 C89.2 32.4 92.8 27.7 100 27.5 C107.2 27.7 110.8 32.4 109.7 40.8 C108.8 36 105.6 32.9 100 32.5 C94.4 32.9 91.2 36 90.3 40.8 Z" fill="${color}" ${borde}/>
-                         ${brillo("M93.6 32 Q96.4 29.4 100 29.1")}${brillo("M102 29.4 Q105.4 30.2 107.4 32.6", 0.6)}`,
+                         ${brillo("M93.6 32 Q96.4 29.4 100 29.1")}${brillo("M102 29.4 Q105.4 30.2 107.4 32.6", 0.6)}${mechones("M92.4 37 Q95 31.6 100 30.4", "M100.6 30.4 Q105.6 31.2 108.4 36.6", "M96 34 Q100 31.6 104.6 32.6")}`,
             };
 
         case "melena":     // media melena con flequillo
@@ -256,7 +267,7 @@ export function pelo(d, p) {
                 frente: `<path d="M90.2 41.8 C89 33 92.6 27.3 100 27.1 C107.4 27.3 111 33 109.8 41.8 C109.2 38.8 108 36.8 106.6 35.8 C104.5 37.7 101.2 38.5 98 37.9 C95.2 37.4 92.6 36.6 91.4 35.6 C90.6 37.4 90.3 39.4 90.2 41.8 Z" fill="${color}" ${borde}/>
                          <path d="M90.5 40 C89.3 45 89.1 51 90.1 56.6 Q91.9 57.4 92.5 55.2 C91.8 50 91.8 45 92.3 41.5 Z" fill="${color}" ${borde}/>
                          <path d="M109.5 40 C110.7 45 110.9 51 109.9 56.6 Q108.1 57.4 107.5 55.2 C108.2 50 108.2 45 107.7 41.5 Z" fill="${color}" ${borde}/>
-                         ${brillo("M93.2 32.4 Q96 29.4 99.6 29")}${brillo("M95 35.4 Q98 36.6 101 36.2", 0.6)}`,
+                         ${brillo("M93.2 32.4 Q96 29.4 99.6 29")}${brillo("M95 35.4 Q98 36.6 101 36.2", 0.6)}${mechones("M92.6 35 Q95.6 30.8 100.6 30.2", "M100 36.6 Q103.6 33.8 107.6 35", "M90.8 44 Q90.4 50 91 55.4", "M109.2 44 Q109.6 50 109 55.4")}`,
             };
 
         case "rizado": {   // rizos con volumen: muchos círculos formando una nube
@@ -282,7 +293,7 @@ export function pelo(d, p) {
                 atras: "",
                 frente: `<path d="M90.5 39.6 C89.8 33 92.6 29.6 96 28.8 L104 28.8 C107.4 29.6 110.2 33 109.5 39.6 C108.8 36 107 34 104.8 33.4 L95.2 33.4 C93 34 91.2 36 90.5 39.6 Z" fill="${p.pelo}" opacity=".7"/>
                          <path d="M92.6 35.4 C91.8 29.4 95.6 24.4 101.8 23.6 C106.6 23 109.8 25.4 110.4 28.5 C108.4 27.5 106.6 27.7 105.4 28.7 C107.7 30 109 32.3 109 35.2 C106 32.8 101.5 32.5 97.7 33.4 C95.5 34 93.8 34.6 92.6 35.4 Z" fill="${color}" ${borde}/>
-                         ${brillo("M95.4 30 Q98.4 26.2 103 25.4", 0.9)}${brillo("M97.4 31.6 Q100.4 29.4 104 29.4", 0.6)}`,
+                         ${brillo("M95.4 30 Q98.4 26.2 103 25.4", 0.9)}${brillo("M97.4 31.6 Q100.4 29.4 104 29.4", 0.6)}${mechones("M94.6 32.4 Q98.6 27.2 105.6 26.2", "M96.8 33.4 Q101.6 30.6 107.6 31.8", "M99 31.6 Q103 28.4 108.8 28.6")}`,
             };
 
         default:           // "corto": corto, peinado de lado
@@ -290,7 +301,7 @@ export function pelo(d, p) {
                 atras: "",
                 frente: `<path d="M90.2 40.6 C89 33 92 27.5 100 27.3 C108 27.5 111.2 33 109.8 40.6 C109.2 37 107.8 35 105.4 34.2 C102 35.7 97.5 35.9 94.6 33.9 C92.4 35.3 90.8 37.4 90.2 40.6 Z" fill="${color}" ${borde}/>
                          <path d="M90.4 39.6 L90.7 44.4 L92 40.4 Z M109.6 39.6 L109.3 44.4 L108 40.4 Z" fill="${p.pelo}"/>
-                         ${brillo("M93.8 31.4 Q97 28.8 101.4 28.9")}${brillo("M96.4 33 Q99.4 31.6 103 32", 0.6)}`,
+                         ${brillo("M93.8 31.4 Q97 28.8 101.4 28.9")}${brillo("M96.4 33 Q99.4 31.6 103 32", 0.6)}${mechones("M91.8 37.4 Q93.8 31.6 99 29.6", "M95.4 34.2 Q99 31.2 104.8 30.8", "M101.6 34.6 Q105.8 33.2 108.6 36.4")}`,
             };
     }
 }

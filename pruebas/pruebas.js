@@ -17,6 +17,8 @@ import * as campana from "../js/campana.js";
 import * as desafios from "../js/desafios.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.js";
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
+import * as torre from "../js/torre.js";
+import * as arcade from "../js/arcade.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -609,6 +611,80 @@ prueba("Aviso de misión: el texto es solo de esa misión, y desaparece al hacer
 });
 
 
+// ===== Torre del héroe =====
+
+const NIVELES_1 = { fuerza: 1, intelecto: 1, carisma: 1, riqueza: 1 };
+
+prueba("Torre: tu poder sale de tus atributos, y cada 5 pisos hay un guardián más fuerte", () => {
+    const debil = torre.heroeDeLaTorre(NIVELES_1);
+    const fuerte = torre.heroeDeLaTorre({ fuerza: 6, intelecto: 6, carisma: 6, riqueza: 6 });
+    cierto(fuerte.vidaMax > debil.vidaMax && fuerte.ataque > debil.ataque && fuerte.hechizo > debil.hechizo, "más atributos, más poder");
+    cierto(fuerte.pociones > debil.pociones && fuerte.critico > debil.critico, "Riqueza da pociones y críticos");
+    const [p4, p5, p6] = [4, 5, 6].map(torre.monstruoDelPiso);
+    igual([p4.guardian, p5.guardian, p6.guardian], [false, true, false]);
+    cierto(p5.vidaMax > p6.vidaMax, "el guardián del piso 5 aguanta más que el monstruo del 6");
+    igual(torre.MONSTRUOS.length, 20, "los 20 jefes");
+});
+
+prueba("Torre: atacar daña; defenderse reduce el golpe del monstruo", () => {
+    const p = torre.nuevaPartida(NIVELES_1, 42);
+    const vidaAntes = p.enemigo.vida;
+    torre.actuar(p, "atacar");
+    cierto(p.enemigo.vida < vidaAntes, "el monstruo perdió vida");
+
+    const a = torre.nuevaPartida(NIVELES_1, 7);
+    const b = torre.nuevaPartida(NIVELES_1, 7);
+    a.enemigo.intencion = b.enemigo.intencion = "fuerte";
+    torre.actuar(a, "defender");
+    torre.actuar(b, "pocion");   // gasta el turno sin defenderse
+    const perdidaA = a.heroe.vidaMax - a.heroe.vida;
+    const perdidaB = b.heroe.vidaMax - b.heroe.vida;
+    cierto(perdidaA < perdidaB, `defenderse duele menos (${perdidaA} contra ${perdidaB})`);
+});
+
+prueba("Torre: al vencer eliges una de tres mejoras y subes de piso con los hechizos recargados", () => {
+    const p = torre.nuevaPartida(NIVELES_1, 3);
+    p.heroe.mana = 0;
+    p.enemigo.vida = 1;
+    const eventos = torre.actuar(p, "atacar");
+    cierto(eventos.some((e) => e.tipo === "derrotado"), "el monstruo cae");
+    igual(p.fase, "mejora");
+    igual(new Set(p.opciones).size, 3, "tres mejoras distintas");
+    debeFallar(() => torre.elegirMejora(p, "inventada"), "Elige una");
+    torre.elegirMejora(p, p.opciones[0]);
+    igual([p.piso, p.fase, p.heroe.mana], [2, "batalla", p.heroe.manaMax]);
+});
+
+prueba("Torre: sin hechizos ni pociones no se pueden usar; la misma semilla da la misma partida", () => {
+    const p = torre.nuevaPartida(NIVELES_1, 9);
+    p.heroe.mana = 0;
+    p.heroe.pociones = 0;
+    debeFallar(() => torre.actuar(p, "hechizo"), "hechizos");
+    debeFallar(() => torre.actuar(p, "pocion"), "pociones");
+    const jugar = () => { const x = torre.nuevaPartida(NIVELES_1, 123); for (let i = 0; i < 3; i++) torre.actuar(x, "atacar"); return x; };
+    igual(jugar(), jugar(), "dos partidas con la misma semilla");
+});
+
+prueba("Torre: gasta una ficha al empezar, se puede seguir después y al caer se cobra el premio", () => {
+    const estado = partidaNueva();
+    const fichas = arcade.fichasDisponibles(estado);
+    acciones.empezarTorre(estado, 5);
+    acciones.empezarTorre(estado, 5);   // ya hay una partida: se sigue esa
+    igual(arcade.fichasDisponibles(estado), fichas - 1, "solo una ficha");
+    const p = estado.arcade.torre;
+    p.piso = 4;                           // como si hubiera superado 3 pisos
+    p.heroe.vida = 1;
+    p.enemigo.intencion = "golpe";
+    acciones.accionTorre(estado, "atacar");   // ataca, el monstruo responde y lo derriba
+    igual(p.fase, "fin", "cayó");
+    const r = acciones.terminarTorre(estado);
+    igual([r.pisos, r.premio], [3, torre.premio(3)]);
+    igual([estado.personaje.monedas, estado.atributos.carisma], [torre.premio(3).monedas, torre.premio(3).xp]);
+    igual([estado.arcade.records.torre, estado.arcade.torre], [3, null]);
+    igual(torre.premio(100), { monedas: torre.PREMIO.maxMonedas, xp: torre.PREMIO.maxXp }, "el premio tiene un máximo");
+});
+
+
 // ===== Avatar y ajustes =====
 
 prueba("Apariencia: se puede cambiar, y una opción inventada no se acepta", () => {
@@ -662,6 +738,7 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     igual([estado.tareas, estado.desafios, estado.diario, estado.avances], [[], [], {}, {}], "las listas nuevas");
     igual(estado.enfoque, { activo: null, sesiones: [] });
     igual(estado.avisos, { horarios: [], enfoque: true }, "las notificaciones");
+    igual(estado.arcade.torre, null, "sin partida de la Torre");
 });
 
 prueba("Copia de seguridad: un archivo cualquiera se rechaza", () => {

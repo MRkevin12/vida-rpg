@@ -3047,6 +3047,263 @@ textarea:focus {
 }
 
 
+/* ===== Torre del héroe ===== */
+/* La tarjeta en la pantalla Arcade */
+.torre-tarjeta {
+    display: grid;
+    gap: 10px;
+    border-color: rgba(251, 191, 36, 0.45);
+}
+
+.torre-portada {
+    position: relative;
+    height: 150px;
+    margin: -18px -18px 0;
+    border-radius: var(--radio) var(--radio) 0 0;
+    background-size: cover;
+    background-position: center 30%;
+}
+
+/* Un velo cálido sobre el grabado (es en blanco y negro): como luz de antorchas. */
+.torre-portada::before,
+.torre-escena::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        radial-gradient(circle at 50% 70%, rgba(255, 150, 60, 0.28), transparent 65%),
+        linear-gradient(180deg, rgba(11, 8, 22, 0.25), rgba(11, 8, 22, 0.8));
+}
+
+.torre-portada-titulo {
+    position: absolute;
+    left: 16px;
+    bottom: 12px;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    text-shadow: 0 2px 10px #000;
+}
+
+/* La batalla */
+.torre-caja {
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+.torre-escena {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+    gap: 6px;
+    min-height: min(46vh, 340px);
+    padding: 12px 10px 10px;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--borde);
+    border-radius: 16px;
+}
+
+.torre-lado {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    text-align: center;
+}
+
+.torre-lado .barra {
+    width: 100%;
+    max-width: 130px;
+}
+
+.torre-heroe .barra-relleno {
+    background: linear-gradient(90deg, #059669, var(--verde));
+}
+
+.torre-avatar {
+    width: min(36vw, 150px);
+}
+
+.torre-avatar svg {
+    display: block;
+    width: 100%;
+}
+
+.torre-enemigo .retrato {
+    width: min(30vw, 120px);
+}
+
+.torre-nombre {
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.85rem;
+}
+
+.torre-intencion {
+    padding: 4px 9px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #ffe4c4;
+    background: rgba(11, 8, 22, 0.78);
+    border: 1px solid rgba(251, 113, 133, 0.55);
+    border-radius: 999px;
+}
+
+/* Animaciones del turno: el héroe golpea (.atacar), el monstruo lo recibe y responde. */
+.torre-enemigo.golpeado .retrato {
+    animation: recibir-golpe 0.55s ease-out 0.28s;
+}
+
+.torre-heroe.herido .torre-avatar {
+    animation: recibir-golpe 0.55s ease-out 0.52s;
+}
+
+.torre-heroe.defiende .torre-avatar {
+    filter: drop-shadow(0 0 10px rgba(143, 216, 255, 0.9));
+}
+
+.torre-enemigo.furia .retrato {
+    box-shadow: 0 0 24px rgba(244, 63, 94, 0.9);
+}
+
+.dano.cura {
+    color: #d1fae5;
+    text-shadow: 0 0 8px #059669, 0 2px 0 #064e3b;
+}
+
+.dano.critico {
+    font-size: 1.7rem;
+    color: #fff3c4;
+    text-shadow: 0 0 10px #f59e0b, 0 2px 0 #92400e;
+}
+
+/* El hechizo: una esfera de luz que vuela hacia el monstruo. */
+.torre-rayo {
+    position: absolute;
+    top: 38%;
+    left: 62%;
+    z-index: 3;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff, #8fd8ff 45%, rgba(143, 216, 255, 0) 70%);
+    opacity: 0;
+    pointer-events: none;
+    animation: rayo 0.36s ease-in;
+}
+
+@keyframes rayo {
+    0% { opacity: 1; transform: translateX(0) scale(0.6); }
+    100% { opacity: 0.2; transform: translateX(min(38vw, 160px)) scale(1.6); }
+}
+
+.torre-registro {
+    min-height: 2.8em;
+    font-size: 0.86rem;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+.torre-acciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.torre-acciones .boton {
+    display: grid;
+    gap: 1px;
+    padding: 10px 8px;
+}
+
+.torre-acciones small {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--texto-suave);
+}
+
+.torre-rendirse {
+    justify-self: center;
+}
+
+/* Ventanas encima de la batalla: elegir mejora, la caída y el resumen */
+.torre-ventana {
+    position: absolute;
+    inset: 44px 0 0;
+    z-index: 4;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 8px;
+    padding: 18px;
+    text-align: center;
+    background: rgba(18, 10, 36, 0.95);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    border-radius: 16px;
+    animation: entrar-celebracion 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.torre-ventana.tras-golpe {
+    animation-delay: 0.9s;
+    animation-fill-mode: both;   /* mientras espera, invisible (como al empezar la animación) */
+}
+
+.torre-ventana .etiqueta {
+    color: var(--oro);
+}
+
+.torre-ventana-fija {
+    position: static;
+}
+
+.torre-ventana .botones-dialogo,
+.torre-mejoras {
+    width: 100%;
+}
+
+.torre-mejoras {
+    display: grid;
+    gap: 8px;
+}
+
+.torre-mejora {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    text-align: left;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+.torre-mejora:active {
+    transform: scale(0.98);
+}
+
+.torre-mejora-icono {
+    grid-row: span 2;
+    font-size: 1.6rem;
+}
+
+.torre-mejora small {
+    color: var(--texto-suave);
+}
+
+.torre-escena-final {
+    justify-items: center;
+    grid-template-columns: 1fr;
+    min-height: 200px;
+}
+
+
 /* ===== Celebraciones y avisos ===== */
 .celebracion {
     position: fixed;

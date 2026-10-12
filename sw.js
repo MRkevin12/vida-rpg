@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v13";
+const VERSION = "vida-rpg-v14";
 
 const ARCHIVOS = [
     "./",
@@ -42,9 +42,11 @@ const ARCHIVOS = [
     "./js/fechas.js",
     "./js/juego.js",
     "./js/minijuegos.js",
+    "./js/pinturas.js",
     "./js/resumen.js",
     "./js/seguridad.js",
     "./js/sonido.js",
+    "./js/torre.js",
     "./js/vistas.js",
     "./fuentes/orbitron-700.woff2",
     "./fuentes/orbitron-800.woff2",
@@ -52,6 +54,20 @@ const ARCHIVOS = [
     "./iconos/icono-192.png",
     "./iconos/icono-512.png",
     "./iconos/icono-maskable-512.png",
+    // Pinturas de los fondos y escenarios (dominio público)
+    "./fondos/aldea.jpg",
+    "./fondos/camino.jpg",
+    "./fondos/fortaleza.jpg",
+    "./fondos/cumbre.jpg",
+    "./fondos/bosque.jpg",
+    "./fondos/castillo.jpg",
+    "./fondos/galaxia.jpg",
+    "./fondos/salon.jpg",
+    "./fondos/escena-fuerza.jpg",
+    "./fondos/escena-intelecto.jpg",
+    "./fondos/escena-carisma.jpg",
+    "./fondos/escena-riqueza.jpg",
+    "./fondos/torre.jpg",
     // Pinturas de los jefes (dominio público)
     "./jefes/cerbero.jpg",
     "./jefes/ciclope.jpg",

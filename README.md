@@ -30,8 +30,10 @@ Las capturas usan una partida de ejemplo inventada.
 - **Misiones principales** divididas en pasos, para las metas grandes.
 - **Campaña de jefes:** cada atributo tiene 5 jefes, cada uno más fuerte, en su propio escenario. Les haces daño cumpliendo misiones de ese atributo: las diarias, las tareas y el enfoque pegan poco y los pasos de una misión principal pegan mucho. Tu héroe ataca con su arma y el jefe recibe el golpe. Al vencer a los 5 empieza la **Partida+**: vuelven con más vida y mejores premios en cada ronda.
 - **Logros** automáticos y personales, y una **tienda** donde cambias monedas por recompensas reales que tú defines.
+- **Fondos pintados:** los escenarios del avatar y de las batallas son pinturas clásicas de dominio público (Constable, Bierstadt, Van Gogh, Turner, Panini…).
 - **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
-- **Tres minijuegos** que se juegan con fichas ganadas al completar misiones.
+- **Torre del héroe:** un minijuego grande de batallas por turnos, piso a piso, con mejoras entre pisos. Tu poder sale de los niveles de tus atributos reales.
+- **Tres minijuegos** más, que se juegan con fichas ganadas al completar misiones.
 - **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día), un aviso propio para cada misión que le pongas hora (solo si todavía no la hiciste) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan.
 - **PIN de 4 números** para abrir la app y **copia de seguridad** en un archivo.
 - **Sonidos** hechos con código, que se pueden apagar en Ajustes.
@@ -88,6 +90,8 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/avatar.js` | Las reglas del avatar: etapas, clases, objetos y opciones de apariencia |
 | `js/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
 | `js/arcade.js`, `js/minijuegos.js` | Las fichas y los tres minijuegos en `<canvas>` |
+| `js/torre.js` | Las reglas de la Torre del héroe (batallas por turnos y mejoras) |
+| `js/pinturas.js`, `fondos/` | Las pinturas de los fondos y escenarios, con sus créditos |
 | `js/datos.js` | Guardar, cargar y copias de seguridad |
 | `js/seguridad.js` | El PIN (se guarda su huella SHA-256, nunca el PIN) |
 | `js/sonido.js` | Sonidos con la Web Audio API |
@@ -112,7 +116,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 56 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 61 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 
@@ -125,4 +129,5 @@ Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están 
 ## Créditos
 
 - **Pinturas de los jefes:** 20 obras de dominio público tomadas de Wikimedia Commons (Doré, Caravaggio, Goya, Blake, Waterhouse, Redon y otros). El autor y la fuente de cada una están en la app, en Ajustes → Créditos de las imágenes, y en `js/campana.js`.
+- **Fondos y escenarios:** 13 pinturas y grabados de dominio público (Constable, Hobbema, Thomas Cole, Bierstadt, Shishkin, Christian Jank, Van Gogh, Panini, Turner, Hubert Robert, Pieter Neefs y Piranesi), con sus créditos en la app y en `js/pinturas.js`.
 - **Tipografía:** Orbitron, bajo la licencia SIL Open Font License (`fuentes/OFL.txt`).

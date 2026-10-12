@@ -11,6 +11,7 @@ import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
+import * as torre from "./torre.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -750,6 +751,53 @@ function revisarDesafios(estado) {
 // La tarjeta «Tu semana» (resumen de la semana pasada) se muestra hasta que la cierras.
 export function cerrarResumenSemanal(estado) {
     estado.semanaVista = lunesDe(hoy());
+}
+
+
+// ===== Torre del héroe (el minijuego grande) =====
+// La partida se guarda en estado.arcade.torre: puedes salir y seguirla después.
+
+export function empezarTorre(estado, semilla) {
+    if (estado.arcade.torre) return;   // ya hay una partida: se sigue esa (sin gastar otra ficha)
+    if (arcade.fichasDisponibles(estado) < 1) {
+        throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
+    }
+    estado.arcade.usadas += 1;   // la ficha se gasta al EMPEZAR
+    estado.arcade.torre = torre.nuevaPartida(nivelesDeAtributos(estado), semilla);
+}
+
+export function accionTorre(estado, accion) {
+    const partida = estado.arcade.torre;
+    if (!partida) throw new Error("No hay una partida de la Torre en curso.");
+    return { eventos: torre.actuar(partida, accion) };
+}
+
+export function mejoraTorre(estado, clave) {
+    const partida = estado.arcade.torre;
+    if (!partida) throw new Error("No hay una partida de la Torre en curso.");
+    torre.elegirMejora(partida, clave);
+}
+
+// Cobrar al terminar (o al rendirte): monedas y XP de Carisma según los pisos superados.
+export function terminarTorre(estado) {
+    const partida = estado.arcade.torre;
+    if (!partida) throw new Error("No hay una partida de la Torre en curso.");
+    const pisos = torre.pisosSuperados(partida);
+    const premio = torre.premio(pisos);
+    ganar(estado, { ...premio, atributo: torre.ATRIBUTO });
+    const anterior = estado.arcade.records.torre || 0;
+    const nuevoRecord = pisos > anterior;
+    if (nuevoRecord) estado.arcade.records.torre = pisos;
+    estado.arcade.torre = null;
+    return {
+        pisos,
+        premio,
+        record: estado.arcade.records.torre || 0,
+        nuevoRecord: nuevoRecord && pisos > 0,
+        celebraciones: nuevoRecord && anterior > 0
+            ? [{ icono: "🗼", etiqueta: "¡Nuevo récord en la Torre!", titulo: `Piso ${pisos + 1}`, detalle: `Superaste ${pisos} pisos.` }]
+            : [],
+    };
 }
 
 

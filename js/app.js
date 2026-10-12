@@ -15,6 +15,8 @@ import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
+import * as torre from "./torre.js";
+import { PINTURAS, fuentePintura } from "./pinturas.js";
 import * as minijuegos from "./minijuegos.js";
 import * as sonido from "./sonido.js";
 import * as avisos from "./avisos.js";
@@ -355,6 +357,46 @@ function terminarMinijuego(tipo, puntos) {
     if (resultado.nuevoRecord) sonar("logro");
 }
 
+// ===== Torre del héroe =====
+// Es por turnos, así que no usa lienzo: se vuelve a dibujar después de cada acción.
+
+let resultadoTorre = null;   // lo que se cobró al terminar (para mostrar el resumen)
+
+function pintarTorre(eventos = []) {
+    $("#torre-caja").innerHTML = vistas.pantallaTorre({
+        partida: estado.arcade.torre,
+        avatar: dibujarAvatar(avatarActual(), { batalla: true }),
+        eventos,
+        resultado: resultadoTorre,
+        fichas: arcade.fichasDisponibles(estado),
+    });
+}
+
+function abrirTorre() {
+    // Si no hay partida, empezar una (gasta 1 ficha). Si hay, se sigue esa.
+    resultadoTorre = null;
+    if (!ejecutar(() => acciones.empezarTorre(estado))) return;
+    $("#torre").hidden = false;
+    pintarTorre();
+}
+
+function cerrarTorre() {
+    $("#torre").hidden = true;   // la partida queda guardada: se sigue después
+    resultadoTorre = null;
+    dibujarPantalla();
+}
+
+// Sonidos de un turno, al compás de las animaciones (el golpe del héroe y luego el del monstruo).
+function sonarTurno(eventos) {
+    const heroe = eventos.find((e) => e.quien === "heroe");
+    const enemigo = eventos.find((e) => e.quien === "enemigo");
+    if (heroe?.dano) setTimeout(() => sonar("impacto"), 280);
+    if (heroe?.cura) sonar("moneda");
+    if (enemigo?.tipo === "derrotado") setTimeout(() => sonar("victoria"), 450);
+    else if (enemigo?.dano) setTimeout(() => sonar(estado.arcade.torre?.fase === "fin" ? "fallo" : "impacto"), 620);
+}
+
+
 function cerrarMinijuego() {
     if (partida) {
         // A mitad de partida: se termina y cuentan los puntos que llevabas.
@@ -641,9 +683,10 @@ function rellenarOpciones() {
     $("#logro-tipo").innerHTML = Object.entries(juego.TIPOS_LOGRO)
         .map(([clave, t]) => `<option value="${clave}">${t.texto}</option>`).join("");
 
-    // Créditos de las obras de arte de los jefes (todas de dominio público).
-    $("#creditos").innerHTML = Object.entries(campana.CREDITOS).map(([id, c]) =>
-        `<p><a href="${campana.fuenteDe(id)}" target="_blank" rel="noopener">${c.obra}</a> — ${c.artista}, ${c.anio}.</p>`).join("");
+    // Créditos de las obras de arte: los jefes, los fondos y los escenarios (todas de dominio público).
+    const credito = (enlace, c) => `<p><a href="${enlace}" target="_blank" rel="noopener">${c.obra}</a> — ${c.artista}, ${c.anio}.</p>`;
+    $("#creditos").innerHTML = `<h4>Jefes</h4>${Object.entries(campana.CREDITOS).map(([id, c]) => credito(campana.fuenteDe(id), c)).join("")}
+        <h4>Fondos y escenarios</h4>${Object.entries(PINTURAS).map(([id, c]) => credito(fuentePintura(id), c)).join("")}`;
 
     const d = juego.DIFICULTADES;
     const p = juego.PREMIOS;
@@ -671,7 +714,11 @@ function rellenarOpciones() {
            Su ánimo depende de tu racha: tras 3 días sin misiones se duerme.</p>
         <p><strong>Mascota:</strong> eclosiona con 10 misiones diarias completadas y es adulta con 50.</p>
         <p><strong>Minijuegos:</strong> empiezas con ${arcade.FICHAS_DE_REGALO} fichas y ganas 1 por cada misión diaria completada.
-           Cada partida da hasta ${arcade.MAX_MONEDAS} monedas y ${arcade.MAX_XP} XP según tus puntos.</p>`;
+           Cada partida da hasta ${arcade.MAX_MONEDAS} monedas y ${arcade.MAX_XP} XP según tus puntos.</p>
+        <p><strong>Torre del héroe:</strong> batallas por turnos piso a piso (1 ficha por subida; puedes salir y seguir después).
+           Tu vida y tu ataque salen de Fuerza, los hechizos de Intelecto, la defensa de Carisma y las pociones y los críticos de Riqueza.
+           Cada ${torre.CADA_GUARDIAN} pisos hay un guardián. Premio: ${torre.PREMIO.monedasPorPiso} monedas y ${torre.PREMIO.xpPorPiso} XP de Carisma
+           por piso superado (máx. ${torre.PREMIO.maxMonedas} y ${torre.PREMIO.maxXp}).</p>`;
 }
 
 // Preparativos al abrir cada ventana. Si reciben un elemento (una misión, un logro…),
@@ -1047,6 +1094,32 @@ const ACCIONES = {
     },
 
     jugar: (boton) => jugarMinijuego(boton.dataset.juego),
+
+    // Torre del héroe.
+    "torre-abrir": () => abrirTorre(),
+    "torre-salir": () => cerrarTorre(),
+    "torre-accion": (boton) => {
+        const resultado = ejecutar(() => acciones.accionTorre(estado, boton.dataset.torre));
+        if (!resultado) return;
+        pintarTorre(resultado.eventos);
+        sonarTurno(resultado.eventos);
+    },
+    "torre-mejora": (boton) => {
+        if (!ejecutar(() => acciones.mejoraTorre(estado, boton.dataset.mejora))) return;
+        sonar("completar");
+        pintarTorre();
+    },
+    "torre-rendirse": () => {
+        if (!confirm("¿Rendirte? Cobras lo que ganaste hasta ahora y la subida termina.")) return;
+        ACCIONES["torre-cobrar"]();
+    },
+    "torre-cobrar": () => {
+        const resultado = ejecutar(() => acciones.terminarTorre(estado));
+        if (!resultado) return;
+        resultadoTorre = resultado;
+        sonar(resultado.nuevoRecord ? "logro" : "moneda");
+        pintarTorre();
+    },
 
     comprar: (boton) => {
         const objeto = avatar.OBJETOS[boton.dataset.id];

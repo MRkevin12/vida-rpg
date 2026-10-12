@@ -29,7 +29,7 @@ export function piernas(d, e, p) {
                       fill="none" stroke="${TRAZO}" stroke-width=".5" opacity=".45"/>`;
     }).join("");
 
-    return `${silueta(pantalon, p.m("pantalon"))}
+    return `${silueta(pantalon, p.m("pantalon"), 0.85, p.m("tejido"))}
             <path d="M100 112 L${e.piernaIzq.rodilla[0] + 5} 143 L${e.piernaDer.rodilla[0] - 5} 143 Z" fill="${TRAZO}" opacity=".3"/>
             ${arrugas}
             ${lados.map((l) => bota(l, e, p)).join("")}`;
@@ -70,7 +70,7 @@ function bota(pierna, e, p) {
     } else {
         detalles += `<path d="M${ax - 4.2} 167.6 Q${ax} 169.6 ${ax + 4.2} 167.6" fill="none" stroke="${p.cueroClaro}" stroke-width="1"/>`;
     }
-    return `${silueta([cana, pie], material, 0.8)}${detalles}`;
+    return `${silueta([cana, pie], material, 0.8, armadura ? "" : p.m("grano"))}${detalles}`;
 }
 
 
@@ -106,7 +106,7 @@ export function torso(d, e, p) {
     if (p.etapa === 0) {
         // --- Novato: túnica de lino ---
         const faldon = `M${100 - C - 0.4} 98 L${100 + C + 0.4} 98 L${100 + K + 3} 119 Q${100 + K * 0.5} 122.6 100 120.6 Q${100 - K * 0.5} 122.6 ${100 - K - 3} 119 Z`;
-        capas += `${silueta([faldon, cuerpo], p.m("tela"))}
+        capas += `${silueta([faldon, cuerpo], p.m("tela"), 0.85, p.m("tejido"))}
                   <path d="M100 62 L${100 + H} 67 L${100 + C + 2.4} 84 Q${100 + C - 0.4} 93 ${100 + C} 100 L${100 + K + 3} 119 Q${100 + K * 0.6} 122 104 121 Q107 100 100 62 Z" fill="${TRAZO}" opacity=".16"/>
                   <!-- cuello en V con cordón -->
                   <path d="M96 59.6 L100 72 L104 59.6 Z" fill="${p.m("piel")}"/>
@@ -122,7 +122,7 @@ export function torso(d, e, p) {
     } else if (p.etapa === 1) {
         // --- Aventurero: jubón del color de su clase, con cuero ---
         const faldon = `M${100 - C - 0.6} 98 L${100 + C + 0.6} 98 L${100 + K + 3.4} 119.5 Q${100 + K * 0.6} 122.6 101.6 120.4 L100 107 L98.4 120.4 Q${100 - K * 0.6} 122.6 ${100 - K - 3.4} 119.5 Z`;
-        capas += `${silueta([faldon, cuerpo], p.m("tela"))}
+        capas += `${silueta([faldon, cuerpo], p.m("tela"), 0.85, p.m("tejido"))}
                   <path d="M100 61 L${100 + H} 67 L${100 + C + 2.4} 84 Q${100 + C - 0.4} 93 ${100 + C} 100 L${100 + K + 3.4} 119.5 Q${100 + K * 0.6} 122 104 120.6 Q107 100 100 61 Z" fill="${TRAZO}" opacity=".2"/>
                   <!-- ribetes del color de la clase -->
                   <path d="M100 63 L100 99" stroke="${p.borde}" stroke-width="1.5"/>
@@ -147,9 +147,9 @@ export function torso(d, e, p) {
         const peto = `M${100 - H + 3.4} 66 Q100 59.4 ${100 + H - 3.4} 66 L${100 + C + 2.6} 84 Q${100 + C + 0.4} 92 ${100 + C + 0.6} 98.6
                       Q100 103 ${100 - C - 0.6} 98.6 Q${100 - C - 0.4} 92 ${100 - C - 2.6} 84 Z`;
         const escarcela = (s) => `M${100 + s * (K + 1.4)} 103.4 L${100 + s * 4} 103.4 L${100 + s * 4.6} 116.6 Q${100 + s * K * 0.62} 120.4 ${100 + s * (K + 2.6)} 115.4 Z`;
-        capas += `${silueta([faldon], p.m("tela"))}
+        capas += `${silueta([faldon], p.m("tela"), 0.85, p.m("tejido"))}
                   <path d="M${100 - K - 3} 119 Q${100 - K * 0.6} 122.6 100 120.6 Q${100 + K * 0.6} 122.6 ${100 + K + 3} 119" fill="none" stroke="${p.m("oro")}" stroke-width="1.1"/>
-                  ${silueta([cuerpo], p.m("tela"))}
+                  ${silueta([cuerpo], p.m("tela"), 0.85, p.m("tejido"))}
                   <!-- peto: placa del pecho con ribete de oro -->
                   <path d="${peto}" fill="${p.m("acero")}" ${borde(0.85)}/>
                   <path d="M100 62.6 L${100 + H - 3.4} 66 L${100 + C + 2.6} 84 Q${100 + C + 0.4} 92 ${100 + C + 0.6} 98.6 Q106 101.4 101.4 101.6 Q104.6 82 100 62.6 Z" fill="${TRAZO}" opacity=".22"/>
@@ -253,7 +253,7 @@ export function brazo(lado, d, e, p, enMano = "", sostiene = false) {
         const brazal = capsula(...entre(b.codo, b.muneca, 0.3), r2 + 0.5, ...entre(b.codo, b.muneca, 0.97), r3 + 0.9);
         const [cx, cy] = entre(b.codo, b.muneca, 0.5);
         const [dx, dy] = entre(b.codo, b.muneca, 0.78);
-        capas = `${silueta([arriba, abajo], p.m("tela"))}${sombraCodo}
+        capas = `${silueta([arriba, abajo], p.m("tela"), 0.85, p.m("tejido"))}${sombraCodo}
                  <path d="${brazal}" fill="${p.m("cuero")}" ${borde()}/>
                  <path d="M${cx - r2} ${cy} L${cx + r2} ${cy} M${dx - r3 - 0.6} ${dy} L${dx + r3 + 0.6} ${dy}" stroke="${p.cueroClaro}" stroke-width="1.1"/>
                  <circle cx="${cx}" cy="${cy}" r=".6" fill="${p.m("acero")}"/><circle cx="${dx}" cy="${dy}" r=".6" fill="${p.m("acero")}"/>`;
@@ -261,7 +261,7 @@ export function brazo(lado, d, e, p, enMano = "", sostiene = false) {
         // Armadura: manga de tela, codera y guantelete de acero.
         const guantelete = capsula(...entre(b.codo, b.muneca, 0.16), r2 + 0.9, ...b.muneca, r3 + 1.1);
         const [cx, cy] = entre(b.codo, b.muneca, 0.16);
-        capas = `${silueta([arriba, abajo], p.m("tela"))}
+        capas = `${silueta([arriba, abajo], p.m("tela"), 0.85, p.m("tejido"))}
                  <path d="${guantelete}" fill="${p.m("acero")}" ${borde()}/>
                  <path d="M${cx - r2 - 0.6} ${cy + 1.6} Q${cx} ${cy + 3.8} ${cx + r2 + 0.6} ${cy + 1.6}" fill="none" stroke="${p.m("oro")}" stroke-width="1.3"/>
                  <path d="M${b.muneca[0] - r3 - 0.8} ${b.muneca[1] - 2.4} Q${b.muneca[0]} ${b.muneca[1] - 0.4} ${b.muneca[0] + r3 + 0.8} ${b.muneca[1] - 2.4}" fill="none" stroke="${TRAZO}" stroke-width=".5" opacity=".6"/>
