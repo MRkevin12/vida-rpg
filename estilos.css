@@ -153,6 +153,114 @@ button {
 }
 
 
+.separador-o {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 12px;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.separador-o::before,
+.separador-o::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--borde);
+}
+
+
+/* ===== Pantalla de bloqueo (PIN) ===== */
+.bloqueo {
+    position: fixed;
+    inset: 0;
+    z-index: 30; /* por encima de todo, incluidas las celebraciones */
+    display: grid;
+    place-items: center;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
+    overflow-y: auto;
+    background:
+        radial-gradient(circle at 50% 10%, rgba(139, 92, 246, 0.25), transparent 50%),
+        var(--fondo);
+}
+
+.bloqueo-caja {
+    width: min(320px, 100%);
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+.bloqueo-icono {
+    border-radius: 18px;
+    box-shadow: 0 0 26px rgba(139, 92, 246, 0.5);
+}
+
+.bloqueo-mensaje {
+    min-height: 1.5em;
+    color: var(--texto-suave);
+}
+
+.bloqueo-mensaje.error {
+    color: var(--rojo);
+}
+
+.puntos {
+    display: flex;
+    gap: 18px;
+    margin: 6px 0 16px;
+}
+
+.puntos span {
+    width: 15px;
+    height: 15px;
+    border: 2px solid var(--texto-suave);
+    border-radius: 50%;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.puntos span.lleno {
+    background: var(--cian);
+    border-color: var(--cian);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.7);
+}
+
+.puntos.error {
+    animation: sacudir 0.4s ease-in-out;
+}
+
+.teclado {
+    display: grid;
+    grid-template-columns: repeat(3, 72px);
+    gap: 16px 26px;
+}
+
+.teclado button {
+    width: 72px;
+    height: 72px;
+    padding: 0;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--borde);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.teclado button:active {
+    background: rgba(139, 92, 246, 0.4);
+}
+
+.bloqueo .enlace {
+    justify-self: center;
+    margin-top: 8px;
+}
+
+
 /* ===== Cabecera fija ===== */
 .cabecera {
     position: sticky;
@@ -1010,9 +1118,35 @@ button.celda {
 
 
 /* ===== Logros ===== */
+.subtitulo {
+    margin-top: 6px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+}
+
+.logro-descripcion {
+    margin: 4px 0 6px;
+    font-size: 0.82rem;
+    color: var(--texto-suave);
+    white-space: pre-line; /* respeta los saltos de línea */
+}
+
+.logro .boton-oro {
+    margin-top: 6px;
+}
+
+.dos-columnas.columnas-icono {
+    grid-template-columns: 70px 1fr;
+}
+
+.columnas-icono input[name="icono"] {
+    text-align: center;
+}
+
 .logro {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
     padding: 12px 6px 12px 12px;
     background: var(--hundido);

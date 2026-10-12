@@ -338,35 +338,52 @@ function tarjetaJefe(jefe, ctx) {
 // ===== Pantalla: Logros =====
 
 export function pantallaLogros(estado, ctx) {
-    const desbloqueados = estado.logros.filter((l) => l.desbloqueadoEn).length;
-    // Primero los bloqueados (los que estás persiguiendo), luego los ganados.
-    const ordenados = [...estado.logros].sort((a, b) => Boolean(a.desbloqueadoEn) - Boolean(b.desbloqueadoEn));
+    const porConseguir = estado.logros.filter((l) => !l.desbloqueadoEn);
+    const conseguidos = estado.logros.filter((l) => l.desbloqueadoEn);
+    const lista = (logros) => `<ul class="lista">${logros.map((l) => tarjetaLogro(l, estado, ctx)).join("")}</ul>`;
 
     return `
         ${cabeceraSeccion("Logros", "logro", "+ Nuevo")}
-        <p class="nota">Tú decides la condición. Ej: «30 días de gym» = completar la misión «Ir al gym» 30 veces.
-           ${estado.logros.length ? `<strong>${desbloqueados} de ${estado.logros.length} desbloqueados.</strong>` : ""}</p>
-        ${ordenados.length
-            ? `<ul class="lista">${ordenados.map((l) => tarjetaLogro(l, estado, ctx)).join("")}</ul>`
-            : vacio("Todavía no has creado logros. Crea el primero y ponle una recompensa en monedas.")}`;
+        <p class="nota">Logros personales que marcas tú (ej: «Conseguir mi primer cliente») o con condición
+           automática (ej: «30 días de gym» = completar la misión «Ir al gym» 30 veces).</p>
+
+        <h3 class="subtitulo">🎯 Por conseguir (${porConseguir.length})</h3>
+        ${porConseguir.length ? lista(porConseguir) : vacio("No tienes logros pendientes. ¡Crea tu próxima meta!")}
+
+        <h3 class="subtitulo">🏆 Salón de la fama (${conseguidos.length})</h3>
+        ${conseguidos.length ? lista(conseguidos) : vacio("Aquí aparecerán los logros que consigas.")}`;
 }
 
 function tarjetaLogro(logro, estado, ctx) {
-    const progreso = Math.min(juego.progresoLogro(logro, estado, ctx.info), logro.objetivo);
-    const estadoLogro = logro.desbloqueadoEn
-        ? `<p class="mini oro">Desbloqueado el ${fechaCorta(logro.desbloqueadoEn)}</p>`
-        : `${barra(Math.round((progreso / logro.objetivo) * 100), "barra-mini")}
-           <p class="mini texto-suave">${progreso} / ${logro.objetivo}</p>`;
+    const manual = logro.tipo === "manual";
+    let pie;
+    if (logro.desbloqueadoEn) {
+        // En los personales la fecha es cuando lo anotaste, no cuando lo lograste.
+        const verbo = manual ? "Registrado" : "Conseguido";
+        pie = `<p class="mini oro">${verbo} el ${fechaCorta(logro.desbloqueadoEn)}</p>`;
+    } else if (manual) {
+        pie = `<button type="button" class="boton boton-chico boton-oro" data-accion="lograr" data-id="${logro.id}">¡Lo logré!</button>`;
+    } else {
+        const progreso = Math.min(juego.progresoLogro(logro, estado, ctx.info), logro.objetivo);
+        pie = `${barra(Math.round((progreso / logro.objetivo) * 100), "barra-mini")}
+               <p class="mini texto-suave">${progreso} / ${logro.objetivo}</p>`;
+    }
+
+    // Los logros personales muestran su descripción; los automáticos, su condición.
+    const condicion = manual ? "" : `<p class="mini">${esc(juego.describirLogro(logro, estado))}</p>`;
+    const descripcion = logro.descripcion ? `<p class="logro-descripcion">${esc(logro.descripcion)}</p>` : "";
+    const icono = logro.desbloqueadoEn ? (logro.icono || "🏆") : (manual && logro.icono ? logro.icono : "🔒");
 
     return `
         <li class="logro ${logro.desbloqueadoEn ? "desbloqueado" : ""}">
-            <span class="logro-icono" aria-hidden="true">${logro.desbloqueadoEn ? "🏆" : "🔒"}</span>
+            <span class="logro-icono" aria-hidden="true">${esc(icono)}</span>
             <div class="logro-info">
                 <h3>${esc(logro.nombre)}</h3>
-                <p class="mini">${esc(juego.describirLogro(logro, estado))}</p>
-                ${estadoLogro}
+                ${condicion}
+                ${descripcion}
+                ${pie}
             </div>
-            <span class="logro-premio">🪙 ${logro.recompensa}</span>
+            ${logro.recompensa ? `<span class="logro-premio">🪙 ${logro.recompensa}</span>` : ""}
             ${botonCerrar("borrar-logro", logro.id, `Borrar ${logro.nombre}`)}
         </li>`;
 }

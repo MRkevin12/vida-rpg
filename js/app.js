@@ -10,6 +10,7 @@ import * as datos from "./datos.js";
 import * as acciones from "./acciones.js";
 import * as juego from "./juego.js";
 import * as vistas from "./vistas.js";
+import * as seguridad from "./seguridad.js";
 import { hoy, fechaLegible, diasEntre } from "./fechas.js";
 
 
@@ -42,10 +43,12 @@ function iniciar() {
     rellenarOpciones();
     conectarEventos();
 
-    if (estado.personaje) {
-        entrarAlJuego();
-    } else {
+    if (!estado.personaje) {
         $("#crear-personaje").hidden = false;
+    } else if (seguridad.hayPin()) {
+        pedirPinParaEntrar(entrarAlJuego);   // primero el PIN, después el juego
+    } else {
+        entrarAlJuego();
     }
 }
 
@@ -54,6 +57,10 @@ function entrarAlJuego() {
     $("#juego").hidden = false;
     refrescar();
     revisarAlAbrir();
+    // Si nunca has creado un PIN (ni dijiste "Ahora no"), te lo ofrecemos.
+    if (seguridad.debePreguntar()) {
+        crearPin({ conAhoraNo: true, mensaje: "Protege tu app: elige 4 números" });
+    }
 }
 
 // Al abrir (o volver a) la app: bonus de regreso y aviso de escudos usados.
@@ -74,6 +81,157 @@ function registrarServiceWorker() {
             // Si falla (ej: abriendo el archivo directo), la app igual funciona con internet.
         });
     }
+}
+
+
+// ===== Bloqueo con PIN =====
+// La misma pantalla de teclado sirve para tres cosas: entrar, crear un PIN
+// y confirmar que eres tú antes de cambiarlo. "alCompletar" dice qué hacer
+// cuando se escriben los 4 números; si devuelve false, los puntos tiemblan.
+
+const GRACIA_MS = 60 * 1000;   // si vuelves a la app antes de 1 minuto, no pide PIN
+let pinEscrito = "";
+let alCompletarPin = null;
+let ocultaDesde = null;        // cuándo se fue la app a segundo plano
+let intentosFallidos = 0;
+let esperarHasta = 0;          // tras 5 errores hay que esperar 30 segundos
+
+function mostrarTeclado({ titulo = "Vida RPG", mensaje, error = false, alCompletar, secundario }) {
+    // Las ventanas abiertas quedarían encima del bloqueo: las cerramos.
+    for (const dialogo of document.querySelectorAll("dialog[open]")) dialogo.close();
+    $("#bloqueo-titulo").textContent = titulo;
+    ponerMensaje(mensaje, error);
+    pinEscrito = "";
+    pintarPuntos();
+    alCompletarPin = alCompletar;
+    const boton = $("#bloqueo-secundario");
+    boton.textContent = secundario.texto;
+    boton.onclick = secundario.accion;
+    $("#bloqueo").hidden = false;
+}
+
+function cerrarTeclado() {
+    $("#bloqueo").hidden = true;
+    alCompletarPin = null;
+    pinEscrito = "";
+}
+
+function ponerMensaje(texto, error = false) {
+    const mensaje = $("#bloqueo-mensaje");
+    mensaje.textContent = texto;
+    mensaje.classList.toggle("error", error);
+}
+
+function pintarPuntos() {
+    document.querySelectorAll("#bloqueo-puntos span").forEach((punto, i) => {
+        punto.classList.toggle("lleno", i < pinEscrito.length);
+    });
+}
+
+async function teclaPulsada(tecla) {
+    if (!alCompletarPin) return;
+    if (tecla === "borrar") {
+        pinEscrito = pinEscrito.slice(0, -1);
+        pintarPuntos();
+        return;
+    }
+    if (pinEscrito.length >= seguridad.LARGO_PIN) return;
+    pinEscrito += tecla;
+    pintarPuntos();
+
+    if (pinEscrito.length === seguridad.LARGO_PIN) {
+        const resultado = await alCompletarPin(pinEscrito);
+        if (resultado === false) {
+            reproducirAnimacion($("#bloqueo-puntos"), "error");
+            setTimeout(() => { pinEscrito = ""; pintarPuntos(); }, 350);
+        }
+    }
+}
+
+// Pide el PIN y, si es correcto, ejecuta "alEntrar".
+function pedirPinParaEntrar(alEntrar) {
+    $("#juego").hidden = true; // que no se vea nada detrás
+    mostrarTeclado({
+        mensaje: "Ingresa tu PIN",
+        secundario: { texto: "Olvidé mi PIN", accion: olvidePin },
+        alCompletar: async (pin) => {
+            if (Date.now() < esperarHasta) {
+                ponerMensaje(`Demasiados intentos. Espera ${Math.ceil((esperarHasta - Date.now()) / 1000)} s.`, true);
+                return false;
+            }
+            if (!(await seguridad.pinCorrecto(pin))) {
+                intentosFallidos += 1;
+                if (intentosFallidos >= 5) {
+                    intentosFallidos = 0;
+                    esperarHasta = Date.now() + 30 * 1000;
+                    ponerMensaje("Demasiados intentos. Espera 30 segundos.", true);
+                } else {
+                    ponerMensaje("PIN incorrecto", true);
+                }
+                return false;
+            }
+            intentosFallidos = 0;
+            cerrarTeclado();
+            $("#juego").hidden = false;
+            alEntrar();
+        },
+    });
+}
+
+// Crear un PIN nuevo: escribirlo y repetirlo.
+function crearPin({ conAhoraNo = false, mensaje = "Elige 4 números", error = false } = {}) {
+    const cancelar = conAhoraNo
+        ? { texto: "Ahora no", accion: () => { seguridad.omitir(); cerrarTeclado(); } }
+        : { texto: "Cancelar", accion: cerrarTeclado };
+
+    mostrarTeclado({
+        titulo: "Crea tu PIN",
+        mensaje,
+        error,
+        secundario: cancelar,
+        alCompletar: (primero) => {
+            mostrarTeclado({
+                titulo: "Crea tu PIN",
+                mensaje: "Repítelo para confirmar",
+                secundario: cancelar,
+                alCompletar: async (segundo) => {
+                    if (segundo !== primero) {
+                        crearPin({ conAhoraNo, mensaje: "No coincidían. Elige 4 números otra vez.", error: true });
+                        return;
+                    }
+                    await seguridad.guardarPin(primero);
+                    cerrarTeclado();
+                    avisar("🔒 PIN activado: solo tú puedes abrir la app");
+                },
+            });
+        },
+    });
+}
+
+// Antes de cambiar o quitar el PIN, comprobar que eres tú.
+function confirmarPinYLuego(accion) {
+    mostrarTeclado({
+        titulo: "Confirma que eres tú",
+        mensaje: "Ingresa tu PIN actual",
+        secundario: { texto: "Cancelar", accion: cerrarTeclado },
+        alCompletar: async (pin) => {
+            if (!(await seguridad.pinCorrecto(pin))) {
+                ponerMensaje("PIN incorrecto", true);
+                return false;
+            }
+            cerrarTeclado();
+            accion();
+        },
+    });
+}
+
+function olvidePin() {
+    const mensaje = "Si olvidaste tu PIN, la única forma de entrar es BORRAR los datos de la app en este teléfono. " +
+                    "Después podrás importar tu última copia de seguridad. ¿Borrar?";
+    if (!confirm(mensaje)) return;
+    if (!confirm("Se borrará tu progreso de este teléfono. ¿Seguro?")) return;
+    reiniciarPartida();
+    cerrarTeclado();
 }
 
 
@@ -309,6 +467,15 @@ const PREPARAR = {
         $("#ajustes-ultimo-respaldo").textContent = estado.ultimoRespaldo
             ? `Última copia: ${fechaLegible(estado.ultimoRespaldo)}.`
             : "Todavía no has hecho ninguna copia.";
+
+        const hayPin = seguridad.hayPin();
+        $("#ajustes-pin-estado").textContent = hayPin
+            ? "Activado: la app pide tu PIN al abrirla y si vuelves después de 1 minuto."
+            : "Desactivado: cualquiera con tu iPhone desbloqueado puede abrir la app.";
+        $("#ajustes-pin-botones").innerHTML = hayPin
+            ? `<button type="button" class="boton boton-secundario" data-accion="cambiar-pin">Cambiar PIN</button>
+               <button type="button" class="boton boton-secundario" data-accion="quitar-pin">Quitar PIN</button>`
+            : `<button type="button" class="boton boton-principal" data-accion="activar-pin">Activar PIN</button>`;
     },
 };
 
@@ -319,11 +486,20 @@ function abrirDialogo(nombre) {
     dialogo.showModal();
 }
 
-// En el logro, mostrar el campo extra según el tipo de condición.
+// En el logro, mostrar solo los campos que usa el tipo de condición elegido.
+// Los campos ocultos se desactivan (disabled) para que el formulario no los pida.
 function mostrarCamposLogro() {
     const campo = juego.TIPOS_LOGRO[$("#logro-tipo").value].campo;
-    $("#campo-mision").hidden = campo !== "mision";
-    $("#campo-atributo").hidden = campo !== "atributo";
+    const visibles = {
+        "#campo-mision": campo === "mision",
+        "#campo-atributo": campo === "atributo",
+        "#campo-objetivo": campo !== "manual",   // un logro personal no tiene meta numérica
+    };
+    for (const [selector, visible] of Object.entries(visibles)) {
+        const elemento = $(selector);
+        elemento.hidden = !visible;
+        for (const control of elemento.querySelectorAll("input, select")) control.disabled = !visible;
+    }
 }
 
 
@@ -357,16 +533,21 @@ async function exportar() {
     avisar("💾 Copia de seguridad lista");
 }
 
+// Se puede importar desde Ajustes o desde la pantalla de inicio (sin personaje todavía).
 async function importar(archivo) {
     try {
         const nuevo = datos.desdeRespaldo(await archivo.text());
-        const seguro = confirm(`¿Reemplazar tu partida actual por la copia de «${nuevo.personaje.nombre}»? Lo que tienes ahora se perderá.`);
-        if (!seguro) return;
+        if (estado.personaje) {
+            const seguro = confirm(`¿Reemplazar tu partida actual por la copia de «${nuevo.personaje.nombre}»? Lo que tienes ahora se perderá.`);
+            if (!seguro) return;
+        }
+        const veniaDelInicio = $("#juego").hidden;
         estado = nuevo;
         datos.guardar(estado);
         $("#dialogo-ajustes").close();
-        refrescar();
-        avisar("📥 Copia importada");
+        avisar(`📥 Bienvenido, ${estado.personaje.nombre}`);
+        if (veniaDelInicio) entrarAlJuego();
+        else refrescar();
     } catch (error) {
         alert(error.message);
     }
@@ -375,10 +556,16 @@ async function importar(archivo) {
 function borrarTodo() {
     if (!confirm("¿Seguro? Se borrará TODO tu progreso de este teléfono.")) return;
     if (!confirm("Última oportunidad: esto no se puede deshacer. ¿Borrar todo?")) return;
+    $("#dialogo-ajustes").close();
+    reiniciarPartida();
+}
+
+// Borra la partida y el PIN, y vuelve a la pantalla de crear personaje.
+function reiniciarPartida() {
     datos.borrarTodo();
+    seguridad.quitar();
     estado = datos.estadoInicial();
     diaSeleccionado = null;
-    $("#dialogo-ajustes").close();
     $("#juego").hidden = true;
     $("#cab-nivel").textContent = "";
     mostrarSeccion("hoy");
@@ -441,6 +628,11 @@ const ACCIONES = {
             ejecutar(() => acciones.borrarLogro(estado, Number(boton.dataset.id)));
         }
     },
+    lograr: (boton) => {
+        if (confirm("¿Conseguiste este logro? ¡Felicidades!")) {
+            ejecutar(() => acciones.lograrManual(estado, Number(boton.dataset.id)));
+        }
+    },
 
     canjear: (boton) => {
         const recompensa = estado.recompensas.find((r) => r.id === Number(boton.dataset.id));
@@ -463,6 +655,13 @@ const ACCIONES = {
         const racha = juego.calcularRacha(estado, hoy());
         $("#cal-detalle").innerHTML = vistas.detalleDia(estado, diaSeleccionado, racha);
     },
+
+    "activar-pin": () => crearPin(),
+    "cambiar-pin": () => confirmarPinYLuego(() => crearPin()),
+    "quitar-pin": () => confirmarPinYLuego(() => {
+        seguridad.omitir(); // sin PIN, y sin volver a preguntar
+        avisar("🔓 PIN desactivado");
+    }),
 
     exportar: () => exportar(),
     importar: () => $("#archivo-respaldo").click(),
@@ -543,14 +742,52 @@ function conectarEventos() {
 
     $("#celebracion").addEventListener("click", siguienteCelebracion);
 
-    // Al volver a la app (el iPhone la deja abierta en segundo plano):
-    // redibujar por si cambió el día y revisar el bonus de regreso.
-    document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible" && estado.personaje) {
-            refrescar();
-            revisarAlAbrir();
-        }
+    // Teclado del PIN: con el dedo...
+    $("#teclado").addEventListener("click", (evento) => {
+        const tecla = evento.target.closest("[data-tecla]");
+        if (tecla) teclaPulsada(tecla.dataset.tecla);
     });
+    // ...o con el teclado físico (útil al probar en la compu).
+    document.addEventListener("keydown", (evento) => {
+        if ($("#bloqueo").hidden) return;
+        if (/^[0-9]$/.test(evento.key)) teclaPulsada(evento.key);
+        if (evento.key === "Backspace") teclaPulsada("borrar");
+    });
+
+    // Cuando la app se va a segundo plano (cambias de app o bloqueas el iPhone)
+    // y cuando vuelve.
+    document.addEventListener("visibilitychange", () => {
+        if (!estado.personaje) return;
+
+        if (document.visibilityState === "hidden") {
+            // Con PIN, tapamos todo al salir: así ni la vista previa del
+            // selector de apps del iPhone muestra tus datos.
+            if (seguridad.hayPin() && $("#bloqueo").hidden) {
+                ocultaDesde = Date.now();
+                pedirPinParaEntrar(alVolver);
+            }
+            return;
+        }
+
+        // Volviste. Si fue hace menos de 1 minuto, entras sin PIN.
+        if (ocultaDesde !== null) {
+            const fuera = Date.now() - ocultaDesde;
+            ocultaDesde = null;
+            if (fuera < GRACIA_MS) {
+                cerrarTeclado();
+                $("#juego").hidden = false;
+                alVolver();
+            }
+            return; // si no, el teclado ya está esperando tu PIN
+        }
+        if (!$("#juego").hidden) alVolver();
+    });
+}
+
+// Al volver a la app: redibujar (por si cambió el día) y revisar el bonus de regreso.
+function alVolver() {
+    refrescar();
+    revisarAlAbrir();
 }
 
 

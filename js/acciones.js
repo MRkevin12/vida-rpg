@@ -264,18 +264,26 @@ export function archivarJefe(estado, id) {
 
 // ===== Logros =====
 
-export function crearLogro(estado, { nombre, tipo, objetivo, misionId, atributo, recompensa }) {
+export function crearLogro(estado, { nombre, tipo, objetivo, misionId, atributo, recompensa, descripcion, icono }) {
     const tipoLogro = juego.TIPOS_LOGRO[tipo];
     if (!tipoLogro) throw new Error("Elige el tipo de condición.");
+
+    const textoDescripcion = String(descripcion || "").trim();
+    if (textoDescripcion.length > 300) throw new Error("La descripción puede tener máximo 300 letras.");
+    const textoIcono = String(icono || "").trim();
+    if (textoIcono.length > 8) throw new Error("El ícono debe ser un solo emoji.");
 
     const logro = {
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
         tipo,
-        objetivo: validarEntero(objetivo, 1, 100000, "La meta"),
+        // Un logro personal se cumple una sola vez: su meta siempre es 1.
+        objetivo: tipo === "manual" ? 1 : validarEntero(objetivo, 1, 100000, "La meta"),
         misionId: null,
         atributo: null,
         recompensa: validarEntero(recompensa, 0, 100000, "La recompensa"),
+        descripcion: textoDescripcion,
+        icono: textoIcono,       // emoji opcional; si está vacío se usa 🏆
         creadoEn: hoy(),
         desbloqueadoEn: null,
     };
@@ -291,6 +299,24 @@ export function crearLogro(estado, { nombre, tipo, objetivo, misionId, atributo,
 
 export function borrarLogro(estado, id) {
     estado.logros = estado.logros.filter((logro) => logro.id !== id);
+}
+
+// Marca como conseguido un logro personal (de la vida real).
+export function lograrManual(estado, id) {
+    const logro = buscar(estado.logros, id, "ese logro");
+    if (logro.tipo !== "manual") throw new Error("Ese logro se desbloquea solo al cumplir su condición.");
+    if (logro.desbloqueadoEn) throw new Error("Ya conseguiste ese logro.");
+
+    logro.desbloqueadoEn = hoy();
+    ganar(estado, { monedas: logro.recompensa });
+    return {
+        celebraciones: [{
+            icono: logro.icono || "🏆",
+            etiqueta: "¡Logro conseguido!",
+            titulo: logro.nombre,
+            detalle: logro.recompensa ? `+${logro.recompensa} monedas` : "Bien hecho.",
+        }],
+    };
 }
 
 // Revisa qué logros se acaban de cumplir, los desbloquea y entrega sus monedas.
@@ -427,7 +453,7 @@ export function revisarCambios(estado, antes) {
 
     for (const logro of revisarLogros(estado, info)) {
         celebraciones.push({
-            icono: "🏆",
+            icono: logro.icono || "🏆",
             etiqueta: "Logro desbloqueado",
             titulo: logro.nombre,
             detalle: logro.recompensa ? `+${logro.recompensa} monedas` : "",

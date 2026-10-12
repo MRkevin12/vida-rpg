@@ -23,6 +23,34 @@
 </head>
 <body>
 
+    <!-- ========== Pantalla de bloqueo con PIN ==========
+         app.js la usa para: entrar a la app, crear un PIN nuevo y confirmar cambios. -->
+    <section id="bloqueo" class="bloqueo" hidden>
+        <div class="bloqueo-caja">
+            <img src="iconos/icono-192.png" class="bloqueo-icono" alt="" width="72" height="72">
+            <h1 class="titulo-juego" id="bloqueo-titulo">Vida RPG</h1>
+            <p class="bloqueo-mensaje" id="bloqueo-mensaje">Ingresa tu PIN</p>
+            <div class="puntos" id="bloqueo-puntos" aria-hidden="true">
+                <span></span><span></span><span></span><span></span>
+            </div>
+            <div class="teclado" id="teclado">
+                <button type="button" data-tecla="1">1</button>
+                <button type="button" data-tecla="2">2</button>
+                <button type="button" data-tecla="3">3</button>
+                <button type="button" data-tecla="4">4</button>
+                <button type="button" data-tecla="5">5</button>
+                <button type="button" data-tecla="6">6</button>
+                <button type="button" data-tecla="7">7</button>
+                <button type="button" data-tecla="8">8</button>
+                <button type="button" data-tecla="9">9</button>
+                <span></span>
+                <button type="button" data-tecla="0">0</button>
+                <button type="button" data-tecla="borrar" aria-label="Borrar">⌫</button>
+            </div>
+            <button type="button" class="enlace" id="bloqueo-secundario"></button>
+        </div>
+    </section>
+
     <!-- ========== Pantalla de inicio: crear personaje (solo la primera vez) ========== -->
     <section id="crear-personaje" class="crear-personaje" hidden>
         <div class="panel">
@@ -35,8 +63,13 @@
                 </label>
                 <button type="submit" class="boton boton-principal">Comenzar aventura</button>
             </form>
+            <div class="separador-o"><span>o</span></div>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="importar">Importar mi copia de seguridad</button>
         </div>
     </section>
+
+    <!-- Selector de archivos escondido: los botones "Importar" lo activan -->
+    <input type="file" id="archivo-respaldo" hidden>
 
 
     <!-- ========== El juego ========== -->
@@ -152,9 +185,14 @@
     <dialog id="dialogo-logro" class="dialogo">
         <form data-form="logro" class="formulario">
             <h2 class="titulo-juego" tabindex="-1" autofocus>Nuevo logro</h2>
-            <label>Nombre del logro
-                <input type="text" name="nombre" maxlength="60" required autocomplete="off" placeholder="Ej: 30 días de gym">
-            </label>
+            <div class="dos-columnas columnas-icono">
+                <label>Ícono
+                    <input type="text" name="icono" maxlength="8" autocomplete="off" placeholder="🏆" aria-label="Ícono (un emoji)">
+                </label>
+                <label>Nombre del logro
+                    <input type="text" name="nombre" maxlength="60" required autocomplete="off" placeholder="Ej: Primer cliente">
+                </label>
+            </div>
             <label>Condición
                 <select name="tipo" id="logro-tipo"></select>
             </label>
@@ -162,8 +200,11 @@
                 <select name="misionId" id="logro-mision"></select>
             </label>
             <fieldset id="campo-atributo" class="opciones opciones-4" data-opciones="atributo" hidden><legend>Atributo</legend></fieldset>
+            <label>Descripción (opcional)
+                <textarea name="descripcion" rows="2" maxlength="300" placeholder="¿Por qué es importante para ti?"></textarea>
+            </label>
             <div class="dos-columnas">
-                <label>Meta (N)
+                <label id="campo-objetivo">Meta (N)
                     <input type="number" name="objetivo" min="1" max="100000" step="1" value="30" required inputmode="numeric">
                 </label>
                 <label>Premio 🪙
@@ -206,6 +247,12 @@
             </form>
 
             <section class="ajustes-bloque">
+                <h3>🔒 Bloqueo con PIN</h3>
+                <p class="nota" id="ajustes-pin-estado"></p>
+                <div class="botones-dialogo" id="ajustes-pin-botones"></div>
+            </section>
+
+            <section class="ajustes-bloque">
                 <h3>💾 Copia de seguridad</h3>
                 <p class="nota">Tus datos se guardan <strong>solo en este iPhone</strong>. Si borras la app, se pierden.
                    Exporta una copia de vez en cuando y guárdala en «Archivos» o en iCloud.</p>
@@ -214,8 +261,6 @@
                     <button type="button" class="boton boton-principal" data-accion="exportar">Exportar copia</button>
                     <button type="button" class="boton boton-secundario" data-accion="importar">Importar copia</button>
                 </div>
-                <!-- Selector de archivos escondido: el botón "Importar" lo activa -->
-                <input type="file" id="archivo-respaldo" hidden>
             </section>
 
             <details class="plegable">

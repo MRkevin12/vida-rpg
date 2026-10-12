@@ -44,7 +44,9 @@ export const BASE_ATRIBUTO = 50;   // atributos:  50, 100, 150...
 
 // Tipos de condición para los logros personalizados.
 // "campo" indica si el logro necesita elegir además una misión o un atributo.
+// "manual" es un logro de la vida real: no se cumple solo, lo marcas tú.
 export const TIPOS_LOGRO = {
+    manual:      { texto: "Logro personal (lo marco yo cuando lo consiga)", campo: "manual" },
     mision:      { texto: "Completar una misión diaria N veces", campo: "mision" },
     total:       { texto: "Completar N misiones diarias en total" },
     racha:       { texto: "Lograr una racha de N días" },
@@ -220,6 +222,8 @@ export function bonoRegreso(dias) {
 // ¿Cuánto llevas de un logro? (se compara con logro.objetivo)
 export function progresoLogro(logro, estado, info) {
     switch (logro.tipo) {
+        case "manual":
+            return logro.desbloqueadoEn ? 1 : 0; // solo cambia cuando tú lo marcas
         case "mision":
             return estado.completadas.filter((c) => c.misionId === logro.misionId).length;
         case "total":
@@ -250,6 +254,7 @@ export function plural(numero, singular, varios) {
 export function describirLogro(logro, estado) {
     const n = logro.objetivo;
     switch (logro.tipo) {
+        case "manual":      return "Logro personal";
         case "mision": {
             const mision = estado.misiones.find((m) => m.id === logro.misionId);
             const nombre = mision ? mision.nombre : "misión borrada";
