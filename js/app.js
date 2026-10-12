@@ -366,12 +366,17 @@ function ejecutar(accion, efectos = {}) {
     ];
     datos.guardar(estado);
 
-    // ¿A qué jefes les pegaste con esta acción? (para que su tarjeta tiemble)
+    // ¿A qué jefes les pegaste con esta acción, y cuánto? (para mostrar el golpe)
     const danoAhora = campana.danoPorCategoria(estado);
-    const golpeadas = Object.keys(danoAhora).filter((categoria) => danoAhora[categoria] > antes.dano[categoria]);
+    const golpes = {};
+    for (const categoria of Object.keys(danoAhora)) {
+        const golpe = danoAhora[categoria] - antes.dano[categoria];
+        if (golpe > 0) golpes[categoria] = golpe;
+    }
+    if (Object.keys(golpes).length) setTimeout(() => sonar("impacto"), 330);   // suena cuando cae el tajo
 
     const subioNivel = celebraciones.some((c) => c.tipo === "nivel");
-    refrescar({ ...efectos, subioNivel, golpeadas });
+    refrescar({ ...efectos, subioNivel, golpes });
     celebraciones.forEach(celebrar);
     return resultado;
 }
@@ -381,6 +386,8 @@ function ejecutar(accion, efectos = {}) {
 
 function refrescar(efectos = {}) {
     actualizarCabecera(efectos.subioNivel);
+    // El CSS necesita saber cuánto mide la cabecera (para pegar cosas justo debajo).
+    document.documentElement.style.setProperty("--alto-cabecera", `${$(".cabecera").offsetHeight}px`);
     dibujarPantalla(efectos);
 }
 

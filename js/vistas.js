@@ -11,7 +11,7 @@ import * as juego from "./juego.js";
 import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
-import { dibujarAvatar, dibujarMascota } from "./dibujo.js";
+import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen } from "./resumen.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, desdeTexto, diaDeSemana } from "./fechas.js";
 
@@ -183,7 +183,7 @@ function tarjetaHeroe(ctx) {
     const a = ctx.avatar;
     const siguiente = avatar.siguienteEtapa(avatar.ETAPAS, a.etapa);
     return `
-        <button type="button" class="heroe ${ctx.recienHecha ? "saltar" : ""}" data-accion="ir" data-pantalla="personaje">
+        <button type="button" class="heroe ${ctx.recienHecha ? "atacar" : ""}" data-accion="ir" data-pantalla="personaje">
             <span class="heroe-avatar">${dibujarAvatar(a)}</span>
             <span class="heroe-info">
                 <span class="etiqueta">${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</span>
@@ -564,16 +564,30 @@ const FRASES_JEFE = {
 };
 
 // Retrato del jefe (una pintura clásica) con el efecto según su vida.
-function retratoJefe(jefe, estadoVisual, clase = "") {
+// dano = cuánto le acabas de quitar (si le pegaste con la última acción): muestra el golpe.
+function retratoJefe(jefe, estadoVisual, clase = "", dano = 0) {
     return `<figure class="retrato ${estadoVisual} ${clase}">
                 <img src="${campana.imagenDe(jefe.id)}" alt="${esc(jefe.nombre)}" loading="lazy" decoding="async">
-            </figure>`;
+                ${dano ? '<span class="impacto"></span>' : ""}
+            </figure>
+            ${dano ? `<span class="dano" aria-hidden="true">−${dano}</span>` : ""}`;
+}
+
+// Miniatura de un objeto, con el marco del color de su rareza.
+function iconoObjeto(id, extra = "") {
+    return `<span class="objeto-icono rareza-${avatar.OBJETOS[id].rareza} ${extra}">${dibujarObjeto(id)}</span>`;
+}
+
+function textoRareza(objeto) {
+    const rareza = avatar.RAREZAS[objeto.rareza];
+    return `<span class="rareza-texto" style="color: ${rareza.color}">${rareza.nombre}</span>`;
 }
 
 // Tarjeta de una campaña: el jefe actual contra tu avatar y la ruta de los 5 jefes.
 function tarjetaCampana(c, ctx) {
     const a = juego.ATRIBUTOS[c.categoria];
-    const golpeado = (ctx.golpeadas || []).includes(c.categoria);
+    const dano = (ctx.golpes || {})[c.categoria] || 0;   // daño del golpe que acabas de dar
+    const golpeado = dano > 0;
 
     // Ruta: vencidos (en gris), el actual (resaltado) y los que vienen (silueta).
     const ruta = c.campana.jefes.map((jefe, i) => {
@@ -608,9 +622,10 @@ function tarjetaCampana(c, ctx) {
 
             <!-- Escena de batalla: tu avatar contra el jefe -->
             <div class="escena">
-                <div class="escena-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
+                <div class="escena-fondo">${dibujarEscenario(c.categoria)}</div>
+                <div class="escena-heroe ${golpeado ? "atacar" : ""}">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
                 <span class="escena-vs">VS</span>
-                <div class="escena-jefe">${retratoJefe(jefe, visual)}</div>
+                <div class="escena-jefe">${retratoJefe(jefe, visual, "", dano)}</div>
             </div>
 
             <h3 class="jefe-nombre">${esc(jefe.nombre)} <span>· ${esc(jefe.titulo)}</span></h3>
@@ -627,11 +642,11 @@ function tarjetaCampana(c, ctx) {
 function jefesEnCombate(estado, ctx) {
     const filas = Object.values(campana.estadoCampanas(estado)).filter((c) => !c.completa).map((c) => {
         const a = juego.ATRIBUTOS[c.categoria];
-        const golpeado = (ctx.golpeadas || []).includes(c.categoria);
+        const dano = (ctx.golpes || {})[c.categoria] || 0;
         return `
             <li>
-                <button type="button" class="combate ${golpeado ? "golpeado" : ""}" data-accion="ir" data-pantalla="aventuras">
-                    <span class="combate-jefe">${retratoJefe(c.jefe, campana.estadoVisual(c.porcentaje), "mini")}</span>
+                <button type="button" class="combate ${dano ? "golpeado" : ""}" data-accion="ir" data-pantalla="aventuras">
+                    <span class="combate-jefe">${retratoJefe(c.jefe, campana.estadoVisual(c.porcentaje), "mini", dano)}</span>
                     <span class="combate-info">
                         <b>${esc(c.jefe.nombre)} <span class="texto-suave mini">· ${esc(c.jefe.titulo)}</span></b>
                         ${barra(c.porcentaje, "barra-vida barra-mini")}
@@ -772,7 +787,7 @@ export function pantallaPersonaje(estado, ctx) {
             <ol class="etapas">${etapas}</ol>
         </section>
 
-        ${seccionApariencia(estado)}
+        ${seccionApariencia(estado, ctx)}
 
         <section class="panel">
             <h2 class="titulo-juego">Clase: ${a.clase.icono} ${a.clase.nombre}</h2>
@@ -786,24 +801,30 @@ export function pantallaPersonaje(estado, ctx) {
         ${seccionObjetosDeLogro(estado, ctx, "Objetos de logro")}`;
 }
 
-// Apariencia: tono de piel, color de pelo, peinado y barba.
+// Apariencia: cuerpo, piel, rostro, ojos, pelo, peinado, barba y color del traje.
 // Los colores se eligen con círculos de color; lo demás, con botones de texto.
-const TITULOS_APARIENCIA = { piel: "Tono de piel", pelo: "Color de pelo", peinado: "Peinado", barba: "Barba" };
+const TITULOS_APARIENCIA = {
+    cuerpo: "Cuerpo", piel: "Tono de piel", rostro: "Rostro", ojos: "Color de ojos",
+    pelo: "Color de pelo", peinado: "Peinado", barba: "Barba", traje: "Color del traje",
+};
 
-function seccionApariencia(estado) {
+function seccionApariencia(estado, ctx) {
     const grupos = Object.entries(avatar.APARIENCIA).map(([campo, opciones]) => {
         const elegida = estado.apariencia[campo];
-        const conColor = Boolean(Object.values(opciones)[0].color);
+        const conColor = Object.values(opciones).some((opcion) => opcion.color);
         const botones = Object.entries(opciones).map(([valor, opcion]) => {
             const datos = `data-accion="apariencia" data-campo="${campo}" data-valor="${valor}" aria-pressed="${valor === elegida}"`;
-            return conColor
+            if (!conColor) return `<button type="button" ${datos}>${opcion.nombre}</button>`;
+            // Una opción sin color propio (el traje "de tu clase") usa el color de la clase.
+            return opcion.color
                 ? `<button type="button" class="muestra" style="--color-muestra: ${opcion.color}" ${datos} aria-label="${opcion.nombre}"></button>`
-                : `<button type="button" ${datos}>${opcion.nombre}</button>`;
+                : `<button type="button" class="muestra auto" style="--color-muestra: ${ctx.avatar.clase.oscuro}" ${datos} aria-label="${opcion.nombre}">A</button>`;
         }).join("");
+        const muchas = Object.keys(opciones).length > 4;
         return `
             <div class="apariencia-grupo">
                 <span class="apariencia-titulo">${TITULOS_APARIENCIA[campo]} <small>${opciones[elegida].nombre}</small></span>
-                <div class="${conColor ? "muestras" : "selector"}" role="group" aria-label="${TITULOS_APARIENCIA[campo]}">${botones}</div>
+                <div class="${conColor ? "muestras" : `selector ${muchas ? "selector-rejilla" : ""}`}" role="group" aria-label="${TITULOS_APARIENCIA[campo]}">${botones}</div>
             </div>`;
     }).join("");
 
@@ -811,6 +832,8 @@ function seccionApariencia(estado) {
         <section class="panel apariencia">
             <h2 class="titulo-juego">Apariencia</h2>
             <p class="nota">Elige cómo se ve tu avatar. Es gratis y lo puedes cambiar cuando quieras.</p>
+            <!-- vista previa: se queda a la vista mientras eliges -->
+            <div class="apariencia-previa">${dibujarAvatar(ctx.avatar, { batalla: true, sinEfectos: true })}</div>
             ${grupos}
         </section>`;
 }
@@ -822,8 +845,8 @@ function seccionEquipamiento(estado, ctx) {
     const espacios = Object.entries(avatar.ESPACIOS).map(([espacio, nombre]) => {
         const id = a.equipado[espacio];
         const objeto = id ? avatar.OBJETOS[id] : null;
-        return `<div class="espacio ${objeto ? "lleno" : ""}">
-                    <span class="espacio-icono">${objeto ? objeto.icono : "·"}</span>
+        return `<div class="espacio ${objeto ? `lleno rareza-${objeto.rareza}` : ""}">
+                    <span class="espacio-icono">${objeto ? dibujarObjeto(id) : "—"}</span>
                     <span class="mini texto-suave">${nombre}</span>
                     <span class="mini">${objeto ? esc(objeto.nombre) : "Vacío"}</span>
                 </div>`;
@@ -833,9 +856,9 @@ function seccionEquipamiento(estado, ctx) {
         const objeto = avatar.OBJETOS[id];
         const puesto = a.equipado[objeto.espacio] === id;
         return `<li class="objeto ${puesto ? "puesto" : ""}">
-                    <span class="objeto-icono">${objeto.icono}</span>
+                    ${iconoObjeto(id)}
                     <span class="objeto-info"><b>${objeto.nombre}</b>
-                        <span class="mini texto-suave">${avatar.ESPACIOS[objeto.espacio]}${objeto.logro ? " · 🏅 de logro" : ""}</span></span>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[objeto.espacio]} · ${textoRareza(objeto)}</span></span>
                     <button type="button" class="boton boton-chico ${puesto ? "" : "boton-oro"}" data-accion="equipar" data-id="${id}">
                         ${puesto ? "Quitar" : "Equipar"}</button>
                 </li>`;
@@ -887,9 +910,9 @@ function seccionObjetosDeLogro(estado, ctx, titulo) {
         const progreso = Math.min(avatar.progresoObjeto(o, estado, ctx.info), o.logro.meta);
         const ganado = progreso >= o.logro.meta;
         return `<li class="objeto ${ganado ? "puesto" : ""}">
-                    <span class="objeto-icono ${ganado ? "" : "bloqueado"}">${o.icono}</span>
+                    ${iconoObjeto(id, ganado ? "" : "bloqueado")}
                     <span class="objeto-info"><b>${o.nombre}</b>
-                        <span class="mini texto-suave">${o.logro.texto}</span>
+                        <span class="mini texto-suave">${textoRareza(o)} · ${o.logro.texto}</span>
                         ${ganado ? "" : barra(Math.round((progreso / o.logro.meta) * 100), "barra-mini")}</span>
                     <span class="mini ${ganado ? "oro" : "texto-suave"}">${ganado ? "¡Ganado!" : `${progreso}/${o.logro.meta}`}</span>
                 </li>`;
@@ -918,9 +941,9 @@ function tiendaDelAvatar(estado) {
             : `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="comprar" data-id="${id}"
                        ${puede ? "" : "disabled"}>Comprar</button>`;
         return `<li class="objeto ${tuyo ? "puesto" : ""}">
-                    <span class="objeto-icono">${o.icono}</span>
+                    ${iconoObjeto(id)}
                     <span class="objeto-info"><b>${o.nombre}</b>
-                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · 🪙 ${o.precio}</span></span>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · ${textoRareza(o)} · 🪙 ${o.precio}</span></span>
                     ${accion}
                 </li>`;
     }).join("");

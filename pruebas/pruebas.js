@@ -16,6 +16,8 @@ import * as juego from "../js/juego.js";
 import * as campana from "../js/campana.js";
 import { calcularResumen } from "../js/resumen.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana } from "../js/fechas.js";
+import * as avatar from "../js/avatar.js";
+import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
 import { partidaDemo } from "./demo.js";
 
 
@@ -366,6 +368,24 @@ prueba("Apariencia: se puede cambiar, y una opción inventada no se acepta", () 
     debeFallar(() => acciones.cambiarApariencia(estado, "piel", "verde"), "no existe");
 });
 
+prueba("Apariencia: las opciones nuevas (cuerpo, rostro, ojos, traje) se pueden elegir", () => {
+    const estado = partidaNueva();
+    for (const [campo, opciones] of Object.entries(avatar.APARIENCIA)) {
+        cierto(avatar.APARIENCIA_INICIAL[campo] in opciones, `la opción inicial de «${campo}» existe`);
+        for (const valor of Object.keys(opciones)) {
+            acciones.cambiarApariencia(estado, campo, valor);
+            igual(estado.apariencia[campo], valor);
+        }
+    }
+});
+
+prueba("Objetos: todos tienen una rareza válida, y los de logro son legendarios", () => {
+    for (const [id, objeto] of Object.entries(avatar.OBJETOS)) {
+        cierto(objeto.rareza in avatar.RAREZAS, `rareza de ${id}`);
+        if (objeto.logro) igual(objeto.rareza, "legendario", `rareza de ${id}`);
+    }
+});
+
 prueba("Ajustes: el sonido se puede apagar", () => {
     const estado = partidaNueva();
     igual(estado.ajustes.sonido, true);
@@ -386,13 +406,90 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     const vieja = JSON.stringify({ personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] });
     const estado = datos.desdeRespaldo(vieja);
     igual(estado.ajustes, { sonido: true });
-    igual(estado.apariencia.peinado, "corto");
+    igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
     igual(estado.campana, { recompensados: {} });
 });
 
 prueba("Copia de seguridad: un archivo cualquiera se rechaza", () => {
     debeFallar(() => datos.desdeRespaldo("hola"), "no es una copia de seguridad válida");
     debeFallar(() => datos.desdeRespaldo('{"otra": "cosa"}'), "no parece una copia");
+});
+
+
+// ===== Dibujos =====
+// Los dibujos son texto SVG. No podemos "ver" si quedaron bonitos, pero sí comprobar
+// que ninguna combinación se rompe (un número mal calculado aparece como NaN).
+
+function dibujoSano(svg, que) {
+    cierto(svg.startsWith("<svg") && svg.endsWith("</svg>"), `${que} es un SVG completo`);
+    for (const malo of ["NaN", "undefined", "null", "[object"]) {
+        cierto(!svg.includes(malo), `${que} no contiene «${malo}»`);
+    }
+}
+
+// Descripción de un avatar para dibujar (lo que normalmente arma describirAvatar).
+function avatarDePrueba(cambios = {}) {
+    return {
+        nivel: 1, etapa: avatar.ETAPAS[0], clave: "aprendiz", clase: avatar.CLASES.aprendiz, animo: "normal",
+        rasgos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 },
+        equipado: { cabeza: null, mano: null, espalda: null, fondo: null },
+        apariencia: { ...avatar.APARIENCIA_INICIAL },
+        mascota: { nombre: "Chispa", etapa: avatar.ETAPAS_MASCOTA[0], total: 0, triste: false },
+        ...cambios,
+    };
+}
+
+prueba("Dibujo: el avatar se dibuja en todas las etapas, clases, cuerpos y peinados", () => {
+    let dibujados = 0;
+    for (const etapa of avatar.ETAPAS) {
+        for (const [clave, clase] of Object.entries(avatar.CLASES)) {
+            for (const cuerpo of Object.keys(avatar.APARIENCIA.cuerpo)) {
+                for (const peinado of Object.keys(avatar.APARIENCIA.peinado)) {
+                    const d = avatarDePrueba({ etapa, clave, clase, apariencia: { ...avatar.APARIENCIA_INICIAL, cuerpo, peinado } });
+                    dibujoSano(dibujarAvatar(d), `${etapa.clave}/${clave}/${cuerpo}/${peinado}`);
+                    dibujados += 1;
+                }
+            }
+        }
+    }
+    igual(dibujados, 4 * 6 * 2 * 8);
+});
+
+prueba("Dibujo: cada opción de apariencia, ánimo, rasgo y objeto se dibuja bien", () => {
+    for (const [campo, opciones] of Object.entries(avatar.APARIENCIA)) {
+        for (const valor of Object.keys(opciones)) {
+            dibujoSano(dibujarAvatar(avatarDePrueba({ apariencia: { ...avatar.APARIENCIA_INICIAL, [campo]: valor } })), `${campo}=${valor}`);
+        }
+    }
+    for (const animo of Object.keys(avatar.ANIMOS)) dibujoSano(dibujarAvatar(avatarDePrueba({ animo })), `ánimo ${animo}`);
+    for (const etapa of avatar.ETAPAS) {
+        const rasgos = { fuerza: 2, intelecto: 2, carisma: 2, riqueza: 2 };
+        dibujoSano(dibujarAvatar(avatarDePrueba({ etapa, rasgos })), `rasgos al máximo en ${etapa.clave}`);
+    }
+    for (const [id, objeto] of Object.entries(avatar.OBJETOS)) {
+        const equipado = { cabeza: null, mano: null, espalda: null, fondo: null, [objeto.espacio]: id };
+        dibujoSano(dibujarAvatar(avatarDePrueba({ equipado })), `avatar con ${id}`);
+        dibujoSano(dibujarObjeto(id), `miniatura de ${id}`);
+    }
+    // Los tres encuadres: completo, batalla y retrato pequeño.
+    for (const opciones of [{}, { batalla: true }, { batalla: true, sinEfectos: true }, { mini: true }]) {
+        dibujoSano(dibujarAvatar(avatarDePrueba({ etapa: avatar.ETAPAS[3] }), opciones), `encuadre ${JSON.stringify(opciones)}`);
+    }
+});
+
+prueba("Dibujo: la mascota y los escenarios de batalla se dibujan bien", () => {
+    for (const etapa of avatar.ETAPAS_MASCOTA) {
+        for (const triste of [false, true]) dibujoSano(dibujarMascota({ nombre: "Chispa", etapa, total: 0, triste }), `mascota ${etapa.clave}`);
+    }
+    for (const categoria of Object.keys(campana.CAMPANAS)) dibujoSano(dibujarEscenario(categoria).trim(), `escenario de ${categoria}`);
+});
+
+prueba("Dibujo: dos avatares en la misma página no comparten ids (sus colores no se mezclan)", () => {
+    const ids = (svg) => [...svg.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
+    const [a, b] = [ids(dibujarAvatar(avatarDePrueba())), ids(dibujarAvatar(avatarDePrueba()))];
+    cierto(a.length > 5, "el dibujo define sus materiales");
+    igual(a.filter((id) => b.includes(id)), [], "ids repetidos entre dos dibujos");
+    igual(new Set(a).size, a.length, "ids únicos dentro de un dibujo");
 });
 
 

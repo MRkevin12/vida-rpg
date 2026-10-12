@@ -10,10 +10,10 @@ import { diasEntre } from "./fechas.js";
 
 // 1. Etapas: el avatar evoluciona al subir de nivel.
 export const ETAPAS = [
-    { clave: "novato",     nombre: "Novato",     desde: 1,  cambio: "Ropa sencilla de aprendiz." },
-    { clave: "aventurero", nombre: "Aventurero", desde: 10, cambio: "Túnica del color de tu clase y botas." },
-    { clave: "heroe",      nombre: "Héroe",      desde: 25, cambio: "Capa de héroe y adornos dorados." },
-    { clave: "leyenda",    nombre: "Leyenda",    desde: 50, cambio: "Aura brillante de leyenda." },
+    { clave: "novato",     nombre: "Novato",     desde: 1,  cambio: "Túnica de lino de aprendiz." },
+    { clave: "aventurero", nombre: "Aventurero", desde: 10, cambio: "Jubón del color de tu clase, cuero y botas altas." },
+    { clave: "heroe",      nombre: "Héroe",      desde: 25, cambio: "Armadura de acero con oro, bufanda y capa." },
+    { clave: "leyenda",    nombre: "Leyenda",    desde: 50, cambio: "Armadura legendaria, gema que brilla y aura." },
 ];
 
 // 3. Clases: según tu atributo más alto.
@@ -52,35 +52,62 @@ export const ANIMOS = {
 // 5 y 6. Equipamiento: unos se compran con monedas, otros solo se ganan con logros.
 export const ESPACIOS = { cabeza: "Cabeza", mano: "Mano", espalda: "Espalda", fondo: "Fondo" };
 
+// Rareza: qué tan especial es un objeto (cambia el color de su marco).
+// Los que se ganan con logros son siempre legendarios.
+export const RAREZAS = {
+    comun:      { nombre: "Común",      color: "#9ca3af" },
+    raro:       { nombre: "Raro",       color: "#38bdf8" },
+    epico:      { nombre: "Épico",      color: "#c084fc" },
+    legendario: { nombre: "Legendario", color: "#fbbf24" },
+};
+
 export const OBJETOS = {
-    "gorra":         { nombre: "Gorra de aprendiz",   icono: "🧢", espacio: "cabeza",  precio: 60 },
-    "sombrero-mago": { nombre: "Sombrero de mago",    icono: "🧙", espacio: "cabeza",  precio: 120 },
-    "casco":         { nombre: "Casco de caballero",  icono: "⛑️", espacio: "cabeza",  precio: 150 },
-    "corona":        { nombre: "Corona de 30 días",   icono: "👑", espacio: "cabeza",
+    "gorra":         { nombre: "Gorra de aprendiz",   icono: "🧢", espacio: "cabeza",  precio: 60,  rareza: "comun" },
+    "sombrero-mago": { nombre: "Sombrero de mago",    icono: "🧙", espacio: "cabeza",  precio: 120, rareza: "raro" },
+    "casco":         { nombre: "Casco de caballero",  icono: "⛑️", espacio: "cabeza",  precio: 150, rareza: "epico" },
+    "corona":        { nombre: "Corona de 30 días",   icono: "👑", espacio: "cabeza",  rareza: "legendario",
                        logro: { tipo: "racha", meta: 30, texto: "Lograr una racha de 30 días" } },
-    "espada-madera": { nombre: "Espada de madera",    icono: "🗡️", espacio: "mano",    precio: 60 },
-    "baston":        { nombre: "Bastón mágico",       icono: "🪄", espacio: "mano",    precio: 120 },
-    "laud":          { nombre: "Laúd del bardo",      icono: "🪕", espacio: "mano",    precio: 120 },
-    "espada-jefe":   { nombre: "Espada del Jefe",     icono: "⚔️", espacio: "mano",
+    "espada-madera": { nombre: "Espada de madera",    icono: "🗡️", espacio: "mano",    precio: 60,  rareza: "comun" },
+    "baston":        { nombre: "Bastón mágico",       icono: "🪄", espacio: "mano",    precio: 120, rareza: "raro" },
+    "laud":          { nombre: "Laúd del bardo",      icono: "🪕", espacio: "mano",    precio: 120, rareza: "raro" },
+    "espada-jefe":   { nombre: "Espada del Jefe",     icono: "⚔️", espacio: "mano",    rareza: "legendario",
                        logro: { tipo: "jefes", meta: 1, texto: "Derrotar tu primer jefe" } },
-    "capa":          { nombre: "Capa carmesí",        icono: "🧣", espacio: "espalda", precio: 150 },
-    "alas":          { nombre: "Alas de luz",         icono: "🪽", espacio: "espalda",
+    "capa":          { nombre: "Capa carmesí",        icono: "🧣", espacio: "espalda", precio: 150, rareza: "epico" },
+    "alas":          { nombre: "Alas de luz",         icono: "🪽", espacio: "espalda", rareza: "legendario",
                        logro: { tipo: "perfectos", meta: 10, texto: "Tener 10 días perfectos" } },
-    "bosque":        { nombre: "Fondo: Bosque",       icono: "🌲", espacio: "fondo",   precio: 100 },
-    "castillo":      { nombre: "Fondo: Castillo",     icono: "🏰", espacio: "fondo",   precio: 150 },
-    "galaxia":       { nombre: "Fondo: Galaxia",      icono: "🌌", espacio: "fondo",   precio: 250 },
-    "salon":         { nombre: "Fondo: Salón de la fama", icono: "🏛️", espacio: "fondo",
+    "bosque":        { nombre: "Fondo: Bosque",       icono: "🌲", espacio: "fondo",   precio: 100, rareza: "raro" },
+    "castillo":      { nombre: "Fondo: Castillo",     icono: "🏰", espacio: "fondo",   precio: 150, rareza: "epico" },
+    "galaxia":       { nombre: "Fondo: Galaxia",      icono: "🌌", espacio: "fondo",   precio: 250, rareza: "epico" },
+    "salon":         { nombre: "Fondo: Salón de la fama", icono: "🏛️", espacio: "fondo", rareza: "legendario",
                        logro: { tipo: "logros", meta: 10, texto: "Conseguir 10 logros" } },
 };
 
 // Apariencia: para que el avatar se parezca a ti (se elige en la pantalla Personaje).
+// Las opciones con "color" se muestran como círculos de color; las demás, como botones.
 export const APARIENCIA = {
+    cuerpo: {
+        masculino: { nombre: "Masculino" },
+        femenino:  { nombre: "Femenino" },
+    },
     piel: {
         clara:  { nombre: "Clara",  color: "#f0c9a4", sombra: "#c99a70" },
         media:  { nombre: "Media",  color: "#d9a67c", sombra: "#b07a52" },
         canela: { nombre: "Canela", color: "#bd8454", sombra: "#93603a" },
         morena: { nombre: "Morena", color: "#8f5c3c", sombra: "#6c4128" },
         oscura: { nombre: "Oscura", color: "#5e3b27", sombra: "#402618" },
+    },
+    rostro: {
+        sereno:   { nombre: "Sereno" },
+        decidido: { nombre: "Decidido" },
+        amable:   { nombre: "Amable" },
+        curtido:  { nombre: "Curtido" },
+    },
+    ojos: {
+        cafe:  { nombre: "Café",  color: "#5b3a1e" },
+        miel:  { nombre: "Miel",  color: "#a8742a" },
+        verde: { nombre: "Verde", color: "#3f8f5a" },
+        azul:  { nombre: "Azul",  color: "#3b82c4" },
+        gris:  { nombre: "Gris",  color: "#7b8794" },
     },
     pelo: {
         negro:   { nombre: "Negro",         color: "#16110e" },
@@ -91,10 +118,14 @@ export const APARIENCIA = {
         cano:    { nombre: "Canoso",        color: "#9a9aa0" },
     },
     peinado: {
-        corto:  { nombre: "Corto" },
-        rapado: { nombre: "Rapado" },
-        largo:  { nombre: "Largo" },
-        calvo:  { nombre: "Calvo" },
+        corto:    { nombre: "Corto" },
+        rapado:   { nombre: "Rapado" },
+        cresta:   { nombre: "Copete" },
+        rizado:   { nombre: "Rizado" },
+        melena:   { nombre: "Melena" },
+        largo:    { nombre: "Largo" },
+        recogido: { nombre: "Coleta" },
+        calvo:    { nombre: "Calvo" },
     },
     barba: {
         ninguna:  { nombre: "Sin barba" },
@@ -102,9 +133,22 @@ export const APARIENCIA = {
         candado:  { nombre: "Candado" },
         completa: { nombre: "Barba" },
     },
+    // Color del traje. "clase" no tiene color propio: usa el de tu clase.
+    traje: {
+        clase:     { nombre: "El de tu clase" },
+        azul:      { nombre: "Azul",      color: "#1e4fc2" },
+        carmesi:   { nombre: "Carmesí",   color: "#9f1239" },
+        esmeralda: { nombre: "Esmeralda", color: "#047857" },
+        violeta:   { nombre: "Violeta",   color: "#6d28d9" },
+        negro:     { nombre: "Negro",     color: "#2a2a34" },
+        blanco:    { nombre: "Blanco",    color: "#c9ced8" },
+    },
 };
 
-export const APARIENCIA_INICIAL = { piel: "media", pelo: "castano", peinado: "corto", barba: "ninguna" };
+export const APARIENCIA_INICIAL = {
+    cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
+    pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase",
+};
 
 // 7. Mascota: crece con las misiones diarias que completas.
 export const ETAPAS_MASCOTA = [

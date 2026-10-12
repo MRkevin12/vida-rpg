@@ -23,9 +23,9 @@ Las capturas usan una partida de ejemplo inventada.
 - **Resumen con gráficas** de los últimos 7 o 30 días: cumplimiento, días perfectos, XP, tu mejor día de la semana y qué atributo tienes descuidado.
 - **Calendario de un año** al estilo de GitHub.
 - **Misiones principales** divididas en pasos, para las metas grandes.
-- **Campaña de jefes:** cada atributo tiene 5 jefes, cada uno más fuerte. Les haces daño cumpliendo misiones de ese atributo: las diarias pegan poco y los pasos de una misión principal pegan mucho.
+- **Campaña de jefes:** cada atributo tiene 5 jefes, cada uno más fuerte, en su propio escenario. Les haces daño cumpliendo misiones de ese atributo: las diarias pegan poco y los pasos de una misión principal pegan mucho. Tu héroe ataca con su arma y el jefe recibe el golpe.
 - **Logros** automáticos y personales, y una **tienda** donde cambias monedas por recompensas reales que tú defines.
-- **Avatar que evoluciona** con tu nivel, con clase, equipamiento, mascota y apariencia personalizable.
+- **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
 - **Tres minijuegos** que se juegan con fichas ganadas al completar misiones.
 - **PIN de 4 números** para abrir la app y **copia de seguridad** en un archivo.
 - **Sonidos** hechos con código, que se pueden apagar en Ajustes.
@@ -48,7 +48,7 @@ El PIN evita que alguien con tu teléfono desbloqueado abra la app. No cifra los
 
 ## Cómo está hecha
 
-HTML, CSS y JavaScript sin librerías ni paso de compilación. Es una PWA: un *service worker* (`sw.js`) guarda los archivos en el teléfono la primera vez para que después abra sin conexión.
+HTML, CSS y JavaScript sin librerías ni paso de compilación. Los personajes, objetos y escenarios no son imágenes: se dibujan con código (SVG), por eso se pueden personalizar y animar. Es una PWA: un *service worker* (`sw.js`) guarda los archivos en el teléfono la primera vez para que después abra sin conexión.
 
 La idea central es que casi todo **se calcula a partir del historial** en lugar de guardarse: la racha, los escudos, el calendario, la vida de los jefes y el resumen salen de la lista de misiones completadas. Así no hay números que se puedan desincronizar.
 
@@ -61,7 +61,8 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/campana.js` | Los jefes: vida, daño y créditos de las pinturas |
 | `js/resumen.js` | Los números del resumen de 7 y 30 días |
 | `js/vistas.js` | Convierte la partida en HTML |
-| `js/avatar.js`, `js/dibujo.js` | Las reglas del avatar y su dibujo en SVG |
+| `js/avatar.js` | Las reglas del avatar: etapas, clases, objetos y opciones de apariencia |
+| `js/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
 | `js/arcade.js`, `js/minijuegos.js` | Las fichas y los tres minijuegos en `<canvas>` |
 | `js/datos.js` | Guardar, cargar y copias de seguridad |
 | `js/seguridad.js` | El PIN (se guarda su huella SHA-256, nunca el PIN) |
@@ -87,7 +88,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 31 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, jefes, logros, tienda, resumen y copias de seguridad) y muestra cuáles pasan.
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 37 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, jefes, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

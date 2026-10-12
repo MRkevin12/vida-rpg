@@ -1150,7 +1150,7 @@ button.celda {
     justify-self: center;
     align-self: end;
     width: 100%;
-    max-width: 118px;
+    max-width: 132px;
 }
 
 .escena-jefe {
@@ -1234,12 +1234,12 @@ button.celda {
 
 /* Cuando le pegas: tu avatar embiste y el retrato recibe el golpe */
 .jefe.golpeado .escena-heroe {
-    animation: embestir 0.5s ease-out;
+    animation: embestir 0.64s ease-out;
 }
 
 .jefe.golpeado .escena-jefe,
 .combate.golpeado .combate-jefe {
-    animation: recibir-golpe 0.55s ease-out 0.12s;
+    animation: recibir-golpe 0.55s ease-out 0.3s;
 }
 
 .jefe.golpeado .barra-vida,
@@ -1361,7 +1361,8 @@ button.celda {
 }
 
 @keyframes embestir {
-    40% { transform: translateX(28px); }
+    30% { transform: translateX(-6px); }
+    56% { transform: translateX(26px); }
 }
 
 @keyframes recibir-golpe {
@@ -1958,6 +1959,31 @@ textarea:focus {
     font-size: 0.82rem;
 }
 
+/* Con muchas opciones (peinados), los botones van en filas de 4. */
+.apariencia .selector-rejilla {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* Vista previa: una franja que se queda pegada bajo la cabecera mientras bajas por
+   las opciones (app.js mide la cabecera y guarda su alto en --alto-cabecera). */
+.apariencia-previa {
+    position: sticky;
+    top: var(--alto-cabecera, 86px);
+    z-index: 3;
+    display: grid;
+    justify-items: center;
+    margin: 8px -8px 0;
+    padding: 6px 0 0;
+    background: radial-gradient(ellipse at 50% 100%, rgba(139, 92, 246, 0.3), transparent 70%), var(--panel-claro);
+    border-bottom: 1px solid var(--borde);
+    box-shadow: 0 10px 14px -8px rgba(0, 0, 0, 0.7);
+}
+
+.apariencia-previa .avatar-svg {
+    width: 92px;
+}
+
 /* Círculos de color (piel y pelo) */
 .muestras {
     display: flex;
@@ -1978,6 +2004,16 @@ textarea:focus {
 .muestra[aria-pressed="true"] {
     border-color: #fff;
     box-shadow: 0 0 0 3px var(--violeta);
+}
+
+/* "El de tu clase": se elige solo; lleva una A de automático. */
+.muestra.auto {
+    display: grid;
+    place-items: center;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 1px 2px #000;
 }
 
 
@@ -2197,16 +2233,6 @@ textarea:focus {
     border-radius: 12px;
 }
 
-.espacio.lleno {
-    border-style: solid;
-    border-color: rgba(251, 191, 36, 0.45);
-}
-
-.espacio-icono {
-    font-size: 1.5rem;
-    line-height: 1.2;
-}
-
 .objeto {
     display: flex;
     align-items: center;
@@ -2219,16 +2245,6 @@ textarea:focus {
 
 .objeto.puesto {
     border-color: rgba(251, 191, 36, 0.45);
-}
-
-.objeto-icono {
-    flex-shrink: 0;
-    font-size: 1.6rem;
-}
-
-.objeto-icono.bloqueado {
-    filter: grayscale(1);
-    opacity: 0.5;
 }
 
 .objeto-info {
@@ -2261,25 +2277,76 @@ textarea:focus {
 }
 
 /* --- Animaciones del avatar --- */
-/* transform-box: fill-box hace que el giro/escala sea respecto a la propia figura */
+/* Los "pivotes" (brazo, arma, capa) giran alrededor del punto donde dibujo.js los
+   colocó: el hombro, la mano o el cuello. Por eso aquí basta con decir rotate(). */
+
+/* Para saltar y celebrar, el personaje entero se mueve desde sus pies. */
 .avatar-svg .pj {
     transform-box: fill-box;
     transform-origin: 50% 100%;
-    animation: respirar 3.2s ease-in-out infinite;
 }
 
-.avatar-svg.animo-dormido .pj {
-    animation-duration: 5s;
+/* Respira: el torso sube y baja apenas (los pies se quedan quietos). */
+.avatar-svg .pj-torso {
+    animation: respirar 3.6s ease-in-out infinite;
 }
 
-/* Salta al completar una misión (y luego vuelve a respirar) */
-.heroe.saltar .avatar-svg .pj {
-    animation: saltar-pj 0.75s ease-out, respirar 3.2s ease-in-out 0.75s infinite;
+.avatar-svg.animo-dormido .pj-torso {
+    animation-duration: 5.5s;
 }
 
-/* Celebra al subir de nivel o evolucionar */
+/* Parpadea cada 5 segundos. */
+.avatar-svg .ojos {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: parpadear 5s infinite;
+}
+
+.avatar-svg.animo-dormido .ojos {
+    animation: none;
+}
+
+/* La capa ondea y el arma se mece un poco. */
+.avatar-svg .capa {
+    animation: ondear 4.4s ease-in-out infinite;
+}
+
+.avatar-svg .arma-giro {
+    animation: mecer 3.6s ease-in-out infinite;
+}
+
+.avatar-svg .alas {
+    transform-box: fill-box;
+    transform-origin: 50% 85%;
+    animation: aletear 3.2s ease-in-out infinite;
+}
+
+/* Salta al celebrar (subir de nivel o evolucionar). */
 .celebrando .avatar-svg .pj {
-    animation: celebrar-pj 1.1s ease-in-out 2, respirar 3.2s ease-in-out 2.2s infinite;
+    animation: celebrar-pj 1.1s ease-in-out 2;
+}
+
+/* El retrato pequeño de la cabecera no se anima (ahorra batería). */
+.avatar-mini * {
+    animation: none !important;
+}
+
+/* --- Ataque: al completar una misión el héroe da un tajo --- */
+/* 1) levanta el brazo  2) baja el arma de golpe  3) queda un arco de luz (la "estela"). */
+.atacar .avatar-svg .brazo-arma {
+    animation: tajo-brazo 0.64s cubic-bezier(0.3, 0.1, 0.3, 1);
+}
+
+.atacar .avatar-svg .arma-giro {
+    animation: tajo-arma 0.64s cubic-bezier(0.3, 0.1, 0.3, 1);
+}
+
+.atacar .avatar-svg .estela {
+    animation: tajo-estela 0.64s ease-out;
+}
+
+.atacar .avatar-svg .pj {
+    animation: tajo-cuerpo 0.64s ease-out;
 }
 
 .avatar-svg .aura {
@@ -2299,13 +2366,17 @@ textarea:focus {
 }
 
 .avatar-svg .chispa,
-.avatar-svg .orbe {
+.avatar-svg .orbe,
+.escena-svg .chispa,
+.escena-svg .orbe {
     transform-box: fill-box;
     transform-origin: center;
     animation: titilar 1.8s ease-in-out infinite;
 }
 
-.avatar-svg .chispa:nth-of-type(2n) {
+.avatar-svg .chispa:nth-of-type(2n),
+.escena-svg .chispa:nth-of-type(2n),
+.escena-svg .orbe:nth-of-type(2n) {
     animation-delay: 0.6s;
 }
 
@@ -2313,12 +2384,23 @@ textarea:focus {
     animation: zzz 2.6s ease-in-out infinite;
 }
 
-.avatar-svg .mascota {
-    animation: respirar 2.2s ease-in-out infinite;
+/* Mascota: respira y mueve las alas. */
+.avatar-svg .mascota-cuerpo {
+    animation: respirar 2.4s ease-in-out infinite;
 }
 
-.avatar-svg .mascota.triste {
-    animation-duration: 4s;
+.avatar-svg .mascota.triste .mascota-cuerpo {
+    animation-duration: 4.4s;
+}
+
+.avatar-svg .ala-mascota {
+    transform-box: fill-box;
+    transform-origin: 10% 90%;
+    animation: aletear-mascota 2.4s ease-in-out infinite;
+}
+
+.avatar-svg .mascota.triste .ala-mascota {
+    animation: none;
 }
 
 .avatar-svg .huevo {
@@ -2328,19 +2410,62 @@ textarea:focus {
 }
 
 @keyframes respirar {
-    50% { transform: translateY(-2px); }
+    50% { transform: translateY(-0.9px); }
 }
 
-@keyframes saltar-pj {
-    0%, 55%, 100% { transform: translateY(0); }
-    30% { transform: translateY(-18px); }
-    75% { transform: translateY(-6px); }
+@keyframes parpadear {
+    0%, 93%, 100% { transform: scaleY(1); }
+    96% { transform: scaleY(0.08); }
+}
+
+@keyframes ondear {
+    0%, 100% { transform: skewX(-1.4deg); }
+    50% { transform: skewX(1.6deg); }
+}
+
+@keyframes mecer {
+    0%, 100% { transform: rotate(-1.4deg); }
+    50% { transform: rotate(1.6deg); }
+}
+
+@keyframes aletear {
+    50% { transform: scale(1.04, 1.07); }
+}
+
+@keyframes aletear-mascota {
+    50% { transform: rotate(-7deg); }
 }
 
 @keyframes celebrar-pj {
     0%, 50%, 100% { transform: translateY(0) rotate(0); }
     25% { transform: translateY(-14px) rotate(-6deg); }
     75% { transform: translateY(-14px) rotate(6deg); }
+}
+
+@keyframes tajo-brazo {
+    0%, 100% { transform: rotate(0); }
+    32% { transform: rotate(-58deg); }
+    56% { transform: rotate(16deg); }
+    78% { transform: rotate(8deg); }
+}
+
+@keyframes tajo-arma {
+    0%, 100% { transform: rotate(0); }
+    32% { transform: rotate(-34deg); }
+    56% { transform: rotate(92deg); }
+    78% { transform: rotate(70deg); }
+}
+
+@keyframes tajo-estela {
+    0%, 36% { opacity: 0; transform: rotate(-28deg); }
+    54% { opacity: 0.95; transform: rotate(0); }
+    100% { opacity: 0; transform: rotate(8deg); }
+}
+
+@keyframes tajo-cuerpo {
+    0%, 100% { transform: translateX(0); }
+    30% { transform: translateX(-3px); }
+    56% { transform: translateX(5px); }
 }
 
 @keyframes palpitar {
@@ -2368,6 +2493,162 @@ textarea:focus {
     70% { transform: rotate(-8deg); }
     80% { transform: rotate(8deg); }
     90% { transform: rotate(-4deg); }
+}
+
+
+/* ===== Objetos: miniatura dibujada y marco según su rareza ===== */
+.rareza-comun      { --rareza: #9ca3af; }
+.rareza-raro       { --rareza: #38bdf8; }
+.rareza-epico      { --rareza: #c084fc; }
+.rareza-legendario { --rareza: #fbbf24; }
+
+.objeto-icono {
+    flex: 0 0 54px;
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    padding: 5px;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.1), transparent 70%), var(--panel);
+    border: 1.5px solid var(--rareza, var(--borde));
+    border-radius: 13px;
+    box-shadow: inset 0 0 14px -6px var(--rareza, transparent);
+}
+
+.objeto-icono svg,
+.espacio-icono svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Los legendarios tienen un brillo que palpita. */
+.objeto-icono.rareza-legendario {
+    animation: brillo-legendario 2.8s ease-in-out infinite;
+}
+
+.objeto-icono.bloqueado {
+    filter: grayscale(1) brightness(0.55);
+    animation: none;
+}
+
+.rareza-texto {
+    font-weight: 600;
+}
+
+.espacio-icono {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 3px;
+    font-size: 1.2rem;
+    color: var(--texto-suave);
+}
+
+.espacio.lleno {
+    border-style: solid;
+    border-color: var(--rareza, rgba(251, 191, 36, 0.45));
+}
+
+@keyframes brillo-legendario {
+    0%, 100% { box-shadow: inset 0 0 14px -6px var(--rareza), 0 0 0 0 transparent; }
+    50% { box-shadow: inset 0 0 16px -4px var(--rareza), 0 0 12px -2px var(--rareza); }
+}
+
+
+/* ===== Batalla: escenario, golpe y número de daño ===== */
+/* El escenario de la campaña va detrás del héroe y del jefe. */
+.escena-fondo {
+    position: absolute;
+    inset: 0;
+}
+
+.escena-fondo svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.escena-heroe,
+.escena-vs,
+.escena-jefe {
+    position: relative;
+}
+
+/* La estela del tajo puede salirse del recuadro del héroe, hacia el jefe. */
+.escena-heroe .avatar-svg {
+    overflow: visible;
+}
+
+/* Destello del golpe sobre el retrato: un fogonazo y dos cortes cruzados. */
+.impacto {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    overflow: hidden;
+    border-radius: inherit;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(255, 196, 120, 0.55) 32%, transparent 62%);
+    opacity: 0;
+    pointer-events: none;
+    animation: fogonazo 0.5s ease-out 0.3s;
+}
+
+.impacto::before,
+.impacto::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -25%;
+    width: 150%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #fff 30%, #fff 70%, transparent);
+    transform: rotate(-38deg);
+}
+
+.impacto::after {
+    transform: rotate(-58deg) translateY(10px);
+    height: 2px;
+}
+
+/* Número de daño que sube y se desvanece. */
+.dano {
+    position: absolute;
+    top: 14%;
+    left: 50%;
+    z-index: 3;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 0 8px #e11d48, 0 2px 0 #7f1d1d;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    animation: subir-dano 1s ease-out 0.34s;
+}
+
+.combate .dano {
+    top: -6px;
+    font-size: 0.95rem;
+}
+
+.combate-jefe {
+    position: relative;
+}
+
+@keyframes fogonazo {
+    0% { opacity: 0; transform: scale(0.5); }
+    25% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0; transform: scale(1.25); }
+}
+
+@keyframes subir-dano {
+    0% { opacity: 0; transform: translate(-50%, 8px) scale(0.6); }
+    18% { opacity: 1; transform: translate(-50%, -4px) scale(1.15); }
+    70% { opacity: 1; transform: translate(-50%, -22px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -34px) scale(1); }
 }
 
 

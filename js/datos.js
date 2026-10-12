@@ -39,7 +39,9 @@ export function estadoInicial() {
         mascota: { nombre: "Chispa" },
         arcade: { usadas: 0, records: {} },   // fichas gastadas y mejor puntaje de cada minijuego
         campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
-        apariencia: { piel: "media", pelo: "castano", peinado: "corto", barba: "ninguna" },   // cómo se ve tu avatar
+        // Cómo se ve tu avatar (las opciones están en avatar.js → APARIENCIA).
+        apariencia: { cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
+                      pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase" },
         ajustes: { sonido: true },            // preferencias de la app
 
         ultimaVisita: null,   // último día que abriste la app (para el bonus de regreso)
