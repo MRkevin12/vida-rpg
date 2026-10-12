@@ -87,12 +87,43 @@ function revisarAlAbrir() {
 }
 
 // El service worker guarda los archivos en el teléfono para que la app funcione sin internet.
+let registroSW = null;   // para poder pedirle al teléfono que busque actualizaciones
+
 function registrarServiceWorker() {
-    if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./sw.js").catch(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    // ¿Ya había un service worker manejando la app? (si no, es la primera instalación)
+    const yaInstalada = Boolean(navigator.serviceWorker.controller);
+
+    navigator.serviceWorker.register("./sw.js")
+        .then((registro) => { registroSW = registro; })
+        .catch(() => {
             // Si falla (ej: abriendo el archivo directo), la app igual funciona con internet.
         });
-    }
+
+    // Cuando un service worker NUEVO toma el control, la página sigue con el código
+    // viejo en memoria: avisamos para recargar (no recargamos solos, por si estás
+    // en medio de algo, como un minijuego).
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (yaInstalada) $("#actualizacion").hidden = false;
+    });
+}
+
+// El iPhone casi nunca recarga las apps de la pantalla de inicio (las "despierta"),
+// así que cada vez que vuelves a la app le pedimos que revise si hay versión nueva.
+function buscarActualizacion() {
+    if (registroSW && navigator.onLine) registroSW.update().catch(() => {});
+}
+
+// Muestra en Ajustes qué versión está guardada en el teléfono (el nombre de la caché).
+function mostrarVersion() {
+    if (!("caches" in window)) return;
+    caches.keys().then((nombres) => {
+        const version = nombres.find((n) => n.startsWith("vida-rpg-"));
+        $("#ajustes-version").textContent = version
+            ? `Versión instalada: ${version.replace("vida-rpg-", "")}`
+            : "Versión: sin guardar todavía (abre la app con internet)";
+    }).catch(() => {});
 }
 
 
@@ -547,6 +578,7 @@ const PREPARAR = {
         mostrarCamposLogro();
     },
     ajustes() {
+        mostrarVersion();
         $("#ajustes-nombre").value = estado.personaje.nombre;
         $("#ajustes-ultimo-respaldo").textContent = estado.ultimoRespaldo
             ? `Última copia: ${fechaLegible(estado.ultimoRespaldo)}.`
@@ -860,7 +892,11 @@ function conectarEventos() {
 
     // Cuando la app se va a segundo plano (cambias de app o bloqueas el iPhone)
     // y cuando vuelve.
+    // Aviso de versión nueva: recargar la página carga el código nuevo.
+    $("#actualizar-ahora").addEventListener("click", () => window.location.reload());
+
     document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") buscarActualizacion();
         if (!estado.personaje) return;
 
         if (document.visibilityState === "hidden") {

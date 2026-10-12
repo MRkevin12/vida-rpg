@@ -9,9 +9,15 @@
 //   1. Responder AL INSTANTE con la copia guardada (funciona en modo avión).
 //   2. Si hay internet, descargar la versión nueva por detrás para la próxima vez.
 //
-// Si agregas o renombras archivos, súmalos a ARCHIVOS y cambia VERSION.
+// IMPORTANTE: cada vez que publiques cambios, sube VERSION (v6 → v7…).
+// Así el teléfono detecta la versión nueva y la app muestra el aviso «Actualizar».
+// Si agregas o renombras archivos, súmalos también a ARCHIVOS.
+//
+// GitHub Pages le dice al navegador que guarde los archivos 10 minutos
+// (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
+// los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v5";
+const VERSION = "vida-rpg-v6";
 
 const ARCHIVOS = [
     "./",
@@ -39,8 +45,10 @@ const ARCHIVOS = [
 
 // Instalación: guardar todos los archivos.
 self.addEventListener("install", (evento) => {
+    // cache: "reload" = ir siempre a internet, sin usar la caché del navegador.
     evento.waitUntil(
-        caches.open(VERSION).then((cache) => cache.addAll(ARCHIVOS))
+        caches.open(VERSION).then((cache) =>
+            cache.addAll(ARCHIVOS.map((url) => new Request(url, { cache: "reload" }))))
     );
     self.skipWaiting(); // activarse sin esperar a que se cierre la app
 });
@@ -63,7 +71,8 @@ self.addEventListener("fetch", (evento) => {
     if (peticion.method !== "GET" || new URL(peticion.url).origin !== self.location.origin) return;
 
     // Descargar la versión nueva (si hay internet) y guardarla para la próxima vez.
-    const desdeInternet = fetch(peticion).then(async (respuesta) => {
+    // cache: "no-cache" = preguntarle a GitHub si cambió, aunque el navegador tenga una copia.
+    const desdeInternet = fetch(peticion.url, { cache: "no-cache" }).then(async (respuesta) => {
         if (respuesta.ok) {
             const cache = await caches.open(VERSION);
             await cache.put(peticion, respuesta.clone());

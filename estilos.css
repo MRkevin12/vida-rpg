@@ -2148,6 +2148,28 @@ textarea:focus {
     animation: subir-aviso 0.3s ease-out;
 }
 
+/* Aviso de versión nueva: se queda hasta que tocas "Actualizar" */
+.actualizacion {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 10px);
+    right: 12px;
+    left: 12px;
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 10px 10px 10px 16px;
+    font-weight: 600;
+    background: var(--panel-claro);
+    border: 1px solid rgba(251, 191, 36, 0.55);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+    animation: bajar 0.3s ease-out;
+}
+
 
 /* ===== Animaciones ===== */
 @keyframes pulso {
