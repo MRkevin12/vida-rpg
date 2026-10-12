@@ -1080,17 +1080,61 @@ button.celda {
     color: var(--oro);
 }
 
-/* Escena de batalla: avatar contra jefe */
+/* ===== Campaña de jefes ===== */
+.campana {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    border-top: 3px solid var(--color-atributo);
+}
+
+.campana-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.campana-numero {
+    margin-left: auto;
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-atributo);
+}
+
+.jefe-nombre {
+    margin-top: 8px;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.jefe-nombre span {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--oro);
+}
+
+.campana-victoria {
+    margin: 8px 0 2px;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--oro);
+}
+
+/* Escena de batalla: tu avatar contra el retrato del jefe */
 .escena {
     position: relative;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    align-items: end;
+    align-items: center;
     margin: 10px 0 4px;
-    padding: 10px 8px 26px;
+    padding: 12px 10px;
     overflow: hidden;
     background:
-        radial-gradient(ellipse at 50% 100%, rgba(251, 113, 133, 0.25), transparent 60%),
+        radial-gradient(ellipse at 50% 100%, rgba(251, 113, 133, 0.22), transparent 60%),
         linear-gradient(180deg, #1b1033, #120a24);
     border: 1px solid var(--borde);
     border-radius: 14px;
@@ -1098,34 +1142,83 @@ button.celda {
 
 .escena-heroe {
     justify-self: center;
+    align-self: end;
     width: 100%;
-    max-width: 125px;
+    max-width: 118px;
 }
 
 .escena-jefe {
     justify-self: center;
     width: 100%;
-    max-width: 150px;
+    max-width: 136px;
 }
 
 .escena-vs {
-    align-self: center;
-    padding: 0 2px;
+    padding: 0 4px;
     font-family: "Orbitron", sans-serif;
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 800;
     color: var(--rojo);
     text-shadow: 0 0 10px rgba(251, 113, 133, 0.7);
 }
 
-.escena-nombre {
+/* Retrato del jefe: una pintura clásica enmarcada como un cuadro */
+.retrato {
+    position: relative;
+    margin: 0;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: #000;
+    border: 2px solid #6b5326;       /* marco de oro viejo */
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.65), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.retrato img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: filter 0.6s;
+}
+
+/* Sombra en los bordes (viñeta), como un cuadro antiguo */
+.retrato::after {
+    content: "";
     position: absolute;
-    right: 0;
-    bottom: 5px;
-    left: 0;
-    font-size: 0.75rem;
-    color: var(--texto-suave);
-    text-align: center;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.6));
+    pointer-events: none;
+    transition: background 0.6s;
+}
+
+/* Según la vida que le queda */
+.retrato.furioso {
+    animation: amenaza 2.6s ease-in-out infinite;
+}
+
+.retrato.herido::after {
+    background:
+        radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.6)),
+        linear-gradient(180deg, rgba(190, 18, 60, 0.12), rgba(190, 18, 60, 0.38));
+}
+
+.retrato.agotado img {
+    filter: grayscale(0.65) brightness(0.75);
+}
+
+.retrato.agotado {
+    animation: temblor 3s ease-in-out infinite;
+}
+
+.retrato.derrotado img {
+    filter: grayscale(1) brightness(0.45);
+}
+
+.retrato.mini {
+    border-width: 1px;
+    border-radius: 6px;
+    box-shadow: none;
 }
 
 .jefe .flotante {
@@ -1133,49 +1226,81 @@ button.celda {
     right: 24%;
 }
 
-.jefe-svg {
-    display: block;
-    width: 100%;
-    height: auto;
-}
-
-.jefe-svg .monstruo {
-    transform-box: fill-box;
-    transform-origin: 50% 100%;
-    animation: amenazar 2.4s ease-in-out infinite;
-}
-
-.jefe-svg.agotado .monstruo {
-    animation: tambalear-jefe 1.6s ease-in-out infinite;
-}
-
-.jefe-svg .mareo {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: girar 2.2s linear infinite;
-}
-
-/* Derrotado: gris y caído */
-.jefe-svg.derrotado {
-    filter: grayscale(1) brightness(0.75);
-}
-
-.jefe-svg.derrotado .monstruo {
-    animation: none;
-    transform: rotate(-8deg) translateY(4px);
-}
-
-/* Al atacar: tu avatar embiste y el jefe recibe el golpe */
+/* Cuando le pegas: tu avatar embiste y el retrato recibe el golpe */
 .jefe.golpeado .escena-heroe {
     animation: embestir 0.5s ease-out;
 }
 
-.jefe.golpeado .escena-jefe {
+.jefe.golpeado .escena-jefe,
+.combate.golpeado .combate-jefe {
     animation: recibir-golpe 0.55s ease-out 0.12s;
 }
 
-.jefe.golpeado .barra-vida {
+.jefe.golpeado .barra-vida,
+.combate.golpeado .barra-vida {
     animation: destello-rojo 0.45s ease-out;
+}
+
+/* Ruta de los 5 jefes: vencidos, actual y los que vienen */
+.ruta-jefes {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ruta-jefes li {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    overflow: hidden;
+    background: #000;
+    border: 2px solid var(--borde);
+    border-radius: 50%;
+}
+
+.ruta-jefes img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ruta-jefes span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-family: "Orbitron", sans-serif;
+    font-weight: 800;
+}
+
+.ruta-jefes .vencido {
+    border-color: rgba(52, 211, 153, 0.6);
+}
+
+.ruta-jefes .vencido img {
+    filter: grayscale(1) brightness(0.4);
+}
+
+.ruta-jefes .vencido span {
+    color: var(--verde);
+}
+
+.ruta-jefes .actual {
+    border-color: var(--color-atributo);
+    box-shadow: 0 0 12px var(--color-atributo);
+}
+
+/* Los jefes que aún no enfrentas: una sombra misteriosa */
+.ruta-jefes .futuro img {
+    filter: grayscale(1) brightness(0.16) blur(2px);
+}
+
+.ruta-jefes .futuro span {
+    color: var(--texto-suave);
 }
 
 /* "En combate" (en la pantalla Hoy) */
@@ -1193,11 +1318,8 @@ button.celda {
 }
 
 .combate-jefe {
-    flex: 0 0 52px;
+    flex: 0 0 46px;
     display: block;
-    overflow: hidden;
-    background: radial-gradient(circle, rgba(251, 113, 133, 0.25), transparent 70%);
-    border-radius: 12px;
 }
 
 .combate-info {
@@ -1211,21 +1333,25 @@ button.celda {
     margin: 2px 0;
 }
 
-.combate-ir {
-    font-size: 1.2rem;
+/* Retrato del jefe en la celebración de victoria */
+.cel-jefe {
+    width: 150px;
+    margin: 0 auto 6px;
 }
 
-@keyframes amenazar {
-    50% { transform: scale(1.03, 0.97); }
+#creditos a {
+    color: var(--cian);
 }
 
-@keyframes tambalear-jefe {
-    25% { transform: rotate(-4deg); }
-    75% { transform: rotate(4deg); }
+@keyframes amenaza {
+    50% { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.65), 0 0 18px rgba(244, 63, 94, 0.55); }
 }
 
-@keyframes girar {
-    to { transform: rotate(360deg); }
+@keyframes temblor {
+    0%, 86%, 100% { transform: translateX(0); }
+    89% { transform: translateX(-2px); }
+    92% { transform: translateX(2px); }
+    95% { transform: translateX(-1px); }
 }
 
 @keyframes embestir {

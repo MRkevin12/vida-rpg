@@ -167,26 +167,6 @@
         </form>
     </dialog>
 
-    <dialog id="dialogo-jefe" class="dialogo">
-        <form data-form="jefe" class="formulario">
-            <h2 class="titulo-juego" tabindex="-1" autofocus>Nuevo jefe</h2>
-            <label>Meta difícil
-                <input type="text" name="nombre" maxlength="60" required autocomplete="off" placeholder="Ej: Leer 12 libros este año">
-            </label>
-            <label>Vida del jefe (cuántos avances necesitas)
-                <input type="number" name="vida" min="1" max="100000" step="1" required inputmode="numeric" placeholder="Ej: 12">
-            </label>
-            <p class="nota">Ej: «Leer 12 libros» → 12 de vida, y cada libro es un golpe de 1.
-               «Ahorrar 500.000» → 500 de vida, y cada 1.000 ahorrados es 1 de daño.</p>
-            <fieldset class="opciones" data-opciones="monstruo"><legend>Aspecto del jefe</legend></fieldset>
-            <fieldset class="opciones opciones-4" data-opciones="atributo"><legend>Atributo que mejora</legend></fieldset>
-            <div class="botones-dialogo">
-                <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
-                <button type="submit" class="boton boton-principal">Invocar jefe</button>
-            </div>
-        </form>
-    </dialog>
-
     <dialog id="dialogo-logro" class="dialogo">
         <form data-form="logro" class="formulario">
             <h2 class="titulo-juego" tabindex="-1" autofocus>Nuevo logro</h2>
@@ -273,6 +253,15 @@
             <details class="plegable">
                 <summary>📜 Reglas del juego</summary>
                 <div class="reglas" id="reglas"></div>
+            </details>
+
+            <details class="plegable">
+                <summary>🖼️ Créditos de las imágenes</summary>
+                <div class="reglas">
+                    <p>Los jefes son pinturas y grabados clásicos de <strong>dominio público</strong>,
+                       tomados de Wikimedia Commons:</p>
+                    <div id="creditos"></div>
+                </div>
             </details>
 
             <section class="ajustes-bloque peligro">

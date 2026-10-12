@@ -13,6 +13,7 @@ import * as vistas from "./vistas.js";
 import * as seguridad from "./seguridad.js";
 import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
+import * as campana from "./campana.js";
 import * as minijuegos from "./minijuegos.js";
 import { dibujarAvatar } from "./dibujo.js";
 import { hoy, fechaLegible, diasEntre } from "./fechas.js";
@@ -296,7 +297,10 @@ async function jugarMinijuego(tipo) {
 
     partida = await minijuegos.jugar(tipo, {
         lienzo: $("#mj-lienzo"),
-        avatarSvg: dibujarAvatar(avatarActual(), { batalla: true }),
+        avatarSvg: dibujarAvatar(avatarActual(), { batalla: true, sinEfectos: true }),
+        // En "Golpe preciso" te enfrentas al retrato de uno de tus jefes actuales.
+        retratos: Object.values(campana.estadoCampanas(estado))
+            .map((c) => campana.imagenDe((c.jefe || c.campana.jefes[c.campana.jefes.length - 1]).id)),
         marcador: $("#mj-marcador"),
         ayuda: $("#mj-ayuda"),
         alTerminar: (puntos) => terminarMinijuego(tipo, puntos),
@@ -349,8 +353,12 @@ function ejecutar(accion, efectos = {}) {
     ];
     datos.guardar(estado);
 
+    // ¿A qué jefes les pegaste con esta acción? (para que su tarjeta tiemble)
+    const danoAhora = campana.danoPorCategoria(estado);
+    const golpeadas = Object.keys(danoAhora).filter((categoria) => danoAhora[categoria] > antes.dano[categoria]);
+
     const subioNivel = celebraciones.some((c) => c.tipo === "nivel");
-    refrescar({ ...efectos, subioNivel });
+    refrescar({ ...efectos, subioNivel, golpeadas });
     celebraciones.forEach(celebrar);
     return resultado;
 }
@@ -493,9 +501,12 @@ function siguienteCelebracion() {
         capa.hidden = true;
         return;
     }
-    // Al subir de nivel o evolucionar, se muestra el avatar celebrando.
+    // Al subir de nivel o evolucionar, se muestra el avatar celebrando;
+    // al derrotar a un jefe, su retrato.
     if (celebracion.avatar) {
         $("#cel-icono").innerHTML = `<div class="cel-avatar celebrando">${dibujarAvatar(avatarActual())}</div>`;
+    } else if (celebracion.imagen) {
+        $("#cel-icono").innerHTML = `<figure class="retrato derrotado cel-jefe"><img src="${celebracion.imagen}" alt=""></figure>`;
     } else {
         $("#cel-icono").textContent = celebracion.icono;
     }
@@ -508,16 +519,31 @@ function siguienteCelebracion() {
 }
 
 // Aviso pequeño abajo de la pantalla.
-let temporizadorAviso = null;
+// Si llegan varios avisos juntos, se muestran en fila (uno tras otro) para no pisarse.
+const colaAvisos = [];
+let avisoVisible = false;
+
 function avisar(texto) {
+    colaAvisos.push(texto);
+    if (!avisoVisible) siguienteAviso();
+}
+
+function siguienteAviso() {
     const aviso = $("#aviso");
+    const texto = colaAvisos.shift();
+    if (texto === undefined) {
+        aviso.hidden = true;
+        avisoVisible = false;
+        return;
+    }
+    avisoVisible = true;
     // Si hay una ventana abierta, el aviso se mete dentro para que se vea encima.
     (document.querySelector("dialog[open]") || document.body).appendChild(aviso);
     aviso.textContent = texto;
     aviso.hidden = false;
     reproducirAnimacion(aviso, "entrar");
-    clearTimeout(temporizadorAviso);
-    temporizadorAviso = setTimeout(() => { aviso.hidden = true; }, 2600);
+    // Si hay más esperando, cada uno dura menos.
+    setTimeout(siguienteAviso, colaAvisos.length ? 1500 : 2600);
 }
 
 
@@ -540,15 +566,12 @@ function rellenarOpciones() {
                 <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
             </label>`).join(""));
     }
-    for (const grupo of document.querySelectorAll('[data-opciones="monstruo"]')) {
-        grupo.insertAdjacentHTML("beforeend", Object.entries(juego.MONSTRUOS).map(([clave, m], i) => `
-            <label class="pildora">
-                <input type="radio" name="monstruo" value="${clave}" ${i === 0 ? "checked" : ""}>
-                <span><b class="pildora-icono">${m.icono}</b><small>${m.nombre}</small></span>
-            </label>`).join(""));
-    }
     $("#logro-tipo").innerHTML = Object.entries(juego.TIPOS_LOGRO)
         .map(([clave, t]) => `<option value="${clave}">${t.texto}</option>`).join("");
+
+    // Créditos de las obras de arte de los jefes (todas de dominio público).
+    $("#creditos").innerHTML = Object.entries(campana.CREDITOS).map(([id, c]) =>
+        `<p><a href="${campana.fuenteDe(id)}" target="_blank" rel="noopener">${c.obra}</a> — ${c.artista}, ${c.anio}.</p>`).join("");
 
     const d = juego.DIFICULTADES;
     const p = juego.PREMIOS;
@@ -558,7 +581,10 @@ function rellenarOpciones() {
         <p><strong>Rachas:</strong> un día cuenta si completas al menos 1 misión. Cada ${juego.ESCUDOS.diasParaGanar} días seguidos ganas un escudo (máx. ${juego.ESCUDOS.maximo}) que salva tu racha si fallas un día.</p>
         <p><strong>Bonus de regreso:</strong> si vuelves tras ${juego.REGRESO.diasMinimos} días o más, ganas ${juego.REGRESO.xpPorDia} XP por día ausente (máx. ${juego.REGRESO.xpMaximo}).</p>
         <p><strong>Misiones principales:</strong> +${p.submision.xp} XP por paso y +${p.principal.xp} XP al terminar.</p>
-        <p><strong>Jefes:</strong> +${p.golpe.xp} XP por golpe y +${p.jefe.xp} XP al derrotarlo.</p>
+        <p><strong>Jefes:</strong> 5 por categoría, cada vez más fuertes. Los dañas cumpliendo objetivos de su categoría:
+           misión diaria −${campana.DANO.diaria.facil}/−${campana.DANO.diaria.normal}/−${campana.DANO.diaria.dificil} (fácil/normal/difícil),
+           paso de misión principal −${campana.DANO.paso}, misión principal completa −${campana.DANO.principal} extra.
+           Derrotar al jefe N da ${campana.premioJefe(1).xp}×N XP y ${campana.premioJefe(1).monedas}×N monedas.</p>
         <p><strong>Días perfectos:</strong> completar todas tus misiones diarias del día.</p>
         <p><strong>Avatar:</strong> evoluciona en los niveles ${avatar.ETAPAS.slice(1).map((e) => `${e.desde} (${e.nombre})`).join(", ")}.
            Tu clase es tu atributo más alto. Cada atributo cambia algo visible en los niveles 3 y 6.
@@ -728,17 +754,6 @@ const ACCIONES = {
         }
     },
 
-    "deshacer-golpe": (boton) => {
-        const id = Number(boton.dataset.id);
-        const resultado = ejecutar(() => acciones.deshacerGolpe(estado, id));
-        if (resultado) flotarXp(`.jefe[data-id="${id}"]`, resultado.xp);
-    },
-    "archivar-jefe": (boton) => {
-        if (confirm("¿Archivar este jefe?")) {
-            ejecutar(() => acciones.archivarJefe(estado, Number(boton.dataset.id)));
-        }
-    },
-
     "borrar-logro": (boton) => {
         if (confirm("¿Borrar este logro?")) {
             ejecutar(() => acciones.borrarLogro(estado, Number(boton.dataset.id)));
@@ -813,7 +828,6 @@ const FORMULARIOS = {
     },
     mision: (valores) => ejecutar(() => acciones.crearMision(estado, valores)),
     principal: (valores) => ejecutar(() => acciones.crearPrincipal(estado, valores)),
-    jefe: (valores) => ejecutar(() => acciones.crearJefe(estado, valores)),
     logro: (valores) => ejecutar(() => acciones.crearLogro(estado, valores)),
     recompensa: (valores) => ejecutar(() => acciones.crearRecompensa(estado, valores)),
     mascota(valores) {
@@ -828,12 +842,6 @@ const FORMULARIOS = {
     },
     submision: (valores, formulario) =>
         ejecutar(() => acciones.agregarSubmision(estado, Number(formulario.dataset.id), valores.nombre)),
-    atacar(valores, formulario) {
-        const id = Number(formulario.dataset.id);
-        const resultado = ejecutar(() => acciones.atacarJefe(estado, id, valores.dano), { golpeado: id });
-        if (resultado) flotar(`.jefe[data-id="${id}"]`, `−${resultado.dano} HP`, true);
-        return resultado;
-    },
 };
 
 

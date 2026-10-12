@@ -5,6 +5,7 @@
 // Si quieres cambiar el balance del juego, este es el lugar.
 
 import { sumarDias, diaDeSemana } from "./fechas.js";
+import { totalDerrotados } from "./campana.js";
 
 
 // ===== Recompensas =====
@@ -24,37 +25,11 @@ export const ATRIBUTOS = {
     riqueza:   { nombre: "Riqueza",   icono: "💰", color: "#fbbf24" },
 };
 
-// Premios de las aventuras (misiones principales y jefes).
+// Premios de las misiones principales. (Los jefes y su daño están en campana.js.)
 export const PREMIOS = {
     submision: { xp: 30,  monedas: 15 },  // cada paso de una misión principal
     principal: { xp: 150, monedas: 75 },  // extra al terminar todos los pasos
-    golpe:     { xp: 15,  monedas: 5 },   // cada avance contra un jefe
-    jefe:      { xp: 250, monedas: 100 }, // extra al derrotar al jefe
 };
-
-// Aspecto de los jefes (el dibujo de cada uno está en dibujo.js).
-export const MONSTRUOS = {
-    dragon:    { nombre: "Dragón",    icono: "🐉" },
-    golem:     { nombre: "Gólem",     icono: "🪨" },
-    slime:     { nombre: "Slime",     icono: "🟢" },
-    esqueleto: { nombre: "Esqueleto", icono: "💀" },
-    kraken:    { nombre: "Kraken",    icono: "🐙" },
-    demonio:   { nombre: "Demonio",   icono: "😈" },
-};
-
-// Qué monstruo es un jefe (los jefes creados antes de elegir aspecto reciben uno según su id).
-export function monstruoDe(jefe) {
-    const tipos = Object.keys(MONSTRUOS);
-    return MONSTRUOS[jefe.monstruo] ? jefe.monstruo : tipos[jefe.id % tipos.length];
-}
-
-// Cómo se ve el jefe según la vida que le queda.
-export function estadoDelJefe(porcentajeVida) {
-    if (porcentajeVida <= 0) return "derrotado";
-    if (porcentajeVida < 30) return "agotado";
-    if (porcentajeVida <= 60) return "herido";
-    return "furioso";
-}
 
 // Rachas: cada 7 días seguidos ganas un escudo (puedes tener hasta 3).
 export const ESCUDOS = { diasParaGanar: 7, maximo: 3 };
@@ -222,18 +197,12 @@ export function resumen(estado, hoy) {
         diasPerfectos,
         totalCompletadas: estado.completadas.length,
         principalesCompletadas: estado.principales.filter((p) => p.completadaEn).length,
-        jefesDerrotados: estado.jefes.filter((j) => j.derrotadoEn).length,
+        jefesDerrotados: totalDerrotados(estado),
     };
 }
 
 
-// ===== Aventuras =====
-
-// Vida que le queda a un jefe (vida máxima menos el daño de todos los golpes).
-export function vidaRestante(jefe) {
-    const dano = jefe.golpes.reduce((suma, golpe) => suma + golpe.dano, 0);
-    return Math.max(0, jefe.vidaMax - dano);
-}
+// ===== Bonus de regreso =====
 
 // Bonus de regreso según los días que estuviste fuera.
 export function bonoRegreso(dias) {

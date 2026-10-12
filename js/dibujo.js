@@ -1,68 +1,74 @@
-// dibujo.js — Dibuja el avatar con SVG.
+// dibujo.js — Dibuja el avatar y la mascota con SVG, en estilo serio.
 //
 // SVG es un formato de dibujo con formas (círculos, rectángulos, caminos)
 // que el navegador pinta. Aquí armamos el avatar como un texto SVG,
 // capa por capa, de atrás hacia adelante (lo último queda encima).
 //
-// El lienzo mide 200 × 200. El personaje está centrado en x = 100:
-//   cabeza ≈ y 34–102, cuerpo ≈ y 100–150, piernas ≈ y 145–175, suelo y = 182.
+// El lienzo mide 200 × 200. El personaje es una figura adulta de pie,
+// centrada en x = 100:
+//   cabeza y 30–54 · hombros y 60 · cintura y 100 · pies y 180.
+// Mano izquierda (77, 112) · mano derecha (123, 112).
 //
-// Las clases CSS (pj, aura, llama, chispa, zzz, mascota…) son las que animan.
+// Las clases CSS (pj, aura, llama, orbe, mascota…) son las que animan.
 
-const PIEL = "#f1c08f";
-const PIEL_BORDE = "#c98b5a";
-const PELO = "#3b2417";
-const OJOS = "#1e1b2e";
-const BOCA = "#7c2d12";
-const ORO = "#fbbf24";
-const ORO_OSCURO = "#b45309";
+const PIEL = "#d9a67c";
+const PIEL_SOMBRA = "#b07a52";
+const PELO = "#2a1c14";
+const TRAZO = "#14101e";      // contorno oscuro
+const ORO = "#d4a72c";
+const ORO_OSCURO = "#8a6a12";
+const ACERO = "#9ca3af";
+const ACERO_OSCURO = "#4b5563";
+const CUERO = "#4a3423";
 
 let contador = 0; // cada dibujo usa ids distintos para sus degradados
 
 
 // d = resultado de describirAvatar() (ver avatar.js)
-// mini = true: solo la cabeza, para la cabecera de la app
+// mini = true: solo cabeza y hombros, para la cabecera de la app
 // batalla = true: sin fondo ni mascota, para pelear contra un jefe
-export function dibujarAvatar(d, { mini = false, batalla = false } = {}) {
+// sinEfectos = true: además sin aura, fuego ni brillo (para los minijuegos)
+export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = false } = {}) {
     const id = `av${++contador}`;
-    const etapa = d.etapa.clave;
 
     const capas = [
         batalla ? "" : fondo(d, id),
-        etapa === "leyenda" ? aura(id) : "",
-        d.animo === "llamas" ? llamas(id) : "",
-        mini ? "" : '<ellipse cx="100" cy="182" rx="38" ry="7" fill="#000" opacity=".35"/>',
+        d.etapa.clave === "leyenda" && !sinEfectos ? aura(id) : "",
+        d.animo === "llamas" && !sinEfectos ? llamas(id) : "",
+        d.animo === "feliz" && !sinEfectos ? resplandor(id) : "",
+        mini ? "" : '<ellipse cx="100" cy="182" rx="27" ry="5" fill="#000" opacity=".45"/>',
         '<g class="pj">',
         espalda(d),
         piernas(d),
         torso(d),
         brazos(d),
         cabeza(d),
-        sombrero(d.equipado.cabeza),
         "</g>",
-        adornosDeAnimo(d),
+        // Cansado o dormido: la escena se oscurece.
+        d.animo === "dormido" && !batalla ? noche() : "",
+        d.animo === "cansado" && !batalla ? '<rect width="200" height="200" fill="#0b0816" opacity=".3"/>' : "",
         mini || batalla ? "" : mascota(d.mascota),
     ];
 
-    const vista = mini ? "52 4 96 96" : batalla ? "28 0 144 192" : "0 0 200 200";
-    const descripcion = `${d.clase.nombre} ${d.etapa.nombre}`;
-    return `<svg class="avatar-svg animo-${d.animo}" viewBox="${vista}" role="img" aria-label="Avatar: ${descripcion}"
-                 xmlns="http://www.w3.org/2000/svg">${capas.join("")}</svg>`;
+    // El encuadre completo recorta un poco los bordes para que la figura se vea más grande.
+    const vista = mini ? "78 18 44 44" : batalla ? "37 16 126 168" : "10 14 180 180";
+    return `<svg class="avatar-svg animo-${d.animo}" viewBox="${vista}" role="img"
+                 aria-label="Avatar: ${d.clase.nombre} ${d.etapa.nombre}" xmlns="http://www.w3.org/2000/svg">${capas.join("")}</svg>`;
 }
 
-// Colores de la ropa: el novato va de beige; después, del color de su clase.
+// Colores de la ropa: el novato viste lino sencillo; después, los colores de su clase.
 function ropa(d) {
-    if (d.etapa.clave === "novato") return { tela: "#c8a97e", sombra: "#8f6f48" };
-    return { tela: d.clase.color, sombra: d.clase.oscuro };
+    if (d.etapa.clave === "novato") return { tela: "#8f7d5e", sombra: "#665840", borde: "#b7a57f" };
+    return { tela: d.clase.oscuro, sombra: "#1a1426", borde: d.clase.color };
 }
 
-function conAdornosDeOro(d) {
+function conOro(d) {
     return d.etapa.clave === "heroe" || d.etapa.clave === "leyenda";
 }
 
-// Estrellita de 4 puntas (para brillos).
-function estrella(x, y, r, clase = "chispa") {
-    return `<path class="${clase}" d="M${x} ${y - r} Q${x} ${y} ${x + r} ${y} Q${x} ${y} ${x} ${y + r} Q${x} ${y} ${x - r} ${y} Q${x} ${y} ${x} ${y - r} Z" fill="${ORO}"/>`;
+// Destello de 4 puntas.
+function destello(x, y, r, clase = "chispa") {
+    return `<path class="${clase}" d="M${x} ${y - r} Q${x} ${y} ${x + r} ${y} Q${x} ${y} ${x} ${y + r} Q${x} ${y} ${x - r} ${y} Q${x} ${y} ${x} ${y - r} Z" fill="#fde68a"/>`;
 }
 
 
@@ -73,59 +79,56 @@ function fondo(d, id) {
 
     if (tipo === "bosque") {
         const pino = (x, alto, color) =>
-            `<path d="M${x} ${190 - alto} L${x + alto * 0.35} ${190 - alto * 0.45} L${x + alto * 0.2} ${190 - alto * 0.45}
-                      L${x + alto * 0.45} 190 L${x - alto * 0.45} 190 L${x - alto * 0.2} ${190 - alto * 0.45}
-                      L${x - alto * 0.35} ${190 - alto * 0.45} Z" fill="${color}"/>`;
+            `<path d="M${x} ${190 - alto} L${x + alto * 0.3} ${190 - alto * 0.45} L${x + alto * 0.16} ${190 - alto * 0.45}
+                      L${x + alto * 0.4} 190 L${x - alto * 0.4} 190 L${x - alto * 0.16} ${190 - alto * 0.45}
+                      L${x - alto * 0.3} ${190 - alto * 0.45} Z" fill="${color}"/>`;
         return `<defs><linearGradient id="${id}-f" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#14532d"/><stop offset="1" stop-color="#06140d"/></linearGradient></defs>
+                    <stop offset="0" stop-color="#0f2f24"/><stop offset="1" stop-color="#050c09"/></linearGradient></defs>
                 <rect width="200" height="200" fill="url(#${id}-f)"/>
-                <circle cx="158" cy="38" r="12" fill="#fef9c3" opacity=".85"/>
-                ${pino(24, 120, "#0b3b23")}${pino(52, 80, "#0f4a2c")}${pino(176, 130, "#0b3b23")}${pino(150, 85, "#0f4a2c")}
-                <rect y="186" width="200" height="14" fill="#052e16"/>`;
+                <circle cx="158" cy="38" r="11" fill="#e7e5c8" opacity=".7"/>
+                ${pino(22, 130, "#08261a")}${pino(50, 85, "#0b3222")}${pino(178, 140, "#08261a")}${pino(152, 90, "#0b3222")}
+                <rect y="186" width="200" height="14" fill="#04140d"/>`;
     }
 
     if (tipo === "castillo") {
         return `<defs><linearGradient id="${id}-f" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#4c1d95"/><stop offset="1" stop-color="#120d24"/></linearGradient></defs>
+                    <stop offset="0" stop-color="#2e1a55"/><stop offset="1" stop-color="#0d0a1c"/></linearGradient></defs>
                 <rect width="200" height="200" fill="url(#${id}-f)"/>
-                <g fill="#1e1b4b">
-                    <rect x="14" y="70" width="34" height="120"/><rect x="152" y="70" width="34" height="120"/>
-                    <rect x="40" y="108" width="120" height="82"/>
-                    <path d="M14 70 v-10 h7 v6 h7 v-6 h6 v6 h7 v-6 h7 v10 Z M152 70 v-10 h7 v6 h7 v-6 h6 v6 h7 v-6 h7 v10 Z"/>
-                    <path d="M10 62 L31 34 L52 62 Z M148 62 L169 34 L190 62 Z" fill="#312e81"/>
+                <g fill="#15122e">
+                    <rect x="12" y="66" width="34" height="124"/><rect x="154" y="66" width="34" height="124"/>
+                    <rect x="40" y="110" width="120" height="80"/>
+                    <path d="M12 66 v-10 h7 v6 h7 v-6 h6 v6 h7 v-6 h7 v10 Z M154 66 v-10 h7 v6 h7 v-6 h6 v6 h7 v-6 h7 v10 Z"/>
                 </g>
-                <g fill="${ORO}" opacity=".8">
-                    <rect x="26" y="90" width="8" height="12" rx="4"/><rect x="164" y="90" width="8" height="12" rx="4"/>
-                </g>`;
+                <g fill="${ORO}" opacity=".6"><rect x="25" y="88" width="7" height="12" rx="3.5"/><rect x="168" y="88" width="7" height="12" rx="3.5"/></g>`;
     }
 
     if (tipo === "galaxia") {
         const puntos = [[20, 30], [60, 18], [96, 10], [140, 28], [178, 14], [186, 70], [14, 96], [170, 120], [30, 150], [184, 170]];
         const estrellas = puntos.map(([x, y], i) =>
-            `<circle class="${i % 3 === 0 ? "chispa" : ""}" cx="${x}" cy="${y}" r="${i % 2 ? 1.2 : 1.8}" fill="#fff"/>`).join("");
+            `<circle class="${i % 3 === 0 ? "chispa" : ""}" cx="${x}" cy="${y}" r="${i % 2 ? 1 : 1.5}" fill="#fff"/>`).join("");
         return `<defs><radialGradient id="${id}-f" cx="50%" cy="40%" r="75%">
-                    <stop offset="0" stop-color="#312e81"/><stop offset="1" stop-color="#05030f"/></radialGradient></defs>
+                    <stop offset="0" stop-color="#241f5e"/><stop offset="1" stop-color="#05030f"/></radialGradient></defs>
                 <rect width="200" height="200" fill="url(#${id}-f)"/>
                 ${estrellas}
-                <circle cx="40" cy="48" r="14" fill="#a78bfa"/>
-                <ellipse cx="40" cy="48" rx="24" ry="6" fill="none" stroke="#fde68a" stroke-width="2" transform="rotate(-20 40 48)"/>`;
+                <circle cx="40" cy="48" r="13" fill="#6d5fb0"/>
+                <ellipse cx="40" cy="48" rx="22" ry="5" fill="none" stroke="#c9b458" stroke-width="1.6" transform="rotate(-20 40 48)"/>`;
     }
 
     if (tipo === "salon") {
         const rayos = Array.from({ length: 10 }, (_, i) =>
             `<path d="M100 96 L${100 + 160 * Math.cos(i * 0.628)} ${96 + 160 * Math.sin(i * 0.628)}
-                      L${100 + 160 * Math.cos(i * 0.628 + 0.3)} ${96 + 160 * Math.sin(i * 0.628 + 0.3)} Z" fill="${ORO}" opacity=".12"/>`).join("");
+                      L${100 + 160 * Math.cos(i * 0.628 + 0.3)} ${96 + 160 * Math.sin(i * 0.628 + 0.3)} Z" fill="${ORO}" opacity=".1"/>`).join("");
         return `<defs><radialGradient id="${id}-f" cx="50%" cy="45%" r="70%">
-                    <stop offset="0" stop-color="#78350f"/><stop offset="1" stop-color="#120d24"/></radialGradient></defs>
+                    <stop offset="0" stop-color="#5a3a0c"/><stop offset="1" stop-color="#0d0a1c"/></radialGradient></defs>
                 <rect width="200" height="200" fill="url(#${id}-f)"/>
                 ${rayos}
-                <g fill="#fde68a" opacity=".35"><rect x="14" y="60" width="12" height="130"/><rect x="174" y="60" width="12" height="130"/></g>`;
+                <g fill="#c9b458" opacity=".28"><rect x="14" y="56" width="11" height="134"/><rect x="175" y="56" width="11" height="134"/></g>`;
     }
 
-    // Fondo normal: un brillo del color de tu clase.
-    return `<defs><radialGradient id="${id}-f" cx="50%" cy="42%" r="70%">
-                <stop offset="0" stop-color="${d.clase.color}" stop-opacity=".45"/>
-                <stop offset="1" stop-color="#120d24"/></radialGradient></defs>
+    // Fondo normal: una luz tenue del color de tu clase.
+    return `<defs><radialGradient id="${id}-f" cx="50%" cy="40%" r="70%">
+                <stop offset="0" stop-color="${d.clase.color}" stop-opacity=".3"/>
+                <stop offset="1" stop-color="#0d0a1c"/></radialGradient></defs>
             <rect width="200" height="200" fill="url(#${id}-f)"/>`;
 }
 
@@ -135,153 +138,191 @@ function fondo(d, id) {
 // Leyenda (nivel 50+): aura dorada que palpita.
 function aura(id) {
     return `<defs><radialGradient id="${id}-a">
-                <stop offset="0" stop-color="#fde68a" stop-opacity=".8"/>
-                <stop offset=".55" stop-color="${ORO}" stop-opacity=".25"/>
+                <stop offset="0" stop-color="#fde68a" stop-opacity=".7"/>
+                <stop offset=".55" stop-color="${ORO}" stop-opacity=".22"/>
                 <stop offset="1" stop-color="${ORO}" stop-opacity="0"/></radialGradient></defs>
-            <circle class="aura" cx="100" cy="108" r="80" fill="url(#${id}-a)"/>
-            ${estrella(40, 60, 6)}${estrella(160, 76, 5)}${estrella(56, 150, 4)}${estrella(150, 140, 5)}`;
+            <circle class="aura" cx="100" cy="104" r="84" fill="url(#${id}-a)"/>
+            ${destello(42, 58, 5)}${destello(160, 74, 4)}${destello(150, 146, 4)}`;
 }
 
-// Racha de 7+ días: llamas a los lados.
+// Racha de 7+ días: fuego a los lados.
 function llamas(id) {
-    // Forma de gota invertida: ancha abajo y con punta arriba.
     const llama = (x, alto, ancho) =>
         `<path class="llama" d="M${x - ancho} 184
                 C${x - ancho - 2} ${184 - alto * 0.45} ${x - ancho * 0.2} ${184 - alto * 0.6} ${x} ${184 - alto}
                 C${x + ancho * 0.2} ${184 - alto * 0.6} ${x + ancho + 2} ${184 - alto * 0.45} ${x + ancho} 184 Z"
                 fill="url(#${id}-l)" opacity=".85"/>`;
     return `<defs><linearGradient id="${id}-l" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0" stop-color="#ea580c"/><stop offset=".55" stop-color="#f59e0b"/>
-                <stop offset="1" stop-color="#fde68a" stop-opacity=".3"/></linearGradient></defs>
-            ${llama(50, 62, 9)}${llama(64, 40, 7)}${llama(150, 62, 9)}${llama(136, 40, 7)}`;
+                <stop offset="0" stop-color="#c2410c"/><stop offset=".55" stop-color="#ea8a0b"/>
+                <stop offset="1" stop-color="#fde68a" stop-opacity=".25"/></linearGradient></defs>
+            ${llama(58, 78, 9)}${llama(70, 48, 7)}${llama(142, 78, 9)}${llama(130, 48, 7)}`;
+}
+
+// Buen ánimo: una luz cálida detrás.
+function resplandor(id) {
+    return `<defs><radialGradient id="${id}-r">
+                <stop offset="0" stop-color="#fde68a" stop-opacity=".35"/>
+                <stop offset="1" stop-color="#fde68a" stop-opacity="0"/></radialGradient></defs>
+            <circle cx="100" cy="96" r="70" fill="url(#${id}-r)"/>`;
+}
+
+// Dormido: es de noche (luna y penumbra azul).
+function noche() {
+    return `<rect width="200" height="200" fill="#0a1030" opacity=".5"/>
+            <path d="M158 26 a14 14 0 1 0 12 22 a11 11 0 1 1 -12 -22 z" fill="#dbe3f5" opacity=".85"/>
+            ${destello(138, 22, 2.5)}${destello(176, 60, 2)}`;
 }
 
 
 // ===== Personaje =====
 
-// Capa (héroe o comprada) o alas (logro). Va detrás del cuerpo.
+// Capa (de héroe o comprada) o alas (de logro). Va detrás del cuerpo.
 function espalda(d) {
     const objeto = d.equipado.espalda;
     if (objeto === "alas") {
-        const ala = `<path d="M86 112 C60 84 28 90 32 122 C42 116 48 124 48 132 C56 124 64 130 66 140
-                              C72 130 80 130 86 126 Z" fill="#e0f2fe" fill-opacity=".9" stroke="#7dd3fc" stroke-width="1.5"/>`;
+        const ala = `<path d="M90 66 C70 40 44 40 40 62 C48 60 52 66 52 74 C58 70 62 76 62 84 C68 80 72 84 74 92 C80 86 86 84 90 80 Z"
+                           fill="#e5eefb" fill-opacity=".85" stroke="#9fb7d9" stroke-width="1"/>
+                     <path d="M88 68 C72 52 54 50 46 60 M88 72 C74 62 62 64 56 72 M88 77 C78 72 70 76 66 82"
+                           fill="none" stroke="#9fb7d9" stroke-width=".8"/>`;
         return `<g class="alas">${ala}<g transform="translate(200 0) scale(-1 1)">${ala}</g></g>`;
     }
     let color = null;
-    if (objeto === "capa") color = "#b91c1c";
-    else if (conAdornosDeOro(d)) color = d.clase.oscuro;   // capa de héroe
+    if (objeto === "capa") color = "#7f1d1d";
+    else if (conOro(d)) color = d.clase.oscuro;   // capa de héroe
     if (!color) return "";
-    return `<path d="M80 104 Q100 98 120 104 L138 172 Q100 182 62 172 Z" fill="${color}"
-                  stroke="rgba(0,0,0,.35)" stroke-width="2" stroke-linejoin="round"/>
-            ${conAdornosDeOro(d) ? `<path d="M62 172 Q100 182 138 172" fill="none" stroke="${ORO}" stroke-width="2.5"/>` : ""}`;
+    return `<path d="M79 60 Q100 55 121 60 L136 170 Q128 176 119 171 Q110 177 100 172 Q90 177 81 171 Q72 176 64 170 Z"
+                  fill="${color}" stroke="${TRAZO}" stroke-width="1" stroke-linejoin="round"/>
+            <path d="M100 60 L100 172 M88 62 L78 170 M112 62 L122 170" stroke="rgba(0,0,0,.28)" stroke-width="1.2" fill="none"/>
+            ${conOro(d) ? `<path d="M64 170 Q72 176 81 171 Q90 177 100 172 Q110 177 119 171 Q128 176 136 170" fill="none" stroke="${ORO}" stroke-width="1.6"/>` : ""}`;
 }
 
 function piernas(d) {
     const novato = d.etapa.clave === "novato";
-    const zapatos = novato
-        ? `<ellipse cx="91" cy="173" rx="8" ry="4.5" fill="#8b5e3c"/><ellipse cx="109" cy="173" rx="8" ry="4.5" fill="#8b5e3c"/>`
-        : `<rect x="83" y="158" width="15" height="17" rx="5" fill="#3b2416"/><rect x="102" y="158" width="15" height="17" rx="5" fill="#3b2416"/>
-           <rect x="83" y="158" width="15" height="4" rx="2" fill="${conAdornosDeOro(d) ? ORO : "#5b3a22"}"/>
-           <rect x="102" y="158" width="15" height="4" rx="2" fill="${conAdornosDeOro(d) ? ORO : "#5b3a22"}"/>`;
-    return `<rect x="86" y="142" width="11" height="30" rx="4" fill="#3f3a5a"/>
-            <rect x="103" y="142" width="11" height="30" rx="4" fill="#3f3a5a"/>
-            ${zapatos}`;
+    const pantalon = "#2b2733";
+    const botas = novato ? "#4a3423" : "#221a14";
+    const pierna = (x1, x2) =>
+        `<path d="M${x1} 106 L${x1 + 10} 106 L${x2 + 8.5} 172 L${x2} 172 Z" fill="${pantalon}" stroke="${TRAZO}" stroke-width=".8" stroke-linejoin="round"/>`;
+    // Botas: cortas de novato; altas con vuelta desde aventurero.
+    const bota = (x, haciaFuera) => {
+        const alto = novato ? 162 : 150;
+        return `<path d="M${x - 0.6} ${alto} L${x + 9} ${alto} L${x + 9} 174 L${x + 9 + haciaFuera * 5} 180 L${x - 1 + (haciaFuera < 0 ? -5 : 0)} 180 Z"
+                      fill="${botas}" stroke="${TRAZO}" stroke-width=".8" stroke-linejoin="round"/>
+                ${novato ? "" : `<rect x="${x - 1}" y="${alto - 1}" width="10.6" height="3.2" rx="1" fill="${conOro(d) ? ORO : "#3a2a1e"}" stroke="${TRAZO}" stroke-width=".5"/>`}`;
+    };
+    return `${pierna(88, 89.5)}${pierna(102, 101.5)}${bota(89.5, -1)}${bota(101.5, 1)}`;
 }
 
 function torso(d) {
-    const { tela, sombra } = ropa(d);
-    const oro = conAdornosDeOro(d);
+    const { tela, sombra, borde } = ropa(d);
+    const oro = conOro(d);
     const r = d.rasgos;
+    const novato = d.etapa.clave === "novato";
     let adornos = "";
 
-    // Riqueza: cadena de oro con medalla.
-    if (r.riqueza >= 1) {
-        adornos += `<path d="M89 103 Q100 124 111 103" fill="none" stroke="${ORO}" stroke-width="2.2"/>
-                    <circle cx="100" cy="117" r="4" fill="${ORO}" stroke="${ORO_OSCURO}" stroke-width="1"/>`;
+    // Desde aventurero: ribete del color de la clase y hebilla.
+    if (!novato) {
+        adornos += `<path d="M100 60 L100 104" stroke="${borde}" stroke-width="1.4" opacity=".85"/>
+                    <path d="M83 106 Q100 112 117 106 L118 112 Q100 118 82 112 Z" fill="${tela}" stroke="${borde}" stroke-width="1"/>`;
     }
-    // Carisma: corbatín; y con más carisma, un broche de rosa.
-    if (r.carisma >= 1) {
-        adornos += `<path d="M100 104 L91 99 L91 109 Z M100 104 L109 99 L109 109 Z" fill="#e11d48" stroke="#9f1239" stroke-width="1"/>
-                    <circle cx="100" cy="104" r="2.5" fill="#9f1239"/>`;
+    // Héroe: emblema en el pecho.
+    if (oro) {
+        adornos += `<path d="M100 68 L105 74 L100 81 L95 74 Z" fill="${borde}" stroke="${ORO}" stroke-width="1.2"/>`;
     }
+    // Fuerza muy alta: peto de acero.
+    if (r.fuerza >= 2) {
+        adornos += `<path d="M84 63 Q100 58 116 63 L113 88 Q100 93 87 88 Z" fill="${ACERO}" fill-opacity=".9" stroke="${ACERO_OSCURO}" stroke-width="1"/>
+                    <path d="M100 61 L100 91 M88 76 Q100 80 112 76" stroke="${ACERO_OSCURO}" stroke-width=".9" fill="none"/>`;
+    }
+    // Carisma: pañuelo de gala al cuello; con más carisma, banda cruzada.
     if (r.carisma >= 2) {
-        adornos += `<circle cx="113" cy="118" r="4.5" fill="#f43f5e" stroke="#be123c" stroke-width="1"/>
-                    <path d="M111 121 q-4 4 -6 2" stroke="#16a34a" stroke-width="2" fill="none"/>`;
+        adornos += `<path d="M84 62 L90 60 L116 100 L110 103 Z" fill="#7f1d1d" stroke="${ORO}" stroke-width=".9"/>`;
     }
-    // Desde aventurero: bolsita en el cinturón.
-    if (d.etapa.clave !== "novato") {
-        adornos += `<rect x="112" y="135" width="9" height="9" rx="2" fill="#6b4a2b" stroke="#3b2416" stroke-width="1"/>`;
+    if (r.carisma >= 1) {
+        adornos += `<path d="M96 57.5 L104 57.5 L102.5 66 L100 69 L97.5 66 Z" fill="#ece7dc" stroke="${TRAZO}" stroke-width=".6"/>`;
+    }
+    // Riqueza: cadena de oro con medallón; con más riqueza, bolsa de monedas.
+    if (r.riqueza >= 1) {
+        adornos += `<path d="M90 61 Q100 77 110 61" fill="none" stroke="${ORO}" stroke-width="1.5"/>
+                    <circle cx="100" cy="72.5" r="2.6" fill="${ORO}" stroke="${ORO_OSCURO}" stroke-width=".7"/>`;
+    }
+    if (r.riqueza >= 2) {
+        adornos += `<path d="M109 103 Q107 110 110 114 Q114 116 117 113 Q118 108 115 103 Z" fill="#5a4326" stroke="${TRAZO}" stroke-width=".7"/>
+                    <path d="M109.5 103.5 L115 103.5" stroke="${ORO}" stroke-width="1.4"/>`;
     }
 
-    return `<rect x="94" y="94" width="12" height="12" fill="${PIEL}"/>
-            <path d="M80 104 Q100 99 120 104 L126 150 Q100 157 74 150 Z" fill="${tela}" stroke="${sombra}"
-                  stroke-width="2" stroke-linejoin="round"/>
-            <path d="M93 102 L100 111 L107 102" fill="none" stroke="${sombra}" stroke-width="2"/>
-            <rect x="76" y="128" width="48" height="7" rx="2" fill="${oro ? "#4a2c12" : "#6b4a2b"}"/>
-            <rect x="96" y="126.5" width="8" height="10" rx="1.5" fill="${oro ? ORO : "#a8865a"}"/>
-            ${oro ? `<path d="M74 150 Q100 157 126 150" fill="none" stroke="${ORO}" stroke-width="3"/>` : ""}
-            ${adornos}`;
+    return `<path d="M96 52 L104 52 L104.5 60 L95.5 60 Z" fill="${PIEL_SOMBRA}"/>
+            <path d="M79 61 Q100 55 121 61 L115 100 Q116 106 117 110 Q100 116 83 110 Q84 106 85 100 Z"
+                  fill="${tela}" stroke="${TRAZO}" stroke-width="1" stroke-linejoin="round"/>
+            <path d="M100 58 L121 61 L115 100 Q116 106 117 110 Q108 113 100 114 Z" fill="${sombra}" opacity=".35"/>
+            <path d="M95.5 60 L100 66 L104.5 60" fill="none" stroke="${TRAZO}" stroke-width=".9"/>
+            ${adornos}
+            <path d="M84.5 99 Q100 104 115.5 99 L116 104 Q100 109 84 104 Z" fill="${CUERO}" stroke="${TRAZO}" stroke-width=".7"/>
+            <rect x="97.4" y="99.6" width="5.2" height="6" rx="1" fill="${oro ? ORO : "#8b7a5a"}" stroke="${TRAZO}" stroke-width=".6"/>`;
 }
 
 function brazos(d) {
-    const { tela, sombra } = ropa(d);
-    const grosor = d.rasgos.fuerza >= 1 ? 14 : 11;   // Fuerza: brazos más fuertes
-    const brazo = (x1, x2) =>
-        `<line x1="${x1}" y1="108" x2="${x2}" y2="134" stroke="${sombra}" stroke-width="${grosor + 3}" stroke-linecap="round"/>
-         <line x1="${x1}" y1="108" x2="${x2}" y2="134" stroke="${tela}" stroke-width="${grosor}" stroke-linecap="round"/>`;
-    const mano = (x) => `<circle cx="${x}" cy="137" r="6" fill="${PIEL}" stroke="${PIEL_BORDE}" stroke-width="1"/>`;
+    const { tela } = ropa(d);
+    const fuerte = d.rasgos.fuerza >= 1;
+    const grosor = fuerte ? 9.5 : 7.8;
+    // Cada brazo: hombro → codo → mano. Primero el contorno oscuro y encima la tela.
+    const brazo = (hombro, codo, mano) => {
+        const camino = `M${hombro} 63 L${codo} 88 L${mano} 109`;
+        return `<path d="${camino}" fill="none" stroke="${TRAZO}" stroke-width="${grosor + 1.6}" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="${camino}" fill="none" stroke="${tela}" stroke-width="${grosor}" stroke-linecap="round" stroke-linejoin="round"/>
+                ${d.etapa.clave === "novato" && !fuerte ? "" : `<path d="M${codo + (mano - codo) * 0.35} 95.5 L${mano} 107" stroke="${CUERO}" stroke-width="${grosor + 0.4}" stroke-linecap="butt"/>`}`;
+    };
+    const mano = (x) => `<circle cx="${x}" cy="112" r="4" fill="${PIEL}" stroke="${TRAZO}" stroke-width=".8"/>`;
 
-    // Intelecto alto: libro de hechizos en la mano izquierda.
+    // Intelecto alto: libro de hechizos bajo el brazo izquierdo.
     const libro = d.rasgos.intelecto >= 2
-        ? `<g transform="rotate(-12 64 136)">
-               <rect x="55" y="125" width="16" height="20" rx="2" fill="#5b21b6" stroke="#2e1065" stroke-width="1.5"/>
-               <rect x="57.5" y="127.5" width="11" height="15" rx="1" fill="#ede9fe"/>
-               <path d="M60 131h6M60 134h6M60 137h4" stroke="#8b5cf6" stroke-width="1"/>
+        ? `<g transform="rotate(-10 73 108)">
+               <rect x="66.5" y="101" width="11" height="15" rx="1.2" fill="#3b1d6e" stroke="${TRAZO}" stroke-width=".8"/>
+               <rect x="68" y="102.6" width="1.6" height="11.8" fill="${ORO}"/>
+               <path d="M72 106h4M72 109h4" stroke="${ORO}" stroke-width=".7"/>
            </g>`
         : "";
 
-    // Fuerza muy alta: hombreras de armadura.
+    // Fuerza muy alta: hombreras de acero.
     const hombreras = d.rasgos.fuerza >= 2
-        ? `<g fill="#cbd5e1" stroke="#64748b" stroke-width="1.5">
-               <ellipse cx="79" cy="106" rx="11" ry="7"/><ellipse cx="121" cy="106" rx="11" ry="7"/></g>
-           <g fill="#64748b"><circle cx="75" cy="105" r="1.3"/><circle cx="83" cy="105" r="1.3"/>
-               <circle cx="117" cy="105" r="1.3"/><circle cx="125" cy="105" r="1.3"/></g>`
-        : "";
+        ? `<g fill="${ACERO}" stroke="${ACERO_OSCURO}" stroke-width="1">
+               <path d="M72 66 Q73 56 84 57 L86 65 Q79 64 72 66 Z"/><path d="M128 66 Q127 56 116 57 L114 65 Q121 64 128 66 Z"/></g>`
+        : conOro(d)
+            ? `<g fill="${ORO}" stroke="${ORO_OSCURO}" stroke-width=".7">
+                   <path d="M74 65 Q76 58 84 58.5 L85 63 Q79 63 74 65 Z"/><path d="M126 65 Q124 58 116 58.5 L115 63 Q121 63 126 65 Z"/></g>`
+            : "";
 
-    return `${brazo(82, 70)}${libro}${mano(69)}
-            ${brazo(118, 130)}${objetoEnMano(d.equipado.mano)}${mano(131)}
+    return `${brazo(81, 75.5, 77)}${libro}${mano(77)}
+            ${brazo(119, 124.5, 123)}${objetoEnMano(d.equipado.mano)}${mano(123)}
             ${hombreras}`;
 }
 
-// Lo que sostiene en la mano derecha (centro de la mano: 131, 137).
+// Lo que sostiene en la mano derecha (centro de la mano: 123, 112).
 function objetoEnMano(id) {
     switch (id) {
-        case "espada-madera":
-            return `<path d="M128 96 L131 88 L134 96 Z" fill="#c08a4a" stroke="#7c4a1d" stroke-width="1"/>
-                    <rect x="128" y="95" width="6" height="38" rx="1.5" fill="#c08a4a" stroke="#7c4a1d" stroke-width="1"/>
-                    <rect x="122" y="131" width="18" height="5" rx="2" fill="#7c4a1d"/>
-                    <rect x="129" y="136" width="4" height="12" fill="#5b3716"/>
-                    <circle cx="131" cy="150" r="3" fill="#7c4a1d"/>`;
-        case "espada-jefe":
-            return `<path class="orbe" d="M131 70 L139 82 L139 132 L123 132 L123 82 Z" fill="#f43f5e" opacity=".35"/>
-                    <path d="M131 74 L137 84 L137 131 L125 131 L125 84 Z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.2"/>
-                    <path d="M131 80 L131 128" stroke="#94a3b8" stroke-width="1.5"/>
-                    <rect x="117" y="130" width="28" height="6" rx="3" fill="${ORO}" stroke="${ORO_OSCURO}" stroke-width="1"/>
-                    <circle cx="131" cy="133" r="3" fill="#e11d48"/>
-                    <rect x="129" y="136" width="4" height="12" fill="#7f1d1d"/>
-                    <circle cx="131" cy="150" r="3.5" fill="${ORO}"/>`;
-        case "baston":
-            return `<line x1="133" y1="84" x2="133" y2="176" stroke="#7c4a1d" stroke-width="5" stroke-linecap="round"/>
-                    <path d="M127 86 Q133 80 139 86" fill="none" stroke="#7c4a1d" stroke-width="3"/>
-                    <circle class="orbe" cx="133" cy="76" r="11" fill="#22d3ee" opacity=".35"/>
-                    <circle cx="133" cy="76" r="6.5" fill="#67e8f9" stroke="#0e7490" stroke-width="1.5"/>`;
+        case "espada-madera":   // espada de entrenamiento
+            return `<path d="M121.6 64 L123 59 L124.4 64 L124.4 107 L121.6 107 Z" fill="#a67c4a" stroke="#5c3d1c" stroke-width=".8"/>
+                    <rect x="117.5" y="106" width="11" height="2.6" rx="1" fill="#5c3d1c"/>
+                    <rect x="122" y="108" width="2" height="9" fill="#3b2713"/>
+                    <circle cx="123" cy="118.5" r="1.9" fill="#5c3d1c"/>`;
+        case "espada-jefe":     // espada larga con brillo rojo
+            return `<path class="orbe" d="M123 44 L127.5 52 L127.5 108 L118.5 108 L118.5 52 Z" fill="#dc2626" opacity=".3"/>
+                    <path d="M121.2 54 L123 48 L124.8 54 L124.8 107 L121.2 107 Z" fill="#d7dde6" stroke="#6b7280" stroke-width=".8"/>
+                    <path d="M123 54 L123 106" stroke="#8b95a5" stroke-width=".8"/>
+                    <rect x="115.5" y="105.6" width="15" height="3" rx="1.4" fill="${ORO}" stroke="${ORO_OSCURO}" stroke-width=".6"/>
+                    <circle cx="123" cy="107.1" r="1.7" fill="#b91c1c"/>
+                    <rect x="122" y="108.6" width="2" height="9" fill="#3b0d0d"/>
+                    <circle cx="123" cy="119" r="2.1" fill="${ORO}" stroke="${ORO_OSCURO}" stroke-width=".5"/>`;
+        case "baston":          // bastón con un cristal
+            return `<path d="M124.6 56 Q123.4 100 124.4 180" fill="none" stroke="#3b2713" stroke-width="3.2" stroke-linecap="round"/>
+                    <path d="M121 58 Q124.6 51 128.2 58" fill="none" stroke="#3b2713" stroke-width="2.2"/>
+                    <circle class="orbe" cx="124.6" cy="50" r="7.5" fill="#38bdf8" opacity=".3"/>
+                    <path d="M124.6 43.5 L128 50 L124.6 56.5 L121.2 50 Z" fill="#7dd3fc" stroke="#0e7490" stroke-width=".8"/>`;
         case "laud":
-            return `<line x1="135" y1="136" x2="157" y2="100" stroke="#7c4a1d" stroke-width="5" stroke-linecap="round"/>
-                    <rect x="152" y="89" width="9" height="12" rx="2" fill="#5b3716" transform="rotate(32 156 95)"/>
-                    <ellipse cx="137" cy="147" rx="12" ry="15" fill="#d97706" stroke="#92400e" stroke-width="1.5"
-                             transform="rotate(-28 137 147)"/>
-                    <circle cx="138" cy="145" r="3.5" fill="#451a03"/>
-                    <line x1="140" y1="151" x2="155" y2="101" stroke="#fde68a" stroke-width=".7"/>`;
+            return `<path d="M125 112 L138 86" stroke="#3b2713" stroke-width="2.8" stroke-linecap="round"/>
+                    <rect x="136" y="80" width="4.4" height="7.5" rx="1" fill="#2a1a0c" transform="rotate(27 138 84)"/>
+                    <ellipse cx="124" cy="121" rx="7.5" ry="10" fill="#8a5a1f" stroke="#3b2713" stroke-width="1" transform="rotate(-27 124 121)"/>
+                    <circle cx="124.6" cy="120" r="2.3" fill="#2a1a0c"/>
+                    <path d="M126.5 124 L137.2 87.5" stroke="#d9c58a" stroke-width=".5"/>`;
         default:
             return "";
     }
@@ -290,114 +331,86 @@ function objetoEnMano(id) {
 function cabeza(d) {
     const r = d.rasgos;
     const animo = d.animo;
-    const contento = animo === "feliz" || animo === "llamas";
+    const dormido = animo === "dormido";
 
-    // Ojos según el ánimo.
+    // Ojos: pequeños y serios. Cerrados si duerme, entrecerrados si está cansado.
     const ojo = (x) => {
-        if (animo === "dormido") {
-            return `<path d="M${x - 5} 72 Q${x} 77 ${x + 5} 72" fill="none" stroke="${OJOS}" stroke-width="2.5" stroke-linecap="round"/>`;
-        }
-        if (animo === "cansado") {
-            return `<path d="M${x - 5} 71 h10" stroke="${OJOS}" stroke-width="2.5" stroke-linecap="round"/>
-                    <path d="M${x - 4} 72 Q${x} 77 ${x + 4} 72 Z" fill="${OJOS}"/>`;
-        }
-        return `<ellipse cx="${x}" cy="72" rx="4" ry="5" fill="${OJOS}"/>
-                <circle cx="${x + 1.5}" cy="70" r="1.5" fill="#fff"/>`;
+        if (dormido) return `<path d="M${x - 1.8} 41.4 Q${x} 42.4 ${x + 1.8} 41.4" fill="none" stroke="${TRAZO}" stroke-width=".9" stroke-linecap="round"/>`;
+        if (animo === "cansado") return `<path d="M${x - 1.8} 41 L${x + 1.8} 41" stroke="${TRAZO}" stroke-width="1.1" stroke-linecap="round"/>`;
+        return `<ellipse cx="${x}" cy="41.1" rx="1.6" ry="1.1" fill="#f3efe6"/><circle cx="${x}" cy="41.1" r=".95" fill="${TRAZO}"/>`;
     };
+    // Cejas rectas; más marcadas si está "en llamas".
+    const cejas = dormido
+        ? ""
+        : animo === "llamas"
+            ? `<path d="M93.3 37.6 L98.4 39.2 M106.7 37.6 L101.6 39.2" stroke="${PELO}" stroke-width="1.3" stroke-linecap="round"/>`
+            : `<path d="M93.6 38.6 L98.2 38.9 M106.4 38.6 L101.8 38.9" stroke="${PELO}" stroke-width="1.1" stroke-linecap="round"/>`;
 
-    // Boca según el ánimo (y más grande con carisma).
+    // Boca: seria por defecto; media sonrisa si está contento (más con carisma).
     let boca;
-    if (animo === "dormido") {
-        boca = `<circle cx="100" cy="89" r="2.5" fill="${BOCA}"/>`;
-    } else if (animo === "cansado") {
-        boca = `<path d="M96 89 h8" stroke="${BOCA}" stroke-width="2" stroke-linecap="round"/>`;
-    } else if (contento) {
-        boca = r.carisma >= 1
-            ? `<path d="M89 84 Q100 99 111 84 Z" fill="${BOCA}"/><rect x="92" y="84.5" width="16" height="3" rx="1" fill="#fff"/>
-               <ellipse cx="100" cy="92" rx="4" ry="2" fill="#fb7185"/>`
-            : `<path d="M92 85 Q100 96 108 85 Z" fill="${BOCA}"/><ellipse cx="100" cy="90.5" rx="3" ry="1.6" fill="#fb7185"/>`;
+    if (dormido || animo === "cansado") {
+        boca = `<path d="M97.8 48.4 L102.2 48.4" stroke="#7a4a35" stroke-width=".9" stroke-linecap="round"/>`;
+    } else if (animo === "feliz" || animo === "llamas" || r.carisma >= 1) {
+        boca = `<path d="M97 47.8 Q100 ${r.carisma >= 1 ? 50.4 : 49.6} 103 47.8" fill="none" stroke="#7a4a35" stroke-width="1" stroke-linecap="round"/>`;
     } else {
-        boca = r.carisma >= 1
-            ? `<path d="M90 85 Q100 94 110 85" fill="none" stroke="${BOCA}" stroke-width="2.4" stroke-linecap="round"/>`
-            : `<path d="M94 86 Q100 91 106 86" fill="none" stroke="${BOCA}" stroke-width="2.2" stroke-linecap="round"/>`;
+        boca = `<path d="M97.5 48.3 Q100 48.9 102.5 48.3" fill="none" stroke="#7a4a35" stroke-width=".9" stroke-linecap="round"/>`;
     }
 
-    const cejas = animo === "llamas"   // decidido
-        ? `<path d="M81 62 L94 65 M119 62 L106 65" stroke="${PELO}" stroke-width="3" stroke-linecap="round"/>`
-        : "";
-    const rubor = contento || r.carisma >= 1
-        ? `<ellipse cx="79" cy="83" rx="5" ry="3" fill="#fb7185" opacity=".45"/>
-           <ellipse cx="121" cy="83" rx="5" ry="3" fill="#fb7185" opacity=".45"/>`
-        : "";
-    const lentes = r.intelecto >= 1   // Intelecto: lentes de sabio
-        ? `<g fill="rgba(255,255,255,.18)" stroke="#1e293b" stroke-width="2">
-               <circle cx="88" cy="72" r="8"/><circle cx="112" cy="72" r="8"/></g>
-           <path d="M96 72 h8 M80 70 L68 67 M120 70 L132 67" stroke="#1e293b" stroke-width="2"/>`
-        : "";
-    const aretes = r.riqueza >= 2     // Riqueza alta: aretes de oro
-        ? `<circle cx="66" cy="80" r="2.6" fill="${ORO}" stroke="${ORO_OSCURO}" stroke-width=".8"/>
-           <circle cx="134" cy="80" r="2.6" fill="${ORO}" stroke="${ORO_OSCURO}" stroke-width=".8"/>`
+    // Intelecto: anteojos finos de metal.
+    const lentes = r.intelecto >= 1
+        ? `<g fill="rgba(255,255,255,.12)" stroke="#c9b458" stroke-width=".7">
+               <circle cx="96" cy="41.2" r="2.7"/><circle cx="104" cy="41.2" r="2.7"/></g>
+           <path d="M98.7 41.2 h2.6 M93.3 41 L90.8 40.2 M106.7 41 L109.2 40.2" stroke="#c9b458" stroke-width=".7"/>`
         : "";
 
-    return `<circle cx="67" cy="73" r="6" fill="${PIEL}" stroke="${PIEL_BORDE}" stroke-width="1"/>
-            <circle cx="133" cy="73" r="6" fill="${PIEL}" stroke="${PIEL_BORDE}" stroke-width="1"/>
-            ${aretes}
-            <circle cx="100" cy="68" r="34" fill="${PIEL}" stroke="${PIEL_BORDE}" stroke-width="1.5"/>
-            <path d="M66 70 C62 40 82 30 100 30 C120 30 140 40 134 70 C130 58 124 50 116 48
-                     C110 56 98 58 88 52 C80 56 72 62 66 70 Z" fill="${PELO}"/>
-            ${cejas}${ojo(88)}${ojo(112)}${lentes}${rubor}${boca}`;
+    const rostro = `
+        <path d="M90.6 41 Q90 44 91.2 45.5 M109.4 41 Q110 44 108.8 45.5" stroke="${PIEL_SOMBRA}" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <path d="M90.8 40 Q90.6 30.6 100 30.5 Q109.4 30.6 109.2 40 Q109.2 48.5 100 54 Q90.8 48.5 90.8 40 Z"
+              fill="${PIEL}" stroke="${TRAZO}" stroke-width=".9" stroke-linejoin="round"/>
+        <path d="M100 30.5 Q109.4 30.6 109.2 40 Q109.2 48.5 100 54 Z" fill="${PIEL_SOMBRA}" opacity=".28"/>
+        <path d="M90.4 41 Q88.6 29 100 28.4 Q111.4 29 109.6 41 Q108.6 35.6 104.6 34.6 Q99.6 36.4 94.4 35 Q91.4 36.6 90.4 41 Z" fill="${PELO}"/>
+        ${cejas}${ojo(96)}${ojo(104)}
+        <path d="M100 41.6 L99.3 45.3 L100.7 45.6" fill="none" stroke="${PIEL_SOMBRA}" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round"/>
+        ${boca}${lentes}`;
+
+    // Dormido: la cabeza cae un poco hacia adelante.
+    const giro = dormido ? ' transform="rotate(9 100 56)"' : "";
+    return `<g${giro}>${rostro}${sombrero(d.equipado.cabeza)}</g>`;
 }
 
 // Lo que lleva en la cabeza.
 function sombrero(id) {
     switch (id) {
-        case "gorra":
-            return `<path d="M67 60 Q68 30 100 30 Q132 30 133 60 Z" fill="#2563eb" stroke="#1e3a8a" stroke-width="2"/>
-                    <path d="M98 58 Q128 53 150 63 Q128 68 98 62 Z" fill="#1e40af" stroke="#1e3a8a" stroke-width="1.5"/>
-                    <circle cx="100" cy="31" r="3" fill="#1e3a8a"/>
-                    <circle cx="100" cy="46" r="5" fill="#fff"/><circle cx="100" cy="46" r="2.5" fill="#2563eb"/>`;
+        case "gorra":           // gorro sencillo de aprendiz
+            return `<path d="M89.6 39.4 Q88.6 27 100 26.6 Q111.4 27 110.4 39.4 Q100 34.6 89.6 39.4 Z" fill="#33415c" stroke="${TRAZO}" stroke-width=".9"/>
+                    <path d="M89.8 38.6 Q100 34 110.2 38.6" fill="none" stroke="#7b8bb0" stroke-width="1.3"/>`;
         case "sombrero-mago":
-            return `<path d="M70 48 L102 2 Q110 22 130 48 Z" fill="#6d28d9" stroke="#4c1d95" stroke-width="2" stroke-linejoin="round"/>
-                    <path d="M74 44 Q100 51 126 44" fill="none" stroke="${ORO}" stroke-width="3"/>
-                    <ellipse cx="100" cy="48" rx="42" ry="8" fill="#5b21b6" stroke="#4c1d95" stroke-width="2"/>
-                    ${estrella(94, 30, 4, "")}${estrella(107, 16, 3, "")}${estrella(113, 36, 3, "")}`;
-        case "casco":
-            return `<path d="M64 62 Q64 26 100 26 Q136 26 136 62 Q118 54 100 54 Q82 54 64 62 Z" fill="#cbd5e1"
-                          stroke="#64748b" stroke-width="2"/>
-                    <path d="M100 28 L100 54" stroke="#94a3b8" stroke-width="3"/>
-                    <path d="M100 26 Q92 6 114 6 Q104 14 106 26 Z" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5"/>
-                    <g fill="#64748b"><circle cx="74" cy="54" r="1.5"/><circle cx="126" cy="54" r="1.5"/></g>`;
-        case "corona":
-            return `<path d="M74 42 L78 18 L90 32 L100 12 L110 32 L122 18 L126 42 Z" fill="${ORO}" stroke="${ORO_OSCURO}"
-                          stroke-width="2" stroke-linejoin="round"/>
-                    <circle cx="100" cy="32" r="3.5" fill="#e11d48"/>
-                    <circle cx="86" cy="36" r="2.5" fill="#3b82f6"/><circle cx="114" cy="36" r="2.5" fill="#10b981"/>
-                    ${estrella(122, 16, 4)}`;
+            return `<path d="M91.2 34 Q97 26 104.5 17 Q107 25 109 34 Z" fill="#33215c" stroke="${TRAZO}" stroke-width=".9" stroke-linejoin="round"/>
+                    <path d="M92 31 Q100 34 108.4 31" fill="none" stroke="${ORO}" stroke-width="1.5"/>
+                    <ellipse cx="100" cy="34.4" rx="17.5" ry="3.6" fill="#2a1a4d" stroke="${TRAZO}" stroke-width=".9"/>`;
+        case "casco":           // yelmo abierto con penacho
+            return `<path d="M88.8 42 Q88 26.6 100 26.2 Q112 26.6 111.2 42 L111.2 46.5 L107.2 46.5 L107.2 39.6 Q100 36.8 92.8 39.6 L92.8 46.5 L88.8 46.5 Z"
+                          fill="${ACERO}" stroke="${ACERO_OSCURO}" stroke-width="1" stroke-linejoin="round"/>
+                    <path d="M100 37 L100 46" stroke="${ACERO_OSCURO}" stroke-width="2"/>
+                    <path d="M100 26.4 L100 37" stroke="#d7dde6" stroke-width="1"/>
+                    <path d="M100 26.2 Q97 15 107.5 14.5 Q102.6 19.5 103.4 26.6 Z" fill="#991b1b" stroke="${TRAZO}" stroke-width=".7"/>`;
+        case "corona":          // corona fina de oro
+            return `<path d="M90.4 35.2 L91.4 27.4 L95.2 31.8 L100 24.6 L104.8 31.8 L108.6 27.4 L109.6 35.2 Q100 32.4 90.4 35.2 Z"
+                          fill="${ORO}" stroke="${ORO_OSCURO}" stroke-width=".9" stroke-linejoin="round"/>
+                    <circle cx="100" cy="30.4" r="1.6" fill="#b91c1c"/>
+                    <circle cx="94.4" cy="32.4" r="1" fill="#1d4ed8"/><circle cx="105.6" cy="32.4" r="1" fill="#047857"/>`;
         default:
             return "";
     }
 }
 
-// Brillos si está feliz, Zzz si está dormido.
-function adornosDeAnimo(d) {
-    if (d.animo === "dormido") {
-        return `<g class="zzz" fill="#a5b4fc" font-family="Orbitron, sans-serif" font-weight="800">
-                    <text x="128" y="46" font-size="12">z</text>
-                    <text x="139" y="33" font-size="16">Z</text>
-                    <text x="152" y="18" font-size="20">Z</text></g>`;
-    }
-    if (d.animo === "feliz" || d.animo === "llamas") {
-        return `${estrella(50, 42, 5)}${estrella(152, 50, 4)}${estrella(142, 22, 3)}`;
-    }
-    return "";
-}
 
-
-// ===== Mascota =====
+// ===== Mascota: un dragón =====
 // Se dibuja alrededor del punto (0, 0) y luego se mueve a su lugar con translate.
+// Crece con tus misiones: huevo → cría → adulto. Si la descuidas, se apaga.
 
 function mascota(m) {
-    return `<g transform="translate(168 166)">${cuerpoMascota(m)}</g>`;
+    return `<g transform="translate(166 166)">${cuerpoMascota(m)}</g>`;
 }
 
 // La mascota sola, en grande (para la pantalla Personaje).
@@ -407,208 +420,46 @@ export function dibujarMascota(m) {
 }
 
 function cuerpoMascota(m) {
-    const triste = m.triste;
-    // Triste: ojitos cerrados hacia abajo (∩), como a punto de llorar.
-    const ojos = (x, y, r) => triste
-        ? `<path d="M${-x - r} ${y + 1} Q${-x} ${y - r} ${-x + r} ${y + 1} M${x - r} ${y + 1} Q${x} ${y - r} ${x + r} ${y + 1}"
-                 fill="none" stroke="${OJOS}" stroke-width="1.6" stroke-linecap="round"/>`
-        : `<circle cx="${-x}" cy="${y}" r="${r}" fill="${OJOS}"/><circle cx="${x}" cy="${y}" r="${r}" fill="${OJOS}"/>
-           <circle cx="${-x + 0.8}" cy="${y - 0.8}" r="${r * 0.35}" fill="#fff"/><circle cx="${x + 0.8}" cy="${y - 0.8}" r="${r * 0.35}" fill="#fff"/>`;
-    const boca = (y) => triste
-        ? `<path d="M-3 ${y + 2} Q0 ${y - 1} 3 ${y + 2}" fill="none" stroke="${OJOS}" stroke-width="1.5" stroke-linecap="round"/>
-           <path d="M-7 ${y - 4} q-2 4 0 5.5 q2 -1.5 0 -5.5z" fill="#93c5fd"/>`
-        : `<path d="M-3 ${y} Q0 ${y + 3} 3 ${y}" fill="none" stroke="${OJOS}" stroke-width="1.5" stroke-linecap="round"/>`;
-
+    const ojo = m.triste ? "#6b7280" : "#f59e0b";
     let cuerpo;
+
     if (m.etapa.clave === "huevo") {
-        cuerpo = `<ellipse cx="0" cy="17" rx="11" ry="3" fill="#000" opacity=".3"/>
+        // Huevo de dragón: escamas oscuras y grietas que brillan.
+        cuerpo = `<ellipse cx="0" cy="17" rx="10" ry="2.6" fill="#000" opacity=".4"/>
                   <g class="huevo">
-                      <ellipse cx="0" cy="2" rx="11" ry="14" fill="#fef3c7" stroke="#d6b36a" stroke-width="1.5"/>
-                      <circle cx="-4" cy="-3" r="3" fill="#67e8f9"/><circle cx="5" cy="4" r="2.5" fill="#c4b5fd"/>
-                      <circle cx="-2" cy="9" r="2" fill="#67e8f9"/>
+                      <path d="M0 -13 C8 -13 11 -1 11 5 C11 12 6 16 0 16 C-6 16 -11 12 -11 5 C-11 -1 -8 -13 0 -13 Z"
+                            fill="#123c3a" stroke="${TRAZO}" stroke-width="1"/>
+                      <path d="M-7 -2 Q-4 1 -1 -2 Q2 1 5 -2 M-9 5 Q-6 8 -3 5 Q0 8 3 5 Q6 8 9 5 M-6 11 Q-3 14 0 11 Q3 14 6 11"
+                            fill="none" stroke="#1f6f6a" stroke-width="1"/>
+                      <path class="orbe" d="M-2 -9 L1 -4 L-1 0 L3 4" fill="none" stroke="${m.triste ? "#4b5563" : "#5eead4"}" stroke-width="1.1" stroke-linecap="round"/>
                   </g>`;
     } else if (m.etapa.clave === "cria") {
-        const ala = `<path d="M-10 -1 L-19 -8 L-15 4 Z" fill="#a5f3fc" stroke="#0e7490" stroke-width="1"/>`;
-        cuerpo = `<ellipse cx="0" cy="15" rx="12" ry="3" fill="#000" opacity=".3"/>
+        // Cría: un dragón pequeño, sentado.
+        cuerpo = `<ellipse cx="0" cy="16" rx="12" ry="2.8" fill="#000" opacity=".4"/>
                   <g class="mascota-cuerpo">
-                      ${ala}<g transform="scale(-1 1)">${ala}</g>
-                      <circle cx="0" cy="2" r="12" fill="#22d3ee" stroke="#0e7490" stroke-width="1.5"/>
-                      <ellipse cx="0" cy="7" rx="7" ry="4.5" fill="#cffafe"/>
-                      ${ojos(4, -1, 2)}${boca(4)}
+                      <path d="M-6 8 Q-18 10 -19 2 Q-15 6 -8 4 Z" fill="#0f5f59" stroke="${TRAZO}" stroke-width=".8"/>
+                      <path d="M-3 0 L-13 -13 L-9 -1 L-13 3 Z" fill="#17877f" stroke="${TRAZO}" stroke-width=".8" stroke-linejoin="round"/>
+                      <path d="M-8 8 Q-10 -1 -2 -2 Q4 -3 5 -8 Q5 -13 10 -14 L17 -11 L13 -8 Q11 -3 9 2 Q10 10 4 14 L-6 14 Q-9 12 -8 8 Z"
+                            fill="#0f766e" stroke="${TRAZO}" stroke-width=".9" stroke-linejoin="round"/>
+                      <path d="M-4 12 Q0 5 5 3 Q6 9 2 13 Z" fill="#5fb3a9" opacity=".75"/>
+                      <path d="M8 -13.5 L7 -18 L10.5 -14.5 Z" fill="#c9b458" stroke="${TRAZO}" stroke-width=".5"/>
+                      <circle cx="11.6" cy="-11.2" r="1.1" fill="${ojo}"/>
+                      <path d="M-5 14 L-6 16.5 M1 14 L1 16.5 M5 13 L6.5 16" stroke="${TRAZO}" stroke-width="1.4" stroke-linecap="round"/>
                   </g>`;
     } else {
-        const ala = `<path d="M-12 -5 L-28 -18 L-25 0 L-16 3 Z" fill="#c4b5fd" stroke="#6d28d9" stroke-width="1.2"/>`;
-        cuerpo = `<ellipse cx="0" cy="17" rx="16" ry="3.5" fill="#000" opacity=".3"/>
+        // Adulto: dragón con las alas abiertas.
+        cuerpo = `<ellipse cx="0" cy="17" rx="17" ry="3.2" fill="#000" opacity=".4"/>
                   <g class="mascota-cuerpo">
-                      <path d="M13 9 Q28 8 25 -5 Q23 6 11 4 Z" fill="#7c3aed"/>
-                      ${ala}<g transform="scale(-1 1)">${ala}</g>
-                      <ellipse cx="0" cy="2" rx="16" ry="15" fill="#8b5cf6" stroke="#5b21b6" stroke-width="1.5"/>
-                      <ellipse cx="0" cy="7" rx="9" ry="7" fill="#ede9fe"/>
-                      <path d="M-8 -11 L-11 -21 L-4 -13 Z M8 -11 L11 -21 L4 -13 Z" fill="#fde68a" stroke="#b45309" stroke-width="1"/>
-                      ${ojos(5, -2, 2.5)}${boca(4)}
+                      <path d="M-9 8 Q-26 12 -27 0 Q-22 -4 -24 -8 Q-19 2 -10 3 Z" fill="#3b1470" stroke="${TRAZO}" stroke-width=".8"/>
+                      <path d="M-4 -2 L-22 -22 L-17 -8 L-24 -6 L-14 2 Z" fill="#5b21b6" stroke="${TRAZO}" stroke-width=".9" stroke-linejoin="round"/>
+                      <path d="M2 -3 L6 -27 L10 -12 L17 -18 L11 -1 Z" fill="#6d28d9" stroke="${TRAZO}" stroke-width=".9" stroke-linejoin="round"/>
+                      <path d="M-11 9 Q-13 -2 -3 -4 Q5 -5 7 -11 Q8 -18 14 -19 L23 -15 L18 -11 Q15 -5 12 1 Q13 11 5 15 L-8 15 Q-12 13 -11 9 Z"
+                            fill="#4c1d95" stroke="${TRAZO}" stroke-width="1" stroke-linejoin="round"/>
+                      <path d="M-6 13 Q0 4 7 2 Q8 10 3 14 Z" fill="#a78bfa" opacity=".6"/>
+                      <path d="M12 -18.5 L10 -25 L15.5 -19.5 Z M16 -18 L16.5 -23.5 L19.5 -17 Z" fill="#c9b458" stroke="${TRAZO}" stroke-width=".5"/>
+                      <circle cx="16" cy="-15.2" r="1.3" fill="${ojo}"/>
+                      <path d="M-7 15 L-8 17.6 M0 15 L0 17.6 M6 14 L8 17" stroke="${TRAZO}" stroke-width="1.6" stroke-linecap="round"/>
                   </g>`;
     }
-    return `<g class="mascota ${triste ? "triste" : ""}">${cuerpo}</g>`;
+    return `<g class="mascota ${m.triste ? "triste" : ""}">${cuerpo}</g>`;
 }
-
-
-
-// ===== Jefes =====
-// Lienzo de 160 × 160, suelo en y = 148. Cada monstruo tiene su cuerpo y
-// todos comparten la misma cara, que cambia según la vida que les queda:
-//   furioso (más del 60 %), herido (30–60 %), agotado (menos del 30 %), derrotado (0).
-
-const NEGRO = "#111827";
-
-// tipo: clave de MONSTRUOS (juego.js); estado: furioso | herido | agotado | derrotado
-export function dibujarJefe(tipo, estado, { mini = false } = {}) {
-    const dibujo = MONSTRUOS_DIBUJO[tipo] || MONSTRUOS_DIBUJO.dragon;
-    const extras = estado === "agotado" ? mareo(dibujo.cara) : estado === "derrotado" ? ko(dibujo.cara) : "";
-    const vista = mini ? "20 14 120 120" : "0 0 160 160";
-    return `<svg class="jefe-svg ${estado}" viewBox="${vista}" role="img" aria-label="Jefe ${estado}"
-                 xmlns="http://www.w3.org/2000/svg">
-                ${mini ? "" : '<ellipse cx="80" cy="150" rx="46" ry="7" fill="#000" opacity=".35"/>'}
-                <g class="monstruo">${dibujo.cuerpo()}${cara(dibujo.cara, estado)}${extras}</g>
-            </svg>`;
-}
-
-// La cara: ojos, cejas y boca alrededor del punto (x, y).
-// "trazo" es el color de los ojos en X o en espiral (el esqueleto los necesita
-// claros porque sus cuencas son negras).
-function cara({ x, y, ojos = "#fde047", trazo = NEGRO }, estado) {
-    const ojoIzq = x - 10;
-    const ojoDer = x + 10;
-    const oy = y - 4;
-
-    if (estado === "derrotado") {   // ojos en X
-        return `<path d="M${ojoIzq - 4} ${oy - 4} l8 8 M${ojoIzq + 4} ${oy - 4} l-8 8
-                         M${ojoDer - 4} ${oy - 4} l8 8 M${ojoDer + 4} ${oy - 4} l-8 8"
-                      stroke="${trazo}" stroke-width="2.8" stroke-linecap="round"/>
-                <path d="M${x - 7} ${y + 11} h14" stroke="${NEGRO}" stroke-width="2.5" stroke-linecap="round"/>`;
-    }
-    if (estado === "agotado") {     // ojos en espiral y lengua afuera
-        const espiral = (ex) => `<path d="M${ex} ${oy} m-4 0 a4 4 0 1 1 4 4 a2.6 2.6 0 1 1 -2.6 -2.6"
-                                       fill="none" stroke="${trazo}" stroke-width="2" stroke-linecap="round"/>`;
-        return `${espiral(ojoIzq)}${espiral(ojoDer)}
-                <path d="M${x - 7} ${y + 10} Q${x} ${y + 14} ${x + 7} ${y + 10}" fill="none" stroke="${NEGRO}" stroke-width="2.2"/>
-                <ellipse cx="${x + 3}" cy="${y + 15}" rx="3.2" ry="4" fill="#fb7185"/>`;
-    }
-
-    const ojo = (ex) => `<ellipse cx="${ex}" cy="${oy}" rx="5.5" ry="5" fill="${ojos}" stroke="${NEGRO}" stroke-width="1.2"/>
-                         <rect x="${ex - 1.2}" y="${oy - 4}" width="2.4" height="8" rx="1.2" fill="${NEGRO}"/>`;
-
-    if (estado === "herido") {      // ojos a medio cerrar, sudor y curita
-        return `${ojo(ojoIzq)}${ojo(ojoDer)}
-                <path d="M${ojoIzq - 6} ${oy - 2} h12 M${ojoDer - 6} ${oy - 2} h12" stroke="${NEGRO}" stroke-width="3" stroke-linecap="round"/>
-                <path d="M${x - 8} ${y + 12} q4 -3 8 0 q4 3 8 0" fill="none" stroke="${NEGRO}" stroke-width="2.2" stroke-linecap="round"/>
-                <path d="M${x + 19} ${y - 14} q-3 5 0 7 q3 -2 0 -7z" fill="#7dd3fc"/>
-                <g transform="rotate(-30 ${x - 16} ${y - 14})">
-                    <rect x="${x - 24}" y="${y - 17.5}" width="16" height="7" rx="3" fill="#fde68a" stroke="#d97706" stroke-width="1"/>
-                    <path d="M${x - 18} ${y - 14} h4 M${x - 16} ${y - 16} v4" stroke="#d97706" stroke-width="1"/>
-                </g>`;
-    }
-
-    // Furioso: cejas enojadas y colmillos.
-    return `<path d="M${ojoIzq - 7} ${oy - 10} L${ojoIzq + 5} ${oy - 5} M${ojoDer + 7} ${oy - 10} L${ojoDer - 5} ${oy - 5}"
-                  stroke="${NEGRO}" stroke-width="3.2" stroke-linecap="round"/>
-            ${ojo(ojoIzq)}${ojo(ojoDer)}
-            <path d="M${x - 11} ${y + 8} L${x + 11} ${y + 8} L${x + 8} ${y + 16} L${x - 8} ${y + 16} Z" fill="${NEGRO}"/>
-            <path d="M${x - 8} ${y + 8} l2.5 5 2.5 -5 Z M${x + 3} ${y + 8} l2.5 5 2.5 -5 Z" fill="#fff"/>`;
-}
-
-// Estrellas de mareo girando sobre la cabeza.
-function mareo({ x, y }) {
-    return `<g class="mareo">${estrella(x - 16, y - 30, 4, "")}${estrella(x, y - 36, 5, "")}${estrella(x + 16, y - 30, 4, "")}</g>`;
-}
-
-function ko({ x, y }) {
-    return `<text x="${x}" y="${y - 30}" text-anchor="middle" font-family="Orbitron, sans-serif" font-weight="800"
-                  font-size="16" fill="#fde68a" stroke="${NEGRO}" stroke-width=".8">K.O.</text>`;
-}
-
-const MONSTRUOS_DIBUJO = {
-    dragon: {
-        cara: { x: 80, y: 62 },
-        cuerpo: () => `
-            <path d="M110 128 Q152 126 148 96 Q140 116 112 116 Z" fill="#b91c1c" stroke="#7f1d1d" stroke-width="2"/>
-            <path d="M54 76 L14 38 L22 86 L42 84 Z M106 76 L146 38 L138 86 L118 84 Z" fill="#991b1b" stroke="#7f1d1d" stroke-width="2" stroke-linejoin="round"/>
-            <ellipse cx="64" cy="140" rx="11" ry="8" fill="#b91c1c"/><ellipse cx="96" cy="140" rx="11" ry="8" fill="#b91c1c"/>
-            <ellipse cx="80" cy="108" rx="35" ry="32" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
-            <ellipse cx="80" cy="116" rx="20" ry="21" fill="#fecaca"/>
-            <path d="M68 104 h24 M66 114 h28 M68 124 h24" stroke="#fca5a5" stroke-width="2"/>
-            <ellipse cx="50" cy="108" rx="7" ry="11" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.5"/>
-            <ellipse cx="110" cy="108" rx="7" ry="11" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.5"/>
-            <path d="M60 44 L54 20 L70 38 Z M100 44 L106 20 L90 38 Z" fill="#fde68a" stroke="#b45309" stroke-width="1.5"/>
-            <circle cx="80" cy="60" r="27" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
-            <ellipse cx="80" cy="74" rx="15" ry="9" fill="#ef4444"/>
-            <circle cx="75" cy="72" r="1.6" fill="#7f1d1d"/><circle cx="85" cy="72" r="1.6" fill="#7f1d1d"/>`,
-    },
-    golem: {
-        cara: { x: 80, y: 60, ojos: "#67e8f9" },
-        cuerpo: () => `
-            <rect x="52" y="130" width="22" height="18" rx="5" fill="#57534e"/><rect x="86" y="130" width="22" height="18" rx="5" fill="#57534e"/>
-            <rect x="22" y="82" width="24" height="48" rx="11" fill="#78716c" stroke="#44403c" stroke-width="2"/>
-            <rect x="114" y="82" width="24" height="48" rx="11" fill="#78716c" stroke="#44403c" stroke-width="2"/>
-            <circle cx="34" cy="134" r="13" fill="#57534e" stroke="#44403c" stroke-width="2"/>
-            <circle cx="126" cy="134" r="13" fill="#57534e" stroke="#44403c" stroke-width="2"/>
-            <rect x="42" y="78" width="76" height="60" rx="15" fill="#78716c" stroke="#44403c" stroke-width="2"/>
-            <path d="M58 92 l8 10 -6 8 10 12 M104 90 l-7 12 9 7" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"/>
-            <rect x="54" y="36" width="52" height="46" rx="11" fill="#a8a29e" stroke="#44403c" stroke-width="2"/>
-            <ellipse cx="66" cy="38" rx="11" ry="5" fill="#4d7c0f"/><ellipse cx="94" cy="80" rx="7" ry="3" fill="#4d7c0f"/>`,
-    },
-    slime: {
-        cara: { x: 80, y: 104 },
-        cuerpo: () => `
-            <path d="M28 142 Q24 96 52 74 Q80 52 108 74 Q136 96 132 142 Q121 148 110 141 Q100 149 90 141
-                     Q80 149 70 141 Q60 149 50 141 Q39 148 28 142 Z" fill="#22c55e" fill-opacity=".92" stroke="#15803d" stroke-width="2.5"/>
-            <ellipse cx="58" cy="84" rx="9" ry="5" fill="#fff" opacity=".55" transform="rotate(-30 58 84)"/>
-            <circle cx="108" cy="122" r="4" fill="#bbf7d0" opacity=".7"/><circle cx="50" cy="126" r="3" fill="#bbf7d0" opacity=".7"/>
-            <path d="M74 60 L70 44 L80 54 L88 40 L90 58 Z" fill="#fbbf24" stroke="#b45309" stroke-width="1.5" stroke-linejoin="round"/>`,
-    },
-    esqueleto: {
-        cara: { x: 80, y: 62, ojos: "#f43f5e", trazo: "#f43f5e" },
-        cuerpo: () => `
-            <g stroke="#e5e7eb" stroke-width="5" stroke-linecap="round" fill="none">
-                <path d="M80 88 V136"/>
-                <path d="M62 100 Q80 110 98 100 M64 112 Q80 121 96 112 M66 123 Q80 131 94 123"/>
-                <path d="M64 94 L44 120 M96 94 L116 120"/>
-                <path d="M72 140 L66 150 M88 140 L94 150"/>
-            </g>
-            <circle cx="43" cy="123" r="5" fill="#e5e7eb"/><circle cx="117" cy="123" r="5" fill="#e5e7eb"/>
-            <ellipse cx="80" cy="138" rx="15" ry="6" fill="#e5e7eb"/>
-            <path d="M58 30 Q80 20 102 30 L98 44 L62 44 Z" fill="#4c1d95"/>
-            <circle cx="80" cy="60" r="25" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
-            <rect x="67" y="76" width="26" height="12" rx="4" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
-            <path d="M73 77 v10 M80 77 v10 M87 77 v10" stroke="#9ca3af" stroke-width="1.5"/>
-            <ellipse cx="70" cy="57" rx="8" ry="9" fill="#1f2937"/><ellipse cx="90" cy="57" rx="8" ry="9" fill="#1f2937"/>
-            <path d="M78 66 L80 70 L82 66 Z" fill="#1f2937"/>`,
-    },
-    kraken: {
-        cara: { x: 80, y: 84 },
-        cuerpo: () => `
-            <g fill="none" stroke="#6d28d9" stroke-width="10" stroke-linecap="round">
-                <path d="M56 108 Q40 128 52 142 Q58 150 46 152"/>
-                <path d="M68 112 Q62 132 70 146"/>
-                <path d="M92 112 Q98 132 90 146"/>
-                <path d="M104 108 Q120 128 108 142 Q102 150 114 152"/>
-            </g>
-            <path d="M42 112 Q38 40 80 32 Q122 40 118 112 Q80 122 42 112 Z" fill="#7c3aed" stroke="#4c1d95" stroke-width="2.5"/>
-            <circle cx="64" cy="54" r="6" fill="#a78bfa"/><circle cx="98" cy="50" r="4" fill="#a78bfa"/>
-            <circle cx="104" cy="70" r="5" fill="#a78bfa"/><circle cx="56" cy="74" r="3.5" fill="#a78bfa"/>`,
-    },
-    demonio: {
-        cara: { x: 80, y: 62, ojos: "#fbbf24" },
-        cuerpo: () => `
-            <path d="M52 80 Q20 54 8 78 Q22 78 22 94 Q32 86 36 102 Q44 92 54 100 Z" fill="#4c0519" stroke="#1f0410" stroke-width="1.5"/>
-            <path d="M108 80 Q140 54 152 78 Q138 78 138 94 Q128 86 124 102 Q116 92 106 100 Z" fill="#4c0519" stroke="#1f0410" stroke-width="1.5"/>
-            <path d="M104 134 Q136 142 138 116" fill="none" stroke="#9f1239" stroke-width="4" stroke-linecap="round"/>
-            <path d="M132 118 L140 108 L144 122 Z" fill="#9f1239"/>
-            <line x1="122" y1="58" x2="122" y2="148" stroke="#6b7280" stroke-width="3"/>
-            <path d="M114 70 V58 M122 66 V52 M130 70 V58 M114 70 H130" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" fill="none"/>
-            <path d="M56 90 Q80 82 104 90 L112 140 Q80 148 48 140 Z" fill="#9f1239" stroke="#4c0519" stroke-width="2"/>
-            <path d="M68 140 v8 M92 140 v8" stroke="#4c0519" stroke-width="8" stroke-linecap="round"/>
-            <circle cx="117" cy="104" r="6" fill="#be123c"/>
-            <path d="M62 46 Q48 30 58 16 Q62 34 72 42 Z M98 46 Q112 30 102 16 Q98 34 88 42 Z" fill="#1f2937"/>
-            <circle cx="80" cy="62" r="25" fill="#be123c" stroke="#4c0519" stroke-width="2"/>`,
-    },
-};

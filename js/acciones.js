@@ -9,6 +9,7 @@
 import * as juego from "./juego.js";
 import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
+import * as campana from "./campana.js";
 import { hoy, diasEntre, sumarDias } from "./fechas.js";
 
 
@@ -208,61 +209,51 @@ export function archivarPrincipal(estado, id) {
 }
 
 
-// ===== Jefes =====
+// ===== Jefes (campaña) =====
+// El daño a los jefes se calcula solo a partir de tus misiones (campana.js).
+// Aquí entregamos la recompensa de cada jefe que cae (o la devolvemos si
+// desmarcas misiones y el jefe "revive"), y avisamos de cada golpe.
 
-export function crearJefe(estado, { nombre, vida, atributo, monstruo }) {
-    if (!juego.MONSTRUOS[monstruo]) throw new Error("Elige el aspecto del jefe.");
-    estado.jefes.push({
-        id: nuevoId(estado),
-        nombre: validarNombre(nombre, 60),
-        monstruo,
-        atributo: validarAtributo(atributo),
-        vidaMax: validarEntero(vida, 1, 100000, "La vida"),
-        golpes: [],
-        creadoEn: hoy(),
-        derrotadoEn: null,
-        archivado: false,
-    });
-}
+function sincronizarCampanas(estado, danoAntes) {
+    const celebraciones = [];
+    const recompensados = estado.campana.recompensados;
 
-export function atacarJefe(estado, id, dano) {
-    const jefe = buscar(estado.jefes, id, "ese jefe");
-    if (jefe.derrotadoEn) throw new Error("Ese jefe ya fue derrotado.");
+    for (const [categoria, c] of Object.entries(campana.estadoCampanas(estado))) {
+        let dados = recompensados[categoria] || 0;
+        let cayoAlguno = false;
 
-    // El daño no puede ser más que la vida que le queda.
-    const golpe = Math.min(validarEntero(dano, 1, 100000, "El daño"), juego.vidaRestante(jefe));
-    jefe.golpes.push({ fecha: hoy(), dano: golpe });
-    ganar(estado, { ...juego.PREMIOS.golpe, atributo: jefe.atributo });
+        while (dados < c.derrotados) {
+            dados += 1;
+            cayoAlguno = true;
+            const jefe = c.campana.jefes[dados - 1];
+            const premio = campana.premioJefe(dados);
+            ganar(estado, { ...premio, atributo: categoria });
+            celebraciones.push({
+                imagen: campana.imagenDe(jefe.id),
+                etiqueta: "¡Jefe derrotado!",
+                titulo: jefe.nombre,
+                detalle: `Venciste: ${jefe.titulo} · +${premio.xp} XP · +${premio.monedas} monedas`,
+            });
+            if (dados === campana.VIDAS.length) {
+                celebraciones.push({ icono: "👑", etiqueta: "¡Campaña completada!", titulo: c.campana.nombre,
+                                     detalle: "Derrotaste a los 5 jefes de esta categoría." });
+            }
+        }
+        while (dados > c.derrotados) {
+            const premio = campana.premioJefe(dados);
+            ganar(estado, { xp: -premio.xp, monedas: -premio.monedas, atributo: categoria });
+            dados -= 1;
+        }
+        recompensados[categoria] = dados;
 
-    const resultado = { dano: golpe, xp: juego.PREMIOS.golpe.xp, celebraciones: [] };
-    if (juego.vidaRestante(jefe) === 0) {
-        const premio = juego.PREMIOS.jefe;
-        jefe.derrotadoEn = hoy();
-        ganar(estado, { ...premio, atributo: jefe.atributo });
-        resultado.xp += premio.xp;
-        resultado.celebraciones.push({
-            icono: "☠️",
-            etiqueta: "¡Jefe derrotado!",
-            titulo: jefe.nombre,
-            detalle: `+${premio.xp} XP · +${premio.monedas} monedas`,
-        });
+        // Aviso del golpe al jefe actual.
+        const golpe = c.dano - (danoAntes[categoria] || 0);
+        if (golpe > 0 && c.jefe && !cayoAlguno) {
+            celebraciones.push({ pequena: true, icono: "⚔️",
+                                 titulo: `${c.jefe.nombre} −${golpe} (le quedan ${c.vida} de vida)` });
+        }
     }
-    return resultado;
-}
-
-export function deshacerGolpe(estado, id) {
-    const jefe = buscar(estado.jefes, id, "ese jefe");
-    if (jefe.derrotadoEn) throw new Error("No se puede deshacer: el jefe ya fue derrotado.");
-    if (jefe.golpes.length === 0) throw new Error("No hay golpes para deshacer.");
-
-    jefe.golpes.pop(); // quita el último golpe
-    const premio = juego.PREMIOS.golpe;
-    ganar(estado, { xp: -premio.xp, monedas: -premio.monedas, atributo: jefe.atributo });
-    return { xp: -premio.xp };
-}
-
-export function archivarJefe(estado, id) {
-    buscar(estado.jefes, id, "ese jefe").archivado = true;
+    return celebraciones;
 }
 
 
@@ -503,13 +494,15 @@ export function foto(estado) {
         nivel: juego.calcularNivel(estado.personaje.xp).nivel,
         atributos: nivelesDeAtributos(estado),
         escudos: info.racha.escudos,
+        dano: campana.danoPorCategoria(estado),
         avatar: fotoDelAvatar(estado, info),
     };
 }
 
 export function revisarCambios(estado, antes) {
+    // Primero los jefes: sus recompensas pueden hacerte subir de nivel.
+    const celebraciones = sincronizarCampanas(estado, antes.dano);
     const info = juego.resumen(estado, hoy());
-    const celebraciones = [];
 
     const nivel = juego.calcularNivel(estado.personaje.xp).nivel;
     if (nivel > antes.nivel) {

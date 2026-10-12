@@ -10,7 +10,8 @@
 import * as juego from "./juego.js";
 import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
-import { dibujarAvatar, dibujarMascota, dibujarJefe } from "./dibujo.js";
+import * as campana from "./campana.js";
+import { dibujarAvatar, dibujarMascota } from "./dibujo.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, desdeTexto } from "./fechas.js";
 
 const { DIFICULTADES, ATRIBUTOS, PREMIOS, ESCUDOS, plural } = juego;
@@ -97,7 +98,7 @@ export function pantallaHoy(estado, ctx) {
             + Nueva misión diaria
         </button>
 
-        ${jefesEnCombate(estado)}`;
+        ${jefesEnCombate(estado, ctx)}`;
 }
 
 function tarjetaMision(mision, hecha, recienHecha) {
@@ -276,10 +277,8 @@ export function pantallaAventuras(estado, ctx) {
     const principales = estado.principales.filter((p) => !p.archivada);
     const enCurso = principales.filter((p) => !p.completadaEn);
     const terminadas = principales.filter((p) => p.completadaEn);
-
-    const jefes = estado.jefes.filter((j) => !j.archivado);
-    const vivos = jefes.filter((j) => !j.derrotadoEn);
-    const derrotados = jefes.filter((j) => j.derrotadoEn);
+    const campanas = Object.values(campana.estadoCampanas(estado));
+    const d = campana.DANO.diaria;
 
     return `
         <button type="button" class="panel acceso-arcade" data-accion="ir" data-pantalla="arcade">
@@ -289,17 +288,17 @@ export function pantallaAventuras(estado, ctx) {
             <span class="heroe-ver">Jugar ›</span>
         </button>
 
-        ${cabeceraSeccion("Misiones principales", "principal", "+ Nueva")}
-        <p class="nota">Objetivos grandes divididos en pasos. Cada paso: +${PREMIOS.submision.xp} XP.
-           Al terminar todos: +${PREMIOS.principal.xp} XP y ${PREMIOS.principal.monedas} monedas.</p>
-        ${enCurso.length ? enCurso.map(tarjetaPrincipal).join("") : vacio("Sin misiones principales en curso. Ej: «Aprender inglés B1» o «Terminar CS50».")}
-        ${plegable(`Completadas (${terminadas.length})`, terminadas.map(tarjetaPrincipal).join(""), terminadas.length)}
+        <div class="titulo-seccion"><h2 class="titulo-juego">Campaña de jefes</h2></div>
+        <p class="nota">Cada categoría tiene 5 jefes, cada vez más fuertes. Solo los dañas cumpliendo objetivos
+           de <b>su</b> categoría: una misión diaria hace poco daño (−${d.facil} fácil, −${d.normal} normal, −${d.dificil} difícil);
+           cada paso de una <b>misión principal</b> hace −${campana.DANO.paso} y completarla entera, −${campana.DANO.principal} extra.</p>
+        ${campanas.map((c) => tarjetaCampana(c, ctx)).join("")}
 
-        ${cabeceraSeccion("Jefes", "jefe", "+ Nuevo")}
-        <p class="nota">Metas difíciles con barra de vida. Cada avance le quita vida (+${PREMIOS.golpe.xp} XP).
-           Derrotarlo: +${PREMIOS.jefe.xp} XP y ${PREMIOS.jefe.monedas} monedas.</p>
-        ${vivos.length ? vivos.map((j) => tarjetaJefe(j, ctx)).join("") : vacio("No hay jefes a la vista. Ej: «Leer 12 libros» con 12 de vida.")}
-        ${plegable(`Derrotados (${derrotados.length})`, derrotados.map((j) => tarjetaJefe(j, ctx)).join(""), derrotados.length)}`;
+        ${cabeceraSeccion("Misiones principales", "principal", "+ Nueva")}
+        <p class="nota">Tus objetivos grandes, divididos en pasos. Son tu arma más fuerte contra los jefes.
+           Cada paso: +${PREMIOS.submision.xp} XP. Al terminar todos: +${PREMIOS.principal.xp} XP y ${PREMIOS.principal.monedas} monedas.</p>
+        ${enCurso.length ? enCurso.map(tarjetaPrincipal).join("") : vacio("Sin misiones principales en curso. Ej: «Aprender inglés B1» o «Terminar CS50».")}
+        ${plegable(`Completadas (${terminadas.length})`, terminadas.map(tarjetaPrincipal).join(""), terminadas.length)}`;
 }
 
 // <details> es una sección que se abre y se cierra sola (sin JavaScript).
@@ -345,77 +344,93 @@ function tarjetaPrincipal(p) {
         </article>`;
 }
 
-// Datos para dibujar un jefe: vida, porcentaje, aspecto y estado (furioso, herido…).
-function datosJefe(jefe) {
-    const vida = juego.vidaRestante(jefe);
-    const porcentaje = Math.round((vida / jefe.vidaMax) * 1000) / 10;
-    const tipo = juego.monstruoDe(jefe);
-    return { vida, porcentaje, tipo, monstruo: juego.MONSTRUOS[tipo], estado: juego.estadoDelJefe(porcentaje) };
-}
-
 const FRASES_JEFE = {
-    furioso: "¡Está furioso!",
-    herido: "Está herido…",
-    agotado: "¡Está a punto de caer!",
-    derrotado: "Derrotado",
+    furioso: "Intacto y furioso",
+    herido: "Herido",
+    agotado: "A punto de caer",
 };
 
-function tarjetaJefe(jefe, ctx) {
-    const { vida, porcentaje, tipo, monstruo, estado } = datosJefe(jefe);
+// Retrato del jefe (una pintura clásica) con el efecto según su vida.
+function retratoJefe(jefe, estadoVisual, clase = "") {
+    return `<figure class="retrato ${estadoVisual} ${clase}">
+                <img src="${campana.imagenDe(jefe.id)}" alt="${esc(jefe.nombre)}" loading="lazy" decoding="async">
+            </figure>`;
+}
 
-    const controles = jefe.derrotadoEn
-        ? `<p class="sello">☠️ Derrotado el ${fechaCorta(jefe.derrotadoEn)}</p>`
-        : `<form class="form-linea" data-form="atacar" data-id="${jefe.id}">
-               <input type="number" name="dano" min="1" step="1" value="1" inputmode="numeric" required aria-label="Daño del golpe">
-               <button type="submit" class="boton boton-peligro">⚔️ Atacar</button>
-           </form>
-           ${jefe.golpes.length ? `<button type="button" class="enlace" data-accion="deshacer-golpe" data-id="${jefe.id}">Deshacer último golpe</button>` : ""}`;
+// Tarjeta de una campaña: el jefe actual contra tu avatar y la ruta de los 5 jefes.
+function tarjetaCampana(c, ctx) {
+    const a = juego.ATRIBUTOS[c.categoria];
+    const golpeado = (ctx.golpeadas || []).includes(c.categoria);
 
+    // Ruta: vencidos (en gris), el actual (resaltado) y los que vienen (silueta).
+    const ruta = c.campana.jefes.map((jefe, i) => {
+        const tipo = i < c.derrotados ? "vencido" : i === c.indice ? "actual" : "futuro";
+        const titulo = tipo === "futuro" ? "Jefe desconocido" : `${jefe.nombre}: ${jefe.titulo}`;
+        return `<li class="${tipo}" title="${esc(titulo)}">
+                    <img src="${campana.imagenDe(jefe.id)}" alt="" loading="lazy" decoding="async">
+                    ${tipo === "vencido" ? '<span aria-hidden="true">✓</span>' : tipo === "futuro" ? '<span aria-hidden="true">?</span>' : ""}
+                </li>`;
+    }).join("");
+
+    if (c.completa) {
+        return `
+            <article class="panel campana completa" style="--color-atributo: ${a.color}">
+                <div class="campana-cabecera">${chipAtributo(c.categoria)}<span class="mini texto-suave">${c.campana.nombre}</span></div>
+                <p class="campana-victoria">👑 ¡Campaña completada!</p>
+                <p class="nota">Derrotaste a los 5 jefes de ${a.nombre}.</p>
+                <ol class="ruta-jefes">${ruta}</ol>
+            </article>`;
+    }
+
+    const jefe = c.jefe;
+    const visual = campana.estadoVisual(c.porcentaje);
+    const premio = campana.premioJefe(c.indice + 1);
     return `
-        <article class="panel tarjeta jefe ${jefe.derrotadoEn ? "derrotado" : ""} ${ctx.golpeado === jefe.id ? "golpeado" : ""}" data-id="${jefe.id}">
-            <div class="tarjeta-cabecera">
-                <div class="tarjeta-titulo">
-                    ${chipAtributo(jefe.atributo)}
-                    <h3>${esc(jefe.nombre)}</h3>
-                </div>
-                ${botonCerrar("archivar-jefe", jefe.id, `Archivar ${jefe.nombre}`)}
+        <article class="panel campana jefe ${golpeado ? "golpeado" : ""}" style="--color-atributo: ${a.color}">
+            <div class="campana-cabecera">
+                ${chipAtributo(c.categoria)}
+                <span class="mini texto-suave">${c.campana.nombre}</span>
+                <span class="campana-numero">Jefe ${c.indice + 1}/5</span>
             </div>
 
             <!-- Escena de batalla: tu avatar contra el jefe -->
             <div class="escena">
                 <div class="escena-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
                 <span class="escena-vs">VS</span>
-                <div class="escena-jefe">${dibujarJefe(tipo, estado)}</div>
-                <span class="escena-nombre">${monstruo.icono} ${monstruo.nombre} · ${FRASES_JEFE[estado]}</span>
+                <div class="escena-jefe">${retratoJefe(jefe, visual)}</div>
             </div>
 
-            ${barra(porcentaje, "barra-vida")}
-            <p class="mini"><strong>HP ${vida} / ${jefe.vidaMax}</strong>
-               <span class="texto-suave">· ${plural(jefe.golpes.length, "golpe", "golpes")}</span></p>
-            ${controles}
+            <h3 class="jefe-nombre">${esc(jefe.nombre)} <span>· ${esc(jefe.titulo)}</span></h3>
+            <p class="nota">${esc(jefe.texto)}</p>
+            ${barra(c.porcentaje, "barra-vida")}
+            <p class="mini"><strong>Vida ${c.vida} / ${c.vidaMax}</strong>
+               <span class="texto-suave">· ${FRASES_JEFE[visual]}</span></p>
+            <p class="mini texto-suave">Recompensa al derrotarlo: +${premio.xp} XP y ${premio.monedas} monedas</p>
+            <ol class="ruta-jefes">${ruta}</ol>
         </article>`;
 }
 
-// En "Hoy": los jefes que estás enfrentando, para tenerlos siempre a la vista.
-function jefesEnCombate(estado) {
-    const vivos = estado.jefes.filter((j) => !j.archivado && !j.derrotadoEn);
-    if (!vivos.length) return "";
-    const filas = vivos.map((jefe) => {
-        const { vida, porcentaje, tipo, estado: animo } = datosJefe(jefe);
+// En "Hoy": el jefe actual de cada categoría, para tenerlos siempre a la vista.
+function jefesEnCombate(estado, ctx) {
+    const filas = Object.values(campana.estadoCampanas(estado)).filter((c) => !c.completa).map((c) => {
+        const a = juego.ATRIBUTOS[c.categoria];
+        const golpeado = (ctx.golpeadas || []).includes(c.categoria);
         return `
             <li>
-                <button type="button" class="combate" data-accion="ir" data-pantalla="aventuras">
-                    <span class="combate-jefe">${dibujarJefe(tipo, animo, { mini: true })}</span>
+                <button type="button" class="combate ${golpeado ? "golpeado" : ""}" data-accion="ir" data-pantalla="aventuras">
+                    <span class="combate-jefe">${retratoJefe(c.jefe, campana.estadoVisual(c.porcentaje), "mini")}</span>
                     <span class="combate-info">
-                        <b>${esc(jefe.nombre)}</b>
-                        ${barra(porcentaje, "barra-vida barra-mini")}
-                        <span class="mini texto-suave">HP ${vida} / ${jefe.vidaMax}</span>
+                        <b>${esc(c.jefe.nombre)} <span class="texto-suave mini">· ${esc(c.jefe.titulo)}</span></b>
+                        ${barra(c.porcentaje, "barra-vida barra-mini")}
+                        <span class="mini texto-suave">${a.icono} ${a.nombre} · Vida ${c.vida} / ${c.vidaMax}</span>
                     </span>
-                    <span class="combate-ir" aria-hidden="true">⚔️</span>
                 </button>
             </li>`;
     }).join("");
-    return `<h3 class="subtitulo">⚔️ En combate</h3><ul class="lista">${filas}</ul>`;
+    if (!filas) return "";
+    return `<h3 class="subtitulo">⚔️ En combate</h3>
+            <p class="nota">Cada misión de una categoría golpea al jefe de esa categoría.</p>
+            <ul class="lista">${filas}</ul>`;
 }
 
 
@@ -718,8 +733,8 @@ export function pantallaTienda(estado, ctx) {
                 ${Object.values(DIFICULTADES).map((d) => `<div><dt>Misión ${d.nombre.toLowerCase()}</dt><dd>🪙 ${d.monedas}</dd></div>`).join("")}
                 <div><dt>Paso de misión principal</dt><dd>🪙 ${PREMIOS.submision.monedas}</dd></div>
                 <div><dt>Misión principal completa</dt><dd>🪙 ${PREMIOS.principal.monedas}</dd></div>
-                <div><dt>Golpe a un jefe</dt><dd>🪙 ${PREMIOS.golpe.monedas}</dd></div>
-                <div><dt>Jefe derrotado</dt><dd>🪙 ${PREMIOS.jefe.monedas}</dd></div>
+                <div><dt>Jefe derrotado (1.º al 5.º)</dt><dd>🪙 ${campana.premioJefe(1).monedas}–${campana.premioJefe(5).monedas}</dd></div>
+                <div><dt>Minijuegos</dt><dd>🪙 hasta ${arcade.MAX_MONEDAS}</dd></div>
                 <div><dt>Logros</dt><dd>Tú decides</dd></div>
             </dl>
         </section>`;

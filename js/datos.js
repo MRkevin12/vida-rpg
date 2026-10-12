@@ -37,6 +37,7 @@ export function estadoInicial() {
         },
         mascota: { nombre: "Chispa" },
         arcade: { usadas: 0, records: {} },   // fichas gastadas y mejor puntaje de cada minijuego
+        campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
 
         ultimaVisita: null,   // último día que abriste la app (para el bonus de regreso)
         ultimoAvisoEscudo: null,
@@ -62,6 +63,7 @@ function completar(guardado) {
             usadas: guardado.arcade?.usadas || 0,
             records: { ...guardado.arcade?.records },
         },
+        campana: { recompensados: { ...guardado.campana?.recompensados } },
     };
 }
 

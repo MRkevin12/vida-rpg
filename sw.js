@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v6";
+const VERSION = "vida-rpg-v7";
 
 const ARCHIVOS = [
     "./",
@@ -28,6 +28,7 @@ const ARCHIVOS = [
     "./js/acciones.js",
     "./js/arcade.js",
     "./js/avatar.js",
+    "./js/campana.js",
     "./js/datos.js",
     "./js/dibujo.js",
     "./js/fechas.js",
@@ -41,6 +42,27 @@ const ARCHIVOS = [
     "./iconos/icono-192.png",
     "./iconos/icono-512.png",
     "./iconos/icono-maskable-512.png",
+    // Pinturas de los jefes (dominio público)
+    "./jefes/cerbero.jpg",
+    "./jefes/ciclope.jpg",
+    "./jefes/circe.jpg",
+    "./jefes/coloso.jpg",
+    "./jefes/dragon_rojo.jpg",
+    "./jefes/fafner.jpg",
+    "./jefes/gerion.jpg",
+    "./jefes/hidra.jpg",
+    "./jefes/leviatan.jpg",
+    "./jefes/lobo.jpg",
+    "./jefes/mammon.jpg",
+    "./jefes/medusa.jpg",
+    "./jefes/mefistofeles.jpg",
+    "./jefes/minotauro.jpg",
+    "./jefes/narciso.jpg",
+    "./jefes/pesadilla.jpg",
+    "./jefes/pluton.jpg",
+    "./jefes/recaudadores.jpg",
+    "./jefes/satanas.jpg",
+    "./jefes/sirenas.jpg",
 ];
 
 // Instalación: guardar todos los archivos.
