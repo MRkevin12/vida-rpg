@@ -9,7 +9,7 @@
 
 import * as juego from "./juego.js";
 import * as avatar from "./avatar.js";
-import { dibujarAvatar, dibujarMascota } from "./dibujo.js";
+import { dibujarAvatar, dibujarMascota, dibujarJefe } from "./dibujo.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, desdeTexto } from "./fechas.js";
 
 const { DIFICULTADES, ATRIBUTOS, PREMIOS, ESCUDOS, plural } = juego;
@@ -92,7 +92,9 @@ export function pantallaHoy(estado, ctx) {
 
         <button type="button" class="boton boton-principal boton-ancho" data-accion="abrir" data-dialogo="mision">
             + Nueva misión diaria
-        </button>`;
+        </button>
+
+        ${jefesEnCombate(estado)}`;
 }
 
 function tarjetaMision(mision, hecha, recienHecha) {
@@ -266,7 +268,6 @@ function tarjetaAtributo(estado, clave) {
 
 // ===== Pantalla: Aventuras (misiones principales y jefes) =====
 
-const RETRATOS_JEFE = ["🐉", "👹", "🦂", "🐙", "👾", "🦖", "🧟", "🐺"];
 
 export function pantallaAventuras(estado, ctx) {
     const principales = estado.principales.filter((p) => !p.archivada);
@@ -334,10 +335,23 @@ function tarjetaPrincipal(p) {
         </article>`;
 }
 
-function tarjetaJefe(jefe, ctx) {
+// Datos para dibujar un jefe: vida, porcentaje, aspecto y estado (furioso, herido…).
+function datosJefe(jefe) {
     const vida = juego.vidaRestante(jefe);
     const porcentaje = Math.round((vida / jefe.vidaMax) * 1000) / 10;
-    const retrato = RETRATOS_JEFE[jefe.id % RETRATOS_JEFE.length];
+    const tipo = juego.monstruoDe(jefe);
+    return { vida, porcentaje, tipo, monstruo: juego.MONSTRUOS[tipo], estado: juego.estadoDelJefe(porcentaje) };
+}
+
+const FRASES_JEFE = {
+    furioso: "¡Está furioso!",
+    herido: "Está herido…",
+    agotado: "¡Está a punto de caer!",
+    derrotado: "Derrotado",
+};
+
+function tarjetaJefe(jefe, ctx) {
+    const { vida, porcentaje, tipo, monstruo, estado } = datosJefe(jefe);
 
     const controles = jefe.derrotadoEn
         ? `<p class="sello">☠️ Derrotado el ${fechaCorta(jefe.derrotadoEn)}</p>`
@@ -350,18 +364,48 @@ function tarjetaJefe(jefe, ctx) {
     return `
         <article class="panel tarjeta jefe ${jefe.derrotadoEn ? "derrotado" : ""} ${ctx.golpeado === jefe.id ? "golpeado" : ""}" data-id="${jefe.id}">
             <div class="tarjeta-cabecera">
-                <span class="jefe-retrato" aria-hidden="true">${retrato}</span>
                 <div class="tarjeta-titulo">
                     ${chipAtributo(jefe.atributo)}
                     <h3>${esc(jefe.nombre)}</h3>
                 </div>
                 ${botonCerrar("archivar-jefe", jefe.id, `Archivar ${jefe.nombre}`)}
             </div>
+
+            <!-- Escena de batalla: tu avatar contra el jefe -->
+            <div class="escena">
+                <div class="escena-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
+                <span class="escena-vs">VS</span>
+                <div class="escena-jefe">${dibujarJefe(tipo, estado)}</div>
+                <span class="escena-nombre">${monstruo.icono} ${monstruo.nombre} · ${FRASES_JEFE[estado]}</span>
+            </div>
+
             ${barra(porcentaje, "barra-vida")}
             <p class="mini"><strong>HP ${vida} / ${jefe.vidaMax}</strong>
                <span class="texto-suave">· ${plural(jefe.golpes.length, "golpe", "golpes")}</span></p>
             ${controles}
         </article>`;
+}
+
+// En "Hoy": los jefes que estás enfrentando, para tenerlos siempre a la vista.
+function jefesEnCombate(estado) {
+    const vivos = estado.jefes.filter((j) => !j.archivado && !j.derrotadoEn);
+    if (!vivos.length) return "";
+    const filas = vivos.map((jefe) => {
+        const { vida, porcentaje, tipo, estado: animo } = datosJefe(jefe);
+        return `
+            <li>
+                <button type="button" class="combate" data-accion="ir" data-pantalla="aventuras">
+                    <span class="combate-jefe">${dibujarJefe(tipo, animo, { mini: true })}</span>
+                    <span class="combate-info">
+                        <b>${esc(jefe.nombre)}</b>
+                        ${barra(porcentaje, "barra-vida barra-mini")}
+                        <span class="mini texto-suave">HP ${vida} / ${jefe.vidaMax}</span>
+                    </span>
+                    <span class="combate-ir" aria-hidden="true">⚔️</span>
+                </button>
+            </li>`;
+    }).join("");
+    return `<h3 class="subtitulo">⚔️ En combate</h3><ul class="lista">${filas}</ul>`;
 }
 
 

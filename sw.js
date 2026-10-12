@@ -11,7 +11,7 @@
 //
 // Si agregas o renombras archivos, súmalos a ARCHIVOS y cambia VERSION.
 
-const VERSION = "vida-rpg-v3";
+const VERSION = "vida-rpg-v4";
 
 const ARCHIVOS = [
     "./",

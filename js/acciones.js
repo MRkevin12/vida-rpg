@@ -209,10 +209,12 @@ export function archivarPrincipal(estado, id) {
 
 // ===== Jefes =====
 
-export function crearJefe(estado, { nombre, vida, atributo }) {
+export function crearJefe(estado, { nombre, vida, atributo, monstruo }) {
+    if (!juego.MONSTRUOS[monstruo]) throw new Error("Elige el aspecto del jefe.");
     estado.jefes.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
+        monstruo,
         atributo: validarAtributo(atributo),
         vidaMax: validarEntero(vida, 1, 100000, "La vida"),
         golpes: [],

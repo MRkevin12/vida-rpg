@@ -22,12 +22,13 @@ let contador = 0; // cada dibujo usa ids distintos para sus degradados
 
 // d = resultado de describirAvatar() (ver avatar.js)
 // mini = true: solo la cabeza, para la cabecera de la app
-export function dibujarAvatar(d, { mini = false } = {}) {
+// batalla = true: sin fondo ni mascota, para pelear contra un jefe
+export function dibujarAvatar(d, { mini = false, batalla = false } = {}) {
     const id = `av${++contador}`;
     const etapa = d.etapa.clave;
 
     const capas = [
-        fondo(d, id),
+        batalla ? "" : fondo(d, id),
         etapa === "leyenda" ? aura(id) : "",
         d.animo === "llamas" ? llamas(id) : "",
         mini ? "" : '<ellipse cx="100" cy="182" rx="38" ry="7" fill="#000" opacity=".35"/>',
@@ -40,10 +41,10 @@ export function dibujarAvatar(d, { mini = false } = {}) {
         sombrero(d.equipado.cabeza),
         "</g>",
         adornosDeAnimo(d),
-        mini ? "" : mascota(d.mascota),
+        mini || batalla ? "" : mascota(d.mascota),
     ];
 
-    const vista = mini ? "52 4 96 96" : "0 0 200 200";
+    const vista = mini ? "52 4 96 96" : batalla ? "28 0 144 192" : "0 0 200 200";
     const descripcion = `${d.clase.nombre} ${d.etapa.nombre}`;
     return `<svg class="avatar-svg animo-${d.animo}" viewBox="${vista}" role="img" aria-label="Avatar: ${descripcion}"
                  xmlns="http://www.w3.org/2000/svg">${capas.join("")}</svg>`;
@@ -449,3 +450,165 @@ function cuerpoMascota(m) {
     }
     return `<g class="mascota ${triste ? "triste" : ""}">${cuerpo}</g>`;
 }
+
+
+
+// ===== Jefes =====
+// Lienzo de 160 × 160, suelo en y = 148. Cada monstruo tiene su cuerpo y
+// todos comparten la misma cara, que cambia según la vida que les queda:
+//   furioso (más del 60 %), herido (30–60 %), agotado (menos del 30 %), derrotado (0).
+
+const NEGRO = "#111827";
+
+// tipo: clave de MONSTRUOS (juego.js); estado: furioso | herido | agotado | derrotado
+export function dibujarJefe(tipo, estado, { mini = false } = {}) {
+    const dibujo = MONSTRUOS_DIBUJO[tipo] || MONSTRUOS_DIBUJO.dragon;
+    const extras = estado === "agotado" ? mareo(dibujo.cara) : estado === "derrotado" ? ko(dibujo.cara) : "";
+    const vista = mini ? "20 14 120 120" : "0 0 160 160";
+    return `<svg class="jefe-svg ${estado}" viewBox="${vista}" role="img" aria-label="Jefe ${estado}"
+                 xmlns="http://www.w3.org/2000/svg">
+                ${mini ? "" : '<ellipse cx="80" cy="150" rx="46" ry="7" fill="#000" opacity=".35"/>'}
+                <g class="monstruo">${dibujo.cuerpo()}${cara(dibujo.cara, estado)}${extras}</g>
+            </svg>`;
+}
+
+// La cara: ojos, cejas y boca alrededor del punto (x, y).
+// "trazo" es el color de los ojos en X o en espiral (el esqueleto los necesita
+// claros porque sus cuencas son negras).
+function cara({ x, y, ojos = "#fde047", trazo = NEGRO }, estado) {
+    const ojoIzq = x - 10;
+    const ojoDer = x + 10;
+    const oy = y - 4;
+
+    if (estado === "derrotado") {   // ojos en X
+        return `<path d="M${ojoIzq - 4} ${oy - 4} l8 8 M${ojoIzq + 4} ${oy - 4} l-8 8
+                         M${ojoDer - 4} ${oy - 4} l8 8 M${ojoDer + 4} ${oy - 4} l-8 8"
+                      stroke="${trazo}" stroke-width="2.8" stroke-linecap="round"/>
+                <path d="M${x - 7} ${y + 11} h14" stroke="${NEGRO}" stroke-width="2.5" stroke-linecap="round"/>`;
+    }
+    if (estado === "agotado") {     // ojos en espiral y lengua afuera
+        const espiral = (ex) => `<path d="M${ex} ${oy} m-4 0 a4 4 0 1 1 4 4 a2.6 2.6 0 1 1 -2.6 -2.6"
+                                       fill="none" stroke="${trazo}" stroke-width="2" stroke-linecap="round"/>`;
+        return `${espiral(ojoIzq)}${espiral(ojoDer)}
+                <path d="M${x - 7} ${y + 10} Q${x} ${y + 14} ${x + 7} ${y + 10}" fill="none" stroke="${NEGRO}" stroke-width="2.2"/>
+                <ellipse cx="${x + 3}" cy="${y + 15}" rx="3.2" ry="4" fill="#fb7185"/>`;
+    }
+
+    const ojo = (ex) => `<ellipse cx="${ex}" cy="${oy}" rx="5.5" ry="5" fill="${ojos}" stroke="${NEGRO}" stroke-width="1.2"/>
+                         <rect x="${ex - 1.2}" y="${oy - 4}" width="2.4" height="8" rx="1.2" fill="${NEGRO}"/>`;
+
+    if (estado === "herido") {      // ojos a medio cerrar, sudor y curita
+        return `${ojo(ojoIzq)}${ojo(ojoDer)}
+                <path d="M${ojoIzq - 6} ${oy - 2} h12 M${ojoDer - 6} ${oy - 2} h12" stroke="${NEGRO}" stroke-width="3" stroke-linecap="round"/>
+                <path d="M${x - 8} ${y + 12} q4 -3 8 0 q4 3 8 0" fill="none" stroke="${NEGRO}" stroke-width="2.2" stroke-linecap="round"/>
+                <path d="M${x + 19} ${y - 14} q-3 5 0 7 q3 -2 0 -7z" fill="#7dd3fc"/>
+                <g transform="rotate(-30 ${x - 16} ${y - 14})">
+                    <rect x="${x - 24}" y="${y - 17.5}" width="16" height="7" rx="3" fill="#fde68a" stroke="#d97706" stroke-width="1"/>
+                    <path d="M${x - 18} ${y - 14} h4 M${x - 16} ${y - 16} v4" stroke="#d97706" stroke-width="1"/>
+                </g>`;
+    }
+
+    // Furioso: cejas enojadas y colmillos.
+    return `<path d="M${ojoIzq - 7} ${oy - 10} L${ojoIzq + 5} ${oy - 5} M${ojoDer + 7} ${oy - 10} L${ojoDer - 5} ${oy - 5}"
+                  stroke="${NEGRO}" stroke-width="3.2" stroke-linecap="round"/>
+            ${ojo(ojoIzq)}${ojo(ojoDer)}
+            <path d="M${x - 11} ${y + 8} L${x + 11} ${y + 8} L${x + 8} ${y + 16} L${x - 8} ${y + 16} Z" fill="${NEGRO}"/>
+            <path d="M${x - 8} ${y + 8} l2.5 5 2.5 -5 Z M${x + 3} ${y + 8} l2.5 5 2.5 -5 Z" fill="#fff"/>`;
+}
+
+// Estrellas de mareo girando sobre la cabeza.
+function mareo({ x, y }) {
+    return `<g class="mareo">${estrella(x - 16, y - 30, 4, "")}${estrella(x, y - 36, 5, "")}${estrella(x + 16, y - 30, 4, "")}</g>`;
+}
+
+function ko({ x, y }) {
+    return `<text x="${x}" y="${y - 30}" text-anchor="middle" font-family="Orbitron, sans-serif" font-weight="800"
+                  font-size="16" fill="#fde68a" stroke="${NEGRO}" stroke-width=".8">K.O.</text>`;
+}
+
+const MONSTRUOS_DIBUJO = {
+    dragon: {
+        cara: { x: 80, y: 62 },
+        cuerpo: () => `
+            <path d="M110 128 Q152 126 148 96 Q140 116 112 116 Z" fill="#b91c1c" stroke="#7f1d1d" stroke-width="2"/>
+            <path d="M54 76 L14 38 L22 86 L42 84 Z M106 76 L146 38 L138 86 L118 84 Z" fill="#991b1b" stroke="#7f1d1d" stroke-width="2" stroke-linejoin="round"/>
+            <ellipse cx="64" cy="140" rx="11" ry="8" fill="#b91c1c"/><ellipse cx="96" cy="140" rx="11" ry="8" fill="#b91c1c"/>
+            <ellipse cx="80" cy="108" rx="35" ry="32" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
+            <ellipse cx="80" cy="116" rx="20" ry="21" fill="#fecaca"/>
+            <path d="M68 104 h24 M66 114 h28 M68 124 h24" stroke="#fca5a5" stroke-width="2"/>
+            <ellipse cx="50" cy="108" rx="7" ry="11" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.5"/>
+            <ellipse cx="110" cy="108" rx="7" ry="11" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.5"/>
+            <path d="M60 44 L54 20 L70 38 Z M100 44 L106 20 L90 38 Z" fill="#fde68a" stroke="#b45309" stroke-width="1.5"/>
+            <circle cx="80" cy="60" r="27" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
+            <ellipse cx="80" cy="74" rx="15" ry="9" fill="#ef4444"/>
+            <circle cx="75" cy="72" r="1.6" fill="#7f1d1d"/><circle cx="85" cy="72" r="1.6" fill="#7f1d1d"/>`,
+    },
+    golem: {
+        cara: { x: 80, y: 60, ojos: "#67e8f9" },
+        cuerpo: () => `
+            <rect x="52" y="130" width="22" height="18" rx="5" fill="#57534e"/><rect x="86" y="130" width="22" height="18" rx="5" fill="#57534e"/>
+            <rect x="22" y="82" width="24" height="48" rx="11" fill="#78716c" stroke="#44403c" stroke-width="2"/>
+            <rect x="114" y="82" width="24" height="48" rx="11" fill="#78716c" stroke="#44403c" stroke-width="2"/>
+            <circle cx="34" cy="134" r="13" fill="#57534e" stroke="#44403c" stroke-width="2"/>
+            <circle cx="126" cy="134" r="13" fill="#57534e" stroke="#44403c" stroke-width="2"/>
+            <rect x="42" y="78" width="76" height="60" rx="15" fill="#78716c" stroke="#44403c" stroke-width="2"/>
+            <path d="M58 92 l8 10 -6 8 10 12 M104 90 l-7 12 9 7" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"/>
+            <rect x="54" y="36" width="52" height="46" rx="11" fill="#a8a29e" stroke="#44403c" stroke-width="2"/>
+            <ellipse cx="66" cy="38" rx="11" ry="5" fill="#4d7c0f"/><ellipse cx="94" cy="80" rx="7" ry="3" fill="#4d7c0f"/>`,
+    },
+    slime: {
+        cara: { x: 80, y: 104 },
+        cuerpo: () => `
+            <path d="M28 142 Q24 96 52 74 Q80 52 108 74 Q136 96 132 142 Q121 148 110 141 Q100 149 90 141
+                     Q80 149 70 141 Q60 149 50 141 Q39 148 28 142 Z" fill="#22c55e" fill-opacity=".92" stroke="#15803d" stroke-width="2.5"/>
+            <ellipse cx="58" cy="84" rx="9" ry="5" fill="#fff" opacity=".55" transform="rotate(-30 58 84)"/>
+            <circle cx="108" cy="122" r="4" fill="#bbf7d0" opacity=".7"/><circle cx="50" cy="126" r="3" fill="#bbf7d0" opacity=".7"/>
+            <path d="M74 60 L70 44 L80 54 L88 40 L90 58 Z" fill="#fbbf24" stroke="#b45309" stroke-width="1.5" stroke-linejoin="round"/>`,
+    },
+    esqueleto: {
+        cara: { x: 80, y: 62, ojos: "#f43f5e", trazo: "#f43f5e" },
+        cuerpo: () => `
+            <g stroke="#e5e7eb" stroke-width="5" stroke-linecap="round" fill="none">
+                <path d="M80 88 V136"/>
+                <path d="M62 100 Q80 110 98 100 M64 112 Q80 121 96 112 M66 123 Q80 131 94 123"/>
+                <path d="M64 94 L44 120 M96 94 L116 120"/>
+                <path d="M72 140 L66 150 M88 140 L94 150"/>
+            </g>
+            <circle cx="43" cy="123" r="5" fill="#e5e7eb"/><circle cx="117" cy="123" r="5" fill="#e5e7eb"/>
+            <ellipse cx="80" cy="138" rx="15" ry="6" fill="#e5e7eb"/>
+            <path d="M58 30 Q80 20 102 30 L98 44 L62 44 Z" fill="#4c1d95"/>
+            <circle cx="80" cy="60" r="25" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+            <rect x="67" y="76" width="26" height="12" rx="4" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+            <path d="M73 77 v10 M80 77 v10 M87 77 v10" stroke="#9ca3af" stroke-width="1.5"/>
+            <ellipse cx="70" cy="57" rx="8" ry="9" fill="#1f2937"/><ellipse cx="90" cy="57" rx="8" ry="9" fill="#1f2937"/>
+            <path d="M78 66 L80 70 L82 66 Z" fill="#1f2937"/>`,
+    },
+    kraken: {
+        cara: { x: 80, y: 84 },
+        cuerpo: () => `
+            <g fill="none" stroke="#6d28d9" stroke-width="10" stroke-linecap="round">
+                <path d="M56 108 Q40 128 52 142 Q58 150 46 152"/>
+                <path d="M68 112 Q62 132 70 146"/>
+                <path d="M92 112 Q98 132 90 146"/>
+                <path d="M104 108 Q120 128 108 142 Q102 150 114 152"/>
+            </g>
+            <path d="M42 112 Q38 40 80 32 Q122 40 118 112 Q80 122 42 112 Z" fill="#7c3aed" stroke="#4c1d95" stroke-width="2.5"/>
+            <circle cx="64" cy="54" r="6" fill="#a78bfa"/><circle cx="98" cy="50" r="4" fill="#a78bfa"/>
+            <circle cx="104" cy="70" r="5" fill="#a78bfa"/><circle cx="56" cy="74" r="3.5" fill="#a78bfa"/>`,
+    },
+    demonio: {
+        cara: { x: 80, y: 62, ojos: "#fbbf24" },
+        cuerpo: () => `
+            <path d="M52 80 Q20 54 8 78 Q22 78 22 94 Q32 86 36 102 Q44 92 54 100 Z" fill="#4c0519" stroke="#1f0410" stroke-width="1.5"/>
+            <path d="M108 80 Q140 54 152 78 Q138 78 138 94 Q128 86 124 102 Q116 92 106 100 Z" fill="#4c0519" stroke="#1f0410" stroke-width="1.5"/>
+            <path d="M104 134 Q136 142 138 116" fill="none" stroke="#9f1239" stroke-width="4" stroke-linecap="round"/>
+            <path d="M132 118 L140 108 L144 122 Z" fill="#9f1239"/>
+            <line x1="122" y1="58" x2="122" y2="148" stroke="#6b7280" stroke-width="3"/>
+            <path d="M114 70 V58 M122 66 V52 M130 70 V58 M114 70 H130" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <path d="M56 90 Q80 82 104 90 L112 140 Q80 148 48 140 Z" fill="#9f1239" stroke="#4c0519" stroke-width="2"/>
+            <path d="M68 140 v8 M92 140 v8" stroke="#4c0519" stroke-width="8" stroke-linecap="round"/>
+            <circle cx="117" cy="104" r="6" fill="#be123c"/>
+            <path d="M62 46 Q48 30 58 16 Q62 34 72 42 Z M98 46 Q112 30 102 16 Q98 34 88 42 Z" fill="#1f2937"/>
+            <circle cx="80" cy="62" r="25" fill="#be123c" stroke="#4c0519" stroke-width="2"/>`,
+    },
+};

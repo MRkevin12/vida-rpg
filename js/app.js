@@ -454,6 +454,13 @@ function rellenarOpciones() {
                 <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
             </label>`).join(""));
     }
+    for (const grupo of document.querySelectorAll('[data-opciones="monstruo"]')) {
+        grupo.insertAdjacentHTML("beforeend", Object.entries(juego.MONSTRUOS).map(([clave, m], i) => `
+            <label class="pildora">
+                <input type="radio" name="monstruo" value="${clave}" ${i === 0 ? "checked" : ""}>
+                <span><b class="pildora-icono">${m.icono}</b><small>${m.nombre}</small></span>
+            </label>`).join(""));
+    }
     $("#logro-tipo").innerHTML = Object.entries(juego.TIPOS_LOGRO)
         .map(([clave, t]) => `<option value="${clave}">${t.texto}</option>`).join("");
 
