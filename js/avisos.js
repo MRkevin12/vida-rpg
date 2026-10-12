@@ -11,7 +11,7 @@
 // En el iPhone solo funciona con la app instalada en la pantalla de inicio (iOS 16.4 o más).
 
 import * as juego from "./juego.js";
-import { sumarDias, aTexto } from "./fechas.js";
+import { sumarDias, aTexto, lunesDe } from "./fechas.js";
 
 // La dirección del servidor y su llave pública. Ninguna de las dos es secreta.
 // En la compu (localhost) se usa el servidor de prueba: "npm run local" en la carpeta servidor/.
@@ -74,10 +74,27 @@ async function pedir(ruta, datos) {
     return resultado;
 }
 
+// Los avisos de cada misión, como los necesita el servidor: solo el número de la misión
+// (nunca su nombre), su hora, sus días y hasta qué fecha NO hace falta avisar:
+//   - si ya la hiciste hoy: hasta hoy;
+//   - si es semanal y ya cumpliste las veces de la semana: hasta el domingo.
+export function avisosDeMisiones(estado, hoy) {
+    return estado.misiones.filter((m) => m.aviso && !m.archivadaEn).map((m) => {
+        let saltarHasta = null;
+        if (m.veces && juego.vecesEnSemana(estado.completadas, m.id, hoy) >= m.veces) {
+            saltarHasta = sumarDias(lunesDe(hoy), 6);
+        } else if (estado.completadas.some((c) => c.misionId === m.id && c.fecha === hoy)) {
+            saltarHasta = hoy;
+        }
+        return { id: m.id, hora: m.aviso, dias: m.veces ? null : m.dias, saltarHasta };
+    });
+}
+
 // Lo que el servidor necesita saber de tus ajustes.
 function configuracion(estado) {
     return {
         horarios: estado.avisos.horarios.map(({ hora, dias }) => ({ hora, dias })),
+        misiones: avisosDeMisiones(estado, aTexto(new Date())),
         zona: Intl.DateTimeFormat().resolvedOptions().timeZone,   // ej: "America/Bogota"
         avisarEnfoque: estado.avisos.enfoque,
     };
@@ -103,11 +120,20 @@ export async function activar(registro, codigoEscrito, estado) {
     }
 }
 
-// Volver a mandar los horarios (después de cambiarlos).
-export async function sincronizar(registro, estado) {
+// Volver a mandar tus ajustes al servidor. app.js la llama después de cada cambio
+// con siCambio = true: así solo se envían cuando algo cambió de verdad (por ejemplo,
+// al marcar una misión que tiene aviso). Si no hay internet, se reintenta en el próximo cambio.
+let ultimoEnviado = null;
+
+export async function sincronizar(registro, estado, { siCambio = false } = {}) {
+    if (!codigo()) return;   // no están activadas en este teléfono
     const suscripcion = await registro?.pushManager.getSubscription();
-    if (!codigo() || !suscripcion) return;
-    await pedir("/guardar", { suscripcion: suscripcion.toJSON(), ...configuracion(estado) });
+    if (!suscripcion) return;
+    const config = configuracion(estado);
+    const texto = JSON.stringify(config);
+    if (siCambio && texto === ultimoEnviado) return;
+    await pedir("/guardar", { suscripcion: suscripcion.toJSON(), ...config });
+    ultimoEnviado = texto;
 }
 
 // Empezaste (fin = milisegundos) o cancelaste (fin = null) una sesión de enfoque.
@@ -179,9 +205,33 @@ export function resumenParaAvisos(estado, hoy) {
             // Desde las 7 p. m. se recuerda también el diario (si no lo escribiste).
             cuerpoNoche: estado.diario[fecha] ? cuerpo : `${cuerpo}\n📓 Falta tu frase del diario`,
             insignia: misiones.length + tareas.length,   // el numerito sobre el ícono de la app
+            porMision: textosDeMisiones(estado, fecha, hechas, i === 0 ? racha : 0),
         };
     }
-    return { dias };
+    // Los nombres, por si llega el aviso de una misión que ya hiciste sin internet (ver sw.js).
+    const nombres = {};
+    for (const m of estado.misiones) if (m.aviso) nombres[m.id] = m.nombre;
+    return { dias, nombres };
+}
+
+// El texto del aviso propio de cada misión con hora de aviso que esté pendiente ese día.
+function textosDeMisiones(estado, fecha, hechas, racha) {
+    const textos = {};
+    for (const m of estado.misiones) {
+        if (!m.aviso || m.archivadaEn || !juego.sePuedeMarcar(m, fecha) || hechas.has(m.id)) continue;
+        const veces = m.veces ? juego.vecesEnSemana(estado.completadas, m.id, fecha) : 0;
+        if (m.veces && veces >= m.veces) continue;   // ya cumpliste la semana
+
+        const lineas = [];
+        if (m.meta) lineas.push(`Llevas ${juego.cantidadDe(estado, m, fecha)} de ${m.meta.cantidad} ${m.meta.unidad}`.trim() + ".");
+        else if (m.veces) lineas.push(`Llevas ${veces} de ${m.veces} esta semana.`);
+        else lineas.push("Todavía no la marcas hoy.");
+        const d = juego.DIFICULTADES[m.dificultad];
+        lineas.push(`+${d.xp} XP · +${d.monedas} monedas`);
+        if (racha > 0) lineas.push(`🔥 Racha de ${juego.plural(racha, "día", "días")}`);
+        textos[m.id] = { titulo: `⏰ ${m.nombre}`, cuerpo: lineas.join("\n") };
+    }
+    return textos;
 }
 
 // Deja el resumen en la caché del teléfono (donde sw.js lo puede leer)

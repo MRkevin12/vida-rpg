@@ -4,7 +4,7 @@
 // No envían nada de verdad: el KV y los servicios de push se reemplazan por imitaciones.
 
 import { cifrar, firmaVapid, aBytes, aBase64url } from "./webpush.js";
-import { horaLocal, avisosQueTocan, validarHorarios } from "./worker.js";
+import { horaLocal, avisosQueTocan, validarHorarios, validarMisiones } from "./worker.js";
 
 let fallidas = 0;
 async function prueba(nombre, funcion) {
@@ -66,8 +66,32 @@ await prueba("Firma VAPID: el JWT dice a qué servicio va, vence en 12 h y la fi
 
 await prueba("Hora local: convierte la hora del servidor (UTC) a la de Colombia", () => {
     // 2026-10-12 01:30 UTC = domingo 11 de octubre, 20:30 en Bogotá (UTC−5).
-    igual(horaLocal(Date.UTC(2026, 9, 12, 1, 30), "America/Bogota"), { hora: "20:30", diaSemana: 6 });
-    igual(horaLocal(Date.UTC(2026, 9, 12, 5, 0), "America/Bogota"), { hora: "00:00", diaSemana: 0 });
+    igual(horaLocal(Date.UTC(2026, 9, 12, 1, 30), "America/Bogota"), { fecha: "2026-10-11", hora: "20:30", diaSemana: 6 });
+    igual(horaLocal(Date.UTC(2026, 9, 12, 5, 0), "America/Bogota"), { fecha: "2026-10-12", hora: "00:00", diaSemana: 0 });
+});
+
+await prueba("Avisos de misión: a su hora y en sus días, salvo si ya la hiciste", () => {
+    const lunes18 = Date.UTC(2026, 9, 12, 23, 0);   // lunes 12 de octubre, 18:00 en Bogotá
+    const config = {
+        zona: "America/Bogota", horarios: [], avisarEnfoque: false, finEnfoque: null,
+        misiones: [
+            { id: 5, hora: "18:00", dias: null, saltarHasta: null },
+            { id: 6, hora: "18:00", dias: [1, 3], saltarHasta: null },          // solo martes y jueves
+            { id: 7, hora: "18:00", dias: null, saltarHasta: "2026-10-12" },    // ya hecha hoy
+            { id: 8, hora: "18:00", dias: null, saltarHasta: "2026-10-11" },    // hecha ayer: hoy sí avisa
+        ],
+    };
+    igual(avisosQueTocan(config, lunes18), [{ tipo: "mision", id: 5 }, { tipo: "mision", id: 8 }]);
+    igual(avisosQueTocan(config, lunes18 + 60000), [], "un minuto después");
+    igual(avisosQueTocan({ ...config, misiones: undefined }, lunes18), [], "una configuración vieja sin misiones");
+});
+
+await prueba("Avisos de misión: se rechazan los datos mal formados", () => {
+    igual(validarMisiones([{ id: 5, hora: "18:00", dias: [0], saltarHasta: "2026-10-12" }]),
+          [{ id: 5, hora: "18:00", dias: [0], saltarHasta: "2026-10-12" }]);
+    for (const malo of [[{ id: "5", hora: "18:00" }], [{ id: 5, hora: "6pm" }], [{ id: 5, hora: "18:00", saltarHasta: "ayer" }], [null]]) {
+        igual(validarMisiones(malo), null, JSON.stringify(malo));
+    }
 });
 
 await prueba("Avisos: los recordatorios suenan a su hora y en sus días", () => {

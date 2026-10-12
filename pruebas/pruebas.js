@@ -16,7 +16,7 @@ import * as juego from "../js/juego.js";
 import * as campana from "../js/campana.js";
 import * as desafios from "../js/desafios.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.js";
-import { resumenParaAvisos } from "../js/avisos.js";
+import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -570,6 +570,42 @@ prueba("Notificaciones: el texto dice lo que falta hoy y, de noche, recuerda el 
     deHoy = resumenParaAvisos(estado, hoy()).dias[hoy()];
     igual([deHoy.titulo, deHoy.insignia], ["✨ ¡Todo listo por hoy!", 0]);
     igual(deHoy.cuerpoNoche, deHoy.cuerpo, "con el diario escrito no lo recuerda");
+});
+
+
+prueba("Aviso de misión: la hora es opcional y se valida", () => {
+    const estado = partidaNueva();
+    igual(crearMision(estado, { aviso: "18:00" }).aviso, "18:00");
+    igual(crearMision(estado, { aviso: "" }).aviso, null, "sin aviso");
+    debeFallar(() => crearMision(estado, { aviso: "25:00" }), "hora válida");
+});
+
+prueba("Aviso de misión: al servidor solo le llega el número y hasta cuándo no avisar", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado, { nombre: "Leer", aviso: "18:00" });
+    const gym = crearMision(estado, { nombre: "Gym", aviso: "07:00", frecuencia: "semana", veces: 1 });
+    crearMision(estado, { nombre: "Sin aviso" });
+    igual(avisosDeMisiones(estado, hoy()), [
+        { id: leer.id, hora: "18:00", dias: null, saltarHasta: null },
+        { id: gym.id, hora: "07:00", dias: null, saltarHasta: null },
+    ]);
+    acciones.completarMision(estado, leer.id);   // hecha hoy: no avisar hasta hoy
+    acciones.completarMision(estado, gym.id);    // semana cumplida: no avisar hasta el domingo
+    igual(avisosDeMisiones(estado, hoy()).map((a) => a.saltarHasta), [hoy(), sumarDias(lunesDe(hoy()), 6)]);
+    cierto(!JSON.stringify(avisosDeMisiones(estado, hoy())).includes("Leer"), "el nombre no sale del teléfono");
+});
+
+prueba("Aviso de misión: el texto es solo de esa misión, y desaparece al hacerla", () => {
+    const estado = partidaNueva();
+    const agua = crearMision(estado, { nombre: "Beber agua", aviso: "15:00", cantidad: "8", unidad: "vasos" });
+    acciones.fijarCantidad(estado, agua.id, hoy(), 3);
+    let resumen = resumenParaAvisos(estado, hoy());
+    igual(resumen.dias[hoy()].porMision[agua.id],
+          { titulo: "⏰ Beber agua", cuerpo: "Llevas 3 de 8 vasos.\n+25 XP · +10 monedas" });   // normal
+    igual(resumen.nombres[agua.id], "Beber agua");
+    acciones.fijarCantidad(estado, agua.id, hoy(), 8);
+    resumen = resumenParaAvisos(estado, hoy());
+    igual(agua.id in resumen.dias[hoy()].porMision, false, "ya hecha: sin aviso propio");
 });
 
 

@@ -393,6 +393,9 @@ function ejecutar(accion, efectos = {}) {
     ];
     datos.guardar(estado);
     avisos.guardarResumen(estado);   // el texto de las notificaciones, siempre al día
+    // Si cambió algo que el servidor de avisos necesita (ej: marcaste una misión con aviso),
+    // se lo contamos. Sin internet falla en silencio y se reintenta en el próximo cambio.
+    avisos.sincronizar(registroSW, estado, { siCambio: true }).catch(() => {});
 
     // ¿A qué jefes les pegaste con esta acción, y cuánto? (para mostrar el golpe)
     const danoAhora = campana.danoPorCategoria(estado);
@@ -689,6 +692,7 @@ const PREPARAR = {
             if (mision.veces) formulario.elements.veces.value = mision.veces;
             formulario.elements.cantidad.value = mision.meta ? mision.meta.cantidad : "";
             formulario.elements.unidad.value = mision.meta ? mision.meta.unidad : "";
+            formulario.elements.aviso.value = mision.aviso || "";
         }
         mostrarCamposFrecuencia();
     },

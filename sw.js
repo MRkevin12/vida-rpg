@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v12";
+const VERSION = "vida-rpg-v13";
 
 const ARCHIVOS = [
     "./",
@@ -136,13 +136,30 @@ self.addEventListener("push", (evento) => {
         datos = evento.data ? evento.data.json() : {};
     } catch { /* aviso sin datos: se muestra el texto general */ }
     // El iPhone exige mostrar SIEMPRE una notificación por cada aviso que llega.
-    evento.waitUntil(mostrarAviso(datos.tipo));
+    evento.waitUntil(mostrarAviso(datos.tipo, datos.id));
 });
 
-async function mostrarAviso(tipo) {
+async function mostrarAviso(tipo, id) {
     const ahora = new Date();
     let titulo = "⚔️ Vida RPG";
     let cuerpo = "Tus misiones de hoy te esperan.";
+
+    if (tipo === "mision") {
+        // El aviso propio de una misión: su texto está en el resumen del día.
+        const resumen = await leerResumen();
+        const texto = resumen && resumen.dias[fechaDeHoy(ahora)]?.porMision?.[id];
+        if (texto) {
+            titulo = texto.titulo;
+            cuerpo = texto.cuerpo;
+        } else if (resumen?.nombres?.[id]) {
+            // La marcaste sin internet y el servidor no se enteró: igual hay que mostrar algo.
+            titulo = `✅ ${resumen.nombres[id]}`;
+            cuerpo = "Ya la hiciste hoy. ¡Bien hecho!";
+        }
+        return self.registration.showNotification(titulo, {
+            body: cuerpo, icon: "./iconos/icono-192.png", tag: `mision-${id}`,
+        });
+    }
 
     if (tipo === "prueba") {
         titulo = "🔔 ¡Notificaciones activadas!";
@@ -152,8 +169,7 @@ async function mostrarAviso(tipo) {
         cuerpo = "Buen trabajo. Abre la app para recibir tu premio.";
     } else {
         // Recordatorio: el texto de hoy, del resumen que dejó la app.
-        const guardado = await caches.match("./avisos-resumen.json");
-        const resumen = guardado ? await guardado.json() : null;
+        const resumen = await leerResumen();
         const dia = resumen && resumen.dias[fechaDeHoy(ahora)];
         if (dia) {
             titulo = dia.titulo;
@@ -169,6 +185,12 @@ async function mostrarAviso(tipo) {
         icon: "./iconos/icono-192.png",
         tag: tipo || "recordatorio",   // un aviso nuevo del mismo tipo reemplaza al anterior
     });
+}
+
+// El resumen que la app deja en la caché (ver js/avisos.js), o null si no hay.
+async function leerResumen() {
+    const guardado = await caches.match("./avisos-resumen.json");
+    return guardado ? guardado.json() : null;
 }
 
 // "AAAA-MM-DD" en hora local (como js/fechas.js).

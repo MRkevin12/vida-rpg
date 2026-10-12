@@ -32,7 +32,7 @@ Las capturas usan una partida de ejemplo inventada.
 - **Logros** automáticos y personales, y una **tienda** donde cambias monedas por recompensas reales que tú defines.
 - **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
 - **Tres minijuegos** que se juegan con fichas ganadas al completar misiones.
-- **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan.
+- **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día), un aviso propio para cada misión que le pongas hora (solo si todavía no la hiciste) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan.
 - **PIN de 4 números** para abrir la app y **copia de seguridad** en un archivo.
 - **Sonidos** hechos con código, que se pueden apagar en Ajustes.
 
@@ -112,7 +112,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 53 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 56 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

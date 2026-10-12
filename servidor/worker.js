@@ -3,6 +3,8 @@
 // Tus datos de juego siguen viviendo solo en el iPhone. Aquí se guarda únicamente:
 //   - la "suscripción" del iPhone (la dirección a la que Apple le entrega los avisos),
 //   - tus horarios de recordatorio y tu zona horaria,
+//   - los avisos de cada misión: su número, hora y días, y hasta qué fecha no hace falta
+//     avisar (porque ya la hiciste). El nombre de la misión nunca llega aquí,
 //   - a qué hora termina tu sesión de enfoque (si hay una en curso).
 // El TEXTO de cada aviso lo arma el propio iPhone (sw.js) con tus datos.
 //
@@ -18,6 +20,7 @@ import { enviarPush } from "./webpush.js";
 
 const CLAVE_KV = "config";   // todo se guarda en una sola entrada del KV
 const MAX_HORARIOS = 10;
+const MAX_MISIONES = 30;
 
 // Desde qué páginas se puede llamar al servidor: la app publicada y la de pruebas en la compu.
 const ORIGENES = ["https://mrkevin12.github.io", "http://localhost:8000", "http://127.0.0.1:8000"];
@@ -69,17 +72,21 @@ export default {
 // ===== Lo que puede pedir la app =====
 
 const RUTAS = {
-    // Activar o actualizar: la suscripción (opcional), los horarios, la zona y si avisar del enfoque.
+    // Activar o actualizar: la suscripción (opcional), los horarios, los avisos de misión,
+    // la zona y si avisar del enfoque. La app lo vuelve a mandar cada vez que algo cambia.
     async "/guardar"(datos, env) {
         const anterior = await leer(env) || {};
         const horarios = validarHorarios(datos.horarios);
         if (!horarios) throw new Error("Los horarios no son válidos.");
+        const misiones = validarMisiones(datos.misiones ?? []);
+        if (!misiones) throw new Error("Los avisos de misión no son válidos.");
         const suscripcion = datos.suscripcion === undefined ? anterior.suscripcion : validarSuscripcion(datos.suscripcion);
         if (!suscripcion) throw new Error("Falta la suscripción del teléfono.");
         await guardar(env, {
             ...anterior,
             suscripcion,
             horarios,
+            misiones,
             zona: validarZona(datos.zona),
             avisarEnfoque: Boolean(datos.avisarEnfoque),
         });
@@ -132,11 +139,15 @@ async function revisarAvisos(env, ahora) {
 // Qué avisos tocan en este minuto. Es una función "pura" (no envía nada) para poder probarla.
 export function avisosQueTocan(config, ahora) {
     const minuto = Math.floor(ahora / 60000) * 60000;   // el comienzo de este minuto
-    const { hora, diaSemana } = horaLocal(minuto, config.zona);
+    const { fecha, hora, diaSemana } = horaLocal(minuto, config.zona);
+    const tocaHoy = (h) => h.hora === hora && (!h.dias || h.dias.includes(diaSemana));
     const avisos = [];
     // Un solo recordatorio aunque haya dos horarios a la misma hora.
-    if (config.horarios.some((h) => h.hora === hora && (!h.dias || h.dias.includes(diaSemana)))) {
-        avisos.push({ tipo: "recordatorio" });
+    if (config.horarios.some(tocaHoy)) avisos.push({ tipo: "recordatorio" });
+    // Cada misión con aviso, salvo las que ya hiciste (saltarHasta = hasta qué día no hace falta avisar).
+    for (const m of config.misiones || []) {
+        const yaHecha = m.saltarHasta && fecha <= m.saltarHasta;
+        if (tocaHoy(m) && !yaHecha) avisos.push({ tipo: "mision", id: m.id });
     }
     // El enfoque que terminó durante el minuto anterior (así avisa una sola vez).
     const fin = config.finEnfoque;
@@ -144,15 +155,17 @@ export function avisosQueTocan(config, ahora) {
     return avisos;
 }
 
-// La hora ("20:30") y el día de la semana (0 = lunes … 6 = domingo) en tu zona horaria.
-// El servidor vive en hora UTC; Colombia está 5 horas atrás.
+// La fecha ("2026-10-12"), la hora ("20:30") y el día de la semana (0 = lunes … 6 = domingo)
+// en tu zona horaria. El servidor vive en hora UTC; Colombia está 5 horas atrás.
 export function horaLocal(ms, zona) {
     const formato = new Intl.DateTimeFormat("en-US", {
-        timeZone: zona, hourCycle: "h23", weekday: "short", hour: "2-digit", minute: "2-digit",
+        timeZone: zona, hourCycle: "h23", weekday: "short",
+        year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
     });
     const partes = {};
     for (const parte of formato.formatToParts(new Date(ms))) partes[parte.type] = parte.value;
     return {
+        fecha: `${partes.year}-${partes.month}-${partes.day}`,
         hora: `${partes.hour}:${partes.minute}`,
         diaSemana: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(partes.weekday),
     };
@@ -172,6 +185,20 @@ export function validarHorarios(lista) {
         limpios.push({ hora: h.hora, dias });
     }
     return limpios;
+}
+
+// [{ id: 5, hora: "18:00", dias: [0, 2, 4] o null, saltarHasta: "2026-10-12" o null }]
+export function validarMisiones(lista) {
+    if (!Array.isArray(lista) || lista.length > MAX_MISIONES) return null;
+    const limpias = [];
+    for (const m of lista) {
+        const [horario] = validarHorarios([m]) || [];   // la hora y los días se validan igual
+        const saltarHasta = m?.saltarHasta ?? null;
+        if (!horario || !Number.isInteger(m.id)) return null;
+        if (saltarHasta !== null && !/^\d{4}-\d{2}-\d{2}$/.test(saltarHasta)) return null;
+        limpias.push({ id: m.id, ...horario, saltarHasta });
+    }
+    return limpias;
 }
 
 function validarSuscripcion(s) {

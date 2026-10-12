@@ -182,7 +182,8 @@ function textoFrecuencia(mision) {
 function detalleMision(mision, conFrecuencia = Boolean(mision.dias)) {
     const d = DIFICULTADES[mision.dificultad];
     const a = ATRIBUTOS[mision.atributo];
-    return `${a.icono} ${a.nombre} · ${d.nombre} · +${d.xp} XP${conFrecuencia ? ` · ${textoFrecuencia(mision)}` : ""}`;
+    const aviso = mision.aviso ? ` · ⏰ ${mision.aviso}` : "";
+    return `${a.icono} ${a.nombre} · ${d.nombre} · +${d.xp} XP${conFrecuencia ? ` · ${textoFrecuencia(mision)}` : ""}${aviso}`;
 }
 
 function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
@@ -1087,8 +1088,18 @@ export function seccionAvisos(estado, info) {
             <input type="checkbox" name="dias" value="${dia}" checked><span>${letra}</span>
         </label>`).join("");
 
+    // Las misiones con su propia hora de aviso (se cambian al editar cada misión).
+    const conAviso = estado.misiones.filter((m) => m.aviso && !m.archivadaEn)
+        .sort((a, b) => a.aviso.localeCompare(b.aviso))
+        .map((m) => `<b>${m.aviso}</b> ${esc(m.nombre)}`);
+    const avisosMision = conAviso.length
+        ? `<p class="nota">⏰ Avisos de misión: ${conAviso.join(" · ")}. Llegan solo si no la has hecho;
+               se cambian al editar cada misión.</p>`
+        : `<p class="nota">⏰ También puedes ponerle una hora de aviso a cada misión (al crearla o editarla):
+               te avisa solo de esa misión y solo si no la has hecho.</p>`;
+
     return `
-        <p class="nota">✅ Activadas en este teléfono. Tus recordatorios:</p>
+        <p class="nota">✅ Activadas en este teléfono. Recordatorios generales (con todo lo que te falta):</p>
         ${filas ? `<ul class="horarios">${filas}</ul>` : vacio("Sin recordatorios. Agrega uno abajo.")}
         <form data-form="horario" class="horario-nuevo">
             <div class="form-linea">
@@ -1097,6 +1108,7 @@ export function seccionAvisos(estado, info) {
             </div>
             <fieldset class="opciones opciones-7" aria-label="Días del recordatorio">${dias}</fieldset>
         </form>
+        ${avisosMision}
         <label class="interruptor">
             <span><b>⏱️ Fin del enfoque</b><br><span class="nota">Avisar cuando termine una sesión.</span></span>
             <input type="checkbox" data-accion="aviso-enfoque" ${estado.avisos.enfoque ? "checked" : ""}>

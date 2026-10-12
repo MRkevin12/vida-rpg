@@ -115,7 +115,15 @@ function validarMeta(cantidad, unidad) {
     return { cantidad: validarEntero(cantidad, 2, 1000, "La cantidad"), unidad: textoUnidad };
 }
 
-export function crearMision(estado, { nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad }) {
+// Hora del aviso de una misión (opcional): "18:00", o vacío = sin aviso.
+function validarAviso(hora) {
+    const texto = String(hora || "").trim();
+    if (!texto) return null;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(texto)) throw new Error("Elige una hora válida para el aviso.");
+    return texto;
+}
+
+export function crearMision(estado, { nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad, aviso }) {
     estado.misiones.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
@@ -123,6 +131,7 @@ export function crearMision(estado, { nombre, dificultad, atributo, dias, frecue
         atributo: validarAtributo(atributo),
         ...validarFrecuencia({ frecuencia, dias, veces }),   // agrega "dias" y "veces"
         meta: validarMeta(cantidad, unidad),
+        aviso: validarAviso(aviso),
         creadaEn: hoy(),
         archivadaEn: null,
         pausas: [],
@@ -131,13 +140,14 @@ export function crearMision(estado, { nombre, dificultad, atributo, dias, frecue
 
 // Editar una misión. Lo que ya completaste no cambia: cada registro del
 // historial guardó su propia XP, dificultad y atributo.
-export function editarMision(estado, { id, nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad }) {
+export function editarMision(estado, { id, nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad, aviso }) {
     const mision = buscar(estado.misiones, Number(id), "esa misión");
     mision.nombre = validarNombre(nombre, 60);
     mision.dificultad = validarDificultad(dificultad);
     mision.atributo = validarAtributo(atributo);
     Object.assign(mision, validarFrecuencia({ frecuencia, dias, veces }));
     mision.meta = validarMeta(cantidad, unidad);
+    mision.aviso = validarAviso(aviso);
 }
 
 // Mover una misión un puesto arriba (-1) o abajo (+1) entre las que no están archivadas.

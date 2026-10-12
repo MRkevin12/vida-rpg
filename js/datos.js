@@ -17,7 +17,8 @@ export function estadoInicial() {
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
 
-        misiones: [],         // diarias: { id, nombre, dificultad, atributo, dias, veces, meta, creadaEn, archivadaEn, pausas }
+        misiones: [],         // diarias: { id, nombre, dificultad, atributo, dias, veces, meta, aviso, creadaEn, archivadaEn, pausas }
+                              //   aviso: hora del aviso de esa misión ("18:00") o null
                               //   dias: días de la semana que toca (0 = lunes … 6 = domingo) o null = todos
                               //   veces: si es «N veces por semana», ese N (y dias = null); si no, null
                               //   meta: { cantidad, unidad } si se cuenta (ej: 8 vasos); si no, null
