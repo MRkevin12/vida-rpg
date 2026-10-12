@@ -9,7 +9,7 @@
 //   1. Responder AL INSTANTE con la copia guardada (funciona en modo avión).
 //   2. Si hay internet, descargar la versión nueva por detrás para la próxima vez.
 //
-// IMPORTANTE: cada vez que publiques cambios, sube VERSION (v8 → v9…).
+// IMPORTANTE: cada vez que publiques cambios, sube VERSION (v9 → v10…).
 // Así el teléfono detecta la versión nueva y la app muestra el aviso «Actualizar».
 // Si agregas o renombras archivos, súmalos también a ARCHIVOS.
 //
@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v8";
+const VERSION = "vida-rpg-v9";
 
 const ARCHIVOS = [
     "./",

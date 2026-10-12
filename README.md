@@ -1,4 +1,4 @@
-# Vida RPG
+# <img src="iconos/icono-192.png" width="56" alt="" align="top"> Vida RPG
 
 Una app de productividad que convierte tu día a día en un juego de rol: completas misiones, ganas experiencia, subes de nivel y derrotas jefes.
 
