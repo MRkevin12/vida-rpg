@@ -1,0 +1,21 @@
+# wrangler.toml — Configuración del servidor de avisos en Cloudflare Workers.
+# Publicar cambios (desde esta carpeta):   npx wrangler deploy
+
+name = "vida-rpg-avisos"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+
+# Cada minuto Cloudflare ejecuta scheduled() en worker.js para ver si toca algún aviso.
+[triggers]
+crons = ["* * * * *"]
+
+# KV: un pequeño "cajón" de datos en la nube. Ahí se guardan la suscripción y tus horarios.
+[[kv_namespaces]]
+binding = "DATOS"
+id = "12a4e3e7a79a48f69939e3dcca53c33e"
+
+[vars]
+# La llave PÚBLICA para firmar avisos (la privada es un secreto: VAPID_PRIVADA).
+VAPID_PUBLICA = "BIsttFvwAePACNPckoefvwwuDeAIVPPOna0-aoFU5n4sxvvvahQRZasy4jlHHwiA9JB0s8qw_cNnpZuQZV34wKA"
+# Quién envía los avisos (Apple pide una dirección web o un correo).
+VAPID_SUJETO = "https://mrkevin12.github.io/vida-rpg/"

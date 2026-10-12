@@ -55,6 +55,10 @@ export function estadoInicial() {
         apariencia: { cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
                       pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase" },
         ajustes: { sonido: true },            // preferencias de la app
+        avisos: {                             // notificaciones (ver avisos.js)
+            horarios: [],                     // recordatorios: { id, hora: "20:00", dias (como en misiones) }
+            enfoque: true,                    // avisar cuando termine una sesión de enfoque
+        },
 
         ultimaVisita: null,   // último día que abriste la app (para el bonus de regreso)
         ultimoAvisoEscudo: null,
@@ -92,6 +96,7 @@ function completar(guardado) {
         campana: { recompensados: { ...guardado.campana?.recompensados } },
         apariencia: { ...base.apariencia, ...guardado.apariencia },
         ajustes: { ...base.ajustes, ...guardado.ajustes },
+        avisos: { ...base.avisos, ...guardado.avisos },
     };
 }
 

@@ -1608,6 +1608,7 @@ button.celda {
 input[type="text"],
 input[type="number"],
 input[type="date"],
+input[type="time"],
 select,
 textarea {
     width: 100%;
@@ -1634,13 +1635,15 @@ textarea {
     resize: vertical;
 }
 
-/* Fecha: en el iPhone el campo vacío se encoge y el texto se centra; lo evitamos. */
-input[type="date"] {
+/* Fecha y hora: en el iPhone el campo vacío se encoge y el texto se centra; lo evitamos. */
+input[type="date"],
+input[type="time"] {
     display: block;
     min-height: 48px;
 }
 
-input[type="date"]::-webkit-date-and-time-value {
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
     text-align: left;
 }
 
@@ -1817,8 +1820,10 @@ textarea:focus {
     box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.7);
 }
 
-/* Interruptor (encendido / apagado) */
-.interruptor {
+/* Interruptor (encendido / apagado). ".formulario .interruptor" le gana a ".formulario label",
+   que si no lo convierte en rejilla y el botón queda debajo del texto. */
+.interruptor,
+.formulario .interruptor {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2159,6 +2164,33 @@ textarea:focus {
     gap: 10px;
     padding-top: 14px;
     border-top: 1px solid var(--borde);
+}
+
+/* Notificaciones: los recordatorios y el formulario para agregar uno */
+.ajustes-bloque-contenido,
+.horario-nuevo {
+    display: grid;
+    gap: 10px;
+}
+
+.horarios {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.horarios li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 0 4px 12px;
+    border-bottom: 1px solid var(--borde);
+}
+
+.horarios b {
+    font-family: "Orbitron", sans-serif;
+    font-variant-numeric: tabular-nums;
 }
 
 .ajustes-bloque h3 {

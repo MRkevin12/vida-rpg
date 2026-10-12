@@ -649,6 +649,29 @@ export function cambiarAjuste(estado, clave, valor) {
 }
 
 
+// ===== Notificaciones: horarios de recordatorio =====
+// Aquí solo se guardan en la partida; app.js después se los manda al servidor de avisos.
+
+const MAX_HORARIOS = 10;   // el mismo límite que tiene el servidor
+
+export function agregarHorario(estado, { hora, dias }) {
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(hora))) throw new Error("Elige una hora.");
+    const horarios = estado.avisos.horarios;
+    if (horarios.length >= MAX_HORARIOS) throw new Error(`Puedes tener máximo ${MAX_HORARIOS} recordatorios.`);
+    if (horarios.some((h) => h.hora === hora)) throw new Error("Ya tienes un recordatorio a esa hora.");
+    horarios.push({ id: nuevoId(estado), hora, dias: validarDias(dias) });
+    horarios.sort((a, b) => a.hora.localeCompare(b.hora));   // ordenados de la mañana a la noche
+}
+
+export function quitarHorario(estado, id) {
+    estado.avisos.horarios = estado.avisos.horarios.filter((h) => h.id !== id);
+}
+
+export function cambiarAvisoEnfoque(estado, encendido) {
+    estado.avisos.enfoque = Boolean(encendido);
+}
+
+
 // ===== Minijuegos =====
 
 // La ficha se gasta al EMPEZAR (si sales a la mitad, igual se gastó).

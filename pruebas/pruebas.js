@@ -16,6 +16,7 @@ import * as juego from "../js/juego.js";
 import * as campana from "../js/campana.js";
 import * as desafios from "../js/desafios.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.js";
+import { resumenParaAvisos } from "../js/avisos.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -535,6 +536,43 @@ prueba("Resumen: los días de descanso y los de antes de empezar no cuentan", ()
 });
 
 
+// ===== Notificaciones =====
+
+prueba("Notificaciones: los horarios se ordenan, no se repiten y validan la hora", () => {
+    const estado = partidaNueva();
+    acciones.agregarHorario(estado, { hora: "20:00" });
+    acciones.agregarHorario(estado, { hora: "07:30", dias: ["0", "1", "2", "3", "4"] });
+    igual(estado.avisos.horarios.map((h) => [h.hora, h.dias]), [["07:30", [0, 1, 2, 3, 4]], ["20:00", null]]);
+    debeFallar(() => acciones.agregarHorario(estado, { hora: "20:00" }), "Ya tienes");
+    debeFallar(() => acciones.agregarHorario(estado, { hora: "25:00" }), "Elige una hora");
+    acciones.quitarHorario(estado, estado.avisos.horarios[0].id);
+    igual(estado.avisos.horarios.map((h) => h.hora), ["20:00"]);
+});
+
+prueba("Notificaciones: el texto dice lo que falta hoy y, de noche, recuerda el diario", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado, { nombre: "Leer" });
+    crearMision(estado, { nombre: "Gym" });
+    acciones.crearTarea(estado, { nombre: "Pagar la luz", fecha: hoy(), dificultad: "facil", atributo: "riqueza" });
+    acciones.completarMision(estado, leer.id);
+
+    let deHoy = resumenParaAvisos(estado, hoy()).dias[hoy()];
+    igual([deHoy.titulo, deHoy.insignia], ["⚔️ Te falta 1 misión", 2]);
+    igual(deHoy.cuerpo, "Gym\n📌 Pagar la luz\n🔥 Racha de 1 día en juego");
+    cierto(deHoy.cuerpoNoche.endsWith("📓 Falta tu frase del diario"), "de noche recuerda el diario");
+
+    const manana = resumenParaAvisos(estado, hoy()).dias[dia(1)];
+    igual(manana.titulo, "⚔️ Te faltan 2 misiones", "mañana todavía no has hecho nada");
+
+    acciones.completarMision(estado, estado.misiones[1].id);
+    acciones.alternarTarea(estado, estado.tareas[0].id);
+    acciones.escribirDiario(estado, { fecha: hoy(), animo: "bien", texto: "" });
+    deHoy = resumenParaAvisos(estado, hoy()).dias[hoy()];
+    igual([deHoy.titulo, deHoy.insignia], ["✨ ¡Todo listo por hoy!", 0]);
+    igual(deHoy.cuerpoNoche, deHoy.cuerpo, "con el diario escrito no lo recuerda");
+});
+
+
 // ===== Avatar y ajustes =====
 
 prueba("Apariencia: se puede cambiar, y una opción inventada no se acepta", () => {
@@ -587,6 +625,7 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     igual(estado.campana, { recompensados: {} });
     igual([estado.tareas, estado.desafios, estado.diario, estado.avances], [[], [], {}, {}], "las listas nuevas");
     igual(estado.enfoque, { activo: null, sesiones: [] });
+    igual(estado.avisos, { horarios: [], enfoque: true }, "las notificaciones");
 });
 
 prueba("Copia de seguridad: un archivo cualquiera se rechaza", () => {

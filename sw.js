@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v11";
+const VERSION = "vida-rpg-v12";
 
 const ARCHIVOS = [
     "./",
@@ -27,6 +27,7 @@ const ARCHIVOS = [
     "./js/app.js",
     "./js/acciones.js",
     "./js/arcade.js",
+    "./js/avisos.js",
     "./js/avatar.js",
     "./js/campana.js",
     "./js/datos.js",
@@ -84,12 +85,14 @@ self.addEventListener("install", (evento) => {
     self.skipWaiting(); // activarse sin esperar a que se cierre la app
 });
 
-// Activación: borrar copias de versiones viejas.
+// Activación: borrar copias de versiones viejas (solo las "vida-rpg-v…":
+// la caché "avisos-datos" es de las notificaciones y no se toca).
 self.addEventListener("activate", (evento) => {
     evento.waitUntil(
         caches.keys()
             .then((nombres) => Promise.all(
-                nombres.filter((nombre) => nombre !== VERSION).map((nombre) => caches.delete(nombre))
+                nombres.filter((nombre) => nombre.startsWith("vida-rpg-v") && nombre !== VERSION)
+                    .map((nombre) => caches.delete(nombre))
             ))
             .then(() => self.clients.claim())
     );
@@ -118,5 +121,67 @@ self.addEventListener("fetch", (evento) => {
     // Responder con la copia guardada; si no existe, esperar a internet.
     evento.respondWith(
         caches.match(peticion, { ignoreSearch: true }).then((guardada) => guardada || desdeInternet)
+    );
+});
+
+
+// ===== Notificaciones =====
+// El servidor de avisos (servidor/worker.js) solo dice de qué tipo es el aviso.
+// El texto lo preparó la app en la caché "avisos-datos" (ver js/avisos.js),
+// así tus misiones nunca salen del teléfono.
+
+self.addEventListener("push", (evento) => {
+    let datos = {};
+    try {
+        datos = evento.data ? evento.data.json() : {};
+    } catch { /* aviso sin datos: se muestra el texto general */ }
+    // El iPhone exige mostrar SIEMPRE una notificación por cada aviso que llega.
+    evento.waitUntil(mostrarAviso(datos.tipo));
+});
+
+async function mostrarAviso(tipo) {
+    const ahora = new Date();
+    let titulo = "⚔️ Vida RPG";
+    let cuerpo = "Tus misiones de hoy te esperan.";
+
+    if (tipo === "prueba") {
+        titulo = "🔔 ¡Notificaciones activadas!";
+        cuerpo = "Así te avisará Vida RPG a las horas que elegiste.";
+    } else if (tipo === "enfoque") {
+        titulo = "⏱️ ¡Sesión de enfoque terminada!";
+        cuerpo = "Buen trabajo. Abre la app para recibir tu premio.";
+    } else {
+        // Recordatorio: el texto de hoy, del resumen que dejó la app.
+        const guardado = await caches.match("./avisos-resumen.json");
+        const resumen = guardado ? await guardado.json() : null;
+        const dia = resumen && resumen.dias[fechaDeHoy(ahora)];
+        if (dia) {
+            titulo = dia.titulo;
+            cuerpo = ahora.getHours() >= 19 ? dia.cuerpoNoche : dia.cuerpo;
+            // El numerito sobre el ícono: lo que te falta hoy.
+            if (self.navigator.setAppBadge) {
+                await (dia.insignia ? self.navigator.setAppBadge(dia.insignia) : self.navigator.clearAppBadge()).catch(() => {});
+            }
+        }
+    }
+    return self.registration.showNotification(titulo, {
+        body: cuerpo,
+        icon: "./iconos/icono-192.png",
+        tag: tipo || "recordatorio",   // un aviso nuevo del mismo tipo reemplaza al anterior
+    });
+}
+
+// "AAAA-MM-DD" en hora local (como js/fechas.js).
+function fechaDeHoy(fecha) {
+    const dos = (n) => String(n).padStart(2, "0");
+    return `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}`;
+}
+
+// Tocar la notificación abre la app (o la trae al frente si ya estaba abierta).
+self.addEventListener("notificationclick", (evento) => {
+    evento.notification.close();
+    evento.waitUntil(
+        self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((ventanas) =>
+            ventanas.length ? ventanas[0].focus() : self.clients.openWindow("./"))
     );
 });

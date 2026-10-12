@@ -1052,6 +1052,62 @@ export function pantallaEnfoque(estado, ctx) {
 }
 
 
+// ===== Ajustes: notificaciones =====
+// info = { compatible, instalar (falta instalarla en la pantalla de inicio), permiso, activadas }
+
+export function seccionAvisos(estado, info) {
+    if (!info.compatible || info.instalar) {
+        return `<p class="nota">Solo funcionan con la app <b>instalada en la pantalla de inicio</b> (iPhone con iOS 16.4 o más).
+                   En Chrome: botón Compartir → «Agregar a la pantalla de inicio». Después ábrela desde el ícono y vuelve aquí.</p>`;
+    }
+    if (info.permiso === "denied") {
+        return `<p class="nota">Bloqueaste las notificaciones de Vida RPG. Para volver a permitirlas:
+                   Ajustes del iPhone → Notificaciones → Vida RPG.</p>`;
+    }
+    if (!info.activadas) {
+        return `
+            <p class="nota">Recordatorios a las horas que elijas, con lo que te falta del día,
+               y un aviso cuando termine tu sesión de enfoque.</p>
+            <form data-form="activar-avisos" class="form-linea">
+                <input type="text" name="codigo" required autocomplete="off" autocapitalize="characters" spellcheck="false"
+                       placeholder="Código de activación" aria-label="Código de activación">
+                <button type="submit" class="boton boton-chico">Activar</button>
+            </form>`;
+    }
+
+    const textoDias = (dias) => (dias ? dias.map((d) => DIAS_CORTOS[d]).join(", ") : "Todos los días");
+    const filas = estado.avisos.horarios.map((h) => `
+        <li>
+            <span><b>${h.hora}</b> <span class="texto-suave">· ${textoDias(h.dias)}</span></span>
+            <button type="button" class="boton-icono chico" data-accion="quitar-horario" data-id="${h.id}"
+                    aria-label="Quitar el recordatorio de las ${h.hora}">${ICONOS.cerrar}</button>
+        </li>`).join("");
+    const dias = DIAS_LETRAS.map((letra, dia) => `
+        <label class="pildora" title="${DIAS_CORTOS[dia]}">
+            <input type="checkbox" name="dias" value="${dia}" checked><span>${letra}</span>
+        </label>`).join("");
+
+    return `
+        <p class="nota">✅ Activadas en este teléfono. Tus recordatorios:</p>
+        ${filas ? `<ul class="horarios">${filas}</ul>` : vacio("Sin recordatorios. Agrega uno abajo.")}
+        <form data-form="horario" class="horario-nuevo">
+            <div class="form-linea">
+                <input type="time" name="hora" value="20:00" required aria-label="Hora del recordatorio">
+                <button type="submit" class="boton boton-chico">+ Agregar</button>
+            </div>
+            <fieldset class="opciones opciones-7" aria-label="Días del recordatorio">${dias}</fieldset>
+        </form>
+        <label class="interruptor">
+            <span><b>⏱️ Fin del enfoque</b><br><span class="nota">Avisar cuando termine una sesión.</span></span>
+            <input type="checkbox" data-accion="aviso-enfoque" ${estado.avisos.enfoque ? "checked" : ""}>
+        </label>
+        <div class="botones-dialogo">
+            <button type="button" class="boton boton-secundario" data-accion="probar-avisos">Enviar prueba</button>
+            <button type="button" class="boton boton-secundario" data-accion="desactivar-avisos">Desactivar</button>
+        </div>`;
+}
+
+
 // ===== Pantalla: Personaje (avatar, clase, equipamiento y mascota) =====
 
 export function pantallaPersonaje(estado, ctx) {

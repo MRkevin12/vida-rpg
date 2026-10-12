@@ -4,3 +4,8 @@ vida-rpg-*.json
 
 # Notas de contexto para Claude (tienen datos tuyos): se quedan solo en tu compu.
 CLAUDE.md
+
+# Servidor de avisos: secretos locales (llave privada y código de activación) y archivos de wrangler.
+servidor/.dev.vars
+servidor/.wrangler/
+servidor/node_modules/

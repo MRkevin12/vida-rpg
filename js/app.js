@@ -17,6 +17,7 @@ import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as minijuegos from "./minijuegos.js";
 import * as sonido from "./sonido.js";
+import * as avisos from "./avisos.js";
 import { calcularResumen, semanaPorMostrar } from "./resumen.js";
 import { dibujarAvatar } from "./dibujo.js";
 import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
@@ -391,6 +392,7 @@ function ejecutar(accion, efectos = {}) {
         ...acciones.revisarCambios(estado, antes),
     ];
     datos.guardar(estado);
+    avisos.guardarResumen(estado);   // el texto de las notificaciones, siempre al día
 
     // ¿A qué jefes les pegaste con esta acción, y cuánto? (para mostrar el golpe)
     const danoAhora = campana.danoPorCategoria(estado);
@@ -742,6 +744,7 @@ const PREPARAR = {
     },
     ajustes() {
         mostrarVersion();
+        pintarAvisos();
         $("#ajustes-nombre").value = estado.personaje.nombre;
         $("#ajustes-sonido").checked = estado.ajustes.sonido;
         $("#ajustes-ultimo-respaldo").textContent = estado.ultimoRespaldo
@@ -800,6 +803,32 @@ function mostrarCamposLogro() {
     ocultarCampo($("#campo-mision"), campo !== "mision");
     ocultarCampo($("#campo-atributo"), campo !== "atributo");
     ocultarCampo($("#campo-objetivo"), campo === "manual");   // un logro personal no tiene meta numérica
+}
+
+
+// ===== Notificaciones =====
+
+// Dibuja la sección de notificaciones de Ajustes. Depende del teléfono
+// (si la app está instalada, si diste permiso…), por eso se arma aparte.
+async function pintarAvisos() {
+    const info = {
+        compatible: avisos.compatible(),
+        instalar: avisos.esIphone() && !avisos.instalada(),
+        permiso: "Notification" in window ? Notification.permission : "default",
+        activadas: await avisos.activadas(registroSW),
+    };
+    $("#ajustes-avisos").innerHTML = vistas.seccionAvisos(estado, info);
+}
+
+// Después de cambiar los horarios: mandarlos al servidor de avisos.
+function sincronizarAvisos() {
+    avisos.sincronizar(registroSW, estado).catch((error) => avisar(`⚠️ ${error.message}`));
+}
+
+function probarAvisos() {
+    return avisos.probar().then((respuesta) => avisar(respuesta.ok
+        ? "🔔 Aviso de prueba enviado"
+        : `⚠️ El servicio de avisos respondió ${respuesta.estado}`));
 }
 
 
@@ -955,8 +984,26 @@ const ACCIONES = {
 
     "cancelar-enfoque": () => {
         if (confirm("¿Cancelar la sesión? Si la cortas ahora, no recibes premio.")) {
-            ejecutar(() => acciones.cancelarEnfoque(estado));
+            if (ejecutar(() => acciones.cancelarEnfoque(estado))) avisos.avisarEnfoque(null);
         }
+    },
+
+    // Notificaciones (en Ajustes).
+    "quitar-horario": (boton) => {
+        if (ejecutar(() => acciones.quitarHorario(estado, Number(boton.dataset.id)))) {
+            sincronizarAvisos();
+            pintarAvisos();
+        }
+    },
+    "aviso-enfoque": (casilla) => {
+        if (ejecutar(() => acciones.cambiarAvisoEnfoque(estado, casilla.checked))) sincronizarAvisos();
+    },
+    "probar-avisos": () => probarAvisos().catch((error) => alert(error.message)),
+    "desactivar-avisos": () => {
+        if (!confirm("¿Desactivar las notificaciones en este teléfono? Tus horarios quedan guardados.")) return;
+        avisos.desactivar(registroSW)
+            .then(pintarAvisos)
+            .then(() => avisar("🔕 Notificaciones desactivadas"));
     },
     "cerrar-semana": () => {
         ejecutar(() => acciones.cerrarResumenSemanal(estado));
@@ -1093,8 +1140,37 @@ const FORMULARIOS = {
     principal: (valores) => ejecutar(() => acciones.crearPrincipal(estado, valores)),
     enfoque(valores) {
         const resultado = ejecutar(() => acciones.empezarEnfoque(estado, valores));
-        if (resultado) sonar("completar");
+        if (resultado) {
+            sonar("completar");
+            avisos.avisarEnfoque(juego.finDelEnfoque(estado.enfoque.activo));   // para el aviso al terminar
+        }
         return resultado;
+    },
+    // Activar notificaciones: pide permiso al iPhone y registra este teléfono en el servidor.
+    "activar-avisos"(valores) {
+        if (!registroSW) {
+            alert("La app todavía se está preparando. Intenta otra vez en unos segundos.");
+            return false;
+        }
+        avisos.activar(registroSW, valores.codigo, estado)
+            .then(async () => {
+                // Para empezar, un recordatorio todos los días a las 8 p. m. (lo puedes cambiar).
+                if (!estado.avisos.horarios.length) {
+                    ejecutar(() => acciones.agregarHorario(estado, { hora: "20:00" }));
+                    await avisos.sincronizar(registroSW, estado);
+                }
+                await pintarAvisos();
+                await probarAvisos();
+            })
+            .catch((error) => alert(error.message));
+        return false;   // no cerrar Ajustes
+    },
+    horario(valores) {
+        if (ejecutar(() => acciones.agregarHorario(estado, valores))) {
+            sincronizarAvisos();
+            pintarAvisos();
+        }
+        return false;   // no cerrar Ajustes
     },
     diario(valores) {
         const resultado = ejecutar(() => acciones.escribirDiario(estado, valores));

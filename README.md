@@ -2,7 +2,7 @@
 
 Una app de productividad que convierte tu día a día en un juego de rol: completas misiones, ganas experiencia, subes de nivel y derrotas jefes.
 
-Está pensada para el iPhone. Se instala desde Safari, funciona sin internet y guarda todo en el teléfono: no tiene servidor, cuentas ni anuncios.
+Está pensada para el iPhone. Se instala desde Safari o Chrome, funciona sin internet y guarda todo en el teléfono: tus datos no van a ningún servidor, y no hay cuentas ni anuncios. Lo único en la nube es un servidor pequeño de notificaciones, que solo conoce tus horarios.
 
 **Abrir la app:** https://mrkevin12.github.io/vida-rpg/
 
@@ -32,6 +32,7 @@ Las capturas usan una partida de ejemplo inventada.
 - **Logros** automáticos y personales, y una **tienda** donde cambias monedas por recompensas reales que tú defines.
 - **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
 - **Tres minijuegos** que se juegan con fichas ganadas al completar misiones.
+- **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan.
 - **PIN de 4 números** para abrir la app y **copia de seguridad** en un archivo.
 - **Sonidos** hechos con código, que se pueden apagar en Ajustes.
 
@@ -42,6 +43,23 @@ Las capturas usan una partida de ejemplo inventada.
 3. Abre la app desde el ícono nuevo. Desde ahí funciona sin internet.
 
 Cuando hay una versión nueva, la app muestra un aviso para actualizar. La versión instalada se ve en Ajustes.
+
+También se puede instalar desde **Chrome** en el iPhone (iOS 16.4 o más): botón Compartir → **Agregar a la pantalla de inicio**. La app instalada guarda su partida aparte de la pestaña del navegador: si ya jugabas en una pestaña, exporta la copia ahí e impórtala en la app instalada.
+
+## Notificaciones
+
+Los avisos solo funcionan en la app instalada. Se activan en Ajustes → 🔔 Notificaciones con un código de activación.
+
+Una app web no puede programar avisos por su cuenta, así que hay un servidor pequeño en **Cloudflare Workers** (carpeta `servidor/`). Ese servidor guarda solo la suscripción del teléfono, los horarios y la hora en que termina el enfoque. A la hora indicada envía un aviso que únicamente dice su tipo. El texto lo arma el propio teléfono (`sw.js`) con un resumen que la app deja guardado, así que **tus misiones no salen del iPhone**.
+
+| Archivo | Para qué sirve |
+|---|---|
+| `js/avisos.js` | Activar, hablar con el servidor y preparar el texto de los avisos de los próximos 7 días |
+| `servidor/worker.js` | El servidor: guarda tus horarios y cada minuto revisa si toca un aviso |
+| `servidor/webpush.js` | Firma (VAPID) y cifra (aes128gcm) cada aviso, sin librerías |
+| `servidor/pruebas.mjs` | Pruebas del servidor (`npm run pruebas`), incluido el ejemplo oficial del RFC 8291 |
+
+Para publicar cambios del servidor, desde `servidor/` y con Node.js instalado: `npm install` (solo la primera vez) y `npm run publicar`. Los secretos (`CODIGO` y `VAPID_PRIVADA`) viven en Cloudflare y en `servidor/.dev.vars`, que no se sube a GitHub.
 
 ## Tus datos
 
@@ -94,7 +112,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 51 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 53 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

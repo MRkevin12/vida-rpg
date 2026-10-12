@@ -1,0 +1,14 @@
+{
+  "name": "vida-rpg-avisos",
+  "private": true,
+  "description": "Servidor de notificaciones de Vida RPG (Cloudflare Workers)",
+  "type": "module",
+  "scripts": {
+    "pruebas": "node pruebas.mjs",
+    "local": "wrangler dev --test-scheduled",
+    "publicar": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
