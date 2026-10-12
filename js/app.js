@@ -11,6 +11,8 @@ import * as acciones from "./acciones.js";
 import * as juego from "./juego.js";
 import * as vistas from "./vistas.js";
 import * as seguridad from "./seguridad.js";
+import * as avatar from "./avatar.js";
+import { dibujarAvatar } from "./dibujo.js";
 import { hoy, fechaLegible, diasEntre } from "./fechas.js";
 
 
@@ -29,7 +31,14 @@ const DIBUJAR = {
     aventuras: vistas.pantallaAventuras,
     logros: vistas.pantallaLogros,
     tienda: vistas.pantallaTienda,
+    personaje: vistas.pantallaPersonaje,
 };
+
+// Lo que el dibujo del avatar necesita saber en este momento.
+function avatarActual() {
+    const fecha = hoy();
+    return avatar.describirAvatar(estado, fecha, juego.resumen(estado, fecha));
+}
 
 
 // ===== Arranque =====
@@ -273,7 +282,7 @@ function actualizarCabecera(subioNivel) {
     const nivel = juego.calcularNivel(personaje.xp);
 
     // Array.from separa bien los emojis (si el nombre empieza con uno).
-    $("#cab-avatar").textContent = Array.from(personaje.nombre)[0].toUpperCase();
+    $("#cab-avatar").innerHTML = dibujarAvatar(avatarActual(), { mini: true });
     $("#cab-nombre").textContent = personaje.nombre;
     $("#cab-xp").textContent = `${nivel.xpEnNivel} / ${nivel.xpNecesaria} XP`;
     $("#cab-monedas").textContent = personaje.monedas;
@@ -306,9 +315,11 @@ function moverBarra(barra, porcentaje, subioNivel) {
 
 function dibujarPantalla(efectos = {}) {
     const fecha = hoy();
+    const info = juego.resumen(estado, fecha);
     const contexto = {
         hoy: fecha,
-        info: juego.resumen(estado, fecha),
+        info,
+        avatar: avatar.describirAvatar(estado, fecha, info),
         diaSeleccionado,
         recordarRespaldo: necesitaRespaldo(fecha),
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
@@ -396,7 +407,12 @@ function siguienteCelebracion() {
         capa.hidden = true;
         return;
     }
-    $("#cel-icono").textContent = celebracion.icono;
+    // Al subir de nivel o evolucionar, se muestra el avatar celebrando.
+    if (celebracion.avatar) {
+        $("#cel-icono").innerHTML = `<div class="cel-avatar celebrando">${dibujarAvatar(avatarActual())}</div>`;
+    } else {
+        $("#cel-icono").textContent = celebracion.icono;
+    }
     $("#cel-etiqueta").textContent = celebracion.etiqueta;
     $("#cel-titulo").textContent = celebracion.titulo;
     $("#cel-detalle").textContent = celebracion.detalle || "";
@@ -450,7 +466,11 @@ function rellenarOpciones() {
         <p><strong>Bonus de regreso:</strong> si vuelves tras ${juego.REGRESO.diasMinimos} días o más, ganas ${juego.REGRESO.xpPorDia} XP por día ausente (máx. ${juego.REGRESO.xpMaximo}).</p>
         <p><strong>Misiones principales:</strong> +${p.submision.xp} XP por paso y +${p.principal.xp} XP al terminar.</p>
         <p><strong>Jefes:</strong> +${p.golpe.xp} XP por golpe y +${p.jefe.xp} XP al derrotarlo.</p>
-        <p><strong>Días perfectos:</strong> completar todas tus misiones diarias del día.</p>`;
+        <p><strong>Días perfectos:</strong> completar todas tus misiones diarias del día.</p>
+        <p><strong>Avatar:</strong> evoluciona en los niveles ${avatar.ETAPAS.slice(1).map((e) => `${e.desde} (${e.nombre})`).join(", ")}.
+           Tu clase es tu atributo más alto. Cada atributo cambia algo visible en los niveles 3 y 6.
+           Su ánimo depende de tu racha: tras 3 días sin misiones se duerme.</p>
+        <p><strong>Mascota:</strong> eclosiona con 10 misiones diarias completadas y es adulta con 50.</p>`;
 }
 
 // Preparativos especiales al abrir algunas ventanas.
@@ -634,6 +654,14 @@ const ACCIONES = {
         }
     },
 
+    comprar: (boton) => {
+        const objeto = avatar.OBJETOS[boton.dataset.id];
+        if (objeto && confirm(`¿Comprar «${objeto.nombre}» por ${objeto.precio} monedas?`)) {
+            ejecutar(() => acciones.comprarObjeto(estado, boton.dataset.id));
+        }
+    },
+    equipar: (boton) => ejecutar(() => acciones.equiparObjeto(estado, boton.dataset.id)),
+
     canjear: (boton) => {
         const recompensa = estado.recompensas.find((r) => r.id === Number(boton.dataset.id));
         if (recompensa && confirm(`¿Canjear «${recompensa.nombre}» por ${recompensa.costo} monedas?`)) {
@@ -690,6 +718,11 @@ const FORMULARIOS = {
     jefe: (valores) => ejecutar(() => acciones.crearJefe(estado, valores)),
     logro: (valores) => ejecutar(() => acciones.crearLogro(estado, valores)),
     recompensa: (valores) => ejecutar(() => acciones.crearRecompensa(estado, valores)),
+    mascota(valores) {
+        const resultado = ejecutar(() => acciones.nombrarMascota(estado, valores.nombre));
+        if (resultado) avisar(`🐾 Tu mascota ahora se llama ${estado.mascota.nombre}`);
+        return resultado;
+    },
     renombrar(valores) {
         const resultado = ejecutar(() => acciones.renombrar(estado, valores.nombre));
         if (resultado) avisar("✏️ Nombre actualizado");

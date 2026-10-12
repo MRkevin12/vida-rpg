@@ -7,6 +7,7 @@
 // Ninguna función de aquí guarda ni dibuja: de eso se encarga app.js.
 
 import * as juego from "./juego.js";
+import * as avatar from "./avatar.js";
 import { hoy, diasEntre, sumarDias } from "./fechas.js";
 
 
@@ -366,6 +367,38 @@ export function canjear(estado, id) {
 }
 
 
+// ===== Avatar: equipamiento y mascota =====
+
+export function comprarObjeto(estado, id) {
+    const objeto = avatar.OBJETOS[id];
+    if (!objeto) throw new Error("Ese objeto no existe.");
+    if (objeto.logro) throw new Error("Ese objeto no se vende: se gana con un logro.");
+    if (estado.avatar.comprados.includes(id)) throw new Error("Ya tienes ese objeto.");
+    const faltan = objeto.precio - estado.personaje.monedas;
+    if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
+
+    estado.personaje.monedas -= objeto.precio;
+    estado.avatar.comprados.push(id);
+    estado.avatar.equipado[objeto.espacio] = id; // se lo pone de una vez
+    return { celebraciones: [{ pequena: true, icono: objeto.icono, titulo: `¡Nuevo equipo: ${objeto.nombre}!` }] };
+}
+
+// Ponerse un objeto (o quitárselo, si ya lo tenía puesto).
+export function equiparObjeto(estado, id) {
+    const objeto = avatar.OBJETOS[id];
+    if (!objeto) throw new Error("Ese objeto no existe.");
+    const disponibles = avatar.objetosDisponibles(estado, juego.resumen(estado, hoy()));
+    if (!disponibles.has(id)) throw new Error("Todavía no tienes ese objeto.");
+
+    const equipado = estado.avatar.equipado;
+    equipado[objeto.espacio] = equipado[objeto.espacio] === id ? null : id;
+}
+
+export function nombrarMascota(estado, nombre) {
+    estado.mascota.nombre = validarNombre(nombre, 20);
+}
+
+
 // ===== Al abrir la app =====
 
 // Bonus de regreso: si vuelves tras varios días sin abrir la app, ganas XP extra.
@@ -417,11 +450,24 @@ function nivelesDeAtributos(estado) {
     return niveles;
 }
 
+function fotoDelAvatar(estado, info) {
+    const a = avatar.describirAvatar(estado, hoy(), info);
+    return {
+        etapa: a.etapa.clave,
+        clase: a.clave,
+        animo: a.animo,
+        mascota: a.mascota.etapa.clave,
+        objetos: avatar.objetosDeLogroGanados(estado, info),
+    };
+}
+
 export function foto(estado) {
+    const info = juego.resumen(estado, hoy());
     return {
         nivel: juego.calcularNivel(estado.personaje.xp).nivel,
         atributos: nivelesDeAtributos(estado),
-        escudos: juego.calcularRacha(estado, hoy()).escudos,
+        escudos: info.racha.escudos,
+        avatar: fotoDelAvatar(estado, info),
     };
 }
 
@@ -431,7 +477,7 @@ export function revisarCambios(estado, antes) {
 
     const nivel = juego.calcularNivel(estado.personaje.xp).nivel;
     if (nivel > antes.nivel) {
-        celebraciones.push({ tipo: "nivel", icono: "⭐", etiqueta: "¡Subiste de nivel!", titulo: `NIVEL ${nivel}` });
+        celebraciones.push({ tipo: "nivel", avatar: true, etiqueta: "¡Subiste de nivel!", titulo: `NIVEL ${nivel}` });
     }
 
     const atributos = nivelesDeAtributos(estado);
@@ -458,6 +504,36 @@ export function revisarCambios(estado, antes) {
             titulo: logro.nombre,
             detalle: logro.recompensa ? `+${logro.recompensa} monedas` : "",
         });
+    }
+
+    // Cambios del avatar (se revisan después de los logros, que pueden dar objetos).
+    const ahora = fotoDelAvatar(estado, info);
+    const previo = antes.avatar;
+    const indice = (clave) => avatar.ETAPAS.findIndex((e) => e.clave === clave);
+
+    if (indice(ahora.etapa) > indice(previo.etapa)) {
+        const etapa = avatar.ETAPAS[indice(ahora.etapa)];
+        celebraciones.push({ avatar: true, etiqueta: "¡Tu avatar evolucionó!", titulo: etapa.nombre.toUpperCase(), detalle: etapa.cambio });
+    }
+    if (ahora.clase !== previo.clase && ahora.clase !== "aprendiz") {
+        const clase = avatar.CLASES[ahora.clase];
+        celebraciones.push({ pequena: true, icono: clase.icono, titulo: `Ahora eres ${clase.nombre}` });
+    }
+    for (const id of ahora.objetos.filter((o) => !previo.objetos.includes(o))) {
+        const objeto = avatar.OBJETOS[id];
+        celebraciones.push({ icono: objeto.icono, etiqueta: "¡Objeto desbloqueado!", titulo: objeto.nombre,
+                             detalle: "Equípalo en tu personaje." });
+    }
+    if (ahora.mascota !== previo.mascota) {
+        const nombre = estado.mascota.nombre;
+        const textos = {
+            cria: { icono: "🐣", etiqueta: "¡El huevo eclosionó!", detalle: `${nombre} salió del huevo.` },
+            adulto: { icono: "🐉", etiqueta: "¡Tu mascota creció!", detalle: `${nombre} ya es adulto.` },
+        };
+        if (textos[ahora.mascota]) celebraciones.push({ ...textos[ahora.mascota], titulo: nombre });
+    }
+    if ((previo.animo === "dormido" || previo.animo === "cansado") && previo.animo !== ahora.animo) {
+        celebraciones.push({ pequena: true, icono: "😃", titulo: "¡Tu héroe despertó!" });
     }
     return celebraciones;
 }

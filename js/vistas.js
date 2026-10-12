@@ -8,6 +8,8 @@
 // app.js escucha los toques y, según data-accion, sabe qué hacer.
 
 import * as juego from "./juego.js";
+import * as avatar from "./avatar.js";
+import { dibujarAvatar, dibujarMascota } from "./dibujo.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, desdeTexto } from "./fechas.js";
 
 const { DIFICULTADES, ATRIBUTOS, PREMIOS, ESCUDOS, plural } = juego;
@@ -69,6 +71,8 @@ export function pantallaHoy(estado, ctx) {
         : vacio("Aún no tienes misiones diarias.<br>Crea tu primer hábito: ir al gym, leer, estudiar inglés…");
 
     return `
+        ${tarjetaHeroe(ctx)}
+
         <div class="titulo-seccion">
             <div>
                 <p class="etiqueta">${fechaLegible(fecha)}</p>
@@ -105,6 +109,32 @@ function tarjetaMision(mision, hecha, recienHecha) {
             </div>
             ${botonCerrar("archivar-mision", mision.id, `Archivar ${mision.nombre}`)}
         </li>`;
+}
+
+// Texto del ánimo del avatar, con los números del momento.
+function textoAnimo(a, ctx) {
+    const animo = avatar.ANIMOS[a.animo];
+    if (a.animo === "llamas") return `${animo.icono} ¡En llamas! Racha de ${ctx.info.racha.actual} días.`;
+    if (a.animo === "dormido") return `${animo.icono} Zzz… ${a.diasSinMision} días sin misiones. Completa una para despertarlo.`;
+    return `${animo.icono} ${animo.texto}`;
+}
+
+// Tarjeta del héroe arriba de "Hoy". Salta cuando completas una misión.
+function tarjetaHeroe(ctx) {
+    const a = ctx.avatar;
+    const siguiente = avatar.siguienteEtapa(avatar.ETAPAS, a.etapa);
+    return `
+        <button type="button" class="heroe ${ctx.recienHecha ? "saltar" : ""}" data-accion="ir" data-pantalla="personaje">
+            <span class="heroe-avatar">${dibujarAvatar(a)}</span>
+            <span class="heroe-info">
+                <span class="etiqueta">${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</span>
+                <span class="heroe-animo">${textoAnimo(a, ctx)}</span>
+                <span class="mini texto-suave">${siguiente
+                    ? `Evoluciona a ${siguiente.nombre} en el nivel ${siguiente.desde}`
+                    : "¡Etapa máxima alcanzada!"}</span>
+                <span class="mini heroe-ver">Ver personaje ›</span>
+            </span>
+        </button>`;
 }
 
 function avisoRespaldo() {
@@ -389,9 +419,173 @@ function tarjetaLogro(logro, estado, ctx) {
 }
 
 
+// ===== Pantalla: Personaje (avatar, clase, equipamiento y mascota) =====
+
+export function pantallaPersonaje(estado, ctx) {
+    const a = ctx.avatar;
+
+    // Las 4 etapas, marcando la actual y las que ya pasaste.
+    const etapas = avatar.ETAPAS.map((e) => {
+        const clase = e === a.etapa ? "actual" : a.nivel >= e.desde ? "pasada" : "";
+        return `<li class="${clase}"><span>${e.nombre}</span><small>Nv ${e.desde}</small></li>`;
+    }).join("");
+
+    // Qué cambia cada atributo en el avatar, y qué ya tienes.
+    const rasgos = Object.entries(avatar.RASGOS).map(([clave, umbrales]) => {
+        const a2 = juego.ATRIBUTOS[clave];
+        const items = umbrales.map((u) => {
+            const tiene = a.niveles[clave] >= u.nivel;
+            return `<li class="${tiene ? "tiene" : ""}">${tiene ? "✓" : "🔒"} ${u.texto}
+                        <small>${tiene ? "" : `(nivel ${u.nivel})`}</small></li>`;
+        }).join("");
+        return `<div class="rasgo" style="--color-atributo: ${a2.color}">
+                    <span class="rasgo-titulo">${a2.icono} ${a2.nombre} <b>Nv ${a.niveles[clave]}</b></span>
+                    <ul>${items}</ul>
+                </div>`;
+    }).join("");
+
+    return `
+        <section class="panel ficha">
+            <div class="ficha-avatar">${dibujarAvatar(a)}</div>
+            <h2 class="titulo-juego">${esc(estado.personaje.nombre)}</h2>
+            <p class="etiqueta">Nivel ${a.nivel} · ${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</p>
+            <p class="heroe-animo">${textoAnimo(a, ctx)}</p>
+            <ol class="etapas">${etapas}</ol>
+        </section>
+
+        <section class="panel">
+            <h2 class="titulo-juego">Clase: ${a.clase.icono} ${a.clase.nombre}</h2>
+            <p class="nota">${a.clase.texto} Clases: ⚔️ Guerrero (Fuerza), 🔮 Mago (Intelecto), 🎶 Bardo (Carisma),
+               ⚖️ Mercader (Riqueza) o 🌟 Aventurero completo si equilibras los cuatro.</p>
+            <div class="rasgos">${rasgos}</div>
+        </section>
+
+        ${seccionEquipamiento(estado, ctx)}
+        ${seccionMascota(a.mascota)}
+        ${seccionObjetosDeLogro(estado, ctx, "Objetos de logro")}`;
+}
+
+function seccionEquipamiento(estado, ctx) {
+    const a = ctx.avatar;
+    const disponibles = avatar.objetosDisponibles(estado, ctx.info);
+
+    const espacios = Object.entries(avatar.ESPACIOS).map(([espacio, nombre]) => {
+        const id = a.equipado[espacio];
+        const objeto = id ? avatar.OBJETOS[id] : null;
+        return `<div class="espacio ${objeto ? "lleno" : ""}">
+                    <span class="espacio-icono">${objeto ? objeto.icono : "·"}</span>
+                    <span class="mini texto-suave">${nombre}</span>
+                    <span class="mini">${objeto ? esc(objeto.nombre) : "Vacío"}</span>
+                </div>`;
+    }).join("");
+
+    const inventario = [...disponibles].map((id) => {
+        const objeto = avatar.OBJETOS[id];
+        const puesto = a.equipado[objeto.espacio] === id;
+        return `<li class="objeto ${puesto ? "puesto" : ""}">
+                    <span class="objeto-icono">${objeto.icono}</span>
+                    <span class="objeto-info"><b>${objeto.nombre}</b>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[objeto.espacio]}${objeto.logro ? " · 🏅 de logro" : ""}</span></span>
+                    <button type="button" class="boton boton-chico ${puesto ? "" : "boton-oro"}" data-accion="equipar" data-id="${id}">
+                        ${puesto ? "Quitar" : "Equipar"}</button>
+                </li>`;
+    }).join("");
+
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">Equipamiento</h2>
+            <div class="espacios">${espacios}</div>
+            <h3 class="subtitulo">Tus objetos (${disponibles.size})</h3>
+            ${disponibles.size
+                ? `<ul class="lista">${inventario}</ul>`
+                : vacio("Aún no tienes objetos. Cómpralos en la Tienda con tus monedas o gánalos con logros.")}
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="ir" data-pantalla="tienda">Ir a la tienda</button>
+        </section>`;
+}
+
+function seccionMascota(m) {
+    const siguiente = avatar.siguienteEtapa(avatar.ETAPAS_MASCOTA, m.etapa);
+    const crecimiento = siguiente
+        ? `${siguiente.clave === "cria" ? "Eclosiona" : "Crece a adulto"} en ${plural(siguiente.desde - m.total, "misión diaria", "misiones diarias")} más.`
+        : "Ya es adulto. ¡Lo cuidaste muy bien!";
+    const animo = m.triste
+        ? "😢 Está triste: hace días que no completas misiones."
+        : "😊 Está contento.";
+
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">Mascota</h2>
+            <div class="mascota-ficha">
+                <div class="mascota-dibujo">${dibujarMascota(m)}</div>
+                <div>
+                    <p><b>${esc(m.nombre)}</b> · ${m.etapa.nombre}</p>
+                    <p class="mini texto-suave">${crecimiento}</p>
+                    <p class="mini">${animo}</p>
+                </div>
+            </div>
+            <form class="form-linea" data-form="mascota">
+                <input type="text" name="nombre" maxlength="20" required autocomplete="off" placeholder="Nuevo nombre" aria-label="Nombre de la mascota">
+                <button type="submit" class="boton boton-chico">Renombrar</button>
+            </form>
+            <p class="nota">Crece con cada misión diaria que completas: huevo → cría (10) → adulto (50).</p>
+        </section>`;
+}
+
+// Objetos que no se compran: solo se ganan con logros.
+function seccionObjetosDeLogro(estado, ctx, titulo) {
+    const lista = Object.entries(avatar.OBJETOS).filter(([, o]) => o.logro).map(([id, o]) => {
+        const progreso = Math.min(avatar.progresoObjeto(o, estado, ctx.info), o.logro.meta);
+        const ganado = progreso >= o.logro.meta;
+        return `<li class="objeto ${ganado ? "puesto" : ""}">
+                    <span class="objeto-icono ${ganado ? "" : "bloqueado"}">${o.icono}</span>
+                    <span class="objeto-info"><b>${o.nombre}</b>
+                        <span class="mini texto-suave">${o.logro.texto}</span>
+                        ${ganado ? "" : barra(Math.round((progreso / o.logro.meta) * 100), "barra-mini")}</span>
+                    <span class="mini ${ganado ? "oro" : "texto-suave"}">${ganado ? "¡Ganado!" : `${progreso}/${o.logro.meta}`}</span>
+                </li>`;
+    }).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">🏅 ${titulo}</h2>
+            <p class="nota">No se pueden comprar: solo se ganan.</p>
+            <ul class="lista">${lista}</ul>
+        </section>`;
+}
+
+
+// Equipamiento que se compra con monedas (además de las recompensas reales).
+function tiendaDelAvatar(estado) {
+    const monedas = estado.personaje.monedas;
+    const enVenta = Object.entries(avatar.OBJETOS)
+        .filter(([, o]) => !o.logro)
+        .sort(([, a], [, b]) => a.precio - b.precio);
+
+    const lista = enVenta.map(([id, o]) => {
+        const tuyo = estado.avatar.comprados.includes(id);
+        const puede = monedas >= o.precio;
+        const accion = tuyo
+            ? `<span class="mini oro">✓ Tuyo</span>`
+            : `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="comprar" data-id="${id}"
+                       ${puede ? "" : "disabled"}>Comprar</button>`;
+        return `<li class="objeto ${tuyo ? "puesto" : ""}">
+                    <span class="objeto-icono">${o.icono}</span>
+                    <span class="objeto-info"><b>${o.nombre}</b>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · 🪙 ${o.precio}</span></span>
+                    ${accion}
+                </li>`;
+    }).join("");
+
+    return `
+        <div class="titulo-seccion"><h2 class="titulo-juego">Equipamiento del avatar</h2></div>
+        <p class="nota">Las monedas también sirven para tu avatar. Lo que compres se equipa solo;
+           puedes cambiarlo en tu Personaje.</p>
+        <ul class="lista">${lista}</ul>`;
+}
+
+
 // ===== Pantalla: Tienda =====
 
-export function pantallaTienda(estado) {
+export function pantallaTienda(estado, ctx) {
     const monedas = estado.personaje.monedas;
     const recompensas = [...estado.recompensas].sort((a, b) => a.costo - b.costo);
     const canjes = estado.canjes.slice(-15).reverse(); // los 15 más recientes
@@ -421,6 +615,9 @@ export function pantallaTienda(estado) {
         ${cabeceraSeccion("Recompensas", "recompensa", "+ Nueva")}
         <p class="nota">Premios reales que tú defines. Cánjealos cuando tengas monedas suficientes.</p>
         ${recompensas.length ? `<ul class="lista">${lista}</ul>` : vacio("Crea tu primera recompensa. Ej: «Ver un capítulo de mi serie» por 50 monedas.")}
+
+        ${tiendaDelAvatar(estado)}
+        ${seccionObjetosDeLogro(estado, ctx, "Objetos que no se venden")}
 
         ${canjes.length ? `<section class="panel"><h2 class="titulo-juego">Historial</h2><ul class="historial">${historial}</ul></section>` : ""}
 

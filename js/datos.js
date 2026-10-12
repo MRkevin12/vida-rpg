@@ -31,6 +31,12 @@ export function estadoInicial() {
         canjes: [],           // historial de la tienda: { nombre, costo, fecha }
         bonos: [],            // bonus de regreso recibidos: { fecha, dias, xp }
 
+        avatar: {             // equipamiento del avatar (ver avatar.js)
+            comprados: [],    // ids de objetos comprados en la tienda
+            equipado: { cabeza: null, mano: null, espalda: null, fondo: null },
+        },
+        mascota: { nombre: "Chispa" },
+
         ultimaVisita: null,   // último día que abriste la app (para el bonus de regreso)
         ultimoAvisoEscudo: null,
         ultimoRespaldo: null,
@@ -41,7 +47,17 @@ export function estadoInicial() {
 // Rellena lo que falte (por si el respaldo es de una versión más vieja de la app).
 function completar(guardado) {
     const base = estadoInicial();
-    return { ...base, ...guardado, atributos: { ...base.atributos, ...guardado.atributos } };
+    const avatar = guardado.avatar || {};
+    return {
+        ...base,
+        ...guardado,
+        atributos: { ...base.atributos, ...guardado.atributos },
+        avatar: {
+            comprados: avatar.comprados || [],
+            equipado: { ...base.avatar.equipado, ...avatar.equipado },
+        },
+        mascota: { ...base.mascota, ...guardado.mascota },
+    };
 }
 
 // Lee la partida guardada. Si no hay ninguna, empieza una nueva.

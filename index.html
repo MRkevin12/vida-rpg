@@ -77,7 +77,8 @@
 
         <!-- Cabecera fija: personaje, nivel, XP y monedas -->
         <header class="cabecera">
-            <div class="avatar" id="cab-avatar"></div>
+            <button type="button" class="avatar" id="cab-avatar" data-accion="ir" data-pantalla="personaje"
+                    aria-label="Ver mi personaje"></button>
             <div class="cabecera-info">
                 <div class="cabecera-linea">
                     <span class="cab-nombre" id="cab-nombre"></span>
@@ -99,6 +100,8 @@
             <section id="pantalla-aventuras" class="pantalla" hidden></section>
             <section id="pantalla-logros" class="pantalla" hidden></section>
             <section id="pantalla-tienda" class="pantalla" hidden></section>
+            <!-- Se abre tocando el avatar (no tiene pestaña propia) -->
+            <section id="pantalla-personaje" class="pantalla" hidden></section>
         </main>
 
         <!-- Barra de pestañas de abajo (como en las apps de iPhone) -->
