@@ -11,11 +11,13 @@ import * as juego from "./juego.js";
 import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
+import * as desafios from "./desafios.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
-import { calcularResumen } from "./resumen.js";
-import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, desdeTexto, diaDeSemana } from "./fechas.js";
+import { calcularResumen, resumenSemana } from "./resumen.js";
+import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
+         diasEntre, lunesDe, relojTexto } from "./fechas.js";
 
-const { DIFICULTADES, ATRIBUTOS, PREMIOS, ESCUDOS, plural } = juego;
+const { DIFICULTADES, ATRIBUTOS, PREMIOS, ESCUDOS, ANIMOS_DIARIO, plural } = juego;
 
 
 // ===== Ayudantes =====
@@ -63,6 +65,28 @@ function botonCerrar(accion, id, etiqueta) {
     return `<button type="button" class="boton-icono" data-accion="${accion}" data-id="${id}" aria-label="${esc(etiqueta)}">${ICONOS.cerrar}</button>`;
 }
 
+// Píldoras para elegir un atributo dentro de un formulario (como las de las ventanas).
+function pildorasAtributo(elegido) {
+    return Object.entries(ATRIBUTOS).map(([clave, a]) => `
+        <label class="pildora" style="--color-dificultad: ${a.color}">
+            <input type="radio" name="atributo" value="${clave}" ${clave === elegido ? "checked" : ""}>
+            <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
+        </label>`).join("");
+}
+
+// Ficha con un número grande (las usan el resumen y la tarjeta «Tu semana»).
+function ficha(etiqueta, valor, nota) {
+    return `<div class="ficha-dato"><span class="ficha-etiqueta">${etiqueta}</span><span class="ficha-valor">${valor}</span>${nota}</div>`;
+}
+
+// Cambio frente al periodo anterior, con flecha y texto (no solo color).
+function textoCambio(valor, unidad, periodo) {
+    if (valor === null) return `<span class="ficha-nota">Aún no hay un periodo anterior completo para comparar</span>`;
+    if (valor === 0) return `<span class="ficha-nota">Igual que ${periodo}</span>`;
+    const sube = valor > 0;
+    return `<span class="ficha-nota">${sube ? "▲" : "▼"} ${Math.abs(valor)} ${unidad} ${sube ? "más" : "menos"} que ${periodo}</span>`;
+}
+
 
 // ===== Pantalla: Hoy =====
 
@@ -74,22 +98,35 @@ export function pantallaHoy(estado, ctx) {
     const hechasEseDia = new Set(estado.completadas.filter((c) => c.fecha === fecha).map((c) => c.misionId));
 
     const delDia = juego.misionesDelDia(estado.misiones, fecha);           // las que tocan ese día
-    const otrosDias = estado.misiones.filter((m) => !m.archivadaEn && !delDia.includes(m));
+    const semanales = juego.semanalesDelDia(estado.misiones, fecha);       // las de «N veces por semana»
+    const otrosDias = estado.misiones.filter((m) => !m.archivadaEn && !delDia.includes(m) && !semanales.includes(m));
     const archivadas = estado.misiones.filter((m) => m.archivadaEn);
     const hechas = delDia.filter((m) => hechasEseDia.has(m.id)).length;
     const todoListo = delDia.length > 0 && hechas === delDia.length;
     const sinMisiones = estado.misiones.every((m) => m.archivadaEn);
+    const tarjeta = (m) => tarjetaMision(m, estado, fecha, hechasEseDia.has(m.id), ctx.recienHecha === m.id);
 
-    let lista;
+    let lista = "";
     if (delDia.length) {
-        lista = `<ul class="lista">${delDia.map((m) => tarjetaMision(m, hechasEseDia.has(m.id), ctx.recienHecha === m.id)).join("")}</ul>`;
+        lista = `<ul class="lista">${delDia.map(tarjeta).join("")}</ul>`;
     } else if (sinMisiones) {
         lista = vacio("Aún no tienes misiones diarias.<br>Crea tu primer hábito: ir al gym, leer, estudiar inglés…");
-    } else {
+    } else if (!semanales.length) {
         lista = vacio(`${esAyer ? "Ayer fue" : "Hoy es"} día de descanso: no ${esAyer ? "tocaba" : "toca"} ninguna misión.<br>Tu racha no se rompe.`);
     }
 
+    // Metas semanales: se pueden marcar cualquier día hasta cumplir las veces de la semana.
+    const metasSemana = semanales.length ? `
+        <h3 class="subtitulo">🗓️ Metas de la semana</h3>
+        <ul class="lista">${semanales.map(tarjeta).join("")}</ul>` : "";
+
+    const activo = estado.enfoque.activo;
+    const chipEnfoque = activo
+        ? `⏱️ <span data-reloj>${relojTexto(juego.finDelEnfoque(activo) - ctx.ahora)}</span>`
+        : "⏱️ Enfoque";
+
     return `
+        ${esAyer ? "" : tarjetaSemana(estado, ctx)}
         ${tarjetaHeroe(ctx)}
 
         <div class="titulo-seccion">
@@ -105,6 +142,7 @@ export function pantallaHoy(estado, ctx) {
             <span class="chip">🛡️ ${racha.escudos}/${ESCUDOS.maximo}</span>
             <button type="button" class="chip chip-arcade" data-accion="ir" data-pantalla="arcade">
                 🎮 ${plural(arcade.fichasDisponibles(estado), "ficha", "fichas")}</button>
+            <button type="button" class="chip chip-enfoque ${activo ? "activo" : ""}" data-accion="ir" data-pantalla="enfoque">${chipEnfoque}</button>
             ${todoListo ? '<span class="chip chip-oro">✨ Día perfecto</span>' : ""}
         </div>
 
@@ -117,6 +155,7 @@ export function pantallaHoy(estado, ctx) {
 
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
         ${lista}
+        ${metasSemana}
 
         <button type="button" class="boton boton-principal boton-ancho" data-accion="abrir" data-dialogo="mision">
             + Nueva misión diaria
@@ -127,29 +166,60 @@ export function pantallaHoy(estado, ctx) {
         ${plegable(`Archivadas (${archivadas.length})`,
             `<ul class="lista">${archivadas.map((m) => filaMision(m, "restaurar")).join("")}</ul>`, archivadas.length)}
 
+        ${esAyer ? "" : seccionTareas(estado, ctx)}
+        ${tarjetaDesafio(estado, ctx)}
+        ${seccionDiario(estado, fecha, esAyer)}
         ${jefesEnCombate(estado, ctx)}`;
 }
 
-// "L · X · V" (o "Todos los días").
-function textoDias(mision) {
+// Cada cuánto toca: "3 veces por semana", "L · X · V" o "Todos los días".
+function textoFrecuencia(mision) {
+    if (mision.veces) return `${plural(mision.veces, "vez", "veces")} por semana`;
     return mision.dias ? mision.dias.map((d) => DIAS_LETRAS[d]).join(" · ") : "Todos los días";
 }
 
-function detalleMision(mision) {
+// conFrecuencia: en la lista de hoy no hace falta repetir "Todos los días".
+function detalleMision(mision, conFrecuencia = Boolean(mision.dias)) {
     const d = DIFICULTADES[mision.dificultad];
     const a = ATRIBUTOS[mision.atributo];
-    return `${a.icono} ${a.nombre} · ${d.nombre} · +${d.xp} XP${mision.dias ? ` · ${textoDias(mision)}` : ""}`;
+    return `${a.icono} ${a.nombre} · ${d.nombre} · +${d.xp} XP${conFrecuencia ? ` · ${textoFrecuencia(mision)}` : ""}`;
 }
 
-function tarjetaMision(mision, hecha, recienHecha) {
+function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
     const clases = ["mision", `dificultad-${mision.dificultad}`, hecha ? "hecha" : "", recienHecha ? "recien-hecha" : ""];
+    let boton = `<button type="button" class="boton-check" data-accion="alternar-mision" data-id="${mision.id}"
+                         aria-pressed="${hecha}" aria-label="Marcar ${esc(mision.nombre)}">${ICONOS.check}</button>`;
+    let extra = "";
+
+    // Con cantidad (ej: 5 de 8 vasos): el botón redondo suma 1 y, si ya está hecha, resta 1.
+    if (mision.meta) {
+        const lleva = juego.cantidadDe(estado, mision, fecha);
+        const meta = mision.meta.cantidad;
+        boton = `<button type="button" class="boton-check" data-accion="sumar-cantidad" data-id="${mision.id}" data-paso="${hecha ? -1 : 1}"
+                         aria-pressed="${hecha}" aria-label="${hecha ? "Quitar 1 a" : "Sumar 1 a"} ${esc(mision.nombre)}">${hecha ? ICONOS.check : "<b>+1</b>"}</button>`;
+        extra += `
+            <span class="cantidad">
+                ${lleva > 0 && !hecha ? `<button type="button" class="cantidad-menos" data-accion="sumar-cantidad" data-id="${mision.id}" data-paso="-1" aria-label="Quitar 1">−</button>` : ""}
+                <button type="button" class="cantidad-valor" data-accion="escribir-cantidad" data-id="${mision.id}"
+                        aria-label="Escribir cuánto llevas">${lleva} / ${meta} ${esc(mision.meta.unidad)}</button>
+                ${barra(Math.round((lleva / meta) * 100), "barra-mini")}
+            </span>`;
+    }
+    // Semanal: cuántas veces llevas esta semana.
+    if (mision.veces) {
+        const veces = juego.vecesEnSemana(estado.completadas, mision.id, fecha);
+        const cumplida = veces >= mision.veces;
+        extra += `<span class="semana-progreso ${cumplida ? "cumplida" : ""}">
+                      ${veces} de ${mision.veces} esta semana${cumplida ? " · ✓ ¡Meta cumplida!" : ""}</span>`;
+    }
+
     return `
         <li class="${clases.join(" ")}" data-id="${mision.id}">
-            <button type="button" class="boton-check" data-accion="alternar-mision" data-id="${mision.id}"
-                    aria-pressed="${hecha}" aria-label="Marcar ${esc(mision.nombre)}">${ICONOS.check}</button>
+            ${boton}
             <div class="mision-info">
                 <span class="mision-nombre">${esc(mision.nombre)}</span>
                 <span class="mision-detalle">${detalleMision(mision)}</span>
+                ${extra}
             </div>
             ${botonEditar("editar-mision", mision.id, `Editar ${mision.nombre}`)}
         </li>`;
@@ -160,14 +230,167 @@ function filaMision(mision, accion) {
     const boton = accion === "restaurar"
         ? `<button type="button" class="boton boton-chico" data-accion="restaurar-mision" data-id="${mision.id}">Restaurar</button>`
         : botonEditar("editar-mision", mision.id, `Editar ${mision.nombre}`);
+    const meta = mision.meta ? ` · Meta: ${mision.meta.cantidad} ${esc(mision.meta.unidad)}` : "";
     return `
         <li class="mision apagada dificultad-${mision.dificultad}">
             <div class="mision-info">
                 <span class="mision-nombre">${esc(mision.nombre)}</span>
-                <span class="mision-detalle">${detalleMision(mision)}${mision.dias ? "" : " · Todos los días"}</span>
+                <span class="mision-detalle">${detalleMision(mision, true)}${meta}</span>
             </div>
             ${boton}
         </li>`;
+}
+
+
+// ===== Hoy: tareas sueltas =====
+
+function seccionTareas(estado, ctx) {
+    const porFecha = (a, b) => a.fecha.localeCompare(b.fecha);
+    const pendientes = estado.tareas.filter((t) => !t.hechaEn);
+    // En la lista principal: las que vencen hoy o ya vencieron, y las que hiciste hoy.
+    const paraHoy = [
+        ...pendientes.filter((t) => t.fecha <= ctx.hoy).sort(porFecha),
+        ...estado.tareas.filter((t) => t.hechaEn === ctx.hoy),
+    ];
+    const proximas = pendientes.filter((t) => t.fecha > ctx.hoy).sort(porFecha);
+    const anteriores = estado.tareas.filter((t) => t.hechaEn && t.hechaEn < ctx.hoy)
+        .sort((a, b) => b.hechaEn.localeCompare(a.hechaEn)).slice(0, 15);   // las 15 más recientes
+    const lista = (tareas) => `<ul class="lista">${tareas.map((t) => tarjetaTarea(t, ctx)).join("")}</ul>`;
+
+    return `
+        ${cabeceraSeccion("📌 Tareas", "tarea", "+ Nueva")}
+        ${paraHoy.length
+            ? lista(paraHoy)
+            : vacio(proximas.length
+                ? "Nada pendiente para hoy."
+                : "Pendientes de una sola vez, con fecha: pagar un recibo, entregar un trabajo…<br>Aparecen aquí el día que vencen.")}
+        ${plegable(`Próximas (${proximas.length})`, lista(proximas), proximas.length)}
+        ${plegable(`Hechas antes (${anteriores.length})`, lista(anteriores), anteriores.length)}`;
+}
+
+function tarjetaTarea(tarea, ctx) {
+    const hecha = Boolean(tarea.hechaEn);
+    const d = DIFICULTADES[tarea.dificultad];
+    const a = ATRIBUTOS[tarea.atributo];
+    const clases = ["mision", "tarea", `dificultad-${tarea.dificultad}`, hecha ? "hecha" : "", ctx.recienTarea === tarea.id ? "recien-hecha" : ""];
+    return `
+        <li class="${clases.join(" ")}" data-tarea="${tarea.id}">
+            <button type="button" class="boton-check" data-accion="alternar-tarea" data-id="${tarea.id}"
+                    aria-pressed="${hecha}" aria-label="Marcar ${esc(tarea.nombre)}">${ICONOS.check}</button>
+            <div class="mision-info">
+                <span class="mision-nombre">${esc(tarea.nombre)}</span>
+                <span class="mision-detalle">${a.icono} ${a.nombre} · ${d.nombre} · +${d.xp} XP · ${cuandoVence(tarea, ctx.hoy)}</span>
+            </div>
+            ${botonEditar("editar-tarea", tarea.id, `Editar ${tarea.nombre}`)}
+        </li>`;
+}
+
+// "Vence hoy", "Vence mañana", "Vence el vie 16 oct", "Atrasada"…
+function cuandoVence(tarea, hoy) {
+    if (tarea.hechaEn) return tarea.hechaEn === hoy ? "Hecha hoy" : `Hecha el ${fechaCorta(tarea.hechaEn)}`;
+    const dias = diasEntre(hoy, tarea.fecha);
+    if (dias < 0) return `<span class="atrasada">Atrasada: vencía el ${fechaCorta(tarea.fecha)}</span>`;
+    if (dias === 0) return "Vence hoy";
+    if (dias === 1) return "Vence mañana";
+    return `Vence el ${DIAS_CORTOS[diaDeSemana(tarea.fecha)]} ${fechaCorta(tarea.fecha)}`;
+}
+
+
+// ===== Hoy: desafío de la semana, diario y «Tu semana» =====
+
+function tarjetaDesafio(estado, ctx) {
+    const desafio = estado.desafios.find((d) => d.semana === lunesDe(ctx.hoy));
+    if (!desafio || !desafios.DESAFIOS[desafio.tipo]) return "";
+    const progreso = Math.min(desafios.progresoDesafio(estado, desafio), desafio.meta);
+    const quedan = 6 - diaDeSemana(ctx.hoy);   // días que faltan después de hoy
+    const cofre = desafios.COFRE;
+    const pie = desafio.cobradoEn
+        ? "¡Cofre abierto! Vuelve el lunes por otro desafío."
+        : `Cofre: +${cofre.monedas} 🪙 y +${cofre.xp} XP · ${quedan === 0 ? "termina hoy" : `quedan ${plural(quedan, "día", "días")}`}`;
+    return `
+        <section class="panel desafio ${desafio.cobradoEn ? "cumplido" : ""}">
+            <span class="desafio-icono" aria-hidden="true">${desafio.cobradoEn ? "🎁" : desafios.DESAFIOS[desafio.tipo].icono}</span>
+            <div class="desafio-info">
+                <span class="etiqueta">Desafío de la semana</span>
+                <b>${desafios.textoDesafio(desafio)}</b>
+                ${barra(Math.round((progreso / desafio.meta) * 100), "barra-mini")}
+                <span class="mini texto-suave">${progreso} / ${desafio.meta} · ${pie}</span>
+            </div>
+        </section>`;
+}
+
+function seccionDiario(estado, fecha, esAyer) {
+    const entrada = estado.diario[fecha];
+    const animos = Object.entries(ANIMOS_DIARIO).map(([clave, a]) => `
+        <label class="pildora">
+            <input type="radio" name="animo" value="${clave}" ${entrada?.animo === clave ? "checked" : ""}>
+            <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
+        </label>`).join("");
+    return `
+        <section class="panel diario">
+            <h2 class="titulo-juego">📓 Diario</h2>
+            <p class="nota">¿Cómo te fue ${esAyer ? "ayer" : "hoy"}? Una frase basta. Lo verás al tocar el día en el calendario.</p>
+            <form data-form="diario" class="formulario">
+                <input type="hidden" name="fecha" value="${fecha}">
+                <fieldset class="opciones" aria-label="Cómo te fue">${animos}</fieldset>
+                <div class="form-linea">
+                    <input type="text" name="texto" maxlength="140" autocomplete="off" value="${esc(entrada?.texto || "")}"
+                           placeholder="Ej: Terminé el problem set 3" aria-label="Tu frase del día">
+                    <button type="submit" class="boton boton-chico">${entrada ? "Actualizar" : "Guardar"}</button>
+                </div>
+            </form>
+        </section>`;
+}
+
+// La tarjeta «Tu semana»: aparece al empezar una semana nueva con el resumen de la anterior.
+function tarjetaSemana(estado, ctx) {
+    if (!ctx.semanaPendiente) return "";
+    const s = resumenSemana(estado, ctx.semanaPendiente);
+    const lineas = [];
+
+    if (s.desafio) {
+        lineas.push(s.desafio.cobrado
+            ? `🎁 Desafío cumplido: ${esc(s.desafio.texto)}.`
+            : `🎯 Desafío: ${esc(s.desafio.texto)} (llegaste a ${Math.min(s.desafio.progreso, s.desafio.meta)} de ${s.desafio.meta}).`);
+    }
+    if (s.semanales.length) {
+        lineas.push(`🗓️ Metas semanales: ${s.semanales.map((m) =>
+            `${esc(m.nombre)} ${m.hechas}/${m.meta}${m.cumplida ? " ✓" : ""}`).join(" · ")}`);
+    }
+    if (s.tareas) lineas.push(`📌 ${plural(s.tareas, "tarea hecha", "tareas hechas")}.`);
+    if (s.enfoque.sesiones) {
+        lineas.push(`⏱️ ${plural(s.enfoque.sesiones, "sesión", "sesiones")} de enfoque (${s.enfoque.minutos} min).`);
+    }
+    const animos = Object.entries(s.animos).filter(([, n]) => n > 0);
+    if (animos.length) {
+        lineas.push(`📓 Tu ánimo: ${animos.map(([clave, n]) => `${ANIMOS_DIARIO[clave].icono} ${n}`).join(" · ")}`);
+    }
+    if (s.descuidado) {
+        const a = ATRIBUTOS[s.descuidado];
+        lineas.push(`⚠️ El atributo más descuidado: ${a.icono} ${a.nombre}.`);
+    }
+
+    return `
+        <section class="panel semana">
+            <div class="titulo-seccion">
+                <div>
+                    <p class="etiqueta">Del ${fechaCorta(s.lunes)} al ${fechaCorta(s.domingo)}</p>
+                    <h2 class="titulo-juego">📊 Tu semana pasada</h2>
+                </div>
+                <button type="button" class="boton-icono" data-accion="cerrar-semana" aria-label="Cerrar el resumen">${ICONOS.cerrar}</button>
+            </div>
+            <div class="fichas-dato">
+                ${ficha("Cumplimiento", s.cumplimiento.pct === null ? "—" : `${s.cumplimiento.pct} %`,
+                        textoCambio(s.cambio, "puntos", "la semana anterior"))}
+                ${ficha("Misiones hechas", s.completadas, `<span class="ficha-nota">+${s.xp} XP</span>`)}
+                ${ficha("Días perfectos", `${s.perfectos} <small>de ${s.diasConMisiones}</small>`,
+                        `<span class="ficha-nota">Con todas las misiones hechas</span>`)}
+                ${ficha("Tu mejor día", s.mejorDia ? NOMBRE_DIA[s.mejorDia.dia] : "—",
+                        `<span class="ficha-nota">${s.mejorDia ? `${s.mejorDia.pct} % cumplido` : "Sin misiones hechas"}</span>`)}
+            </div>
+            ${lineas.length ? `<ul class="semana-lista">${lineas.map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}
+            <button type="button" class="boton boton-principal boton-ancho" data-accion="cerrar-semana">¡A por esta semana!</button>
+        </section>`;
 }
 
 // Texto del ánimo del avatar, con los números del momento.
@@ -298,15 +521,27 @@ export function detalleDia(estado, fecha, racha) {
     if (!fecha) return "Toca un día del calendario para ver qué hiciste.";
 
     const hechas = estado.completadas.filter((c) => c.fecha === fecha);
-    const total = juego.misionesActivasEn(estado.misiones, fecha);
+    // "X de Y" cuenta solo las que tocaban ese día (las semanales se nombran, pero no suman a Y).
+    const hechasDia = new Map([[fecha, new Set(hechas.map((c) => c.misionId))]]);
+    const { hechas: cumplidas, total } = juego.cumplimientoDelDia(estado.misiones, fecha, hechasDia);
     const nombres = hechas.map((c) => {
         const mision = estado.misiones.find((m) => m.id === c.misionId);
         return esc(mision ? mision.nombre : "misión borrada");
     });
     const protegido = racha.protegidos.has(fecha) ? " · 🛡️ protegido por un escudo" : "";
+    const tareas = estado.tareas.filter((t) => t.hechaEn === fecha).map((t) => esc(t.nombre));
+    const minutos = estado.enfoque.sesiones.filter((s) => s.fecha === fecha).reduce((suma, s) => suma + s.minutos, 0);
+    const diario = estado.diario[fecha];
 
-    return `<strong>${fechaLegible(fecha)}</strong>: ${hechas.length} de ${total}${protegido}` +
-           (nombres.length ? `<br><span class="texto-suave">${nombres.join(" · ")}</span>` : "");
+    let texto = `<strong>${fechaLegible(fecha)}</strong>: ${cumplidas} de ${total}${protegido}`;
+    if (nombres.length) texto += `<br><span class="texto-suave">${nombres.join(" · ")}</span>`;
+    if (tareas.length) texto += `<br><span class="texto-suave">📌 ${tareas.join(" · ")}</span>`;
+    if (minutos) texto += `<br><span class="texto-suave">⏱️ ${minutos} min de enfoque</span>`;
+    if (diario) {
+        const icono = diario.animo ? ANIMOS_DIARIO[diario.animo].icono : "📓";
+        texto += `<br>${icono} ${diario.texto ? `«${esc(diario.texto)}»` : ""}`;
+    }
+    return texto;
 }
 
 function tarjetaAtributo(estado, clave) {
@@ -339,16 +574,7 @@ const NOMBRE_DIA = ["lunes", "martes", "miércoles", "jueves", "viernes", "sába
 function seccionResumen(estado, ctx) {
     const r = calcularResumen(estado, ctx.hoy, ctx.rangoResumen);
     const periodo = `${r.dias} días`;
-
-    // Cambio frente al periodo anterior, con flecha y texto (no solo color).
-    const cambio = (valor, unidad) => {
-        if (valor === null) return `<span class="ficha-nota">Aún no hay un periodo anterior completo para comparar</span>`;
-        if (valor === 0) return `<span class="ficha-nota">Igual que los ${periodo} anteriores</span>`;
-        const sube = valor > 0;
-        return `<span class="ficha-nota">${sube ? "▲" : "▼"} ${Math.abs(valor)} ${unidad} ${sube ? "más" : "menos"} que los ${periodo} anteriores</span>`;
-    };
-    const ficha = (etiqueta, valor, nota) =>
-        `<div class="ficha-dato"><span class="ficha-etiqueta">${etiqueta}</span><span class="ficha-valor">${valor}</span>${nota}</div>`;
+    const cambio = (valor, unidad) => textoCambio(valor, unidad, `los ${periodo} anteriores`);
 
     const misiones = r.misiones.length
         ? `<ul class="medidores">${r.misiones.map((m) => `
@@ -499,11 +725,18 @@ export function pantallaAventuras(estado, ctx) {
                 <span class="mini texto-suave">3 minijuegos con tu avatar · 🎟️ ${plural(arcade.fichasDisponibles(estado), "ficha", "fichas")}</span></span>
             <span class="heroe-ver">Jugar ›</span>
         </button>
+        <button type="button" class="panel acceso-arcade acceso-enfoque" data-accion="ir" data-pantalla="enfoque">
+            <span class="acceso-arcade-icono">⏱️</span>
+            <span><b>Modo enfoque</b>
+                <span class="mini texto-suave">Concéntrate 15, 25 o 50 minutos y gana XP</span></span>
+            <span class="heroe-ver">Abrir ›</span>
+        </button>
 
         <div class="titulo-seccion"><h2 class="titulo-juego">Campaña de jefes</h2></div>
         <p class="nota">Cada categoría tiene 5 jefes, cada vez más fuertes. Solo los dañas cumpliendo objetivos
-           de <b>su</b> categoría: una misión diaria hace poco daño (−${d.facil} fácil, −${d.normal} normal, −${d.dificil} difícil);
-           cada paso de una <b>misión principal</b> hace −${campana.DANO.paso} y completarla entera, −${campana.DANO.principal} extra.</p>
+           de <b>su</b> categoría: una misión diaria, tarea o sesión de enfoque hace poco daño (−${d.facil} fácil, −${d.normal} normal, −${d.dificil} difícil);
+           cada paso de una <b>misión principal</b> hace −${campana.DANO.paso} y completarla entera, −${campana.DANO.principal} extra.
+           Al vencer a los 5 empieza la <b>Partida+</b>: vuelven con más vida y mejores premios.</p>
         ${campanas.map((c) => tarjetaCampana(c, ctx)).join("")}
 
         ${cabeceraSeccion("Misiones principales", "principal", "+ Nueva")}
@@ -590,8 +823,9 @@ function tarjetaCampana(c, ctx) {
     const golpeado = dano > 0;
 
     // Ruta: vencidos (en gris), el actual (resaltado) y los que vienen (silueta).
+    // En Partida+ ya los conoces a todos: los que vienen se ven, solo que apagados.
     const ruta = c.campana.jefes.map((jefe, i) => {
-        const tipo = i < c.derrotados ? "vencido" : i === c.indice ? "actual" : "futuro";
+        const tipo = i < c.indice ? "vencido" : i === c.indice ? "actual" : c.ronda > 1 ? "futuro visto" : "futuro";
         const titulo = tipo === "futuro" ? "Jefe desconocido" : `${jefe.nombre}: ${jefe.titulo}`;
         return `<li class="${tipo}" title="${esc(titulo)}">
                     <img src="${campana.imagenDe(jefe.id)}" alt="" loading="lazy" decoding="async">
@@ -599,19 +833,9 @@ function tarjetaCampana(c, ctx) {
                 </li>`;
     }).join("");
 
-    if (c.completa) {
-        return `
-            <article class="panel campana completa" style="--color-atributo: ${a.color}">
-                <div class="campana-cabecera">${chipAtributo(c.categoria)}<span class="mini texto-suave">${c.campana.nombre}</span></div>
-                <p class="campana-victoria">👑 ¡Campaña completada!</p>
-                <p class="nota">Derrotaste a los 5 jefes de ${a.nombre}.</p>
-                <ol class="ruta-jefes">${ruta}</ol>
-            </article>`;
-    }
-
     const jefe = c.jefe;
     const visual = campana.estadoVisual(c.porcentaje);
-    const premio = campana.premioJefe(c.indice + 1);
+    const premio = campana.premioJefe(c.derrotados + 1);
     return `
         <article class="panel campana jefe ${golpeado ? "golpeado" : ""}" style="--color-atributo: ${a.color}">
             <div class="campana-cabecera">
@@ -619,6 +843,8 @@ function tarjetaCampana(c, ctx) {
                 <span class="mini texto-suave">${c.campana.nombre}</span>
                 <span class="campana-numero">Jefe ${c.indice + 1}/5</span>
             </div>
+            ${c.ronda > 1 ? `<p class="ronda">👑 Partida+ · Ronda ${c.ronda}
+                <span>Vida y premios ×${String(1 + campana.MEJORA_POR_RONDA * (c.ronda - 1)).replace(".", ",")}</span></p>` : ""}
 
             <!-- Escena de batalla: tu avatar contra el jefe -->
             <div class="escena">
@@ -640,9 +866,10 @@ function tarjetaCampana(c, ctx) {
 
 // En "Hoy": el jefe actual de cada categoría, para tenerlos siempre a la vista.
 function jefesEnCombate(estado, ctx) {
-    const filas = Object.values(campana.estadoCampanas(estado)).filter((c) => !c.completa).map((c) => {
+    const filas = Object.values(campana.estadoCampanas(estado)).map((c) => {
         const a = juego.ATRIBUTOS[c.categoria];
         const dano = (ctx.golpes || {})[c.categoria] || 0;
+        const ronda = c.ronda > 1 ? ` · Ronda ${c.ronda}` : "";
         return `
             <li>
                 <button type="button" class="combate ${dano ? "golpeado" : ""}" data-accion="ir" data-pantalla="aventuras">
@@ -650,7 +877,7 @@ function jefesEnCombate(estado, ctx) {
                     <span class="combate-info">
                         <b>${esc(c.jefe.nombre)} <span class="texto-suave mini">· ${esc(c.jefe.titulo)}</span></b>
                         ${barra(c.porcentaje, "barra-vida barra-mini")}
-                        <span class="mini texto-suave">${a.icono} ${a.nombre} · Vida ${c.vida} / ${c.vidaMax}</span>
+                        <span class="mini texto-suave">${a.icono} ${a.nombre}${ronda} · Vida ${c.vida} / ${c.vidaMax}</span>
                     </span>
                 </button>
             </li>`;
@@ -750,6 +977,78 @@ export function pantallaArcade(estado, ctx) {
         </section>
         ${fichas ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
         ${tarjetas}`;
+}
+
+
+// ===== Pantalla: Modo enfoque (pomodoro) =====
+
+const LARGO_ANILLO = 2 * Math.PI * 52;   // largo del círculo del reloj (radio 52)
+
+export function pantallaEnfoque(estado, ctx) {
+    const { activo, sesiones } = estado.enfoque;
+    const minutos = (lista) => lista.reduce((suma, s) => suma + s.minutos, 0);
+    const deHoy = sesiones.filter((s) => s.fecha === ctx.hoy);
+    const deSemana = sesiones.filter((s) => s.fecha >= lunesDe(ctx.hoy));
+    const recientes = sesiones.slice(-10).reverse();
+
+    let principal;
+    if (activo) {
+        // El reloj: app.js actualiza cada segundo el texto [data-reloj] y el anillo [data-anillo].
+        const total = activo.minutos * 60 * 1000;
+        const restante = Math.max(0, juego.finDelEnfoque(activo) - ctx.ahora);
+        const a = ATRIBUTOS[activo.atributo];
+        principal = `
+            <section class="panel enfoque-activo" style="--color-atributo: ${a.color}">
+                <p class="etiqueta">Enfocado en ${a.icono} ${a.nombre}</p>
+                <div class="reloj">
+                    <svg viewBox="0 0 120 120" aria-hidden="true">
+                        <circle class="reloj-pista" cx="60" cy="60" r="52"/>
+                        <circle class="reloj-arco" cx="60" cy="60" r="52" transform="rotate(-90 60 60)"
+                                stroke-dasharray="${LARGO_ANILLO}" stroke-dashoffset="${LARGO_ANILLO * (1 - restante / total)}"
+                                data-anillo data-total="${total}" data-largo="${LARGO_ANILLO}"/>
+                    </svg>
+                    <span class="reloj-tiempo" data-reloj role="timer">${relojTexto(restante)}</span>
+                </div>
+                <p class="nota">Puedes bloquear el iPhone o salir de la app: el tiempo sigue contando y al volver
+                   recibes tu premio. Lo único que no puede hacer es sonar si la app está cerrada.</p>
+                <button type="button" class="boton boton-secundario boton-ancho" data-accion="cancelar-enfoque">Cancelar sesión</button>
+            </section>`;
+    } else {
+        const duraciones = Object.entries(juego.ENFOQUE).map(([mins, dificultad]) => `
+            <label class="pildora dificultad-${dificultad}">
+                <input type="radio" name="minutos" value="${mins}" ${mins === "25" ? "checked" : ""}>
+                <span>${mins} min<small>+${DIFICULTADES[dificultad].xp} XP</small></span>
+            </label>`).join("");
+        principal = `
+            <section class="panel">
+                <h2 class="titulo-juego">⏱️ Modo enfoque</h2>
+                <p class="nota">Elige un tiempo, deja el teléfono y concéntrate en una sola cosa.
+                   Al terminar ganas lo mismo que una misión (XP, monedas y daño al jefe de ese atributo).
+                   Si cancelas a la mitad, no hay premio.</p>
+                <form data-form="enfoque" class="formulario">
+                    <fieldset class="opciones"><legend>¿Cuánto tiempo?</legend>${duraciones}</fieldset>
+                    <fieldset class="opciones opciones-4"><legend>¿En qué te vas a enfocar?</legend>${pildorasAtributo("intelecto")}</fieldset>
+                    <button type="submit" class="boton boton-principal">Empezar</button>
+                </form>
+            </section>`;
+    }
+
+    const historial = recientes.map((s) => {
+        const a = ATRIBUTOS[s.atributo];
+        return `<li><span>${a.icono} ${s.minutos} min de ${a.nombre}</span><span class="texto-suave">${fechaCorta(s.fecha)} · +${s.xp} XP</span></li>`;
+    }).join("");
+
+    return `
+        ${principal}
+        <section class="panel">
+            <h2 class="titulo-juego">Tu concentración</h2>
+            <dl class="estadisticas">
+                <div><dt>Hoy</dt><dd>${plural(deHoy.length, "sesión", "sesiones")} · ${minutos(deHoy)} min</dd></div>
+                <div><dt>Esta semana</dt><dd>${plural(deSemana.length, "sesión", "sesiones")} · ${minutos(deSemana)} min</dd></div>
+                <div><dt>En total</dt><dd>${plural(sesiones.length, "sesión", "sesiones")} · ${minutos(sesiones)} min</dd></div>
+            </dl>
+            ${historial ? `<h3 class="subtitulo">Últimas sesiones</h3><ul class="historial">${historial}</ul>` : ""}
+        </section>`;
 }
 
 
@@ -1000,7 +1299,10 @@ export function pantallaTienda(estado, ctx) {
                 ${Object.values(DIFICULTADES).map((d) => `<div><dt>Misión ${d.nombre.toLowerCase()}</dt><dd>🪙 ${d.monedas}</dd></div>`).join("")}
                 <div><dt>Paso de misión principal</dt><dd>🪙 ${PREMIOS.submision.monedas}</dd></div>
                 <div><dt>Misión principal completa</dt><dd>🪙 ${PREMIOS.principal.monedas}</dd></div>
+                <div><dt>Tarea suelta o sesión de enfoque</dt><dd>Como una misión</dd></div>
                 <div><dt>Jefe derrotado (1.º al 5.º)</dt><dd>🪙 ${campana.premioJefe(1).monedas}–${campana.premioJefe(5).monedas}</dd></div>
+                <div><dt>Jefes en Partida+</dt><dd>🪙 Más cada ronda</dd></div>
+                <div><dt>Cofre del desafío semanal</dt><dd>🪙 ${desafios.COFRE.monedas}</dd></div>
                 <div><dt>Minijuegos</dt><dd>🪙 hasta ${arcade.MAX_MONEDAS}</dd></div>
                 <div><dt>Logros</dt><dd>Tú decides</dd></div>
             </dl>

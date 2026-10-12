@@ -14,8 +14,9 @@ import * as datos from "../js/datos.js";
 import * as acciones from "../js/acciones.js";
 import * as juego from "../js/juego.js";
 import * as campana from "../js/campana.js";
-import { calcularResumen } from "../js/resumen.js";
-import { hoy, sumarDias, diasEntre, diaDeSemana } from "../js/fechas.js";
+import * as desafios from "../js/desafios.js";
+import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.js";
+import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
 import { partidaDemo } from "./demo.js";
@@ -199,6 +200,47 @@ prueba("Archivar y restaurar: el tiempo archivada queda como pausa", () => {
 });
 
 
+// ===== Misiones semanales y con cantidad =====
+
+prueba("Semanales: se pueden marcar cualquier día y cuentan las veces de lunes a domingo", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado, { frecuencia: "semana", veces: 3 });
+    igual([mision.dias, mision.veces], [null, 3]);
+    igual(juego.sePuedeMarcar(mision, hoy()), true);
+    acciones.completarMision(estado, mision.id);
+    igual(juego.vecesEnSemana(estado.completadas, mision.id, hoy()), 1);
+    marcarEn(estado, mision, dia(-7));   // hace 7 días era otra semana: no cuenta para esta
+    igual(juego.vecesEnSemana(estado.completadas, mision.id, hoy()), 1);
+    debeFallar(() => crearMision(estado, { frecuencia: "semana", veces: 7 }), "entre 1 y 6");
+});
+
+prueba("Semanales: no rompen la racha ni cuentan para los días perfectos", () => {
+    const estado = partidaNueva();
+    const diaria = crearMision(estado);
+    const semanal = crearMision(estado, { nombre: "Gym", frecuencia: "semana", veces: 2 });
+    envejecer(estado, 3);
+    for (const n of [-3, -2, -1, 0]) marcarEn(estado, diaria, dia(n));   // el gym, ningún día
+    igual(juego.calcularRacha(estado, hoy()).actual, 4, "la racha");
+    igual(juego.resumen(estado, hoy()).diasPerfectos, 4, "los días perfectos");
+    igual(juego.misionesDelDia(estado.misiones, hoy()), [diaria], "las que tocan hoy");
+    igual(juego.semanalesDelDia(estado.misiones, hoy()), [semanal], "las semanales de hoy");
+});
+
+prueba("Cantidad: al llegar a la meta se completa sola, y si bajas se desmarca", () => {
+    const estado = partidaNueva();
+    igual(crearMision(estado, { cantidad: "" }).meta, null, "sin cantidad es una misión normal");
+    const agua = crearMision(estado, { nombre: "Agua", cantidad: "3", unidad: "vasos" });
+    igual(agua.meta, { cantidad: 3, unidad: "vasos" });
+    acciones.fijarCantidad(estado, agua.id, hoy(), 2);
+    igual([juego.cantidadDe(estado, agua, hoy()), estado.completadas.length], [2, 0]);
+    igual(acciones.fijarCantidad(estado, agua.id, hoy(), 3).xp, 25, "al llegar a 3 se completa");
+    igual(estado.completadas.length, 1);
+    acciones.fijarCantidad(estado, agua.id, hoy(), 2);
+    igual([estado.completadas.length, estado.personaje.xp], [0, 0], "al bajar de la meta se desmarca");
+    debeFallar(() => acciones.fijarCantidad(estado, agua.id, hoy(), -1), "número entero");
+});
+
+
 // ===== Rachas y escudos =====
 
 prueba("Racha: cuenta los días seguidos con al menos una misión", () => {
@@ -290,6 +332,140 @@ prueba("Jefes: al caer uno recibes su premio, y si desmarcas lo que lo derrotó,
 prueba("Jefes: cada jefe tiene más vida que el anterior y hay 5 por categoría", () => {
     for (const lista of Object.values(campana.CAMPANAS)) igual(lista.jefes.length, campana.VIDAS.length);
     for (let i = 1; i < campana.VIDAS.length; i++) cierto(campana.VIDAS[i] > campana.VIDAS[i - 1], "vida creciente");
+});
+
+prueba("Partida+: tras los 5 jefes empieza la ronda 2, con más vida y mejores premios", () => {
+    const estado = partidaNueva();
+    const pasos = Array.from({ length: 38 }, (_, i) => `Paso ${i + 1}`).join("\n");
+    acciones.crearPrincipal(estado, { nombre: "Meta enorme", atributo: "fuerza", submisiones: pasos });
+    // 38 pasos × 40 = 1520 de daño; la ronda 1 suma 1500 de vida.
+    const celebraciones = jugar(estado, () => { for (const paso of estado.principales[0].submisiones) paso.hecha = true; });
+    const c = campana.estadoCampanas(estado).fuerza;
+    igual([c.derrotados, c.ronda, c.indice], [5, 2, 0]);
+    igual([c.vidaMax, c.vida], [120, 100], "el primer jefe de la ronda 2 tiene 50 % más de vida");
+    igual(campana.premioJefe(6), { xp: 150, monedas: 75 }, "y da 50 % más de premio");
+    igual(estado.campana.recompensados.fuerza, 5, "premios entregados");
+    cierto(celebraciones.some((x) => x.etiqueta === "¡Campaña completada!"), "avisa que empieza la Partida+");
+});
+
+
+// ===== Tareas sueltas =====
+
+prueba("Tareas: dan su premio una vez, se pueden deshacer y las hechas no se borran", () => {
+    const estado = partidaNueva();
+    acciones.crearTarea(estado, { nombre: "Pagar la luz", fecha: hoy(), dificultad: "dificil", atributo: "riqueza" });
+    const tarea = estado.tareas[0];
+    acciones.alternarTarea(estado, tarea.id);
+    igual([estado.personaje.xp, estado.personaje.monedas, estado.atributos.riqueza], [50, 20, 50]);
+    debeFallar(() => acciones.borrarTarea(estado, tarea.id), "ya está hecha");
+    acciones.alternarTarea(estado, tarea.id);   // deshacer
+    igual([estado.personaje.xp, estado.personaje.monedas, tarea.hechaEn], [0, 0, null]);
+    acciones.borrarTarea(estado, tarea.id);
+    igual(estado.tareas.length, 0);
+    debeFallar(() => acciones.crearTarea(estado, { nombre: "X", fecha: "2026-02-30", dificultad: "facil", atributo: "fuerza" }),
+               "para cuándo");
+});
+
+prueba("Tareas: golpean al jefe de su atributo como una misión de su dificultad", () => {
+    const estado = partidaNueva();
+    acciones.crearTarea(estado, { nombre: "Informe", fecha: dia(3), dificultad: "normal", atributo: "intelecto" });
+    acciones.alternarTarea(estado, estado.tareas[0].id);
+    igual(campana.estadoCampanas(estado).intelecto.dano, campana.DANO.diaria.normal);
+});
+
+
+// ===== Modo enfoque y diario =====
+
+prueba("Enfoque: antes de tiempo no da nada; al terminar da lo mismo que una misión", () => {
+    const estado = partidaNueva();
+    const inicio = Date.now();
+    acciones.empezarEnfoque(estado, { minutos: "25", atributo: "intelecto" }, inicio);
+    debeFallar(() => acciones.empezarEnfoque(estado, { minutos: "25", atributo: "intelecto" }), "en curso");
+    igual(acciones.revisarEnfoque(estado, inicio + 24 * 60 * 1000), null, "a los 24 minutos");
+    const resultado = acciones.revisarEnfoque(estado, inicio + 25 * 60 * 1000);
+    igual(resultado.celebraciones.length, 1, "celebraciones");
+    igual([estado.personaje.xp, estado.personaje.monedas, estado.atributos.intelecto], [25, 10, 25]);
+    igual(estado.enfoque.activo, null);
+    igual(campana.estadoCampanas(estado).intelecto.dano, campana.DANO.diaria.normal, "daño al jefe");
+});
+
+prueba("Enfoque: cancelar a la mitad no da premio", () => {
+    const estado = partidaNueva();
+    acciones.empezarEnfoque(estado, { minutos: "15", atributo: "fuerza" });
+    acciones.cancelarEnfoque(estado);
+    igual([estado.enfoque.activo, estado.enfoque.sesiones.length, estado.personaje.xp], [null, 0, 0]);
+    debeFallar(() => acciones.empezarEnfoque(estado, { minutos: "40", atributo: "fuerza" }), "minutos");
+});
+
+prueba("Diario: guarda la frase y el ánimo de hoy o de ayer; vacío se borra", () => {
+    const estado = partidaNueva();
+    acciones.escribirDiario(estado, { fecha: hoy(), animo: "bien", texto: "  Buen día  " });
+    igual(estado.diario[hoy()], { animo: "bien", texto: "Buen día" });
+    acciones.escribirDiario(estado, { fecha: hoy(), animo: "", texto: "" });
+    igual(hoy() in estado.diario, false);
+    debeFallar(() => acciones.escribirDiario(estado, { fecha: dia(-2), animo: "bien", texto: "" }), "hoy o de ayer");
+    debeFallar(() => acciones.escribirDiario(estado, { fecha: hoy(), animo: "feliz", texto: "" }), "cómo te fue");
+});
+
+
+// ===== Desafío de la semana y «Tu semana» =====
+
+prueba("Desafío semanal: se elige uno por semana y no cambia al volver a abrir", () => {
+    const estado = partidaNueva();
+    crearMision(estado);
+    cierto(acciones.asegurarDesafio(estado) !== null, "se crea el de esta semana");
+    igual(acciones.asegurarDesafio(estado), null, "la segunda vez no crea otro");
+    igual(estado.desafios.length, 1);
+    igual(estado.desafios[0].semana, lunesDe(hoy()));
+    cierto(desafios.DESAFIOS[estado.desafios[0].tipo].disponible(estado, lunesDe(hoy())), "el desafío es posible");
+});
+
+prueba("Desafío semanal: no toca uno imposible para tu partida", () => {
+    const estado = partidaNueva();
+    crearMision(estado, { dificultad: "facil" });
+    envejecer(estado, 7);
+    const lunes = lunesDe(hoy());
+    igual(desafios.DESAFIOS.dificiles.disponible(estado, lunes), false, "sin misiones difíciles");
+    igual(desafios.DESAFIOS.atributos.disponible(estado, lunes), false, "sin misiones de los 4 atributos");
+    igual(desafios.DESAFIOS.total.meta(estado, lunes), 6, "80 % de las 7 que tocan");
+});
+
+prueba("Desafío semanal: si se crea a mitad de semana, pide menos", () => {
+    const estado = partidaNueva();
+    const lunes = lunesDe(hoy());
+    const completo = desafios.elegirDesafio(estado, lunes);
+    const sabado = desafios.elegirDesafio(estado, lunes, sumarDias(lunes, 5));   // quedan 2 de 7 días
+    igual(sabado.tipo, completo.tipo, "el mismo desafío");
+    igual(sabado.meta, Math.max(1, Math.round((completo.meta * 2) / 7)));
+    cierto(sabado.meta < completo.meta, "una meta más pequeña");
+});
+
+prueba("Desafío semanal: al cumplirlo se abre el cofre una sola vez", () => {
+    const estado = partidaNueva();
+    estado.desafios.push({ semana: lunesDe(hoy()), tipo: "diario", meta: 1, cobradoEn: null });
+    const celebraciones = jugar(estado, () => acciones.escribirDiario(estado, { fecha: hoy(), animo: "bien", texto: "" }));
+    cierto(celebraciones.some((c) => c.etiqueta === "¡Desafío cumplido!"), "hay celebración del cofre");
+    igual([estado.personaje.xp, estado.personaje.monedas], [desafios.COFRE.xp, desafios.COFRE.monedas]);
+    jugar(estado, () => {});
+    igual(estado.personaje.monedas, desafios.COFRE.monedas, "el cofre no se cobra dos veces");
+});
+
+prueba("Tu semana: resume la semana pasada de lunes a domingo y se muestra hasta cerrarla", () => {
+    const estado = partidaNueva();
+    igual(semanaPorMostrar(estado, hoy()), null, "un personaje nuevo no tiene semana pasada");
+    const mision = crearMision(estado);
+    const lunesPasado = sumarDias(lunesDe(hoy()), -7);
+    estado.personaje.creadoEn = lunesPasado;
+    mision.creadaEn = lunesPasado;
+    for (const n of [0, 2, 4, 6]) marcarEn(estado, mision, sumarDias(lunesPasado, n));   // lun, mié, vie y dom
+    marcarEn(estado, mision, hoy());                                                     // esta semana: no cuenta
+    estado.diario[lunesPasado] = { animo: "bien", texto: "" };
+
+    igual(semanaPorMostrar(estado, hoy()), lunesPasado);
+    const s = resumenSemana(estado, lunesPasado);
+    igual([s.completadas, s.perfectos, s.cumplimiento.pct, s.animos.bien], [4, 4, 57, 1]);
+    acciones.cerrarResumenSemanal(estado);
+    igual(semanaPorMostrar(estado, hoy()), null, "después de cerrarla");
 });
 
 
@@ -403,11 +579,14 @@ prueba("Copia de seguridad: exportar e importar deja la partida igual", () => {
 });
 
 prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", () => {
-    const vieja = JSON.stringify({ personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] });
+    const vieja = JSON.stringify({ version: 1, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] });
     const estado = datos.desdeRespaldo(vieja);
+    igual(estado.version, datos.estadoInicial().version, "la versión de los datos");
     igual(estado.ajustes, { sonido: true });
     igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
     igual(estado.campana, { recompensados: {} });
+    igual([estado.tareas, estado.desafios, estado.diario, estado.avances], [[], [], {}, {}], "las listas nuevas");
+    igual(estado.enfoque, { activo: null, sesiones: [] });
 });
 
 prueba("Copia de seguridad: un archivo cualquiera se rechaza", () => {
@@ -503,14 +682,16 @@ prueba("Partida de ejemplo: su historial respeta las reglas", () => {
         cierto(!vistas.has(clave), `sin repetidos (${clave})`);
         vistas.add(clave);
         const mision = estado.misiones.find((m) => m.id === c.misionId);
-        cierto(juego.tocaEseDia(mision, c.fecha), `la misión tocaba ese día (${clave})`);
+        cierto(juego.sePuedeMarcar(mision, c.fecha), `la misión se podía marcar ese día (${clave})`);
     }
-    // La XP de cada atributo coincide con lo que dice el historial.
-    const xpDiarias = estado.completadas.reduce((suma, c) => suma + c.xp, 0);
+    // La XP coincide con lo que dice el historial.
+    const suma = (lista) => lista.reduce((total, x) => total + x.xp, 0);
     const pasos = estado.principales.flatMap((p) => p.submisiones).filter((s) => s.hecha).length;
     const jefes = Object.values(estado.campana.recompensados)
-        .reduce((suma, n) => suma + Array.from({ length: n }, (_, i) => campana.premioJefe(i + 1).xp).reduce((a, b) => a + b, 0), 0);
-    igual(estado.personaje.xp, xpDiarias + pasos * juego.PREMIOS.submision.xp + jefes);
+        .reduce((total, n) => total + suma(Array.from({ length: n }, (_, i) => campana.premioJefe(i + 1))), 0);
+    const tareas = suma(estado.tareas.filter((t) => t.premio).map((t) => t.premio));
+    igual(estado.personaje.xp,
+          suma(estado.completadas) + pasos * juego.PREMIOS.submision.xp + jefes + tareas + suma(estado.enfoque.sesiones));
 });
 
 

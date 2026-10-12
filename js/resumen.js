@@ -4,8 +4,9 @@
 // "Cumplimiento" = de las misiones que TOCABAN cada día, cuántas hiciste.
 // Los días de descanso (sin misiones) no cuentan ni a favor ni en contra.
 
-import { sumarDias, diaDeSemana } from "./fechas.js";
-import { ATRIBUTOS, hechasPorFecha, misionesDelDia } from "./juego.js";
+import { sumarDias, diaDeSemana, lunesDe } from "./fechas.js";
+import { ATRIBUTOS, ANIMOS_DIARIO, hechasPorFecha, misionesDelDia, estaActiva, vecesEnSemana } from "./juego.js";
+import { DESAFIOS, progresoDesafio, textoDesafio } from "./desafios.js";
 
 function porcentaje(hechas, total) {
     return total > 0 ? Math.round((hechas / total) * 100) : null;   // null = no tocaba nada
@@ -62,12 +63,22 @@ export function calcularResumen(estado, hoy, dias) {
     const misiones = estado.misiones.filter((m) => !m.archivadaEn).map((m) => {
         let tocaba = 0;
         let hizo = 0;
+        let activa = 0;   // días que existía (para las semanales)
         for (const dia of actual.porDia) {
             if (dia.antes) continue;
-            if (misionesDelDia([m], dia.fecha).length) {
+            const hecha = Boolean(hechasDia.get(dia.fecha)?.has(m.id));
+            if (m.veces) {
+                if (estaActiva(m, dia.fecha)) activa += 1;
+                if (hecha) hizo += 1;
+            } else if (misionesDelDia([m], dia.fecha).length) {
                 tocaba += 1;
-                if (hechasDia.get(dia.fecha)?.has(m.id)) hizo += 1;
+                if (hecha) hizo += 1;
             }
+        }
+        // Una semanal de 3 veces debía hacerse 3 veces cada 7 días que estuvo activa.
+        if (m.veces) {
+            tocaba = Math.round((m.veces * activa) / 7);
+            hizo = Math.min(hizo, tocaba);
         }
         return { id: m.id, nombre: m.nombre, atributo: m.atributo, hechas: hizo, total: tocaba, pct: porcentaje(hizo, tocaba) };
     }).filter((m) => m.total > 0).sort((a, b) => b.pct - a.pct);
@@ -111,5 +122,67 @@ export function calcularResumen(estado, hoy, dias) {
         misiones,
         atributos,
         descuidado,
+    };
+}
+
+
+// ===== Tu semana (la tarjeta del lunes) =====
+
+// ¿Hay que mostrar el resumen de la semana pasada? Devuelve su lunes, o null.
+// Se muestra si jugaste esa semana y todavía no cerraste la tarjeta en esta.
+export function semanaPorMostrar(estado, hoy) {
+    const esteLunes = lunesDe(hoy);
+    const lunesPasado = sumarDias(esteLunes, -7);
+    const jugaste = estado.personaje.creadoEn <= sumarDias(lunesPasado, 6);
+    return jugaste && estado.semanaVista !== esteLunes ? lunesPasado : null;
+}
+
+// Todo lo que pasó en una semana (de lunes a domingo).
+export function resumenSemana(estado, lunes) {
+    const domingo = sumarDias(lunes, 6);
+    const enSemana = (fecha) => Boolean(fecha) && fecha >= lunes && fecha <= domingo;
+    // Es el resumen de "últimos 7 días" pero mirado desde el domingo (y compara con la semana anterior).
+    const r = calcularResumen(estado, domingo, 7);
+
+    // El mejor día de ESA semana.
+    let mejor = null;
+    for (const dia of r.porDia) {
+        if (dia.pct !== null && dia.hechas > 0 && (!mejor || dia.pct > mejor.pct)) mejor = dia;
+    }
+
+    // Metas «N veces por semana» que existían esa semana.
+    const semanales = estado.misiones
+        .filter((m) => m.veces && m.creadaEn <= domingo && (!m.archivadaEn || m.archivadaEn > lunes))
+        .map((m) => {
+            const hechas = vecesEnSemana(estado.completadas, m.id, lunes);
+            return { nombre: m.nombre, hechas, meta: m.veces, cumplida: hechas >= m.veces };
+        });
+
+    const sesiones = estado.enfoque.sesiones.filter((s) => enSemana(s.fecha));
+    const animos = {};
+    for (const clave of Object.keys(ANIMOS_DIARIO)) animos[clave] = 0;
+    for (const [fecha, entrada] of Object.entries(estado.diario)) {
+        if (enSemana(fecha) && entrada.animo) animos[entrada.animo] += 1;
+    }
+
+    const desafio = estado.desafios.find((d) => d.semana === lunes && DESAFIOS[d.tipo]);
+    return {
+        lunes,
+        domingo,
+        cumplimiento: r.cumplimiento,
+        cambio: r.cambio,
+        perfectos: r.perfectos,
+        diasConMisiones: r.diasConMisiones,
+        xp: r.xp,
+        completadas: estado.completadas.filter((c) => enSemana(c.fecha)).length,
+        mejorDia: mejor ? { dia: diaDeSemana(mejor.fecha), pct: mejor.pct } : null,
+        descuidado: r.descuidado,
+        semanales,
+        tareas: estado.tareas.filter((t) => enSemana(t.hechaEn)).length,
+        enfoque: { sesiones: sesiones.length, minutos: sesiones.reduce((suma, s) => suma + s.minutos, 0) },
+        animos,
+        desafio: desafio
+            ? { texto: textoDesafio(desafio), progreso: progresoDesafio(estado, desafio), meta: desafio.meta, cobrado: Boolean(desafio.cobradoEn) }
+            : null,
     };
 }

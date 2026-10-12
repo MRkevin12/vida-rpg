@@ -742,6 +742,66 @@ button {
     color: var(--texto-suave);
 }
 
+/* Misiones con cantidad: el botón redondo dice "+1" hasta llegar a la meta */
+.boton-check b {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--color-dificultad);
+}
+
+.cantidad {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin-top: 6px;
+}
+
+.cantidad .barra {
+    flex: 1 0 100%;
+}
+
+.cantidad-valor,
+.cantidad-menos {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.cantidad-menos {
+    width: 32px;
+    padding: 0;
+}
+
+.mision.hecha .cantidad-valor {
+    color: var(--verde);
+    border-color: rgba(52, 211, 153, 0.4);
+}
+
+/* Misiones semanales: cuántas veces llevas esta semana */
+.semana-progreso {
+    margin-top: 2px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #c4b5fd;
+}
+
+.semana-progreso.cumplida {
+    color: var(--verde);
+}
+
+/* Tareas sueltas que ya vencieron */
+.atrasada {
+    font-weight: 600;
+    color: var(--rojo);
+}
+
 .aviso-respaldo {
     display: flex;
     align-items: center;
@@ -1305,6 +1365,27 @@ button.celda {
     filter: grayscale(1) brightness(0.16) blur(2px);
 }
 
+/* En Partida+ ya los conoces: se ven, pero apagados */
+.ruta-jefes .futuro.visto img {
+    filter: grayscale(0.7) brightness(0.45);
+}
+
+/* Aviso de Partida+ en la tarjeta de la campaña */
+.ronda {
+    margin-top: 4px;
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--oro);
+}
+
+.ronda span {
+    margin-left: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-weight: 600;
+    color: var(--texto-suave);
+}
+
 .ruta-jefes .futuro span {
     color: var(--texto-suave);
 }
@@ -1526,6 +1607,7 @@ button.celda {
 
 input[type="text"],
 input[type="number"],
+input[type="date"],
 select,
 textarea {
     width: 100%;
@@ -1550,6 +1632,16 @@ select {
 
 textarea {
     resize: vertical;
+}
+
+/* Fecha: en el iPhone el campo vacío se encoge y el texto se centra; lo evitamos. */
+input[type="date"] {
+    display: block;
+    min-height: 48px;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
 }
 
 input:focus,
@@ -1670,6 +1762,20 @@ textarea:focus {
 }
 
 .opciones-7 .pildora span {
+    padding: 10px 0;
+}
+
+.opciones-2 {
+    grid-template-columns: 1fr 1fr;
+}
+
+/* Veces por semana: 6 números en una fila */
+.opciones-6 {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+}
+
+.opciones-6 .pildora span {
     padding: 10px 0;
 }
 
@@ -2797,6 +2903,115 @@ textarea:focus {
 .minijuego-final .botones-dialogo {
     width: 100%;
     margin-top: 8px;
+}
+
+
+/* ===== Hoy: desafío, diario y «Tu semana» ===== */
+.desafio {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-color: rgba(139, 92, 246, 0.55);
+}
+
+.desafio.cumplido {
+    border-color: rgba(251, 191, 36, 0.55);
+    box-shadow: 0 0 22px rgba(251, 191, 36, 0.15);
+}
+
+.desafio-icono {
+    font-size: 2rem;
+}
+
+.desafio-info {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.diario .formulario {
+    margin-top: 10px;
+    gap: 10px;
+}
+
+.semana {
+    display: grid;
+    gap: 12px;
+    border-color: rgba(251, 191, 36, 0.5);
+    animation: bajar 0.35s ease-out;
+}
+
+.semana-lista {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    font-size: 0.88rem;
+    list-style: none;
+}
+
+
+/* ===== Modo enfoque ===== */
+.chip-enfoque {
+    color: #a5f3fc;
+    border-color: rgba(34, 211, 238, 0.5);
+    cursor: pointer;
+}
+
+.chip-enfoque.activo {
+    font-variant-numeric: tabular-nums;
+    background: rgba(34, 211, 238, 0.12);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
+}
+
+.acceso-enfoque {
+    border-color: rgba(34, 211, 238, 0.45);
+}
+
+.enfoque-activo {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    text-align: center;
+}
+
+/* El reloj: un anillo que se va vaciando, con el tiempo en el centro */
+.reloj {
+    position: relative;
+    width: min(240px, 70vw);
+    aspect-ratio: 1;
+}
+
+.reloj svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.reloj-pista {
+    fill: none;
+    stroke: var(--hundido);
+    stroke-width: 8;
+}
+
+.reloj-arco {
+    fill: none;
+    stroke: var(--color-atributo);
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear;
+}
+
+.reloj-tiempo {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-family: "Orbitron", sans-serif;
+    font-size: 2.6rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
 }
 
 

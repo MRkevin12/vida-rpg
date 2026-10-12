@@ -4,7 +4,7 @@
 // (cuánta XP da cada cosa) y funciones que calculan resultados.
 // Si quieres cambiar el balance del juego, este es el lugar.
 
-import { sumarDias, diaDeSemana } from "./fechas.js";
+import { sumarDias, diaDeSemana, lunesDe } from "./fechas.js";
 import { totalDerrotados } from "./campana.js";
 
 
@@ -40,6 +40,17 @@ export const REGRESO = { diasMinimos: 3, xpPorDia: 15, xpMaximo: 150 };
 // XP base de los niveles: pasar del nivel N al N+1 cuesta BASE × N.
 export const BASE_PERSONAJE = 100; // personaje: 100, 200, 300...
 export const BASE_ATRIBUTO = 50;   // atributos:  50, 100, 150...
+
+// Modo enfoque: cada duración (en minutos) vale lo mismo que una misión de esa
+// dificultad: la misma XP, las mismas monedas y el mismo daño al jefe.
+export const ENFOQUE = { 15: "facil", 25: "normal", 50: "dificil" };
+
+// Diario: cómo te fue el día.
+export const ANIMOS_DIARIO = {
+    bien:   { icono: "😀", nombre: "Bien" },
+    normal: { icono: "😐", nombre: "Normal" },
+    mal:    { icono: "😞", nombre: "Mal" },
+};
 
 // Tipos de condición para los logros personalizados.
 // "campo" indica si el logro necesita elegir además una misión o un atributo.
@@ -100,21 +111,58 @@ export function hechasPorFecha(completadas) {
     return mapa;
 }
 
-// ¿Le tocaba esta misión ese día?
-// mision.dias: lista de días de la semana (0 = lunes … 6 = domingo), o null = todos.
+// ¿La misión existía ese día y no estaba archivada ni en pausa?
 // mision.pausas: temporadas en que estuvo archivada: [{ desde, hasta }].
-export function tocaEseDia(mision, fecha, diaSemana = diaDeSemana(fecha)) {
+export function estaActiva(mision, fecha) {
     if (mision.creadaEn > fecha) return false;                             // todavía no existía
     if (mision.archivadaEn && mision.archivadaEn <= fecha) return false;   // ya estaba archivada
-    if ((mision.pausas || []).some((p) => p.desde <= fecha && fecha < p.hasta)) return false;
-    if (mision.dias && !mision.dias.includes(diaSemana)) return false;     // ese día de la semana no toca
-    return true;
+    return !(mision.pausas || []).some((p) => p.desde <= fecha && fecha < p.hasta);
+}
+
+// ¿Se podía marcar ese día?
+// mision.dias: lista de días de la semana (0 = lunes … 6 = domingo), o null = todos.
+// Las misiones «N veces por semana» (mision.veces) se pueden marcar cualquier día.
+export function sePuedeMarcar(mision, fecha, diaSemana = diaDeSemana(fecha)) {
+    if (!estaActiva(mision, fecha)) return false;
+    return !mision.dias || mision.dias.includes(diaSemana);
+}
+
+// ¿Le TOCABA ese día? Es decir: si no la hacías, contaba como fallada.
+// Las semanales nunca "tocan" un día concreto (tú eliges cuándo), así que no
+// cuentan para la racha, los días perfectos ni el calendario.
+export function tocaEseDia(mision, fecha, diaSemana = diaDeSemana(fecha)) {
+    return !mision.veces && sePuedeMarcar(mision, fecha, diaSemana);
 }
 
 // Las misiones que tocaban ese día.
 export function misionesDelDia(misiones, fecha) {
     const diaSemana = diaDeSemana(fecha);
     return misiones.filter((m) => tocaEseDia(m, fecha, diaSemana));
+}
+
+// Las misiones «N veces por semana» que se podían marcar ese día.
+export function semanalesDelDia(misiones, fecha) {
+    return misiones.filter((m) => m.veces && estaActiva(m, fecha));
+}
+
+// Cuántas veces completaste una misión en la semana (de lunes a domingo) de esa fecha.
+export function vecesEnSemana(completadas, misionId, fecha) {
+    const lunes = lunesDe(fecha);
+    const domingo = sumarDias(lunes, 6);
+    return completadas.filter((c) => c.misionId === misionId && c.fecha >= lunes && c.fecha <= domingo).length;
+}
+
+// Misiones con cantidad (mision.meta = { cantidad, unidad }): cuánto llevas ese día.
+// El avance se guarda en estado.avances con la clave "id|fecha" (ej: "5|2026-10-12": 3).
+export function cantidadDe(estado, mision, fecha) {
+    const meta = mision.meta.cantidad;
+    const hecha = estado.completadas.some((c) => c.misionId === mision.id && c.fecha === fecha);
+    return hecha ? meta : Math.min(estado.avances[`${mision.id}|${fecha}`] || 0, meta);
+}
+
+// Cuándo termina una sesión de enfoque (en milisegundos, como Date.now()).
+export function finDelEnfoque(sesion) {
+    return sesion.inicio + sesion.minutos * 60 * 1000;
 }
 
 // Cuántas misiones tocaban ese día. Si es 0, es día de descanso.

@@ -30,6 +30,17 @@ const MISIONES = [
     { nombre: "Meditar 10 minutos", dificultad: "facil", atributo: "carisma", dias: null, constancia: 0.6 },
     { nombre: "Llamar a un amigo", dificultad: "facil", atributo: "carisma", dias: [2, 6], constancia: 0.5 },
     { nombre: "Anotar mis gastos", dificultad: "facil", atributo: "riqueza", dias: null, constancia: 0.7 },
+    { nombre: "Nadar", dificultad: "normal", atributo: "fuerza", frecuencia: "semana", veces: 2, constancia: 0.4 },
+    { nombre: "Beber agua", dificultad: "facil", atributo: "fuerza", dias: null, cantidad: 8, unidad: "vasos", constancia: 0.75 },
+];
+
+// Frases del diario de ejemplo (se repiten en ciclo).
+const DIARIO = [
+    ["bien", "Terminé el módulo de funciones"],
+    ["normal", "Día largo, pero cumplí lo básico"],
+    ["bien", "Corrí sin parar por primera vez"],
+    ["mal", "Dormí poco y me costó concentrarme"],
+    ["bien", "Buena conversación con mi hermana"],
 ];
 
 export function partidaDemo(dias = 45) {
@@ -75,7 +86,9 @@ export function partidaDemo(dias = 45) {
         const finDeSemana = diaDeSemana(fecha) >= 5;
         const reciente = i >= dias - 7;   // la última semana va un poco mejor
         estado.misiones.forEach((mision, posicion) => {
-            if (!juego.tocaEseDia(mision, fecha)) return;
+            if (!juego.sePuedeMarcar(mision, fecha)) return;
+            // Una semanal no se hace más veces de las que pide la semana.
+            if (mision.veces && juego.vecesEnSemana(estado.completadas, mision.id, fecha) >= mision.veces) return;
             let probabilidad = MISIONES[posicion].constancia - (finDeSemana ? 0.25 : 0) + (reciente ? 0.1 : 0);
             if (esHoy) probabilidad = posicion < 2 ? 1 : 0;
             if (azar() >= probabilidad) return;
@@ -83,7 +96,36 @@ export function partidaDemo(dias = 45) {
             estado.completadas.push({ misionId: mision.id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad });
             acciones.ganar(estado, { xp, monedas, atributo: mision.atributo });
         });
+
+        // Una sesión de enfoque de 25 minutos casi todos los días hábiles.
+        if (!finDeSemana && !esHoy && azar() < 0.6) {
+            const { xp, monedas } = juego.DIFICULTADES.normal;
+            estado.enfoque.sesiones.push({ fecha, minutos: 25, atributo: "intelecto", dificultad: "normal", xp, monedas });
+            acciones.ganar(estado, { xp, monedas, atributo: "intelecto" });
+        }
+        // El diario de las últimas dos semanas.
+        if (i >= dias - 14 && !esHoy) {
+            const [animo, texto] = DIARIO[i % DIARIO.length];
+            estado.diario[fecha] = { animo, texto };
+        }
     }
+
+    // Hoy lleva 5 de 8 vasos de agua.
+    const agua = estado.misiones.find((m) => m.meta);
+    estado.avances[`${agua.id}|${hoy()}`] = 5;
+
+    // Tareas sueltas: una atrasada, una para hoy, dos próximas y una ya hecha.
+    const tareas = [
+        { nombre: "Renovar el pasaporte", fecha: sumarDias(hoy(), -2), dificultad: "normal", atributo: "riqueza" },
+        { nombre: "Pagar el recibo de la luz", fecha: hoy(), dificultad: "facil", atributo: "riqueza" },
+        { nombre: "Entregar el informe del curso", fecha: sumarDias(hoy(), 3), dificultad: "dificil", atributo: "intelecto" },
+        { nombre: "Comprar el regalo de Ana", fecha: sumarDias(hoy(), 9), dificultad: "facil", atributo: "carisma" },
+        { nombre: "Llevar la bici al taller", fecha: sumarDias(hoy(), -3), dificultad: "normal", atributo: "fuerza" },
+    ];
+    for (const t of tareas) acciones.crearTarea(estado, t);
+    const hecha = estado.tareas[estado.tareas.length - 1];
+    acciones.alternarTarea(estado, hecha.id);
+    hecha.hechaEn = sumarDias(hoy(), -3);   // la hizo el día que vencía
 
     // Tres pasos de la primera misión principal ya están hechos.
     const carrera = estado.principales[0];

@@ -13,16 +13,28 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 1,
+        version: 2,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
 
-        misiones: [],         // diarias: { id, nombre, dificultad, atributo, dias, creadaEn, archivadaEn, pausas }
+        misiones: [],         // diarias: { id, nombre, dificultad, atributo, dias, veces, meta, creadaEn, archivadaEn, pausas }
                               //   dias: días de la semana que toca (0 = lunes … 6 = domingo) o null = todos
+                              //   veces: si es «N veces por semana», ese N (y dias = null); si no, null
+                              //   meta: { cantidad, unidad } si se cuenta (ej: 8 vasos); si no, null
         completadas: [],      // historial: { misionId, fecha, xp, monedas, atributo, dificultad }
+        avances: {},          // misiones con cantidad: cuánto llevas hoy y ayer, { "id|fecha": 3 }
+
+        tareas: [],           // sueltas: { id, nombre, fecha (vence), dificultad, atributo, creadaEn,
+                              //   hechaEn, premio: { xp, monedas, atributo, dificultad } }
+        enfoque: {            // modo enfoque (pomodoro)
+            activo: null,     // la sesión en curso: { inicio (milisegundos), minutos, atributo }
+            sesiones: [],     // terminadas: { fecha, minutos, atributo, dificultad, xp, monedas }
+        },
+        diario: {},           // { "2026-10-12": { animo: "bien" | "normal" | "mal" | null, texto } }
+        desafios: [],         // desafío de cada semana: { semana (su lunes), tipo, meta, cobradoEn }
 
         principales: [],      // { id, nombre, atributo, creadaEn, completadaEn, archivada,
-                              //   submisiones: [{ id, nombre, hecha }] }
+                              //   submisiones: [{ id, nombre, hecha, hechaEn }] }
         jefes: [],            // { id, nombre, atributo, vidaMax, golpes: [{ fecha, dano }],
                               //   creadoEn, derrotadoEn, archivado }
 
@@ -47,18 +59,27 @@ export function estadoInicial() {
         ultimaVisita: null,   // último día que abriste la app (para el bonus de regreso)
         ultimoAvisoEscudo: null,
         ultimoRespaldo: null,
+        semanaVista: null,    // lunes de la semana en que cerraste la tarjeta «Tu semana»
         siguienteId: 1,       // contador para darle un id único a cada cosa nueva
     };
 }
 
 // Rellena lo que falte (por si el respaldo es de una versión más vieja de la app).
+// Las listas nuevas (tareas, desafíos…) ya vienen vacías en "base".
 function completar(guardado) {
     const base = estadoInicial();
     const avatar = guardado.avatar || {};
     return {
         ...base,
         ...guardado,
+        version: base.version,
         atributos: { ...base.atributos, ...guardado.atributos },
+        avances: { ...guardado.avances },
+        enfoque: {
+            activo: guardado.enfoque?.activo || null,
+            sesiones: guardado.enfoque?.sesiones || [],
+        },
+        diario: { ...guardado.diario },
         avatar: {
             comprados: avatar.comprados || [],
             equipado: { ...base.avatar.equipado, ...avatar.equipado },

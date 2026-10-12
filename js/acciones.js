@@ -10,7 +10,8 @@ import * as juego from "./juego.js";
 import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
-import { hoy, diasEntre, sumarDias } from "./fechas.js";
+import * as desafios from "./desafios.js";
+import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
 // ===== Ayudantes =====
@@ -49,6 +50,11 @@ function validarEntero(valor, minimo, maximo, queEs) {
 function validarAtributo(atributo) {
     if (!juego.ATRIBUTOS[atributo]) throw new Error("Elige un atributo.");
     return atributo;
+}
+
+function validarDificultad(dificultad) {
+    if (!juego.DIFICULTADES[dificultad]) throw new Error("Elige una dificultad.");
+    return dificultad;
 }
 
 // Suma (o resta, si los números son negativos) XP, monedas y XP de un atributo.
@@ -91,14 +97,32 @@ function validarDias(dias) {
     return lista.length === 7 ? null : lista;
 }
 
-export function crearMision(estado, { nombre, dificultad, atributo, dias }) {
-    if (!juego.DIFICULTADES[dificultad]) throw new Error("Elige una dificultad.");
+// Cada cuánto toca una misión: en días fijos de la semana ("dias"),
+// o N veces por semana, el día que tú quieras ("semana").
+function validarFrecuencia({ frecuencia, dias, veces }) {
+    if (frecuencia === "semana") {
+        return { dias: null, veces: validarEntero(veces, 1, 6, "Las veces por semana") };
+    }
+    return { dias: validarDias(dias), veces: null };
+}
+
+// Meta de cantidad (opcional): ej. 8 vasos de agua. Si el campo viene vacío,
+// es una misión normal de marcar y listo.
+function validarMeta(cantidad, unidad) {
+    if (cantidad === undefined || cantidad === null || String(cantidad).trim() === "") return null;
+    const textoUnidad = String(unidad || "").trim();
+    if (textoUnidad.length > 20) throw new Error("La unidad puede tener máximo 20 letras.");
+    return { cantidad: validarEntero(cantidad, 2, 1000, "La cantidad"), unidad: textoUnidad };
+}
+
+export function crearMision(estado, { nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad }) {
     estado.misiones.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
-        dificultad,
+        dificultad: validarDificultad(dificultad),
         atributo: validarAtributo(atributo),
-        dias: validarDias(dias),
+        ...validarFrecuencia({ frecuencia, dias, veces }),   // agrega "dias" y "veces"
+        meta: validarMeta(cantidad, unidad),
         creadaEn: hoy(),
         archivadaEn: null,
         pausas: [],
@@ -107,13 +131,13 @@ export function crearMision(estado, { nombre, dificultad, atributo, dias }) {
 
 // Editar una misión. Lo que ya completaste no cambia: cada registro del
 // historial guardó su propia XP, dificultad y atributo.
-export function editarMision(estado, { id, nombre, dificultad, atributo, dias }) {
+export function editarMision(estado, { id, nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad }) {
     const mision = buscar(estado.misiones, Number(id), "esa misión");
-    if (!juego.DIFICULTADES[dificultad]) throw new Error("Elige una dificultad.");
     mision.nombre = validarNombre(nombre, 60);
-    mision.dificultad = dificultad;
+    mision.dificultad = validarDificultad(dificultad);
     mision.atributo = validarAtributo(atributo);
-    mision.dias = validarDias(dias);
+    Object.assign(mision, validarFrecuencia({ frecuencia, dias, veces }));
+    mision.meta = validarMeta(cantidad, unidad);
 }
 
 // Mover una misión un puesto arriba (-1) o abajo (+1) entre las que no están archivadas.
@@ -128,18 +152,16 @@ export function moverMision(estado, id, direccion) {
 }
 
 // Solo se puede marcar hoy o ayer (por si se te olvidó).
-function validarFecha(fecha) {
+function validarFecha(fecha, mensaje = "Solo puedes marcar misiones de hoy o de ayer.") {
     const actual = hoy();
-    if (fecha !== actual && fecha !== sumarDias(actual, -1)) {
-        throw new Error("Solo puedes marcar misiones de hoy o de ayer.");
-    }
+    if (fecha !== actual && fecha !== sumarDias(actual, -1)) throw new Error(mensaje);
     return fecha;
 }
 
 export function completarMision(estado, id, fecha = hoy()) {
     const mision = buscar(estado.misiones, id, "esa misión");
     validarFecha(fecha);
-    if (!juego.tocaEseDia(mision, fecha)) throw new Error("Esa misión no tocaba ese día.");
+    if (!juego.sePuedeMarcar(mision, fecha)) throw new Error("Esa misión no tocaba ese día.");
     if (estado.completadas.some((c) => c.misionId === id && c.fecha === fecha)) {
         throw new Error("Esa misión ya estaba completada ese día.");
     }
@@ -163,6 +185,32 @@ export function desmarcarMision(estado, id, fecha = hoy()) {
     return { xp: -completada.xp };
 }
 
+// Misiones con cantidad: guarda cuánto llevas ese día (ej: 5 de 8 vasos).
+// Al llegar a la meta se completa sola; si bajas de la meta, se desmarca.
+export function fijarCantidad(estado, id, fecha, cantidad) {
+    const mision = buscar(estado.misiones, id, "esa misión");
+    if (!mision.meta) throw new Error("Esa misión no tiene una cantidad que contar.");
+    validarFecha(fecha);
+    if (!juego.sePuedeMarcar(mision, fecha)) throw new Error("Esa misión no tocaba ese día.");
+    const numero = Number(cantidad);
+    if (!Number.isInteger(numero) || numero < 0) throw new Error("Escribe un número entero (0 o más).");
+    const nueva = Math.min(numero, mision.meta.cantidad);
+
+    // Solo se guarda el avance de hoy y de ayer: lo más viejo ya no se puede cambiar.
+    const ayer = sumarDias(hoy(), -1);
+    for (const clave of Object.keys(estado.avances)) {
+        if (clave.split("|")[1] < ayer) delete estado.avances[clave];
+    }
+    const clave = `${id}|${fecha}`;
+    if (nueva === 0) delete estado.avances[clave];
+    else estado.avances[clave] = nueva;
+
+    const hecha = estado.completadas.some((c) => c.misionId === id && c.fecha === fecha);
+    if (nueva === mision.meta.cantidad && !hecha) return completarMision(estado, id, fecha);
+    if (nueva < mision.meta.cantidad && hecha) return desmarcarMision(estado, id, fecha);
+    return { xp: 0 };
+}
+
 // Archivar = deja de aparecer, pero su historial se conserva (calendario, logros).
 export function archivarMision(estado, id) {
     buscar(estado.misiones, id, "esa misión").archivadaEn = hoy();
@@ -175,6 +223,113 @@ export function restaurarMision(estado, id) {
     if (!mision.archivadaEn) return;
     mision.pausas = [...(mision.pausas || []), { desde: mision.archivadaEn, hasta: hoy() }];
     mision.archivadaEn = null;
+}
+
+
+// ===== Tareas sueltas (pendientes de una sola vez, con fecha) =====
+
+function validarFechaTarea(fecha) {
+    if (!esFechaValida(String(fecha || ""))) throw new Error("Elige para cuándo es la tarea.");
+    return fecha;
+}
+
+export function crearTarea(estado, { nombre, fecha, dificultad, atributo }) {
+    estado.tareas.push({
+        id: nuevoId(estado),
+        nombre: validarNombre(nombre, 80),
+        fecha: validarFechaTarea(fecha),   // el día que vence
+        dificultad: validarDificultad(dificultad),
+        atributo: validarAtributo(atributo),
+        creadaEn: hoy(),
+        hechaEn: null,
+        premio: null,                      // lo que dio al completarla (para poder devolverlo)
+    });
+}
+
+export function editarTarea(estado, { id, nombre, fecha, dificultad, atributo }) {
+    const tarea = buscar(estado.tareas, Number(id), "esa tarea");
+    tarea.nombre = validarNombre(nombre, 80);
+    tarea.fecha = validarFechaTarea(fecha);
+    tarea.dificultad = validarDificultad(dificultad);
+    tarea.atributo = validarAtributo(atributo);
+}
+
+// Completar una tarea (da su premio una sola vez) o deshacerla si la marcaste por error.
+export function alternarTarea(estado, id) {
+    const tarea = buscar(estado.tareas, id, "esa tarea");
+    if (!tarea.hechaEn) {
+        const { xp, monedas } = juego.DIFICULTADES[tarea.dificultad];
+        tarea.hechaEn = hoy();
+        tarea.premio = { xp, monedas, atributo: tarea.atributo, dificultad: tarea.dificultad };
+        ganar(estado, tarea.premio);
+        return { xp };
+    }
+    validarFecha(tarea.hechaEn, "Solo puedes desmarcar tareas que hiciste hoy o ayer.");
+    const { xp, monedas, atributo } = tarea.premio;
+    ganar(estado, { xp: -xp, monedas: -monedas, atributo });
+    tarea.hechaEn = null;
+    tarea.premio = null;
+    return { xp: -xp };
+}
+
+// Solo se borran las pendientes: las hechas quedan en tu historial.
+export function borrarTarea(estado, id) {
+    const tarea = buscar(estado.tareas, id, "esa tarea");
+    if (tarea.hechaEn) throw new Error("Esa tarea ya está hecha: queda guardada en tu historial.");
+    estado.tareas = estado.tareas.filter((t) => t !== tarea);
+}
+
+
+// ===== Modo enfoque (pomodoro) =====
+// Se guarda la HORA en que empezaste, no un contador: así el tiempo sigue
+// corriendo aunque cierres la app, y al volver se revisa si ya terminó.
+
+export function empezarEnfoque(estado, { minutos, atributo }, ahora = Date.now()) {
+    if (estado.enfoque.activo) throw new Error("Ya tienes una sesión de enfoque en curso.");
+    if (!juego.ENFOQUE[minutos]) throw new Error("Elige cuántos minutos.");
+    estado.enfoque.activo = { inicio: ahora, minutos: Number(minutos), atributo: validarAtributo(atributo) };
+}
+
+// Cancelar a la mitad: no da premio.
+export function cancelarEnfoque(estado) {
+    estado.enfoque.activo = null;
+}
+
+// Si la sesión en curso ya terminó, la guarda y entrega su premio.
+export function revisarEnfoque(estado, ahora = Date.now()) {
+    const activo = estado.enfoque.activo;
+    if (!activo || ahora < juego.finDelEnfoque(activo)) return null;
+
+    const dificultad = juego.ENFOQUE[activo.minutos];
+    const { xp, monedas } = juego.DIFICULTADES[dificultad];
+    // La fecha es la del momento en que terminó (aunque abras la app al día siguiente).
+    const fecha = aTexto(new Date(juego.finDelEnfoque(activo)));
+    estado.enfoque.sesiones.push({ fecha, minutos: activo.minutos, atributo: activo.atributo, dificultad, xp, monedas });
+    estado.enfoque.activo = null;
+    ganar(estado, { xp, monedas, atributo: activo.atributo });
+
+    const a = juego.ATRIBUTOS[activo.atributo];
+    return {
+        celebraciones: [{
+            icono: "⏱️",
+            etiqueta: "¡Sesión de enfoque completada!",
+            titulo: `${activo.minutos} minutos`,
+            detalle: `+${xp} XP de ${a.icono} ${a.nombre} · +${monedas} monedas`,
+        }],
+    };
+}
+
+
+// ===== Diario de una línea =====
+
+export function escribirDiario(estado, { fecha, animo, texto }) {
+    validarFecha(fecha, "Solo puedes escribir el diario de hoy o de ayer.");
+    if (animo && !juego.ANIMOS_DIARIO[animo]) throw new Error("Elige cómo te fue.");
+    const frase = String(texto || "").trim();
+    if (frase.length > 140) throw new Error("El diario puede tener máximo 140 letras.");
+
+    if (!animo && !frase) delete estado.diario[fecha];   // si lo dejas vacío, se borra
+    else estado.diario[fecha] = { animo: animo || null, texto: frase };
 }
 
 
@@ -193,14 +348,14 @@ export function crearPrincipal(estado, { nombre, atributo, submisiones }) {
         creadaEn: hoy(),
         completadaEn: null,
         archivada: false,
-        submisiones: pasos.map((paso) => ({ id: nuevoId(estado), nombre: paso, hecha: false })),
+        submisiones: pasos.map((paso) => ({ id: nuevoId(estado), nombre: paso, hecha: false, hechaEn: null })),
     });
 }
 
 export function agregarSubmision(estado, principalId, nombre) {
     const principal = buscar(estado.principales, principalId, "esa misión principal");
     if (principal.completadaEn) throw new Error("Esa misión principal ya está completada.");
-    principal.submisiones.push({ id: nuevoId(estado), nombre: validarNombre(nombre, 80), hecha: false });
+    principal.submisiones.push({ id: nuevoId(estado), nombre: validarNombre(nombre, 80), hecha: false, hechaEn: null });
 }
 
 // Si todos los pasos están hechos, completa la misión principal y da el premio extra.
@@ -228,12 +383,14 @@ export function alternarSubmision(estado, principalId, subId) {
 
     if (!sub.hecha) {
         sub.hecha = true;
+        sub.hechaEn = hoy();   // para el desafío semanal «Avanza N pasos»
         ganar(estado, { ...premio, atributo: principal.atributo });
         return { xp: premio.xp, celebraciones: revisarPrincipal(estado, principal) };
     }
 
     // Desmarcar: se resta el premio del paso y, si ya estaba completada, también el extra.
     sub.hecha = false;
+    sub.hechaEn = null;
     ganar(estado, { xp: -premio.xp, monedas: -premio.monedas, atributo: principal.atributo });
     let xp = -premio.xp;
     if (principal.completadaEn) {
@@ -281,18 +438,24 @@ function sincronizarCampanas(estado, danoAntes) {
         while (dados < c.derrotados) {
             dados += 1;
             cayoAlguno = true;
-            const jefe = c.campana.jefes[dados - 1];
+            const porRonda = campana.VIDAS.length;
+            const ronda = Math.ceil(dados / porRonda);
+            const jefe = c.campana.jefes[(dados - 1) % porRonda];
             const premio = campana.premioJefe(dados);
             ganar(estado, { ...premio, atributo: categoria });
             celebraciones.push({
                 imagen: campana.imagenDe(jefe.id),
-                etiqueta: "¡Jefe derrotado!",
+                etiqueta: ronda > 1 ? `¡Jefe derrotado! · Ronda ${ronda}` : "¡Jefe derrotado!",
                 titulo: jefe.nombre,
                 detalle: `Venciste: ${jefe.titulo} · +${premio.xp} XP · +${premio.monedas} monedas`,
             });
-            if (dados === campana.VIDAS.length) {
-                celebraciones.push({ icono: "👑", etiqueta: "¡Campaña completada!", titulo: c.campana.nombre,
-                                     detalle: "Derrotaste a los 5 jefes de esta categoría." });
+            if (dados % porRonda === 0) {
+                celebraciones.push({
+                    icono: "👑",
+                    etiqueta: ronda > 1 ? `¡Ronda ${ronda} completada!` : "¡Campaña completada!",
+                    titulo: c.campana.nombre,
+                    detalle: `Derrotaste a los 5 jefes. Partida+: vuelven en la ronda ${ronda + 1}, más fuertes y con mejores premios.`,
+                });
             }
         }
         while (dados > c.derrotados) {
@@ -304,7 +467,7 @@ function sincronizarCampanas(estado, danoAntes) {
 
         // Aviso del golpe al jefe actual.
         const golpe = c.dano - (danoAntes[categoria] || 0);
-        if (golpe > 0 && c.jefe && !cayoAlguno) {
+        if (golpe > 0 && !cayoAlguno) {
             celebraciones.push({ pequena: true, icono: "⚔️",
                                  titulo: `${c.jefe.nombre} −${golpe} (le quedan ${c.vida} de vida)` });
         }
@@ -519,6 +682,44 @@ export function terminarPartida(estado, tipo, puntosObtenidos) {
 }
 
 
+// ===== Desafío de la semana =====
+
+// Crea el desafío de esta semana si todavía no existe (se llama al abrir la app).
+export function asegurarDesafio(estado) {
+    const lunes = lunesDe(hoy());
+    if (estado.desafios.some((d) => d.semana === lunes)) return null;
+    const desafio = desafios.elegirDesafio(estado, lunes, hoy());
+    estado.desafios.push(desafio);
+    return { celebraciones: [{ pequena: true, icono: "🎯", titulo: `Desafío de la semana: ${desafios.textoDesafio(desafio)}` }] };
+}
+
+// Abre el cofre de los desafíos que acabas de cumplir. Como los logros, una vez
+// cobrado queda cobrado. Solo se revisan esta semana y la pasada (marcando "ayer"
+// un lunes todavía puedes sumar a la semana anterior).
+function revisarDesafios(estado) {
+    const celebraciones = [];
+    const desde = lunesDe(sumarDias(hoy(), -1));
+    for (const desafio of estado.desafios) {
+        if (desafio.cobradoEn || desafio.semana < desde || !desafios.DESAFIOS[desafio.tipo]) continue;
+        if (desafios.progresoDesafio(estado, desafio) < desafio.meta) continue;
+        desafio.cobradoEn = hoy();
+        ganar(estado, desafios.COFRE);
+        celebraciones.push({
+            icono: "🎁",
+            etiqueta: "¡Desafío cumplido!",
+            titulo: "Cofre abierto",
+            detalle: `${desafios.textoDesafio(desafio)} · +${desafios.COFRE.xp} XP · +${desafios.COFRE.monedas} monedas`,
+        });
+    }
+    return celebraciones;
+}
+
+// La tarjeta «Tu semana» (resumen de la semana pasada) se muestra hasta que la cierras.
+export function cerrarResumenSemanal(estado) {
+    estado.semanaVista = lunesDe(hoy());
+}
+
+
 // ===== Al abrir la app =====
 
 // Bonus de regreso: si vuelves tras varios días sin abrir la app, ganas XP extra.
@@ -593,8 +794,8 @@ export function foto(estado) {
 }
 
 export function revisarCambios(estado, antes) {
-    // Primero los jefes: sus recompensas pueden hacerte subir de nivel.
-    const celebraciones = sincronizarCampanas(estado, antes.dano);
+    // Primero los jefes y los cofres: sus recompensas pueden hacerte subir de nivel.
+    const celebraciones = [...sincronizarCampanas(estado, antes.dano), ...revisarDesafios(estado)];
     const info = juego.resumen(estado, hoy());
 
     const nivel = juego.calcularNivel(estado.personaje.xp).nivel;

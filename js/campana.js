@@ -4,9 +4,12 @@
 // Cada jefe representa un obstáculo real (la pereza, el miedo, la codicia…).
 //
 // No se ataca a mano: el daño sale de cumplir tus objetivos en esa categoría.
-//   - Misión diaria: poco daño (según su dificultad).
+//   - Misión diaria, tarea suelta o sesión de enfoque: poco daño (según su dificultad).
 //   - Paso de una misión principal: mucho daño.
 //   - Completar la misión principal entera: daño extra.
+//
+// Partida+: al vencer a los 5 jefes, la campaña vuelve a empezar (ronda 2, 3…)
+// con los mismos jefes, pero más fuertes y con mejores premios.
 //
 // Todo se CALCULA a partir de tu historial (como las rachas): si desmarcas una
 // misión, el daño se descuenta solo y nada se desordena.
@@ -19,12 +22,34 @@ export const DANO = {
     principal: 100,  // extra al completar toda la misión principal
 };
 
-// Vida de los jefes 1 a 5 de cada campaña.
+// Vida de los jefes 1 a 5 de cada campaña (en la ronda 1).
 export const VIDAS = [80, 160, 260, 400, 600];
 
-// Recompensa al derrotar al jefe número n (1 a 5): XP del atributo de la campaña y monedas.
-export function premioJefe(numero) {
-    return { xp: 100 * numero, monedas: 50 * numero };
+// En Partida+ cada ronda suma 50 % a la vida y a los premios:
+// ronda 1 = ×1, ronda 2 = ×1,5, ronda 3 = ×2…
+export const MEJORA_POR_RONDA = 0.5;
+
+function multiplicador(ronda) {
+    return 1 + MEJORA_POR_RONDA * (ronda - 1);
+}
+
+// Vida del jefe número "indice" (0 a 4) en esa ronda.
+export function vidaJefe(indice, ronda = 1) {
+    return Math.round(VIDAS[indice] * multiplicador(ronda));
+}
+
+// Vida del jefe que enfrentas después de vencer a "n" jefes de una categoría.
+function vidaDelJefe(n) {
+    return vidaJefe(n % VIDAS.length, Math.floor(n / VIDAS.length) + 1);
+}
+
+// Recompensa al derrotar al jefe número n de una categoría, contando todas las rondas
+// (1 a 5 = ronda 1, 6 a 10 = ronda 2…): XP del atributo de la campaña y monedas.
+export function premioJefe(n) {
+    const ronda = Math.floor((n - 1) / VIDAS.length) + 1;
+    const numero = ((n - 1) % VIDAS.length) + 1;   // su puesto dentro de la ronda (1 a 5)
+    const m = multiplicador(ronda);
+    return { xp: Math.round(100 * numero * m), monedas: Math.round(50 * numero * m) };
 }
 
 export const CAMPANAS = {
@@ -139,13 +164,20 @@ export function danoPorCategoria(estado) {
     const dano = {};
     for (const categoria of Object.keys(CAMPANAS)) dano[categoria] = 0;
 
+    // Suma el daño de algo hecho con cierta dificultad (como una misión diaria).
+    const golpear = (atributo, dificultad) => {
+        if (atributo in dano) dano[atributo] += DANO.diaria[dificultad] || DANO.diaria.normal;
+    };
+
     const dificultadDe = new Map(estado.misiones.map((m) => [m.id, m.dificultad]));
     for (const c of estado.completadas) {
-        if (!(c.atributo in dano)) continue;
         // La dificultad que tenía al completarla (los registros viejos no la guardaban).
-        const dificultad = c.dificultad || dificultadDe.get(c.misionId) || "normal";
-        dano[c.atributo] += DANO.diaria[dificultad] || DANO.diaria.normal;
+        golpear(c.atributo, c.dificultad || dificultadDe.get(c.misionId));
     }
+    for (const t of estado.tareas) {
+        if (t.premio) golpear(t.premio.atributo, t.premio.dificultad);   // tareas sueltas hechas
+    }
+    for (const s of estado.enfoque.sesiones) golpear(s.atributo, s.dificultad);
     for (const p of estado.principales) {
         if (!(p.atributo in dano)) continue;
         const pasos = p.submisiones.filter((s) => s.hecha).length;
@@ -154,32 +186,34 @@ export function danoPorCategoria(estado) {
     return dano;
 }
 
-// Estado de cada campaña: qué jefe toca, cuánta vida le queda y cuántos cayeron.
+// Estado de cada campaña: qué jefe toca, en qué ronda, cuánta vida le queda y cuántos cayeron.
 // Funciona como subir de nivel: el daño se va "gastando" jefe por jefe.
+// Después del 5.º jefe sigue el 1.º de la ronda siguiente (Partida+), así que nunca se acaba.
 export function estadoCampanas(estado) {
     const dano = danoPorCategoria(estado);
     const resultado = {};
     for (const [categoria, campana] of Object.entries(CAMPANAS)) {
         let restante = dano[categoria];
-        let indice = 0;
-        while (indice < VIDAS.length && restante >= VIDAS[indice]) {
-            restante -= VIDAS[indice];
-            indice += 1;
+        let derrotados = 0;
+        while (restante >= vidaDelJefe(derrotados)) {
+            restante -= vidaDelJefe(derrotados);
+            derrotados += 1;
         }
-        const completa = indice >= VIDAS.length;
-        const vidaMax = completa ? 0 : VIDAS[indice];
-        const vida = completa ? 0 : vidaMax - restante;
+        const ronda = Math.floor(derrotados / VIDAS.length) + 1;
+        const indice = derrotados % VIDAS.length;
+        const vidaMax = vidaDelJefe(derrotados);
+        const vida = vidaMax - restante;
         resultado[categoria] = {
             categoria,
             campana,
             dano: dano[categoria],
-            derrotados: indice,
-            completa,
-            indice,                                    // 0 a 4 (o 5 si ya ganaste todo)
-            jefe: completa ? null : campana.jefes[indice],
+            derrotados,                    // en total, sumando todas las rondas
+            ronda,                         // 1 = la normal; 2 o más = Partida+
+            indice,                        // 0 a 4: qué jefe de la ronda toca ahora
+            jefe: campana.jefes[indice],
             vida,
             vidaMax,
-            porcentaje: completa ? 0 : Math.round((vida / vidaMax) * 1000) / 10,
+            porcentaje: Math.round((vida / vidaMax) * 1000) / 10,
         };
     }
     return resultado;

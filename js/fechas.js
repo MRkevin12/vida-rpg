@@ -61,6 +61,11 @@ export function diaDeSemana(texto) {
     return (desdeTexto(texto).getDay() + 6) % 7;
 }
 
+// El lunes de la semana de esa fecha: lunesDe("2026-10-15") -> "2026-10-12"
+export function lunesDe(texto) {
+    return sumarDias(texto, -diaDeSemana(texto));
+}
+
 // "2026-10-12" -> "lunes 12 de octubre"
 export function fechaLegible(texto) {
     const fecha = desdeTexto(texto);
@@ -71,4 +76,15 @@ export function fechaLegible(texto) {
 export function fechaCorta(texto) {
     const fecha = desdeTexto(texto);
     return `${fecha.getDate()} ${MESES_CORTOS[fecha.getMonth()]}`;
+}
+
+// ¿El texto es una fecha real "AAAA-MM-DD"? ("2026-02-30" no lo es)
+export function esFechaValida(texto) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(texto) && aTexto(desdeTexto(texto)) === texto;
+}
+
+// Milisegundos -> "mm:ss" (para el reloj del modo enfoque): 90000 -> "01:30"
+export function relojTexto(ms) {
+    const segundos = Math.max(0, Math.ceil(ms / 1000));
+    return `${dosDigitos(Math.floor(segundos / 60))}:${dosDigitos(segundos % 60)}`;
 }

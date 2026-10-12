@@ -17,13 +17,18 @@ Las capturas usan una partida de ejemplo inventada.
 
 ## Qué tiene
 
-- **Misiones diarias** con dificultad, atributo y los días de la semana en que tocan. Se pueden editar, reordenar, archivar y restaurar. Si olvidaste marcar algo, puedes marcar el día de ayer.
+- **Misiones diarias** con dificultad, atributo y los días de la semana en que tocan, o **N veces por semana** el día que quieras (sin romper la racha). Las que se cuentan («8 vasos de agua») tienen un botón +1 y se completan solas al llegar a la meta. Se pueden editar, reordenar, archivar y restaurar. Si olvidaste marcar algo, puedes marcar el día de ayer.
+- **Tareas sueltas:** pendientes de una sola vez con fecha de entrega. Aparecen en Hoy el día que vencen (y se marcan como atrasadas si pasó la fecha).
+- **Modo enfoque:** un temporizador de 15, 25 o 50 minutos que da lo mismo que una misión. Sigue contando aunque cierres la app.
+- **Diario de una línea:** una frase y tu ánimo de cada día, visibles al tocar el día en el calendario.
+- **Desafío de la semana:** uno al azar cada lunes (adaptado a tu partida). Si lo cumples, abres un cofre.
+- **Tu semana:** al empezar una semana nueva, un resumen de la anterior: cumplimiento, días perfectos, metas, enfoque, ánimo y el desafío.
 - **XP, niveles y cuatro atributos:** Fuerza, Intelecto, Carisma y Riqueza.
 - **Rachas con escudos:** cada 7 días seguidos ganas un escudo que salva un día fallado. Los días de descanso no rompen la racha.
 - **Resumen con gráficas** de los últimos 7 o 30 días: cumplimiento, días perfectos, XP, tu mejor día de la semana y qué atributo tienes descuidado.
 - **Calendario de un año** al estilo de GitHub.
 - **Misiones principales** divididas en pasos, para las metas grandes.
-- **Campaña de jefes:** cada atributo tiene 5 jefes, cada uno más fuerte, en su propio escenario. Les haces daño cumpliendo misiones de ese atributo: las diarias pegan poco y los pasos de una misión principal pegan mucho. Tu héroe ataca con su arma y el jefe recibe el golpe.
+- **Campaña de jefes:** cada atributo tiene 5 jefes, cada uno más fuerte, en su propio escenario. Les haces daño cumpliendo misiones de ese atributo: las diarias, las tareas y el enfoque pegan poco y los pasos de una misión principal pegan mucho. Tu héroe ataca con su arma y el jefe recibe el golpe. Al vencer a los 5 empieza la **Partida+**: vuelven con más vida y mejores premios en cada ronda.
 - **Logros** automáticos y personales, y una **tienda** donde cambias monedas por recompensas reales que tú defines.
 - **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
 - **Tres minijuegos** que se juegan con fichas ganadas al completar misiones.
@@ -50,7 +55,7 @@ El PIN evita que alguien con tu teléfono desbloqueado abra la app. No cifra los
 
 HTML, CSS y JavaScript sin librerías ni paso de compilación. Los personajes, objetos y escenarios no son imágenes: se dibujan con código (SVG), por eso se pueden personalizar y animar. Es una PWA: un *service worker* (`sw.js`) guarda los archivos en el teléfono la primera vez para que después abra sin conexión.
 
-La idea central es que casi todo **se calcula a partir del historial** en lugar de guardarse: la racha, los escudos, el calendario, la vida de los jefes y el resumen salen de la lista de misiones completadas. Así no hay números que se puedan desincronizar.
+La idea central es que casi todo **se calcula a partir del historial** en lugar de guardarse: la racha, los escudos, el calendario, la vida de los jefes, el progreso del desafío semanal y el resumen salen de la lista de misiones completadas. Así no hay números que se puedan desincronizar.
 
 | Archivo | Para qué sirve |
 |---|---|
@@ -58,8 +63,9 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/app.js` | Conecta todo: escucha los toques, ejecuta acciones y redibuja |
 | `js/acciones.js` | Lo que cambia la partida: crear, completar, editar, canjear |
 | `js/juego.js` | Las reglas: XP, niveles, rachas, logros |
-| `js/campana.js` | Los jefes: vida, daño y créditos de las pinturas |
-| `js/resumen.js` | Los números del resumen de 7 y 30 días |
+| `js/campana.js` | Los jefes: vida, daño, Partida+ y créditos de las pinturas |
+| `js/desafios.js` | El desafío de la semana: cuáles hay, cómo se eligen y cómo se mide el progreso |
+| `js/resumen.js` | Los números del resumen de 7 y 30 días y de «Tu semana» |
 | `js/vistas.js` | Convierte la partida en HTML |
 | `js/avatar.js` | Las reglas del avatar: etapas, clases, objetos y opciones de apariencia |
 | `js/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
@@ -88,7 +94,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 37 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, jefes, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 51 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

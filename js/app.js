@@ -14,11 +14,12 @@ import * as seguridad from "./seguridad.js";
 import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
+import * as desafios from "./desafios.js";
 import * as minijuegos from "./minijuegos.js";
 import * as sonido from "./sonido.js";
-import { calcularResumen } from "./resumen.js";
+import { calcularResumen, semanaPorMostrar } from "./resumen.js";
 import { dibujarAvatar } from "./dibujo.js";
-import { hoy, fechaLegible, diasEntre, sumarDias, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
+import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
 
 
 // ===== Estado de la app =====
@@ -40,6 +41,7 @@ const DIBUJAR = {
     tienda: vistas.pantallaTienda,
     personaje: vistas.pantallaPersonaje,
     arcade: vistas.pantallaArcade,
+    enfoque: vistas.pantallaEnfoque,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -59,6 +61,7 @@ function iniciar() {
     registrarServiceWorker();
     rellenarOpciones();
     conectarEventos();
+    setInterval(tictac, 1000);   // reloj del modo enfoque
 
     if (!estado.personaje) {
         $("#crear-personaje").hidden = false;
@@ -80,15 +83,38 @@ function entrarAlJuego() {
     }
 }
 
-// Al abrir (o volver a) la app: bonus de regreso y aviso de escudos usados.
+// Al abrir (o volver a) la app: bonus de regreso, aviso de escudos usados,
+// premio de la sesión de enfoque (si terminó mientras no estabas) y desafío de la semana.
 function revisarAlAbrir() {
     ejecutar(() => {
         const celebraciones = [
             ...(acciones.registrarVisita(estado)?.celebraciones || []),
             ...(acciones.revisarEscudosUsados(estado)?.celebraciones || []),
+            ...(acciones.revisarEnfoque(estado)?.celebraciones || []),
+            ...(acciones.asegurarDesafio(estado)?.celebraciones || []),
         ];
         return { celebraciones };
     });
+}
+
+// Reloj del modo enfoque: cada segundo cambia solo el texto del tiempo y el anillo
+// (sin redibujar la pantalla). Al llegar a 0, entrega el premio.
+function tictac() {
+    const activo = estado.personaje && estado.enfoque.activo;
+    // Con el PIN puesto o en medio de un minijuego, espera: el premio llega después.
+    if (!activo || $("#juego").hidden || !$("#minijuego").hidden) return;
+
+    const restante = juego.finDelEnfoque(activo) - Date.now();
+    if (restante <= 0) {
+        ejecutar(() => acciones.revisarEnfoque(estado));
+        return;
+    }
+    for (const reloj of document.querySelectorAll("[data-reloj]")) reloj.textContent = relojTexto(restante);
+    const anillo = document.querySelector("[data-anillo]");
+    if (anillo) {
+        const largo = Number(anillo.dataset.largo);
+        anillo.setAttribute("stroke-dashoffset", largo * (1 - restante / Number(anillo.dataset.total)));
+    }
 }
 
 // El service worker guarda los archivos en el teléfono para que la app funcione sin internet.
@@ -438,6 +464,8 @@ function dibujarPantalla(efectos = {}) {
         fechaVista: fechaVista(),
         rangoResumen,
         recordarRespaldo: necesitaRespaldo(fecha),
+        semanaPendiente: semanaPorMostrar(estado, fecha),   // lunes de la semana pasada, o null
+        ahora: Date.now(),                                  // para el reloj del modo enfoque
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
     };
 
@@ -616,6 +644,11 @@ function rellenarOpciones() {
     const p = juego.PREMIOS;
     $("#reglas").innerHTML = `
         <p><strong>Misiones diarias:</strong> Fácil +${d.facil.xp} XP · Normal +${d.normal.xp} XP · Difícil +${d.dificil.xp} XP. También dan monedas y suben su atributo.</p>
+        <p><strong>Veces por semana:</strong> una misión «3 veces por semana» se puede marcar cualquier día hasta cumplir la meta. No rompe la racha ni cuenta para los días perfectos.</p>
+        <p><strong>Misiones con cantidad:</strong> tienen un botón +1 y se completan solas al llegar a la meta (ej: 8 vasos de agua).</p>
+        <p><strong>Tareas sueltas:</strong> pendientes de una sola vez, con fecha. Aparecen en Hoy el día que vencen y dan XP como una misión de su dificultad.</p>
+        <p><strong>Modo enfoque:</strong> ${Object.entries(juego.ENFOQUE).map(([m, dif]) => `${m} min = misión ${d[dif].nombre.toLowerCase()}`).join(", ")}. Si cancelas, no hay premio.</p>
+        <p><strong>Desafío de la semana:</strong> cada lunes toca uno al azar. Si lo cumples antes del domingo, abres un cofre: +${desafios.COFRE.xp} XP y ${desafios.COFRE.monedas} monedas.</p>
         <p><strong>Niveles:</strong> pasar del nivel N al N+1 cuesta ${juego.BASE_PERSONAJE}×N XP. Cada atributo sube con ${juego.BASE_ATRIBUTO}×N XP.</p>
         <p><strong>Rachas:</strong> un día cuenta si completas al menos 1 misión. Cada ${juego.ESCUDOS.diasParaGanar} días seguidos ganas un escudo (máx. ${juego.ESCUDOS.maximo}) que salva tu racha si fallas un día.</p>
         <p><strong>Bonus de regreso:</strong> si vuelves tras ${juego.REGRESO.diasMinimos} días o más, ganas ${juego.REGRESO.xpPorDia} XP por día ausente (máx. ${juego.REGRESO.xpMaximo}).</p>
@@ -623,7 +656,10 @@ function rellenarOpciones() {
         <p><strong>Jefes:</strong> 5 por categoría, cada vez más fuertes. Los dañas cumpliendo objetivos de su categoría:
            misión diaria −${campana.DANO.diaria.facil}/−${campana.DANO.diaria.normal}/−${campana.DANO.diaria.dificil} (fácil/normal/difícil),
            paso de misión principal −${campana.DANO.paso}, misión principal completa −${campana.DANO.principal} extra.
-           Derrotar al jefe N da ${campana.premioJefe(1).xp}×N XP y ${campana.premioJefe(1).monedas}×N monedas.</p>
+           Las tareas y las sesiones de enfoque pegan como una misión diaria de su dificultad.
+           Derrotar al jefe N da ${campana.premioJefe(1).xp}×N XP y ${campana.premioJefe(1).monedas}×N monedas.
+           <strong>Partida+:</strong> al vencer a los 5, la campaña vuelve a empezar; cada ronda suma
+           ${campana.MEJORA_POR_RONDA * 100} % a la vida de los jefes y a sus premios.</p>
         <p><strong>Días perfectos:</strong> completar todas tus misiones diarias del día.</p>
         <p><strong>Avatar:</strong> evoluciona en los niveles ${avatar.ETAPAS.slice(1).map((e) => `${e.desde} (${e.nombre})`).join(", ")}.
            Tu clase es tu atributo más alto. Cada atributo cambia algo visible en los niveles 3 y 6.
@@ -647,6 +683,21 @@ const PREPARAR = {
             formulario.elements.nombre.value = mision.nombre;
             formulario.elements.dificultad.value = mision.dificultad;
             formulario.elements.atributo.value = mision.atributo;
+            formulario.elements.frecuencia.value = mision.veces ? "semana" : "dias";
+            if (mision.veces) formulario.elements.veces.value = mision.veces;
+            formulario.elements.cantidad.value = mision.meta ? mision.meta.cantidad : "";
+            formulario.elements.unidad.value = mision.meta ? mision.meta.unidad : "";
+        }
+        mostrarCamposFrecuencia();
+    },
+    tarea(tarea) {
+        const formulario = $("#dialogo-tarea form");
+        modoEdicion(formulario, tarea, { crear: ["Nueva tarea", "Crear tarea"], editar: ["Editar tarea", "Guardar cambios"] });
+        formulario.elements.fecha.value = tarea ? tarea.fecha : hoy();   // por defecto, para hoy
+        if (tarea) {
+            formulario.elements.nombre.value = tarea.nombre;
+            formulario.elements.dificultad.value = tarea.dificultad;
+            formulario.elements.atributo.value = tarea.atributo;
         }
     },
     recompensa(recompensa) {
@@ -734,6 +785,13 @@ function abrirDialogo(nombre, elemento = null) {
     for (const formulario of dialogo.querySelectorAll("form")) formulario.reset();
     PREPARAR[nombre]?.(elemento);
     dialogo.showModal();
+}
+
+// En la misión: mostrar los días de la semana, o cuántas veces por semana.
+function mostrarCamposFrecuencia() {
+    const porSemana = $("#dialogo-mision form").elements.frecuencia.value === "semana";
+    ocultarCampo($("#campo-dias"), porSemana);
+    ocultarCampo($("#campo-veces"), !porSemana);
 }
 
 // En el logro, mostrar solo los campos que usa el tipo de condición elegido.
@@ -858,6 +916,53 @@ const ACCIONES = {
     "restaurar-mision": (boton) => ejecutar(() => acciones.restaurarMision(estado, Number(boton.dataset.id))),
     "restaurar-principal": (boton) => ejecutar(() => acciones.restaurarPrincipal(estado, Number(boton.dataset.id))),
 
+    // Misiones con cantidad: +1 / −1 (data-paso) o escribir el número.
+    "sumar-cantidad": (boton) => {
+        const id = Number(boton.dataset.id);
+        const mision = estado.misiones.find((m) => m.id === id);
+        const fecha = fechaVista();
+        const nueva = juego.cantidadDe(estado, mision, fecha) + Number(boton.dataset.paso);
+        cambiarCantidad(mision, fecha, nueva);
+    },
+    "escribir-cantidad": (boton) => {
+        const id = Number(boton.dataset.id);
+        const mision = estado.misiones.find((m) => m.id === id);
+        const fecha = fechaVista();
+        const texto = prompt(`¿Cuánto llevas? (meta: ${mision.meta.cantidad} ${mision.meta.unidad})`, juego.cantidadDe(estado, mision, fecha));
+        if (texto === null || texto.trim() === "") return;   // canceló
+        cambiarCantidad(mision, fecha, Number(texto.trim()));
+    },
+
+    // Tareas sueltas.
+    "alternar-tarea": (boton) => {
+        const id = Number(boton.dataset.id);
+        const estabaHecha = boton.getAttribute("aria-pressed") === "true";
+        const resultado = ejecutar(() => acciones.alternarTarea(estado, id), estabaHecha ? {} : { recienTarea: id });
+        if (!resultado) return;
+        sonar(estabaHecha ? "desmarcar" : "completar");
+        flotarXp(`.tarea[data-tarea="${id}"]`, resultado.xp);
+    },
+    "editar-tarea": (boton) => {
+        abrirDialogo("tarea", estado.tareas.find((t) => t.id === Number(boton.dataset.id)));
+    },
+    "borrar-tarea": (boton) => {
+        if (confirm("¿Borrar esta tarea?")) {
+            const id = idEnEdicion(boton);
+            boton.closest("dialog").close();
+            ejecutar(() => acciones.borrarTarea(estado, id));
+        }
+    },
+
+    "cancelar-enfoque": () => {
+        if (confirm("¿Cancelar la sesión? Si la cortas ahora, no recibes premio.")) {
+            ejecutar(() => acciones.cancelarEnfoque(estado));
+        }
+    },
+    "cerrar-semana": () => {
+        ejecutar(() => acciones.cerrarResumenSemanal(estado));
+        window.scrollTo(0, 0);
+    },
+
     "alternar-submision": (boton) => {
         const id = Number(boton.dataset.id);
         const resultado = ejecutar(() => acciones.alternarSubmision(estado, id, Number(boton.dataset.sub)));
@@ -954,6 +1059,18 @@ const ACCIONES = {
 };
 
 
+// Cambia cuánto llevas de una misión con cantidad. Si así llega a la meta,
+// se completa (con su animación); si baja de la meta, se desmarca.
+function cambiarCantidad(mision, fecha, nueva) {
+    const completa = nueva >= mision.meta.cantidad && juego.cantidadDe(estado, mision, fecha) < mision.meta.cantidad;
+    const resultado = ejecutar(() => acciones.fijarCantidad(estado, mision.id, fecha, nueva),
+                               completa ? { recienHecha: mision.id } : {});
+    if (!resultado) return;
+    sonar(resultado.xp > 0 ? "completar" : resultado.xp < 0 ? "desmarcar" : "salto");
+    flotarXp(`.mision[data-id="${mision.id}"]`, resultado.xp);
+}
+
+
 // ===== Formularios =====
 // Cada formulario tiene data-form="...". Recibimos sus valores como objeto:
 // { nombre: "Ir al gym", dificultad: "dificil", ... }
@@ -972,7 +1089,18 @@ const FORMULARIOS = {
     },
     // Si el formulario trae un id, se está editando; si no, creando.
     mision: (valores) => ejecutar(() => (valores.id ? acciones.editarMision(estado, valores) : acciones.crearMision(estado, valores))),
+    tarea: (valores) => ejecutar(() => (valores.id ? acciones.editarTarea(estado, valores) : acciones.crearTarea(estado, valores))),
     principal: (valores) => ejecutar(() => acciones.crearPrincipal(estado, valores)),
+    enfoque(valores) {
+        const resultado = ejecutar(() => acciones.empezarEnfoque(estado, valores));
+        if (resultado) sonar("completar");
+        return resultado;
+    },
+    diario(valores) {
+        const resultado = ejecutar(() => acciones.escribirDiario(estado, valores));
+        if (resultado) avisar("📓 Guardado en tu diario");
+        return resultado;
+    },
     logro: (valores) => ejecutar(() => (valores.id ? acciones.editarLogro(estado, valores) : acciones.crearLogro(estado, valores))),
     recompensa: (valores) => ejecutar(() => (valores.id ? acciones.editarRecompensa(estado, valores) : acciones.crearRecompensa(estado, valores))),
     mascota(valores) {
@@ -1021,6 +1149,12 @@ function conectarEventos() {
     }
 
     $("#logro-tipo").addEventListener("change", mostrarCamposLogro);
+    $("#campo-frecuencia").addEventListener("change", mostrarCamposFrecuencia);
+
+    // Diario: tocar una carita guarda al instante (junto con la frase que hayas escrito).
+    document.addEventListener("change", (evento) => {
+        if (evento.target.name === "animo") evento.target.form.requestSubmit();
+    });
 
     // Interruptor de sonido (Ajustes): al encenderlo suena una muestra.
     $("#ajustes-sonido").addEventListener("change", (evento) => {

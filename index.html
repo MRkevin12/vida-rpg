@@ -104,6 +104,7 @@
             <!-- Se abren desde otras pantallas (no tienen pestaña propia) -->
             <section id="pantalla-personaje" class="pantalla" hidden></section>
             <section id="pantalla-arcade" class="pantalla" hidden></section>
+            <section id="pantalla-enfoque" class="pantalla" hidden></section>
         </main>
 
         <!-- Barra de pestañas de abajo (como en las apps de iPhone) -->
@@ -146,9 +147,41 @@
             </label>
             <fieldset class="opciones" data-opciones="dificultad"><legend>Dificultad</legend></fieldset>
             <fieldset class="opciones opciones-4" data-opciones="atributo"><legend>Atributo que mejora</legend></fieldset>
-            <fieldset class="opciones opciones-7" data-opciones="dias">
+            <!-- Cada cuánto: días fijos, o N veces por semana el día que quieras -->
+            <fieldset class="opciones opciones-2" id="campo-frecuencia">
+                <legend>¿Cada cuánto?</legend>
+                <label class="pildora">
+                    <input type="radio" name="frecuencia" value="dias" checked>
+                    <span>Días fijos<small>Ej: lunes y jueves</small></span>
+                </label>
+                <label class="pildora">
+                    <input type="radio" name="frecuencia" value="semana">
+                    <span>Veces por semana<small>Tú eliges el día</small></span>
+                </label>
+            </fieldset>
+            <fieldset class="opciones opciones-7" data-opciones="dias" id="campo-dias">
                 <legend>¿Qué días toca? <span class="texto-suave">(los demás son descanso)</span></legend>
             </fieldset>
+            <fieldset class="opciones opciones-6" id="campo-veces" hidden>
+                <legend>¿Cuántas veces por semana? <span class="texto-suave">(no rompe tu racha)</span></legend>
+                <label class="pildora"><input type="radio" name="veces" value="1"><span>1</span></label>
+                <label class="pildora"><input type="radio" name="veces" value="2"><span>2</span></label>
+                <label class="pildora"><input type="radio" name="veces" value="3" checked><span>3</span></label>
+                <label class="pildora"><input type="radio" name="veces" value="4"><span>4</span></label>
+                <label class="pildora"><input type="radio" name="veces" value="5"><span>5</span></label>
+                <label class="pildora"><input type="radio" name="veces" value="6"><span>6</span></label>
+            </fieldset>
+            <!-- Meta de cantidad (opcional): la misión se marca sola al llegar al número -->
+            <div class="dos-columnas">
+                <label>Cantidad (opcional)
+                    <input type="number" name="cantidad" min="2" max="1000" step="1" inputmode="numeric" placeholder="Ej: 8">
+                </label>
+                <label>Unidad
+                    <input type="text" name="unidad" maxlength="20" autocomplete="off" placeholder="Ej: vasos">
+                </label>
+            </div>
+            <p class="nota">Con cantidad, la misión tiene un botón <b>+1</b> y se completa sola al llegar a la meta
+               (ej: «Beber agua», 8 vasos). Déjala vacía para una misión normal.</p>
             <div class="botones-dialogo">
                 <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
                 <button type="submit" class="boton boton-principal" data-enviar>Crear misión</button>
@@ -160,6 +193,29 @@
                     <button type="button" class="boton boton-secundario" data-accion="mover-mision" data-direccion="1">↓ Bajar</button>
                 </div>
                 <button type="button" class="boton boton-peligro boton-ancho" data-accion="archivar-mision">Archivar misión</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dialogo-tarea" class="dialogo">
+        <!-- Tarea suelta: un pendiente de una sola vez, con fecha. Sirve para crear y editar. -->
+        <form data-form="tarea" class="formulario">
+            <h2 class="titulo-juego" tabindex="-1" autofocus data-titulo>Nueva tarea</h2>
+            <input type="hidden" name="id">
+            <label>¿Qué tienes que hacer?
+                <input type="text" name="nombre" maxlength="80" required autocomplete="off" placeholder="Ej: Pagar el recibo de la luz">
+            </label>
+            <label>¿Para cuándo?
+                <input type="date" name="fecha" required>
+            </label>
+            <fieldset class="opciones" data-opciones="dificultad"><legend>Dificultad</legend></fieldset>
+            <fieldset class="opciones opciones-4" data-opciones="atributo"><legend>Atributo que mejora</legend></fieldset>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
+                <button type="submit" class="boton boton-principal" data-enviar>Crear tarea</button>
+            </div>
+            <div class="solo-editar" data-solo-editar hidden>
+                <button type="button" class="boton boton-peligro boton-ancho" data-accion="borrar-tarea">Borrar tarea</button>
             </div>
         </form>
     </dialog>
