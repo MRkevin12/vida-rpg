@@ -110,7 +110,9 @@ export function cara(d, e, p) {
     const rostro = ROSTROS[d.apariencia.rostro] || ROSTROS.sereno;
     const animo = d.animo;
     const dormido = animo === "dormido";
-    const cansado = animo === "cansado";
+    // Herido o caído en combate: cara de cansancio y una curita en la mejilla.
+    const herido = animo === "herido" || animo === "caido";
+    const cansado = animo === "cansado" || herido;
     const forma = formaCabeza(e);
 
     // --- Ojos ---
@@ -158,6 +160,11 @@ export function cara(d, e, p) {
         ? `<path d="M104.6 37.2 L106.3 45.6" stroke="${aclarar(p.piel, 0.45)}" stroke-width=".8" stroke-linecap="round"/>
            <path d="M104.6 37.2 L106.3 45.6" stroke="${p.pielSombra}" stroke-width=".3" stroke-linecap="round"/>`
         : "";
+    const curita = herido
+        ? `<g transform="rotate(-24 106 45.6)"><rect x="103.6" y="44.7" width="4.8" height="1.9" rx=".7" fill="#e6d6b8" stroke="${TRAZO}" stroke-width=".22"/>
+               <rect x="105.4" y="44.9" width="1.2" height="1.5" fill="#cdb88f"/></g>
+           <path d="M93.2 35.6 L95.4 37" stroke="#8f2a2a" stroke-width=".45" stroke-linecap="round" opacity=".75"/>`
+        : "";
     const pecas = d.apariencia.rostro === "amable"
         ? `<g fill="${p.pielSombra}" opacity=".7"><circle cx="94.2" cy="45.3" r=".32"/><circle cx="95.6" cy="46" r=".32"/><circle cx="104.4" cy="46" r=".32"/><circle cx="105.8" cy="45.3" r=".32"/></g>`
         : "";
@@ -176,7 +183,7 @@ export function cara(d, e, p) {
         <g fill="${p.pielSombra}" opacity=".3"><ellipse cx="96.2" cy="40.4" rx="3.3" ry="1.7"/><ellipse cx="103.8" cy="40.4" rx="3.3" ry="1.7"/></g>
         <g fill="#c4584a" opacity=".13"><ellipse cx="93.8" cy="46.4" rx="2.5" ry="1.4"/><ellipse cx="106.2" cy="46.4" rx="2.5" ry="1.4"/></g>
         <ellipse cx="100" cy="52.6" rx="2.2" ry=".8" fill="${p.pielSombra}" opacity=".35"/>
-        ${pecas}${cicatriz}
+        ${pecas}${cicatriz}${curita}
         ${cejaIzq}<g transform="translate(200 0) scale(-1 1)">${cejaIzq}</g>
         <g class="ojos">${ojoIzq}<g transform="translate(200 0) scale(-1 1)">${ojoIzq}</g>${brillos}</g>
         <!-- nariz -->

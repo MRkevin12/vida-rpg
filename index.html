@@ -78,7 +78,7 @@
     <!-- ========== El juego ========== -->
     <div id="juego" hidden>
 
-        <!-- Cabecera fija: personaje, nivel, XP y monedas -->
+        <!-- Cabecera fija: personaje, nivel, XP, vida y monedas -->
         <header class="cabecera">
             <button type="button" class="avatar" id="cab-avatar" data-accion="ir" data-pantalla="personaje"
                     aria-label="Ver mi personaje"></button>
@@ -88,7 +88,8 @@
                     <span class="cab-nivel">NV <span id="cab-nivel"></span></span>
                 </div>
                 <div class="barra barra-xp"><div class="barra-relleno" id="cab-barra"></div></div>
-                <span class="cab-xp" id="cab-xp"></span>
+                <div class="barra barra-salud" id="cab-salud"><div class="barra-relleno" id="cab-salud-relleno"></div></div>
+                <div class="cab-datos"><span class="cab-xp" id="cab-xp"></span><span class="cab-vida" id="cab-vida"></span></div>
             </div>
             <div class="cab-monedas" aria-label="Monedas">🪙 <span id="cab-monedas"></span></div>
             <button type="button" class="boton-icono" data-accion="abrir" data-dialogo="ajustes" aria-label="Ajustes">
@@ -346,6 +347,11 @@
                     <span><b>🔊 Sonidos</b><br><span class="nota">Al completar misiones, subir de nivel y derrotar jefes.</span></span>
                     <input type="checkbox" id="ajustes-sonido">
                 </label>
+            </section>
+
+            <section class="ajustes-bloque">
+                <h3>🏖️ Modo descanso</h3>
+                <div class="ajustes-bloque-contenido" id="ajustes-descanso"></div>
             </section>
 
             <section class="ajustes-bloque">

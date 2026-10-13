@@ -13,11 +13,12 @@ import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
+import * as vida from "./vida.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
-         diasEntre, lunesDe, relojTexto } from "./fechas.js";
+         diasEntre, lunesDe, relojTexto, sumarDias } from "./fechas.js";
 
 const { DIFICULTADES, ATRIBUTOS, PREMIOS, ESCUDOS, ANIMOS_DIARIO, plural } = juego;
 
@@ -134,7 +135,8 @@ export function pantallaHoy(estado, ctx) {
 
     return `
         ${esAyer ? "" : tarjetaSemana(estado, ctx)}
-        ${tarjetaHeroe(ctx)}
+        ${tarjetaHeroe(estado, ctx)}
+        ${avisoDescanso(estado, ctx)}
 
         <div class="titulo-seccion">
             <div>
@@ -455,11 +457,38 @@ function textoAnimo(a, ctx) {
     const animo = avatar.ANIMOS[a.animo];
     if (a.animo === "llamas") return `${animo.icono} ¡En llamas! Racha de ${ctx.info.racha.actual} días.`;
     if (a.animo === "dormido") return `${animo.icono} Zzz… ${a.diasSinMision} días sin misiones. Completa una para despertarlo.`;
+    if (a.animo === "caido") return `${animo.icono} Cayó en combate. Llega a ${ctx.vida.levantarse} ❤️ para levantarlo.`;
     return `${animo.icono} ${animo.texto}`;
 }
 
+// La barra de vida del héroe (la usan la tarjeta de Hoy y la pantalla Personaje).
+// Va con <span> (no <div>) porque puede ir dentro de un botón.
+function barraDeVida(v) {
+    const e = vida.ESTADOS[v.nivel];
+    return `
+        <span class="vida-linea">
+            <b class="vida-numero">❤️ ${v.puntos} / ${v.maxima}</b>
+            <span class="vida-estado salud-${v.nivel}">${e.icono} ${e.nombre}${v.enForma ? " · +10 %" : ""}</span>
+        </span>
+        <span class="barra barra-salud salud-${v.nivel}"><span class="barra-relleno" style="width: ${v.porcentaje}%"></span></span>`;
+}
+
+// Debajo de la barra: qué te pasará hoy (o por qué estás así).
+function notaDeVida(estado, ctx) {
+    const v = ctx.vida;
+    if (juego.enDescanso(estado, ctx.hoy)) return "🏖️ Modo descanso: hoy no pierdes vida.";
+    if (v.caido) return `Tienda y arcade cerrados hasta llegar a ${v.levantarse} ❤️. Cada misión te cura.`;
+    const pendiente = vida.danoDelDia(estado, ctx.hoy).dano;
+    const ayer = v.registro.find((r) => r.fecha === sumarDias(ctx.hoy, -1));
+    const partes = [];
+    if (pendiente) partes.push(`Si no terminas hoy: <b class="vida-menos">−${pendiente} ❤️</b>`);
+    else if (juego.misionesDelDia(estado.misiones, ctx.hoy).length) partes.push("Hoy ya no pierdes vida. ✓");
+    if (ayer?.dano) partes.push(`Ayer: −${ayer.dano} ❤️ (¿lo hiciste? márcalo en «Ayer»)`);
+    return partes.join(" · ");
+}
+
 // Tarjeta del héroe arriba de "Hoy". Salta cuando completas una misión.
-function tarjetaHeroe(ctx) {
+function tarjetaHeroe(estado, ctx) {
     const a = ctx.avatar;
     const siguiente = avatar.siguienteEtapa(avatar.ETAPAS, a.etapa);
     return `
@@ -468,12 +497,48 @@ function tarjetaHeroe(ctx) {
             <span class="heroe-info">
                 <span class="etiqueta">${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</span>
                 <span class="heroe-animo">${textoAnimo(a, ctx)}</span>
+                <span class="heroe-vida">${barraDeVida(ctx.vida)}</span>
+                <span class="mini texto-suave">${notaDeVida(estado, ctx)}</span>
                 <span class="mini texto-suave">${siguiente
                     ? `Evoluciona a ${siguiente.nombre} en el nivel ${siguiente.desde}`
                     : "¡Etapa máxima alcanzada!"}</span>
                 <span class="mini heroe-ver">Ver personaje ›</span>
             </span>
         </button>`;
+}
+
+// En modo descanso, un aviso arriba de las misiones (con el botón para terminarlo).
+function avisoDescanso(estado, ctx) {
+    const descanso = juego.descansoDe(estado, ctx.hoy);
+    if (!descanso) return "";
+    const hasta = descanso.hasta === ctx.hoy ? "hoy" : `el ${DIAS_CORTOS[diaDeSemana(descanso.hasta)]} ${fechaCorta(descanso.hasta)}`;
+    return `
+        <div class="aviso-respaldo aviso-descanso">
+            <span>🏖️ <b>Modo descanso</b> hasta ${hasta}. No pierdes vida ni racha, y no llegan recordatorios. Si quieres, igual puedes marcar misiones.</span>
+            ${descanso.hasta === ctx.hoy ? "" : '<button type="button" class="boton boton-chico" data-accion="terminar-descanso">Terminar</button>'}
+        </div>`;
+}
+
+// Ajustes → Modo descanso.
+export function seccionDescanso(estado, hoy) {
+    const descanso = juego.descansoDe(estado, hoy);
+    if (descanso) {
+        return `
+            <p class="nota">Estás descansando hasta el <b>${fechaLegible(descanso.hasta)}</b>. Esos días no pierdes vida
+               ni se rompe tu racha, y no llegan recordatorios.</p>
+            ${descanso.hasta === hoy
+                ? '<p class="nota">Termina hoy: desde mañana todo vuelve a contar.</p>'
+                : '<button type="button" class="boton boton-secundario" data-accion="terminar-descanso">Terminar el descanso</button>'}`;
+    }
+    const maximo = sumarDias(hoy, vida.VIDA.descansoMaximo - 1);
+    return `
+        <p class="nota">Para vacaciones o días enfermo: hasta ${vida.VIDA.descansoMaximo} días sin perder vida ni racha,
+           y sin recordatorios. Empieza hoy.</p>
+        <form data-form="descanso" class="form-linea">
+            <label class="campo-fecha"><span class="mini texto-suave">Hasta el día (incluido)</span>
+                <input type="date" name="hasta" value="${sumarDias(hoy, 2)}" min="${hoy}" max="${maximo}" required></label>
+            <button type="submit" class="boton boton-chico">Descansar</button>
+        </form>`;
 }
 
 function avisoRespaldo() {
@@ -517,6 +582,7 @@ export function pantallaProgreso(estado, ctx) {
                 <i class="celda n0"></i><i class="celda n1"></i><i class="celda n2"></i><i class="celda n3"></i><i class="celda n4"></i>
                 <span>Más</span>
                 <i class="celda n0 protegido"></i><span>Escudo</span>
+                ${estado.descansos.length ? '<i class="celda n0 descanso"></i><span>Descanso</span>' : ""}
             </div>
             <p class="cal-detalle" id="cal-detalle">${detalleDia(estado, ctx.diaSeleccionado, racha)}</p>
         </section>
@@ -556,6 +622,7 @@ function mapaDeCalor(estado, ctx) {
         if (dia.tipo === "antes") return '<span class="celda antes"></span>';
         const clases = ["celda", `n${dia.nivel}`];
         if (dia.protegido) clases.push("protegido");
+        if (dia.descanso) clases.push("descanso");
         if (dia.fecha === ctx.hoy) clases.push("hoy");
         if (dia.fecha === ctx.diaSeleccionado) clases.push("elegido");
         return `<button type="button" class="${clases.join(" ")}" data-accion="ver-dia" data-fecha="${dia.fecha}"
@@ -585,7 +652,8 @@ export function detalleDia(estado, fecha, racha) {
         const mision = estado.misiones.find((m) => m.id === c.misionId);
         return esc(mision ? mision.nombre : "misión borrada");
     });
-    const protegido = racha.protegidos.has(fecha) ? " · 🛡️ protegido por un escudo" : "";
+    let protegido = racha.protegidos.has(fecha) ? " · 🛡️ protegido por un escudo" : "";
+    if (juego.enDescanso(estado, fecha)) protegido += " · 🏖️ descanso";
     const tareas = estado.tareas.filter((t) => t.hechaEn === fecha).map((t) => esc(t.nombre));
     const minutos = estado.enfoque.sesiones.filter((s) => s.fecha === fecha).reduce((suma, s) => suma + s.minutos, 0);
     const diario = estado.diario[fecha];
@@ -1003,7 +1071,9 @@ function tarjetaLogro(logro, estado, ctx) {
 // ===== Pantalla: Arcade (minijuegos) =====
 
 export function pantallaArcade(estado, ctx) {
+    const caido = ctx.vida.caido;
     const fichas = arcade.fichasDisponibles(estado);
+    const puedeJugar = fichas > 0 && !caido;   // si caíste en combate, el arcade se cierra
     const tarjetas = Object.entries(arcade.JUEGOS).map(([clave, j]) => {
         const record = estado.arcade.records[clave] || 0;
         return `
@@ -1018,7 +1088,7 @@ export function pantallaArcade(estado, ctx) {
                 <p class="nota">${j.descripcion}</p>
                 <p class="mini">🏅 Récord: <b>${record}</b> pts</p>
                 <button type="button" class="boton boton-principal boton-ancho" data-accion="jugar" data-juego="${clave}"
-                        ${fichas ? "" : "disabled"}>Jugar · 🎟️ 1 ficha</button>
+                        ${puedeJugar ? "" : "disabled"}>Jugar · 🎟️ 1 ficha</button>
             </article>`;
     }).join("");
 
@@ -1033,14 +1103,17 @@ export function pantallaArcade(estado, ctx) {
             <p class="nota">Sube piso a piso peleando por turnos contra los monstruos de tus campañas. Antes de cada
                turno ves qué planea el monstruo: ataca, lanza un hechizo, defiéndete o toma una poción. Al ganar eliges
                una mejora. <b>Tu poder sale de los niveles de tus atributos reales.</b></p>
+            <p class="mini">❤️ Subes con tu vida real: empiezas con el
+               ${Math.round(vida.proporcionTorre(ctx.vida) * 100)} % de tu vida.</p>
             <p class="mini">🏅 Récord: ${recordTorre ? `${plural(recordTorre, "piso superado", "pisos superados")}` : "todavía ninguno"}
                · Premio: ${torre.PREMIO.monedasPorPiso} 🪙 y ${torre.PREMIO.xpPorPiso} XP de Carisma por piso
                (máx. ${torre.PREMIO.maxMonedas} 🪙 y ${torre.PREMIO.maxXp} XP)</p>
-            <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" ${partida || fichas ? "" : "disabled"}>
+            <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" ${!caido && (partida || fichas) ? "" : "disabled"}>
                 ${partida ? `Continuar · piso ${partida.piso}` : "Subir a la torre · 🎟️ 1 ficha"}</button>
         </article>`;
 
     return `
+        ${caido ? avisoCaido(ctx.vida, "El arcade está cerrado") : ""}
         ${tarjetaTorre}
         <section class="panel arcade-cabecera">
             <div class="arcade-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
@@ -1051,7 +1124,7 @@ export function pantallaArcade(estado, ctx) {
                    según tus puntos (máx. ${arcade.MAX_MONEDAS} 🪙 y ${arcade.MAX_XP} XP).</p>
             </div>
         </section>
-        ${fichas ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
+        ${fichas || caido ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
         ${tarjetas}`;
 }
 
@@ -1448,6 +1521,8 @@ export function pantallaPersonaje(estado, ctx) {
             <h2 class="titulo-juego">${esc(estado.personaje.nombre)}</h2>
             <p class="etiqueta">Nivel ${a.nivel} · ${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</p>
             <p class="heroe-animo">${textoAnimo(a, ctx)}</p>
+            <div class="ficha-vida">${barraDeVida(ctx.vida)}</div>
+            <p class="mini texto-suave">${vida.ESTADOS[ctx.vida.nivel].texto}</p>
             <ol class="etapas">${etapas}</ol>
         </section>
 
@@ -1590,8 +1665,39 @@ function seccionObjetosDeLogro(estado, ctx, titulo) {
 }
 
 
+// Aviso de que caíste en combate (en la Tienda y en el Arcade).
+function avisoCaido(v, titulo) {
+    return `
+        <div class="aviso-caido">
+            <b>☠️ ${titulo}</b>
+            <span>Caíste en combate. Se abre cuando llegues a <b>${v.levantarse} ❤️</b> (tienes ${v.puntos}).
+                  Cada misión cumplida te cura; las pociones sí se venden.</span>
+        </div>`;
+}
+
+// La poción de vida: +25 ❤️, una al día. Se vende aunque hayas caído.
+function tarjetaPocion(estado, v) {
+    const p = vida.POCION;
+    let boton;
+    if (v.pocionesHoy >= p.porDia) boton = '<span class="mini texto-suave">Mañana otra</span>';
+    else if (v.puntos >= v.maxima) boton = '<span class="mini texto-suave">Vida llena</span>';
+    else {
+        const puede = estado.personaje.monedas >= p.precio;
+        boton = `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="pocion" ${puede ? "" : "disabled"}>Tomar</button>`;
+    }
+    return `
+        <ul class="lista">
+            <li class="objeto pocion">
+                <span class="pocion-icono" aria-hidden="true">🧪</span>
+                <span class="objeto-info"><b>Poción de vida</b>
+                    <span class="mini texto-suave">+${p.cura} ❤️ · 🪙 ${p.precio} · una al día · tienes ${v.puntos}/${v.maxima}</span></span>
+                ${boton}
+            </li>
+        </ul>`;
+}
+
 // Equipamiento que se compra con monedas (además de las recompensas reales).
-function tiendaDelAvatar(estado) {
+function tiendaDelAvatar(estado, cerrada) {
     const monedas = estado.personaje.monedas;
     const enVenta = Object.entries(avatar.OBJETOS)
         .filter(([, o]) => !o.logro)
@@ -1599,7 +1705,7 @@ function tiendaDelAvatar(estado) {
 
     const lista = enVenta.map(([id, o]) => {
         const tuyo = estado.avatar.comprados.includes(id);
-        const puede = monedas >= o.precio;
+        const puede = monedas >= o.precio && !cerrada;
         const accion = tuyo
             ? `<span class="mini oro">✓ Tuyo</span>`
             : `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="comprar" data-id="${id}"
@@ -1624,16 +1730,18 @@ function tiendaDelAvatar(estado) {
 
 export function pantallaTienda(estado, ctx) {
     const monedas = estado.personaje.monedas;
+    const cerrada = ctx.vida.caido;   // caíste en combate: solo se venden pociones
     const recompensas = [...estado.recompensas].sort((a, b) => a.costo - b.costo);
     const canjes = estado.canjes.slice(-15).reverse(); // los 15 más recientes
 
     const lista = recompensas.map((r) => {
-        const puede = monedas >= r.costo;
+        const alcanza = monedas >= r.costo;
+        const puede = alcanza && !cerrada;
         return `
             <li class="recompensa ${puede ? "alcanzable" : ""}">
                 <div class="recompensa-info">
                     <h3>${esc(r.nombre)}</h3>
-                    <span class="mini ${puede ? "oro" : "texto-suave"}">🪙 ${r.costo}${puede ? "" : ` · te faltan ${r.costo - monedas}`}</span>
+                    <span class="mini ${alcanza ? "oro" : "texto-suave"}">🪙 ${r.costo}${alcanza ? "" : ` · te faltan ${r.costo - monedas}`}</span>
                 </div>
                 <button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="canjear" data-id="${r.id}" ${puede ? "" : "disabled"}>Canjear</button>
                 ${botonEditar("editar-recompensa", r.id, `Editar ${r.nombre}`)}
@@ -1648,12 +1756,16 @@ export function pantallaTienda(estado, ctx) {
             <span class="etiqueta">Tus monedas</span>
             <span class="saldo-numero">🪙 ${monedas}</span>
         </section>
+        ${cerrada ? avisoCaido(ctx.vida, "Tienda cerrada") : ""}
+
+        <div class="titulo-seccion"><h2 class="titulo-juego">❤️ Vida</h2></div>
+        ${tarjetaPocion(estado, ctx.vida)}
 
         ${cabeceraSeccion("Recompensas", "recompensa", "+ Nueva")}
         <p class="nota">Premios reales que tú defines. Cánjealos cuando tengas monedas suficientes.</p>
         ${recompensas.length ? `<ul class="lista">${lista}</ul>` : vacio("Crea tu primera recompensa. Ej: «Ver un capítulo de mi serie» por 50 monedas.")}
 
-        ${tiendaDelAvatar(estado)}
+        ${tiendaDelAvatar(estado, cerrada)}
         ${seccionObjetosDeLogro(estado, ctx, "Objetos que no se venden")}
 
         ${canjes.length ? `<section class="panel"><h2 class="titulo-juego">Historial</h2><ul class="historial">${historial}</ul></section>` : ""}

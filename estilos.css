@@ -3723,6 +3723,130 @@ body:has(#deshacer:not([hidden])) .aviso {
     50% { transform: translateY(-6px); }
 }
 
+/* ===== Vida del héroe (v16) ===== */
+/* El color de la barra dice cómo estás: verde en plena forma, ámbar bien, rojo herido, gris caído. */
+.salud-forma  { --color-salud: var(--verde); }
+.salud-bien   { --color-salud: var(--oro); }
+.salud-herido { --color-salud: var(--rojo); }
+.salud-caido  { --color-salud: #6b6488; }
+
+.barra-salud {
+    display: block;   /* también se usa con <span> dentro de botones */
+    height: 8px;
+    margin: 4px 0 2px;
+}
+
+.barra-salud .barra-relleno {
+    display: block;
+    background: var(--color-salud, var(--rojo));
+    box-shadow: 0 0 8px var(--color-salud, var(--rojo));
+}
+
+/* En la cabecera las dos barras (XP y vida) van juntas y más finas. */
+.cabecera .barra-xp {
+    height: 7px;
+    margin: 4px 0 0;
+}
+
+.cabecera .barra-salud {
+    height: 5px;
+    margin: 3px 0 2px;
+}
+
+.cab-datos {
+    position: relative;   /* para el "+4 ❤️" que flota */
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.cab-vida {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+    font-variant-numeric: tabular-nums;
+}
+
+.cab-datos .flotante {
+    top: -16px;
+    right: 0;
+    font-size: 0.8rem;
+}
+
+.heroe-vida,
+.ficha-vida {
+    display: grid;
+    gap: 2px;
+}
+
+.ficha-vida {
+    width: min(320px, 100%);
+    text-align: left;
+}
+
+.vida-linea {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 8px;
+}
+
+.vida-numero {
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.vida-estado {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-salud);
+}
+
+.vida-menos {
+    color: var(--rojo);
+}
+
+.aviso-descanso {
+    margin-top: 12px;
+    background: rgba(34, 211, 238, 0.08);
+    border-color: rgba(34, 211, 238, 0.35);
+}
+
+.aviso-caido {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    background: rgba(107, 100, 136, 0.16);
+    border: 1px solid rgba(251, 113, 133, 0.45);
+    border-radius: 14px;
+}
+
+.aviso-caido > b {
+    color: var(--rojo);
+}
+
+.pocion-icono {
+    flex-shrink: 0;
+    width: 48px;
+    font-size: 1.8rem;
+    text-align: center;
+}
+
+.celda.descanso {
+    box-shadow: inset 0 0 0 2px rgba(34, 211, 238, 0.6);
+}
+
+.campo-fecha {
+    display: grid;
+    flex: 1;
+    gap: 4px;
+}
+
+
 /* Si el iPhone tiene activado "Reducir movimiento", apagamos animaciones */
 @media (prefers-reduced-motion: reduce) {
     *, *::after {

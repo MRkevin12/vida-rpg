@@ -115,6 +115,19 @@ await prueba("Avisos: el fin del enfoque avisa una sola vez (en el minuto en que
     igual(avisosQueTocan({ ...config, avisarEnfoque: false }, Date.UTC(2026, 9, 12, 15, 26)), [], "si lo apagaste");
 });
 
+await prueba("Modo descanso: no llegan recordatorios hasta ese día (el aviso del enfoque sí)", () => {
+    const lunes7 = Date.UTC(2026, 9, 12, 12, 0);   // lunes 12 de octubre, 7:00 en Colombia
+    const config = {
+        zona: "America/Bogota",
+        horarios: [{ hora: "07:00", dias: null }],
+        misiones: [{ id: 5, hora: "07:00", dias: null, saltarHasta: null }],
+        avisarEnfoque: true, finEnfoque: lunes7 - 30000,
+        descansoHasta: "2026-10-12",
+    };
+    igual(avisosQueTocan(config, lunes7), [{ tipo: "enfoque" }], "el último día de descanso");
+    igual(avisosQueTocan(config, lunes7 + 86400000).map((a) => a.tipo), ["recordatorio", "mision"], "al día siguiente");
+});
+
 await prueba("Horarios: se rechazan horas y días inventados", () => {
     igual(validarHorarios([{ hora: "07:05", dias: [0, 6] }, { hora: "21:00", dias: null }]),
           [{ hora: "07:05", dias: [0, 6] }, { hora: "21:00", dias: null }]);

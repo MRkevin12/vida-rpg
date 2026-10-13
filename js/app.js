@@ -16,6 +16,7 @@ import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
+import * as vida from "./vida.js";
 import { PINTURAS, fuentePintura } from "./pinturas.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import * as minijuegos from "./minijuegos.js";
@@ -99,12 +100,13 @@ function ofrecerPin() {
     if (seguridad.debePreguntar()) crearPin({ conAhoraNo: true, mensaje: "Protege tu app: elige 4 números" });
 }
 
-// Al abrir (o volver a) la app: bonus de regreso, aviso de escudos usados,
+// Al abrir (o volver a) la app: bonus de regreso, vida perdida, aviso de escudos usados,
 // premio de la sesión de enfoque (si terminó mientras no estabas) y desafío de la semana.
 function revisarAlAbrir() {
     ejecutar(() => {
         const celebraciones = [
             ...(acciones.registrarVisita(estado)?.celebraciones || []),
+            ...(acciones.revisarVidaAlAbrir(estado)?.celebraciones || []),
             ...(acciones.revisarEscudosUsados(estado)?.celebraciones || []),
             ...(acciones.revisarEnfoque(estado)?.celebraciones || []),
             ...(acciones.asegurarDesafio(estado)?.celebraciones || []),
@@ -488,6 +490,10 @@ function ejecutar(accion, efectos = {}) {
     const subioNivel = celebraciones.some((c) => c.tipo === "nivel");
     refrescar({ ...efectos, subioNivel, golpes });
     celebraciones.forEach(celebrar);
+
+    // ¿Cambió tu vida? (ej: +4 ❤️ al completar una misión)
+    const cambioVida = vida.calcularVida(estado, hoy()).puntos - antes.vida.puntos;
+    if (cambioVida) flotar(".cab-datos", `${cambioVida > 0 ? "+" : ""}${cambioVida} ❤️`, cambioVida < 0);
     return resultado;
 }
 
@@ -519,6 +525,12 @@ function actualizarCabecera(subioNivel) {
     }
 
     moverBarra($("#cab-barra"), nivel.porcentaje, subioNivel);
+
+    // La vida: barra con el color de su estado (en forma, bien, herido o caído).
+    const v = vida.calcularVida(estado, hoy());
+    $("#cab-vida").textContent = `${v.caido ? "☠️" : "❤️"} ${v.puntos}/${v.maxima}`;
+    $("#cab-salud").className = `barra barra-salud salud-${v.nivel}`;
+    $("#cab-salud-relleno").style.width = `${v.porcentaje}%`;
 }
 
 // Mueve la barra de XP. Al subir de nivel, primero la llena y luego la vacía.
@@ -544,6 +556,7 @@ function dibujarPantalla(efectos = {}) {
         hoy: fecha,
         info,
         avatar: avatar.describirAvatar(estado, fecha, info),
+        vida: vida.calcularVida(estado, fecha),
         diaSeleccionado,
         fechaVista: fechaVista(),
         rangoResumen,
@@ -739,6 +752,15 @@ function rellenarOpciones() {
         <p><strong>Tareas sueltas:</strong> pendientes de una sola vez, con fecha. Aparecen en Hoy el día que vencen y dan XP como una misión de su dificultad.</p>
         <p><strong>Modo enfoque:</strong> ${Object.entries(juego.ENFOQUE).map(([m, dif]) => `${m} min = misión ${d[dif].nombre.toLowerCase()}`).join(", ")}. Si cancelas, no hay premio.</p>
         <p><strong>Desafío de la semana:</strong> cada lunes toca uno al azar. Si lo cumples antes del domingo, abres un cofre: +${desafios.COFRE.xp} XP y ${desafios.COFRE.monedas} monedas.</p>
+        <p><strong>Vida:</strong> tienes ${vida.VIDA.base} + ${vida.VIDA.porNivel} por nivel. Al terminar cada día pierdes
+           ${vida.DANO.facil}/${vida.DANO.normal}/${vida.DANO.dificil} (fácil/normal/difícil) por cada misión que tocaba y no hiciste,
+           ${vida.VIDA.tareaVencida} por cada tarea que vence y, el domingo, por cada vez que te faltó en las metas semanales
+           (máximo ${vida.VIDA.danoMaximoDia} por día). Recuperas ${vida.CURA.facil}/${vida.CURA.normal}/${vida.CURA.dificil} por cada misión o tarea,
+           ${vida.VIDA.paso} por paso de misión principal, ${vida.VIDA.enfoque} por sesión de enfoque y ${vida.VIDA.diaPerfecto} extra en un día perfecto.
+           Con ${vida.VIDA.forma * 100} % o más estás <em>en plena forma</em>: +${vida.VIDA.bonoForma * 100} % de XP y monedas.
+           Si llegas a 0 caes en combate: la tienda y el arcade se cierran hasta que recuperes la mitad.
+           Poción: +${vida.POCION.cura} por ${vida.POCION.precio} monedas, una al día. En la Torre subes con tu vida real.</p>
+        <p><strong>Modo descanso:</strong> hasta ${vida.VIDA.descansoMaximo} días (vacaciones, enfermedad) sin perder vida ni racha, y sin recordatorios.</p>
         <p><strong>Niveles:</strong> pasar del nivel N al N+1 cuesta ${juego.BASE_PERSONAJE}×N XP. Cada atributo sube con ${juego.BASE_ATRIBUTO}×N XP.</p>
         <p><strong>Rachas:</strong> un día cuenta si completas al menos 1 misión. Cada ${juego.ESCUDOS.diasParaGanar} días seguidos ganas un escudo (máx. ${juego.ESCUDOS.maximo}) que salva tu racha si fallas un día.</p>
         <p><strong>Bonus de regreso:</strong> si vuelves tras ${juego.REGRESO.diasMinimos} días o más, ganas ${juego.REGRESO.xpPorDia} XP por día ausente (máx. ${juego.REGRESO.xpMaximo}).</p>
@@ -858,6 +880,7 @@ const PREPARAR = {
             : `<button type="button" class="boton boton-principal" data-accion="activar-pin">Activar PIN</button>`;
         if (hayPin) pintarFaceId();
         pintarNube();
+        pintarDescanso();
     },
     ficha(mision) {
         $("#ficha-contenido").innerHTML = vistas.fichaMision(estado, mision, hoy());
@@ -879,6 +902,10 @@ async function pintarFaceId() {
     $("#ajustes-pin-botones").insertAdjacentHTML("beforeend", seguridad.hayFaceId()
         ? `<button type="button" class="boton boton-secundario" data-accion="quitar-faceid">Quitar Face ID</button>`
         : `<button type="button" class="boton boton-principal" data-accion="activar-faceid">🙂 Activar Face ID</button>`);
+}
+
+function pintarDescanso() {
+    $("#ajustes-descanso").innerHTML = vistas.seccionDescanso(estado, hoy());
 }
 
 function pintarNube() {
@@ -1237,7 +1264,8 @@ const ACCIONES = {
         flotarXp(`.mision[data-id="${id}"]`, resultado.xp);
         if (!estabaHecha) {
             const mision = estado.misiones.find((m) => m.id === id);
-            ofrecerDeshacer(`✔ ${mision.nombre} · +${resultado.xp} XP`, () => ejecutar(() => acciones.desmarcarMision(estado, id, fecha)));
+            ofrecerDeshacer(`✔ ${mision.nombre} · +${resultado.xp} XP${resultado.forma ? " ✨" : ""}`,
+                            () => ejecutar(() => acciones.desmarcarMision(estado, id, fecha)));
         }
     },
     "ver-fecha": (boton) => {
@@ -1411,6 +1439,21 @@ const ACCIONES = {
     },
     equipar: (boton) => ejecutar(() => acciones.equiparObjeto(estado, boton.dataset.id)),
     apariencia: (boton) => ejecutar(() => acciones.cambiarApariencia(estado, boton.dataset.campo, boton.dataset.valor)),
+
+    pocion: () => {
+        if (!confirm(`¿Tomar una poción de vida por ${vida.POCION.precio} monedas? (+${vida.POCION.cura} ❤️)`)) return;
+        if (ejecutar(() => acciones.tomarPocion(estado))) {
+            sonar("moneda");
+            ofrecerDeshacer(`🧪 Poción · −${vida.POCION.precio} 🪙`, () => ejecutar(() => acciones.deshacerPocion(estado)));
+        }
+    },
+    "terminar-descanso": () => {
+        if (!confirm("¿Terminar el descanso? Hoy todavía cuenta como descanso; desde mañana todo vuelve a contar.")) return;
+        if (ejecutar(() => acciones.terminarDescanso(estado))) {
+            avisar("🏖️ El descanso termina hoy");
+            if ($("#dialogo-ajustes").open) pintarDescanso();
+        }
+    },
 
     canjear: (boton) => {
         const recompensa = estado.recompensas.find((r) => r.id === Number(boton.dataset.id));
@@ -1655,6 +1698,13 @@ const FORMULARIOS = {
                 boton.textContent = "Recuperar";
             });
         return false;
+    },
+    descanso(valores) {
+        if (ejecutar(() => acciones.empezarDescanso(estado, valores.hasta))) {
+            avisar("🏖️ Modo descanso activado");
+            pintarDescanso();
+        }
+        return false;   // no cerrar Ajustes
     },
     renombrar(valores) {
         const resultado = ejecutar(() => acciones.renombrar(estado, valores.nombre));

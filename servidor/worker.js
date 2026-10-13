@@ -90,6 +90,7 @@ const RUTAS = {
             misiones,
             zona: validarZona(datos.zona),
             avisarEnfoque: Boolean(datos.avisarEnfoque),
+            descansoHasta: validarFecha(datos.descansoHasta),   // modo descanso: sin recordatorios hasta ese día
         });
         return { ok: true };
     },
@@ -157,12 +158,14 @@ export function avisosQueTocan(config, ahora) {
     const { fecha, hora, diaSemana } = horaLocal(minuto, config.zona);
     const tocaHoy = (h) => h.hora === hora && (!h.dias || h.dias.includes(diaSemana));
     const avisos = [];
+    // En modo descanso no se manda ningún recordatorio (el aviso del enfoque sí).
+    const descansando = config.descansoHasta && fecha <= config.descansoHasta;
     // Un solo recordatorio aunque haya dos horarios a la misma hora.
-    if (config.horarios.some(tocaHoy)) avisos.push({ tipo: "recordatorio" });
+    if (!descansando && config.horarios.some(tocaHoy)) avisos.push({ tipo: "recordatorio" });
     // Cada misión con aviso, salvo las que ya hiciste (saltarHasta = hasta qué día no hace falta avisar).
     for (const m of config.misiones || []) {
         const yaHecha = m.saltarHasta && fecha <= m.saltarHasta;
-        if (tocaHoy(m) && !yaHecha) avisos.push({ tipo: "mision", id: m.id });
+        if (!descansando && tocaHoy(m) && !yaHecha) avisos.push({ tipo: "mision", id: m.id });
     }
     // El enfoque que terminó durante el minuto anterior (así avisa una sola vez).
     const fin = config.finEnfoque;
@@ -217,6 +220,11 @@ export function validarMisiones(lista) {
 }
 
 // La copia llega ya cifrada: solo revisamos que tenga sus partes y no sea enorme.
+// Una fecha "AAAA-MM-DD", o null.
+function validarFecha(texto) {
+    return typeof texto === "string" && /^\d{4}-\d{2}-\d{2}$/.test(texto) ? texto : null;
+}
+
 export function validarRespaldo(r) {
     const partes = ["sal", "iv", "datos", "fecha"];
     const valido = r && partes.every((p) => typeof r[p] === "string") && r.datos.length < 8_000_000

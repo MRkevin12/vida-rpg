@@ -141,6 +141,16 @@ export function tocaEseDia(mision, fecha, diaSemana = diaDeSemana(fecha)) {
     return !mision.veces && sePuedeMarcar(mision, fecha, diaSemana);
 }
 
+// Modo descanso (vacaciones, días enfermo): estado.descansos = [{ desde, hasta }] (los dos días incluidos).
+// Esos días no pierdes vida ni se rompe tu racha, aunque no hagas nada.
+export function descansoDe(estado, fecha) {
+    return (estado.descansos || []).find((d) => d.desde <= fecha && fecha <= d.hasta) || null;
+}
+
+export function enDescanso(estado, fecha) {
+    return Boolean(descansoDe(estado, fecha));
+}
+
 // Las misiones que tocaban ese día.
 export function misionesDelDia(misiones, fecha) {
     const diaSemana = diaDeSemana(fecha);
@@ -193,11 +203,12 @@ export function estadisticasMision(estado, mision, hoy) {
         for (let lunes = lunesDe(desde); lunes <= hoy; lunes = sumarDias(lunes, 7)) {
             const cumplida = vecesEnSemana(estado.completadas, mision.id, lunes) >= mision.veces;
             const enCurso = lunes === lunesDe(hoy);
+            const conDescanso = [0, 1, 2, 3, 4, 5, 6].some((i) => enDescanso(estado, sumarDias(lunes, i)));
             if (cumplida) {
                 racha += 1;
                 mejor = Math.max(mejor, racha);
-            } else if (!enCurso) {
-                racha = 0;              // la semana en curso todavía no rompe la racha
+            } else if (!enCurso && !conDescanso) {
+                racha = 0;              // la semana en curso (o con descanso) no rompe la racha
             }
             if (!enCurso && sumarDias(lunes, 6) >= hace30) {
                 tocaron += 1;
@@ -208,6 +219,7 @@ export function estadisticasMision(estado, mision, hoy) {
         for (let fecha = desde; fecha <= hoy; fecha = sumarDias(fecha, 1)) {
             if (!tocaEseDia(mision, fecha)) continue;
             const hecha = hechas.has(fecha);
+            if (!hecha && enDescanso(estado, fecha)) continue;   // de descanso: como si no tocara
             if (hecha) {
                 racha += 1;
                 mejor = Math.max(mejor, racha);
@@ -229,7 +241,7 @@ export function estadisticasMision(estado, mision, hoy) {
         if (fecha > hoy) tipo = "futuro";
         else if (fecha < desde) tipo = "antes";
         else if (hechas.has(fecha)) tipo = "hecha";
-        else if (!mision.veces && tocaEseDia(mision, fecha)) tipo = fecha === hoy ? "pendiente" : "fallo";
+        else if (!mision.veces && tocaEseDia(mision, fecha) && !enDescanso(estado, fecha)) tipo = fecha === hoy ? "pendiente" : "fallo";
         else tipo = "libre";
         return { fecha, tipo };
     });
@@ -288,8 +300,8 @@ export function calcularRacha(estado, hoy) {
     for (let fecha = estado.personaje.creadoEn; fecha < hoy; fecha = sumarDias(fecha, 1)) {
         if (conteo.has(fecha)) {
             sumarUnDia();
-        } else if (misionesActivasEn(estado.misiones, fecha) === 0) {
-            // Día de descanso (no tocaba ninguna misión): no suma ni rompe la racha.
+        } else if (misionesActivasEn(estado.misiones, fecha) === 0 || enDescanso(estado, fecha)) {
+            // Día libre (no tocaba ninguna misión) o en modo descanso: no suma ni rompe la racha.
         } else if (escudos > 0) {
             escudos -= 1;            // el escudo se gasta...
             protegidos.add(fecha);   // ...y la racha sigue viva
@@ -334,7 +346,7 @@ export function datosCalendario(estado, hoy, racha, semanas = 53) {
             let nivel = nivelCalor(hechas, total);
             // Hiciste algo aunque ese día no tocara nada (cambiaste los días después): se pinta suave.
             if (nivel === 0 && hechasDia.has(fecha)) nivel = 1;
-            dias.push({ fecha, tipo: "dia", hechas, total, nivel, protegido: racha.protegidos.has(fecha) });
+            dias.push({ fecha, tipo: "dia", hechas, total, nivel, protegido: racha.protegidos.has(fecha), descanso: enDescanso(estado, fecha) });
         }
     }
     return { dias, semanas };

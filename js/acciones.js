@@ -12,6 +12,7 @@ import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
+import * as vida from "./vida.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
@@ -80,6 +81,7 @@ export function crearPersonaje(estado, nombre) {
         monedas: 0,
         creadoEn: hoy(),
     };
+    estado.vida = { desde: hoy(), pociones: [], avisadoHasta: null };   // la vida empieza a contar hoy
     estado.ultimaVisita = hoy();
 }
 
@@ -198,12 +200,13 @@ export function completarMision(estado, id, fecha = hoy()) {
         throw new Error("Esa misión ya estaba completada ese día.");
     }
 
-    const { xp, monedas } = juego.DIFICULTADES[mision.dificultad];
+    // En plena forma (vida de 80 % o más) da 10 % más (ver vida.js).
+    const { xp, monedas, forma } = vida.premio(estado, mision.dificultad, hoy());
     // Guardamos cuánto dio (y su dificultad y atributo de ese momento), para poder
     // restarlo exacto si la desmarcas y para que editar la misión no cambie el pasado.
     estado.completadas.push({ misionId: id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad });
     ganar(estado, { xp, monedas, atributo: mision.atributo });
-    return { xp };
+    return { xp, forma };
 }
 
 // Deshace una misión de hoy o de ayer (por si la marcaste por error).
@@ -292,11 +295,11 @@ export function editarTarea(estado, { id, nombre, fecha, dificultad, atributo })
 export function alternarTarea(estado, id) {
     const tarea = buscar(estado.tareas, id, "esa tarea");
     if (!tarea.hechaEn) {
-        const { xp, monedas } = juego.DIFICULTADES[tarea.dificultad];
+        const { xp, monedas, forma } = vida.premio(estado, tarea.dificultad, hoy());
         tarea.hechaEn = hoy();
         tarea.premio = { xp, monedas, atributo: tarea.atributo, dificultad: tarea.dificultad };
         ganar(estado, tarea.premio);
-        return { xp };
+        return { xp, forma };
     }
     validarFecha(tarea.hechaEn, "Solo puedes desmarcar tareas que hiciste hoy o ayer.");
     const { xp, monedas, atributo } = tarea.premio;
@@ -335,7 +338,7 @@ export function revisarEnfoque(estado, ahora = Date.now()) {
     if (!activo || ahora < juego.finDelEnfoque(activo)) return null;
 
     const dificultad = juego.ENFOQUE[activo.minutos];
-    const { xp, monedas } = juego.DIFICULTADES[dificultad];
+    const { xp, monedas } = vida.premio(estado, dificultad, hoy());
     // La fecha es la del momento en que terminó (aunque abras la app al día siguiente).
     const fecha = aTexto(new Date(juego.finDelEnfoque(activo)));
     estado.enfoque.sesiones.push({ fecha, minutos: activo.minutos, atributo: activo.atributo, dificultad, xp, monedas });
@@ -621,6 +624,7 @@ export function borrarRecompensa(estado, id) {
 }
 
 export function canjear(estado, id) {
+    revisarQueNoEstesCaido(estado, "la tienda");
     const recompensa = buscar(estado.recompensas, id, "esa recompensa");
     const faltan = recompensa.costo - estado.personaje.monedas;
     if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
@@ -667,6 +671,7 @@ export function comprarObjeto(estado, id) {
     if (!objeto) throw new Error("Ese objeto no existe.");
     if (objeto.logro) throw new Error("Ese objeto no se vende: se gana con un logro.");
     if (estado.avatar.comprados.includes(id)) throw new Error("Ya tienes ese objeto.");
+    revisarQueNoEstesCaido(estado, "la tienda");
     const faltan = objeto.precio - estado.personaje.monedas;
     if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
 
@@ -733,6 +738,7 @@ export function cambiarAvisoEnfoque(estado, encendido) {
 // La ficha se gasta al EMPEZAR (si sales a la mitad, igual se gastó).
 export function empezarPartida(estado, tipo) {
     if (!arcade.JUEGOS[tipo]) throw new Error("Ese minijuego no existe.");
+    revisarQueNoEstesCaido(estado, "el arcade");
     if (arcade.fichasDisponibles(estado) < 1) {
         throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
     }
@@ -803,12 +809,15 @@ export function cerrarResumenSemanal(estado) {
 // La partida se guarda en estado.arcade.torre: puedes salir y seguirla después.
 
 export function empezarTorre(estado, semilla) {
+    revisarQueNoEstesCaido(estado, "el arcade");
     if (estado.arcade.torre) return;   // ya hay una partida: se sigue esa (sin gastar otra ficha)
     if (arcade.fichasDisponibles(estado) < 1) {
         throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
     }
     estado.arcade.usadas += 1;   // la ficha se gasta al EMPEZAR
-    estado.arcade.torre = torre.nuevaPartida(nivelesDeAtributos(estado), semilla);
+    // Subes con tu vida real: si llegas herido, empiezas con menos vida.
+    const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
+    estado.arcade.torre = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion);
 }
 
 export function accionTorre(estado, accion) {
@@ -846,6 +855,82 @@ export function terminarTorre(estado) {
 }
 
 
+// ===== Vida: pociones y modo descanso =====
+// La vida se calcula en vida.js. Aquí solo se guardan las pociones y los descansos.
+
+// Si caíste en combate, la tienda y el arcade se cierran hasta que te levantes.
+function revisarQueNoEstesCaido(estado, que) {
+    const v = vida.calcularVida(estado, hoy());
+    if (v.caido) {
+        throw new Error(`Caíste en combate: ${que} se abre cuando llegues a ${v.levantarse} ❤️ (tienes ${v.puntos}). ` +
+                        "Cumple misiones para curarte (o toma una poción).");
+    }
+}
+
+// Comprar y tomar una poción: +25 de vida, una al día. (Se vende aunque hayas caído.)
+export function tomarPocion(estado) {
+    const v = vida.calcularVida(estado, hoy());
+    if (v.pocionesHoy >= vida.POCION.porDia) throw new Error("Ya tomaste la poción de hoy. Mañana puedes tomar otra.");
+    if (v.puntos >= v.maxima) throw new Error("Tu vida ya está llena.");
+    const faltan = vida.POCION.precio - estado.personaje.monedas;
+    if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
+
+    estado.personaje.monedas -= vida.POCION.precio;
+    estado.vida.pociones.push(hoy());
+    const cura = Math.min(vida.POCION.cura, v.maxima - v.puntos);
+    return { celebraciones: [{ pequena: true, icono: "🧪", titulo: `Poción: +${cura} de vida` }] };
+}
+
+// Deshacer la poción de hoy: te devuelve las monedas.
+export function deshacerPocion(estado) {
+    const posicion = estado.vida.pociones.lastIndexOf(hoy());
+    if (posicion === -1) throw new Error("No hay ninguna poción de hoy para deshacer.");
+    estado.vida.pociones.splice(posicion, 1);
+    estado.personaje.monedas += vida.POCION.precio;
+}
+
+// Modo descanso: desde hoy hasta el día que elijas (máximo 30 días).
+// Esos días no pierdes vida ni se rompe tu racha, y no llegan recordatorios.
+export function empezarDescanso(estado, hasta) {
+    const fecha = hoy();
+    if (juego.descansoDe(estado, fecha)) throw new Error("Ya estás en modo descanso.");
+    if (!esFechaValida(String(hasta || "")) || hasta < fecha) throw new Error("Elige hasta qué día quieres descansar.");
+    if (diasEntre(fecha, hasta) >= vida.VIDA.descansoMaximo) {
+        throw new Error(`El descanso puede durar máximo ${vida.VIDA.descansoMaximo} días.`);
+    }
+    estado.descansos.push({ desde: fecha, hasta });
+}
+
+// Terminar antes: hoy todavía es de descanso; desde mañana todo vuelve a contar.
+export function terminarDescanso(estado) {
+    const fecha = hoy();
+    const descanso = juego.descansoDe(estado, fecha);
+    if (!descanso) throw new Error("No estás en modo descanso.");
+    if (descanso.hasta === fecha) throw new Error("Tu descanso ya termina hoy.");
+    descanso.hasta = fecha;
+}
+
+// Al abrir: cuánta vida perdiste en los días que pasaron (se avisa una sola vez).
+export function revisarVidaAlAbrir(estado) {
+    const fecha = hoy();
+    const v = vida.calcularVida(estado, fecha);
+    const desde = estado.vida.avisadoHasta || sumarDias(estado.vida.desde || fecha, -1);
+    const dias = v.registro.filter((r) => r.fecha > desde && r.fecha < fecha);
+    estado.vida.avisadoHasta = sumarDias(fecha, -1);
+
+    if (v.caido && dias.some((r) => r.cayo)) {
+        return { celebraciones: [{ icono: "☠️", etiqueta: "¡Caíste en combate!", titulo: "Tienda y arcade cerrados",
+                                   detalle: `Te quedaste sin vida. Cumple misiones hasta llegar a ${v.levantarse} ❤️ para abrirlos otra vez.` }] };
+    }
+    const perdida = dias.reduce((suma, r) => suma + r.dano, 0);
+    if (!perdida) return null;
+    const pendientes = dias.reduce((suma, r) => suma + (r.faltas ? r.faltas.misiones + r.faltas.tareas + r.faltas.semanales : 0), 0);
+    const cuando = dias.length === 1 ? "ayer" : "mientras no estabas";
+    return { celebraciones: [{ pequena: true, icono: "💔",
+                               titulo: `Perdiste ${perdida} de vida ${cuando} (${juego.plural(pendientes, "pendiente sin hacer", "pendientes sin hacer")})` }] };
+}
+
+
 // ===== Al abrir la app =====
 
 // Bonus de regreso: si vuelves tras varios días sin abrir la app, ganas XP extra.
@@ -866,7 +951,7 @@ export function registrarVisita(estado) {
             icono: "🎉",
             etiqueta: "¡Bienvenido de vuelta!",
             titulo: `+${xp} XP`,
-            detalle: `Volviste después de ${dias} días. Aquí no hay castigos: sigue desde donde quedaste.`,
+            detalle: `Volviste después de ${dias} días. Sigue desde donde quedaste.`,
         }],
     };
 }
@@ -908,9 +993,15 @@ function fotoDelAvatar(estado, info) {
     };
 }
 
+function fotoDeVida(estado) {
+    const v = vida.calcularVida(estado, hoy());
+    return { puntos: v.puntos, caido: v.caido, enForma: v.enForma };
+}
+
 export function foto(estado) {
     const info = juego.resumen(estado, hoy());
     return {
+        vida: fotoDeVida(estado),
         nivel: juego.calcularNivel(estado.personaje.xp).nivel,
         atributos: nivelesDeAtributos(estado),
         escudos: info.racha.escudos,
@@ -953,6 +1044,18 @@ export function revisarCambios(estado, antes) {
             titulo: logro.nombre,
             detalle: logro.recompensa ? `+${logro.recompensa} monedas` : "",
         });
+    }
+
+    // La vida: levantarte después de caer, caer (al desmarcar algo de ayer) o entrar en plena forma.
+    const vidaAhora = fotoDeVida(estado);
+    if (antes.vida.caido && !vidaAhora.caido) {
+        celebraciones.push({ icono: "❤️‍🩹", etiqueta: "¡Te levantaste!", titulo: "Tienda y arcade abiertos",
+                             detalle: "Recuperaste la mitad de tu vida. ¡Sigue así!" });
+    } else if (!antes.vida.caido && vidaAhora.caido) {
+        celebraciones.push({ icono: "☠️", etiqueta: "¡Caíste en combate!", titulo: "Tienda y arcade cerrados",
+                             detalle: "Te quedaste sin vida. Cumple misiones para levantarte." });
+    } else if (!antes.vida.enForma && vidaAhora.enForma) {
+        celebraciones.push({ pequena: true, icono: "✨", titulo: "¡En plena forma! +10 % de XP y monedas" });
     }
 
     // Cambios del avatar (se revisan después de los logros, que pueden dar objetos).

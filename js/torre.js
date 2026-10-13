@@ -133,15 +133,21 @@ export function textoIntencion(m) {
 
 // ===== La partida =====
 
-export function nuevaPartida(niveles, semilla = Date.now() % 4294967296) {
+// proporcion: con cuánta vida subes (1 = llena). Sale de tu vida real (ver vida.js):
+// si llegas herido, empiezas con menos.
+export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporcion = 1) {
+    const heroe = heroeDeLaTorre(niveles);
+    heroe.vida = Math.max(1, Math.round(heroe.vidaMax * proporcion));
     return {
         semilla,
         piso: 1,
         fase: "batalla",          // "batalla" | "mejora" (elegir premio) | "fin"
-        heroe: heroeDeLaTorre(niveles),
+        heroe,
         enemigo: monstruoDelPiso(1),
         opciones: [],             // las 3 mejoras para elegir
-        registro: "Piso 1. ¡Que empiece la subida!",
+        registro: heroe.vida < heroe.vidaMax
+            ? `Piso 1. Llegas con el ${Math.round(proporcion * 100)} % de tu vida real. ¡Cuidado!`
+            : "Piso 1. ¡Que empiece la subida!",
     };
 }
 

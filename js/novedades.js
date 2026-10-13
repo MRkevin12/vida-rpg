@@ -4,9 +4,21 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 15;
+export const VERSION_APP = 16;
 
 export const NOVEDADES = [
+    {
+        version: 16,
+        titulo: "La vida de tu héroe",
+        cambios: [
+            "❤️ Tu héroe tiene vida: la pierde por lo que no haces cada día y la recupera cumpliendo.",
+            "✨ Con 80 % o más estás en plena forma: +10 % de XP y monedas.",
+            "☠️ Si llega a 0, la tienda y el arcade se cierran hasta que recuperes la mitad.",
+            "🧪 Pociones de vida en la Tienda (una al día).",
+            "🏖️ Modo descanso en Ajustes, para vacaciones o días enfermo.",
+            "🌙 El aviso de la noche dice cuánta vida pierdes si no terminas, y en la Torre subes con tu vida real.",
+        ],
+    },
     {
         version: 15,
         titulo: "Más profesional",

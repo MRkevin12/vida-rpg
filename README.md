@@ -1,7 +1,7 @@
 # <img src="iconos/icono-192.png" width="56" alt="" align="top"> Vida RPG
 
 [![Pruebas](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml/badge.svg)](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml)
-![Versión](https://img.shields.io/badge/versión-v15-8b5cf6)
+![Versión](https://img.shields.io/badge/versión-v16-8b5cf6)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-34d399)](LICENSE)
 
 Una app de productividad que convierte tu día a día en un juego de rol: completas misiones, ganas experiencia, subes de nivel y derrotas jefes.
@@ -32,6 +32,7 @@ Las capturas usan una partida de ejemplo inventada.
 - **Desafío de la semana:** uno al azar cada lunes (adaptado a tu partida). Si lo cumples, abres un cofre.
 - **Tu semana:** al empezar una semana nueva, un resumen de la anterior: cumplimiento, días perfectos, metas, enfoque, ánimo y el desafío.
 - **XP, niveles y cuatro atributos:** Fuerza, Intelecto, Carisma y Riqueza.
+- **Vida del héroe:** al terminar cada día pierdes vida por lo que tocaba y no hiciste, y la recuperas cumpliendo. Con 80 % o más estás **en plena forma** (+10 % de XP y monedas). Si llega a 0 caes en combate: la tienda y el arcade se cierran hasta que recuperes la mitad. Hay **pociones** (una al día) y un **modo descanso** para vacaciones o días enfermo, que no quita vida ni rompe la racha.
 - **Rachas con escudos:** cada 7 días seguidos ganas un escudo que salva un día fallado. Los días de descanso no rompen la racha.
 - **Resumen con gráficas** de los últimos 7 o 30 días: cumplimiento, días perfectos, XP, tu mejor día de la semana y qué atributo tienes descuidado.
 - **Calendario de un año** al estilo de GitHub.
@@ -40,9 +41,9 @@ Las capturas usan una partida de ejemplo inventada.
 - **Logros** automáticos y personales, y una **tienda** donde cambias monedas por recompensas reales que tú defines.
 - **Fondos pintados:** los escenarios del avatar y de las batallas son pinturas clásicas de dominio público (Constable, Bierstadt, Van Gogh, Turner, Panini…).
 - **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
-- **Torre del héroe:** un minijuego grande de batallas por turnos, piso a piso, con mejoras entre pisos. Tu poder sale de los niveles de tus atributos reales.
+- **Torre del héroe:** un minijuego grande de batallas por turnos, piso a piso, con mejoras entre pisos. Tu poder sale de los niveles de tus atributos reales, y subes con tu vida real.
 - **Tres minijuegos** más, que se juegan con fichas ganadas al completar misiones.
-- **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día), un aviso propio para cada misión que le pongas hora (solo si todavía no la hiciste) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan.
+- **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día y, de noche, cuánta vida pierdes si no terminas), un aviso propio para cada misión que le pongas hora (solo si todavía no la hiciste) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan.
 - **PIN de 4 números o Face ID** para abrir la app.
 - **Copia de seguridad automática en la nube**, cifrada con tu contraseña, además de la copia en un archivo.
 - **Sonidos** hechos con código, que se pueden apagar en Ajustes.
@@ -101,6 +102,7 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
 | `js/arcade.js`, `js/minijuegos.js` | Las fichas y los tres minijuegos en `<canvas>` |
 | `js/torre.js` | Las reglas de la Torre del héroe (batallas por turnos y mejoras) |
+| `js/vida.js` | La vida del héroe: daño, curación, plena forma, caer en combate y pociones (se calcula día por día) |
 | `js/pinturas.js`, `fondos/` | Las pinturas de los fondos y escenarios, con sus créditos |
 | `js/datos.js` | Guardar, cargar y copias de seguridad |
 | `js/seguridad.js` | El PIN (se guarda su huella SHA-256, nunca el PIN) y Face ID con WebAuthn |
@@ -128,7 +130,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 71 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 9 pruebas más (`node servidor/pruebas.mjs`).
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 83 pruebas de las reglas del juego (niveles, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

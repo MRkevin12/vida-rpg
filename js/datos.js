@@ -7,13 +7,15 @@
 // Como los datos viven SOLO en el teléfono, también hay funciones
 // para exportar e importar una copia de seguridad.
 
+import { hoy } from "./fechas.js";
+
 const CLAVE = "vida-rpg";
 
 
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 3,
+        version: 4,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
 
@@ -45,6 +47,13 @@ export function estadoInicial() {
         recompensas: [],      // tienda: { id, nombre, costo }
         canjes: [],           // historial de la tienda: { nombre, costo, fecha }
         bonos: [],            // bonus de regreso recibidos: { fecha, dias, xp }
+
+        vida: {               // la vida del héroe (ver vida.js). Los puntos se CALCULAN, no se guardan.
+            desde: null,      // el día en que empezó a contar (al crear el personaje o al actualizar a la v16)
+            pociones: [],     // los días en que tomaste una poción: ["2026-10-12", …]
+            avisadoHasta: null,   // hasta qué día ya te avisamos cuánta vida perdiste
+        },
+        descansos: [],        // modo descanso: { desde, hasta } (los dos días incluidos)
 
         avatar: {             // equipamiento del avatar (ver avatar.js)
             comprados: [],    // ids de objetos comprados en la tienda
@@ -98,6 +107,12 @@ function completar(guardado) {
             torre: guardado.arcade?.torre || null,
         },
         campana: { recompensados: { ...guardado.campana?.recompensados } },
+        // La vida empieza a contar el día en que llega esta versión: no castiga el pasado.
+        vida: {
+            desde: guardado.vida?.desde || (guardado.personaje ? hoy() : null),
+            pociones: guardado.vida?.pociones || [],
+            avisadoHasta: guardado.vida?.avisadoHasta || null,
+        },
         apariencia: { ...base.apariencia, ...guardado.apariencia },
         ajustes: { ...base.ajustes, ...guardado.ajustes },
         avisos: { ...base.avisos, ...guardado.avisos },

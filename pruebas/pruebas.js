@@ -18,6 +18,7 @@ import * as desafios from "../js/desafios.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.js";
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
+import * as vida from "../js/vida.js";
 import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "../js/novedades.js";
@@ -89,6 +90,12 @@ function envejecer(estado, dias) {
     for (const mision of estado.misiones) mision.creadaEn = dia(-dias);
 }
 
+// Como envejecer(), y además la vida empieza a contar desde ese día (para probar la vida).
+function vidaDesde(estado, dias) {
+    envejecer(estado, dias);
+    estado.vida.desde = dia(-dias);
+}
+
 // Marca una misión en cualquier fecha. La app solo deja marcar hoy o ayer;
 // aquí escribimos el historial directamente para poder probar el pasado.
 function marcarEn(estado, mision, fecha) {
@@ -139,9 +146,10 @@ prueba("Completar una misión da su XP, sus monedas y sube su atributo", () => {
     const estado = partidaNueva();
     const mision = crearMision(estado);
     acciones.completarMision(estado, mision.id);
-    igual(estado.personaje.xp, 25);
-    igual(estado.personaje.monedas, 10);
-    igual(estado.atributos.intelecto, 25);
+    // Un héroe nuevo tiene la vida llena: está en plena forma y gana 10 % más (normal: 25 → 28 XP, 10 → 11 monedas).
+    igual(estado.personaje.xp, 28);
+    igual(estado.personaje.monedas, 11);
+    igual(estado.atributos.intelecto, 28);
 });
 
 prueba("No se puede completar la misma misión dos veces el mismo día", () => {
@@ -161,11 +169,11 @@ prueba("Desmarcar una misión devuelve exactamente lo que dio", () => {
 
 prueba("Editar una misión no cambia lo que ya ganaste con ella", () => {
     const estado = partidaNueva();
-    const mision = crearMision(estado);                       // normal: 25 XP
+    const mision = crearMision(estado);                       // normal: 25 XP (+10 % en plena forma = 28)
     acciones.completarMision(estado, mision.id);
     acciones.editarMision(estado, { id: mision.id, nombre: "Leer mucho", dificultad: "dificil", atributo: "fuerza" });
-    igual(estado.personaje.xp, 25, "la XP ganada");
-    acciones.desmarcarMision(estado, mision.id);              // devuelve 25, no 50
+    igual(estado.personaje.xp, 28, "la XP ganada");
+    acciones.desmarcarMision(estado, mision.id);              // devuelve 28, no 55
     igual([estado.personaje.xp, estado.atributos.intelecto, estado.atributos.fuerza], [0, 0, 0]);
 });
 
@@ -250,7 +258,7 @@ prueba("Cantidad: al llegar a la meta se completa sola, y si bajas se desmarca",
     igual(agua.meta, { cantidad: 3, unidad: "vasos" });
     acciones.fijarCantidad(estado, agua.id, hoy(), 2);
     igual([juego.cantidadDe(estado, agua, hoy()), estado.completadas.length], [2, 0]);
-    igual(acciones.fijarCantidad(estado, agua.id, hoy(), 3).xp, 25, "al llegar a 3 se completa");
+    igual(acciones.fijarCantidad(estado, agua.id, hoy(), 3).xp, 28, "al llegar a 3 se completa (en plena forma)");
     igual(estado.completadas.length, 1);
     acciones.fijarCantidad(estado, agua.id, hoy(), 2);
     igual([estado.completadas.length, estado.personaje.xp], [0, 0], "al bajar de la meta se desmarca");
@@ -373,7 +381,7 @@ prueba("Tareas: dan su premio una vez, se pueden deshacer y las hechas no se bor
     acciones.crearTarea(estado, { nombre: "Pagar la luz", fecha: hoy(), dificultad: "dificil", atributo: "riqueza" });
     const tarea = estado.tareas[0];
     acciones.alternarTarea(estado, tarea.id);
-    igual([estado.personaje.xp, estado.personaje.monedas, estado.atributos.riqueza], [50, 20, 50]);
+    igual([estado.personaje.xp, estado.personaje.monedas, estado.atributos.riqueza], [55, 22, 55]);   // difícil +10 %
     debeFallar(() => acciones.borrarTarea(estado, tarea.id), "ya está hecha");
     acciones.alternarTarea(estado, tarea.id);   // deshacer
     igual([estado.personaje.xp, estado.personaje.monedas, tarea.hechaEn], [0, 0, null]);
@@ -401,7 +409,7 @@ prueba("Enfoque: antes de tiempo no da nada; al terminar da lo mismo que una mis
     igual(acciones.revisarEnfoque(estado, inicio + 24 * 60 * 1000), null, "a los 24 minutos");
     const resultado = acciones.revisarEnfoque(estado, inicio + 25 * 60 * 1000);
     igual(resultado.celebraciones.length, 1, "celebraciones");
-    igual([estado.personaje.xp, estado.personaje.monedas, estado.atributos.intelecto], [25, 10, 25]);
+    igual([estado.personaje.xp, estado.personaje.monedas, estado.atributos.intelecto], [28, 11, 28]);   // normal +10 %
     igual(estado.enfoque.activo, null);
     igual(campana.estadoCampanas(estado).intelecto.dano, campana.DANO.diaria.normal, "daño al jefe");
 });
@@ -494,7 +502,7 @@ prueba("Logros: se desbloquean solos al cumplir la meta y pagan su recompensa", 
     acciones.crearLogro(estado, { nombre: "Primera misión", tipo: "total", objetivo: 1, recompensa: 50 });
     jugar(estado, () => acciones.completarMision(estado, mision.id));
     igual(estado.logros[0].desbloqueadoEn, hoy());
-    igual(estado.personaje.monedas, 10 + 50);
+    igual(estado.personaje.monedas, 11 + 50);   // la misión (en plena forma) + el logro
 });
 
 prueba("Logros personales: solo se consiguen cuando tú los marcas", () => {
@@ -617,7 +625,7 @@ prueba("Aviso de misión: el texto es solo de esa misión, y desaparece al hacer
     acciones.fijarCantidad(estado, agua.id, hoy(), 3);
     let resumen = resumenParaAvisos(estado, hoy());
     igual(resumen.dias[hoy()].porMision[agua.id],
-          { titulo: "⏰ Beber agua", cuerpo: "Llevas 3 de 8 vasos.\n+25 XP · +10 monedas" });   // normal
+          { titulo: "⏰ Beber agua", cuerpo: "Llevas 3 de 8 vasos.\n+25 XP · +10 monedas\n❤️ Si no la haces hoy pierdes 8 de vida" });   // normal
     igual(resumen.nombres[agua.id], "Beber agua");
     acciones.fijarCantidad(estado, agua.id, hoy(), 8);
     resumen = resumenParaAvisos(estado, hoy());
@@ -789,6 +797,173 @@ prueba("Nube: la partida se cifra; con la contraseña se abre y con otra no", as
     igual(await nube.descifrar(cifrada, llave), '{"personaje":"Aria"}');
     const otra = await nube.derivarLlave("caballo-azul-28", sal);
     await debeFallarAsync(() => nube.descifrar(cifrada, otra), "contraseña no es correcta");
+});
+
+
+// ===== La vida del héroe (v16) =====
+
+prueba("Vida: empieza llena (100 + 5 por nivel) y con la vida llena estás en plena forma", () => {
+    const estado = partidaNueva();
+    const v = vida.calcularVida(estado, hoy());
+    igual([v.puntos, v.maxima, v.nivel, v.caido], [105, 105, "forma", false]);
+    acciones.ganar(estado, { xp: 100 });   // nivel 2
+    igual(vida.calcularVida(estado, hoy()).maxima, 110);
+});
+
+prueba("Vida: al terminar el día pierdes por cada misión sin hacer (hoy todavía no quita)", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);                                          // normal: −8
+    crearMision(estado, { nombre: "Gym", dificultad: "dificil" });            // difícil: −12
+    vidaDesde(estado, 2);
+    marcarEn(estado, leer, dia(-2));                                           // hace 2 días solo faltó el gym
+    const v = vida.calcularVida(estado, hoy());
+    igual(v.registro.map((r) => r.dano), [12, 20, 0], "hace 2 días, ayer y hoy");
+    igual(v.puntos, 105 - 12 - 20);
+    igual(vida.danoDelDia(estado, hoy()).dano, 20, "lo que perderías si no haces nada hoy");
+});
+
+prueba("Vida: un día malo quita máximo 30, y una tarea vencida quita 5 una sola vez", () => {
+    const estado = partidaNueva();
+    for (const nombre of ["A", "B", "C"]) crearMision(estado, { nombre, dificultad: "dificil" });   // 36 en un día
+    vidaDesde(estado, 1);
+    igual(vida.calcularVida(estado, hoy()).registro[0].dano, 30, "con tope");
+
+    const otra = partidaNueva();
+    acciones.crearTarea(otra, { nombre: "Pagar", fecha: dia(-2), dificultad: "facil", atributo: "riqueza" });
+    otra.tareas[0].creadaEn = dia(-3);
+    vidaDesde(otra, 3);
+    igual(vida.calcularVida(otra, hoy()).registro.map((r) => r.dano), [0, 5, 0, 0]);
+});
+
+prueba("Vida: cumplir cura (+10 en un día perfecto) y marcar algo de ayer recupera lo perdido", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    vidaDesde(estado, 1);
+    igual(vida.calcularVida(estado, hoy()).puntos, 97, "ayer no la hiciste: −8");
+    acciones.completarMision(estado, leer.id, dia(-1));
+    igual(vida.calcularVida(estado, hoy()).puntos, 105, "la marcaste: ya no hay daño");
+
+    const otra = partidaNueva();
+    const gym = crearMision(otra);
+    vidaDesde(otra, 3);                                    // 3 días sin hacerla: 105 − 24 = 81
+    igual(vida.calcularVida(otra, hoy()).puntos, 81);
+    acciones.completarMision(otra, gym.id);
+    igual(vida.calcularVida(otra, hoy()).puntos, 81 + 4 + 10, "misión normal + día perfecto");
+});
+
+prueba("Vida: en plena forma (80 % o más) das +10 % de XP y monedas; si no, lo normal", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    vidaDesde(estado, 3);                                  // 81 de 105 = 77 %: «bien», sin bono
+    igual(vida.calcularVida(estado, hoy()).nivel, "bien");
+    igual(acciones.completarMision(estado, leer.id), { xp: 25, forma: false });
+    igual(vida.calcularVida(estado, hoy()).nivel, "forma", "con 95 de 105 vuelve a estar en forma");
+});
+
+prueba("Vida: en 0 caes; la tienda y el arcade se cierran hasta recuperar la mitad (las pociones sí se venden)", () => {
+    const estado = partidaNueva();
+    acciones.ganar(estado, { xp: 300, monedas: 500 });     // nivel 3: 115 de vida; para levantarse, 58
+    for (const nombre of ["A", "B", "C", "D"]) crearMision(estado, { nombre, dificultad: "dificil" });
+    acciones.crearRecompensa(estado, { nombre: "Película", costo: 10 });
+    vidaDesde(estado, 4);                                  // 4 días sin nada: 115 → 85 → 55 → 25 → 0
+    let v = vida.calcularVida(estado, hoy());
+    igual([v.puntos, v.caido, v.cayoEn, v.levantarse], [0, true, dia(-1), 58]);
+    igual(avatar.calcularAnimo(estado, hoy(), juego.calcularRacha(estado, hoy())), "caido", "el avatar cayó");
+    debeFallar(() => acciones.canjear(estado, estado.recompensas[0].id), "Caíste en combate");
+    debeFallar(() => acciones.comprarObjeto(estado, "gorra"), "Caíste en combate");
+    debeFallar(() => acciones.empezarPartida(estado, "carrera"), "Caíste en combate");
+    debeFallar(() => acciones.empezarTorre(estado, 1), "Caíste en combate");
+
+    acciones.tomarPocion(estado);                          // +25
+    debeFallar(() => acciones.tomarPocion(estado), "Ya tomaste");
+    const celebraciones = jugar(estado, () => {
+        for (const m of estado.misiones) acciones.completarMision(estado, m.id);   // 4 × 6 + 10 del día perfecto
+    });
+    v = vida.calcularVida(estado, hoy());
+    igual([v.puntos, v.caido], [25 + 24 + 10, false]);
+    cierto(celebraciones.some((c) => c.etiqueta === "¡Te levantaste!"), "avisa que te levantaste");
+    acciones.canjear(estado, estado.recompensas[0].id);   // la tienda ya abrió
+});
+
+prueba("Pociones: +25 por 40 monedas, una al día; no con la vida llena; se pueden deshacer", () => {
+    const llena = partidaNueva();
+    acciones.ganar(llena, { monedas: 100 });
+    debeFallar(() => acciones.tomarPocion(llena), "ya está llena");
+
+    const estado = partidaNueva();
+    crearMision(estado);
+    vidaDesde(estado, 3);                                  // 81 de 105
+    debeFallar(() => acciones.tomarPocion(estado), "Te faltan 40");
+    acciones.ganar(estado, { monedas: 100 });
+    acciones.tomarPocion(estado);
+    igual([vida.calcularVida(estado, hoy()).puntos, estado.personaje.monedas], [105, 60], "81 + 25, sin pasar del máximo");
+    acciones.deshacerPocion(estado);
+    igual([vida.calcularVida(estado, hoy()).puntos, estado.personaje.monedas], [81, 100]);
+});
+
+prueba("Vida: al abrir la app avisa una sola vez cuánta vida perdiste", () => {
+    const estado = partidaNueva();
+    crearMision(estado);
+    vidaDesde(estado, 1);
+    igual(acciones.revisarVidaAlAbrir(estado).celebraciones[0].titulo, "Perdiste 8 de vida ayer (1 pendiente sin hacer)");
+    igual(acciones.revisarVidaAlAbrir(estado), null, "la segunda vez ya no");
+});
+
+prueba("Metas semanales: al cerrar la semana quitan vida por cada vez que faltó (proporcional si empezó a mitad)", () => {
+    const estado = partidaNueva();
+    const gym = crearMision(estado, { nombre: "Gym", frecuencia: "semana", veces: 3 });   // normal: −8 por vez
+    const lunesPasado = sumarDias(lunesDe(hoy()), -7);
+    const domingo = sumarDias(lunesPasado, 6);
+    estado.personaje.creadoEn = gym.creadaEn = estado.vida.desde = lunesPasado;
+    marcarEn(estado, gym, lunesPasado);                    // 1 de 3: faltaron 2
+    const danoDelDomingo = () => vida.calcularVida(estado, hoy()).registro.find((r) => r.fecha === domingo).dano;
+    igual(danoDelDomingo(), 16);
+    estado.vida.desde = sumarDias(lunesPasado, 3);         // si la vida empezó el jueves: pedía 2 (de 4 días)
+    igual(danoDelDomingo(), 8);
+});
+
+prueba("Modo descanso: no quita vida ni rompe la racha, y dura máximo 30 días", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    vidaDesde(estado, 3);
+    marcarEn(estado, leer, dia(-3));
+    estado.descansos.push({ desde: dia(-2), hasta: dia(-1) });   // 2 días de descanso sin hacer nada
+    igual(vida.calcularVida(estado, hoy()).puntos, 105);
+    igual(juego.calcularRacha(estado, hoy()).actual, 1, "la racha sigue viva");
+
+    const otra = partidaNueva();
+    debeFallar(() => acciones.empezarDescanso(otra, dia(30)), "máximo 30");
+    debeFallar(() => acciones.empezarDescanso(otra, dia(-1)), "hasta qué día");
+    acciones.empezarDescanso(otra, dia(2));
+    igual([juego.enDescanso(otra, hoy()), juego.enDescanso(otra, dia(2)), juego.enDescanso(otra, dia(3))], [true, true, false]);
+    debeFallar(() => acciones.empezarDescanso(otra, dia(3)), "Ya estás");
+    acciones.terminarDescanso(otra);                       // hoy todavía descansa; mañana ya cuenta
+    igual(otra.descansos, [{ desde: hoy(), hasta: hoy() }]);
+});
+
+prueba("Vida en avisos y en la Torre: de noche dice cuánto pierdes; en la Torre subes con tu vida real", () => {
+    const estado = partidaNueva();
+    crearMision(estado, { nombre: "Leer" });
+    cierto(resumenParaAvisos(estado, hoy()).dias[hoy()].cuerpoNoche.includes("❤️ 105/105: si no terminas hoy pierdes 8 de vida"),
+           "el aviso de la noche");
+    acciones.empezarDescanso(estado, hoy());
+    cierto(!resumenParaAvisos(estado, hoy()).dias[hoy()].cuerpoNoche.includes("pierdes"), "de descanso no pierdes nada");
+
+    const herido = partidaNueva();
+    crearMision(herido);
+    vidaDesde(herido, 3);                                  // 81 de 105
+    acciones.empezarTorre(herido, 7);
+    const h = herido.arcade.torre.heroe;
+    igual(h.vida, Math.round((h.vidaMax * 81) / 105));
+    igual(vida.proporcionTorre({ puntos: 5, maxima: 100 }), 0.3, "nunca menos de 30 %");
+});
+
+prueba("Copias viejas: la vida empieza a contar el día que llega la actualización", () => {
+    const viejo = partidaNueva();
+    delete viejo.vida;
+    delete viejo.descansos;
+    const cargado = datos.desdeRespaldo(JSON.stringify(viejo));
+    igual([cargado.vida.desde, cargado.vida.pociones, cargado.descansos], [hoy(), [], []]);
 });
 
 

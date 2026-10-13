@@ -6,6 +6,7 @@
 
 import { calcularNivel, ATRIBUTOS, BASE_ATRIBUTO } from "./juego.js";
 import { diasEntre } from "./fechas.js";
+import { calcularVida } from "./vida.js";
 
 
 // 1. Etapas: el avatar evoluciona al subir de nivel.
@@ -40,12 +41,14 @@ export const RASGOS = {
     riqueza:   [{ nivel: 3, texto: "Cadena de oro" },      { nivel: 6, texto: "Aretes de oro" }],
 };
 
-// 4. Ánimo: depende de tu racha y de los días sin completar misiones.
+// 4. Ánimo: depende de tu vida, de tu racha y de los días sin completar misiones.
 export const ANIMOS = {
     llamas:  { icono: "🔥", texto: "¡En llamas! Tu racha lo tiene encendido." },
     feliz:   { icono: "😄", texto: "¡Feliz! Sigue así." },
     normal:  { icono: "🙂", texto: "Listo para la aventura." },
     cansado: { icono: "🥱", texto: "Está cansado. Una misión hoy lo anima." },
+    herido:  { icono: "🤕", texto: "Está herido. Cumple misiones para curarlo." },
+    caido:   { icono: "☠️", texto: "Cayó en combate. Recupera la mitad de su vida para levantarlo." },
     dormido: { icono: "😴", texto: "Zzz… Completa una misión para despertarlo." },
 };
 
@@ -206,9 +209,11 @@ export function diasSinMision(estado, hoy) {
     return diasEntre(ultima, hoy);
 }
 
-export function calcularAnimo(estado, hoy, racha) {
+export function calcularAnimo(estado, hoy, racha, vida = calcularVida(estado, hoy)) {
     const dias = diasSinMision(estado, hoy);
+    if (vida.caido) return "caido";
     if (dias >= 3) return "dormido";
+    if (vida.nivel === "herido") return "herido";
     if (dias === 2) return "cansado";
     if (racha.actual >= 7) return "llamas";
     if (racha.actual >= 3 || estado.completadas.some((c) => c.fecha === hoy)) return "feliz";
@@ -278,7 +283,7 @@ export function describirAvatar(estado, hoy, info) {
             nombre: estado.mascota.nombre,
             etapa: etapaSegun(ETAPAS_MASCOTA, totalMisiones),
             total: totalMisiones,
-            triste: animo === "dormido",   // si la descuidas 3 días, se pone triste
+            triste: animo === "dormido" || animo === "caido",   // si te descuidas, se pone triste
         },
     };
 }

@@ -2,6 +2,15 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v16 — La vida de tu héroe
+- El héroe tiene **vida** (100 + 5 por nivel). Al terminar cada día pierde 5/8/12 por cada misión que no hiciste (fácil/normal/difícil), 5 por cada tarea que vence y, el domingo, por las metas semanales sin cumplir (máximo 30 por día).
+- Cumplir **cura**: 2/4/6 por misión o tarea, 4 por paso de misión principal, 3 por sesión de enfoque y 10 extra en un día perfecto. Marcar algo de ayer recupera lo perdido.
+- **En plena forma** (80 % o más): +10 % de XP y monedas.
+- **Caer en combate** (0 de vida): la tienda y el arcade se cierran hasta recuperar la mitad. El avatar se ve herido o caído.
+- **Pociones de vida** en la Tienda: +25 por 40 monedas, una al día.
+- **Modo descanso** (hasta 30 días): no quita vida ni rompe la racha, y el servidor no manda recordatorios.
+- El aviso de la noche dice cuánta vida pierdes si no terminas; en la Torre subes con tu vida real.
+
 ## v15 — Más profesional
 - Copia automática en la nube, una vez al día, **cifrada en el teléfono** con una contraseña (PBKDF2 + AES-GCM). Se recupera en otro teléfono con esa contraseña.
 - Desbloqueo con **Face ID** (WebAuthn), además del PIN.

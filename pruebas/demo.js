@@ -50,6 +50,7 @@ export function partidaDemo(dias = 45) {
 
     acciones.crearPersonaje(estado, "Aria");
     estado.personaje.creadoEn = inicio;   // como si llevara 45 días jugando
+    estado.vida.desde = inicio;           // y su vida contara desde entonces
 
     for (const m of MISIONES) acciones.crearMision(estado, m);
     for (const m of estado.misiones) m.creadaEn = inicio;

@@ -11,6 +11,7 @@
 // En el iPhone solo funciona con la app instalada en la pantalla de inicio (iOS 16.4 o más).
 
 import * as juego from "./juego.js";
+import * as vida from "./vida.js";
 import { sumarDias, aTexto, lunesDe } from "./fechas.js";
 
 // La dirección del servidor y su llave pública. Ninguna de las dos es secreta.
@@ -92,11 +93,14 @@ export function avisosDeMisiones(estado, hoy) {
 
 // Lo que el servidor necesita saber de tus ajustes.
 function configuracion(estado) {
+    const hoy = aTexto(new Date());
     return {
         horarios: estado.avisos.horarios.map(({ hora, dias }) => ({ hora, dias })),
-        misiones: avisosDeMisiones(estado, aTexto(new Date())),
+        misiones: avisosDeMisiones(estado, hoy),
         zona: Intl.DateTimeFormat().resolvedOptions().timeZone,   // ej: "America/Bogota"
         avisarEnfoque: estado.avisos.enfoque,
+        // En modo descanso no llegan recordatorios hasta ese día (incluido).
+        descansoHasta: juego.descansoDe(estado, hoy)?.hasta || null,
     };
 }
 
@@ -172,6 +176,7 @@ function lista(nombres) {
 
 export function resumenParaAvisos(estado, hoy) {
     const racha = juego.calcularRacha(estado, hoy).actual;
+    const salud = vida.calcularVida(estado, hoy);
     const dias = {};
     for (let i = 0; i < 7; i++) {
         const fecha = sumarDias(hoy, i);
@@ -199,11 +204,20 @@ export function resumenParaAvisos(estado, hoy) {
         if (i === 0 && misiones.length && racha > 0) lineas.push(`🔥 Racha de ${juego.plural(racha, "día", "días")} en juego`);
 
         const cuerpo = lineas.join("\n");
+        // De noche: cuánta vida pierdes si no terminas (y el diario, si no lo escribiste).
+        const noche = [cuerpo];
+        const enJuego = vida.danoDelDia(estado, fecha).dano;
+        if (enJuego) {
+            noche.push(i === 0
+                ? `❤️ ${salud.puntos}/${salud.maxima}: si no terminas hoy pierdes ${enJuego} de vida`
+                : `❤️ Si no lo haces pierdes ${enJuego} de vida`);
+        }
+        if (i === 0 && salud.caido) noche.push(`☠️ Estás caído: llega a ${salud.levantarse} ❤️ para abrir la tienda`);
+        if (!estado.diario[fecha]) noche.push("📓 Falta tu frase del diario");
         dias[fecha] = {
             titulo,
             cuerpo,
-            // Desde las 7 p. m. se recuerda también el diario (si no lo escribiste).
-            cuerpoNoche: estado.diario[fecha] ? cuerpo : `${cuerpo}\n📓 Falta tu frase del diario`,
+            cuerpoNoche: noche.join("\n"),   // desde las 7 p. m.
             insignia: misiones.length + tareas.length,   // el numerito sobre el ícono de la app
             porMision: textosDeMisiones(estado, fecha, hechas, i === 0 ? racha : 0),
         };
@@ -228,6 +242,7 @@ function textosDeMisiones(estado, fecha, hechas, racha) {
         else lineas.push("Todavía no la marcas hoy.");
         const d = juego.DIFICULTADES[m.dificultad];
         lineas.push(`+${d.xp} XP · +${d.monedas} monedas`);
+        if (!m.veces && !juego.enDescanso(estado, fecha)) lineas.push(`❤️ Si no la haces hoy pierdes ${vida.DANO[m.dificultad]} de vida`);
         if (racha > 0) lineas.push(`🔥 Racha de ${juego.plural(racha, "día", "días")}`);
         textos[m.id] = { titulo: `⏰ ${m.nombre}`, cuerpo: lineas.join("\n") };
     }

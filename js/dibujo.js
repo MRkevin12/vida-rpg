@@ -97,6 +97,7 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     const p = crearPaleta(d);
     const e = esqueleto(d);
     const dormido = d.animo === "dormido";
+    const caido = d.animo === "caido";   // sin vida: cabeza baja y la escena se apaga
 
     // --- Pelo y sombrero: si el sombrero tapa la cabeza, se recorta el pelo de arriba ---
     const cabello = pelo(d, p);
@@ -104,8 +105,8 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     const recorte = corte ? `<clipPath id="${p.id}-corte"><rect x="60" y="${corte}" width="80" height="120"/></clipPath>` : "";
     const recortar = (capaPelo) => (corte && capaPelo ? `<g clip-path="url(#${p.id}-corte)">${capaPelo}</g>` : capaPelo);
     // La cabeza se dibuja un poco más grande que en la vida real: así la cara se distingue
-    // aunque el avatar se vea pequeño. Dormido, además, cae hacia adelante.
-    const giro = ` transform="${dormido ? "rotate(9 100 58) " : ""}translate(100 58.5) scale(${ESCALA_CABEZA}) translate(-100 -58.5)"`;
+    // aunque el avatar se vea pequeño. Dormido (o caído), además, cae hacia adelante.
+    const giro = ` transform="${dormido || caido ? "rotate(9 100 58) " : ""}translate(100 58.5) scale(${ESCALA_CABEZA}) translate(-100 -58.5)"`;
 
     // --- Espalda: alas, capa comprada o la capa del héroe ---
     let espalda = "";
@@ -161,9 +162,10 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         "</g>",
         estela,
         "</g>",
-        // Cansado o dormido: la escena se oscurece.
+        // Cansado, dormido o caído: la escena se oscurece.
         dormido && !batalla ? noche() : "",
         d.animo === "cansado" && !batalla ? '<rect width="200" height="200" fill="#0b0816" opacity=".3"/>' : "",
+        caido && !batalla ? '<rect width="200" height="200" fill="#0b0816" opacity=".5"/>' : "",
         mini || batalla ? "" : `<g transform="translate(160 165)">${cuerpoMascota(d.mascota)}</g>`,
     ];
 
