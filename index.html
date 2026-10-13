@@ -421,6 +421,21 @@
             </section>
 
             <section class="ajustes-bloque">
+                <label class="interruptor">
+                    <span><b>🎵 Música de fondo</b><br><span class="nota">Música orquestal mientras juegas. En la Torre suena la de batalla.</span></span>
+                    <input type="checkbox" id="ajustes-musica">
+                </label>
+                <fieldset class="opciones" id="ajustes-pistas"><legend>Pista</legend></fieldset>
+                <label class="volumen">
+                    <span>🔈</span>
+                    <input type="range" id="ajustes-volumen" min="0" max="100" step="5" aria-label="Volumen de la música">
+                    <span>🔊</span>
+                </label>
+                <p class="nota">La primera vez se descarga (unos 2 MB por pista) y después suena sin internet.
+                   En el iPhone respeta el modo silencio y se mezcla con tu música.</p>
+            </section>
+
+            <section class="ajustes-bloque">
                 <h3>🏖️ Modo descanso</h3>
                 <div class="ajustes-bloque-contenido" id="ajustes-descanso"></div>
             </section>
@@ -466,10 +481,11 @@
             </details>
 
             <details class="plegable">
-                <summary>🖼️ Créditos de las imágenes</summary>
+                <summary>🖼️ Créditos de las imágenes y la música</summary>
                 <div class="reglas">
                     <p>Los jefes, los fondos y los escenarios son pinturas y grabados clásicos de
-                       <strong>dominio público</strong>, tomados de Wikimedia Commons:</p>
+                       <strong>dominio público</strong>, y la música son grabaciones de dominio público o CC0;
+                       todo tomado de Wikimedia Commons:</p>
                     <div id="creditos"></div>
                 </div>
             </details>

@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 22;
+export const VERSION_APP = 23;
 
 export const NOVEDADES = [
+    {
+        version: 23,
+        titulo: "Música, leyendas y un mundo con más vida",
+        cambios: [
+            "🎵 Música de fondo: Brahms (épica), Holst (batalla) y Grieg (misterio). En la Torre suena la de batalla. Se elige en Ajustes.",
+            "🪓 Equipo épico nuevo en la Tienda: Capucha del errante, Yelmo alado, Hacha de guerra, Mandoble y Capa real.",
+            "🐉 Legendarios: Corona del Dragón (se compra) y tres que se ganan: Lanza del Dragón (8 jefes), Báculo arcano (12 pisos de la Torre) y Alas del Dragón (nivel 25).",
+            "✨ Gráficos: luciérnagas, brasas, nieve o estrellas según tu fondo, rayos de luz, retratos de jefes que respiran, brillo en lo épico y legendario y pantallas que entran suave.",
+        ],
+    },
     {
         version: 22,
         titulo: "Un mundo que reacciona",

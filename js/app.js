@@ -28,6 +28,7 @@ import { PINTURAS, fuentePintura } from "./pinturas.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import * as minijuegos from "./minijuegos.js";
 import * as sonido from "./sonido.js";
+import * as musica from "./musica.js";
 import * as avisos from "./avisos.js";
 import * as nube from "./nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "./novedades.js";
@@ -458,12 +459,14 @@ function abrirTorre() {
     if (!ejecutar(() => acciones.empezarTorre(estado))) return;
     $("#torre").hidden = false;
     pintarTorre();
+    ponerMusica();   // en la Torre suena la música de batalla
 }
 
 function cerrarTorre() {
     $("#torre").hidden = true;   // la partida queda guardada: se sigue después
     resultadoTorre = null;
     dibujarPantalla();
+    ponerMusica();
 }
 
 // Sonidos de un turno, al compás de las animaciones (el golpe del héroe y luego el del monstruo).
@@ -493,6 +496,20 @@ function cerrarMinijuego() {
 // Suena solo si el sonido está encendido en Ajustes.
 function sonar(nombre) {
     if (estado.ajustes.sonido) sonido.sonar(nombre);
+}
+
+// ===== Música de fondo =====
+// Suena la pista elegida en Ajustes; en la Torre, la de batalla. Se llama en cada toque
+// (el navegador solo deja empezar a sonar después de uno) y al cambiar algo en Ajustes.
+function ponerMusica() {
+    const a = estado.ajustes;
+    if (!a.musica || document.visibilityState !== "visible") {
+        musica.detener();
+        return;
+    }
+    const volumen = Number.isFinite(a.volumen) ? a.volumen : 0.6;
+    const pista = !$("#torre").hidden ? "batalla" : a.pista;
+    musica.reproducir(musica.PISTAS[pista] ? pista : "epica", volumen);
 }
 
 
@@ -821,7 +838,14 @@ function rellenarOpciones() {
     // Créditos de las obras de arte: los jefes, los fondos y los escenarios (todas de dominio público).
     const credito = (enlace, c) => `<p><a href="${enlace}" target="_blank" rel="noopener">${c.obra}</a> — ${c.artista}, ${c.anio}.</p>`;
     $("#creditos").innerHTML = `<h4>Jefes</h4>${Object.entries(campana.CREDITOS).map(([id, c]) => credito(campana.fuenteDe(id), c)).join("")}
-        <h4>Fondos y escenarios</h4>${Object.entries(PINTURAS).map(([id, c]) => credito(fuentePintura(id), c)).join("")}`;
+        <h4>Fondos y escenarios</h4>${Object.entries(PINTURAS).map(([id, c]) => credito(fuentePintura(id), c)).join("")}
+        <h4>Música</h4>${Object.values(musica.PISTAS).map((m) => `<p><a href="${m.fuente}" target="_blank" rel="noopener">${m.obra}</a> —
+            ${m.autor}; interpreta ${m.interpretes} (${m.licencia}).</p>`).join("")}`;
+
+    // Las pistas de música (Ajustes).
+    $("#ajustes-pistas").insertAdjacentHTML("beforeend", Object.entries(musica.PISTAS).map(([clave, m]) => `
+        <label class="pildora"><input type="radio" name="pista" value="${clave}">
+            <span>${m.icono} ${m.nombre}<small>${m.autor.split(" ").pop()}</small></span></label>`).join(""));
 
     const d = juego.DIFICULTADES;
     const p = juego.PREMIOS;
@@ -992,6 +1016,9 @@ const PREPARAR = {
         $("#ajustes-sonido").checked = estado.ajustes.sonido;
         $("#ajustes-golpe").checked = estado.ajustes.golpe;
         $("#ajustes-eventos").checked = estado.ajustes.eventos;
+        $("#ajustes-musica").checked = estado.ajustes.musica;
+        $("#ajustes-volumen").value = Math.round((Number.isFinite(estado.ajustes.volumen) ? estado.ajustes.volumen : 0.6) * 100);
+        for (const radio of document.querySelectorAll('input[name="pista"]')) radio.checked = radio.value === estado.ajustes.pista;
         $("#ajustes-ultimo-respaldo").textContent = estado.ultimoRespaldo
             ? `Última copia: ${fechaLegible(estado.ultimoRespaldo)}.`
             : "Todavía no has hecho ninguna copia.";
@@ -2303,6 +2330,7 @@ const FORMULARIOS = {
 function conectarEventos() {
     document.addEventListener("click", (evento) => {
         if (estado.ajustes.sonido) sonido.despertar();   // el audio solo arranca tras un toque
+        if (estado.ajustes.musica) ponerMusica();
         const boton = evento.target.closest("[data-accion]");
         if (boton && !boton.disabled) ACCIONES[boton.dataset.accion]?.(boton);
     });
@@ -2368,6 +2396,24 @@ function conectarEventos() {
         sonar("completar");
     });
 
+    // Música: encender/apagar, elegir pista y volumen (el volumen cambia mientras arrastras;
+    // se guarda al soltar).
+    $("#ajustes-musica").addEventListener("change", (evento) => {
+        ejecutar(() => acciones.cambiarAjuste(estado, "musica", evento.target.checked));
+        ponerMusica();
+    });
+    $("#ajustes-pistas").addEventListener("change", (evento) => {
+        if (evento.target.name !== "pista") return;
+        ejecutar(() => acciones.elegirMusica(estado, evento.target.value));
+        $("#ajustes-musica").checked = true;
+        ponerMusica();
+    });
+    $("#ajustes-volumen").addEventListener("input", (evento) => musica.ajustarVolumen(Number(evento.target.value) / 100));
+    $("#ajustes-volumen").addEventListener("change", (evento) => {
+        ejecutar(() => acciones.cambiarVolumen(estado, Number(evento.target.value) / 100));
+        ponerMusica();
+    });
+
     $("#archivo-respaldo").addEventListener("change", (evento) => {
         const archivo = evento.target.files[0];
         evento.target.value = ""; // permite elegir el mismo archivo otra vez
@@ -2400,6 +2446,9 @@ function conectarEventos() {
 
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") buscarActualizacion();
+        // La música se pausa al salir y al volver sigue donde iba (si el navegador no deja, con el próximo toque).
+        if (document.visibilityState === "hidden") musica.pausar();
+        else ponerMusica();
         if (!estado.personaje) return;
 
         if (document.visibilityState === "hidden") {

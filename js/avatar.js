@@ -56,7 +56,7 @@ export const ANIMOS = {
 export const ESPACIOS = { cabeza: "Cabeza", mano: "Mano", espalda: "Espalda", fondo: "Fondo" };
 
 // Rareza: qué tan especial es un objeto (cambia el color de su marco).
-// Los que se ganan con logros son siempre legendarios.
+// Los que se ganan con logros son siempre legendarios (y hay uno legendario que se compra).
 export const RAREZAS = {
     comun:      { nombre: "Común",      color: "#9ca3af" },
     raro:       { nombre: "Raro",       color: "#38bdf8" },
@@ -68,16 +68,28 @@ export const OBJETOS = {
     "gorra":         { nombre: "Gorra de aprendiz",   icono: "🧢", espacio: "cabeza",  precio: 60,  rareza: "comun" },
     "sombrero-mago": { nombre: "Sombrero de mago",    icono: "🧙", espacio: "cabeza",  precio: 120, rareza: "raro" },
     "casco":         { nombre: "Casco de caballero",  icono: "⛑️", espacio: "cabeza",  precio: 150, rareza: "epico" },
+    "capucha":       { nombre: "Capucha del errante", icono: "🥷", espacio: "cabeza",  precio: 320, rareza: "epico" },
+    "yelmo-alado":   { nombre: "Yelmo alado",         icono: "🪖", espacio: "cabeza",  precio: 380, rareza: "epico" },
     "corona":        { nombre: "Corona de 30 días",   icono: "👑", espacio: "cabeza",  rareza: "legendario",
                        logro: { tipo: "racha", meta: 30, texto: "Lograr una racha de 30 días" } },
+    "corona-dragon": { nombre: "Corona del Dragón",   icono: "🐉", espacio: "cabeza",  precio: 1500, rareza: "legendario" },
     "espada-madera": { nombre: "Espada de madera",    icono: "🗡️", espacio: "mano",    precio: 60,  rareza: "comun" },
     "baston":        { nombre: "Bastón mágico",       icono: "🪄", espacio: "mano",    precio: 120, rareza: "raro" },
     "laud":          { nombre: "Laúd del bardo",      icono: "🪕", espacio: "mano",    precio: 120, rareza: "raro" },
+    "hacha":         { nombre: "Hacha de guerra",     icono: "🪓", espacio: "mano",    precio: 380, rareza: "epico" },
+    "mandoble":      { nombre: "Mandoble del juramento", icono: "🗡️", espacio: "mano", precio: 420, rareza: "epico" },
     "espada-jefe":   { nombre: "Espada del Jefe",     icono: "⚔️", espacio: "mano",    rareza: "legendario",
                        logro: { tipo: "jefes", meta: 1, texto: "Derrotar tu primer jefe" } },
+    "lanza-dragon":  { nombre: "Lanza del Dragón",    icono: "🔱", espacio: "mano",    rareza: "legendario",
+                       logro: { tipo: "jefes", meta: 8, texto: "Derrotar 8 jefes" } },
+    "baculo-arcano": { nombre: "Báculo arcano",       icono: "🔮", espacio: "mano",    rareza: "legendario",
+                       logro: { tipo: "torre", meta: 12, texto: "Superar 12 pisos de la Torre" } },
     "capa":          { nombre: "Capa carmesí",        icono: "🧣", espacio: "espalda", precio: 150, rareza: "epico" },
+    "capa-real":     { nombre: "Capa real",           icono: "🟣", espacio: "espalda", precio: 450, rareza: "epico" },
     "alas":          { nombre: "Alas de luz",         icono: "🪽", espacio: "espalda", rareza: "legendario",
                        logro: { tipo: "perfectos", meta: 10, texto: "Tener 10 días perfectos" } },
+    "alas-dragon":   { nombre: "Alas del Dragón",     icono: "🐲", espacio: "espalda", rareza: "legendario",
+                       logro: { tipo: "nivel", meta: 25, texto: "Llegar al nivel 25" } },
     "bosque":        { nombre: "Fondo: Bosque",       icono: "🌲", espacio: "fondo",   precio: 100, rareza: "raro" },
     "castillo":      { nombre: "Fondo: Castillo",     icono: "🏰", espacio: "fondo",   precio: 150, rareza: "epico" },
     "galaxia":       { nombre: "Fondo: Galaxia",      icono: "🌌", espacio: "fondo",   precio: 250, rareza: "epico" },
@@ -227,6 +239,8 @@ export function progresoObjeto(objeto, estado, info) {
         case "jefes":     return info.jefesDerrotados;
         case "perfectos": return info.diasPerfectos;
         case "logros":    return estado.logros.filter((l) => l.desbloqueadoEn).length;
+        case "nivel":     return calcularNivel(estado.personaje?.xp || 0).nivel;
+        case "torre":     return estado.arcade?.records?.torre || 0;   // pisos superados (récord)
         default:          return 0;
     }
 }

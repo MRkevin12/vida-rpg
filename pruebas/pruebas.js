@@ -36,6 +36,7 @@ import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
+import { PISTAS } from "../js/musica.js";
 import { partidaDemo } from "./demo.js";
 
 
@@ -1478,6 +1479,47 @@ prueba("Ajustes: el sonido se puede apagar", () => {
     igual(estado.ajustes.sonido, false);
 });
 
+prueba("Objetos (v23): los legendarios nuevos se ganan con el nivel 25 y con 12 pisos de la Torre", () => {
+    const estado = partidaNueva();
+    const alas = avatar.OBJETOS["alas-dragon"];
+    const baculo = avatar.OBJETOS["baculo-arcano"];
+    igual(avatar.progresoObjeto(alas, estado, juego.resumen(estado, hoy())), 1, "nivel al empezar");
+    igual(avatar.progresoObjeto(baculo, estado, juego.resumen(estado, hoy())), 0, "pisos al empezar");
+    igual(juego.calcularNivel(30000).nivel, 25, "XP para el nivel 25");
+    estado.personaje.xp = 30000;
+    estado.arcade.records.torre = 12;
+    const ganados = avatar.objetosDeLogroGanados(estado, juego.resumen(estado, hoy()));
+    cierto(ganados.includes("alas-dragon"), "las Alas del Dragón al nivel 25");
+    cierto(ganados.includes("baculo-arcano"), "el Báculo arcano con 12 pisos");
+    cierto(!ganados.includes("lanza-dragon"), "la Lanza del Dragón pide 8 jefes");
+    // La Corona del Dragón es legendaria pero se compra.
+    igual(avatar.OBJETOS["corona-dragon"].precio, 1500);
+});
+
+prueba("Música (v23): la pista y el volumen se guardan y se revisan", () => {
+    const estado = partidaNueva();
+    igual([estado.ajustes.musica, estado.ajustes.pista, estado.ajustes.volumen], [true, "epica", 0.6]);
+    acciones.cambiarAjuste(estado, "musica", false);
+    acciones.elegirMusica(estado, "batalla");
+    igual([estado.ajustes.musica, estado.ajustes.pista], [true, "batalla"], "elegir una pista la enciende");
+    debeFallar(() => acciones.elegirMusica(estado, "reguetón"), "no existe");
+    acciones.cambiarVolumen(estado, 1.7);
+    igual(estado.ajustes.volumen, 1, "el volumen no pasa de 1");
+    acciones.cambiarVolumen(estado, 0.333);
+    igual(estado.ajustes.volumen, 0.33);
+    debeFallar(() => acciones.cambiarVolumen(estado, "mucho"), "no es válido");
+});
+
+prueba("Música (v23): las 3 pistas existen y son de dominio público o CC0", async () => {
+    igual(Object.keys(PISTAS), ["epica", "batalla", "misterio"]);
+    for (const [clave, pista] of Object.entries(PISTAS)) {
+        cierto(["Dominio público", "CC0"].includes(pista.licencia), `licencia de ${clave}`);
+        cierto(pista.fuente.startsWith("https://commons.wikimedia.org/wiki/File:"), `fuente de ${clave}`);
+        const respuesta = await fetch(`../${pista.archivo.replace("./", "")}`, { method: "HEAD" });
+        cierto(respuesta.ok, `el archivo ${pista.archivo} existe`);
+    }
+});
+
 
 // ===== Copia de seguridad =====
 
@@ -1491,7 +1533,7 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     const vieja = JSON.stringify({ version: 1, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] });
     const estado = datos.desdeRespaldo(vieja);
     igual(estado.version, datos.estadoInicial().version, "la versión de los datos");
-    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true });
+    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6 });
     igual([estado.claves, estado.cofres, estado.noches, estado.mapa, estado.arcade.extra], [{}, {}, [], { reclamados: [] }, 0], "lo de la v22");
     igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
     igual(estado.campana, { recompensados: {} });
@@ -1565,6 +1607,18 @@ prueba("Dibujo: cada opción de apariencia, ánimo, rasgo y objeto se dibuja bie
     // Los tres encuadres: completo, batalla y retrato pequeño.
     for (const opciones of [{}, { batalla: true }, { batalla: true, sinEfectos: true }, { mini: true }]) {
         dibujoSano(dibujarAvatar(avatarDePrueba({ etapa: avatar.ETAPAS[3] }), opciones), `encuadre ${JSON.stringify(opciones)}`);
+    }
+});
+
+prueba("Dibujo (v23): el aire del fondo (partículas y rayos) solo va en el dibujo completo", () => {
+    const d = avatarDePrueba();
+    cierto(dibujarAvatar(d).includes('class="particula'), "partículas en el dibujo completo");
+    cierto(!dibujarAvatar(d, { mini: true }).includes("particula"), "sin partículas en el retrato pequeño");
+    cierto(!dibujarAvatar(d, { batalla: true }).includes("particula"), "sin partículas en batalla");
+    for (const [id, objeto] of Object.entries(avatar.OBJETOS).filter(([, o]) => o.espacio === "fondo")) {
+        const svg = dibujarAvatar(avatarDePrueba({ equipado: { cabeza: null, mano: null, espalda: null, fondo: id } }));
+        dibujoSano(svg, `fondo ${id}`);
+        igual(svg.includes("rayos-luz"), id !== "galaxia", `rayos de luz en ${objeto.nombre}`);
     }
 });
 

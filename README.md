@@ -1,7 +1,7 @@
 # <img src="iconos/icono-192.png" width="56" alt="" align="top"> Vida RPG
 
 [![Pruebas](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml/badge.svg)](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml)
-![Versión](https://img.shields.io/badge/versión-v22-8b5cf6)
+![Versión](https://img.shields.io/badge/versión-v23-8b5cf6)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-34d399)](LICENSE)
 
 Una app de productividad que convierte tu día a día en un juego de rol: completas misiones, ganas experiencia, subes de nivel y derrotas jefes.
@@ -46,13 +46,14 @@ Las capturas usan una partida de ejemplo inventada.
 - **Misiones principales** divididas en pasos, para las metas grandes.
 - **Campaña de jefes:** cada atributo tiene 5 jefes, cada uno más fuerte, en su propio escenario. Les haces daño cumpliendo misiones de ese atributo: las diarias, las tareas y el enfoque pegan poco y los pasos de una misión principal pegan mucho. Tu héroe ataca con su arma y el jefe recibe el golpe. Al vencer a los 5 empieza la **Partida+**: vuelven con más vida y mejores premios en cada ronda.
 - **Logros** automáticos y personales, y una **tienda** donde cambias monedas por recompensas reales que tú defines.
-- **Fondos pintados:** los escenarios del avatar y de las batallas son pinturas clásicas de dominio público (Constable, Bierstadt, Van Gogh, Turner, Panini…).
-- **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
+- **Fondos pintados:** los escenarios del avatar y de las batallas son pinturas clásicas de dominio público (Constable, Bierstadt, Van Gogh, Turner, Panini…), con luciérnagas, brasas, nieve o estrellas que flotan según el fondo y rayos de luz. Los retratos de los jefes respiran a la luz de una vela.
+- **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza (común, raro, épico y legendario: del hacha de guerra a la lanza y las alas del dragón) y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
 - **Torre del héroe:** un minijuego grande de batallas por turnos, piso a piso, con mejoras entre pisos. Tu poder sale de los niveles de tus atributos reales, y subes con tu vida real.
 - **Tres minijuegos** más, que se juegan con fichas ganadas al completar misiones.
 - **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día y, de noche, cuánta vida pierdes si no terminas), un aviso propio para cada misión que le pongas hora (solo si todavía no la hiciste) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan. Cada aviso sale con prioridad alta y suena como uno nuevo; si se desconectan, la app lo detecta y ofrece reactivarlos.
 - **PIN de 4 números o Face ID** para abrir la app.
 - **Copia de seguridad automática en la nube**, cifrada con tu contraseña, además de la copia en un archivo.
+- **Música de fondo** orquestal (Brahms, Holst y Grieg, grabaciones de dominio público o CC0): se elige la pista y el volumen en Ajustes, en la Torre suena la de batalla y, una vez descargada, suena sin internet.
 - **Sonidos** hechos con código, que se pueden apagar en Ajustes.
 
 ## Instalarla en el iPhone
@@ -121,6 +122,7 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/nube.js` | La copia en la nube: cifrar y descifrar con tu contraseña, subir y recuperar |
 | `js/plantillas.js`, `js/novedades.js` | Hábitos y premios listos para elegir, y las novedades de cada versión |
 | `js/sonido.js` | Sonidos con la Web Audio API |
+| `js/musica.js`, `musica/` | La música de fondo (bucle con la Web Audio API) y sus 3 grabaciones en MP3 |
 | `js/fechas.js` | Ayudantes de fechas |
 | `sw.js`, `manifest.json` | Funcionar sin internet e instalarse como app |
 
@@ -142,7 +144,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 113 pruebas de las reglas del juego (niveles, atributos propios, diario, el libro, «Fallé», el pacto, el Maestro, rituales, cofre, eventos, mapa, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 117 pruebas de las reglas del juego (niveles, atributos propios, diario, el libro, «Fallé», el pacto, el Maestro, rituales, cofre, eventos, mapa, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 
@@ -159,8 +161,9 @@ Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están 
 
 - **Pinturas de los jefes:** 20 obras de dominio público tomadas de Wikimedia Commons (Doré, Caravaggio, Goya, Blake, Waterhouse, Redon y otros). El autor y la fuente de cada una están en la app, en Ajustes → Créditos de las imágenes, y en `js/campana.js`.
 - **Fondos y escenarios:** 13 pinturas y grabados de dominio público (Constable, Hobbema, Thomas Cole, Bierstadt, Shishkin, Christian Jank, Van Gogh, Panini, Turner, Hubert Robert, Pieter Neefs y Piranesi), con sus créditos en la app y en `js/pinturas.js`.
+- **Música:** grabaciones de Wikimedia Commons, recortadas y comprimidas: Brahms, Sinfonía n.º 1 (introducción), por Musopen Symphony (dominio público); Holst, «Marte, el que trae la guerra», por la Skidmore College Orchestra (CC0); y Grieg, «En la gruta del rey de la montaña», por Musopen Symphony (dominio público). Las fuentes están en la app (Ajustes → Créditos) y en `js/musica.js`.
 - **Tipografía:** Orbitron, bajo la licencia SIL Open Font License (`fuentes/OFL.txt`).
 
 ## Licencia
 
-El código está bajo la [licencia MIT](LICENSE). Las pinturas son de dominio público y la tipografía tiene su propia licencia (ver Créditos). Los cambios de cada versión están en el [registro de cambios](CHANGELOG.md).
+El código está bajo la [licencia MIT](LICENSE). Las pinturas y la música son de dominio público (o CC0) y la tipografía tiene su propia licencia (ver Créditos). Los cambios de cada versión están en el [registro de cambios](CHANGELOG.md).

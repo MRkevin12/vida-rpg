@@ -21,6 +21,7 @@ import * as cofre from "./cofre.js";
 import * as mapa from "./mapa.js";
 import * as mascota from "./mascota.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
+import { PISTAS } from "./musica.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -838,6 +839,19 @@ export function cambiarApariencia(estado, campo, valor) {
 export function cambiarAjuste(estado, clave, valor) {
     if (!(clave in estado.ajustes)) throw new Error("Ese ajuste no existe.");
     estado.ajustes[clave] = Boolean(valor);
+}
+
+// Música de fondo: qué pista suena (ver musica.js) y a qué volumen (de 0 a 1).
+export function elegirMusica(estado, pista) {
+    if (!PISTAS[pista]) throw new Error("Esa música no existe.");
+    estado.ajustes.pista = pista;
+    estado.ajustes.musica = true;   // elegir una pista también la enciende
+}
+
+export function cambiarVolumen(estado, volumen) {
+    const v = Number(volumen);
+    if (!Number.isFinite(v)) throw new Error("Ese volumen no es válido.");
+    estado.ajustes.volumen = Math.round(Math.min(1, Math.max(0, v)) * 100) / 100;
 }
 
 

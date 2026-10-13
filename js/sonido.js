@@ -37,14 +37,20 @@ let contexto = null;   // el "motor" de audio; se crea la primera vez que hace f
 // app.js llama a despertar() en cada toque: crea el motor (la primera vez)
 // y lo reanuda si el teléfono lo había dormido.
 export function despertar() {
+    const motor = motorDeAudio();
+    if (motor && motor.state !== "running") return motor.resume().catch(() => {});
+    return Promise.resolve();
+}
+
+// El motor de audio (lo comparte la música de fondo: ver musica.js). null si no hay audio.
+export function motorDeAudio() {
     try {
         const Motor = window.AudioContext || window.webkitAudioContext;
         if (!contexto) contexto = new Motor();
-        if (contexto.state !== "running") return contexto.resume().catch(() => {});
+        return contexto;
     } catch {
-        // Si el navegador no deja usar audio, la app sigue igual, sin sonido.
+        return null;   // si el navegador no deja usar audio, la app sigue igual, sin sonido
     }
-    return Promise.resolve();
 }
 
 export function sonar(nombre) {

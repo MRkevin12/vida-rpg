@@ -4,7 +4,7 @@
 // Las armas se dibujan "sueltas", alrededor del punto (0, 0), que es donde las agarra
 // la mano, con la punta hacia arriba. Luego dibujo.js las mueve a la mano y las inclina.
 
-import { TRAZO, mate, halo, destello } from "./dibujo-base.js";
+import { TRAZO, mate, halo, destello, pivote } from "./dibujo-base.js";
 
 const borde = (grosor = 0.8) => `stroke="${TRAZO}" stroke-width="${grosor}" stroke-linejoin="round"`;
 
@@ -12,7 +12,7 @@ const borde = (grosor = 0.8) => `stroke="${TRAZO}" stroke-width="${grosor}" stro
 // ===== Cabeza =====
 
 // Hasta qué altura tapa el pelo cada sombrero (dibujo.js recorta el pelo por encima).
-export const TAPA_PELO = { "gorra": 34.5, "sombrero-mago": 34.5, "casco": 38.5 };
+export const TAPA_PELO = { "gorra": 34.5, "sombrero-mago": 34.5, "casco": 38.5, "yelmo-alado": 38.5, "capucha": 36 };
 
 export function sombrero(id, p) {
     switch (id) {
@@ -67,6 +67,60 @@ export function sombrero(id, p) {
                     <path d="M91.6 28.6 L93.6 30.6 M96.8 25.8 L97.6 28" stroke="#fff" stroke-width=".7" opacity=".7" stroke-linecap="round"/>
                     ${destello(107.4, 22.4, 2)}`;
 
+        case "yelmo-alado": {   // yelmo de acero con protector nasal y dos alas de plumas blancas
+            // Cada ala es un abanico de 4 plumas que salen del costado del yelmo.
+            const plumas = [[22, 12.5], [40, 15.5], [58, 14], [76, 10.5]].map(([angulo, largo]) => `
+                <g transform="translate(90.6 33.4) rotate(${-angulo})">
+                    <path d="M0 0 C2.6 ${-largo * 0.3} 2.2 ${-largo * 0.75} 0 ${-largo} C-2.4 ${-largo * 0.78} -2.8 ${-largo * 0.3} 0 0 Z"
+                          fill="url(#${p.id}-pluma)" ${borde(0.5)}/>
+                    <path d="M0 -0.6 L0 ${-largo * 0.92}" stroke="#b8b0a0" stroke-width=".45"/>
+                    <path d="M-0.9 ${-largo * 0.3} Q-1.6 ${-largo * 0.55} -0.6 ${-largo * 0.82}" fill="none" stroke="#fff" stroke-width=".55" opacity=".7"/>
+                </g>`).join("");
+            return `<defs>${mate(`${p.id}-pluma`, "#f4f1ea", 0.15, 0.45)}</defs>
+                    ${[0, 1].map((lado) => `<g ${lado ? 'transform="translate(200 0) scale(-1 1)"' : ""}>${plumas}
+                        <path d="M88.4 35.8 Q89.4 31.4 91.8 30.6 L92.6 35.4 Z" fill="${p.m("oro")}" ${borde(0.5)}/></g>`).join("")}
+                    <path d="M88.8 42 C88 28.4 93.4 24.6 100 24.6 C106.6 24.6 112 28.4 111.2 42 L111.2 47.6 Q109.4 49.6 107.6 47.6 L107.4 40.2 Q100 36.6 92.6 40.2 L92.4 47.6 Q90.6 49.6 88.8 47.6 Z"
+                          fill="${p.m("acero")}" ${borde(0.85)}/>
+                    <path d="M99 37.4 L101 37.4 L100.7 46 L99.3 46 Z" fill="${p.m("acero")}" ${borde(0.5)}/>
+                    <path d="M90 36.4 Q100 31.6 110 36.4 L109.7 39.6 Q100 35 90.3 39.6 Z" fill="${p.m("oro")}" ${borde(0.6)}/>
+                    <g fill="${p.oroClaro}" stroke="${TRAZO}" stroke-width=".3">
+                        <circle cx="93.4" cy="36.6" r=".65"/><circle cx="97.4" cy="35.2" r=".65"/><circle cx="102.6" cy="35.2" r=".65"/><circle cx="106.6" cy="36.6" r=".65"/></g>
+                    <path d="M100 24.8 L100 34" stroke="#fff" stroke-width="1.1" opacity=".5"/>
+                    <path d="M92.4 30.4 Q94.6 26.6 98.4 25.6" fill="none" stroke="#fff" stroke-width="1" opacity=".45" stroke-linecap="round"/>`;
+        }
+
+        case "capucha": {       // capucha de tela gruesa con esclavina sobre los hombros y borde de cuero
+            const capucha = "M86.4 53 C84 36 88 23.6 100 22 C112 23.6 116 36 113.6 53 C111.6 51 110.4 46.4 110.2 40.4 C108.6 32.6 104.6 29.2 100 29 C95.4 29.2 91.4 32.6 89.8 40.4 C89.6 46.4 88.4 51 86.4 53 Z";
+            const esclavina = "M86.4 52.4 C84.6 57.6 82 61.2 79.4 64.6 Q100 71.4 120.6 64.6 C118 61.2 115.4 57.6 113.6 52.4 C111.4 55.4 106.4 60.4 100 61.2 C93.6 60.4 88.6 55.4 86.4 52.4 Z";
+            return `<defs>${mate(`${p.id}-capucha`, "#2e3340", 0.2, 0.55)}</defs>
+                    <path d="${esclavina}" fill="url(#${p.id}-capucha)" ${borde(0.85)}/>
+                    <path d="${esclavina}" fill="${p.m("tejido")}" opacity=".28"/>
+                    <path d="M83.4 60.4 Q86.6 63.6 90.6 65.4 M116.6 60.4 Q113.4 63.6 109.4 65.4 M100 61.6 L100 68.8" fill="none" stroke="#000" stroke-width=".8" opacity=".3"/>
+                    <path d="M88.6 55.6 C91.6 58.6 95.6 60.6 100 61.2 C104.4 60.6 108.4 58.6 111.4 55.6" fill="none" stroke="#6b4628" stroke-width="1.1"/>
+                    <circle cx="100" cy="61.4" r="1.2" fill="${p.m("acero")}" stroke="${TRAZO}" stroke-width=".4"/>
+                    <path d="${capucha}" fill="url(#${p.id}-capucha)" ${borde(0.85)}/>
+                    <path d="${capucha}" fill="${p.m("tejido")}" opacity=".28"/>
+                    <path d="M89.8 40.4 C91.4 32.6 95.4 29.2 100 29 C104.6 29.2 108.6 32.6 110.2 40.4" fill="none" stroke="#000" stroke-width="2.6" opacity=".3"/>
+                    <path d="M89.8 40.4 C91.4 32.6 95.4 29.2 100 29 C104.6 29.2 108.6 32.6 110.2 40.4" fill="none" stroke="#6b4628" stroke-width="1.1"/>
+                    <path d="M92.6 26.6 Q96 23.6 100 23.2" fill="none" stroke="#fff" stroke-width="1" opacity=".18" stroke-linecap="round"/>
+                    <path d="M111.4 34 C112.6 40 112.4 46 111.6 50" fill="none" stroke="#000" stroke-width="1.6" opacity=".25" stroke-linecap="round"/>`;
+        }
+
+        case "corona-dragon":   // legendaria: oro oscuro, cuernos de dragón y una gema que arde
+            return `<defs>${halo(`${p.id}-brasa`, "#ff5a3c", 0.75)}</defs>
+                    <circle class="orbe" cx="100" cy="29.4" r="8" fill="url(#${p.id}-brasa)"/>
+                    ${[0, 1].map((lado) => `<g ${lado ? 'transform="translate(200 0) scale(-1 1)"' : ""}>
+                        <path d="M91.4 33.6 C87.4 28.4 85.6 22.2 87.6 15.2 C88.8 21 91 24.8 94.6 27.2 Z" fill="#e6d8b8" stroke="#3a2a14" stroke-width=".6" stroke-linejoin="round"/>
+                        <path d="M88.6 18 Q88.4 22.6 90.6 26 M89.6 27.6 Q91 29.6 92.6 30.4" fill="none" stroke="#9c8a62" stroke-width=".45"/>
+                    </g>`).join("")}
+                    <path d="M90.4 35.6 L90 29.6 Q100 25.6 110 29.6 L109.6 35.6 Q100 32.2 90.4 35.6 Z" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".85" stroke-linejoin="round"/>
+                    <path d="M90.4 35.6 L90 29.6 Q100 25.6 110 29.6 L109.6 35.6 Q100 32.2 90.4 35.6 Z" fill="#2b1608" opacity=".38"/>
+                    <path d="M94.4 28.6 L96.2 23.2 L98 27.6 Z M102 27.6 L103.8 23.2 L105.6 28.6 Z" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".6" stroke-linejoin="round"/>
+                    <path d="M100 25.8 L102.6 29.4 L100 33 L97.4 29.4 Z" fill="#dc2626" stroke="#450a0a" stroke-width=".55"/>
+                    <path d="M99 27.6 L100 26.6" stroke="#fecaca" stroke-width=".7" stroke-linecap="round"/>
+                    <path d="M91.4 31.4 Q100 28 108.6 31.4" fill="none" stroke="${p.oroClaro}" stroke-width=".5" opacity=".7"/>
+                    ${destello(104.6, 22.6, 1.8, "chispa", "#ffd7c2")}`;
+
         default:
             return "";
     }
@@ -76,7 +130,8 @@ export function sombrero(id, p) {
 // ===== Mano =====
 
 // Cuánto se inclina cada arma en la mano (en grados; positivo = punta hacia afuera).
-export const INCLINACION = { "espada-madera": 13, "espada-jefe": 13, "baston": 3, "laud": 7 };
+export const INCLINACION = { "espada-madera": 13, "espada-jefe": 13, "baston": 3, "laud": 7,
+                             "hacha": 10, "mandoble": 12, "lanza-dragon": 5, "baculo-arcano": 3 };
 
 export function arma(id, p) {
     switch (id) {
@@ -134,6 +189,65 @@ export function arma(id, p) {
                     <path d="M-1.9 -12.4 h3.8 v2.4 h-3.8 Z" fill="${p.borde}" stroke="${TRAZO}" stroke-width=".4"/>
                     <path d="M1.9 -11.4 q3.4 2.4 2.2 7" fill="none" stroke="${p.borde}" stroke-width="1.1" stroke-linecap="round"/>`;
 
+        case "hacha":           // hacha de guerra: mango de fresno y una hoja de acero en media luna
+            return `<defs>${mate(`${p.id}-mango`, "#6b4423", 0.28, 0.5)}</defs>
+                    <path d="M-1.8 14 L-1.6 -46 L1.6 -46 L1.8 14 Z" fill="url(#${p.id}-mango)" ${borde(0.7)}/>
+                    <path d="M-0.4 10 Q-0.8 -14 -0.4 -42" fill="none" stroke="#fff" stroke-width=".5" opacity=".2"/>
+                    <path d="M-1.8 -3 h3.6 M-1.8 0 h3.6 M-1.8 3 h3.6 M-1.8 6 h3.6" stroke="#2a180b" stroke-width=".9"/>
+                    <path d="M1.6 -45 C8.4 -46.4 15.4 -50.6 18 -57 C20.4 -48.6 20.4 -35.6 17.8 -27.2 C14.2 -32.6 8.2 -35.6 1.6 -35.4 Z"
+                          fill="${p.m("acero")}" ${borde(0.85)}/>
+                    <path d="M1.6 -40.2 C7.6 -40.8 12.6 -43 15.6 -46" fill="none" stroke="${TRAZO}" stroke-width=".5" opacity=".45"/>
+                    <path d="M18 -56 C19.6 -48.6 19.6 -36.6 17.8 -28.2" fill="none" stroke="#fff" stroke-width="1" opacity=".75"/>
+                    <path d="M-1.6 -43 L-8.4 -40.6 L-1.6 -37.4 Z" fill="${p.m("acero")}" ${borde(0.6)}/>
+                    <rect x="-2.7" y="-47.6" width="5.4" height="13" rx="1" fill="${p.m("acero")}" ${borde(0.6)}/>
+                    <path d="M-1.6 -47.6 L0 -53.6 L1.6 -47.6 Z" fill="${p.m("acero")}" ${borde(0.5)}/>
+                    <g fill="${p.m("oro")}" stroke="${TRAZO}" stroke-width=".3"><circle cx="0" cy="-44.4" r=".8"/><circle cx="0" cy="-38" r=".8"/></g>
+                    ${destello(17.2, -52, 1.6, "chispa", "#fff")}`;
+
+        case "mandoble":        // espada de dos manos: hoja larga con canal, gavilanes rectos y pomo de bronce
+            return `<path d="M-2.7 -6 L-2.7 -68 L0 -77 L2.7 -68 L2.7 -6 Z" fill="${p.m("acero")}" ${borde(0.85)}/>
+                    <path d="M0 -7 L0 -76.4 L2.7 -68 L2.7 -6 Z" fill="#000" opacity=".2"/>
+                    <path d="M0 -12 L0 -60" stroke="${TRAZO}" stroke-width="1.3" opacity=".38"/>
+                    <path d="M-1.8 -9 L-1.8 -66" stroke="#fff" stroke-width=".65" opacity=".7"/>
+                    <path d="M-12.6 -8 L12.6 -8 L11.4 -4.6 L-11.4 -4.6 Z" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".65" stroke-linejoin="round"/>
+                    <circle cx="-12.4" cy="-6.3" r="1.7" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".5"/>
+                    <circle cx="12.4" cy="-6.3" r="1.7" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".5"/>
+                    <rect x="-1.9" y="-4.6" width="3.8" height="15.6" fill="#3a2414" ${borde(0.6)}/>
+                    <path d="M-1.9 -2.4 L1.9 -1 M-1.9 0.6 L1.9 2 M-1.9 3.6 L1.9 5 M-1.9 6.6 L1.9 8" stroke="#6b4628" stroke-width=".7"/>
+                    <path d="M0 10.6 L3.2 13.6 L0 16.8 L-3.2 13.6 Z" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".6"/>
+                    ${destello(-1.6, -71, 2, "chispa", "#fff")}`;
+
+        case "lanza-dragon":    // legendaria: asta oscura con escamas de oro y una punta en forma de llama
+            return `<defs>${halo(`${p.id}-fuego`, "#ff6a3d", 0.75)}${mate(`${p.id}-asta`, "#3b1f12", 0.25, 0.5)}
+                          <linearGradient id="${p.id}-llama" x1="0" y1="1" x2="0" y2="0">
+                              <stop offset="0" stop-color="#7f1d1d"/><stop offset=".55" stop-color="#ef4444"/><stop offset="1" stop-color="#fde68a"/></linearGradient></defs>
+                    <ellipse class="orbe" cx="0" cy="-64" rx="11" ry="17" fill="url(#${p.id}-fuego)"/>
+                    <path d="M-1.5 72 L-1.5 -52 L1.5 -52 L1.5 72 Z" fill="url(#${p.id}-asta)" ${borde(0.7)}/>
+                    <path d="M-1.5 -10 q1.5 1.8 3 0 M-1.5 -6 q1.5 1.8 3 0 M-1.5 -2 q1.5 1.8 3 0 M-1.5 2 q1.5 1.8 3 0 M-1.5 6 q1.5 1.8 3 0 M-1.5 10 q1.5 1.8 3 0"
+                          fill="none" stroke="${p.oroPlano}" stroke-width=".55"/>
+                    <path d="M-3.4 -52 L3.4 -52 L2.2 -56.4 L-2.2 -56.4 Z" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".6"/>
+                    <path d="M0 -81 C3.2 -74.6 6.4 -68.4 4.6 -62.2 C6.8 -63.2 7.4 -60 6 -57.2 C4.2 -56.2 2.4 -56.4 0 -56.4 C-2.4 -56.4 -4.2 -56.2 -6 -57.2 C-7.4 -60 -6.8 -63.2 -4.6 -62.2 C-6.4 -68.4 -3.2 -74.6 0 -81 Z"
+                          fill="url(#${p.id}-llama)" stroke="#450a0a" stroke-width=".7" stroke-linejoin="round"/>
+                    <path d="M0 -79 L0 -58.4" stroke="#fff7d6" stroke-width=".7" opacity=".85"/>
+                    ${destello(-3.4, -74, 2, "chispa", "#fff")}${destello(5.6, -66, 1.3, "chispa", "#ffe1c2")}`;
+
+        case "baculo-arcano": { // legendario: anillo de plata con un orbe violeta y runas que giran
+            const runas = [0, 90, 180, 270].map((angulo) => `<path transform="rotate(${angulo} 0 -48)" d="M0 -62.6 l1.5 2.1 l-1.5 2.1 l-1.5 -2.1 Z" fill="#ead7ff"/>`).join("");
+            return `<defs>${mate(`${p.id}-vara`, "#2a1f3d", 0.25, 0.5)}${halo(`${p.id}-arcano`, "#c084fc", 0.8)}
+                          <radialGradient id="${p.id}-orbe" cx=".35" cy=".35" r=".7">
+                              <stop offset="0" stop-color="#f5e8ff"/><stop offset=".45" stop-color="#a855f7"/><stop offset="1" stop-color="#3b0764"/></radialGradient></defs>
+                    <path d="M-1.9 72 Q-2.4 20 -1.8 -37 L1.8 -37 Q2.4 20 1.9 72 Z" fill="url(#${p.id}-vara)" ${borde(0.75)}/>
+                    <path d="M-0.5 60 Q-1 20 -0.4 -33" fill="none" stroke="#fff" stroke-width=".55" opacity=".2"/>
+                    <path d="M-2.2 -10 h4.4 v2.4 h-4.4 Z M-2.3 18 h4.6 v2.4 h-4.6 Z" fill="${p.m("acero")}" stroke="${TRAZO}" stroke-width=".45"/>
+                    <circle class="orbe" cx="0" cy="-48" r="17" fill="url(#${p.id}-arcano)"/>
+                    <path d="M-1.8 -37 Q-6.4 -38.6 -8 -41.6 M1.8 -37 Q6.4 -38.6 8 -41.6" fill="none" stroke="${p.m("acero")}" stroke-width="2.2" stroke-linecap="round"/>
+                    <circle cx="0" cy="-48" r="10.4" fill="none" stroke="${TRAZO}" stroke-width="3.6"/>
+                    <circle cx="0" cy="-48" r="10.4" fill="none" stroke="${p.m("acero")}" stroke-width="2.4"/>
+                    <circle cx="0" cy="-48" r="5.8" fill="url(#${p.id}-orbe)" stroke="#3b0764" stroke-width=".6"/>
+                    <path d="M-2.2 -50.2 Q-1.4 -52 0.4 -52.4" fill="none" stroke="#fff" stroke-width=".8" opacity=".85" stroke-linecap="round"/>
+                    ${pivote(0, -48, "runas-giro", runas)}`;
+        }
+
         default:
             return "";
     }
@@ -142,7 +256,10 @@ export function arma(id, p) {
 
 // ===== Espalda =====
 
-// Capa. La del héroe es del color de su traje; la «Capa carmesí» se compra.
+// La «Capa real»: violeta con borde de oro.
+export const COLOR_CAPA_REAL = "#4c1d95";
+
+// Capa. La del héroe es del color de su traje; la «Capa carmesí» y la «Capa real» se compran.
 export function capa(e, p, color, conOro) {
     const H = e.H;
     const ancho = H + 15;
@@ -181,6 +298,25 @@ export function alas(p) {
             <g class="alas">${ala}<g transform="translate(200 0) scale(-1 1)">${ala}</g></g>`;
 }
 
+// Alas de dragón (legendarias): membrana roja oscura con huesos de marfil y garras en la punta.
+export function alasDragon(p) {
+    const ala = `
+        <path d="M93 66 C83 52 70 40 51 29 L45.6 33.6 C51.6 39.6 53.6 46 51.6 52 C45.6 50 39.6 52 35.6 58 C41.6 60 45.6 64 45.6 70
+                 C39.6 70 34.6 74 32.6 80 C41.6 80 49.6 82 55.6 88 C63.6 84 75.6 80 93 80 Z"
+              fill="url(#${p.id}-membrana)" stroke="#1f0606" stroke-width=".9" stroke-linejoin="round"/>
+        <path d="M91 70 C80 60 66 52 51.6 52 M90 74 C77 70 61 70 45.6 70 M91 78 C79 79 66 83 55.6 88" fill="none" stroke="#000" stroke-width="2" opacity=".18"/>
+        <path d="M93 66 C81 53 67 41 51 29 M90 70 C78 61 64 54 51.6 52 M90 74 C77 71 61 70 45.6 70 M91 78 C79 79 66 83 55.6 88"
+              fill="none" stroke="#d9cba8" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M70 47 C68 52 70 58 66 61 M62 63 C60 66 61 70 58 71" fill="none" stroke="#ff8a6a" stroke-width=".45" opacity=".55"/>
+        <path d="M51 29 L46 24.6 L49.6 31 Z M51.6 52 L46.6 50.2 L50.4 53.6 Z M45.6 70 L40.6 69.4 L44.8 72 Z" fill="#efe4c8" stroke="#1f0606" stroke-width=".4"/>`;
+    return `<defs><linearGradient id="${p.id}-membrana" x1="1" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#8f1d1d"/><stop offset=".55" stop-color="#4c0b0b"/><stop offset="1" stop-color="#1f0606"/></linearGradient>
+                ${halo(`${p.id}-ala-brasa`, "#ff5a3c", 0.32)}</defs>
+            <g class="alas">
+                <circle class="orbe" cx="100" cy="58" r="58" fill="url(#${p.id}-ala-brasa)"/>
+                ${ala}<g transform="translate(200 0) scale(-1 1)">${ala}</g></g>`;
+}
+
 // Libro de hechizos (Intelecto nivel 6+): va en la mano izquierda. (x, y) = centro de la mano.
 export function libro([x, y], p) {
     return `<g transform="rotate(-9 ${x} ${y})">
@@ -201,6 +337,9 @@ const VISTAS = {
     "gorra": "83 14 40 30", "sombrero-mago": "78 10 44 34", "casco": "82 11 36 43", "corona": "86 18 28 20",
     "espada-madera": "-34 -52 68 68", "espada-jefe": "-39 -66 78 82", "baston": "-36 -64 72 86", "laud": "-30 -29 60 66",
     "capa": "58 52 84 128", "alas": "30 30 140 68",
+    "yelmo-alado": "73 14 54 38", "capucha": "76 19 48 54", "corona-dragon": "83 12 34 27",
+    "hacha": "-14 -52 66 68", "mandoble": "-16 -70 64 90", "lanza-dragon": "-36 -84 72 92", "baculo-arcano": "-38 -68 76 88",
+    "capa-real": "58 52 84 128", "alas-dragon": "28 22 144 72",
 };
 
 export function miniatura(id, p, e) {
@@ -208,8 +347,11 @@ export function miniatura(id, p, e) {
     if (!vista) return null;
     let dibujo;
     if (id === "capa") dibujo = capa(e, p, "#8f1d2c", true);
+    else if (id === "capa-real") dibujo = capa(e, p, COLOR_CAPA_REAL, true);
     else if (id === "alas") dibujo = alas(p);
-    else if (INCLINACION[id] !== undefined) dibujo = `<g transform="rotate(${id === "baston" ? 20 : 32})">${arma(id, p)}</g>`;
+    else if (id === "alas-dragon") dibujo = alasDragon(p);
+    else if (INCLINACION[id] !== undefined) dibujo = `<g transform="rotate(${["baston", "lanza-dragon", "baculo-arcano"].includes(id) ? 20 : 32})">${arma(id, p)}</g>`;
     else dibujo = sombrero(id, p);
+    if (id === "capucha") dibujo = `<path d="M89.8 40.4 C91.4 32.6 95.4 29.2 100 29 C104.6 29.2 108.6 32.6 110.2 40.4 L110.6 54 Q100 63 89.4 54 Z" fill="#0b0816"/>${dibujo}`;
     return { vista, dibujo };
 }

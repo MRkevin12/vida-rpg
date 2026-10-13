@@ -17,8 +17,8 @@ import { APARIENCIA, APARIENCIA_INICIAL, CLASES, OBJETOS } from "./avatar.js";
 import { nuevoId, mate, metal, piel as materialPiel, tejido, grano, halo, aclarar, oscurecer, mezclar, pivote, SOMBRA } from "./dibujo-base.js";
 import { esqueleto, cuello, cara, lentes, barba, pelo } from "./dibujo-cuerpo.js";
 import { piernas, torso, bufanda, brazo, hombreras } from "./dibujo-ropa.js";
-import { sombrero, arma, capa, alas, libro, miniatura, INCLINACION, TAPA_PELO } from "./dibujo-objetos.js";
-import { fondo, aura, llamas, resplandor, noche, escenario } from "./dibujo-escenas.js";
+import { sombrero, arma, capa, alas, alasDragon, libro, miniatura, INCLINACION, TAPA_PELO, COLOR_CAPA_REAL } from "./dibujo-objetos.js";
+import { fondo, ambiente, aura, llamas, resplandor, noche, escenario } from "./dibujo-escenas.js";
 import { cuerpoMascota, dibujarMascota } from "./dibujo-mascota.js";
 
 export { dibujarMascota };
@@ -111,7 +111,9 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     // --- Espalda: alas, capa comprada o la capa del héroe ---
     let espalda = "";
     if (d.equipado.espalda === "alas") espalda = alas(p);
+    else if (d.equipado.espalda === "alas-dragon") espalda = alasDragon(p);
     else if (d.equipado.espalda === "capa") espalda = pivote(100, 62, "capa", capa(e, p, "#8f1d2c", true));
+    else if (d.equipado.espalda === "capa-real") espalda = pivote(100, 62, "capa", capa(e, p, COLOR_CAPA_REAL, true));
     else if (p.etapa >= 2) espalda = pivote(100, 62, "capa", capa(e, p, p.capa, p.etapa === 3));
 
     // --- Brazo derecho: sostiene el arma. Va en un pivote en el hombro para poder atacar ---
@@ -137,6 +139,8 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         `<defs>${p.defs}${recorte}</defs>`,
         // El retrato pequeño lleva un fondo liso: a ese tamaño el paisaje no se distingue.
         batalla ? "" : mini ? `<rect x="60" width="80" height="80" fill="${oscurecer(d.clase.oscuro, 0.5)}"/><circle cx="100" cy="40" r="36" fill="${p.m("gema-luz")}"/>` : fondo(d, p),
+        // El aire del fondo: partículas que flotan y rayos de luz (solo en el dibujo completo).
+        batalla || mini ? "" : ambiente(d, p),
         p.etapa === 3 && !sinEfectos ? aura(p) : "",
         d.animo === "llamas" && !sinEfectos ? llamas(p) : "",
         d.animo === "feliz" && !sinEfectos ? resplandor(p) : "",

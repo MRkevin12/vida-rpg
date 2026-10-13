@@ -420,6 +420,16 @@ button {
     gap: 14px;
 }
 
+/* Al cambiar de pantalla, la nueva entra subiendo un poco (v23). La animación vuelve a
+   empezar cada vez que la pantalla deja de estar oculta; al redibujar la misma, no. */
+.pantalla:not([hidden]) {
+    animation: entrar-pantalla 0.32s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes entrar-pantalla {
+    from { opacity: 0; transform: translateY(10px); }
+}
+
 .pestanas {
     position: fixed;
     right: 0;
@@ -1261,6 +1271,34 @@ button.celda {
 /* Según la vida que le queda */
 .retrato.furioso {
     animation: amenaza 2.6s ease-in-out infinite;
+}
+
+/* El retrato «vive» (v23): la pintura se acerca y se aleja muy despacio, como si respirara,
+   y una luz de vela tiembla encima. Los vencidos se quedan quietos. */
+.retrato:not(.derrotado):not(.mini) img {
+    animation: respirar-retrato 16s ease-in-out infinite alternate;
+}
+
+.retrato:not(.derrotado):not(.mini)::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(ellipse at 30% 20%, rgba(255, 196, 120, 0.16), transparent 60%);
+    animation: vela 3.4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes respirar-retrato {
+    from { transform: scale(1); }
+    to { transform: scale(1.07) translateY(-1.5%); }
+}
+
+@keyframes vela {
+    0%, 100% { opacity: 0.6; }
+    30% { opacity: 1; }
+    45% { opacity: 0.75; }
+    70% { opacity: 0.95; }
 }
 
 .retrato.herido::after {
@@ -2203,6 +2241,22 @@ textarea:focus {
     width: 100%;
 }
 
+/* Volumen de la música: una barra que se arrastra, alta para tocarla fácil.
+   ".formulario .volumen" le gana a ".formulario label" (que la volvería rejilla). */
+.volumen,
+.formulario .volumen {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.volumen input[type="range"] {
+    flex: 1;
+    height: 44px;
+    margin: 0;
+    accent-color: var(--violeta);
+}
+
 .reglas {
     display: grid;
     gap: 8px;
@@ -2608,6 +2662,71 @@ textarea:focus {
     56% { transform: translateX(5px); }
 }
 
+/* El aire del fondo (v23): partículas que flotan y rayos de luz que respiran.
+   Cada partícula trae su duración y su retraso en el atributo style (ver ambiente() en dibujo-escenas.js). */
+.avatar-svg .particula {
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+
+.avatar-svg .p-luciernagas { animation-name: flotar-luz; }
+.avatar-svg .p-polvo       { animation-name: polvo; }
+.avatar-svg .p-brasas      { animation-name: subir-brasa; animation-timing-function: ease-out; }
+.avatar-svg .p-nieve       { animation-name: caer-nieve; animation-timing-function: linear; }
+.avatar-svg .p-estrellas   { animation-name: estrella; }
+
+.avatar-svg .rayos-luz {
+    animation: rayos 9s ease-in-out infinite;
+}
+
+/* Las runas del Báculo arcano giran alrededor del orbe. */
+.avatar-svg .runas-giro,
+.objeto-svg .runas-giro {
+    animation: girar 10s linear infinite;
+}
+
+@keyframes flotar-luz {
+    0%   { transform: translate(0, 0); opacity: 0; }
+    20%  { opacity: 1; }
+    50%  { transform: translate(7px, -7px); opacity: 0.4; }
+    70%  { opacity: 1; }
+    100% { transform: translate(-3px, -16px); opacity: 0; }
+}
+
+@keyframes polvo {
+    0%   { transform: translate(0, 0); opacity: 0; }
+    30%, 70% { opacity: 0.75; }
+    100% { transform: translate(12px, -8px); opacity: 0; }
+}
+
+@keyframes subir-brasa {
+    0%   { transform: translate(0, 0); opacity: 0; }
+    15%  { opacity: 1; }
+    100% { transform: translate(9px, -62px); opacity: 0; }
+}
+
+@keyframes caer-nieve {
+    0%   { transform: translate(0, -12px); opacity: 0; }
+    12%  { opacity: 0.9; }
+    50%  { transform: translate(-6px, 34px); }
+    88%  { opacity: 0.8; }
+    100% { transform: translate(3px, 76px); opacity: 0; }
+}
+
+@keyframes estrella {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 1; }
+}
+
+@keyframes rayos {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+}
+
+@keyframes girar {
+    to { transform: rotate(360deg); }
+}
+
 @keyframes palpitar {
     50% { transform: scale(1.08); opacity: 0.75; }
 }
@@ -2668,9 +2787,40 @@ textarea:focus {
     animation: brillo-legendario 2.8s ease-in-out infinite;
 }
 
+/* Épicos y legendarios: un reflejo de luz cruza el marco de vez en cuando. */
+.objeto-icono.rareza-epico,
+.objeto-icono.rareza-legendario {
+    position: relative;
+}
+
+.objeto-icono.rareza-epico::after,
+.objeto-icono.rareza-legendario::after {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.28) 50%, transparent 60%);
+    transform: translateX(-120%);
+    animation: reflejo 4.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.objeto-icono.rareza-legendario::after {
+    background: linear-gradient(115deg, transparent 40%, rgba(255, 236, 170, 0.4) 50%, transparent 60%);
+    animation-duration: 3.2s;
+}
+
 .objeto-icono.bloqueado {
     filter: grayscale(1) brightness(0.55);
     animation: none;
+}
+
+.objeto-icono.bloqueado::after {
+    display: none;
+}
+
+@keyframes reflejo {
+    0%, 55% { transform: translateX(-120%); }
+    100% { transform: translateX(120%); }
 }
 
 .rareza-texto {

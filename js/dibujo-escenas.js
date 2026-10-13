@@ -3,7 +3,8 @@
 // Tres tipos de dibujos:
 //   1. El fondo del avatar (lienzo de 200 × 200). Cada ETAPA tiene el suyo
 //      (aldea → camino → fortaleza → cumbre) y además se pueden comprar otros.
-//   2. Efectos detrás del personaje: aura de leyenda, llamas de la racha, noche.
+//   2. Efectos detrás del personaje: el ambiente (partículas y rayos de luz), aura de leyenda,
+//      llamas de la racha, noche.
 //   3. Los escenarios de batalla de cada campaña (lienzo ancho, de 320 × 180).
 //
 // Los fondos y escenarios son PINTURAS clásicas de dominio público (ver pinturas.js).
@@ -40,6 +41,58 @@ export function fondo(d, p) {
 }
 
 // ===== 2. Efectos detrás del personaje =====
+
+// El aire de cada fondo: qué partículas flotan en él.
+const AMBIENTE = {
+    aldea: "luciernagas", camino: "polvo", fortaleza: "brasas", cumbre: "nieve",
+    bosque: "luciernagas", castillo: "brasas", galaxia: "estrellas", salon: "polvo",
+};
+// color, tamaño (radio mínimo y máximo), cuánto dura cada vuelta (segundos) y en qué franja nacen (y).
+const PARTICULAS = {
+    luciernagas: { color: "#e3f7a0", radio: [0.7, 1.2], duracion: [6, 9],  franja: [70, 170], brillo: true },
+    polvo:       { color: "#ffe9c2", radio: [0.4, 0.8], duracion: [9, 13], franja: [30, 160] },
+    brasas:      { color: "#ffa64d", radio: [0.5, 1],   duracion: [4, 6],  franja: [120, 185], brillo: true },
+    nieve:       { color: "#ffffff", radio: [0.6, 1.2], duracion: [8, 12], franja: [0, 120] },
+    estrellas:   { color: "#dfe6ff", radio: [0.4, 0.9], duracion: [2, 4],  franja: [8, 120] },
+};
+const CUANTAS = 12;
+
+// Partículas que flotan (luciérnagas, polvo, brasas, nieve o estrellas) y, salvo en la galaxia,
+// rayos de luz que bajan desde arriba a la izquierda (de donde viene la luz de todo el dibujo).
+// Las posiciones salen de una cuenta fija (no al azar): así el dibujo es igual cada vez.
+// Solo se anima transform y opacity (ver .particula en estilos.css).
+export function ambiente(d, p) {
+    const fondoActual = d.equipado.fondo || FONDO_DE_ETAPA[p.etapa] || "aldea";
+    const tipo = AMBIENTE[fondoActual] || "polvo";
+    const c = PARTICULAS[tipo];
+    const entre = ([a, b], t) => a + (b - a) * t;
+    let particulas = "";
+    for (let i = 0; i < CUANTAS; i += 1) {
+        const t = ((i * 7) % CUANTAS) / CUANTAS;          // 0…1, mezclado
+        const x = 12 + ((i * 61 + 17) % 176);
+        const y = entre(c.franja, ((i * 37 + 11) % 100) / 100);
+        const r = entre(c.radio, t).toFixed(2);
+        const duracion = entre(c.duracion, 1 - t).toFixed(1);
+        const retraso = (-(i * 1.37) % Number(duracion)).toFixed(2);   // negativo: ya van a mitad de camino
+        const luz = c.brillo ? `<circle cx="${x}" cy="${y.toFixed(1)}" r="${(r * 3.2).toFixed(2)}" fill="url(#${p.id}-particula)"/>` : "";
+        particulas += `<g class="particula p-${tipo}" style="animation-duration:${duracion}s;animation-delay:${retraso}s">
+                           ${luz}<circle cx="${x}" cy="${y.toFixed(1)}" r="${r}" fill="${c.color}"/></g>`;
+    }
+    const rayos = tipo === "estrellas" ? "" : `
+        <g class="rayos-luz">
+            <path d="M18 -4 L44 -4 L128 200 L84 200 Z" fill="url(#${p.id}-rayo)"/>
+            <path d="M52 -4 L64 -4 L150 200 L126 200 Z" fill="url(#${p.id}-rayo)" opacity=".7"/>
+            <path d="M-6 -4 L6 -4 L70 200 L46 200 Z" fill="url(#${p.id}-rayo)" opacity=".5"/>
+        </g>`;
+    return `<defs>
+                ${halo(`${p.id}-particula`, c.color, 0.55)}
+                <linearGradient id="${p.id}-rayo" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#fff6dc" stop-opacity=".16"/>
+                    <stop offset=".7" stop-color="#fff6dc" stop-opacity=".03"/>
+                    <stop offset="1" stop-color="#fff6dc" stop-opacity="0"/></linearGradient>
+            </defs>
+            ${rayos}<g class="ambiente">${particulas}</g>`;
+}
 
 // Leyenda (nivel 50+): aura dorada que palpita.
 export function aura(p) {

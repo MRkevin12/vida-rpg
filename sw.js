@@ -17,7 +17,8 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v22";
+const VERSION = "vida-rpg-v23";
+const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
 const ARCHIVOS = [
     "./",
@@ -58,6 +59,7 @@ const ARCHIVOS = [
     "./js/resumen.js",
     "./js/seguridad.js",
     "./js/sonido.js",
+    "./js/musica.js",
     "./js/torre.js",
     "./js/vida.js",
     "./js/vistas.js",
@@ -135,6 +137,19 @@ self.addEventListener("fetch", (evento) => {
     if (peticion.method !== "GET" || direccion.origin !== self.location.origin) return;
     // La página de pruebas no es parte de la app: siempre se pide a internet, sin guardarla.
     if (direccion.pathname.includes("/pruebas/")) return;
+
+    // La música de fondo: archivos grandes que no cambian. Se bajan la primera vez que suenan
+    // y se guardan en una caché aparte (CACHE_MUSICA), que no se borra al actualizar la app.
+    if (direccion.pathname.includes("/musica/")) {
+        evento.respondWith(caches.open(CACHE_MUSICA).then(async (cache) => {
+            const guardada = await cache.match(peticion, { ignoreSearch: true });
+            if (guardada) return guardada;
+            const respuesta = await fetch(peticion);
+            if (respuesta.ok) await cache.put(peticion, respuesta.clone());
+            return respuesta;
+        }));
+        return;
+    }
 
     // Descargar la versión nueva (si hay internet) y guardarla para la próxima vez.
     // cache: "no-cache" = preguntarle a GitHub si cambió, aunque el navegador tenga una copia.

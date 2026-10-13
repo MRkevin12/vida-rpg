@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 9,
+        version: 10,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
         atributosPropios: [], // los tuyos: { id, nombre, icono, color, base (uno de los 4), creadoEn }
@@ -77,7 +77,8 @@ export function estadoInicial() {
         // Cómo se ve tu avatar (las opciones están en avatar.js → APARIENCIA).
         apariencia: { cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
                       pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase" },
-        ajustes: { sonido: true, golpe: true, eventos: true },   // sonido, golpe con timing y eventos del día
+        // Sonido, golpe con timing, eventos del día y música de fondo (pista elegida y volumen de 0 a 1).
+        ajustes: { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6 },
         avisos: {                             // notificaciones (ver avisos.js)
             horarios: [],                     // recordatorios: { id, hora: "20:00", dias (como en misiones) }
             enfoque: true,                    // avisar cuando termine una sesión de enfoque
