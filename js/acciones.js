@@ -15,6 +15,11 @@ import * as torre from "./torre.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
+import * as eventos from "./eventos.js";
+import * as rituales from "./rituales.js";
+import * as cofre from "./cofre.js";
+import * as mapa from "./mapa.js";
+import * as mascota from "./mascota.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
@@ -268,14 +273,16 @@ export function completarMision(estado, id, fecha = hoy()) {
 
     // Si la habías marcado como fallada, ya no lo está: al final sí la hiciste.
     estado.fallas = estado.fallas.filter((f) => !(f.misionId === id && f.fecha === fecha));
-    // En plena forma (vida de 80 % o más) da 10 % más (ver vida.js).
-    const { xp, monedas, forma } = vida.premio(estado, mision.dificultad, hoy());
+    // En plena forma (vida de 80 % o más) da 10 % más, el evento del día puede sumar, y si es
+    // tu misión clave de ese día vale el doble (ver vida.js, eventos.js y rituales.js).
+    const esClave = estado.claves[fecha] === id;
+    const { xp, monedas, forma } = vida.premio(estado, mision.dificultad, hoy(), { atributo: mision.atributo, clave: esClave });
     // Guardamos cuánto dio (y su dificultad y atributo de ese momento), para poder
     // restarlo exacto si la desmarcas y para que editar la misión no cambie el pasado.
     estado.completadas.push({ misionId: id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad,
-                              atributoPropio: mision.atributoPropio || null });
+                              atributoPropio: mision.atributoPropio || null, ...(esClave ? { clave: true } : {}) });
     ganar(estado, { xp, monedas, atributo: mision.atributo });
-    return { xp, forma };
+    return { xp, forma, clave: esClave };
 }
 
 // Deshace una misión de hoy o de ayer (por si la marcaste por error).
@@ -386,7 +393,7 @@ export function editarTarea(estado, { id, nombre, fecha, dificultad, atributo })
 export function alternarTarea(estado, id) {
     const tarea = buscar(estado.tareas, id, "esa tarea");
     if (!tarea.hechaEn) {
-        const { xp, monedas, forma } = vida.premio(estado, tarea.dificultad, hoy());
+        const { xp, monedas, forma } = vida.premio(estado, tarea.dificultad, hoy(), { atributo: tarea.atributo });
         tarea.hechaEn = hoy();
         tarea.premio = { xp, monedas, atributo: tarea.atributo, dificultad: tarea.dificultad, atributoPropio: tarea.atributoPropio || null };
         ganar(estado, tarea.premio);
@@ -429,7 +436,7 @@ export function revisarEnfoque(estado, ahora = Date.now()) {
     if (!activo || ahora < juego.finDelEnfoque(activo)) return null;
 
     const dificultad = juego.ENFOQUE[activo.minutos];
-    const { xp, monedas } = vida.premio(estado, dificultad, hoy());
+    const { xp, monedas } = vida.premio(estado, dificultad, hoy(), { atributo: activo.atributo });
     // La fecha es la del momento en que terminó (aunque abras la app al día siguiente).
     const fecha = aTexto(new Date(juego.finDelEnfoque(activo)));
     estado.enfoque.sesiones.push({ fecha, minutos: activo.minutos, atributo: activo.atributo, dificultad, xp, monedas,
@@ -475,7 +482,9 @@ export function escribirDiario(estado, { fecha, animo, texto, gratitud }) {
     let premio = anterior?.premio || null;
     const nuevo = !premio;
     if (nuevo) {
-        premio = { ...diario.PREMIO_DIARIO };
+        // «Visita del sabio»: el triple de XP (se guarda en la entrada, así al borrarla se devuelve exacto).
+        const factor = eventos.factorDiario(eventos.eventoDelDia(fecha, estado));
+        premio = { ...diario.PREMIO_DIARIO, xp: diario.PREMIO_DIARIO.xp * factor };
         ganar(estado, premio);
     }
     estado.diario[fecha] = {
@@ -746,11 +755,12 @@ export function borrarRecompensa(estado, id) {
 export function canjear(estado, id) {
     revisarQueNoEstesCaido(estado, "la tienda");
     const recompensa = buscar(estado.recompensas, id, "esa recompensa");
-    const faltan = recompensa.costo - estado.personaje.monedas;
+    const costo = eventos.precioConEvento(recompensa.costo, eventos.eventoDelDia(hoy(), estado));   // con el mercader, más barato
+    const faltan = costo - estado.personaje.monedas;
     if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
 
-    estado.personaje.monedas -= recompensa.costo;
-    estado.canjes.push({ nombre: recompensa.nombre, costo: recompensa.costo, fecha: hoy() });
+    estado.personaje.monedas -= costo;
+    estado.canjes.push({ nombre: recompensa.nombre, costo, fecha: hoy() });
     return {
         celebraciones: [{
             icono: "🎁",
@@ -792,10 +802,11 @@ export function comprarObjeto(estado, id) {
     if (objeto.logro) throw new Error("Ese objeto no se vende: se gana con un logro.");
     if (estado.avatar.comprados.includes(id)) throw new Error("Ya tienes ese objeto.");
     revisarQueNoEstesCaido(estado, "la tienda");
-    const faltan = objeto.precio - estado.personaje.monedas;
+    const precio = eventos.precioConEvento(objeto.precio, eventos.eventoDelDia(hoy(), estado));
+    const faltan = precio - estado.personaje.monedas;
     if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
 
-    estado.personaje.monedas -= objeto.precio;
+    estado.personaje.monedas -= precio;
     estado.avatar.comprados.push(id);
     estado.avatar.equipado[objeto.espacio] = id; // se lo pone de una vez
     return { celebraciones: [{ pequena: true, icono: objeto.icono, titulo: `¡Nuevo equipo: ${objeto.nombre}!` }] };
@@ -957,7 +968,9 @@ export function terminarTorre(estado) {
     const partida = estado.arcade.torre;
     if (!partida) throw new Error("No hay una partida de la Torre en curso.");
     const pisos = torre.pisosSuperados(partida);
-    const premio = torre.premio(pisos);
+    const factor = eventos.factorTorre(eventos.eventoDelDia(hoy(), estado));   // «Eco de la Torre»: el doble
+    const base = torre.premio(pisos);
+    const premio = { monedas: base.monedas * factor, xp: base.xp * factor };
     ganar(estado, { ...premio, atributo: torre.ATRIBUTO });
     const anterior = estado.arcade.records.torre || 0;
     const nuevoRecord = pisos > anterior;
@@ -1083,6 +1096,137 @@ export function firmarPacto(estado, { nombre, razon, firma, juro }) {
 }
 
 
+// ===== Rituales: la misión clave (mañana) y cerrar el día (noche) =====
+
+// Elegir la misión clave de hoy: una de las que te faltan. Se puede cambiar mientras no la hayas hecho.
+export function elegirClave(estado, id) {
+    const fecha = hoy();
+    const actual = rituales.claveDelDia(estado, fecha);
+    if (actual && estado.completadas.some((c) => c.misionId === actual.id && c.fecha === fecha)) {
+        throw new Error("Tu misión clave de hoy ya está cumplida.");
+    }
+    if (!rituales.pendientesDelDia(estado, fecha).some((m) => m.id === id)) {
+        throw new Error("La misión clave tiene que ser una de las que te faltan hoy.");
+    }
+    estado.claves[fecha] = id;
+}
+
+// Cerrar el día (al terminar el ritual de la noche): un pequeño premio, una vez por día.
+export function cerrarDia(estado) {
+    const fecha = hoy();
+    if (rituales.diaCerrado(estado, fecha)) return { premio: null };
+    estado.noches.push(fecha);
+    ganar(estado, rituales.PREMIO_CIERRE);
+    const p = rituales.PREMIO_CIERRE;
+    return {
+        premio: p,
+        celebraciones: [{ icono: "🌙", etiqueta: "Día cerrado", titulo: "Que descanses, héroe",
+                          detalle: `+${p.xp} XP de Carisma · +${p.monedas} monedas por cerrar el día con honestidad.` }],
+    };
+}
+
+
+// ===== Desafío relámpago =====
+
+export function aceptarRelampago(estado, ahora = Date.now()) {
+    const fecha = hoy();
+    if (!rituales.relampagoDisponible(estado, fecha, new Date(ahora).getHours())) throw new Error("Hoy no hay un desafío relámpago.");
+    estado.relampagos[fecha] = {
+        inicio: ahora,
+        base: rituales.hechasHoy(estado, fecha),   // lo que ya llevabas hecho no cuenta
+        meta: rituales.metaRelampago(estado, fecha),
+        minutos: rituales.RELAMPAGO.minutos,
+        cobradoEn: null,
+    };
+}
+
+export function rechazarRelampago(estado) {
+    estado.relampagos[hoy()] = { rechazado: true };
+}
+
+// Si cumpliste el desafío relámpago a tiempo, se cobra (una vez). Se revisa después de cada acción.
+function revisarRelampago(estado, ahora = Date.now()) {
+    const fecha = hoy();
+    const r = estado.relampagos[fecha];
+    const situacion = rituales.estadoRelampago(estado, fecha, ahora, new Date(ahora).getHours());
+    if (!r || situacion?.estado !== "activo" || situacion.progreso < situacion.meta) return [];
+    r.cobradoEn = fecha;
+    ganar(estado, rituales.RELAMPAGO.premio);
+    const p = rituales.RELAMPAGO.premio;
+    return [{ icono: "⚡", etiqueta: "¡Desafío relámpago cumplido!", titulo: `${r.meta} misiones a tiempo`,
+              detalle: `+${p.xp} XP · +${p.monedas} monedas` }];
+}
+
+
+// ===== El cofre del día =====
+
+export function abrirCofre(estado, azar = Math.random) {
+    const fecha = hoy();
+    if (estado.cofres[fecha]) throw new Error("Ya abriste el cofre de hoy. Mañana habrá otro.");
+    if (!cofre.huboActividad(estado, fecha)) throw new Error("El cofre se abre con lo primero que cumplas hoy.");
+    const premio = cofre.sortearPremio(estado, azar);
+    if (premio.tipo === "monedas") ganar(estado, { monedas: premio.cantidad });
+    if (premio.tipo === "xp") ganar(estado, { xp: premio.cantidad, atributo: premio.atributo });
+    if (premio.tipo === "fichas") estado.arcade.extra = (estado.arcade.extra || 0) + premio.cantidad;
+    if (premio.tipo === "objeto") estado.avatar.comprados.push(premio.objeto);
+    // La poción del cofre cura sola (vida.js la cuenta para ese día).
+    estado.cofres[fecha] = premio;
+    return { premio };
+}
+
+
+// ===== Tu dragón =====
+
+export function alimentarDragon(estado) {
+    const fecha = hoy();
+    if (mascota.comioHoy(estado, fecha)) throw new Error(`${estado.mascota.nombre} ya comió hoy.`);
+    const faltan = mascota.COMIDA.precio - estado.personaje.monedas;
+    if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
+    estado.personaje.monedas -= mascota.COMIDA.precio;
+    estado.mascota.comidas.push(fecha);
+    return { celebraciones: [{ pequena: true, icono: "🍖", titulo: `${estado.mascota.nombre} comió feliz: +${mascota.COMIDA.cura} de vida` }] };
+}
+
+
+// ===== El mapa del viaje =====
+
+export function reclamarLugar(estado, id) {
+    const lugar = mapa.lugaresPorReclamar(estado).find((l) => l.id === id);
+    if (!lugar) throw new Error("Ese lugar todavía no lo alcanzas (o ya lo reclamaste).");
+    const premio = mapa.LUGARES[lugar.tipo].premio;
+    const atributo = lugar.tipo === "santuario" ? mapa.atributoMasDescuidado(estado) : null;
+    ganar(estado, { xp: premio.xp || 0, monedas: premio.monedas || 0, atributo });
+    estado.mapa.reclamados.push(id);
+    const partes = [];
+    if (premio.xp) partes.push(`+${premio.xp} XP${atributo ? ` de ${juego.ATRIBUTOS[atributo].icono} ${juego.ATRIBUTOS[atributo].nombre}` : ""}`);
+    if (premio.monedas) partes.push(`+${premio.monedas} monedas`);
+    return { celebraciones: [{ icono: mapa.LUGARES[lugar.tipo].icono, etiqueta: mapa.LUGARES[lugar.tipo].nombre,
+                               titulo: mapa.nombreRegion(lugar.region), detalle: partes.join(" · ") }] };
+}
+
+
+// Reclamar todos los lugares con premio de una vez (un solo aviso con el total).
+export function reclamarTodo(estado) {
+    const lugares = mapa.lugaresPorReclamar(estado);
+    if (!lugares.length) throw new Error("No hay premios por reclamar en el mapa.");
+    const antes = { xp: estado.personaje.xp, monedas: estado.personaje.monedas };
+    for (const lugar of lugares) reclamarLugar(estado, lugar.id);
+    return { celebraciones: [{ icono: "🗺️", etiqueta: "Premios del mapa", titulo: juego.plural(lugares.length, "lugar reclamado", "lugares reclamados"),
+                               detalle: `+${estado.personaje.xp - antes.xp} XP · +${estado.personaje.monedas - antes.monedas} monedas` }] };
+}
+
+
+// ===== Golpe con timing =====
+// Si al completar una misión tocas en el momento justo, el golpe al jefe es crítico (50 % más).
+
+export function golpeCritico(estado, id, fecha) {
+    const registro = estado.completadas.find((c) => c.misionId === id && c.fecha === fecha);
+    if (!registro) throw new Error("Esa misión no está completada.");
+    if (registro.critico) throw new Error("Ese golpe ya fue crítico.");
+    registro.critico = true;
+}
+
+
 // ===== Al abrir la app =====
 
 // Bonus de regreso: si vuelves tras varios días sin abrir la app, ganas XP extra.
@@ -1171,7 +1315,7 @@ export function foto(estado) {
 
 export function revisarCambios(estado, antes) {
     // Primero los jefes y los cofres: sus recompensas pueden hacerte subir de nivel.
-    const celebraciones = [...sincronizarCampanas(estado, antes.dano), ...revisarDesafios(estado)];
+    const celebraciones = [...sincronizarCampanas(estado, antes.dano), ...revisarDesafios(estado), ...revisarRelampago(estado)];
     const info = juego.resumen(estado, hoy());
 
     const nivel = juego.calcularNivel(estado.personaje.xp).nivel;

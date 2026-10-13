@@ -15,6 +15,7 @@
 // Como juego.js, este archivo no dibuja ni guarda nada: solo calcula.
 
 import * as juego from "./juego.js";
+import { eventoDelDia, factorPremio, factorCura } from "./eventos.js";
 import { sumarDias, diaDeSemana, lunesDe } from "./fechas.js";
 
 
@@ -35,6 +36,7 @@ export const VIDA = {
     paso: 4,              // cada paso de una misión principal
     diaPerfecto: 10,      // extra por hacer TODAS las misiones del día
     diario: 2,            // escribir el diario (cuidarte también cura)
+    comidaDragon: 3,      // alimentar a tu dragón (ver mascota.js)
     forma: 0.8,           // desde 80 %: «En plena forma»
     bonoForma: 0.1,       // …que da +10 % de XP y monedas
     herido: 0.3,          // menos de 30 %: herido
@@ -90,14 +92,17 @@ function prepararMapas(estado) {
 // Cuánta vida recuperaste con lo que hiciste ese día.
 function curacionDelDia(estado, fecha, mapas) {
     const del = (lista) => mapas[lista].get(fecha) || [];
-    let cura = 0;
-    for (const c of del("completadas")) cura += CURA[c.dificultad] ?? CURA.normal;
-    for (const t of del("tareasHechas")) cura += CURA[t.premio?.dificultad || t.dificultad] ?? CURA.normal;
+    let cumplido = 0;   // lo que curan las misiones y tareas (las «Aguas termales» lo duplican)
+    for (const c of del("completadas")) cumplido += CURA[c.dificultad] ?? CURA.normal;
+    for (const t of del("tareasHechas")) cumplido += CURA[t.premio?.dificultad || t.dificultad] ?? CURA.normal;
+    let cura = cumplido * factorCura(eventoDelDia(fecha, estado));
     cura += del("enfoque").length * VIDA.enfoque;
     cura += del("pasos").length * VIDA.paso;
     cura += del("pociones").length * POCION.cura;
     if (juego.esDiaPerfecto(estado.misiones, fecha, mapas.hechas)) cura += VIDA.diaPerfecto;
     if (estado.diario[fecha]) cura += VIDA.diario;
+    if (estado.cofres?.[fecha]?.tipo === "pocion") cura += estado.cofres[fecha].cantidad;   // la poción del cofre
+    cura += (estado.mascota?.comidas || []).filter((f) => f === fecha).length * VIDA.comidaDragon;
     return cura;
 }
 
@@ -221,11 +226,17 @@ export function calcularVida(estado, hoy) {
 }
 
 // XP y monedas por cumplir algo de esa dificultad: con +10 % si estás en plena forma.
-export function premio(estado, dificultad, hoy) {
-    const { xp, monedas } = juego.DIFICULTADES[dificultad];
-    if (!calcularVida(estado, hoy).enForma) return { xp, monedas, forma: false };
-    const extra = 1 + VIDA.bonoForma;
-    return { xp: Math.round(xp * extra), monedas: Math.round(monedas * extra), forma: true };
+// También suman el evento del día (ver eventos.js) y, si es tu misión clave, el doble (ver rituales.js).
+export function premio(estado, dificultad, hoy, { atributo = null, clave = false } = {}) {
+    const base = juego.DIFICULTADES[dificultad];
+    const forma = calcularVida(estado, hoy).enForma;
+    const evento = factorPremio(eventoDelDia(hoy, estado), { dificultad, atributo });
+    const factor = (forma ? 1 + VIDA.bonoForma : 1) * (clave ? 2 : 1);
+    return {
+        xp: Math.round(base.xp * factor * evento.xp),
+        monedas: Math.round(base.monedas * factor * evento.monedas),
+        forma,
+    };
 }
 
 // En la Torre empiezas con la misma proporción de vida que tienes en la vida real.

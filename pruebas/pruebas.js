@@ -22,6 +22,12 @@ import * as vida from "../js/vida.js";
 import * as diario from "../js/diario.js";
 import * as pacto from "../js/pacto.js";
 import * as libro from "../js/libro.js";
+import * as eventos from "../js/eventos.js";
+import * as rituales from "../js/rituales.js";
+import * as cofre from "../js/cofre.js";
+import * as mapa from "../js/mapa.js";
+import * as mascota from "../js/mascota.js";
+import * as maestro from "../js/maestro.js";
 import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
@@ -76,10 +82,12 @@ function debeFallar(funcion, texto) {
 
 const dia = (n) => sumarDias(hoy(), n);   // dia(-1) = ayer, dia(-7) = hace una semana
 
-// Una partida nueva con su personaje.
+// Una partida nueva con su personaje. Los eventos del día van apagados: si no, las pruebas
+// darían otros números según la fecha en que se corran (las de eventos los encienden).
 function partidaNueva() {
     const estado = datos.estadoInicial();
     acciones.crearPersonaje(estado, "Prueba");
+    estado.ajustes.eventos = false;
     return estado;
 }
 
@@ -862,7 +870,7 @@ prueba("Vida: en plena forma (80 % o más) das +10 % de XP y monedas; si no, lo 
     const leer = crearMision(estado);
     vidaDesde(estado, 3);                                  // 81 de 105 = 77 %: «bien», sin bono
     igual(vida.calcularVida(estado, hoy()).nivel, "bien");
-    igual(acciones.completarMision(estado, leer.id), { xp: 25, forma: false });
+    igual(acciones.completarMision(estado, leer.id), { xp: 25, forma: false, clave: false });
     igual(vida.calcularVida(estado, hoy()).nivel, "forma", "con 95 de 105 vuelve a estar en forma");
 });
 
@@ -970,6 +978,189 @@ prueba("Copias viejas: la vida empieza a contar el día que llega la actualizaci
     delete viejo.descansos;
     const cargado = datos.desdeRespaldo(JSON.stringify(viejo));
     igual([cargado.vida.desde, cargado.vida.pociones, cargado.descansos], [hoy(), [], []]);
+});
+
+
+// ===== Más interactiva (v22) =====
+
+// Una función de azar "fija": devuelve los números que le das, en orden (para poder comprobar el sorteo).
+const azarFijo = (...numeros) => () => numeros.shift();
+
+prueba("Eventos del día: salen de la fecha (siempre el mismo ese día), aparecen todos y se pueden apagar", () => {
+    const fechas = Array.from({ length: 300 }, (_, i) => sumarDias("2026-01-01", i));
+    const conEvento = fechas.filter((f) => eventos.eventoDelDia(f));
+    cierto(conEvento.length > 120 && conEvento.length < 210, `más o menos la mitad de los días (${conEvento.length} de 300)`);
+    igual(eventos.eventoDelDia("2026-03-14"), eventos.eventoDelDia("2026-03-14"));
+    igual(new Set(conEvento.map((f) => eventos.eventoDelDia(f).clave)).size, Object.keys(eventos.EVENTOS).length, "aparecen todos");
+    igual(eventos.eventoDelDia(conEvento[0], partidaNueva()), null, "apagados en Ajustes");
+});
+
+prueba("Eventos del día: bendición, luna de sangre, fortuna, mercader, termas, eco y sabio", () => {
+    const e = (clave, atributo = null) => ({ clave, atributo });
+    igual(eventos.factorPremio(e("bendicion", "fuerza"), { dificultad: "normal", atributo: "fuerza" }), { xp: 1.5, monedas: 1 });
+    igual(eventos.factorPremio(e("bendicion", "fuerza"), { dificultad: "normal", atributo: "carisma" }), { xp: 1, monedas: 1 });
+    igual(eventos.factorPremio(e("luna"), { dificultad: "dificil" }), { xp: 2, monedas: 1 });
+    igual(eventos.factorPremio(e("fortuna"), { dificultad: "facil" }), { xp: 1, monedas: 1.5 });
+    igual([eventos.precioConEvento(100, e("mercader")), eventos.precioConEvento(100, null)], [70, 100]);
+    igual([eventos.factorCura(e("termas")), eventos.factorTorre(e("eco")), eventos.factorDiario(e("sabio"))], [2, 2, 3]);
+});
+
+prueba("Aguas termales: ese día cada misión cumplida cura el doble", () => {
+    const termas = Array.from({ length: 200 }, (_, i) => dia(-1 - i)).find((f) => eventos.eventoDelDia(f)?.clave === "termas");
+    const estado = partidaNueva();
+    const gym = crearMision(estado, { dificultad: "dificil" });
+    vidaDesde(estado, diasEntre(termas, hoy()) + 3);          // 3 días sin hacerla: 105 − 36 = 69
+    marcarEn(estado, gym, termas);
+    const cura = () => vida.calcularVida(estado, hoy()).registro.find((r) => r.fecha === termas).cura;
+    estado.ajustes.eventos = true;
+    const conEvento = cura();
+    estado.ajustes.eventos = false;
+    igual([conEvento, cura()], [12 + 10, 6 + 10], "la misión cura el doble (+10 del día perfecto, que no cambia)");
+});
+
+prueba("Misión clave: una de las que faltan hoy; vale el doble (XP, monedas y daño al jefe)", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);                                          // normal, Intelecto
+    const gym = crearMision(estado, { nombre: "Gym", atributo: "fuerza" });
+    debeFallar(() => acciones.elegirClave(estado, 999), "una de las que te faltan");
+    acciones.elegirClave(estado, leer.id);
+    igual(rituales.claveDelDia(estado, hoy()).id, leer.id);
+    const resultado = acciones.completarMision(estado, leer.id);
+    igual([resultado.xp, resultado.clave, estado.personaje.monedas], [55, true, 22], "25 y 10, +10 % en plena forma, ×2");
+    igual(campana.estadoCampanas(estado).intelecto.dano, campana.DANO.diaria.normal * 2, "el doble de daño al jefe");
+    debeFallar(() => acciones.elegirClave(estado, gym.id), "ya está cumplida");
+});
+
+prueba("Ritual de la noche: muestra lo pendiente, y cerrar el día da su premio una sola vez", () => {
+    const estado = partidaNueva();
+    const [a, b, c] = ["A", "B", "C"].map((nombre) => crearMision(estado, { nombre }));
+    acciones.completarMision(estado, a.id);
+    acciones.fallarMision(estado, b.id, hoy(), "tiempo");
+    igual(rituales.pendientesDelDia(estado, hoy()).map((m) => m.id), [c.id]);
+    const xp = estado.personaje.xp;
+    igual(acciones.cerrarDia(estado).premio, rituales.PREMIO_CIERRE);
+    igual(estado.personaje.xp - xp, rituales.PREMIO_CIERRE.xp);
+    igual(acciones.cerrarDia(estado).premio, null, "la segunda vez no da nada");
+});
+
+prueba("Desafío relámpago: aparece algunos días, cuenta lo que haces después de aceptarlo y paga si llegas a tiempo", () => {
+    const estado = partidaNueva();
+    const [a, b, c] = ["A", "B", "C", "D"].map((nombre) => crearMision(estado, { nombre }));
+    const ofrecidos = Array.from({ length: 80 }, (_, i) => dia(i + 1)).filter((f) => rituales.relampagoDisponible(estado, f, 10));
+    cierto(ofrecidos.length > 10 && ofrecidos.length < 50, `algunos días (${ofrecidos.length} de 80)`);
+    igual(rituales.relampagoDisponible(estado, ofrecidos[0], 19), false, "no de noche");
+
+    acciones.completarMision(estado, a.id);                                    // antes de aceptar: no cuenta
+    estado.relampagos[hoy()] = { inicio: Date.now(), base: rituales.hechasHoy(estado, hoy()), meta: 2, minutos: 120, cobradoEn: null };
+    acciones.completarMision(estado, b.id);
+    igual(rituales.estadoRelampago(estado, hoy(), Date.now(), 12).progreso, 1);
+    const celebraciones = jugar(estado, () => acciones.completarMision(estado, c.id));
+    cierto(celebraciones.some((x) => x.etiqueta === "¡Desafío relámpago cumplido!"), "paga");
+    igual(estado.relampagos[hoy()].cobradoEn, hoy());
+
+    estado.relampagos[hoy()] = { inicio: Date.now() - 3 * 3600000, base: 0, meta: 5, minutos: 120, cobradoEn: null };
+    igual(rituales.estadoRelampago(estado, hoy(), Date.now(), 12).estado, "vencido", "se acabó el tiempo");
+});
+
+prueba("Cofre del día: se abre con lo primero que cumplas, una vez, y entrega su premio", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    debeFallar(() => acciones.abrirCofre(estado), "lo primero que cumplas");
+    acciones.completarMision(estado, leer.id);
+    const monedas = estado.personaje.monedas;
+    const { premio } = acciones.abrirCofre(estado, azarFijo(0.1, 0.5));    // 10 → monedas: 15 + 13 = 28
+    igual([premio.tipo, premio.cantidad, estado.personaje.monedas - monedas], ["monedas", 28, 28]);
+    debeFallar(() => acciones.abrirCofre(estado), "Ya abriste");
+    igual(cofre.sortearPremio(estado, azarFijo(0.5, 0, 0)).tipo, "xp");
+    igual(cofre.sortearPremio(estado, azarFijo(0.75)).tipo, "fichas");
+    igual(cofre.sortearPremio(estado, azarFijo(0.9)).tipo, "pocion");
+    igual(cofre.sortearPremio(estado, azarFijo(0.99, 0)).tipo, "objeto");
+});
+
+prueba("Cofre del día: las fichas suman al arcade y la poción cura", () => {
+    const conFichas = partidaNueva();
+    acciones.completarMision(conFichas, crearMision(conFichas).id);
+    const fichas = arcade.fichasDisponibles(conFichas);
+    acciones.abrirCofre(conFichas, azarFijo(0.75));
+    igual(arcade.fichasDisponibles(conFichas), fichas + cofre.FICHAS);
+
+    const conPocion = partidaNueva();
+    const gym = crearMision(conPocion, { dificultad: "dificil" });
+    vidaDesde(conPocion, 5);                                                   // 105 − 60 = 45
+    acciones.completarMision(conPocion, gym.id);
+    const antes = vida.calcularVida(conPocion, hoy()).puntos;
+    acciones.abrirCofre(conPocion, azarFijo(0.9));
+    igual(vida.calcularVida(conPocion, hoy()).puntos, antes + cofre.CURA_POCION);
+});
+
+prueba("Mapa del viaje: cada 4 pasos un lugar; tesoros, santuarios y fortaleza se reclaman una vez", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    envejecer(estado, 29);
+    for (let n = -29; n <= 0; n++) marcarEn(estado, leer, dia(n));           // 30 pasos
+    const pos = mapa.posicion(estado);
+    igual([pos.pasos, pos.lugar, pos.region, pos.enRegion, pos.hastaSiguiente], [30, 7, 0, 7, 2]);
+    igual([5, 10, 25, 7].map(mapa.tipoDeLugar), ["tesoro", "santuario", "fortaleza", "camino"]);
+    igual(mapa.lugaresPorReclamar(estado).map((l) => l.id), ["r1-5"]);
+    const monedas = estado.personaje.monedas;
+    acciones.reclamarLugar(estado, "r1-5");
+    igual(estado.personaje.monedas - monedas, mapa.LUGARES.tesoro.premio.monedas);
+    debeFallar(() => acciones.reclamarLugar(estado, "r1-5"), "ya lo reclamaste");
+    debeFallar(() => acciones.reclamarLugar(estado, "r1-10"), "todavía no");
+    igual(mapa.nombreRegion(6), "El Valle del Comienzo II");
+
+    const otra = partidaNueva();                                               // 44 pasos: lugar 11
+    const gym = crearMision(otra);
+    envejecer(otra, 43);
+    for (let n = -43; n <= 0; n++) marcarEn(otra, gym, dia(n));
+    igual(mapa.lugaresPorReclamar(otra).map((l) => l.id), ["r1-5", "r1-10"]);
+    const [xp, monedasAntes] = [otra.personaje.xp, otra.personaje.monedas];
+    acciones.reclamarTodo(otra);
+    igual([otra.personaje.monedas - monedasAntes, otra.personaje.xp - xp, mapa.lugaresPorReclamar(otra).length], [25, 40, 0], "reclamar todo");
+});
+
+prueba("Tu dragón: alimentarlo cuesta 15, una vez al día, y te cura 3; acariciarlo responde", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.alimentarDragon(estado), "Te faltan 15");
+    acciones.ganar(estado, { monedas: 50 });
+    crearMision(estado);
+    vidaDesde(estado, 2);                                                      // 105 − 16 = 89
+    const antes = vida.calcularVida(estado, hoy()).puntos;
+    acciones.alimentarDragon(estado);
+    igual([vida.calcularVida(estado, hoy()).puntos - antes, estado.personaje.monedas], [mascota.COMIDA.cura, 35]);
+    debeFallar(() => acciones.alimentarDragon(estado), "ya comió hoy");
+    const d = avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy()));
+    cierto(mascota.fraseAlAcariciar(estado, d.mascota, hoy(), () => 0).length > 10, "responde con una frase");
+});
+
+prueba("Golpe con timing: un crítico le pega 50 % más al jefe, una sola vez", () => {
+    const estado = partidaNueva();
+    const gym = crearMision(estado, { dificultad: "dificil" });
+    debeFallar(() => acciones.golpeCritico(estado, gym.id, hoy()), "no está completada");
+    acciones.completarMision(estado, gym.id);
+    acciones.golpeCritico(estado, gym.id, hoy());
+    igual(campana.estadoCampanas(estado).intelecto.dano, Math.round(campana.DANO.diaria.dificil * 1.5));
+    debeFallar(() => acciones.golpeCritico(estado, gym.id, hoy()), "ya fue crítico");
+});
+
+prueba("El Maestro: su saludo depende de cómo vas, y responde a lo que le dices", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado, { nombre: "Leer", dificultad: "facil" });
+    crearMision(estado, { nombre: "Gym", dificultad: "dificil" });
+    const a = (hora) => { const f = new Date(); f.setHours(hora, 0, 0, 0); return f.getTime(); };
+    let c = maestro.contexto(estado, hoy(), a(8));
+    cierto(maestro.saludo(c).includes("¿Cuál será tu misión clave?"), "en la mañana pide la misión clave");
+    cierto(maestro.responder(estado, c, "sinGanas").includes("«Leer»"), "sin ganas: la más fácil");
+    cierto(maestro.responder(estado, c, "fuerza").includes("«Gym»"), "con fuerza: la más difícil");
+    c = maestro.contexto(estado, hoy(), a(21));
+    cierto(maestro.saludo(c).includes("Cae la noche"), "en la noche invita a cerrar el día");
+    acciones.completarMision(estado, leer.id);
+    cierto(maestro.saludo(maestro.contexto(estado, hoy(), a(21))).includes("cofre"), "avisa del cofre");
+
+    const raro = partidaNueva();
+    crearMision(raro, { nombre: "<img src=x onerror=alert(1)>" });
+    const html = vistas.dialogoMaestro({ maestro: maestro.contexto(raro, hoy(), a(8)) }, { modo: "clave" });
+    cierto(html.includes("&lt;img") && !html.includes("<img src=x"), "los nombres van escapados");
 });
 
 
@@ -1300,7 +1491,8 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     const vieja = JSON.stringify({ version: 1, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] });
     const estado = datos.desdeRespaldo(vieja);
     igual(estado.version, datos.estadoInicial().version, "la versión de los datos");
-    igual(estado.ajustes, { sonido: true });
+    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true });
+    igual([estado.claves, estado.cofres, estado.noches, estado.mapa, estado.arcade.extra], [{}, {}, [], { reclamados: [] }, 0], "lo de la v22");
     igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
     igual(estado.campana, { recompensados: {} });
     igual([estado.tareas, estado.desafios, estado.diario, estado.avances], [[], [], {}, {}], "las listas nuevas");

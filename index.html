@@ -111,6 +111,7 @@
             <section id="pantalla-diario" class="pantalla" hidden></section>
             <section id="pantalla-pacto" class="pantalla" hidden></section>
             <section id="pantalla-libro" class="pantalla" hidden></section>
+            <section id="pantalla-mapa" class="pantalla" hidden></section>
         </main>
 
         <!-- Barra de pestañas de abajo (como en las apps de iPhone) -->
@@ -313,6 +314,21 @@
         </form>
     </dialog>
 
+    <!-- El Maestro Aurelio: conversar (app.js rellena #maestro-caja con vistas.dialogoMaestro). -->
+    <div id="maestro" class="capa-oscura" hidden>
+        <div class="maestro-dialogo" id="maestro-caja" role="dialog" aria-label="El Maestro"></div>
+    </div>
+
+    <!-- El ritual de la noche (vistas.pantallaRitual). -->
+    <div id="ritual" class="capa-oscura ritual" hidden>
+        <div class="ritual-caja" id="ritual-caja" role="dialog" aria-label="Ritual de la noche"></div>
+    </div>
+
+    <!-- El golpe con timing (vistas.pantallaGolpe): tocar en cualquier parte = golpear. -->
+    <div id="golpe" class="capa-oscura golpe" hidden>
+        <div class="golpe-caja" id="golpe-caja" role="dialog" aria-label="Golpe al jefe"></div>
+    </div>
+
     <!-- «Fallé»: reconocer que no hiciste una misión, y por qué. -->
     <dialog id="dialogo-falla" class="dialogo">
         <form data-form="falla" class="formulario">
@@ -393,6 +409,14 @@
                 <label class="interruptor">
                     <span><b>🔊 Sonidos</b><br><span class="nota">Al completar misiones, subir de nivel y derrotar jefes.</span></span>
                     <input type="checkbox" id="ajustes-sonido">
+                </label>
+                <label class="interruptor">
+                    <span><b>⚔️ Golpe con timing</b><br><span class="nota">Al completar una misión, toca en el momento justo para un golpe crítico.</span></span>
+                    <input type="checkbox" id="ajustes-golpe">
+                </label>
+                <label class="interruptor">
+                    <span><b>🎲 Eventos del día</b><br><span class="nota">Mercader ambulante, Luna de sangre, Aguas termales…</span></span>
+                    <input type="checkbox" id="ajustes-eventos">
                 </label>
             </section>
 

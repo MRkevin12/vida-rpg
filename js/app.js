@@ -20,6 +20,10 @@ import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
 import * as libro from "./libro.js";
+import * as maestro from "./maestro.js";
+import * as rituales from "./rituales.js";
+import * as mascota from "./mascota.js";
+import { eventoDelDia } from "./eventos.js";
 import { PINTURAS, fuentePintura } from "./pinturas.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import * as minijuegos from "./minijuegos.js";
@@ -29,7 +33,7 @@ import * as nube from "./nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "./novedades.js";
 import { calcularResumen, semanaPorMostrar } from "./resumen.js";
 import { dibujarAvatar } from "./dibujo.js";
-import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
+import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, relojLargo, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
 
 
 // ===== Estado de la app =====
@@ -44,6 +48,10 @@ const diarioVista = { mes: null, dia: null, busqueda: "", filtro: null, limite: 
 let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
 let paginaLibro = "portada";     // en «Tu libro»: "portada", "indice" o el número de un capítulo
 let problemaAvisos = null;       // si las notificaciones se cortaron: "bloqueadas" o "desconectadas"
+let regionMapa = null;           // en el mapa: la región que miras (null = donde vas)
+let maestroVista = { modo: "inicio", respuesta: "" };   // la conversación con el Maestro
+let ritual = null;               // el ritual de la noche en curso: { paso, cola, indice, motivo }
+let golpe = null;                // el golpe con timing en curso
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -61,6 +69,7 @@ const DIBUJAR = {
     diario: vistas.pantallaDiario,
     pacto: vistas.pantallaPacto,
     libro: vistas.pantallaLibro,
+    mapa: vistas.pantallaMapa,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -138,6 +147,15 @@ function revisarAlAbrir() {
 // Reloj del modo enfoque: cada segundo cambia solo el texto del tiempo y el anillo
 // (sin redibujar la pantalla). Al llegar a 0, entrega el premio.
 function tictac() {
+    // El reloj del desafío relámpago (si está en pantalla). Al llegar a 0 se redibuja Hoy.
+    for (const reloj of document.querySelectorAll("[data-relampago-fin]")) {
+        const restante = Number(reloj.dataset.relampagoFin) - Date.now();
+        reloj.textContent = relojLargo(restante);
+        if (restante <= 0 && !$("#juego").hidden) {
+            reloj.removeAttribute("data-relampago-fin");
+            dibujarPantalla();
+        }
+    }
     const activo = estado.personaje && estado.enfoque.activo;
     // Con el PIN puesto o en medio de un minijuego, espera: el premio llega después.
     if (!activo || $("#juego").hidden || !$("#minijuego").hidden) return;
@@ -572,10 +590,12 @@ function moverBarra(barra, porcentaje, subioNivel) {
     }, 700);
 }
 
-function dibujarPantalla(efectos = {}) {
+// Lo que las vistas necesitan saber en este momento.
+function contextoActual(efectos = {}) {
     const fecha = hoy();
     const info = juego.resumen(estado, fecha);
-    const contexto = {
+    const ahora = Date.now();
+    return {
         hoy: fecha,
         info,
         avatar: avatar.describirAvatar(estado, fecha, info),
@@ -585,16 +605,21 @@ function dibujarPantalla(efectos = {}) {
         rangoResumen,
         recordarRespaldo: necesitaRespaldo(fecha),
         semanaPendiente: semanaPorMostrar(estado, fecha),   // lunes de la semana pasada, o null
-        ahora: Date.now(),                                  // para el reloj del modo enfoque
+        ahora,                                              // para los relojes (enfoque y relámpago)
         ...contextoDiario(fecha),
         renovandoPacto,
         paginaLibro,
         problemaAvisos,
+        regionMapa,
+        maestro: maestro.contexto(estado, fecha, ahora),    // lo que el Maestro sabe de tu día
+        evento: eventoDelDia(fecha, estado),
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
     };
+}
 
+function dibujarPantalla(efectos = {}) {
     const contenedor = $(`#pantalla-${pantallaActual}`);
-    contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contexto);
+    contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
     if (pantallaActual === "libro") conectarHojear();         // pasar las páginas deslizando
@@ -646,9 +671,11 @@ function cambiarPantalla(nombre) {
     diaVisto = "hoy";   // al cambiar de pantalla siempre se vuelve a "hoy"
     renovandoPacto = false;
     if (nombre === "libro") paginaLibro = "portada";   // el libro siempre se abre por la portada
+    if (nombre === "mapa") regionMapa = null;           // el mapa se abre donde vas
     mostrarSeccion(nombre);
     dibujarPantalla();
     window.scrollTo(0, 0);
+    if (nombre === "mapa") $("#mapa-heroe")?.scrollIntoView({ block: "center" });
 }
 
 
@@ -807,6 +834,21 @@ function rellenarOpciones() {
         <p><strong>Tu pacto:</strong> el Tratado de la Voluntad es un juramento contigo mismo que firmas con el dedo. Un día
            queda «honrado» si hiciste algo (una misión, una tarea, una sesión de enfoque o tu diario) o estabas de descanso;
            los días sin misiones no cuentan. Su ley: nunca fallar dos días seguidos.</p>
+        <p><strong>El Maestro y los rituales:</strong> el Maestro Aurelio te habla según cómo vas. En la mañana eliges tu
+           <em>misión clave</em>: si la cumples vale el doble (XP, monedas y daño al jefe). En la noche, el ritual te hace repasar
+           lo que falta (la hice / no la hice), escribir el diario y leer tu capítulo; cerrar el día da +${rituales.PREMIO_CIERRE.xp} XP
+           y ${rituales.PREMIO_CIERRE.monedas} monedas.</p>
+        <p><strong>Cofre del día:</strong> con lo primero que cumplas se desbloquea un cofre con un premio al azar (monedas, XP,
+           fichas, una poción o, rara vez, equipo).</p>
+        <p><strong>Eventos del día:</strong> más o menos la mitad de los días pasa algo (Mercader ambulante, Luna de sangre,
+           Aguas termales…). Se pueden apagar en Ajustes.</p>
+        <p><strong>Desafío relámpago:</strong> algunos días aparece un reto con reloj: ${rituales.RELAMPAGO.meta} misiones en
+           ${rituales.RELAMPAGO.minutos / 60} horas por +${rituales.RELAMPAGO.premio.xp} XP y ${rituales.RELAMPAGO.premio.monedas} monedas.</p>
+        <p><strong>Golpe con timing:</strong> al completar una misión, toca cuando la marca esté en la zona dorada: golpe crítico
+           (+50 % de daño al jefe). Se puede apagar en Ajustes.</p>
+        <p><strong>Mapa del viaje:</strong> cada cosa cumplida es un paso; cada 4 pasos llegas a un lugar. Hay tesoros,
+           santuarios y una fortaleza al final de cada región.</p>
+        <p><strong>Tu dragón:</strong> acarícialo, y aliméntalo una vez al día (15 monedas): te cura 3 de vida.</p>
         <p><strong>Fallé:</strong> el botón ✗ de una misión marca que no la hiciste y por qué. La vida se pierde en ese
            momento (no dos veces) y el recordatorio de esa misión ya no llega. Se puede deshacer, y si al final la haces, la falla
            se borra sola. En la ficha de cada hábito ves cuántas veces fallaste y tu motivo más común.</p>
@@ -948,6 +990,8 @@ const PREPARAR = {
         pintarAvisos();
         $("#ajustes-nombre").value = estado.personaje.nombre;
         $("#ajustes-sonido").checked = estado.ajustes.sonido;
+        $("#ajustes-golpe").checked = estado.ajustes.golpe;
+        $("#ajustes-eventos").checked = estado.ajustes.eventos;
         $("#ajustes-ultimo-respaldo").textContent = estado.ultimoRespaldo
             ? `Última copia: ${fechaLegible(estado.ultimoRespaldo)}.`
             : "Todavía no has hecho ninguna copia.";
@@ -1278,6 +1322,125 @@ function cerrarBienvenida() {
 
 // ===== Copia de seguridad =====
 
+// ===== El Maestro =====
+
+function abrirMaestro(modo = "inicio") {
+    maestroVista = { modo, respuesta: "" };
+    $("#maestro").hidden = false;
+    pintarMaestro();
+}
+
+function pintarMaestro() {
+    $("#maestro-caja").innerHTML = vistas.dialogoMaestro(contextoActual(), maestroVista);
+}
+
+function cerrarMaestro() {
+    $("#maestro").hidden = true;
+}
+
+
+// ===== El ritual de la noche =====
+// Tres pasos: repasar las misiones que faltan (una carta por misión), el diario y el capítulo de hoy.
+
+function abrirRitual() {
+    ritual = { paso: "misiones", cola: rituales.pendientesDelDia(estado, hoy()).map((m) => m.id), indice: 0, motivo: false };
+    $("#ritual").hidden = false;
+    pintarRitual();
+}
+
+function pintarRitual() {
+    if (!ritual) return;
+    if (ritual.paso === "misiones" && ritual.indice >= ritual.cola.length && ritual.cola.length) ritual.paso = "diario";
+    $("#ritual-caja").innerHTML = vistas.pantallaRitual(estado, contextoActual(), ritual);
+    $("#ritual").scrollTop = 0;
+}
+
+function cerrarRitual() {
+    ritual = null;
+    $("#ritual").hidden = true;
+}
+
+// La carta de la misión actual: hecha (true) o fallada con su motivo (false).
+function ritualMision(hecha, motivo) {
+    const id = ritual.cola[ritual.indice];
+    const resultado = hecha
+        ? ejecutar(() => acciones.completarMision(estado, id, hoy()))
+        : ejecutar(() => acciones.fallarMision(estado, id, hoy(), motivo));
+    if (!resultado) return;
+    sonar(hecha ? "completar" : "fallo");
+    ritual.motivo = false;
+    ritual.indice += 1;
+    pintarRitual();
+}
+
+// Deslizar la carta: a la derecha = la hice; a la izquierda = no la hice (pregunta el motivo).
+function conectarCartaRitual() {
+    let inicio = null;
+    $("#ritual").addEventListener("pointerdown", (evento) => {
+        const carta = evento.target.closest(".ritual-carta");
+        if (carta && ritual && !ritual.motivo) inicio = { x: evento.clientX, carta };
+    });
+    $("#ritual").addEventListener("pointermove", (evento) => {
+        if (!inicio) return;
+        const dx = evento.clientX - inicio.x;
+        inicio.carta.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
+        inicio.carta.classList.toggle("hacia-si", dx > 70);
+        inicio.carta.classList.toggle("hacia-no", dx < -70);
+    });
+    const soltar = (evento) => {
+        if (!inicio) return;
+        const dx = evento.clientX - inicio.x;
+        inicio.carta.style.transform = "";
+        inicio = null;
+        if (dx > 70) ritualMision(true);
+        else if (dx < -70) ACCIONES["ritual-no"]();
+    };
+    $("#ritual").addEventListener("pointerup", soltar);
+    $("#ritual").addEventListener("pointercancel", () => { if (inicio) inicio.carta.style.transform = ""; inicio = null; });
+}
+
+
+// ===== El golpe con timing =====
+// Al completar una misión aparece el jefe de su categoría y una marca que va y viene.
+// Si tocas cuando la marca está en la zona dorada, el golpe es crítico (+50 % de daño).
+
+function iniciarGolpe(id, fecha) {
+    if (!estado.ajustes.golpe || !$("#celebracion").hidden || golpe) return;
+    const mision = estado.misiones.find((m) => m.id === id);
+    const jefe = mision && campana.estadoCampanas(estado)[mision.atributo]?.jefe;
+    if (!jefe) return;
+    golpe = { id, fecha, mision: mision.nombre, jefe, resultado: null };
+    $("#golpe").hidden = false;
+    $("#golpe-caja").innerHTML = vistas.pantallaGolpe(golpe);
+    golpe.temporizador = setTimeout(cerrarGolpe, 5000);   // si no tocas, se va solo
+}
+
+function golpear() {
+    if (!golpe) return;
+    if (golpe.resultado) {
+        cerrarGolpe();
+        return;
+    }
+    // ¿La marca está dentro de la zona dorada?
+    const marca = $(".golpe-marca").getBoundingClientRect();
+    const zona = $(".golpe-zona").getBoundingClientRect();
+    const centro = marca.left + marca.width / 2;
+    const critico = centro >= zona.left && centro <= zona.right;
+    if (critico) ejecutar(() => acciones.golpeCritico(estado, golpe.id, golpe.fecha));
+    sonar(critico ? "critico" : "impacto");
+    golpe.resultado = critico ? "critico" : "normal";
+    $("#golpe-caja").innerHTML = vistas.pantallaGolpe(golpe);
+    clearTimeout(golpe.temporizador);
+    golpe.temporizador = setTimeout(cerrarGolpe, 1300);
+}
+
+function cerrarGolpe() {
+    if (golpe) clearTimeout(golpe.temporizador);
+    golpe = null;
+    $("#golpe").hidden = true;
+}
+
+
 // ===== Firmar el pacto con el dedo =====
 // Se dibuja en un <canvas>. El trazo se guarda como un "camino" SVG ("M10 20 L12 22 …")
 // en un recuadro de 600 × 200, así la firma se ve igual en cualquier pantalla.
@@ -1481,8 +1644,9 @@ const ACCIONES = {
         flotarXp(`.mision[data-id="${id}"]`, resultado.xp);
         if (!estabaHecha) {
             const mision = estado.misiones.find((m) => m.id === id);
-            ofrecerDeshacer(`✔ ${mision.nombre} · +${resultado.xp} XP${resultado.forma ? " ✨" : ""}`,
+            ofrecerDeshacer(`✔ ${mision.nombre} · +${resultado.xp} XP${resultado.clave ? " 🔑" : ""}${resultado.forma ? " ✨" : ""}`,
                             () => ejecutar(() => acciones.desmarcarMision(estado, id, fecha)));
+            setTimeout(() => iniciarGolpe(id, fecha), 350);   // el golpe con timing contra el jefe
         }
     },
     "ver-fecha": (boton) => {
@@ -1759,6 +1923,92 @@ const ACCIONES = {
         if (ejecutar(() => acciones.quitarFalla(estado, Number(boton.dataset.id), fechaVista()))) avisar("↺ Ya no está marcada como fallada");
     },
 
+    // El Maestro.
+    "maestro-abrir": (boton) => abrirMaestro(boton.dataset.modo || "inicio"),
+    "maestro-cerrar": () => cerrarMaestro(),
+    "maestro-modo": (boton) => {
+        maestroVista = { modo: boton.dataset.modo, respuesta: "" };
+        pintarMaestro();
+    },
+    "maestro-opcion": (boton) => {
+        const c = maestro.contexto(estado, hoy());
+        maestroVista = { modo: "respuesta", respuesta: maestro.responder(estado, c, boton.dataset.opcion) };
+        pintarMaestro();
+    },
+    "maestro-clave": (boton) => {
+        const id = Number(boton.dataset.id);
+        if (!ejecutar(() => acciones.elegirClave(estado, id))) return;
+        sonar("logro");
+        const mision = estado.misiones.find((m) => m.id === id);
+        maestroVista = { modo: "respuesta", respuesta: `Que así sea: «${mision.nombre}» es tu misión clave de hoy. Vale el doble. No la sueltes.` };
+        pintarMaestro();
+    },
+
+    // El ritual de la noche.
+    "ritual-abrir": () => {
+        cerrarMaestro();
+        abrirRitual();
+    },
+    "ritual-cerrar": () => cerrarRitual(),
+    "ritual-si": () => ritualMision(true),
+    "ritual-no": () => {
+        ritual.motivo = true;
+        pintarRitual();
+    },
+    "ritual-volver": () => {
+        ritual.motivo = false;
+        pintarRitual();
+    },
+    "ritual-motivo": (boton) => ritualMision(false, boton.dataset.motivo),
+    "ritual-seguir": () => {
+        ritual.paso = ritual.paso === "misiones" ? "diario" : "final";
+        pintarRitual();
+    },
+    "ritual-terminar": () => {
+        const resultado = ejecutar(() => acciones.cerrarDia(estado));
+        cerrarRitual();
+        if (resultado && !resultado.premio) avisar("🌙 Buenas noches. El día ya estaba cerrado.");
+    },
+
+    // El cofre, el desafío relámpago y el dragón.
+    "abrir-cofre": (boton) => {
+        if (boton.classList.contains("abriendo")) return;
+        boton.classList.add("abriendo");   // tiembla y se abre (estilos.css)
+        sonar("cofre");
+        setTimeout(() => {
+            const resultado = ejecutar(() => acciones.abrirCofre(estado));
+            if (!resultado) return;
+            const p = resultado.premio;
+            celebrar({ icono: p.icono, etiqueta: "🎁 Cofre del día", titulo: p.texto,
+                       detalle: p.tipo === "pocion" ? "Ya te curó." : p.tipo === "objeto" ? "Póntelo en tu Personaje." : "¡Mañana habrá otro!" });
+        }, 900);
+    },
+    "aceptar-relampago": () => {
+        if (ejecutar(() => acciones.aceptarRelampago(estado))) {
+            sonar("relampago");
+            avisar(`⚡ ¡Que empiece! Tienes ${rituales.RELAMPAGO.minutos / 60} horas`);
+        }
+    },
+    "rechazar-relampago": () => ejecutar(() => acciones.rechazarRelampago(estado)),
+    "acariciar-dragon": () => {
+        const frase = mascota.fraseAlAcariciar(estado, avatarActual().mascota, hoy());
+        $("#mascota-frase").textContent = frase;
+        const dibujo = $(".mascota-dibujo");
+        if (dibujo) reproducirAnimacion(dibujo, "acariciado");
+        sonar("ronroneo");
+    },
+    "alimentar-dragon": () => {
+        if (ejecutar(() => acciones.alimentarDragon(estado))) sonar("moneda");
+    },
+
+    // El mapa del viaje.
+    "reclamar-lugar": (boton) => ejecutar(() => acciones.reclamarLugar(estado, boton.dataset.id)),
+    "reclamar-todo": () => ejecutar(() => acciones.reclamarTodo(estado)),
+    "mapa-region": (boton) => {
+        regionMapa = Number(boton.dataset.region);
+        dibujarPantalla();
+    },
+
     // Tu libro: pasar de página y descargarlo.
     "libro-pagina": (boton) => irAPaginaDelLibro(boton.dataset.pagina),
     "descargar-libro": () => descargarTexto(`cronica-${hoy()}.txt`, libro.libroComoTexto(estado, hoy()), "Mi libro"),
@@ -1945,6 +2195,13 @@ const FORMULARIOS = {
         }
         return false;   // no cerrar Ajustes
     },
+    "ritual-diario"(valores) {
+        if (ejecutar(() => acciones.escribirDiario(estado, { ...valores, fecha: hoy() }))) {
+            ritual.paso = "final";
+            pintarRitual();
+        }
+        return false;
+    },
     falla(valores) {
         const id = Number(valores.id);
         const resultado = ejecutar(() => acciones.fallarMision(estado, id, valores.fecha, valores.motivo));
@@ -2095,10 +2352,17 @@ function conectarEventos() {
 
     // Diario: tocar una carita guarda al instante (junto con la frase que hayas escrito).
     document.addEventListener("change", (evento) => {
-        if (evento.target.name === "animo") evento.target.form.requestSubmit();
+        if (evento.target.name === "animo" && evento.target.form?.dataset.form === "diario") evento.target.form.requestSubmit();
     });
 
     // Interruptor de sonido (Ajustes): al encenderlo suena una muestra.
+    $("#ajustes-golpe").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "golpe", evento.target.checked)));
+    $("#ajustes-eventos").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "eventos", evento.target.checked)));
+    // Tocar el fondo del golpe con timing = golpear.
+    $("#golpe").addEventListener("pointerdown", () => golpear());
+    // Deslizar la carta del ritual: → la hiciste, ← no.
+    conectarCartaRitual();
+
     $("#ajustes-sonido").addEventListener("change", (evento) => {
         ejecutar(() => acciones.cambiarAjuste(estado, "sonido", evento.target.checked));
         sonar("completar");

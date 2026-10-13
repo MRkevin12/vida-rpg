@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 21;
+export const VERSION_APP = 22;
 
 export const NOVEDADES = [
+    {
+        version: 22,
+        titulo: "Un mundo que reacciona",
+        cambios: [
+            "🧙 El Maestro Aurelio: te habla según cómo vas y conversa contigo (en Hoy).",
+            "🌅 Misión clave del día: vale el doble. 🌙 Ritual de la noche: repasa, escribe y cierra el día.",
+            "🎁 Cofre del día con premio al azar, ⚡ desafíos relámpago y 🎲 eventos del día.",
+            "⚔️ Golpe con timing al completar una misión: toca a tiempo para un crítico.",
+            "🗺️ El mapa del viaje (chip en Hoy) y 🐉 tu dragón: acarícialo y aliméntalo.",
+        ],
+    },
     {
         version: 21,
         titulo: "Avisos más confiables",

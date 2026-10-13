@@ -88,3 +88,11 @@ export function relojTexto(ms) {
     const segundos = Math.max(0, Math.ceil(ms / 1000));
     return `${dosDigitos(Math.floor(segundos / 60))}:${dosDigitos(segundos % 60)}`;
 }
+
+// Igual, pero con horas cuando hace falta: "1:59:59" (o "05:09" si queda menos de una hora).
+export function relojLargo(ms) {
+    const segundos = Math.max(0, Math.ceil(ms / 1000));
+    const horas = Math.floor(segundos / 3600);
+    if (!horas) return relojTexto(ms);
+    return `${horas}:${dosDigitos(Math.floor((segundos % 3600) / 60))}:${dosDigitos(segundos % 60)}`;
+}

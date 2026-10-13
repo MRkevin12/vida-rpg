@@ -17,11 +17,16 @@ import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
 import * as libro from "./libro.js";
+import * as maestro from "./maestro.js";
+import * as rituales from "./rituales.js";
+import * as mapa from "./mapa.js";
+import * as mascota from "./mascota.js";
+import { precioConEvento } from "./eventos.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
-         diasEntre, lunesDe, relojTexto, sumarDias, MESES } from "./fechas.js";
+         diasEntre, lunesDe, relojTexto, relojLargo, sumarDias, MESES } from "./fechas.js";
 
 const { DIFICULTADES, ATRIBUTOS, PREMIOS, ESCUDOS, ANIMOS_DIARIO, plural } = juego;
 
@@ -144,6 +149,7 @@ export function pantallaHoy(estado, ctx) {
     return `
         ${esAyer ? "" : tarjetaSemana(estado, ctx)}
         ${tarjetaHeroe(estado, ctx)}
+        ${esAyer ? "" : `${tarjetaMaestro(ctx)}${avisoEvento(ctx)}${tarjetaCofre(estado, ctx)}${tarjetaRelampago(ctx)}`}
         ${esAyer ? "" : lineaDelPacto(estado, ctx)}
         ${avisoDescanso(estado, ctx)}
         ${avisoNotificaciones(ctx)}
@@ -159,6 +165,7 @@ export function pantallaHoy(estado, ctx) {
         <div class="chips">
             <span class="chip chip-racha">🔥 ${plural(racha.actual, "día", "días")}</span>
             <span class="chip">🛡️ ${racha.escudos}/${ESCUDOS.maximo}</span>
+            <button type="button" class="chip" data-accion="ir" data-pantalla="mapa">🗺️ Mapa</button>
             <button type="button" class="chip chip-arcade" data-accion="ir" data-pantalla="arcade">
                 🎮 ${plural(arcade.fichasDisponibles(estado), "ficha", "fichas")}</button>
             <button type="button" class="chip chip-enfoque ${activo ? "activo" : ""}" data-accion="ir" data-pantalla="enfoque">${chipEnfoque}</button>
@@ -212,7 +219,9 @@ function detalleMision(estado, mision, conFrecuencia = Boolean(mision.dias), con
 
 function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
     const falla = hecha ? null : juego.fallaDe(estado, mision.id, fecha);
-    const clases = ["mision", `dificultad-${mision.dificultad}`, hecha ? "hecha" : "", falla ? "fallada" : "", recienHecha ? "recien-hecha" : ""];
+    const esClave = estado.claves[fecha] === mision.id;
+    const clases = ["mision", `dificultad-${mision.dificultad}`, hecha ? "hecha" : "", falla ? "fallada" : "", esClave ? "clave" : "",
+                    recienHecha ? "recien-hecha" : ""];
     let boton = `<button type="button" class="boton-check" data-accion="alternar-mision" data-id="${mision.id}"
                          aria-pressed="${hecha}" aria-label="Marcar ${esc(mision.nombre)}">${ICONOS.check}</button>`;
     let extra = "";
@@ -239,6 +248,7 @@ function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
                       ${veces} de ${mision.veces} esta semana${cumplida ? " · ✓ ¡Meta cumplida!" : ""}</span>`;
     }
 
+    if (esClave) extra += '<span class="clave-insignia">🔑 Misión clave · vale el doble</span>';
     // «Fallé»: si ya la marcaste como fallada, el botón redondo la desmarca y se ve el motivo.
     // Si no, junto al lápiz aparece ✗ (solo en las que tocaban: las semanales tienen toda la semana).
     let fallar = "";
@@ -440,6 +450,347 @@ function seccionDiario(estado, ctx, fecha, esAyer) {
                 <button type="submit" class="boton boton-principal">${entrada ? "Actualizar" : "Guardar en mi diario"}</button>
             </form>
         </section>`;
+}
+
+
+// ===== El Maestro, el evento del día, el cofre y el relámpago (en Hoy) =====
+
+// La tarjeta del Maestro: lo que te dice ahora y los botones para hablar, elegir tu misión clave o cerrar el día.
+function tarjetaMaestro(ctx) {
+    const c = ctx.maestro;
+    const botones = ['<button type="button" class="boton boton-chico" data-accion="maestro-abrir">💬 Hablar</button>'];
+    if (c.pendientes.length && !c.claveHecha) {
+        botones.push(`<button type="button" class="boton boton-chico boton-secundario" data-accion="maestro-abrir" data-modo="clave">🔑 ${c.clave ? "Cambiar clave" : "Misión clave"}</button>`);
+    }
+    if (!c.cerrado && (c.hora >= 17 || (c.tocan && !c.pendientes.length))) {
+        botones.push('<button type="button" class="boton boton-chico boton-secundario" data-accion="ritual-abrir">🌙 Cerrar el día</button>');
+    }
+    return `
+        <section class="maestro-tarjeta">
+            <div class="maestro-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { mini: true })}</div>
+            <div class="maestro-habla">
+                <span class="etiqueta">${maestro.NOMBRE}</span>
+                <p class="maestro-texto">${esc(maestro.saludo(c))}</p>
+                <div class="maestro-botones">${botones.join("")}</div>
+            </div>
+        </section>`;
+}
+
+function avisoEvento(ctx) {
+    const e = ctx.evento;
+    if (!e) return "";
+    return `<div class="evento-dia"><span class="evento-icono" aria-hidden="true">${e.icono}</span>
+                <span><span class="etiqueta">Evento del día</span><b>${e.nombre}</b> · ${e.texto}</span></div>`;
+}
+
+// El cofre de madera (se abre con una animación: ver estilos.css).
+function dibujoCofre() {
+    return `
+        <svg class="cofre-svg" viewBox="0 0 120 100" aria-hidden="true">
+            <defs>
+                <linearGradient id="cofre-madera" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5a2b"/><stop offset="1" stop-color="#4a2c14"/></linearGradient>
+                <linearGradient id="cofre-hierro" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5b6470"/><stop offset=".5" stop-color="#b8c0ca"/><stop offset="1" stop-color="#4b5563"/></linearGradient>
+                <radialGradient id="cofre-luz" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fde68a" stop-opacity=".95"/><stop offset="1" stop-color="#fbbf24" stop-opacity="0"/></radialGradient>
+            </defs>
+            <ellipse class="cofre-brillo" cx="60" cy="48" rx="52" ry="34" fill="url(#cofre-luz)"/>
+            <rect x="14" y="50" width="92" height="40" rx="3" fill="url(#cofre-madera)" stroke="#2a180b" stroke-width="2"/>
+            <path d="M14 62 H106 M14 76 H106" stroke="#2a180b" stroke-width="1" opacity=".5"/>
+            <rect x="54" y="50" width="12" height="40" fill="url(#cofre-hierro)"/>
+            <g class="cofre-tapa">
+                <path d="M14 50 L14 40 Q60 12 106 40 L106 50 Z" fill="url(#cofre-madera)" stroke="#2a180b" stroke-width="2"/>
+                <path d="M54 50 L54 24 Q60 23 66 24 L66 50 Z" fill="url(#cofre-hierro)"/>
+            </g>
+            <rect x="51" y="54" width="18" height="14" rx="2" fill="#d4a017" stroke="#5c4300" stroke-width="1.5"/>
+            <circle cx="60" cy="60" r="2.2" fill="#5c4300"/>
+        </svg>`;
+}
+
+function tarjetaCofre(estado, ctx) {
+    const abierto = estado.cofres[ctx.hoy];
+    if (abierto) {
+        return `<div class="cofre-linea"><span aria-hidden="true">🎁</span><span>Cofre de hoy: <b>${esc(abierto.texto)}</b>. Mañana habrá otro.</span></div>`;
+    }
+    if (!ctx.maestro.cofre) {
+        return '<div class="cofre-linea cofre-cerrado"><span aria-hidden="true">🔒</span><span>Cumple tu primera misión de hoy y se abrirá tu <b>cofre del día</b>.</span></div>';
+    }
+    return `
+        <button type="button" class="cofre-tarjeta" data-accion="abrir-cofre">
+            ${dibujoCofre()}
+            <span><b>🎁 Tu cofre del día está listo</b>
+                <span class="mini">Tócalo para abrirlo: monedas, XP, una poción, fichas… o algo mejor.</span></span>
+        </button>`;
+}
+
+function tarjetaRelampago(ctx) {
+    const r = ctx.maestro.relampago;
+    if (!r || r.estado === "rechazado") return "";
+    const p = rituales.RELAMPAGO.premio;
+    if (r.estado === "ofrecido") {
+        return `
+            <section class="relampago">
+                <p><b>⚡ Desafío relámpago</b><br>Completa ${juego.plural(r.meta, "misión", "misiones")} en las próximas
+                   ${rituales.RELAMPAGO.minutos / 60} horas. Premio: +${p.xp} XP y +${p.monedas} 🪙.</p>
+                <div class="botones-dialogo">
+                    <button type="button" class="boton boton-secundario" data-accion="rechazar-relampago">Ahora no</button>
+                    <button type="button" class="boton boton-principal" data-accion="aceptar-relampago">⚡ Acepto</button>
+                </div>
+            </section>`;
+    }
+    if (r.estado === "activo") {
+        return `
+            <section class="relampago activo">
+                <p><b>⚡ Desafío relámpago:</b> ${r.progreso} de ${r.meta} ·
+                   quedan <span class="relampago-reloj" data-relampago-fin="${ctx.ahora + r.restante}">${relojLargo(r.restante)}</span></p>
+                ${barra(Math.round((r.progreso / r.meta) * 100), "barra-mini")}
+            </section>`;
+    }
+    if (r.estado === "cumplido") return '<div class="cofre-linea"><span aria-hidden="true">⚡</span><span><b>¡Desafío relámpago cumplido!</b></span></div>';
+    return `<div class="cofre-linea cofre-cerrado"><span aria-hidden="true">⌛</span><span>Se acabó el tiempo del desafío relámpago (${r.progreso} de ${r.meta}). Otro día será.</span></div>`;
+}
+
+
+// ===== El Maestro: la ventana para conversar =====
+// m = { modo: "inicio" | "respuesta" | "clave", respuesta }
+
+export function dialogoMaestro(ctx, m) {
+    const c = ctx.maestro;
+    const opcion = (accion, texto, extra = "") => `<button type="button" class="boton boton-secundario maestro-opcion" data-accion="${accion}" ${extra}>${texto}</button>`;
+    const puedeClave = c.pendientes.length && !c.claveHecha;
+    let texto;
+    let opciones = "";
+    if (m.modo === "clave") {
+        texto = puedeClave
+            ? "¿Cuál será tu misión clave hoy? Vale el doble: XP, monedas y daño al jefe. Elige la que más te acerque a quien quieres ser."
+            : "Hoy ya no queda misión que elegir como clave.";
+        opciones = c.pendientes.map((mision) => opcion("maestro-clave",
+            `${c.clave?.id === mision.id ? "🔑 " : ""}${esc(mision.nombre)}`, `data-id="${mision.id}"`)).join("");
+        opciones += opcion("maestro-modo", "‹ Volver", 'data-modo="inicio"');
+    } else if (m.modo === "respuesta") {
+        texto = m.respuesta;
+        if (puedeClave) opciones += opcion("maestro-modo", "🔑 Elegir mi misión clave", 'data-modo="clave"');
+        opciones += opcion("maestro-modo", "‹ Seguir hablando", 'data-modo="inicio"');
+        opciones += opcion("maestro-cerrar", "Gracias, maestro");
+    } else {
+        texto = maestro.saludo(c);
+        opciones = maestro.OPCIONES.map((o) => opcion("maestro-opcion", o.texto, `data-opcion="${o.id}"`)).join("");
+        if (puedeClave) opciones += opcion("maestro-modo", "🔑 Elegir mi misión clave", 'data-modo="clave"');
+        if (!c.cerrado) opciones += opcion("ritual-abrir", "🌙 Cerrar el día");
+    }
+    return `
+        <div class="maestro-dialogo-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { batalla: true })}</div>
+        <p class="etiqueta">${maestro.NOMBRE}</p>
+        <p class="maestro-burbuja">${esc(texto)}</p>
+        <div class="maestro-opciones">${opciones}</div>
+        <button type="button" class="boton-texto maestro-cerrar" data-accion="maestro-cerrar">Cerrar</button>`;
+}
+
+
+// ===== El ritual de la noche =====
+// r = { paso: "misiones" | "diario" | "final", cola: [ids], indice, motivo (true mientras eliges el motivo) }
+
+export function pantallaRitual(estado, ctx, r) {
+    const cabecera = (numero, titulo) => `
+        <div class="ritual-cabecera">
+            <span class="etiqueta">🌙 Ritual de la noche · Paso ${numero} de 3</span>
+            <button type="button" class="boton-icono" data-accion="ritual-cerrar" aria-label="Salir del ritual">${ICONOS.cerrar}</button>
+        </div>
+        <h2 class="titulo-juego">${titulo}</h2>`;
+
+    if (r.paso === "misiones") {
+        const mision = estado.misiones.find((m) => m.id === r.cola[r.indice]);
+        if (!mision) {
+            return `${cabecera(1, "Repasa tu día")}
+                <p class="nota">No te queda ninguna misión pendiente hoy. ✓</p>
+                <button type="button" class="boton boton-principal boton-ancho" data-accion="ritual-seguir">Seguir ›</button>`;
+        }
+        const a = juego.infoAtributo(estado, mision.atributo, mision.atributoPropio);
+        const botones = r.motivo
+            ? `<p class="nota">¿Qué pasó?</p>
+               <div class="ritual-motivos">${Object.entries(juego.MOTIVOS_FALLA).map(([clave, mo]) => `
+                   <button type="button" class="boton boton-secundario" data-accion="ritual-motivo" data-motivo="${clave}">${mo.icono} ${mo.nombre}</button>`).join("")}</div>
+               <button type="button" class="boton-texto" data-accion="ritual-volver">‹ Volver</button>`
+            : `<div class="ritual-botones">
+                   <button type="button" class="boton boton-peligro" data-accion="ritual-no">✗ No la hice</button>
+                   <button type="button" class="boton boton-principal" data-accion="ritual-si">✓ La hice</button>
+               </div>
+               <p class="nota ritual-nota">También puedes deslizar la carta: → la hiciste, ← no.</p>`;
+        return `${cabecera(1, "Repasa tu día")}
+            <p class="ritual-contador">${r.indice + 1} de ${r.cola.length}</p>
+            <article class="ritual-carta dificultad-${mision.dificultad}" data-id="${mision.id}">
+                <span class="mini texto-suave">${esc(a.icono)} ${esc(a.nombre)} · ${DIFICULTADES[mision.dificultad].nombre}</span>
+                <h3>${esc(mision.nombre)}</h3>
+                ${estado.claves[ctx.hoy] === mision.id ? '<span class="clave-insignia">🔑 Tu misión clave</span>' : ""}
+            </article>
+            ${botones}`;
+    }
+
+    if (r.paso === "diario") {
+        const entrada = estado.diario[ctx.hoy];
+        const animos = Object.entries(ANIMOS_DIARIO).map(([clave, a]) => `
+            <label class="pildora" style="--color-dificultad: ${a.color}">
+                <input type="radio" name="animo" value="${clave}" ${entrada?.animo === clave ? "checked" : ""}>
+                <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
+            </label>`).join("");
+        return `${cabecera(2, "Tu diario")}
+            <form data-form="ritual-diario" class="formulario">
+                <fieldset class="opciones opciones-5"><legend>¿Cómo te fue hoy?</legend>${animos}</fieldset>
+                <label>${esc(diario.preguntaDelDia(ctx.hoy))}
+                    <textarea name="texto" rows="3" maxlength="${diario.LARGO.texto}" placeholder="Escribe lo que quieras. Una frase basta.">${esc(entrada?.texto || "")}</textarea>
+                </label>
+                <label>🙏 Hoy agradezco…
+                    <input type="text" name="gratitud" maxlength="${diario.LARGO.gratitud}" autocomplete="off" value="${esc(entrada?.gratitud || "")}">
+                </label>
+                <button type="submit" class="boton boton-principal boton-ancho">Guardar y seguir ›</button>
+                <button type="button" class="boton-texto" data-accion="ritual-seguir">Saltar</button>
+            </form>`;
+    }
+
+    // Paso 3: el resumen y el capítulo de hoy.
+    const hechas = estado.completadas.filter((c) => c.fecha === ctx.hoy).length;
+    const falladas = estado.fallas.filter((f) => f.fecha === ctx.hoy).length;
+    const capitulo = libro.capitulosDelLibro(estado, ctx.hoy).find((c) => c.fecha === ctx.hoy);
+    const lectura = capitulo
+        ? `<article class="pergamino ritual-capitulo">
+               <p class="pergamino-sobre">Capítulo ${libro.aRomano(capitulo.numero)}</p>
+               <h3 class="capitulo-titulo">${esc(capitulo.titulo)}</h3>
+               <div class="capitulo-texto">${capitulo.parrafos.slice(0, 3).map((p) => (p.tipo === "cita"
+                   ? `<blockquote class="capitulo-cita">${esc(p.texto)}</blockquote>` : `<p>${esc(p.texto)}</p>`)).join("")}</div>
+           </article>
+           <button type="button" class="boton-texto" data-accion="ir" data-pantalla="libro">Leer el capítulo completo ›</button>`
+        : '<p class="nota">Hoy no escribiste en tu diario, así que tu libro no tendrá capítulo de hoy.</p>';
+    return `${cabecera(3, "Tu día, en tu libro")}
+        <p class="ritual-resumen">✓ ${juego.plural(hechas, "cumplida", "cumplidas")} · ✗ ${juego.plural(falladas, "fallada", "falladas")} ·
+           ❤️ ${ctx.vida.puntos}/${ctx.vida.maxima} · 🔥 ${juego.plural(ctx.info.racha.actual, "día", "días")}</p>
+        ${lectura}
+        <button type="button" class="boton boton-sangre boton-ancho" data-accion="ritual-terminar">🌙 Cerrar el día</button>`;
+}
+
+
+// ===== El golpe con timing =====
+// g = { mision, jefe, resultado: null | "critico" | "normal" }
+
+export function pantallaGolpe(g) {
+    const resultado = g.resultado === "critico"
+        ? '<p class="golpe-resultado critico">¡GOLPE CRÍTICO! +50 % de daño</p>'
+        : g.resultado === "normal" ? '<p class="golpe-resultado">Golpe normal</p>' : "";
+    return `
+        <p class="etiqueta">${esc(g.mision)}</p>
+        <figure class="retrato golpe-retrato ${g.resultado === "critico" ? "impacto" : ""}">
+            <img src="${campana.imagenDe(g.jefe.id)}" alt="${esc(g.jefe.nombre)}">
+        </figure>
+        <h2 class="titulo-juego">${esc(g.jefe.nombre)}</h2>
+        <div class="golpe-barra ${g.resultado ? "detenida" : ""}"><span class="golpe-zona"></span><span class="golpe-marca"></span></div>
+        ${resultado || '<p class="nota">Toca la pantalla cuando la marca esté en la zona dorada: golpe crítico.</p>'}`;
+}
+
+
+// ===== El mapa del viaje =====
+
+// Decoraciones del paisaje de cada región (trazos sepia, como un mapa antiguo).
+function paisaje(tipo, puntos) {
+    const lejos = (x, y) => puntos.every((p) => Math.hypot(p.x - x, p.y - y) > 42);
+    const sitios = [];
+    for (let y = 70; y < 940; y += 58) {
+        for (const x of [40, 110, 250, 320]) {
+            const dx = ((y * 7 + x * 3) % 23) - 11;
+            if (lejos(x + dx, y)) sitios.push([x + dx, y]);
+        }
+    }
+    const trazo = 'fill="none" stroke="#6b4f2e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"';
+    return sitios.map(([x, y], i) => {
+        switch (tipo) {
+            case "bosque":
+                return `<g ${trazo}><path d="M${x} ${y + 12} V${y + 2}"/><path d="M${x - 9} ${y + 4} L${x} ${y - 14} L${x + 9} ${y + 4} Z"/></g>`;
+            case "montanas":
+                return `<g ${trazo}><path d="M${x - 16} ${y + 10} L${x - 4} ${y - 12} L${x + 4} ${y - 2} L${x + 10} ${y - 9} L${x + 20} ${y + 10}"/>
+                        <path d="M${x - 7} ${y - 6} L${x - 4} ${y - 12} L${x - 1} ${y - 7}"/></g>`;
+            case "desierto":
+                return `<path ${trazo} d="M${x - 18} ${y} Q${x - 6} ${y - 10} ${x + 6} ${y} T${x + 26} ${y}"/>`;
+            case "mar":
+                return `<path ${trazo} d="M${x - 16} ${y} q6 -6 12 0 t12 0 t12 0"/>`;
+            case "ciudadela":
+                return i % 2 ? `<g ${trazo}><path d="M${x - 8} ${y + 10} V${y - 6} H${x + 8} V${y + 10}"/><path d="M${x - 8} ${y - 6} V${y - 10} M${x} ${y - 6} V${y - 10} M${x + 8} ${y - 6} V${y - 10}"/></g>`
+                    : `<path ${trazo} d="M${x - 12} ${y + 8} Q${x} ${y - 6} ${x + 12} ${y + 8}"/>`;
+            default:   // valle: colinas suaves
+                return `<path ${trazo} d="M${x - 16} ${y + 6} Q${x - 4} ${y - 8} ${x + 8} ${y + 6} M${x + 2} ${y + 6} Q${x + 12} ${y - 2} ${x + 20} ${y + 6}"/>`;
+        }
+    }).join("");
+}
+
+export function pantallaMapa(estado, ctx) {
+    const pos = mapa.posicion(estado);
+    const region = Math.min(ctx.regionMapa ?? pos.region, pos.region);
+    const puntos = mapa.puntosDelCamino();
+    const alcanzado = region < pos.region ? mapa.LUGARES_POR_REGION : pos.enRegion;   // lugares alcanzados en esta región
+    const reclamados = new Set(estado.mapa.reclamados);
+    const camino = (lista) => lista.map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`).join(" ");
+
+    const lugares = puntos.slice(1).map((p, i) => {
+        const n = i + 1;
+        const tipo = mapa.tipoDeLugar(n);
+        const id = mapa.idLugar(region, n);
+        const clases = ["lugar", `lugar-${tipo}`, n <= alcanzado ? "alcanzado" : "", reclamados.has(id) ? "reclamado" : "",
+                        n <= alcanzado && tipo !== "camino" && !reclamados.has(id) ? "por-reclamar" : ""];
+        const radio = tipo === "camino" ? 6 : 13;
+        return `<g class="${clases.join(" ")}">
+                    <circle cx="${p.x}" cy="${p.y}" r="${radio}"/>
+                    ${tipo === "camino" ? "" : `<text x="${p.x}" y="${p.y + 5}" text-anchor="middle" font-size="14">${mapa.LUGARES[tipo].icono}</text>`}
+                </g>`;
+    }).join("");
+
+    // El héroe (en la región actual): su retrato pequeño sobre el lugar donde va.
+    let heroe = "";
+    if (region === pos.region) {
+        const p = puntos[pos.enRegion];
+        heroe = `<g id="mapa-heroe"><circle cx="${p.x}" cy="${p.y}" r="22" class="heroe-halo"/>
+                 ${dibujarAvatar(ctx.avatar, { mini: true }).replace("<svg ", `<svg x="${p.x - 20}" y="${p.y - 20}" width="40" height="40" `)}</g>`;
+    }
+
+    const porReclamar = mapa.lugaresPorReclamar(estado);
+    const listaReclamar = porReclamar.length ? `
+        <section class="panel mapa-premios">
+            <div class="titulo-seccion">
+                <h3 class="subtitulo">🎁 ${juego.plural(porReclamar.length, "lugar con premio", "lugares con premio")}</h3>
+                ${porReclamar.length > 1 ? '<button type="button" class="boton boton-chico boton-oro" data-accion="reclamar-todo">Reclamar todo</button>' : ""}
+            </div>
+            <ul class="lista">${porReclamar.slice(0, 3).map((l) => {
+                const lugar = mapa.LUGARES[l.tipo];
+                const premio = [lugar.premio.monedas ? `+${lugar.premio.monedas} 🪙` : "", lugar.premio.xp ? `+${lugar.premio.xp} XP` : ""].filter(Boolean).join(" · ");
+                return `<li class="objeto"><span class="pocion-icono" aria-hidden="true">${lugar.icono}</span>
+                    <span class="objeto-info"><b>${lugar.nombre} · lugar ${l.n}</b><span class="mini texto-suave">${mapa.nombreRegion(l.region)} · ${premio}</span></span>
+                    <button type="button" class="boton boton-chico boton-oro" data-accion="reclamar-lugar" data-id="${l.id}">Reclamar</button></li>`;
+            }).join("")}</ul>
+            ${porReclamar.length > 3 ? `<p class="nota">…y ${juego.plural(porReclamar.length - 3, "lugar más", "lugares más")}.</p>` : ""}
+        </section>` : "";
+
+    return `
+        <div class="titulo-seccion">
+            <h2 class="titulo-juego">🗺️ Mapa del viaje</h2>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="hoy">‹ Hoy</button>
+        </div>
+        <section class="panel mapa-cabecera">
+            <div class="mapa-navegar">
+                <button type="button" class="boton-icono" data-accion="mapa-region" data-region="${region - 1}" ${region > 0 ? "" : "disabled"} aria-label="Región anterior">‹</button>
+                <div><p class="etiqueta">Región ${region + 1}</p><h3 class="mapa-region">${mapa.nombreRegion(region)}</h3></div>
+                <button type="button" class="boton-icono" data-accion="mapa-region" data-region="${region + 1}" ${region < pos.region ? "" : "disabled"} aria-label="Región siguiente">›</button>
+            </div>
+            <p class="nota">${region === pos.region
+                ? `Lugar ${pos.enRegion} de ${mapa.LUGARES_POR_REGION} · llevas ${juego.plural(pos.pasos, "paso", "pasos")}; te ${pos.hastaSiguiente === 1 ? "falta 1" : `faltan ${pos.hastaSiguiente}`} para el siguiente lugar.`
+                : "Región recorrida. ✓"}</p>
+        </section>
+        ${listaReclamar}
+        <div class="mapa-lienzo">
+            <svg viewBox="0 0 360 980" role="img" aria-label="Mapa de ${mapa.nombreRegion(region)}">
+                ${paisaje(mapa.paisajeDe(region), puntos)}
+                <path d="${camino(puntos)}" class="mapa-camino"/>
+                <path d="${camino(puntos.slice(0, alcanzado + 1))}" class="mapa-recorrido"/>
+                <g class="lugar alcanzado lugar-inicio"><circle cx="${puntos[0].x}" cy="${puntos[0].y}" r="9"/></g>
+                ${lugares}
+                ${heroe}
+            </svg>
+        </div>
+        <p class="nota">Cada misión, tarea o sesión de enfoque es un paso. Cada ${mapa.PASOS_POR_LUGAR} pasos llegas a un lugar:
+           💰 tesoros, 🕯️ santuarios (XP para tu atributo más descuidado) y 🏰 una fortaleza al final de cada región.</p>`;
 }
 
 
@@ -1322,7 +1673,14 @@ export function pantallaAventuras(estado, ctx) {
     const campanas = Object.values(campana.estadoCampanas(estado));
     const d = campana.DANO.diaria;
 
+    const posicionMapa = mapa.posicion(estado);
+    const premiosMapa = mapa.lugaresPorReclamar(estado).length;
     return `
+        <button type="button" class="pacto-linea" data-accion="ir" data-pantalla="mapa">
+            <span class="pacto-linea-icono" aria-hidden="true">🗺️</span>
+            <span><b>Mapa del viaje</b>
+                <span class="mini">${mapa.nombreRegion(posicionMapa.region)} · lugar ${posicionMapa.enRegion} de ${mapa.LUGARES_POR_REGION}${premiosMapa ? ` · 🎁 ${juego.plural(premiosMapa, "premio", "premios")} por reclamar` : ""}</span></span>
+        </button>
         <button type="button" class="panel acceso-arcade" data-accion="ir" data-pantalla="arcade">
             <span class="acceso-arcade-icono">🕹️</span>
             <span><b>Arcade del héroe</b>
@@ -2042,7 +2400,7 @@ export function pantallaPersonaje(estado, ctx) {
         </section>
 
         ${seccionEquipamiento(estado, ctx)}
-        ${seccionMascota(a.mascota)}
+        ${seccionMascota(estado, a.mascota, ctx)}
         ${seccionObjetosDeLogro(estado, ctx, "Objetos de logro")}`;
 }
 
@@ -2121,7 +2479,8 @@ function seccionEquipamiento(estado, ctx) {
         </section>`;
 }
 
-function seccionMascota(m) {
+function seccionMascota(estado, m, ctx) {
+    const comio = mascota.comioHoy(estado, ctx.hoy);
     const siguiente = avatar.siguienteEtapa(avatar.ETAPAS_MASCOTA, m.etapa);
     const crecimiento = siguiente
         ? `${siguiente.clave === "cria" ? "Eclosiona" : "Crece a adulto"} en ${plural(siguiente.desde - m.total, "misión diaria", "misiones diarias")} más.`
@@ -2141,6 +2500,14 @@ function seccionMascota(m) {
                     <p class="mini">${animo}</p>
                 </div>
             </div>
+            <div class="mascota-acciones">
+                <button type="button" class="boton boton-secundario" data-accion="acariciar-dragon">🤚 Acariciar</button>
+                <button type="button" class="boton ${comio ? "boton-secundario" : "boton-oro"}" data-accion="alimentar-dragon" ${comio ? "disabled" : ""}>
+                    🍖 ${comio ? "Ya comió hoy" : `Alimentar · 🪙 ${mascota.COMIDA.precio}`}</button>
+            </div>
+            <p class="mini mascota-frase" id="mascota-frase">${comio
+                ? `${esc(m.nombre)} comió hoy y está de buen ánimo.`
+                : `Acarícialo, o dale de comer una vez al día (+${mascota.COMIDA.cura} ❤️ para ti).`}</p>
             <form class="form-linea" data-form="mascota">
                 <input type="text" name="nombre" maxlength="20" required autocomplete="off" placeholder="Nuevo nombre" aria-label="Nombre de la mascota">
                 <button type="submit" class="boton boton-chico">Renombrar</button>
@@ -2203,7 +2570,7 @@ function tarjetaPocion(estado, v) {
 }
 
 // Equipamiento que se compra con monedas (además de las recompensas reales).
-function tiendaDelAvatar(estado, cerrada) {
+function tiendaDelAvatar(estado, cerrada, evento) {
     const monedas = estado.personaje.monedas;
     const enVenta = Object.entries(avatar.OBJETOS)
         .filter(([, o]) => !o.logro)
@@ -2211,7 +2578,8 @@ function tiendaDelAvatar(estado, cerrada) {
 
     const lista = enVenta.map(([id, o]) => {
         const tuyo = estado.avatar.comprados.includes(id);
-        const puede = monedas >= o.precio && !cerrada;
+        const precio = precioConEvento(o.precio, evento);
+        const puede = monedas >= precio && !cerrada;
         const accion = tuyo
             ? `<span class="mini oro">✓ Tuyo</span>`
             : `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="comprar" data-id="${id}"
@@ -2219,7 +2587,7 @@ function tiendaDelAvatar(estado, cerrada) {
         return `<li class="objeto ${tuyo ? "puesto" : ""}">
                     ${iconoObjeto(id)}
                     <span class="objeto-info"><b>${o.nombre}</b>
-                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · ${textoRareza(o)} · 🪙 ${o.precio}</span></span>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · ${textoRareza(o)} · 🪙 ${precio < o.precio ? `<s>${o.precio}</s> ${precio}` : o.precio}</span></span>
                     ${accion}
                 </li>`;
     }).join("");
@@ -2237,17 +2605,19 @@ function tiendaDelAvatar(estado, cerrada) {
 export function pantallaTienda(estado, ctx) {
     const monedas = estado.personaje.monedas;
     const cerrada = ctx.vida.caido;   // caíste en combate: solo se venden pociones
+    const precio = (base) => precioConEvento(base, ctx.evento);   // con el «Mercader ambulante», 30 % menos
+    const mostrarPrecio = (base) => (precio(base) < base ? `<s>${base}</s> ${precio(base)}` : `${base}`);
     const recompensas = [...estado.recompensas].sort((a, b) => a.costo - b.costo);
     const canjes = estado.canjes.slice(-15).reverse(); // los 15 más recientes
 
     const lista = recompensas.map((r) => {
-        const alcanza = monedas >= r.costo;
+        const alcanza = monedas >= precio(r.costo);
         const puede = alcanza && !cerrada;
         return `
             <li class="recompensa ${puede ? "alcanzable" : ""}">
                 <div class="recompensa-info">
                     <h3>${esc(r.nombre)}</h3>
-                    <span class="mini ${alcanza ? "oro" : "texto-suave"}">🪙 ${r.costo}${alcanza ? "" : ` · te faltan ${r.costo - monedas}`}</span>
+                    <span class="mini ${alcanza ? "oro" : "texto-suave"}">🪙 ${mostrarPrecio(r.costo)}${alcanza ? "" : ` · te faltan ${precio(r.costo) - monedas}`}</span>
                 </div>
                 <button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="canjear" data-id="${r.id}" ${puede ? "" : "disabled"}>Canjear</button>
                 ${botonEditar("editar-recompensa", r.id, `Editar ${r.nombre}`)}
@@ -2263,6 +2633,7 @@ export function pantallaTienda(estado, ctx) {
             <span class="saldo-numero">🪙 ${monedas}</span>
         </section>
         ${cerrada ? avisoCaido(ctx.vida, "Tienda cerrada") : ""}
+        ${ctx.evento?.clave === "mercader" ? avisoEvento(ctx) : ""}
 
         <div class="titulo-seccion"><h2 class="titulo-juego">❤️ Vida</h2></div>
         ${tarjetaPocion(estado, ctx.vida)}
@@ -2271,7 +2642,7 @@ export function pantallaTienda(estado, ctx) {
         <p class="nota">Premios reales que tú defines. Cánjealos cuando tengas monedas suficientes.</p>
         ${recompensas.length ? `<ul class="lista">${lista}</ul>` : vacio("Crea tu primera recompensa. Ej: «Ver un capítulo de mi serie» por 50 monedas.")}
 
-        ${tiendaDelAvatar(estado, cerrada)}
+        ${tiendaDelAvatar(estado, cerrada, ctx.evento)}
         ${seccionObjetosDeLogro(estado, ctx, "Objetos que no se venden")}
 
         ${canjes.length ? `<section class="panel"><h2 class="titulo-juego">Historial</h2><ul class="historial">${historial}</ul></section>` : ""}

@@ -25,10 +25,10 @@ export const JUEGOS = {
     },
 };
 
-// Fichas: las de regalo + 1 por cada misión diaria completada − las ya usadas.
+// Fichas: las de regalo + 1 por cada misión diaria completada + las de los cofres − las ya usadas.
 // Se calculan (no se guardan), así nunca se desordenan.
 export function fichasDisponibles(estado) {
-    const ganadas = FICHAS_DE_REGALO + estado.completadas.length;
+    const ganadas = FICHAS_DE_REGALO + estado.completadas.length + (estado.arcade.extra || 0);
     return Math.max(0, ganadas - estado.arcade.usadas);
 }
 

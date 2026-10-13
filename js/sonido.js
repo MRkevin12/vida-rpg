@@ -21,6 +21,14 @@ const SONIDOS = {
     fallo:     { onda: "sawtooth", volumen: 0.1,  notas: [[196, 0, 0.12], [131, 0.1, 0.25]] },
     // «El cuerno»: el toque propio de Vida RPG cuando llega un aviso con la app abierta.
     aviso:     { onda: "sawtooth", volumen: 0.11, notas: [[196, 0, 0.2], [262, 0.17, 0.2], [330, 0.34, 0.2], [392, 0.51, 0.7]] },
+    // El cofre del día: madera que cruje y un brillo que sube.
+    cofre:     { onda: "triangle", volumen: 0.2,  notas: [[110, 0, 0.12], [123, 0.14, 0.12], [784, 0.75, 0.12], [988, 0.85, 0.12], [1319, 0.95, 0.35]] },
+    // El dragón contento: un ronroneo grave.
+    ronroneo:  { onda: "triangle", volumen: 0.18, notas: [[82, 0, 0.18], [87, 0.16, 0.18], [82, 0.32, 0.25]] },
+    // Golpe crítico: un tajo seco y un brillo agudo.
+    critico:   { onda: "sawtooth", volumen: 0.14, notas: [[220, 0, 0.06], [110, 0.05, 0.12], [1568, 0.12, 0.25]] },
+    // Desafío relámpago: un chispazo que sube.
+    relampago: { onda: "square",   volumen: 0.06, notas: [[880, 0, 0.05], [1320, 0.05, 0.05], [1760, 0.1, 0.18]] },
 };
 
 let contexto = null;   // el "motor" de audio; se crea la primera vez que hace falta

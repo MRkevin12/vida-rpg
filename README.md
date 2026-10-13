@@ -1,7 +1,7 @@
 # <img src="iconos/icono-192.png" width="56" alt="" align="top"> Vida RPG
 
 [![Pruebas](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml/badge.svg)](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml)
-![Versión](https://img.shields.io/badge/versión-v21-8b5cf6)
+![Versión](https://img.shields.io/badge/versión-v22-8b5cf6)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-34d399)](LICENSE)
 
 Una app de productividad que convierte tu día a día en un juego de rol: completas misiones, ganas experiencia, subes de nivel y derrotas jefes.
@@ -27,6 +27,11 @@ Las capturas usan una partida de ejemplo inventada.
 - **«Fallé»:** reconocer que no hiciste una misión y por qué (no tuve tiempo, se me olvidó, no tuve ganas…). La vida se pierde en ese momento y la ficha del hábito muestra tu motivo más común.
 - **Ficha de cada hábito:** su racha, su mejor racha, el porcentaje del último mes y un calendario de 12 semanas.
 - **Tareas sueltas:** pendientes de una sola vez, con o sin fecha. Aparecen en Hoy el día que vencen (y se marcan como atrasadas si pasó la fecha). También se crean desde «Nueva misión» → «Una sola vez».
+- **El Maestro Aurelio:** un mentor que te habla según cómo vas (tu vida, tu racha, tu pacto, la hora del día) y conversa contigo con respuestas para elegir.
+- **Rituales:** en la mañana eliges tu **misión clave** (vale el doble); en la noche, el ritual te hace repasar lo que falta como cartas que deslizas, escribir el diario y leer el capítulo de hoy.
+- **Cofre del día, desafío relámpago y eventos del día:** un premio al azar con lo primero que cumples, retos con reloj y días especiales (Mercader ambulante, Luna de sangre, Aguas termales…).
+- **Golpe con timing:** al completar una misión aparece tu jefe; si tocas en el momento justo, el golpe es crítico.
+- **Mapa del viaje:** cada cosa cumplida es un paso por un mapa antiguo, con tesoros, santuarios y fortalezas. Y tu **dragón** se acaricia y se alimenta.
 - **El Tratado de la Voluntad:** un pacto contigo mismo, con frases de Séneca, Marco Aurelio, Epicteto y otros clásicos. Escribes tu porqué, lo firmas con el dedo y queda sellado con lacre. Cada día, la pantalla Hoy te recuerda el día de tu pacto, cuánto lo has honrado y su ley: nunca fallar dos días seguidos.
 - **Bienvenida guiada** con hábitos y premios listos para elegir con un toque, y una ventana de **novedades** después de cada actualización.
 - **Modo enfoque:** un temporizador de 15, 25 o 50 minutos que da lo mismo que una misión. Sigue contando aunque cierres la app.
@@ -104,6 +109,8 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
 | `js/arcade.js`, `js/minijuegos.js` | Las fichas y los tres minijuegos en `<canvas>` |
 | `js/torre.js` | Las reglas de la Torre del héroe (batallas por turnos y mejoras) |
+| `js/maestro.js`, `js/rituales.js`, `js/eventos.js` | El Maestro (saludos y conversación), la misión clave, el ritual de la noche, el desafío relámpago y los eventos del día |
+| `js/cofre.js`, `js/mapa.js`, `js/mascota.js` | El cofre del día, el mapa del viaje y lo que hace tu dragón |
 | `js/libro.js` | Tu diario contado como un libro: arma los capítulos con lo que pasó cada día |
 | `js/pacto.js` | El Tratado de la Voluntad: su texto, la cita del día, la firma y los días honrados |
 | `js/diario.js` | El diario: pregunta del día, racha, calendario de ánimo, lo que dice tu diario, recuerdos y búsqueda |
@@ -135,7 +142,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 101 pruebas de las reglas del juego (niveles, atributos propios, diario, el libro, «Fallé», el pacto, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 113 pruebas de las reglas del juego (niveles, atributos propios, diario, el libro, «Fallé», el pacto, el Maestro, rituales, cofre, eventos, mapa, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

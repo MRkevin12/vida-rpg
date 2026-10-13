@@ -165,14 +165,15 @@ export function danoPorCategoria(estado) {
     for (const categoria of Object.keys(CAMPANAS)) dano[categoria] = 0;
 
     // Suma el daño de algo hecho con cierta dificultad (como una misión diaria).
-    const golpear = (atributo, dificultad) => {
-        if (atributo in dano) dano[atributo] += DANO.diaria[dificultad] || DANO.diaria.normal;
+    // "factor": la misión clave pega el doble y un golpe crítico, 50 % más.
+    const golpear = (atributo, dificultad, factor = 1) => {
+        if (atributo in dano) dano[atributo] += Math.round((DANO.diaria[dificultad] || DANO.diaria.normal) * factor);
     };
 
     const dificultadDe = new Map(estado.misiones.map((m) => [m.id, m.dificultad]));
     for (const c of estado.completadas) {
         // La dificultad que tenía al completarla (los registros viejos no la guardaban).
-        golpear(c.atributo, c.dificultad || dificultadDe.get(c.misionId));
+        golpear(c.atributo, c.dificultad || dificultadDe.get(c.misionId), (c.clave ? 2 : 1) * (c.critico ? 1.5 : 1));
     }
     for (const t of estado.tareas) {
         if (t.premio) golpear(t.premio.atributo, t.premio.dificultad);   // tareas sueltas hechas

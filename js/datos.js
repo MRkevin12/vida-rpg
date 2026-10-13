@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 8,
+        version: 9,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
         atributosPropios: [], // los tuyos: { id, nombre, icono, color, base (uno de los 4), creadoEn }
@@ -58,6 +58,11 @@ export function estadoInicial() {
             avisadoHasta: null,   // hasta qué día ya te avisamos cuánta vida perdiste
         },
         descansos: [],        // modo descanso: { desde, hasta } (los dos días incluidos)
+        claves: {},           // misión clave de cada día: { "2026-10-13": idDeLaMision } (ver rituales.js)
+        noches: [],           // días que cerraste con el ritual de la noche
+        relampagos: {},       // desafío relámpago de cada día: { inicio, base, meta, minutos, cobradoEn } o { rechazado }
+        cofres: {},           // cofre de cada día, con lo que salió: { tipo, cantidad, atributo, objeto, icono, texto }
+        mapa: { reclamados: [] },   // lugares del mapa cuyo premio ya reclamaste ("r1-5"…)
         pacto: null,          // tu Tratado de la Voluntad (ver pacto.js): { nombre, razon, firma (trazo SVG),
                               //   firmadoEn, primeraVez, renovaciones }
 
@@ -65,14 +70,14 @@ export function estadoInicial() {
             comprados: [],    // ids de objetos comprados en la tienda
             equipado: { cabeza: null, mano: null, espalda: null, fondo: null },
         },
-        mascota: { nombre: "Chispa" },
-        arcade: { usadas: 0, records: {}, torre: null },   // fichas gastadas, mejor puntaje de cada minijuego
+        mascota: { nombre: "Chispa", comidas: [] },   // comidas: los días que lo alimentaste (ver mascota.js)
+        arcade: { usadas: 0, records: {}, torre: null, extra: 0 },   // fichas gastadas, mejor puntaje de cada minijuego, fichas de cofres
                                               //   y la partida de la Torre en curso (ver torre.js), o null
         campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
         // Cómo se ve tu avatar (las opciones están en avatar.js → APARIENCIA).
         apariencia: { cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
                       pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase" },
-        ajustes: { sonido: true },            // preferencias de la app
+        ajustes: { sonido: true, golpe: true, eventos: true },   // sonido, golpe con timing y eventos del día
         avisos: {                             // notificaciones (ver avisos.js)
             horarios: [],                     // recordatorios: { id, hora: "20:00", dias (como en misiones) }
             enfoque: true,                    // avisar cuando termine una sesión de enfoque
@@ -107,10 +112,12 @@ function completar(guardado) {
             equipado: { ...base.avatar.equipado, ...avatar.equipado },
         },
         mascota: { ...base.mascota, ...guardado.mascota },
+        mapa: { reclamados: guardado.mapa?.reclamados || [] },
         arcade: {
             usadas: guardado.arcade?.usadas || 0,
             records: { ...guardado.arcade?.records },
             torre: guardado.arcade?.torre || null,
+            extra: guardado.arcade?.extra || 0,
         },
         campana: { recompensados: { ...guardado.campana?.recompensados } },
         // La vida empieza a contar el día en que llega esta versión: no castiga el pasado.
