@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 26;
+export const VERSION_APP = 27;
 
 export const NOVEDADES = [
+    {
+        version: 27,
+        titulo: "Todo en su lugar",
+        cambios: [
+            "🧭 La barra de abajo ahora es Hoy · Progreso · Aventuras · Héroe · Tienda. Tu héroe tiene su propia pestaña y los logros viven en Progreso.",
+            "☀️ Hoy es más corto: tu héroe en pequeño con tus 4 rivales, y un solo panel «Tu día» con el Maestro, el evento, el cofre, tu pacto y los desafíos.",
+            "🗂️ Las pantallas largas se dividen en secciones con un selector arriba que se queda a la vista: Progreso (números y logros), Héroe (equipo, mascotas, aspecto e historia) y Tienda (premios, equipo y mascotas).",
+            "⚔️ En Aventuras se ve una campaña de jefes a la vez, con acceso directo al reino y al arcade.",
+            "✨ Cada cosa está en un solo lugar (nada repetido) y todo se ve más limpio: paneles más suaves y la pestaña elegida resaltada.",
+        ],
+    },
     {
         version: 26,
         titulo: "Leyendas, mascotas y el reino",

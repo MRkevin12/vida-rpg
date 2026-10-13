@@ -58,7 +58,13 @@ let maestroVista = { modo: "inicio", respuesta: "" };   // la conversación con 
 let ritual = null;               // el ritual de la noche en curso: { paso, cola, indice, motivo }
 let golpe = null;                // el golpe con timing en curso
 let alCerrarRobo = null;         // qué hacer cuando se cierre la escena del robo de vida
+// Las secciones elegidas en las pantallas largas (el selector de arriba): solo se ve una a la vez.
+const subvista = { progreso: "numeros", tienda: "recompensas", personaje: "equipo" };
+let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (null = la del jefe más cerca de caer)
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
+
+// Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
+const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje" };
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -68,7 +74,6 @@ const DIBUJAR = {
     hoy: vistas.pantallaHoy,
     progreso: vistas.pantallaProgreso,
     aventuras: vistas.pantallaAventuras,
-    logros: vistas.pantallaLogros,
     tienda: vistas.pantallaTienda,
     personaje: vistas.pantallaPersonaje,
     arcade: vistas.pantallaArcade,
@@ -744,6 +749,8 @@ function contextoActual(efectos = {}) {
         paginaLibro,
         problemaAvisos,
         regionMapa,
+        subvista,                                           // la sección elegida en Progreso, Tienda y Héroe
+        campanaVista,
         maestro: maestro.contexto(estado, fecha, ahora),    // lo que el Maestro sabe de tu día
         evento: eventoDelDia(fecha, estado),
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
@@ -761,7 +768,7 @@ function dibujarPantalla(efectos = {}) {
     if (pantallaActual === "progreso" && !efectos.mantenerScroll) {
         // El calendario empieza mostrando las semanas más recientes (a la derecha).
         const scroll = $("#calendario-scroll");
-        scroll.scrollLeft = scroll.scrollWidth;
+        if (scroll) scroll.scrollLeft = scroll.scrollWidth;
     }
 }
 
@@ -790,8 +797,9 @@ function mostrarSeccion(nombre) {
     for (const seccion of document.querySelectorAll(".pantalla")) {
         seccion.hidden = seccion.id !== `pantalla-${nombre}`;
     }
+    const deLaPestana = PESTANA_DE[nombre] || nombre;
     for (const pestana of document.querySelectorAll(".pestana")) {
-        if (pestana.dataset.pantalla === nombre) pestana.setAttribute("aria-current", "page");
+        if (pestana.dataset.pantalla === deLaPestana) pestana.setAttribute("aria-current", "page");
         else pestana.removeAttribute("aria-current");
     }
 }
@@ -802,6 +810,11 @@ function fechaVista() {
 }
 
 function cambiarPantalla(nombre) {
+    // Los logros ahora viven dentro de Progreso.
+    if (nombre === "logros") {
+        subvista.progreso = "logros";
+        nombre = "progreso";
+    }
     diaVisto = "hoy";   // al cambiar de pantalla siempre se vuelve a "hoy"
     renovandoPacto = false;
     if (nombre === "libro") paginaLibro = "portada";   // el libro siempre se abre por la portada
@@ -1975,6 +1988,25 @@ const ACCIONES = {
 
     jugar: (boton) => jugarMinijuego(boton.dataset.juego),
 
+    // Elegir una sección de una pantalla larga (ej: Tienda › Mascotas). Si es de otra pantalla, se va a ella.
+    subvista: (boton) => {
+        const { pantalla, vista } = boton.dataset;
+        subvista[pantalla] = vista;
+        if (pantallaActual !== pantalla) {
+            cambiarPantalla(pantalla);
+            return;
+        }
+        dibujarPantalla({ mantenerScroll: true });
+        // Que el selector quede a la vista (si bajaste mucho, la sección nueva empieza arriba).
+        const selector = $(`#pantalla-${pantalla} .selector-secciones`);
+        if (selector && selector.getBoundingClientRect().top < 0) selector.scrollIntoView({ block: "start" });
+    },
+    // En Aventuras: ver otra campaña de jefes.
+    "ver-campana": (boton) => {
+        campanaVista = boton.dataset.categoria;
+        dibujarPantalla({ mantenerScroll: true });
+    },
+
     // Torre del héroe.
     "torre-abrir": () => abrirTorre(),
     "bestiario-abrir": () => abrirBestiario(),
@@ -2179,7 +2211,7 @@ const ACCIONES = {
             if (!resultado) return;
             const p = resultado.premio;
             celebrar({ icono: p.icono, etiqueta: "🎁 Cofre del día", titulo: p.texto,
-                       detalle: p.tipo === "pocion" ? "Ya te curó." : p.tipo === "objeto" ? "Póntelo en tu Personaje." : "¡Mañana habrá otro!" });
+                       detalle: p.tipo === "pocion" ? "Ya te curó." : p.tipo === "objeto" ? "Póntelo en tu Héroe › Equipo." : "¡Mañana habrá otro!" });
         }, 900);
     },
     "aceptar-relampago": () => {

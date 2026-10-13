@@ -1262,9 +1262,11 @@ prueba("Pantallas: el reino, la tienda de mascotas y la Torre con mascota y habi
     let html = vistas.pantallaMapa(estado, ctx);
     sano(html, "el reino");
     cierto(html.includes("Crónica del reino") && html.includes("mapa-imagen") && html.includes("data-accion=\"mapa-senor\""), "las partes del reino");
-    html = vistas.pantallaTienda(estado, ctx);
-    sano(html, "la tienda");
-    cierto(html.includes("data-accion=\"comprar-mascota\" data-especie=\"fenix\"") && html.includes("Ojo del dragón"), "mascotas y habilidades en la tienda");
+    html = vistas.pantallaTienda(estado, { ...ctx, subvista: { tienda: "mascotas" } });
+    sano(html, "la tienda (mascotas)");
+    cierto(html.includes("data-accion=\"comprar-mascota\" data-especie=\"fenix\""), "las mascotas en la tienda");
+    html = vistas.pantallaTienda(estado, { ...ctx, subvista: { tienda: "equipo" } });
+    cierto(html.includes("Ojo del dragón"), "las habilidades en el equipo de la tienda");
     sano(vistas.pantallaPersonaje(estado, ctx), "el personaje");
     sano(vistas.pantallaArcade(estado, ctx), "el arcade");
 
@@ -1286,6 +1288,58 @@ prueba("Pantallas: el reino, la tienda de mascotas y la Torre con mascota y habi
     // La imagen del mapa en pixel art.
     const imagen = await sprites.spriteDeMapa(mapa.datosParaDibujar(estado, 0, campana.estadoCampanas(estado)));
     cierto(imagen.startsWith("data:image/png"), "el mapa en pixel art");
+});
+
+
+// ===== La app ordenada (v27) =====
+
+prueba("Orden: cada pantalla larga se divide en secciones y cada cosa está en un solo lugar", () => {
+    const estado = partidaDemo();
+    const info = juego.resumen(estado, hoy());
+    const ctx = (subvista = {}) => ({
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+        vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
+        rangoResumen: 7, subvista, campanaVista: null, diarioVista: {},
+    });
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    const veces = (html, texto) => html.split(texto).length - 1;
+
+    // Hoy: el héroe con sus rivales y un solo panel «Tu día»; ya no hay lista «En combate» ni chips del mapa o del arcade.
+    let html = vistas.pantallaHoy(estado, ctx());
+    sano(html, "Hoy");
+    cierto(html.includes("class=\"rivales\"") && veces(html, "class=\"panel panel-dia\"") === 1, "héroe con rivales y panel del día");
+    cierto(!html.includes("En combate") && !html.includes("data-pantalla=\"arcade\"") && !html.includes("data-pantalla=\"mapa\""), "sin lo repetido");
+
+    // Progreso: los números o los logros.
+    html = vistas.pantallaProgreso(estado, ctx());
+    sano(html, "Progreso");
+    cierto(html.includes("data-vista=\"logros\"") && html.includes("class=\"numeros\"") && html.includes("atributo-rasgos"), "números y rasgos");
+    cierto(!html.includes(">Estadísticas</h2>"), "las estadísticas van con la racha (ya no son un panel aparte)");
+    html = vistas.pantallaProgreso(estado, ctx({ progreso: "logros" }));
+    sano(html, "Progreso › Logros");
+    cierto(html.includes("Salón de la fama") && !html.includes("Calendario"), "solo los logros");
+
+    // Héroe: cuatro secciones; los rasgos ya no se repiten aquí.
+    for (const seccion of ["equipo", "mascotas", "apariencia", "historia"]) {
+        html = vistas.pantallaPersonaje(estado, ctx({ personaje: seccion }));
+        sano(html, `Héroe › ${seccion}`);
+        cierto(!html.includes("atributo-rasgos") && !html.includes("Clase:"), `${seccion}: sin los rasgos repetidos`);
+    }
+    cierto(vistas.pantallaPersonaje(estado, ctx({ personaje: "historia" })).includes("data-pantalla=\"pacto\""), "el pacto está en la historia");
+
+    // Tienda: tres secciones; los objetos de logro ya no se repiten aquí.
+    for (const seccion of ["recompensas", "equipo", "mascotas"]) {
+        html = vistas.pantallaTienda(estado, ctx({ tienda: seccion }));
+        sano(html, `Tienda › ${seccion}`);
+        cierto(!html.includes("Objetos que no se venden"), `${seccion}: sin los objetos de logro repetidos`);
+    }
+
+    // Aventuras: se ve una campaña a la vez (con su selector) y los accesos al reino y al arcade.
+    html = vistas.pantallaAventuras(estado, ctx());
+    sano(html, "Aventuras");
+    igual(veces(html, "data-accion=\"ver-campana\""), 4, "las 4 campañas en el selector");
+    igual(veces(html, "class=\"panel campana jefe"), 1, "una sola tarjeta de campaña");
+    cierto(html.includes("data-pantalla=\"mapa\"") && html.includes("data-pantalla=\"arcade\""), "los accesos");
 });
 
 

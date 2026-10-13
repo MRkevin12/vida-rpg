@@ -59,6 +59,25 @@ function vacio(texto) {
     return `<p class="vacio">${texto}</p>`;
 }
 
+// Las secciones de una pantalla larga, como pestañas pequeñas arriba (solo se ve una a la vez).
+// opciones = [[clave, texto], …]. Se queda pegado bajo la cabecera al bajar.
+function selectorSecciones(pantalla, opciones, actual) {
+    return `
+        <div class="selector selector-secciones" role="group" aria-label="Secciones">
+            ${opciones.map(([clave, texto]) => `<button type="button" data-accion="subvista" data-pantalla="${pantalla}"
+                data-vista="${clave}" aria-pressed="${clave === actual}">${texto}</button>`).join("")}
+        </div>`;
+}
+
+// El título de una pantalla sin pestaña propia, con el botón para volver a la que la abrió.
+function encabezado(titulo, padre, nombrePadre) {
+    return `
+        <div class="titulo-seccion encabezado">
+            <h2 class="titulo-juego">${titulo}</h2>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="${padre}">‹ ${nombrePadre}</button>
+        </div>`;
+}
+
 function cabeceraSeccion(titulo, dialogo, textoBoton) {
     return `
         <div class="titulo-seccion">
@@ -114,7 +133,6 @@ export function pantallaHoy(estado, ctx) {
     // ctx.fechaVista es hoy o ayer (por si olvidaste marcar algo ayer).
     const fecha = ctx.fechaVista;
     const esAyer = fecha !== ctx.hoy;
-    const racha = ctx.info.racha;
     const hechasEseDia = new Set(estado.completadas.filter((c) => c.fecha === fecha).map((c) => c.misionId));
 
     const delDia = juego.misionesDelDia(estado.misiones, fecha);           // las que tocan ese día
@@ -146,63 +164,66 @@ export function pantallaHoy(estado, ctx) {
         <ul class="lista">${semanales.map(tarjeta).join("")}</ul>` : "";
 
     const activo = estado.enfoque.activo;
-    const chipEnfoque = activo
+    const botonEnfoque = activo
         ? `⏱️ <span data-reloj>${relojTexto(juego.finDelEnfoque(activo) - ctx.ahora)}</span>`
         : "⏱️ Enfoque";
 
+    // Arriba, lo que pide atención (avisos y tu semana); después tu héroe y tu día;
+    // en el centro, las misiones; abajo, las tareas y el diario.
     return `
         ${esAyer ? "" : tarjetaSemana(estado, ctx)}
-        ${tarjetaHeroe(estado, ctx)}
-        ${esAyer ? "" : `${tarjetaMaestro(ctx)}${avisoEvento(ctx)}${tarjetaCofre(estado, ctx)}${tarjetaRelampago(ctx)}`}
-        ${esAyer ? "" : lineaDelPacto(estado, ctx)}
-        ${avisoDescanso(estado, ctx)}
         ${avisoNotificaciones(ctx)}
-
-        <div class="titulo-seccion">
-            <div>
-                <p class="etiqueta">${fechaLegible(fecha)}</p>
-                <h2 class="titulo-juego">Misiones de ${esAyer ? "ayer" : "hoy"}</h2>
-            </div>
-            <p class="contador ${todoListo ? "completo" : ""}">${hechas}/${delDia.length}</p>
-        </div>
-
-        <div class="chips">
-            <span class="chip chip-racha">🔥 ${plural(racha.actual, "día", "días")}</span>
-            <span class="chip">🛡️ ${racha.escudos}/${ESCUDOS.maximo}</span>
-            <button type="button" class="chip" data-accion="ir" data-pantalla="mapa">🗺️ Mapa</button>
-            <button type="button" class="chip chip-arcade" data-accion="ir" data-pantalla="arcade">
-                🎮 ${plural(arcade.fichasDisponibles(estado), "ficha", "fichas")}</button>
-            <button type="button" class="chip chip-enfoque ${activo ? "activo" : ""}" data-accion="ir" data-pantalla="enfoque">${chipEnfoque}</button>
-            ${todoListo ? '<span class="chip chip-oro">✨ Día perfecto</span>' : ""}
-        </div>
-
-        <!-- Selector de día: hoy, o ayer por si se te olvidó marcar algo -->
-        <div class="selector" role="group" aria-label="Día">
-            <button type="button" data-accion="ver-fecha" data-dia="ayer" aria-pressed="${esAyer}">Ayer</button>
-            <button type="button" data-accion="ver-fecha" data-dia="hoy" aria-pressed="${!esAyer}">Hoy</button>
-        </div>
-        ${esAyer ? '<p class="nota">Estás viendo <b>ayer</b>. Marca lo que hiciste y se te olvidó anotar.</p>' : ""}
-
+        ${avisoDescanso(estado, ctx)}
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
-        ${lista}
-        ${metasSemana}
+        ${tarjetaHeroe(estado, ctx)}
+        ${esAyer ? "" : panelDelDia(estado, ctx)}
 
-        <div class="botones-dialogo botones-hoy">
-            <button type="button" class="boton boton-principal" data-accion="abrir" data-dialogo="mision">+ Nueva misión</button>
-            <button type="button" class="boton boton-secundario" data-accion="abrir" data-dialogo="ordenar"
-                    ${estado.misiones.filter((m) => !m.archivadaEn).length > 1 ? "" : "disabled"}>↕ Ordenar</button>
-        </div>
-        <p class="nota nota-gesto">Desliza una misión a la derecha para completarla. Toca su nombre para ver su ficha.</p>
+        <section class="bloque" aria-label="Misiones">
+            <div class="titulo-seccion">
+                <div>
+                    <p class="etiqueta">${fechaLegible(fecha)}</p>
+                    <h2 class="titulo-juego">Misiones de ${esAyer ? "ayer" : "hoy"}</h2>
+                </div>
+                <p class="contador ${todoListo ? "completo" : ""}">${todoListo ? "✨" : ""}${hechas}/${delDia.length}</p>
+            </div>
+            ${todoListo ? '<p class="nota oro">✨ ¡Día perfecto! Todas las misiones hechas.</p>' : ""}
+            <!-- Selector de día (hoy, o ayer por si se te olvidó marcar algo) y el modo enfoque -->
+            <div class="hoy-herramientas">
+                <div class="selector" role="group" aria-label="Día">
+                    <button type="button" data-accion="ver-fecha" data-dia="ayer" aria-pressed="${esAyer}">Ayer</button>
+                    <button type="button" data-accion="ver-fecha" data-dia="hoy" aria-pressed="${!esAyer}">Hoy</button>
+                </div>
+                <button type="button" class="chip chip-enfoque ${activo ? "activo" : ""}" data-accion="ir" data-pantalla="enfoque">${botonEnfoque}</button>
+            </div>
+            ${esAyer ? '<p class="nota">Estás viendo <b>ayer</b>. Marca lo que hiciste y se te olvidó anotar.</p>' : ""}
+            ${lista}
+            ${metasSemana}
+            <div class="botones-dialogo botones-hoy">
+                <button type="button" class="boton boton-principal" data-accion="abrir" data-dialogo="mision">+ Nueva misión</button>
+                <button type="button" class="boton boton-secundario" data-accion="abrir" data-dialogo="ordenar"
+                        ${estado.misiones.filter((m) => !m.archivadaEn).length > 1 ? "" : "disabled"}>↕ Ordenar</button>
+            </div>
+            <p class="nota nota-gesto">Desliza una misión a la derecha para completarla. Toca su nombre para ver su ficha.</p>
+            ${plegable(`Otros días (${otrosDias.length})`,
+                `<ul class="lista">${otrosDias.map((m) => filaMision(estado, m, "editar")).join("")}</ul>`, otrosDias.length)}
+            ${plegable(`Archivadas (${archivadas.length})`,
+                `<ul class="lista">${archivadas.map((m) => filaMision(estado, m, "restaurar")).join("")}</ul>`, archivadas.length)}
+        </section>
 
-        ${plegable(`Otros días (${otrosDias.length})`,
-            `<ul class="lista">${otrosDias.map((m) => filaMision(estado, m, "editar")).join("")}</ul>`, otrosDias.length)}
-        ${plegable(`Archivadas (${archivadas.length})`,
-            `<ul class="lista">${archivadas.map((m) => filaMision(estado, m, "restaurar")).join("")}</ul>`, archivadas.length)}
+        ${esAyer ? "" : `<section class="bloque" aria-label="Tareas">${seccionTareas(estado, ctx)}</section>`}
+        ${seccionDiario(estado, ctx, fecha, esAyer)}`;
+}
 
-        ${esAyer ? "" : seccionTareas(estado, ctx)}
-        ${tarjetaDesafio(estado, ctx)}
-        ${seccionDiario(estado, ctx, fecha, esAyer)}
-        ${jefesEnCombate(estado, ctx)}`;
+// «Tu día»: en un solo panel, el Maestro y todo lo que trae el día (antes eran 6 tarjetas sueltas):
+// el evento, el cofre, el desafío relámpago, tu pacto y el desafío de la semana.
+function panelDelDia(estado, ctx) {
+    const filas = [avisoEvento(ctx), tarjetaCofre(estado, ctx), tarjetaRelampago(ctx), lineaDelPacto(estado, ctx), tarjetaDesafio(estado, ctx)]
+        .filter(Boolean);
+    return `
+        <section class="panel panel-dia" aria-label="Tu día">
+            ${tarjetaMaestro(ctx)}
+            ${filas.map((fila) => `<div class="dia-fila">${fila}</div>`).join("")}
+        </section>`;
 }
 
 // Cada cuánto toca: "3 veces por semana", "L · X · V" o "Todos los días".
@@ -443,15 +464,21 @@ function seccionDiario(estado, ctx, fecha, esAyer) {
             <form data-form="diario" class="formulario">
                 <input type="hidden" name="fecha" value="${fecha}">
                 <fieldset class="opciones opciones-5"><legend>¿Cómo te fue ${esAyer ? "ayer" : "hoy"}?</legend>${animos}</fieldset>
-                <label>${esc(diario.preguntaDelDia(fecha))}
-                    <textarea name="texto" rows="3" maxlength="${diario.LARGO.texto}"
-                              placeholder="Escribe lo que quieras. Una frase basta.">${esc(entrada?.texto || "")}</textarea>
-                </label>
-                <label>🙏 Hoy agradezco…
-                    <input type="text" name="gratitud" maxlength="${diario.LARGO.gratitud}" autocomplete="off"
-                           value="${esc(entrada?.gratitud || "")}" placeholder="Ej: el café con mi mamá">
-                </label>
-                <button type="submit" class="boton boton-principal">${entrada ? "Actualizar" : "Guardar en mi diario"}</button>
+                <!-- Lo escrito va plegado para que Hoy no sea tan largo: se abre al tocarlo. -->
+                <details class="diario-escribir">
+                    <summary>${entrada?.texto
+                        ? `✍️ «${esc(entrada.texto.length > 60 ? `${entrada.texto.slice(0, 60)}…` : entrada.texto)}»`
+                        : `✍️ ${esc(diario.preguntaDelDia(fecha))}`}</summary>
+                    <label>${esc(diario.preguntaDelDia(fecha))}
+                        <textarea name="texto" rows="3" maxlength="${diario.LARGO.texto}"
+                                  placeholder="Escribe lo que quieras. Una frase basta.">${esc(entrada?.texto || "")}</textarea>
+                    </label>
+                    <label>🙏 Hoy agradezco…
+                        <input type="text" name="gratitud" maxlength="${diario.LARGO.gratitud}" autocomplete="off"
+                               value="${esc(entrada?.gratitud || "")}" placeholder="Ej: el café con mi mamá">
+                    </label>
+                    <button type="submit" class="boton boton-principal boton-ancho">${entrada ? "Actualizar" : "Guardar en mi diario"}</button>
+                </details>
             </form>
         </section>`;
 }
@@ -815,10 +842,7 @@ export function pantallaMapa(estado, ctx) {
     const fortaleza = tramo === mapa.CIUDADELA ? "la Torre" : "la fortaleza";
 
     return `
-        <div class="titulo-seccion">
-            <h2 class="titulo-juego">🗺️ El reino</h2>
-            <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="hoy">‹ Hoy</button>
-        </div>
+        ${encabezado("🗺️ El reino", "aventuras", "Aventuras")}
         ${franjaDelReino(estado, campanas, region)}
         <section class="panel mapa-cabecera">
             <div class="mapa-navegar">
@@ -961,10 +985,7 @@ export function pantallaPacto(estado, ctx) {
     }
 
     return `
-        <div class="titulo-seccion">
-            <h2 class="titulo-juego">📜 Tu pacto</h2>
-            <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="hoy">‹ Hoy</button>
-        </div>
+        ${encabezado("📜 Tu pacto", "personaje", "Héroe")}
         ${cumplimiento}
         <article class="pergamino">
             <header class="pergamino-cabecera">
@@ -1342,23 +1363,48 @@ function notaDeVida(estado, ctx) {
     return partes.join(" · ");
 }
 
-// Tarjeta del héroe arriba de "Hoy". Salta cuando completas una misión.
+// Tu héroe arriba de "Hoy" (en pequeño: la vida y la armadura ya están en la cabecera y en la
+// pestaña Héroe). Salta cuando completas una misión. Debajo, tus 4 rivales: el jefe de cada campaña
+// con su vida (antes era la lista «En combate», al final de la pantalla).
 function tarjetaHeroe(estado, ctx) {
     const a = ctx.avatar;
-    const siguiente = avatar.siguienteEtapa(avatar.ETAPAS, a.etapa);
+    const racha = ctx.info.racha;
+    const nota = notaDeVida(estado, ctx);
     return `
-        <button type="button" class="heroe ${ctx.recienHecha ? "atacar" : ""}" data-accion="ir" data-pantalla="personaje">
-            <span class="heroe-avatar">${dibujarAvatar(a)}</span>
-            <span class="heroe-info">
-                <span class="etiqueta">${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</span>
-                <span class="heroe-animo">${textoAnimo(a, ctx)}</span>
-                <span class="heroe-vida">${barraDeVida(ctx.vida)}${barraDeArmadura(ctx.vida.armadura)}</span>
-                <span class="mini texto-suave">${notaDeVida(estado, ctx)}</span>
-                <span class="mini texto-suave">${siguiente
-                    ? `Evoluciona a ${siguiente.nombre} en el nivel ${siguiente.desde}`
-                    : "¡Etapa máxima alcanzada!"}</span>
-                <span class="mini heroe-ver">Ver personaje ›</span>
-            </span>
+        <section class="panel heroe-hoy">
+            <button type="button" class="heroe ${ctx.recienHecha ? "atacar" : ""}" data-accion="ir" data-pantalla="personaje">
+                <span class="heroe-avatar">${dibujarAvatar(a)}</span>
+                <span class="heroe-info">
+                    <span class="etiqueta">${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</span>
+                    <span class="heroe-animo">${textoAnimo(a, ctx)}</span>
+                    <span class="chips chips-heroe">
+                        <span class="chip chip-racha">🔥 ${plural(racha.actual, "día", "días")}</span>
+                        <span class="chip">🛡️ ${racha.escudos}/${ESCUDOS.maximo}</span>
+                        ${ctx.vida.enForma ? '<span class="chip chip-oro">✨ En forma</span>' : ""}
+                    </span>
+                    ${nota ? `<span class="mini texto-suave">${nota}</span>` : ""}
+                </span>
+            </button>
+            ${rivalesDeHoy(estado, ctx)}
+        </section>`;
+}
+
+// Los 4 jefes que peleas ahora, en una fila. Si acabas de golpear a uno, se nota.
+function rivalesDeHoy(estado, ctx) {
+    const campanas = Object.values(campana.estadoCampanas(estado));
+    if (!campanas.length) return "";
+    return `
+        <button type="button" class="rivales" data-accion="ir" data-pantalla="aventuras" aria-label="Tus rivales: ver la campaña de jefes">
+            <span class="rivales-titulo">⚔️ Rivales</span>
+            ${campanas.map((c) => {
+                const dano = (ctx.golpes || {})[c.categoria] || 0;
+                const a = juego.ATRIBUTOS[c.categoria];
+                return `<span class="rival ${dano ? "golpeado" : ""}" title="${esc(c.jefe.nombre)} · ${a.nombre}">
+                            <span class="rival-retrato">${retratoJefe(c.jefe, campana.estadoVisual(c.porcentaje), "mini", dano)}</span>
+                            ${barra(c.porcentaje, "barra-vida barra-mini")}
+                            <span class="rival-icono" aria-hidden="true">${a.icono}</span>
+                        </span>`;
+            }).join("")}
         </button>`;
 }
 
@@ -1421,13 +1467,19 @@ function avisoRespaldo() {
 // ===== Pantalla: Progreso (racha, calendario y atributos) =====
 
 export function pantallaProgreso(estado, ctx) {
+    const vista = ctx.subvista?.progreso || "numeros";
+    const selector = selectorSecciones("progreso", [["numeros", "📊 Tu progreso"], ["logros", "🏆 Logros"]], vista);
+    if (vista === "logros") return `${selector}${pantallaLogros(estado, ctx)}`;
+
     const { racha, diasPerfectos } = ctx.info;
     const escudos = Array.from({ length: ESCUDOS.maximo }, (_, i) =>
         `<span class="escudo ${i < racha.escudos ? "lleno" : ""}">🛡️</span>`).join("");
+    const numero = (valor, texto) => `<div><b>${valor}</b><span>${texto}</span></div>`;
 
     return `
+        ${selector}
         <section class="panel">
-            <h2 class="titulo-juego">Racha</h2>
+            <h2 class="titulo-juego">🔥 Racha</h2>
             <div class="racha-datos">
                 <div><span class="racha-numero">🔥 ${racha.actual}</span><span class="etiqueta">Actual</span></div>
                 <div><span class="racha-numero">🏅 ${racha.mejor}</span><span class="etiqueta">Mejor</span></div>
@@ -1435,13 +1487,22 @@ export function pantallaProgreso(estado, ctx) {
             </div>
             <p class="nota">Un día cuenta si completas al menos 1 misión. Cada ${ESCUDOS.diasParaGanar} días seguidos
                ganas un escudo (máx. ${ESCUDOS.maximo}): si fallas un día, el escudo salva tu racha.</p>
+            <!-- Los totales de siempre (antes eran otro panel, «Estadísticas») -->
+            <div class="numeros">
+                ${numero(ctx.info.totalCompletadas, "misiones")}
+                ${numero(diasPerfectos, "días perfectos")}
+                ${numero(ctx.info.principalesCompletadas, "principales")}
+                ${numero(ctx.info.jefesDerrotados, "jefes vencidos")}
+                ${numero(estado.canjes.length, "premios canjeados")}
+                ${numero(estado.personaje.xp, "XP total")}
+            </div>
         </section>
 
         ${seccionResumen(estado, ctx)}
 
         <section class="panel">
             <div class="titulo-seccion">
-                <h2 class="titulo-juego">Calendario</h2>
+                <h2 class="titulo-juego">🗓️ Calendario</h2>
                 <span class="texto-suave mini">✨ ${plural(diasPerfectos, "día perfecto", "días perfectos")}</span>
             </div>
             ${mapaDeCalor(estado, ctx)}
@@ -1456,21 +1517,11 @@ export function pantallaProgreso(estado, ctx) {
         </section>
 
         <section class="panel">
-            <h2 class="titulo-juego">Atributos</h2>
+            <h2 class="titulo-juego">💪 Atributos</h2>
+            <p class="nota">Tu clase es tu atributo más alto: ahora eres <b>${ctx.avatar.clase.icono} ${ctx.avatar.clase.nombre}</b>.
+               Cada atributo cambia algo de tu avatar en los niveles 3 y 6.</p>
             <div class="atributos">${Object.keys(ATRIBUTOS).map((clave) => tarjetaAtributo(estado, clave)).join("")}</div>
             ${seccionAtributosPropios(estado)}
-        </section>
-
-        <section class="panel">
-            <h2 class="titulo-juego">Estadísticas</h2>
-            <dl class="estadisticas">
-                <div><dt>Misiones diarias completadas</dt><dd>${ctx.info.totalCompletadas}</dd></div>
-                <div><dt>Días perfectos</dt><dd>${diasPerfectos}</dd></div>
-                <div><dt>Misiones principales</dt><dd>${ctx.info.principalesCompletadas}</dd></div>
-                <div><dt>Jefes derrotados</dt><dd>${ctx.info.jefesDerrotados}</dd></div>
-                <div><dt>Recompensas canjeadas</dt><dd>${estado.canjes.length}</dd></div>
-                <div><dt>XP total</dt><dd>${estado.personaje.xp}</dd></div>
-            </dl>
         </section>`;
 }
 
@@ -1574,6 +1625,11 @@ function seccionAtributosPropios(estado) {
 function tarjetaAtributo(estado, clave) {
     const a = ATRIBUTOS[clave];
     const n = juego.calcularNivel(estado.atributos[clave], juego.BASE_ATRIBUTO);
+    // Lo que cambia en tu avatar en los niveles 3 y 6.
+    const rasgos = avatar.RASGOS[clave].map((u) => {
+        const tiene = n.nivel >= u.nivel;
+        return `<li class="${tiene ? "tiene" : ""}">${tiene ? "✓" : "🔒"} ${u.texto}${tiene ? "" : ` <small>Nv ${u.nivel}</small>`}</li>`;
+    }).join("");
     return `
         <div class="atributo" style="--color-atributo: ${a.color}">
             <div class="atributo-cabecera">
@@ -1583,6 +1639,7 @@ function tarjetaAtributo(estado, clave) {
             </div>
             ${barra(n.porcentaje, "barra-mini barra-atributo")}
             <span class="mini texto-suave">${n.xpEnNivel} / ${n.xpNecesaria} XP</span>
+            <ul class="atributo-rasgos">${rasgos}</ul>
         </div>`;
 }
 
@@ -1746,43 +1803,66 @@ export function pantallaAventuras(estado, ctx) {
     const campanas = Object.values(estadoDeCampanas);
     const d = campana.DANO.diaria;
 
+    // Qué campaña se ve: la que elegiste, la que acabas de golpear o la del jefe más cerca de caer.
+    const golpeada = campanas.find((c) => (ctx.golpes || {})[c.categoria]);
+    const vista = golpeada || estadoDeCampanas[ctx.campanaVista] || [...campanas].sort((a, b) => a.porcentaje - b.porcentaje)[0];
+    const pestanasCampana = campanas.map((c) => {
+        const a = juego.ATRIBUTOS[c.categoria];
+        return `<button type="button" data-accion="ver-campana" data-categoria="${c.categoria}" aria-pressed="${c === vista}"
+                        style="--color-atributo: ${a.color}">
+                    <span class="campana-pestana-icono">${a.icono}</span>
+                    <small>${c.indice + 1}/5</small>
+                    ${barra(c.porcentaje, "barra-vida barra-mini")}
+                </button>`;
+    }).join("");
+
     const posicionMapa = mapa.posicion(estado);
     const premiosMapa = mapa.lugaresPorReclamar(estado, estadoDeCampanas).length;
     const caidosRegion = mapa.senoresDeRegion(posicionMapa.region, estadoDeCampanas).filter((s) => s.liberada).length;
+    const fichas = arcade.fichasDisponibles(estado);
     return `
-        <button type="button" class="pacto-linea" data-accion="ir" data-pantalla="mapa">
-            <span class="pacto-linea-icono" aria-hidden="true">🗺️</span>
-            <span><b>El reino</b>
-                <span class="mini">${mapa.nombreRegion(posicionMapa.region)} · lugar ${posicionMapa.enRegion} de ${mapa.LUGARES_POR_REGION} · ⚔️ ${caidosRegion} de 4 señores${premiosMapa ? ` · 🎁 ${juego.plural(premiosMapa, "botín", "botines")}` : ""}</span></span>
-        </button>
-        <button type="button" class="panel acceso-arcade" data-accion="ir" data-pantalla="arcade">
-            <span class="acceso-arcade-icono">🕹️</span>
-            <span><b>Arcade del héroe</b>
-                <span class="mini texto-suave">3 minijuegos con tu avatar · 🎟️ ${plural(arcade.fichasDisponibles(estado), "ficha", "fichas")}</span></span>
-            <span class="heroe-ver">Jugar ›</span>
-        </button>
-        <button type="button" class="panel acceso-arcade acceso-enfoque" data-accion="ir" data-pantalla="enfoque">
-            <span class="acceso-arcade-icono">⏱️</span>
-            <span><b>Modo enfoque</b>
-                <span class="mini texto-suave">Concéntrate 15, 25 o 50 minutos y gana XP</span></span>
-            <span class="heroe-ver">Abrir ›</span>
-        </button>
+        <div class="accesos">
+            <button type="button" class="acceso acceso-reino" data-accion="ir" data-pantalla="mapa">
+                <span class="acceso-icono" aria-hidden="true">🗺️</span>
+                <b>El reino</b>
+                <small>${mapa.nombreRegion(posicionMapa.region)}</small>
+                <small>⚔️ ${caidosRegion} de 4 señores${premiosMapa ? ` · 🎁 ${premiosMapa}` : ""}</small>
+            </button>
+            <button type="button" class="acceso acceso-arcade" data-accion="ir" data-pantalla="arcade">
+                <span class="acceso-icono" aria-hidden="true">🕹️</span>
+                <b>Arcade</b>
+                <small>La Torre y 3 minijuegos</small>
+                <small>🎟️ ${plural(fichas, "ficha", "fichas")}</small>
+            </button>
+        </div>
 
-        <div class="titulo-seccion"><h2 class="titulo-juego">Campaña de jefes</h2></div>
-        <p class="nota">Cada categoría tiene 5 jefes, cada vez más fuertes. Solo los dañas cumpliendo objetivos
-           de <b>su</b> categoría: una misión diaria, tarea o sesión de enfoque hace poco daño (−${d.facil} fácil, −${d.normal} normal, −${d.dificil} difícil);
-           cada paso de una <b>misión principal</b> hace −${campana.DANO.paso} y completarla entera, −${campana.DANO.principal} extra.
-           Al vencer a los 5 empieza la <b>Partida+</b>: vuelven con más vida y mejores premios.</p>
-        <p class="nota">🩸 <b>Ellos también pegan:</b> cuando fallas una misión, el jefe de su categoría te golpea y
-           se cura con la vida que te roba. Tu armadura (🛡️ ${ctx.vida.armadura.puntos} / ${ctx.vida.armadura.maxima}) decide cuánto.</p>
-        ${campanas.map((c) => tarjetaCampana(c, ctx)).join("")}
+        <section class="bloque" aria-label="Campaña de jefes">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">⚔️ Campaña de jefes</h2>
+                <span class="mini texto-suave">${plural(ctx.info.jefesDerrotados, "jefe vencido", "jefes vencidos")}</span>
+            </div>
+            <div class="selector selector-campanas" role="group" aria-label="Campañas">${pestanasCampana}</div>
+            ${tarjetaCampana(vista, ctx)}
+            <details class="plegable">
+                <summary>¿Cómo se pelea contra los jefes?</summary>
+                <p class="nota">Cada categoría tiene 5 jefes, cada vez más fuertes. Solo los dañas cumpliendo objetivos
+                   de <b>su</b> categoría: una misión diaria, tarea o sesión de enfoque hace poco daño (−${d.facil} fácil, −${d.normal} normal, −${d.dificil} difícil);
+                   cada paso de una <b>misión principal</b> hace −${campana.DANO.paso} y completarla entera, −${campana.DANO.principal} extra.
+                   Al vencer a los 5 empieza la <b>Partida+</b>: vuelven con más vida y mejores premios.</p>
+                <p class="nota">🩸 <b>Ellos también pegan:</b> cuando fallas una misión, el jefe de su categoría te golpea y
+                   se cura con la vida que te roba. Tu armadura (🛡️ ${ctx.vida.armadura.puntos} / ${ctx.vida.armadura.maxima}) decide cuánto.</p>
+                <p class="nota">🗺️ Cada jefe vive en una guarida del <b>reino</b>: cuando cae, su guarida queda libre y tiene botín.</p>
+            </details>
+        </section>
 
-        ${cabeceraSeccion("Misiones principales", "principal", "+ Nueva")}
-        <p class="nota">Tus objetivos grandes, divididos en pasos. Son tu arma más fuerte contra los jefes.
-           Cada paso: +${PREMIOS.submision.xp} XP. Al terminar todos: +${PREMIOS.principal.xp} XP y ${PREMIOS.principal.monedas} monedas.</p>
-        ${enCurso.length ? enCurso.map((p) => tarjetaPrincipal(estado, p)).join("") : vacio("Sin misiones principales en curso. Ej: «Aprender inglés B1» o «Terminar CS50».")}
-        ${plegable(`Completadas (${terminadas.length})`, terminadas.map((p) => tarjetaPrincipal(estado, p)).join(""), terminadas.length)}
-        ${plegable(`Archivadas (${archivadas.length})`, `<ul class="lista">${filasArchivadas}</ul>`, archivadas.length)}`;
+        <section class="bloque" aria-label="Misiones principales">
+            ${cabeceraSeccion("🎯 Misiones principales", "principal", "+ Nueva")}
+            <p class="nota">Tus objetivos grandes, divididos en pasos: tu arma más fuerte contra los jefes.
+               Cada paso: +${PREMIOS.submision.xp} XP. Al terminar todos: +${PREMIOS.principal.xp} XP y ${PREMIOS.principal.monedas} monedas.</p>
+            ${enCurso.length ? enCurso.map((p) => tarjetaPrincipal(estado, p)).join("") : vacio("Sin misiones principales en curso. Ej: «Aprender inglés B1» o «Terminar CS50».")}
+            ${plegable(`Completadas (${terminadas.length})`, terminadas.map((p) => tarjetaPrincipal(estado, p)).join(""), terminadas.length)}
+            ${plegable(`Archivadas (${archivadas.length})`, `<ul class="lista">${filasArchivadas}</ul>`, archivadas.length)}
+        </section>`;
 }
 
 // <details> es una sección que se abre y se cierra sola (sin JavaScript).
@@ -1914,31 +1994,6 @@ function tarjetaCampana(c, ctx) {
             <ol class="ruta-jefes">${ruta}</ol>
         </article>`;
 }
-
-// En "Hoy": el jefe actual de cada categoría, para tenerlos siempre a la vista.
-function jefesEnCombate(estado, ctx) {
-    const filas = Object.values(campana.estadoCampanas(estado)).map((c) => {
-        const a = juego.ATRIBUTOS[c.categoria];
-        const dano = (ctx.golpes || {})[c.categoria] || 0;
-        const ronda = c.ronda > 1 ? ` · Ronda ${c.ronda}` : "";
-        return `
-            <li>
-                <button type="button" class="combate ${dano ? "golpeado" : ""}" data-accion="ir" data-pantalla="aventuras">
-                    <span class="combate-jefe">${retratoJefe(c.jefe, campana.estadoVisual(c.porcentaje), "mini", dano)}</span>
-                    <span class="combate-info">
-                        <b>${esc(c.jefe.nombre)} <span class="texto-suave mini">· ${esc(c.jefe.titulo)}</span></b>
-                        ${barra(c.porcentaje, "barra-vida barra-mini")}
-                        <span class="mini texto-suave">${a.icono} ${a.nombre}${ronda} · Vida ${c.vida} / ${c.vidaMax}</span>
-                    </span>
-                </button>
-            </li>`;
-    }).join("");
-    if (!filas) return "";
-    return `<h3 class="subtitulo">⚔️ En combate</h3>
-            <p class="nota">Cada misión de una categoría golpea al jefe de esa categoría.</p>
-            <ul class="lista">${filas}</ul>`;
-}
-
 
 // ===== Pantalla: Logros =====
 
@@ -2122,6 +2177,7 @@ export function pantallaArcade(estado, ctx) {
         </article>`;
 
     return `
+        ${encabezado("🕹️ Arcade", "aventuras", "Aventuras")}
         ${caido ? avisoCaido(ctx.vida, "El arcade está cerrado") : ""}
         ${tarjetaTorre}
         <section class="panel arcade-cabecera">
@@ -2507,7 +2563,7 @@ export function pantallaEnfoque(estado, ctx) {
             </label>`).join("");
         principal = `
             <section class="panel">
-                <h2 class="titulo-juego">⏱️ Modo enfoque</h2>
+                <h2 class="titulo-juego">Nueva sesión</h2>
                 <p class="nota">Elige un tiempo, deja el teléfono y concéntrate en una sola cosa.
                    Al terminar ganas lo mismo que una misión (XP, monedas y daño al jefe de ese atributo).
                    Si cancelas a la mitad, no hay premio.</p>
@@ -2525,6 +2581,7 @@ export function pantallaEnfoque(estado, ctx) {
     }).join("");
 
     return `
+        ${encabezado("⏱️ Modo enfoque", "hoy", "Hoy")}
         ${principal}
         <section class="panel">
             <h2 class="titulo-juego">Tu concentración</h2>
@@ -2733,6 +2790,7 @@ export function pantallaBienvenida(b, nombre, plantillas) {
 
 export function pantallaPersonaje(estado, ctx) {
     const a = ctx.avatar;
+    const vista = ctx.subvista?.personaje || "equipo";
 
     // Las 4 etapas, marcando la actual y las que ya pasaste.
     const etapas = avatar.ETAPAS.map((e) => {
@@ -2740,19 +2798,13 @@ export function pantallaPersonaje(estado, ctx) {
         return `<li class="${clase}"><span>${e.nombre}</span><small>Nv ${e.desde}</small></li>`;
     }).join("");
 
-    // Qué cambia cada atributo en el avatar, y qué ya tienes.
-    const rasgos = Object.entries(avatar.RASGOS).map(([clave, umbrales]) => {
-        const a2 = juego.ATRIBUTOS[clave];
-        const items = umbrales.map((u) => {
-            const tiene = a.niveles[clave] >= u.nivel;
-            return `<li class="${tiene ? "tiene" : ""}">${tiene ? "✓" : "🔒"} ${u.texto}
-                        <small>${tiene ? "" : `(nivel ${u.nivel})`}</small></li>`;
-        }).join("");
-        return `<div class="rasgo" style="--color-atributo: ${a2.color}">
-                    <span class="rasgo-titulo">${a2.icono} ${a2.nombre} <b>Nv ${a.niveles[clave]}</b></span>
-                    <ul>${items}</ul>
-                </div>`;
-    }).join("");
+    // Las secciones (solo se ve una a la vez). Los niveles de tus atributos y sus rasgos están en Progreso.
+    const secciones = {
+        equipo: () => `${seccionEquipamiento(estado, ctx)}${seccionObjetosDeLogro(estado, ctx, "Objetos por ganar")}`,
+        mascotas: () => seccionMascota(estado, a.mascota, ctx),
+        apariencia: () => seccionApariencia(estado, ctx),
+        historia: () => seccionHistoria(estado, ctx),
+    };
 
     return `
         <section class="panel ficha">
@@ -2761,25 +2813,47 @@ export function pantallaPersonaje(estado, ctx) {
             <p class="etiqueta">Nivel ${a.nivel} · ${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</p>
             <p class="heroe-animo">${textoAnimo(a, ctx)}</p>
             <div class="ficha-vida">${barraDeVida(ctx.vida)}${barraDeArmadura(ctx.vida.armadura)}</div>
-            <p class="mini texto-suave">🛡️ La armadura cuenta cuando fallas una misión: con ${equipo.ARMADURA.normal} recibes el daño normal;
-               con menos, más; con más, menos. Se gasta cada vez que fallas y se repara cumpliendo.</p>
-            <button type="button" class="boton boton-secundario" data-accion="ir" data-pantalla="pacto">📜 ${estado.pacto ? "Mi pacto" : "Sellar mi pacto"}</button>
-            <p class="mini texto-suave">${vida.ESTADOS[ctx.vida.nivel].texto}</p>
+            <p class="mini texto-suave">${vida.ESTADOS[ctx.vida.nivel].texto} 🛡️ La armadura cuenta cuando fallas una misión:
+               se gasta al fallar y se repara cumpliendo.</p>
             <ol class="etapas">${etapas}</ol>
         </section>
+        ${selectorSecciones("personaje", [["equipo", "🛡️ Equipo"], ["mascotas", "🐾 Mascotas"], ["apariencia", "🎨 Aspecto"], ["historia", "📜 Historia"]], vista)}
+        ${(secciones[vista] || secciones.equipo)()}`;
+}
 
-        ${seccionApariencia(estado, ctx)}
+// Una fila que lleva a otra pantalla (con su icono, su nombre y una línea de detalle).
+function filaEnlace(icono, titulo, detalle, destino) {
+    return `<button type="button" class="fila-enlace" ${destino}>
+                <span class="fila-enlace-icono" aria-hidden="true">${icono}</span>
+                <span><b>${titulo}</b><small>${detalle}</small></span>
+                <span class="fila-enlace-flecha" aria-hidden="true">›</span>
+            </button>`;
+}
 
+// «Historia»: todo lo que cuenta tu camino, junto (antes estaba repartido entre Hoy, Personaje y Ajustes).
+function seccionHistoria(estado, ctx) {
+    const c = estado.pacto ? pacto.cumplimientoDelPacto(estado, ctx.hoy) : null;
+    const escritos = Object.values(estado.diario).filter((e) => e.texto || e.animo).length;
+    const rachaDiario = diario.rachaDiario(estado, ctx.hoy);
+    const pos = mapa.posicion(estado);
+    const conseguidos = estado.logros.filter((l) => l.desbloqueadoEn).length;
+    return `
         <section class="panel">
-            <h2 class="titulo-juego">Clase: ${a.clase.icono} ${a.clase.nombre}</h2>
-            <p class="nota">${a.clase.texto} Clases: ⚔️ Guerrero (Fuerza), 🔮 Mago (Intelecto), 🎶 Bardo (Carisma),
-               ⚖️ Mercader (Riqueza) o 🌟 Aventurero completo si equilibras los cuatro.</p>
-            <div class="rasgos">${rasgos}</div>
-        </section>
-
-        ${seccionEquipamiento(estado, ctx)}
-        ${seccionMascota(estado, a.mascota, ctx)}
-        ${seccionObjetosDeLogro(estado, ctx, "Objetos de logro")}`;
+            <h2 class="titulo-juego">📜 Tu historia</h2>
+            <p class="nota">Lo que has jurado, lo que has escrito y lo que has conseguido.</p>
+            <div class="filas-enlace">
+                ${filaEnlace("📜", "Tu pacto", c ? `Día ${c.dia}${c.porcentaje === null ? "" : ` · ${c.porcentaje} % honrado`}` : "Todavía sin firmar: un juramento contigo",
+                             'data-accion="ir" data-pantalla="pacto"')}
+                ${filaEnlace("📓", "Tu diario", `${plural(escritos, "día escrito", "días escritos")}${rachaDiario ? ` · racha de ${rachaDiario}` : ""}`,
+                             'data-accion="ir" data-pantalla="diario"')}
+                ${filaEnlace("📖", "Tu libro", `La crónica de ${esc(estado.personaje.nombre)}, contada con tu diario`,
+                             'data-accion="ir" data-pantalla="libro"')}
+                ${filaEnlace("🗺️", "Crónica del reino", `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
+                             'data-accion="ir" data-pantalla="mapa"')}
+                ${filaEnlace("🏆", "Logros", `${conseguidos} de ${plural(estado.logros.length, "logro", "logros")} conseguidos`,
+                             'data-accion="subvista" data-pantalla="progreso" data-vista="logros"')}
+            </div>
+        </section>`;
 }
 
 // Apariencia: cuerpo, piel, rostro, ojos, pelo, peinado, barba y color del traje.
@@ -2864,7 +2938,7 @@ function seccionEquipamiento(estado, ctx) {
             ${disponibles.size
                 ? `<ul class="lista">${inventario}</ul>`
                 : vacio("Aún no tienes objetos. Cómpralos en la Tienda con tus monedas o gánalos con logros.")}
-            <button type="button" class="boton boton-secundario boton-ancho" data-accion="ir" data-pantalla="tienda">Ir a la tienda</button>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="subvista" data-pantalla="tienda" data-vista="equipo">⚔️ Ver el equipo de la tienda</button>
         </section>`;
 }
 
@@ -2916,29 +2990,32 @@ function seccionMascota(estado, m, ctx) {
             </form>
             <p class="nota">Crece con cada misión diaria que completas desde que la tienes: huevo → cría (10) → adulto (50).</p>
             ${otras ? `<h3 class="subtitulo">Tus otras mascotas</h3><ul class="lista">${otras}</ul>` : ""}
-            <button type="button" class="boton boton-secundario boton-ancho" data-accion="ir" data-pantalla="tienda">🐾 Adoptar en la tienda</button>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="subvista" data-pantalla="tienda" data-vista="mascotas">🐾 Adoptar en la tienda</button>
         </section>`;
 }
 
 // Objetos que no se compran: solo se ganan con logros.
+// Los objetos que no se compran: solo se ganan con logros. Aquí van los que TODAVÍA no ganaste,
+// con lo que llevas; los ganados ya están arriba, en «Tus objetos».
 function seccionObjetosDeLogro(estado, ctx, titulo) {
-    const lista = Object.entries(avatar.OBJETOS).filter(([, o]) => o.logro).map(([id, o]) => {
-        const progreso = Math.min(avatar.progresoObjeto(o, estado, ctx.info), o.logro.meta);
-        const ganado = progreso >= o.logro.meta;
-        return `<li class="objeto ${ganado ? "puesto" : ""}">
-                    ${iconoObjeto(id, ganado ? "" : "bloqueado")}
+    const deLogro = Object.entries(avatar.OBJETOS).filter(([, o]) => o.logro);
+    const pendientes = deLogro.filter(([, o]) => avatar.progresoObjeto(o, estado, ctx.info) < o.logro.meta);
+    const lista = pendientes.map(([id, o]) => {
+        const progreso = avatar.progresoObjeto(o, estado, ctx.info);
+        return `<li class="objeto">
+                    ${iconoObjeto(id, "bloqueado")}
                     <span class="objeto-info"><b>${o.nombre}</b>
                         <span class="mini texto-suave">${textoRareza(o)}${poderDe(o)} · ${o.logro.texto}</span>
                         ${habilidadDe(o)}
-                        ${ganado ? "" : barra(Math.round((progreso / o.logro.meta) * 100), "barra-mini")}</span>
-                    <span class="mini ${ganado ? "oro" : "texto-suave"}">${ganado ? "¡Ganado!" : `${progreso}/${o.logro.meta}`}</span>
+                        ${barra(Math.round((progreso / o.logro.meta) * 100), "barra-mini")}</span>
+                    <span class="mini texto-suave">${progreso}/${o.logro.meta}</span>
                 </li>`;
     }).join("");
     return `
         <section class="panel">
             <h2 class="titulo-juego">🏅 ${titulo}</h2>
-            <p class="nota">No se pueden comprar: solo se ganan.</p>
-            <ul class="lista">${lista}</ul>
+            <p class="nota">No se pueden comprar: solo se ganan. Llevas ${deLogro.length - pendientes.length} de ${deLogro.length}.</p>
+            ${pendientes.length ? `<ul class="lista">${lista}</ul>` : vacio("¡Los ganaste todos! Están en «Tus objetos».")}
         </section>`;
 }
 
@@ -2999,9 +3076,9 @@ function tiendaDelAvatar(estado, cerrada, evento) {
     }).join("");
 
     return `
-        <div class="titulo-seccion"><h2 class="titulo-juego">Equipamiento del avatar</h2></div>
+        <div class="titulo-seccion"><h2 class="titulo-juego">⚔️ Equipamiento</h2></div>
         <p class="nota">Las monedas también sirven para tu avatar. Lo que compres se equipa solo;
-           puedes cambiarlo en tu Personaje. 🛡️ sube tu armadura (te protege al fallar una misión);
+           puedes cambiarlo en tu Héroe. 🛡️ sube tu armadura (te protege al fallar una misión);
            ⚔️ ataque, 🔮 magia y 🍀 suerte cuentan en la Torre y en los minijuegos.
            Lo <b>épico</b> y lo <b>legendario</b> tiene además una habilidad especial en la Torre.</p>
         <ul class="lista">${lista}</ul>`;
@@ -3030,7 +3107,7 @@ function tiendaDeMascotas(estado, cerrada, ctx) {
         const puede = monedas >= precio && !cerrada;
         let accion;
         if (especie === activa) accion = `<span class="mini oro">✓ Te acompaña</span>`;
-        else if (tuya) accion = `<button type="button" class="boton boton-chico" data-accion="elegir-mascota" data-especie="${especie}">Llevar</button>`;
+        else if (tuya) accion = `<span class="mini oro">✓ Tuya</span>`;
         else accion = `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="comprar-mascota" data-especie="${especie}"
                                ${puede ? "" : "disabled"}>Adoptar</button>`;
         const costo = datos.precio ? ` · 🪙 ${precio < datos.precio ? `<s>${datos.precio}</s> ${precio}` : datos.precio}` : " · tu primera mascota";
@@ -3045,7 +3122,9 @@ function tiendaDeMascotas(estado, cerrada, ctx) {
     }).join("");
     return `
         <div class="titulo-seccion"><h2 class="titulo-juego">🐾 Mascotas</h2></div>
-        <p class="nota">Cada mascota llega como <b>huevo</b> y crece con las misiones diarias que completas desde que la adoptas
+        <p class="nota">Eliges cuál te acompaña en
+           <button type="button" class="enlace enlace-en-linea" data-accion="subvista" data-pantalla="personaje" data-vista="mascotas">tu Héroe › Mascotas</button>.
+           Cada mascota llega como <b>huevo</b> y crece con las misiones diarias que completas desde que la adoptas
            (cría con ${avatar.ETAPAS_MASCOTA[1].desde}, adulta con ${avatar.ETAPAS_MASCOTA[2].desde}). La que te acompaña pelea a tu lado
            en la Torre: la cría al ${mascota.POTENCIA.cria * 100} %, la adulta al 100 % y, si comió ese día, un ${Math.round((mascota.ALIMENTADA - 1) * 100)} % más.
            Si está triste (porque te descuidaste), no pelea.</p>
@@ -3058,6 +3137,7 @@ function tiendaDeMascotas(estado, cerrada, ctx) {
 export function pantallaTienda(estado, ctx) {
     const monedas = estado.personaje.monedas;
     const cerrada = ctx.vida.caido;   // caíste en combate: solo se venden pociones
+    const vista = ctx.subvista?.tienda || "recompensas";
     const precio = (base) => precioConEvento(base, ctx.evento);   // con el «Mercader ambulante», 30 % menos
     const mostrarPrecio = (base) => (precio(base) < base ? `<s>${base}</s> ${precio(base)}` : `${base}`);
     const recompensas = [...estado.recompensas].sort((a, b) => a.costo - b.costo);
@@ -3080,29 +3160,32 @@ export function pantallaTienda(estado, ctx) {
     const historial = canjes.map((c) =>
         `<li><span>${esc(c.nombre)}</span><span class="texto-suave">${fechaCorta(c.fecha)} · −${c.costo}</span></li>`).join("");
 
+    // Lo que se ve según la sección elegida.
+    const secciones = {
+        recompensas: () => `
+            ${cabeceraSeccion("🎁 Recompensas", "recompensa", "+ Nueva")}
+            <p class="nota">Premios reales que tú defines. Cánjealos cuando tengas monedas suficientes.</p>
+            ${recompensas.length ? `<ul class="lista">${lista}</ul>` : vacio("Crea tu primera recompensa. Ej: «Ver un capítulo de mi serie» por 50 monedas.")}
+            ${plegable(`Historial de canjes (${canjes.length})`, `<ul class="historial">${historial}</ul>`, canjes.length)}`,
+        equipo: () => `
+            ${tiendaDelAvatar(estado, cerrada, ctx.evento)}
+            <p class="nota">🏅 Los objetos legendarios de logro no se venden: se ganan. Los ves en
+               <button type="button" class="enlace enlace-en-linea" data-accion="subvista" data-pantalla="personaje" data-vista="equipo">tu Héroe › Equipo</button>.</p>`,
+        mascotas: () => tiendaDeMascotas(estado, cerrada, ctx),
+    };
+
     return `
         <section class="panel saldo">
             <span class="etiqueta">Tus monedas</span>
             <span class="saldo-numero">🪙 ${monedas}</span>
+            ${tarjetaPocion(estado, ctx.vida)}
         </section>
         ${cerrada ? avisoCaido(ctx.vida, "Tienda cerrada") : ""}
         ${ctx.evento?.clave === "mercader" ? avisoEvento(ctx) : ""}
-
-        <div class="titulo-seccion"><h2 class="titulo-juego">❤️ Vida</h2></div>
-        ${tarjetaPocion(estado, ctx.vida)}
-
-        ${cabeceraSeccion("Recompensas", "recompensa", "+ Nueva")}
-        <p class="nota">Premios reales que tú defines. Cánjealos cuando tengas monedas suficientes.</p>
-        ${recompensas.length ? `<ul class="lista">${lista}</ul>` : vacio("Crea tu primera recompensa. Ej: «Ver un capítulo de mi serie» por 50 monedas.")}
-
-        ${tiendaDelAvatar(estado, cerrada, ctx.evento)}
-        ${tiendaDeMascotas(estado, cerrada, ctx)}
-        ${seccionObjetosDeLogro(estado, ctx, "Objetos que no se venden")}
-
-        ${canjes.length ? `<section class="panel"><h2 class="titulo-juego">Historial</h2><ul class="historial">${historial}</ul></section>` : ""}
-
-        <section class="panel">
-            <h2 class="titulo-juego">Cómo ganar monedas</h2>
+        ${selectorSecciones("tienda", [["recompensas", "🎁 Premios"], ["equipo", "⚔️ Equipo"], ["mascotas", "🐾 Mascotas"]], vista)}
+        <section class="bloque">${(secciones[vista] || secciones.recompensas)()}</section>
+        <details class="plegable">
+            <summary>🪙 Cómo ganar monedas</summary>
             <dl class="estadisticas">
                 ${Object.values(DIFICULTADES).map((d) => `<div><dt>Misión ${d.nombre.toLowerCase()}</dt><dd>🪙 ${d.monedas}</dd></div>`).join("")}
                 <div><dt>Paso de misión principal</dt><dd>🪙 ${PREMIOS.submision.monedas}</dd></div>
@@ -3114,5 +3197,5 @@ export function pantallaTienda(estado, ctx) {
                 <div><dt>Minijuegos</dt><dd>🪙 hasta ${arcade.MAX_MONEDAS}</dd></div>
                 <div><dt>Logros</dt><dd>Tú decides</dd></div>
             </dl>
-        </section>`;
+        </details>`;
 }

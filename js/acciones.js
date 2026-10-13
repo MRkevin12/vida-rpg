@@ -1549,7 +1549,7 @@ export function revisarCambios(estado, antes) {
     for (const id of ahora.objetos.filter((o) => !previo.objetos.includes(o))) {
         const objeto = avatar.OBJETOS[id];
         celebraciones.push({ icono: objeto.icono, etiqueta: "¡Objeto desbloqueado!", titulo: objeto.nombre,
-                             detalle: "Equípalo en tu personaje." });
+                             detalle: "Equípalo en tu Héroe › Equipo." });
     }
     for (const [especie, etapa] of Object.entries(ahora.mascotas)) {
         const antesEtapa = previo.mascotas?.[especie];

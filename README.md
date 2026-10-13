@@ -11,16 +11,18 @@ Está pensada para el iPhone. Se instala desde Safari o Chrome, funciona sin int
 **Abrir la app:** https://mrkevin12.github.io/vida-rpg/
 
 <p>
-  <img src="capturas/hoy.jpg" width="200" alt="Pantalla Hoy: lista de misiones del día con su XP">
+  <img src="capturas/hoy.jpg" width="200" alt="Pantalla Hoy: el héroe con sus cuatro rivales y el panel «Tu día» con el Maestro">
   <img src="capturas/resumen.jpg" width="200" alt="Resumen con gráficas de cumplimiento de los últimos 7 días">
-  <img src="capturas/jefes.jpg" width="200" alt="Campaña de jefes: el avatar contra una pintura clásica">
-  <img src="capturas/personaje.jpg" width="200" alt="Pantalla del personaje con su avatar y apariencia">
+  <img src="capturas/jefes.jpg" width="200" alt="Aventuras: accesos al reino y al arcade, y la campaña de jefes con el avatar contra una pintura clásica">
+  <img src="capturas/personaje.jpg" width="200" alt="Pestaña Héroe: la ficha del avatar y sus secciones de equipo, mascotas, aspecto e historia">
   <img src="capturas/torre.jpg" width="200" alt="Torre del héroe: batalla por turnos en pixel art contra una criatura, con ventanas azules de comandos">
 </p>
 
 Las capturas usan una partida de ejemplo inventada.
 
 ## Qué tiene
+
+La app tiene cinco pestañas: **Hoy** (tus misiones, tareas y diario del día), **Progreso** (racha, resumen, calendario, atributos y logros), **Aventuras** (el reino, la campaña de jefes, las misiones principales y el arcade), **Héroe** (tu avatar, su equipo, tus mascotas, su aspecto y tu historia) y **Tienda** (premios reales, equipo y mascotas). Las pantallas largas se dividen en secciones con un selector arriba.
 
 - **Misiones diarias** con dificultad, atributo y los días de la semana en que tocan, o **N veces por semana** el día que quieras (sin romper la racha). Las que se cuentan («8 vasos de agua») tienen un botón +1 y se completan solas al llegar a la meta. Se agrupan por **momento del día** (mañana, tarde, noche) y se **ordenan arrastrando**. Si olvidaste marcar algo, puedes marcar el día de ayer.
 - **Deslizar para completar** y botón **Deshacer** por si te equivocas.
@@ -152,7 +154,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 144 pruebas de las reglas del juego (niveles, armadura, robo de vida, equipo, atributos propios, diario, el libro, «Fallé», el pacto, el Maestro, rituales, cofre, eventos, mapa, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe y su bestiario, habilidades del equipo, mascotas, el reino y su crónica, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa, que las criaturas de la Torre, las mascotas y los mapas sean imágenes válidas y que se conviertan en pixel art), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 145 pruebas de las reglas del juego (niveles, armadura, robo de vida, equipo, atributos propios, diario, el libro, «Fallé», el pacto, el Maestro, rituales, cofre, eventos, mapa, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe y su bestiario, habilidades del equipo, mascotas, el reino y su crónica, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa, que las criaturas de la Torre, las mascotas y los mapas sean imágenes válidas y que se conviertan en pixel art), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

@@ -6407,3 +6407,514 @@ body:has(#deshacer:not([hidden])) .aviso {
         animation-iteration-count: infinite !important;
     }
 }
+
+
+/* =====================================================================
+   Orden y aspecto (v27): la app reorganizada.
+   Va al final del archivo para que le gane a lo de antes cuando hace falta.
+   ===================================================================== */
+
+/* --- Más aire y un ritmo parejo entre las partes de cada pantalla --- */
+.pantalla {
+    gap: 18px;
+}
+
+/* Un grupo de cosas que van juntas (las misiones, las tareas…), sin marco propio. */
+.bloque {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+/* Los paneles: un borde más suave y una línea de luz arriba, como un cristal. */
+.panel {
+    border-color: rgba(60, 48, 112, 0.75);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 28px rgba(0, 0, 0, 0.32);
+}
+
+.panel > .titulo-juego:first-child,
+.panel > .titulo-seccion:first-child {
+    margin-bottom: 8px;
+}
+
+.nota {
+    line-height: 1.5;
+}
+
+/* --- La barra de pestañas: la elegida, con una pastilla de luz detrás del icono --- */
+.pestana svg {
+    box-sizing: content-box;
+    padding: 3px 14px;
+    border-radius: 999px;
+    transition: background 0.2s;
+}
+
+.pestana[aria-current="page"] svg {
+    background: rgba(34, 211, 238, 0.14);
+}
+
+/* --- Las secciones de una pantalla larga: pegadas bajo la cabecera al bajar --- */
+.selector-secciones {
+    position: sticky;
+    top: calc(var(--alto-cabecera, 72px) + 6px);
+    z-index: 4;
+    background: rgba(13, 10, 28, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-color: rgba(60, 48, 112, 0.9);
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.selector-secciones button {
+    min-height: 40px;
+    padding: 6px 4px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+/* El encabezado de las pantallas sin pestaña (con «‹ volver»). */
+.encabezado .titulo-juego {
+    font-size: 1.2rem;
+}
+
+.enlace-en-linea {
+    display: inline;
+    padding: 0;
+    font-size: inherit;
+    color: var(--cian);
+}
+
+/* --- Hoy: tu héroe en pequeño, con sus rivales --- */
+.heroe-hoy {
+    display: grid;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.heroe-hoy .heroe {
+    padding: 12px 14px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.heroe-hoy .heroe-avatar {
+    flex-basis: 92px;
+    background: radial-gradient(circle at 50% 40%, rgba(139, 92, 246, 0.22), transparent 70%);
+}
+
+.chips-heroe {
+    gap: 6px;
+    margin: 2px 0;
+}
+
+.chips-heroe .chip {
+    padding: 3px 9px;
+    font-size: 0.78rem;
+}
+
+/* Los 4 rivales: el jefe de cada campaña con su vida. */
+.rivales {
+    display: grid;
+    grid-template-columns: auto repeat(4, minmax(0, 1fr));
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px 12px;
+    font: inherit;
+    color: var(--texto);
+    text-align: left;
+    background: rgba(13, 10, 28, 0.55);
+    border: 0;
+    border-top: 1px solid rgba(60, 48, 112, 0.7);
+    cursor: pointer;
+}
+
+.rivales-titulo {
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--texto-suave);
+    writing-mode: horizontal-tb;
+}
+
+.rival {
+    position: relative;
+    display: grid;
+    min-width: 0;
+}
+
+.rival-retrato {
+    position: relative;
+    display: block;
+}
+
+.rival-retrato .retrato {
+    aspect-ratio: 4 / 3;
+}
+
+.rival-retrato .retrato img {
+    object-position: center 25%;
+}
+
+.rival .barra {
+    height: 5px;
+    margin: 4px 0 0;
+}
+
+.rival-icono {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    font-size: 0.78rem;
+    filter: drop-shadow(0 1px 2px #000);
+}
+
+.rival .dano {
+    top: -10px;
+    font-size: 0.9rem;
+}
+
+.rival.golpeado .rival-retrato {
+    animation: recibir-golpe 0.55s ease-out 0.3s;
+}
+
+.rival.golpeado .barra-vida {
+    animation: destello-rojo 0.45s ease-out;
+}
+
+/* «Tu día»: el Maestro arriba y, debajo, una fila por cada cosa del día. */
+.panel-dia {
+    display: grid;
+    gap: 0;
+    padding: 14px;
+    background:
+        radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.16), transparent 55%),
+        linear-gradient(180deg, var(--panel-claro), var(--panel));
+}
+
+.panel-dia .maestro-tarjeta {
+    margin: 0 0 4px;
+    padding: 0;
+    background: none;
+    border: 0;
+}
+
+.dia-fila {
+    padding: 10px 0 0;
+    margin-top: 10px;
+    border-top: 1px solid rgba(60, 48, 112, 0.6);
+}
+
+/* Lo de adentro deja de ser una tarjeta suelta: es una fila del panel. */
+.dia-fila > .evento-dia,
+.dia-fila > .cofre-linea,
+.dia-fila > .relampago,
+.dia-fila > .pacto-linea,
+.dia-fila > .panel {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.dia-fila > .cofre-tarjeta {
+    margin: 0;
+}
+
+.dia-fila .desafio-icono,
+.dia-fila .pacto-linea-icono,
+.dia-fila .evento-icono {
+    flex: 0 0 36px;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.dia-fila > .cofre-linea > span:first-child {
+    flex: 0 0 36px;
+    font-size: 1.3rem;
+    text-align: center;
+}
+
+/* Las herramientas sobre la lista de misiones: el día (ayer / hoy) y el modo enfoque. */
+.hoy-herramientas {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hoy-herramientas .selector {
+    flex: 1;
+}
+
+.hoy-herramientas .chip-enfoque {
+    min-height: 44px;
+    padding: 0 14px;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #a5f3fc;
+}
+
+/* El diario: las caritas a la vista y lo escrito plegado. */
+.diario-escribir {
+    display: grid;
+    gap: 10px;
+}
+
+.diario-escribir > summary {
+    min-height: 44px;
+    padding: 10px 12px;
+    overflow: hidden;
+    font-size: 0.88rem;
+    color: var(--texto-suave);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.diario-escribir > summary::-webkit-details-marker {
+    display: none;
+}
+
+.diario-escribir[open] > summary {
+    display: none;
+}
+
+/* --- Aventuras: dos accesos grandes (el reino y el arcade) --- */
+.accesos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.acceso {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 2px;
+    min-height: 118px;
+    padding: 14px;
+    overflow: hidden;
+    font: inherit;
+    color: var(--texto);
+    text-align: left;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 24px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+.acceso:active {
+    transform: scale(0.98);
+}
+
+.acceso b {
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.95rem;
+}
+
+.acceso small {
+    font-size: 0.76rem;
+    color: var(--texto-suave);
+}
+
+.acceso-icono {
+    font-size: 1.8rem;
+    line-height: 1.2;
+}
+
+.acceso-reino {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(52, 211, 153, 0.22), transparent 60%),
+        linear-gradient(180deg, var(--panel-claro), var(--panel));
+    border-color: rgba(52, 211, 153, 0.4);
+}
+
+.acceso-arcade {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.28), transparent 60%),
+        linear-gradient(180deg, var(--panel-claro), var(--panel));
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+/* Las 4 campañas: se elige una y se ve su tarjeta. */
+.selector-campanas button {
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+    min-height: 58px;
+    padding: 6px 6px 4px;
+}
+
+.selector-campanas button[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--color-atributo) 22%, transparent);
+    box-shadow: inset 0 0 0 1px var(--color-atributo);
+}
+
+.campana-pestana-icono {
+    font-size: 1.15rem;
+}
+
+.selector-campanas small {
+    font-size: 0.7rem;
+    color: var(--texto-suave);
+}
+
+.selector-campanas .barra {
+    width: 100%;
+    height: 4px;
+    margin: 2px 0 0;
+}
+
+/* --- Progreso: los totales en una rejilla --- */
+.numeros {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.numeros > div {
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+    padding: 10px 4px;
+    text-align: center;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+}
+
+.numeros b {
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.numeros span {
+    font-size: 0.7rem;
+    color: var(--texto-suave);
+}
+
+/* Los rasgos de cada atributo (lo que cambia en tu avatar). */
+.atributo-rasgos {
+    display: grid;
+    gap: 2px;
+    margin: 6px 0 0;
+    padding: 6px 0 0;
+    font-size: 0.74rem;
+    color: var(--texto-suave);
+    list-style: none;
+    border-top: 1px solid rgba(60, 48, 112, 0.6);
+}
+
+.atributo-rasgos .tiene {
+    color: var(--texto);
+}
+
+.atributo-rasgos small {
+    color: var(--texto-suave);
+}
+
+/* --- Héroe: «Tu historia», una fila por cada cosa --- */
+.filas-enlace {
+    display: grid;
+    gap: 8px;
+}
+
+.fila-enlace {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 12px;
+    font: inherit;
+    color: var(--texto);
+    text-align: left;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+.fila-enlace:active {
+    background: rgba(139, 92, 246, 0.12);
+}
+
+.fila-enlace > span:nth-child(2) {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 1px;
+}
+
+.fila-enlace small {
+    font-size: 0.78rem;
+    color: var(--texto-suave);
+}
+
+.fila-enlace-icono {
+    flex: 0 0 36px;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.fila-enlace-flecha {
+    font-size: 1.4rem;
+    color: var(--texto-suave);
+}
+
+/* --- Tienda: la poción va dentro del panel de tus monedas --- */
+.saldo .lista {
+    width: 100%;
+    margin-top: 8px;
+    text-align: left;
+}
+
+/* --- Héroe: la ficha en horizontal (el avatar a la izquierda), así las secciones quedan a la vista --- */
+.ficha {
+    grid-template-columns: 116px minmax(0, 1fr);
+    align-items: center;
+    justify-items: start;
+    column-gap: 14px;
+    row-gap: 4px;
+    text-align: left;
+}
+
+.ficha .ficha-avatar {
+    grid-row: span 3;
+    width: 116px;
+    margin: 0;
+    border-radius: 18px;
+}
+
+.ficha > .ficha-vida,
+.ficha > p.mini,
+.ficha > .etapas {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+.ficha > .titulo-juego {
+    align-self: end;
+    font-size: 1.2rem;
+}
+
+.ficha > .heroe-animo {
+    align-self: start;
+}
+
+.ficha .etapas li {
+    text-align: center;
+}
