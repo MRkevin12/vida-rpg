@@ -4048,6 +4048,298 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 
+/* ===== El Tratado de la Voluntad (v19) ===== */
+/* En Hoy: el día de tu pacto (o la invitación a sellarlo). */
+.pacto-linea {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px 14px;
+    font: inherit;
+    text-align: left;
+    color: var(--texto);
+    background: linear-gradient(135deg, rgba(122, 20, 20, 0.22), rgba(21, 16, 42, 0.9));
+    border: 1px solid rgba(200, 50, 58, 0.45);
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+.pacto-linea > span:last-child {
+    display: grid;
+    gap: 2px;
+}
+
+.pacto-linea-icono {
+    font-size: 1.6rem;
+}
+
+.pacto-cita {
+    font-style: italic;
+    color: #e9d8b4;
+}
+
+.pacto-autor {
+    font-style: normal;
+    color: var(--texto-suave);
+}
+
+.pacto-linea.alerta {
+    border-color: var(--rojo);
+    box-shadow: 0 0 14px rgba(251, 113, 133, 0.35);
+}
+
+.pacto-linea.alerta .pacto-cita {
+    font-style: normal;
+    color: #fecdd3;
+}
+
+.alerta-pacto {
+    color: #fecdd3;
+}
+
+/* El pergamino: papel viejo, tinta oscura y letra con serifa (las del iPhone, sin descargar nada). */
+.pergamino {
+    color-scheme: light;   /* la casilla y los campos, en claro (combinan con el papel) */
+    --tinta: #2b1d14;
+    --tinta-suave: #5f4a38;
+    --sangre: #7a1414;
+    position: relative;
+    margin-top: 12px;
+    padding: 30px 22px 26px;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.02rem;
+    line-height: 1.65;
+    color: var(--tinta);
+    background:
+        radial-gradient(ellipse at 50% 20%, rgba(255, 252, 240, 0.55), transparent 60%),
+        radial-gradient(ellipse at 50% 50%, #efe2c4 0%, #e3cfa6 65%, #cdb486 100%);
+    border: 1px solid #b89b6a;
+    border-radius: 6px;
+    box-shadow: inset 0 0 50px rgba(110, 72, 28, 0.35), 0 14px 34px rgba(0, 0, 0, 0.5);
+}
+
+.pergamino p {
+    margin: 0 0 12px;
+}
+
+.pergamino-cabecera {
+    text-align: center;
+}
+
+.pergamino-sobre {
+    margin: 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--sangre);
+}
+
+.pergamino h2 {
+    margin: 4px 0;
+    font-family: inherit;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tinta);
+}
+
+.pergamino-entre {
+    font-style: italic;
+    color: var(--tinta-suave);
+}
+
+.pergamino .epigrafe,
+.pergamino .cita-final {
+    margin: 18px 0;
+    font-style: italic;
+    text-align: center;
+    color: var(--tinta-suave);
+}
+
+.pergamino .epigrafe span,
+.pergamino .cita-final span,
+.cita-pacto span {
+    font-style: normal;
+    font-size: 0.85rem;
+}
+
+/* La primera letra del preámbulo, grande y roja, como en los libros antiguos. */
+.preambulo p:first-child::first-letter {
+    float: left;
+    margin: 4px 8px 0 0;
+    font-size: 3.2em;
+    line-height: 0.8;
+    font-weight: 700;
+    color: var(--sangre);
+}
+
+.articulo {
+    margin-top: 18px;
+}
+
+.articulo h3 {
+    margin: 0 0 6px;
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+    color: var(--tinta);
+}
+
+.articulo h3 span {
+    display: block;
+    font-size: 0.75rem;
+    font-variant: normal;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--sangre);
+}
+
+.cita-pacto {
+    padding-left: 12px;
+    font-style: italic;
+    color: var(--tinta-suave);
+    border-left: 2px solid rgba(122, 20, 20, 0.45);
+}
+
+.pergamino .razon {
+    color: var(--sangre);
+    overflow-wrap: anywhere;
+}
+
+.pergamino .cierre {
+    margin-top: 22px;
+    font-style: italic;
+}
+
+/* La firma ya sellada. */
+.firma-y-sello {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.firma-bloque {
+    flex: 1;
+    min-width: 0;
+}
+
+.firma-dibujo {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.linea-firma {
+    margin: 0;
+    padding-top: 4px;
+    font-style: italic;
+    text-align: center;
+    border-top: 1px solid var(--tinta-suave);
+}
+
+.sello-lacre {
+    flex: 0 0 88px;
+    width: 88px;
+    height: 88px;
+    filter: drop-shadow(0 3px 4px rgba(60, 20, 10, 0.45));
+}
+
+.fecha-pacto {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    text-align: center;
+    color: var(--tinta-suave);
+}
+
+/* Firmar: los campos se ven como escritos sobre el papel. */
+.firmar-pacto {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(95, 74, 56, 0.5);
+}
+
+.firmar-pacto label {
+    display: grid;
+    gap: 6px;
+    font-weight: 700;
+}
+
+.firmar-pacto .opcional {
+    font-weight: 400;
+    font-style: italic;
+    color: var(--tinta-suave);
+}
+
+.firmar-pacto input[type="text"],
+.firmar-pacto textarea {
+    font-family: inherit;
+    color: var(--tinta);
+    background: rgba(255, 250, 235, 0.55);
+    border-color: rgba(95, 74, 56, 0.5);
+}
+
+.firmar-pacto ::placeholder {
+    color: #8c7660;
+}
+
+.firmar-instruccion {
+    margin: 0 !important;
+    font-weight: 700;
+}
+
+.lienzo-firma {
+    display: block;
+    width: 100%;
+    height: 150px;
+    background: rgba(255, 250, 235, 0.45);
+    border: 1px dashed var(--tinta-suave);
+    border-radius: 8px;
+    touch-action: none;   /* que el dedo firme en vez de mover la pantalla */
+    cursor: crosshair;
+}
+
+.boton-texto {
+    justify-self: center;
+    min-height: 44px;
+    padding: 0 12px;
+    font: inherit;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    color: var(--tinta-suave);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.jurar {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 10px;
+    font-weight: 400 !important;
+    font-style: italic;
+}
+
+.jurar input {
+    width: 22px;
+    height: 22px;
+    margin-top: 3px;
+    accent-color: var(--sangre);
+}
+
+.boton-sangre {
+    color: #fff5f5;
+    background: linear-gradient(180deg, #a3242b, #6e0f14);
+    border: 1px solid #4a080c;
+    box-shadow: 0 6px 18px rgba(110, 15, 20, 0.45);
+}
+
+
 /* Si el iPhone tiene activado "Reducir movimiento", apagamos animaciones */
 @media (prefers-reduced-motion: reduce) {
     *, *::after {

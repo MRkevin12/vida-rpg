@@ -20,6 +20,8 @@ import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
 import * as vida from "../js/vida.js";
 import * as diario from "../js/diario.js";
+import * as pacto from "../js/pacto.js";
+import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "../js/novedades.js";
@@ -967,6 +969,58 @@ prueba("Copias viejas: la vida empieza a contar el día que llega la actualizaci
     delete viejo.descansos;
     const cargado = datos.desdeRespaldo(JSON.stringify(viejo));
     igual([cargado.vida.desde, cargado.vida.pociones, cargado.descansos], [hoy(), [], []]);
+});
+
+
+// ===== El Tratado de la Voluntad (v19) =====
+
+// Una firma de prueba: un trazo con varios puntos.
+const FIRMA = "M10 50 L20 60 L30 40 L40 70 L50 30 L60 80 L70 20 L80 90 L90 10";
+
+prueba("Pacto: para sellarlo hay que jurarlo y firmarlo; renovarlo guarda la fecha del primero", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.firmarPacto(estado, { nombre: "Ana", firma: FIRMA }), "jurarlo");
+    debeFallar(() => acciones.firmarPacto(estado, { nombre: "Ana", firma: "M10 10", juro: "on" }), "Firma con tu dedo");
+    debeFallar(() => acciones.firmarPacto(estado, { nombre: "Ana", firma: `${FIRMA}"/><script>alert(1)</script>`, juro: "on" }),
+               "Firma con tu dedo");
+    const celebraciones = acciones.firmarPacto(estado, { nombre: " Ana ", razon: " Por mi familia ", firma: FIRMA, juro: "on" }).celebraciones;
+    igual(celebraciones[0].etiqueta, "¡Pacto sellado!");
+    igual([estado.pacto.nombre, estado.pacto.razon, estado.pacto.firmadoEn, estado.pacto.primeraVez, estado.pacto.renovaciones],
+          ["Ana", "Por mi familia", hoy(), hoy(), 0]);
+    estado.pacto.primeraVez = dia(-10);
+    acciones.firmarPacto(estado, { nombre: "Ana", razon: "", firma: FIRMA, juro: "on" });
+    igual([estado.pacto.primeraVez, estado.pacto.renovaciones], [dia(-10), 1], "renovado");
+});
+
+prueba("Pacto: días honrados (algo hecho o descanso); los días sin misiones no cuentan y hoy solo suma", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado, { dias: [diaDeSemana(dia(-4)), diaDeSemana(dia(-3)), diaDeSemana(dia(-2)), diaDeSemana(dia(-1)), diaDeSemana(hoy())] });
+    envejecer(estado, 5);
+    acciones.firmarPacto(estado, { nombre: "Ana", firma: FIRMA, juro: "on" });
+    estado.pacto.primeraVez = dia(-5);                     // hace 5 días no tocaba nada: no cuenta
+    marcarEn(estado, leer, dia(-4));                       // honrado
+    estado.diario[dia(-3)] = { animo: "bien", texto: "", gratitud: "" };   // el diario también cuenta
+    estado.descansos.push({ desde: dia(-2), hasta: dia(-2) });             // descanso: honrado
+    // ayer: nada → fallado. Hoy: todavía no cuenta.
+    let c = pacto.cumplimientoDelPacto(estado, hoy());
+    igual([c.dia, c.honrados, c.contados, c.porcentaje, c.ayerFallado, c.hoyHonrado], [6, 3, 4, 75, true, false]);
+    acciones.completarMision(estado, leer.id);
+    c = pacto.cumplimientoDelPacto(estado, hoy());
+    igual([c.honrados, c.contados, c.porcentaje, c.hoyHonrado], [4, 5, 80, true], "hoy ya suma");
+});
+
+prueba("Pacto: el pergamino lleva tu nombre y tu porqué (escapados) y la firma solo si es válida", () => {
+    const estado = partidaNueva();
+    const ctx = { hoy: hoy(), renovandoPacto: false };
+    cierto(vistas.pantallaPacto(estado, ctx).includes('data-form="pacto"'), "sin firmar: el formulario para firmar");
+    acciones.firmarPacto(estado, { nombre: "Ana <b>", razon: "<img src=x onerror=alert(1)>", firma: FIRMA, juro: "on" });
+    const html = vistas.pantallaPacto(estado, ctx);
+    cierto(html.includes("Yo, Ana &lt;b&gt;, caballero de mi propia vida"), "el preámbulo con tu nombre");
+    cierto(html.includes("&lt;img src=x onerror=alert(1)&gt;") && !html.includes("<img src=x"), "tu porqué, escapado");
+    cierto(html.includes(`d="${FIRMA}"`), "la firma dibujada");
+    estado.pacto.firma = 'M0 0" onload="alert(1)';
+    cierto(!vistas.pantallaPacto(estado, ctx).includes("onload"), "una firma inválida no se dibuja");
+    igual(pacto.citaDelDia("2026-10-12"), pacto.citaDelDia("2026-10-12"), "la cita del día no cambia en el día");
 });
 
 

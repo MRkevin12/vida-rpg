@@ -18,6 +18,7 @@ import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
+import * as pacto from "./pacto.js";
 import { PINTURAS, fuentePintura } from "./pinturas.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import * as minijuegos from "./minijuegos.js";
@@ -39,6 +40,7 @@ let rangoResumen = 7;            // en Progreso: el resumen muestra los últimos
 // Pantalla «Tu diario»: el mes que se ve (null = el actual), el día tocado, la búsqueda,
 // el filtro de ánimo y cuántas entradas se muestran.
 const diarioVista = { mes: null, dia: null, busqueda: "", filtro: null, limite: 30 };
+let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -54,6 +56,7 @@ const DIBUJAR = {
     arcade: vistas.pantallaArcade,
     enfoque: vistas.pantallaEnfoque,
     diario: vistas.pantallaDiario,
+    pacto: vistas.pantallaPacto,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -569,11 +572,14 @@ function dibujarPantalla(efectos = {}) {
         semanaPendiente: semanaPorMostrar(estado, fecha),   // lunes de la semana pasada, o null
         ahora: Date.now(),                                  // para el reloj del modo enfoque
         ...contextoDiario(fecha),
+        renovandoPacto,
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
     };
 
     const contenedor = $(`#pantalla-${pantallaActual}`);
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contexto);
+
+    if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
 
     if (pantallaActual === "progreso" && !efectos.mantenerScroll) {
         // El calendario empieza mostrando las semanas más recientes (a la derecha).
@@ -620,6 +626,7 @@ function fechaVista() {
 
 function cambiarPantalla(nombre) {
     diaVisto = "hoy";   // al cambiar de pantalla siempre se vuelve a "hoy"
+    renovandoPacto = false;
     mostrarSeccion(nombre);
     dibujarPantalla();
     window.scrollTo(0, 0);
@@ -773,6 +780,9 @@ function rellenarOpciones() {
         <p><strong>Misiones con cantidad:</strong> tienen un botón +1 y se completan solas al llegar a la meta (ej: 8 vasos de agua).</p>
         <p><strong>Tareas sueltas:</strong> pendientes de una sola vez, con fecha. Aparecen en Hoy el día que vencen y dan XP como una misión de su dificultad.</p>
         <p><strong>Modo enfoque:</strong> ${Object.entries(juego.ENFOQUE).map(([m, dif]) => `${m} min = misión ${d[dif].nombre.toLowerCase()}`).join(", ")}. Si cancelas, no hay premio.</p>
+        <p><strong>Tu pacto:</strong> el Tratado de la Voluntad es un juramento contigo mismo que firmas con el dedo. Un día
+           queda «honrado» si hiciste algo (una misión, una tarea, una sesión de enfoque o tu diario) o estabas de descanso;
+           los días sin misiones no cuentan. Su ley: nunca fallar dos días seguidos.</p>
         <p><strong>Diario:</strong> cada día puedes marcar cómo te fue (5 ánimos), responder la pregunta del día y anotar algo
            que agradeces. Escribirlo da +${diario.PREMIO_DIARIO.xp} XP de Carisma y ${diario.PREMIO_DIARIO.monedas} monedas (una vez al día)
            y cura ${vida.VIDA.diario} de vida. En «Tu diario» ves el calendario de ánimo, lo que tu diario dice de ti, tus recuerdos,
@@ -1226,6 +1236,59 @@ function cerrarBienvenida() {
 
 // ===== Copia de seguridad =====
 
+// ===== Firmar el pacto con el dedo =====
+// Se dibuja en un <canvas>. El trazo se guarda como un "camino" SVG ("M10 20 L12 22 …")
+// en un recuadro de 600 × 200, así la firma se ve igual en cualquier pantalla.
+let trazoFirma = "";
+
+function prepararLienzoFirma() {
+    const lienzo = $("#pacto-lienzo");
+    if (!lienzo) return;
+    trazoFirma = "";
+    const caja = lienzo.getBoundingClientRect();
+    const densidad = window.devicePixelRatio || 1;
+    lienzo.width = Math.round(caja.width * densidad);
+    lienzo.height = Math.round(caja.height * densidad);
+    const pincel = lienzo.getContext("2d");
+    pincel.scale(lienzo.width / pacto.ANCHO_FIRMA, lienzo.height / pacto.ALTO_FIRMA);
+    pincel.lineWidth = 4;
+    pincel.lineCap = "round";
+    pincel.lineJoin = "round";
+    pincel.strokeStyle = "#7a1414";   // tinta roja, como de sangre
+
+    // Dónde está el dedo, en coordenadas del recuadro (sin salirse de él).
+    const punto = (evento) => {
+        const c = lienzo.getBoundingClientRect();
+        const x = Math.min(pacto.ANCHO_FIRMA, Math.max(0, ((evento.clientX - c.left) / c.width) * pacto.ANCHO_FIRMA));
+        const y = Math.min(pacto.ALTO_FIRMA, Math.max(0, ((evento.clientY - c.top) / c.height) * pacto.ALTO_FIRMA));
+        return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+    };
+    const linea = (desde, hasta) => {
+        pincel.beginPath();
+        pincel.moveTo(...desde);
+        pincel.lineTo(...hasta);
+        pincel.stroke();
+    };
+    let anterior = null;
+    lienzo.onpointerdown = (evento) => {
+        lienzo.setPointerCapture(evento.pointerId);
+        anterior = punto(evento);
+        trazoFirma += `M${anterior[0]} ${anterior[1]} L${anterior[0]} ${anterior[1]} `;
+        linea(anterior, anterior);
+        $("#pacto-firma").value = trazoFirma.trim();
+    };
+    lienzo.onpointermove = (evento) => {
+        if (!anterior) return;
+        const nuevo = punto(evento);
+        if (Math.hypot(nuevo[0] - anterior[0], nuevo[1] - anterior[1]) < 2) return;   // ignora temblores mínimos
+        linea(anterior, nuevo);
+        trazoFirma += `L${nuevo[0]} ${nuevo[1]} `;
+        anterior = nuevo;
+        $("#pacto-firma").value = trazoFirma.trim();
+    };
+    lienzo.onpointerup = lienzo.onpointercancel = () => { anterior = null; };
+}
+
 function pintarListaDiario() {
     $("#diario-lista").innerHTML = vistas.listaDiario(estado, contextoDiario(hoy()));
 }
@@ -1599,6 +1662,24 @@ const ACCIONES = {
     },
     "descargar-diario": () => descargarDiario(),
 
+    // Tu pacto.
+    "pacto-borrar-firma": () => prepararLienzoFirma(),
+    "pacto-renovar": () => {
+        if (!confirm("¿Renovar tu juramento? Volverás a firmarlo. Tus días honrados se siguen contando desde el primero.")) return;
+        renovandoPacto = true;
+        dibujarPantalla();
+        $(".firmar-pacto")?.scrollIntoView({ block: "center" });
+    },
+    "pacto-cancelar": () => {
+        renovandoPacto = false;
+        dibujarPantalla();
+        window.scrollTo(0, 0);
+    },
+    "ver-pacto": () => {
+        $("#dialogo-ajustes").close();
+        cambiarPantalla("pacto");
+    },
+
     // Resumen: cambiar entre 7 y 30 días.
     "rango-resumen": (boton) => {
         rangoResumen = Number(boton.dataset.dias);
@@ -1818,6 +1899,18 @@ const FORMULARIOS = {
                 boton.textContent = "Recuperar";
             });
         return false;
+    },
+    pacto(valores) {
+        if (!confirm("¿Sellar tu pacto? Es un juramento contigo mismo: por ti y para ti.")) return false;
+        const eraRenovacion = renovandoPacto;
+        renovandoPacto = false;
+        const resultado = ejecutar(() => acciones.firmarPacto(estado, valores));
+        if (!resultado) {
+            renovandoPacto = eraRenovacion;   // algo faltó: la firma sigue ahí para intentarlo otra vez
+            return false;
+        }
+        window.scrollTo(0, 0);
+        return true;
     },
     descanso(valores) {
         if (ejecutar(() => acciones.empezarDescanso(estado, valores.hasta))) {

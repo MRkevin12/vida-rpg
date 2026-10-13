@@ -14,6 +14,7 @@ import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
+import * as pacto from "./pacto.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
@@ -1023,6 +1024,38 @@ export function revisarVidaAlAbrir(estado) {
     const cuando = dias.length === 1 ? "ayer" : "mientras no estabas";
     return { celebraciones: [{ pequena: true, icono: "💔",
                                titulo: `Perdiste ${perdida} de vida ${cuando} (${juego.plural(pendientes, "pendiente sin hacer", "pendientes sin hacer")})` }] };
+}
+
+
+// ===== El Tratado de la Voluntad (tu pacto) =====
+
+// Sellar el pacto (o renovarlo): hay que jurarlo y firmarlo con el dedo.
+// Si lo renuevas, se guarda la fecha del primero: los días honrados se cuentan desde ahí.
+export function firmarPacto(estado, { nombre, razon, firma, juro }) {
+    if (!juro) throw new Error("Para sellar el pacto tienes que jurarlo: marca la casilla.");
+    const limpio = validarNombre(nombre, 40);
+    const motivo = String(razon || "").trim();
+    if (motivo.length > pacto.LARGO_RAZON) throw new Error(`Tu porqué puede tener máximo ${pacto.LARGO_RAZON} letras.`);
+    const trazo = String(firma || "").trim();
+    if (!pacto.firmaValida(trazo)) throw new Error("Firma con tu dedo en el recuadro.");
+
+    const anterior = estado.pacto;
+    estado.pacto = {
+        nombre: limpio,
+        razon: motivo,
+        firma: trazo,
+        firmadoEn: hoy(),
+        primeraVez: anterior?.primeraVez || hoy(),
+        renovaciones: anterior ? anterior.renovaciones + 1 : 0,
+    };
+    return {
+        celebraciones: [{
+            icono: "📜",
+            etiqueta: anterior ? "Juramento renovado" : "¡Pacto sellado!",
+            titulo: limpio,
+            detalle: "Por ti y para ti. Que tus actos lo cumplan cada día.",
+        }],
+    };
 }
 
 

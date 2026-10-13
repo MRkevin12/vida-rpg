@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 18;
+export const VERSION_APP = 19;
 
 export const NOVEDADES = [
+    {
+        version: 19,
+        titulo: "El Tratado de la Voluntad",
+        cambios: [
+            "📜 Un pacto de sangre contigo mismo, por ti y para ti, con frases de Séneca, Marco Aurelio, Epicteto y otros.",
+            "✍️ Escribe tu porqué, fírmalo con tu dedo y séllalo con lacre.",
+            "🛡️ Cada día, en Hoy: el día de tu pacto, cuánto lo has honrado y una cita. Su ley: nunca fallar dos días seguidos.",
+        ],
+    },
     {
         version: 18,
         titulo: "Un diario de verdad",

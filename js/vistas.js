@@ -15,6 +15,7 @@ import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
+import * as pacto from "./pacto.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
@@ -142,6 +143,7 @@ export function pantallaHoy(estado, ctx) {
     return `
         ${esAyer ? "" : tarjetaSemana(estado, ctx)}
         ${tarjetaHeroe(estado, ctx)}
+        ${esAyer ? "" : lineaDelPacto(estado, ctx)}
         ${avisoDescanso(estado, ctx)}
 
         <div class="titulo-seccion">
@@ -419,6 +421,140 @@ function seccionDiario(estado, ctx, fecha, esAyer) {
                 <button type="submit" class="boton boton-principal">${entrada ? "Actualizar" : "Guardar en mi diario"}</button>
             </form>
         </section>`;
+}
+
+
+// ===== El Tratado de la Voluntad (tu pacto) =====
+
+// En Hoy: si no lo has firmado, una invitación; si sí, el día de tu pacto y una cita
+// (o una advertencia si ayer fallaste: el artículo III dice «nunca fallar dos días seguidos»).
+function lineaDelPacto(estado, ctx) {
+    if (!estado.pacto) {
+        return `
+            <button type="button" class="pacto-linea pacto-invitacion" data-accion="ir" data-pantalla="pacto">
+                <span class="pacto-linea-icono" aria-hidden="true">📜</span>
+                <span><b>Sella tu pacto</b>
+                    <span class="mini">Un juramento contigo mismo, por ti y para ti. Fírmalo con tu dedo.</span></span>
+            </button>`;
+    }
+    const c = pacto.cumplimientoDelPacto(estado, ctx.hoy);
+    const cita = pacto.citaDelDia(ctx.hoy);
+    const texto = c.ayerFallado && !c.hoyHonrado
+        ? "<b>Artículo III:</b> ayer fallaste. Hoy no puede ser el segundo día."
+        : `«${cita.texto}» <span class="pacto-autor">— ${cita.autor}</span>`;
+    return `
+        <button type="button" class="pacto-linea ${c.ayerFallado && !c.hoyHonrado ? "alerta" : ""}" data-accion="ir" data-pantalla="pacto">
+            <span class="pacto-linea-icono" aria-hidden="true">📜</span>
+            <span><b>Día ${c.dia} de tu pacto</b>${c.porcentaje === null ? "" : ` · ${c.porcentaje} % honrado`}
+                <span class="mini pacto-cita">${texto}</span></span>
+        </button>`;
+}
+
+// El sello de lacre rojo, con la inicial de tu nombre.
+function selloDeLacre(nombre) {
+    const inicial = esc((Array.from(nombre.trim())[0] || "V").toUpperCase());
+    return `
+        <svg class="sello-lacre" viewBox="0 0 120 120" role="img" aria-label="Sello de lacre">
+            <defs><radialGradient id="lacre" cx="38%" cy="32%" r="72%">
+                <stop offset="0" stop-color="#c8323a"/><stop offset=".6" stop-color="#8f1218"/><stop offset="1" stop-color="#560a0e"/>
+            </radialGradient></defs>
+            <path d="M60 6 C72 4 80 12 90 14 C102 17 112 26 113 40 C115 50 110 58 114 68 C118 82 108 95 96 102 C86 108 78 116 62 114
+                     C48 117 38 110 28 104 C14 98 6 86 7 72 C6 62 2 52 8 42 C12 28 22 18 36 12 C44 8 50 7 60 6 Z" fill="url(#lacre)"/>
+            <circle cx="60" cy="60" r="36" fill="none" stroke="#560a0e" stroke-width="3" opacity=".7"/>
+            <circle cx="60" cy="60" r="31" fill="none" stroke="#e8696f" stroke-width="1" opacity=".45"/>
+            <text x="60" y="74" text-anchor="middle" font-family="Georgia, serif" font-size="40" font-weight="700" fill="#45060a"
+                  opacity=".85">${inicial}</text>
+            <ellipse cx="42" cy="34" rx="15" ry="7" fill="#fff" opacity=".16" transform="rotate(-32 42 34)"/>
+        </svg>`;
+}
+
+// La firma guardada (un trazo SVG). Solo se dibuja si es un trazo válido.
+function dibujoDeFirma(trazo) {
+    if (!pacto.firmaValida(trazo)) return "";
+    return `<svg class="firma-dibujo" viewBox="0 0 ${pacto.ANCHO_FIRMA} ${pacto.ALTO_FIRMA}" role="img" aria-label="Tu firma">
+                <path d="${trazo}" fill="none" stroke="#7a1414" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+// La pantalla del pacto: el pergamino con el tratado completo. Si todavía no lo firmaste
+// (o lo estás renovando), abajo va el formulario para jurarlo y firmarlo con el dedo.
+export function pantallaPacto(estado, ctx) {
+    const p = estado.pacto;
+    const firmando = !p || ctx.renovandoPacto;
+    const nombre = p && !ctx.renovandoPacto ? p.nombre : estado.personaje.nombre;
+    const tratamiento = estado.apariencia.cuerpo === "femenino" ? "dama" : "caballero";
+    const citaHtml = (c) => `<p class="cita-pacto">«${c.texto}» <span>— ${c.autor}</span></p>`;
+
+    const articulos = pacto.ARTICULOS.map((a, i) => `
+        <section class="articulo">
+            <h3><span>Artículo ${pacto.ROMANOS[i]}</span> ${a.titulo}</h3>
+            <p>${a.texto}</p>
+            ${a.conRazon && p?.razon && !ctx.renovandoPacto ? `<p>Y lo hago, sobre todo, por esto: <em class="razon">«${esc(p.razon)}»</em></p>` : ""}
+            ${a.cita ? citaHtml(a.cita) : ""}
+        </section>`).join("");
+
+    const firma = firmando
+        ? `<form data-form="pacto" class="firmar-pacto">
+               <label>Mi nombre
+                   <input type="text" name="nombre" maxlength="40" required autocomplete="off" value="${esc(nombre)}"></label>
+               <label>Mi porqué <span class="opcional">(lo que de verdad me mueve)</span>
+                   <textarea name="razon" rows="3" maxlength="${pacto.LARGO_RAZON}"
+                             placeholder="Ej: Quiero mirarme al espejo y saber que cumplí mi palabra.">${esc(p?.razon || "")}</textarea></label>
+               <p class="firmar-instruccion">Firma con tu dedo:</p>
+               <canvas id="pacto-lienzo" class="lienzo-firma" aria-label="Recuadro para firmar"></canvas>
+               <input type="hidden" name="firma" id="pacto-firma">
+               <button type="button" class="boton-texto" data-accion="pacto-borrar-firma">Borrar la firma</button>
+               <label class="jurar"><input type="checkbox" name="juro" required>
+                   <span>Juro por mi honor cumplir este pacto, por mí y para mí.</span></label>
+               <button type="submit" class="boton boton-sangre boton-ancho">🩸 Sellar con mi sangre</button>
+               ${ctx.renovandoPacto ? '<button type="button" class="boton-texto" data-accion="pacto-cancelar">Cancelar</button>' : ""}
+           </form>`
+        : `<div class="pacto-firmado">
+               <div class="firma-y-sello">
+                   <div class="firma-bloque">
+                       ${dibujoDeFirma(p.firma)}
+                       <p class="linea-firma">${esc(p.nombre)}</p>
+                   </div>
+                   ${selloDeLacre(p.nombre)}
+               </div>
+               <p class="fecha-pacto">Sellado el ${fechaLegible(p.firmadoEn)}${p.renovaciones
+                   ? ` · renovado ${plural(p.renovaciones, "vez", "veces")} · desde el ${fechaCorta(p.primeraVez)}` : ""}</p>
+           </div>`;
+
+    // Cómo vas cumpliendo (solo si ya lo firmaste).
+    let cumplimiento = "";
+    if (p && !ctx.renovandoPacto) {
+        const c = pacto.cumplimientoDelPacto(estado, ctx.hoy);
+        cumplimiento = `
+            <section class="panel">
+                <div class="fichas-dato">
+                    ${ficha("Tu pacto", `📜 Día ${c.dia}`, `<span class="ficha-nota">Desde el ${fechaCorta(p.primeraVez)}</span>`)}
+                    ${ficha("Días honrados", c.porcentaje === null ? "—" : `${c.porcentaje} %`,
+                            `<span class="ficha-nota">${c.honrados} de ${plural(c.contados, "día", "días")} con algo cumplido (o de descanso)</span>`)}
+                </div>
+                ${c.ayerFallado && !c.hoyHonrado ? '<p class="nota alerta-pacto">⚠️ Ayer fallaste. Recuerda el artículo III: hoy no puede ser el segundo día.</p>' : ""}
+                <button type="button" class="boton boton-secundario boton-ancho" data-accion="pacto-renovar">Renovar mi juramento</button>
+            </section>`;
+    }
+
+    return `
+        <div class="titulo-seccion">
+            <h2 class="titulo-juego">📜 Tu pacto</h2>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="hoy">‹ Hoy</button>
+        </div>
+        ${cumplimiento}
+        <article class="pergamino">
+            <header class="pergamino-cabecera">
+                <p class="pergamino-sobre">Pacto de sangre</p>
+                <h2>Tratado de la Voluntad</h2>
+                <p class="pergamino-entre">entre ${esc(nombre)} y quien ha decidido llegar a ser</p>
+            </header>
+            <p class="epigrafe">«${pacto.EPIGRAFE.texto}»<br><span>— ${pacto.EPIGRAFE.autor}</span></p>
+            <section class="preambulo">${pacto.preambulo(esc(nombre), tratamiento).map((parrafo) => `<p>${parrafo}</p>`).join("")}</section>
+            ${articulos}
+            <p class="cierre">${pacto.CIERRE}</p>
+            <p class="cita-final">«${pacto.CITA_FINAL.texto}»<br><span>— ${pacto.CITA_FINAL.autor}</span></p>
+            ${firma}
+        </article>`;
 }
 
 
@@ -1743,6 +1879,7 @@ export function pantallaPersonaje(estado, ctx) {
             <p class="etiqueta">Nivel ${a.nivel} · ${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</p>
             <p class="heroe-animo">${textoAnimo(a, ctx)}</p>
             <div class="ficha-vida">${barraDeVida(ctx.vida)}</div>
+            <button type="button" class="boton boton-secundario" data-accion="ir" data-pantalla="pacto">📜 ${estado.pacto ? "Mi pacto" : "Sellar mi pacto"}</button>
             <p class="mini texto-suave">${vida.ESTADOS[ctx.vida.nivel].texto}</p>
             <ol class="etapas">${etapas}</ol>
         </section>

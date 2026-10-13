@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 6,
+        version: 7,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
         atributosPropios: [], // los tuyos: { id, nombre, icono, color, base (uno de los 4), creadoEn }
@@ -57,6 +57,8 @@ export function estadoInicial() {
             avisadoHasta: null,   // hasta qué día ya te avisamos cuánta vida perdiste
         },
         descansos: [],        // modo descanso: { desde, hasta } (los dos días incluidos)
+        pacto: null,          // tu Tratado de la Voluntad (ver pacto.js): { nombre, razon, firma (trazo SVG),
+                              //   firmadoEn, primeraVez, renovaciones }
 
         avatar: {             // equipamiento del avatar (ver avatar.js)
             comprados: [],    // ids de objetos comprados en la tienda
