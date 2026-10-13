@@ -1,7 +1,7 @@
 # <img src="iconos/icono-192.png" width="56" alt="" align="top"> Vida RPG
 
 [![Pruebas](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml/badge.svg)](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml)
-![Versión](https://img.shields.io/badge/versión-v23-8b5cf6)
+![Versión](https://img.shields.io/badge/versión-v24-8b5cf6)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-34d399)](LICENSE)
 
 Una app de productividad que convierte tu día a día en un juego de rol: completas misiones, ganas experiencia, subes de nivel y derrotas jefes.
@@ -40,6 +40,8 @@ Las capturas usan una partida de ejemplo inventada.
 - **Tu semana:** al empezar una semana nueva, un resumen de la anterior: cumplimiento, días perfectos, metas, enfoque, ánimo y el desafío.
 - **XP, niveles y cuatro atributos:** Fuerza, Intelecto, Carisma y Riqueza. Además puedes crear **tus propios atributos** para cosas específicas (Programación, Inglés, Salud…): cada uno tiene su nivel y le suma a uno de los 4.
 - **Vida del héroe:** al terminar cada día pierdes vida por lo que tocaba y no hiciste, y la recuperas cumpliendo. Con 80 % o más estás **en plena forma** (+10 % de XP y monedas). Si llega a 0 caes en combate: la tienda y el arcade se cierran hasta que recuperes la mitad. Hay **pociones** (una al día) y un **modo descanso** para vacaciones o días enfermo, que no quita vida ni rompe la racha.
+- **Los jefes también pegan:** cada misión que fallas es un golpe del jefe de su categoría, que te **roba la vida** y se cura con ella (se ve en una escena animada). Tu **armadura** sale de tus objetos de protección: llena, fallar duele menos; gastada, duele más. Se gasta al fallar y se repara cumpliendo.
+- **El equipo cuenta:** cada objeto da armadura, ataque, magia o suerte, y eso te hace más fuerte en la Torre (más daño, hechizos, críticos y golpes que duelen menos) y en los minijuegos (escudos, vidas de más, golpes más fuertes y monedas que valen más).
 - **Rachas con escudos:** cada 7 días seguidos ganas un escudo que salva un día fallado. Los días de descanso no rompen la racha.
 - **Resumen con gráficas** de los últimos 7 o 30 días: cumplimiento, días perfectos, XP, tu mejor día de la semana y qué atributo tienes descuidado.
 - **Calendario de un año** al estilo de GitHub.
@@ -107,6 +109,7 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/resumen.js` | Los números del resumen de 7 y 30 días y de «Tu semana» |
 | `js/vistas.js` | Convierte la partida en HTML |
 | `js/avatar.js` | Las reglas del avatar: etapas, clases, objetos y opciones de apariencia |
+| `js/equipo.js` | Lo que da tu equipo: la armadura y el ataque, la magia y la suerte de cada objeto |
 | `js/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
 | `js/arcade.js`, `js/minijuegos.js` | Las fichas y los tres minijuegos en `<canvas>` |
 | `js/torre.js` | Las reglas de la Torre del héroe (batallas por turnos y mejoras) |
@@ -144,7 +147,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 117 pruebas de las reglas del juego (niveles, atributos propios, diario, el libro, «Fallé», el pacto, el Maestro, rituales, cofre, eventos, mapa, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 125 pruebas de las reglas del juego (niveles, armadura, robo de vida, equipo, atributos propios, diario, el libro, «Fallé», el pacto, el Maestro, rituales, cofre, eventos, mapa, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

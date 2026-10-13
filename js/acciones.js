@@ -22,6 +22,7 @@ import * as mapa from "./mapa.js";
 import * as mascota from "./mascota.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import { PISTAS } from "./musica.js";
+import * as equipo from "./equipo.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -308,8 +309,39 @@ export function fallarMision(estado, id, fecha, motivo) {
     if (estado.completadas.some((c) => c.misionId === id && c.fecha === fecha)) throw new Error("Esa misión ya está hecha ese día.");
     if (juego.fallaDe(estado, id, fecha)) throw new Error("Ya la marcaste como fallada.");
     if (!juego.MOTIVOS_FALLA[motivo]) throw new Error("Elige qué pasó.");
-    estado.fallas.push({ misionId: id, fecha, motivo });
-    return { dano: juego.enDescanso(estado, fecha) ? 0 : vida.DANO[mision.dificultad] };
+    const jefeAntes = campana.estadoCampanas(estado)[mision.atributo];
+    const falla = { misionId: id, fecha, motivo };
+    estado.fallas.push(falla);
+
+    // El jefe de su categoría te golpea y se queda con la vida que te quitó (ver vida.js y campana.js).
+    const v = vida.calcularVida(estado, hoy());
+    const golpe = v.registro.find((r) => r.fecha === fecha)?.golpes.find((g) => g.misionId === id);
+    // El golpe queda apuntado (como el XP de una misión cumplida): comprar armadura o cumplir
+    // otras misiones después no cambia lo que ya te pegó.
+    if (golpe) falla.golpe = golpe.conArmadura;
+    const jefeDespues = campana.estadoCampanas(estado)[mision.atributo];
+    if (!golpe || !jefeAntes || !jefeDespues) return { dano: 0, robo: null };   // de descanso: no pasa nada
+    if (!golpe.roba) return { dano: golpe.dano, robo: null };                    // un día de antes de la v24: sin robo
+    const mismoJefe = jefeDespues.derrotados === jefeAntes.derrotados;
+    return {
+        dano: golpe.dano,
+        // Lo que necesita la escena del robo (ver vistas.pantallaRobo).
+        robo: {
+            titulo: `${fecha === hoy() ? "Fallaste" : "Ayer fallaste"} «${mision.nombre}»`,
+            golpes: [{
+                categoria: mision.atributo,
+                jefe: jefeDespues.jefe,
+                dano: golpe.dano,                    // la vida que te quitó (y que se llevó)
+                // Lo que de verdad se curó (no pasa de su vida llena; si fue ayer, ya se lo había llevado).
+                curo: mismoJefe ? Math.max(0, jefeDespues.vida - jefeAntes.vida) : 0,
+                jefeVida: { antes: mismoJefe ? jefeAntes.vida : jefeDespues.vida, despues: jefeDespues.vida, maxima: jefeDespues.vidaMax },
+            }],
+            total: golpe.dano,
+            base: golpe.base,                        // lo que pega una misión de esa dificultad
+            conArmadura: golpe.conArmadura,          // menos si tu armadura está bien; más si está gastada
+            armadura: v.armadura,
+        },
+    };
 }
 
 // Deshacer el «Fallé» (por si te equivocaste o al final sí vas a hacerla).
@@ -962,7 +994,7 @@ export function empezarTorre(estado, semilla) {
     estado.arcade.usadas += 1;   // la ficha se gasta al EMPEZAR
     // Subes con tu vida real: si llegas herido, empiezas con menos vida.
     const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
-    estado.arcade.torre = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion);
+    estado.arcade.torre = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado));
 }
 
 export function accionTorre(estado, accion) {
@@ -975,6 +1007,26 @@ export function mejoraTorre(estado, clave) {
     const partida = estado.arcade.torre;
     if (!partida) throw new Error("No hay una partida de la Torre en curso.");
     torre.elegirMejora(partida, clave);
+}
+
+// Apunta cuánta armadura máxima tienes hoy, si cambió (te pusiste o quitaste algo, o cambiaste
+// de etapa). Así vida.js sabe cuál tenías cada día, y lo que te pongas hoy no cambia el pasado.
+// El primer apunte (fecha "") es «la de siempre»: vale para todos los días anteriores.
+function anotarArmadura(estado) {
+    if (!estado.personaje) return;
+    const maxima = equipo.armaduraMaxima(estado);
+    const cambios = estado.armadura.cambios;
+    const ultimo = cambios[cambios.length - 1];
+    if (!ultimo) cambios.push({ fecha: "", maxima });
+    else if (ultimo.maxima === maxima) return;
+    else if (ultimo.fecha === hoy()) ultimo.maxima = maxima;
+    else cambios.push({ fecha: hoy(), maxima });
+}
+
+// Lo que tu equipo aporta en la Torre y en los minijuegos: su ataque, magia y suerte, y la
+// armadura que tienes AHORA (si fallaste misiones y está gastada, protege menos).
+export function equipoDeBatalla(estado) {
+    return { ...equipo.poderDelEquipo(estado), armadura: vida.calcularVida(estado, hoy()).armadura.puntos };
 }
 
 // Cobrar al terminar (o al rendirte): monedas y XP de Carisma según los pisos superados.
@@ -1064,17 +1116,54 @@ export function revisarVidaAlAbrir(estado) {
     const desde = estado.vida.avisadoHasta || sumarDias(estado.vida.desde || fecha, -1);
     const dias = v.registro.filter((r) => r.fecha > desde && r.fecha < fecha);
     estado.vida.avisadoHasta = sumarDias(fecha, -1);
+    const cuando = dias.length === 1 ? "ayer" : "mientras no estabas";
+    const robo = roboDeLosDias(estado, dias, v, cuando);   // qué jefes te golpearon (para la escena del robo)
 
     if (v.caido && dias.some((r) => r.cayo)) {
-        return { celebraciones: [{ icono: "☠️", etiqueta: "¡Caíste en combate!", titulo: "Tienda y arcade cerrados",
-                                   detalle: `Te quedaste sin vida. Cumple misiones hasta llegar a ${v.levantarse} ❤️ para abrirlos otra vez.` }] };
+        return { robo, celebraciones: [{ icono: "☠️", etiqueta: "¡Caíste en combate!", titulo: "Tienda y arcade cerrados",
+                                         detalle: `Te quedaste sin vida. Cumple misiones hasta llegar a ${v.levantarse} ❤️ para abrirlos otra vez.` }] };
     }
     const perdida = dias.reduce((suma, r) => suma + r.dano, 0);
     if (!perdida) return null;
     const pendientes = dias.reduce((suma, r) => suma + (r.faltas ? r.faltas.misiones + r.faltas.tareas + r.faltas.semanales : 0), 0);
-    const cuando = dias.length === 1 ? "ayer" : "mientras no estabas";
-    return { celebraciones: [{ pequena: true, icono: "💔",
-                               titulo: `Perdiste ${perdida} de vida ${cuando} (${juego.plural(pendientes, "pendiente sin hacer", "pendientes sin hacer")})` }] };
+    return { robo, celebraciones: [{ pequena: true, icono: "💔",
+                                     titulo: `Perdiste ${perdida} de vida ${cuando} (${juego.plural(pendientes, "pendiente sin hacer", "pendientes sin hacer")})` }] };
+}
+
+// Junta por jefe lo que te robaron esos días (del que más robó al que menos).
+// Devuelve lo que necesita la escena del robo (ver vistas.pantallaRobo), o null si nadie te robó.
+function roboDeLosDias(estado, dias, v, cuando) {
+    const suma = {};
+    for (const dia of dias) {
+        for (const g of dia.golpes) {
+            if (!g.dano || !g.roba) continue;   // (los días de antes de la v24 no tienen robo)
+            if (!suma[g.atributo]) suma[g.atributo] = { dano: 0, base: 0, conArmadura: 0 };
+            suma[g.atributo].dano += g.dano;
+            suma[g.atributo].base += g.base;
+            suma[g.atributo].conArmadura += g.conArmadura;
+        }
+    }
+    const campanas = campana.estadoCampanas(estado);
+    const golpes = Object.entries(suma)
+        .filter(([categoria]) => campanas[categoria])
+        .map(([categoria, s]) => ({
+            categoria,
+            jefe: campanas[categoria].jefe,
+            dano: s.dano,
+            curo: null,   // ya se lo llevó esos días: aquí solo se muestra
+            jefeVida: { antes: null, despues: campanas[categoria].vida, maxima: campanas[categoria].vidaMax },
+        }))
+        .sort((a, b) => b.dano - a.dano);
+    if (!golpes.length) return null;
+    const total = (clave) => Object.values(suma).reduce((t, s) => t + s[clave], 0);
+    return {
+        titulo: cuando === "ayer" ? "Ayer, lo que no hiciste" : "Mientras no estabas",
+        golpes,
+        total: total("dano"),
+        base: total("base"),
+        conArmadura: total("conArmadura"),
+        armadura: v.armadura,
+    };
 }
 
 
@@ -1315,6 +1404,7 @@ function fotoDeVida(estado) {
 }
 
 export function foto(estado) {
+    if (estado.personaje && !estado.armadura.cambios.length) anotarArmadura(estado);   // el primer apunte, antes de que algo cambie
     const info = juego.resumen(estado, hoy());
     return {
         vida: fotoDeVida(estado),
@@ -1411,5 +1501,6 @@ export function revisarCambios(estado, antes) {
     if ((previo.animo === "dormido" || previo.animo === "cansado") && previo.animo !== ahora.animo) {
         celebraciones.push({ pequena: true, icono: "😃", titulo: "¡Tu héroe despertó!" });
     }
+    anotarArmadura(estado);
     return celebraciones;
 }

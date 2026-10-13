@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 10,
+        version: 11,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
         atributosPropios: [], // los tuyos: { id, nombre, icono, color, base (uno de los 4), creadoEn }
@@ -29,7 +29,7 @@ export function estadoInicial() {
                               //   meta: { cantidad, unidad } si se cuenta (ej: 8 vasos); si no, null
         completadas: [],      // historial: { misionId, fecha, xp, monedas, atributo, dificultad }
         avances: {},          // misiones con cantidad: cuánto llevas hoy y ayer, { "id|fecha": 3 }
-        fallas: [],           // «Fallé»: { misionId, fecha, motivo (ver juego.MOTIVOS_FALLA) }
+        fallas: [],           // «Fallé»: { misionId, fecha, motivo (ver juego.MOTIVOS_FALLA), golpe (lo que te pegó el jefe) }
 
         tareas: [],           // sueltas: { id, nombre, fecha (vence, o null = sin fecha), dificultad, atributo, creadaEn,
                               //   hechaEn, premio: { xp, monedas, atributo, dificultad } }
@@ -58,6 +58,10 @@ export function estadoInicial() {
             avisadoHasta: null,   // hasta qué día ya te avisamos cuánta vida perdiste
         },
         descansos: [],        // modo descanso: { desde, hasta } (los dos días incluidos)
+        // Armadura (ver equipo.js y vida.js). No se guarda cuánta tienes (se calcula), solo:
+        //   desde   = el día en que empezó a contar (null = desde que empezó la vida)
+        //   cambios = cuál era tu armadura máxima cada vez que cambió: [{ fecha, maxima }]
+        armadura: { desde: null, cambios: [] },
         claves: {},           // misión clave de cada día: { "2026-10-13": idDeLaMision } (ver rituales.js)
         noches: [],           // días que cerraste con el ritual de la noche
         relampagos: {},       // desafío relámpago de cada día: { inicio, base, meta, minutos, cobradoEn } o { rechazado }
@@ -126,6 +130,12 @@ function completar(guardado) {
             desde: guardado.vida?.desde || (guardado.personaje ? hoy() : null),
             pociones: guardado.vida?.pociones || [],
             avisadoHasta: guardado.vida?.avisadoHasta || null,
+        },
+        // La armadura y el robo de vida (v24) empiezan a contar el día en que llega esta versión:
+        // no cambian lo que ya pasó.
+        armadura: {
+            desde: guardado.armadura ? guardado.armadura.desde || null : (guardado.personaje ? hoy() : null),
+            cambios: guardado.armadura?.cambios || [],
         },
         apariencia: { ...base.apariencia, ...guardado.apariencia },
         ajustes: { ...base.ajustes, ...guardado.ajustes },

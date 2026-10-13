@@ -336,9 +336,13 @@ button {
 }
 
 .cab-xp {
+    min-width: 0;             /* si no cabe (vida + armadura al lado), se recorta con «…» */
+    overflow: hidden;
     font-size: 0.72rem;
     color: var(--texto-suave);
     font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .cab-monedas {
@@ -3904,6 +3908,11 @@ body:has(#deshacer:not([hidden])) .aviso {
     margin: 3px 0 2px;
 }
 
+.cabecera .barra-armadura {
+    height: 4px;
+    margin: 2px 0;
+}
+
 .cab-datos {
     position: relative;   /* para el "+4 ❤️" que flota */
     display: flex;
@@ -3912,10 +3921,12 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .cab-vida {
+    flex-shrink: 0;
     font-size: 0.72rem;
     font-weight: 700;
     color: var(--texto-suave);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .cab-datos .flotante {
@@ -5189,6 +5200,267 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 
 /* Si el iPhone tiene activado "Reducir movimiento", apagamos animaciones */
+/* ===== Armadura y poder del equipo (v24) ===== */
+/* La barra entera son 100 puntos: en gris, tu máximo (tus objetos de protección); en azul acero, lo que te queda. */
+.barra-armadura {
+    position: relative;
+    display: block;
+    height: 6px;
+    margin: 3px 0 2px;
+}
+
+.barra-armadura .barra-capacidad {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: rgba(148, 163, 184, 0.28);
+    border-radius: inherit;
+}
+
+.barra-armadura .barra-relleno {
+    display: block;
+    background: linear-gradient(90deg, #64748b, #a5b4fc);
+    box-shadow: 0 0 8px rgba(165, 180, 252, 0.55);
+}
+
+.armadura-numero {
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    color: #c7d2fe;
+}
+
+.armadura-efecto {
+    font-size: 0.74rem;
+    font-weight: 600;
+}
+
+.armadura-efecto.mejor { color: var(--verde); }
+.armadura-efecto.peor  { color: var(--rojo); }
+
+/* Personaje → Equipamiento: los 4 números de tu equipo */
+.poder-equipo {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.poder-equipo span {
+    display: grid;
+    gap: 2px;
+    padding: 8px 4px;
+    text-align: center;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+}
+
+.poder-equipo small {
+    font-size: 0.66rem;
+    line-height: 1.25;
+    color: var(--texto-suave);
+}
+
+.poder-objeto {
+    font-weight: 700;
+    color: #c7d2fe;
+    white-space: nowrap;
+}
+
+.equipo-ventaja {
+    color: #c7d2fe;
+}
+
+.robado {
+    color: var(--rojo);
+}
+
+/* ===== El robo de vida: el jefe te golpea y se cura con lo que te quita ===== */
+.robo-caja {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    width: min(380px, 100%);
+    padding: 16px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(76, 5, 25, 0.55), var(--panel) 55%);
+    border: 1px solid rgba(251, 113, 133, 0.45);
+    border-radius: var(--radio);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 40px -10px rgba(225, 29, 72, 0.5);
+    animation: aparecer 0.25s ease-out;
+}
+
+.robo-escena {
+    --robo-distancia: 150px;   /* lo que suben las gotas: del pecho del héroe al retrato del jefe */
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 26px;
+    width: 100%;
+    padding: 4px 0;
+}
+
+.robo-jefes {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.robo-jefe {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+    width: 118px;
+}
+
+.robo-de-2 .robo-jefe { width: 104px; }
+.robo-de-3 .robo-jefe { width: 92px; }
+.robo-de-4 .robo-jefe { width: 76px; }
+
+.robo-jefe .retrato {
+    width: 100%;
+    /* Embiste hacia abajo (hacia tu héroe) y, cuando le llega tu vida, brilla. */
+    animation: robo-embestir 0.7s cubic-bezier(0.3, 0, 0.3, 1) 0.15s, robo-brillar 0.9s ease-out 1.6s;
+}
+
+.robo-jefe .barra {
+    width: 100%;
+    margin-top: 2px;
+}
+
+/* La vida del jefe sube de lo que tenía a lo que tiene ahora. */
+.robo-vida {
+    width: var(--despues);
+    transition: none;
+    animation: robo-llenar 0.9s ease-out 1.6s backwards;
+}
+
+.robo-heroe {
+    position: relative;
+    width: 124px;
+}
+
+.robo-avatar {
+    animation: robo-herida 0.6s ease-out 0.45s;
+}
+
+.robo-avatar svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* El zarpazo: una línea de luz que cruza al héroe. */
+.robo-tajo {
+    position: absolute;
+    top: 42%;
+    left: -12%;
+    width: 124%;
+    height: 5px;
+    background: linear-gradient(90deg, transparent, #fff 35%, #fb7185 65%, transparent);
+    border-radius: 999px;
+    box-shadow: 0 0 14px #e11d48;
+    transform: rotate(-28deg) scaleX(0);
+    opacity: 0;
+    animation: robo-zarpazo 0.4s ease-out 0.4s;
+}
+
+/* Las gotas de vida: nacen en el pecho del héroe y suben hasta el jefe. */
+.robo-rio {
+    position: absolute;
+    bottom: 84px;
+    left: 50%;
+    width: 0;
+    height: 0;
+}
+
+.robo-gota {
+    position: absolute;
+    left: -6px;
+    top: -6px;
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle at 35% 35%, #fff, #fb7185 45%, #9f1239);
+    border-radius: 50%;
+    box-shadow: 0 0 10px 2px rgba(244, 63, 94, 0.8);
+    opacity: 0;
+    animation: robo-subir 1s cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+
+.robo-numero {
+    position: absolute;
+    left: 50%;
+    z-index: 3;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.robo-menos {
+    top: 6%;
+    color: #fff;
+    text-shadow: 0 0 8px #e11d48, 0 2px 0 #7f1d1d;
+    animation: subir-dano 1.3s ease-out 0.5s;
+}
+
+.robo-mas {
+    top: 22%;
+    color: #bbf7d0;
+    text-shadow: 0 0 8px #16a34a, 0 2px 0 #14532d;
+    animation: subir-dano 1.4s ease-out 1.6s;
+}
+
+.robo-titulo {
+    font-size: 1.05rem;
+    line-height: 1.3;
+}
+
+.robo-armadura {
+    display: grid;
+    gap: 2px;
+    width: min(260px, 100%);
+    text-align: left;
+}
+
+@keyframes robo-embestir {
+    0%, 100% { transform: translateY(0) scale(1); }
+    45% { transform: translateY(26px) scale(1.07); }
+}
+
+@keyframes robo-brillar {
+    0%, 100% { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.65), 0 0 0 0 rgba(74, 222, 128, 0); }
+    35% { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.65), 0 0 26px 6px rgba(74, 222, 128, 0.75); }
+}
+
+@keyframes robo-llenar {
+    from { width: var(--antes); }
+}
+
+@keyframes robo-herida {
+    0%, 100% { transform: translateX(0); opacity: 1; }
+    15% { transform: translateX(-8px); opacity: 0.45; }
+    35% { transform: translateX(7px); opacity: 1; }
+    55% { transform: translateX(-5px); opacity: 0.6; }
+    75% { transform: translateX(3px); opacity: 1; }
+}
+
+@keyframes robo-zarpazo {
+    0% { transform: rotate(-28deg) scaleX(0); opacity: 1; }
+    60% { transform: rotate(-28deg) scaleX(1); opacity: 1; }
+    100% { transform: rotate(-28deg) scaleX(1); opacity: 0; }
+}
+
+@keyframes robo-subir {
+    0% { transform: translate(var(--x0), 0) scale(0.4); opacity: 0; }
+    15% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translate(var(--x1), calc(-1 * var(--robo-distancia))) scale(1.1); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::after {
         animation-duration: 0.01ms !important;

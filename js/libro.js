@@ -11,7 +11,7 @@
 
 import * as juego from "./juego.js";
 import * as campana from "./campana.js";
-import { calcularVida } from "./vida.js";
+import { calcularVida, robosDeJefes } from "./vida.js";
 import { sumarDias, desdeTexto, fechaLegible } from "./fechas.js";
 
 export const EPIGRAFE = { texto: "Nuestra vida es lo que nuestros pensamientos hacen de ella.", autor: "Marco Aurelio" };
@@ -113,26 +113,11 @@ const TITULOS_TORMENTA = ["La tormenta", "Contra el viento"];
 
 // ===== Lo que pasó cada día =====
 
-// Una copia de la partida con solo lo que había pasado hasta esa fecha (para saber
-// cuántos jefes llevaba derrotados ese día).
-function partidaHasta(estado, fecha) {
-    return {
-        ...estado,
-        completadas: estado.completadas.filter((c) => c.fecha <= fecha),
-        tareas: estado.tareas.map((t) => (t.hechaEn && t.hechaEn <= fecha ? t : { ...t, premio: null })),
-        enfoque: { ...estado.enfoque, sesiones: estado.enfoque.sesiones.filter((s) => s.fecha <= fecha) },
-        principales: estado.principales.map((p) => ({
-            ...p,
-            completadaEn: p.completadaEn && p.completadaEn <= fecha ? p.completadaEn : null,
-            submisiones: p.submisiones.map((s) => ({ ...s, hecha: s.hecha && (!s.hechaEn || s.hechaEn <= fecha) })),
-        })),
-    };
-}
-
 // Los jefes que cayeron ese día: [{ nombre, titulo }].
-export function jefesCaidos(estado, fecha) {
-    const antes = campana.estadoCampanas(partidaHasta(estado, sumarDias(fecha, -1)));
-    const despues = campana.estadoCampanas(partidaHasta(estado, fecha));
+// robos: la vida que te robó cada jefe (se calcula una vez para todo el libro).
+export function jefesCaidos(estado, fecha, robos = robosDeJefes(estado, fecha)) {
+    const antes = campana.estadoCampanas(estado, sumarDias(fecha, -1), robos);
+    const despues = campana.estadoCampanas(estado, fecha, robos);
     const caidos = [];
     for (const [categoria, c] of Object.entries(despues)) {
         for (let n = antes[categoria].derrotados; n < c.derrotados; n++) {
@@ -143,8 +128,18 @@ export function jefesCaidos(estado, fecha) {
     return caidos;
 }
 
+// El jefe que más vida le robó ese día: { nombre, cantidad } (o null).
+function mayorLadron(estado, fecha, golpes, robos) {
+    const porCategoria = {};
+    for (const g of golpes || []) if (g.roba) porCategoria[g.atributo] = (porCategoria[g.atributo] || 0) + g.dano;
+    const [categoria, cantidad] = Object.entries(porCategoria).sort((a, b) => b[1] - a[1])[0] || [];
+    if (!cantidad) return null;
+    const c = campana.estadoCampanas(estado, fecha, robos)[categoria];
+    return c ? { nombre: c.jefe.nombre, cantidad } : null;
+}
+
 // Todo lo que pasó un día, ya ordenado para contarlo.
-function hechosDelDia(estado, fecha, hoy, registroVida) {
+function hechosDelDia(estado, fecha, hoy, registroVida, robos) {
     const hechasIds = new Set(estado.completadas.filter((c) => c.fecha === fecha).map((c) => c.misionId));
     const tocaban = juego.misionesDelDia(estado.misiones, fecha);
     const fallas = (estado.fallas || []).filter((f) => f.fecha === fecha);
@@ -162,7 +157,8 @@ function hechosDelDia(estado, fecha, hoy, registroVida) {
         pasos: estado.principales.flatMap((p) => p.submisiones.filter((s) => s.hecha && s.hechaEn === fecha)
             .map((s) => ({ principal: p.nombre, paso: s.nombre }))),
         principales: estado.principales.filter((p) => p.completadaEn === fecha).map((p) => p.nombre),
-        jefes: jefesCaidos(estado, fecha),
+        jefes: jefesCaidos(estado, fecha, robos),
+        ladron: mayorLadron(estado, fecha, registroVida.get(fecha)?.golpes, robos),
         logros: estado.logros.filter((l) => l.desbloqueadoEn === fecha).map((l) => l.nombre),
         cofre: estado.desafios.some((d) => d.cobradoEn === fecha),
         premios: estado.canjes.filter((c) => c.fecha === fecha).map((c) => c.nombre),
@@ -188,10 +184,10 @@ function tituloDelCapitulo(h, animo, fecha) {
 
 // Arma un capítulo: { numero, fecha, titulo, animo, parrafos: [{ tipo: "texto" | "cita", texto }] }.
 // Los textos son texto plano (con lo que tú escribiste dentro): vistas.js los escapa al dibujarlos.
-function armarCapitulo(estado, fecha, numero, hoy, nombre, registroVida) {
+function armarCapitulo(estado, fecha, numero, hoy, nombre, registroVida, robos) {
     const entrada = estado.diario[fecha];
     const animo = entrada.animo && juego.ANIMOS_DIARIO[entrada.animo] ? entrada.animo : "ninguno";
-    const h = hechosDelDia(estado, fecha, hoy, registroVida);
+    const h = hechosDelDia(estado, fecha, hoy, registroVida, robos);
     const dia = fechaLegible(fecha);
     const parrafos = [];
     const texto = (t) => parrafos.push({ tipo: "texto", texto: t });
@@ -233,6 +229,8 @@ function armarCapitulo(estado, fecha, numero, hoy, nombre, registroVida) {
     if (h.sinHacer.length === 1) sombras.push(`«${h.sinHacer[0]}» quedó sin hacer.`);
     else if (h.sinHacer.length > 1) sombras.push(`${mayuscula(h.sinHacer.length === h.tocaban.length ? "ninguna de sus misiones se cumplió" : `${h.sinHacer.length} misiones quedaron sin hacer`)}.`);
     if (h.vida?.cayo) sombras.push("Esa noche cayó en combate: su vida llegó a cero.");
+    else if (h.ladron && h.ladron.cantidad === h.vida?.dano) sombras.push(`${h.ladron.nombre} le robó ${h.vida.dano} de vida.`);
+    else if (h.ladron) sombras.push(`Le costó ${h.vida.dano} de vida; ${h.ladron.nombre} se llevó ${h.ladron.cantidad}.`);
     else if (h.vida?.dano) sombras.push(`Le costó ${h.vida.dano} de vida.`);
     if (sombras.length) texto(sombras.join(" "));
 
@@ -257,8 +255,10 @@ export function capitulosDelLibro(estado, hoy) {
     const fechas = Object.keys(estado.diario).filter((f) => f <= hoy).sort();
     if (!fechas.length) return [];
     const nombre = estado.pacto?.nombre || estado.personaje.nombre;
-    const registroVida = new Map(calcularVida(estado, hoy).registro.map((r) => [r.fecha, r]));
-    return fechas.map((fecha, i) => armarCapitulo(estado, fecha, i + 1, hoy, nombre, registroVida));
+    const vida = calcularVida(estado, hoy);
+    const registroVida = new Map(vida.registro.map((r) => [r.fecha, r]));
+    const robos = robosDeJefes(estado, hoy, vida);
+    return fechas.map((fecha, i) => armarCapitulo(estado, fecha, i + 1, hoy, nombre, registroVida, robos));
 }
 
 // El libro entero como texto (para descargarlo).

@@ -233,7 +233,9 @@ function cartel(g, ancho, alto, titulo, subtitulo) {
 // retratos: direcciones de las pinturas de tus jefes (para "Golpe preciso")
 // alTerminar(puntos) se llama una sola vez cuando acaba la partida.
 // sonar(nombre) reproduce un sonido (app.js decide si el sonido está encendido).
-export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, ayuda, alTerminar, sonar = () => {} }) {
+// ventajas: lo que te da tu equipo (ver arcade.ventajasDelEquipo): escudos, vidas, fuerza, zona y suerte.
+export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, ayuda, alTerminar, sonar = () => {},
+                                    ventajas = { escudos: 0, vidasExtra: 0, fuerza: 1, zona: 1, suerte: 1 } }) {
     const crear = { carrera, lluvia, golpe }[tipo];
 
     // Preparamos las imágenes: tu avatar (convertido a mapa de bits) y el retrato de un jefe.
@@ -254,7 +256,7 @@ export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, 
     const g = lienzo.getContext("2d");
     g.setTransform(escala, 0, 0, escala, 0, 0);
 
-    const juego = crear({ ancho, alto, heroe, rival, sonar });
+    const juego = crear({ ancho, alto, heroe, rival, sonar, ventajas });
     ayuda.textContent = juego.ayuda;
 
     let anterior = performance.now();
@@ -328,7 +330,7 @@ export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, 
 
 // ===== Juego 1: Carrera del héroe =====
 
-function carrera({ ancho, alto, heroe, sonar }) {
+function carrera({ ancho, alto, heroe, sonar, ventajas }) {
     // f agranda todo si el lienzo es alto, para que el héroe no se vea diminuto.
     // El salto también se escala, así que dura lo mismo y sube en proporción.
     const f = Math.max(1, alto / 300);
@@ -346,6 +348,10 @@ function carrera({ ancho, alto, heroe, sonar }) {
     let distancia = 0;
     let recorrido = 0;
     let recogidas = 0;
+    let puntosMonedas = 0;
+    let escudos = ventajas.escudos;   // tu armadura: cada escudo aguanta un choque
+    let invencible = 0;               // segundos sin poder chocar (después de usar un escudo)
+    const valorMoneda = Math.round(5 * ventajas.suerte);
     let proximo = 1.3;
     let proximaMoneda = 1.6;
 
@@ -362,6 +368,7 @@ function carrera({ ancho, alto, heroe, sonar }) {
         },
         actualizar(dt) {
             tiempo += dt;
+            invencible = Math.max(0, invencible - dt);
             velocidad = Math.min(560, 230 + tiempo * 9);   // cada vez más rápido
             recorrido += velocidad * dt;
             distancia += (velocidad * dt) / 10;
@@ -392,7 +399,15 @@ function carrera({ ancho, alto, heroe, sonar }) {
             const caja = { x: h.x + 14, y: h.y + 10, w: hw - 28, h: pies - 14 };
             for (const o of obstaculos) {
                 const c = { x: o.x + o.t * 0.2, y: suelo - o.t * 0.78, w: o.t * 0.6, h: o.t * 0.72 };
-                if (!juego.termino && choca(caja, c)) {
+                if (juego.termino || o.roto || invencible > 0 || !choca(caja, c)) continue;
+                if (escudos > 0) {
+                    // Tu armadura aguanta el golpe: el obstáculo se rompe y sigues corriendo.
+                    escudos -= 1;
+                    invencible = 1.2;
+                    o.roto = true;
+                    sonar("impacto");
+                    textos.agregar("🛡️ ¡Bloqueado!", h.x + hw / 2, h.y, "#67e8f9", 20);
+                } else {
                     juego.termino = true;
                     sonar("fallo");
                     textos.agregar("¡AY!", h.x + hw / 2, h.y, "#fb7185", 24);
@@ -402,8 +417,9 @@ function carrera({ ancho, alto, heroe, sonar }) {
                 if (!m.tomada && choca(caja, { x: m.x - 10, y: m.y - 10, w: 20, h: 20 })) {
                     m.tomada = true;
                     recogidas += 1;
+                    puntosMonedas += valorMoneda;
                     sonar("moneda");
-                    textos.agregar("+5", m.x, m.y - 10);
+                    textos.agregar(`+${valorMoneda}`, m.x, m.y - 10);
                 }
             }
 
@@ -415,7 +431,7 @@ function carrera({ ancho, alto, heroe, sonar }) {
                 if (monedas[i].x < -30 || monedas[i].tomada) monedas.splice(i, 1);
             }
             textos.actualizar(dt);
-            juego.puntos = Math.floor(distancia) + recogidas * 5;
+            juego.puntos = Math.floor(distancia) + puntosMonedas;
         },
         dibujar(g) {
             cielo(g, ancho, alto, "#1e1b4b", "#3b0764");
@@ -447,12 +463,22 @@ function carrera({ ancho, alto, heroe, sonar }) {
             for (let x = -(recorrido % 40); x < ancho; x += 40) g.fillRect(x, suelo + 14, 18, 3);
 
             for (const m of monedas) moneda(g, m.x, m.y + Math.sin(tiempo * 6 + m.x) * 3, 9);
-            for (const o of obstaculos) obstaculo(g, o, suelo, tiempo);
+            for (const o of obstaculos) if (!o.roto) obstaculo(g, o, suelo, tiempo);
+            // Después de un choque bloqueado, el héroe parpadea dentro de una burbuja de luz.
+            if (invencible > 0) {
+                g.strokeStyle = "rgba(103,232,249,.75)";
+                g.lineWidth = 3;
+                g.beginPath();
+                g.arc(h.x + hw / 2, h.y + hh * 0.5, hh * 0.55, 0, Math.PI * 2);
+                g.stroke();
+                g.globalAlpha = Math.floor(invencible * 10) % 2 ? 0.45 : 1;
+            }
             dibujarImagen(g, heroe, h.x, h.y, hw, hh);
+            g.globalAlpha = 1;
             textos.dibujar(g);
         },
         marcador() {
-            return `🏃 ${juego.puntos} pts · 🪙 ${recogidas}`;
+            return `🏃 ${juego.puntos} pts · 🪙 ${recogidas}${escudos ? ` · 🛡️ ${escudos}` : ""}`;
         },
     };
     return juego;
@@ -461,7 +487,7 @@ function carrera({ ancho, alto, heroe, sonar }) {
 
 // ===== Juego 2: Lluvia de monedas =====
 
-function lluvia({ ancho, alto, heroe, sonar }) {
+function lluvia({ ancho, alto, heroe, sonar, ventajas }) {
     const hw = 60;
     const hh = 80;
     const piso = alto - 6;
@@ -474,7 +500,7 @@ function lluvia({ ancho, alto, heroe, sonar }) {
         { tipo: "bomba", valor: 0, probabilidad: 28 },
     ];
     let restante = 30;
-    let vidas = 3;
+    let vidas = 3 + ventajas.vidasExtra;   // tu armadura te da corazones de más
     let proximo = 0.5;
     let transcurrido = 0;
     let temblor = 0;
@@ -518,9 +544,10 @@ function lluvia({ ancho, alto, heroe, sonar }) {
                         temblor = 0.35;
                         textos.agregar("💥", c.x, c.y, "#fb7185", 26);
                     } else {
-                        juego.puntos += c.valor;
+                        const valor = Math.round(c.valor * ventajas.suerte);   // la suerte hace que valgan más
+                        juego.puntos += valor;
                         sonar("moneda");
-                        textos.agregar(`+${c.valor}`, c.x, c.y - 8, c.tipo === "gema" ? "#67e8f9" : ORO);
+                        textos.agregar(`+${valor}`, c.x, c.y - 8, c.tipo === "gema" ? "#67e8f9" : ORO);
                     }
                 }
             }
@@ -563,14 +590,16 @@ function lluvia({ ancho, alto, heroe, sonar }) {
 
 // ===== Juego 3: Golpe preciso =====
 
-function golpe({ ancho, alto, heroe, rival, sonar }) {
+function golpe({ ancho, alto, heroe, rival, sonar, ventajas }) {
     const RONDAS = 5;
     const VIDA = 300;
-    const ZONAS = [   // qué tan cerca del centro tocaste
+    // Qué tan cerca del centro tocaste. La magia de tu equipo agranda las zonas y el ataque
+    // hace que cada golpe quite más.
+    const ZONAS = [
         { radio: 0.03, valor: 100, texto: "¡CRÍTICO!", color: ORO },
         { radio: 0.09, valor: 60, texto: "¡Genial!", color: "#34d399" },
         { radio: 0.18, valor: 30, texto: "Bien", color: "#67e8f9" },
-    ];
+    ].map((z) => ({ ...z, radio: Math.min(0.3, z.radio * ventajas.zona), valor: Math.round(z.valor * ventajas.fuerza) }));
     const barra = { x: 22, y: alto - 50, w: ancho - 44, h: 22 };
     const suelo = barra.y - 30;
     const hh = Math.min(118, alto * 0.42);    // héroe
@@ -600,7 +629,7 @@ function golpe({ ancho, alto, heroe, rival, sonar }) {
             juego.puntos += valor;
             vida = Math.max(0, vida - valor);
             textos.agregar(zona ? zona.texto : "Fallaste", ancho / 2, alto * 0.2,
-                           zona ? zona.color : "#94a3b8", zona && valor === 100 ? 26 : 20);
+                           zona ? zona.color : "#94a3b8", zona === ZONAS[0] ? 26 : 20);
             sonar(valor ? "impacto" : "fallo");
             if (valor) {
                 textos.agregar(`-${valor}`, ancho * 0.94 - am / 2, suelo - tm * 0.6, "#fb7185", 18);
@@ -673,7 +702,7 @@ function golpe({ ancho, alto, heroe, rival, sonar }) {
             g.fillStyle = "#3f1d2b";
             rectRedondo(g, barra.x, barra.y, barra.w, barra.h, 8);
             g.fill();
-            for (const [radio, color] of [[0.18, "#0e7490"], [0.09, "#059669"], [0.03, ORO]]) {
+            for (const [radio, color] of [[ZONAS[2].radio, "#0e7490"], [ZONAS[1].radio, "#059669"], [ZONAS[0].radio, ORO]]) {
                 g.fillStyle = color;
                 g.fillRect(barra.x + barra.w * (0.5 - radio), barra.y, barra.w * radio * 2, barra.h);
             }

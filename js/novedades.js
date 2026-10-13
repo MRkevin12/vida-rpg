@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 23;
+export const VERSION_APP = 24;
 
 export const NOVEDADES = [
+    {
+        version: 24,
+        titulo: "Los jefes también pegan",
+        cambios: [
+            "🩸 Robo de vida: cuando fallas una misión, el jefe de su categoría te golpea, te quita vida y se cura con ella. Lo ves en una escena animada.",
+            "🛡️ Barra de armadura: sale de tus objetos de protección (tu ropa, casco, capa, alas…). Llena, fallar duele menos; gastada, duele más. Se gasta al fallar y se repara cumpliendo.",
+            "⚔️ Tu equipo ahora cuenta: cada objeto da armadura, ataque, magia o suerte (lo dice en la Tienda y en tu Personaje).",
+            "🗼 En la Torre: más ataque, hechizos y críticos, y tu armadura para parte de cada golpe.",
+            "🎮 En los minijuegos: escudos en la Carrera, vidas de más en la Lluvia de monedas y golpes más fuertes en Golpe preciso.",
+        ],
+    },
     {
         version: 23,
         titulo: "Música, leyendas y un mundo con más vida",

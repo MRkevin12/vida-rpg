@@ -11,10 +11,16 @@
 // Partida+: al vencer a los 5 jefes, la campaña vuelve a empezar (ronda 2, 3…)
 // con los mismos jefes, pero más fuertes y con mejores premios.
 //
+// Robo de vida (v24): cuando fallas una misión, el jefe de su categoría te golpea y se
+// queda con la vida que te quitó (ver vida.js). Se cura, pero nunca revive a un jefe vencido.
+//
 // Todo se CALCULA a partir de tu historial (como las rachas): si desmarcas una
 // misión, el daño se descuenta solo y nada se desordena.
 //
 // Imágenes: obras de arte de dominio público (Wikimedia Commons), en jefes/.
+
+import { hoy } from "./fechas.js";
+import { robosDeJefes } from "./vida.js";
 
 export const DANO = {
     diaria: { facil: 4, normal: 8, dificil: 15 },
@@ -159,46 +165,77 @@ export function estadoVisual(porcentaje) {
 
 // ===== Cálculos =====
 
-// Daño total que has hecho en cada categoría, sumando todo tu historial.
-export function danoPorCategoria(estado) {
-    const dano = {};
-    for (const categoria of Object.keys(CAMPANAS)) dano[categoria] = 0;
+// Cada golpe que le diste a cada campaña, con su fecha: { fuerza: [{ fecha, dano }, …], … }
+function golpesConFecha(estado) {
+    const golpes = {};
+    for (const categoria of Object.keys(CAMPANAS)) golpes[categoria] = [];
 
-    // Suma el daño de algo hecho con cierta dificultad (como una misión diaria).
+    // Un golpe de algo hecho con cierta dificultad (como una misión diaria).
     // "factor": la misión clave pega el doble y un golpe crítico, 50 % más.
-    const golpear = (atributo, dificultad, factor = 1) => {
-        if (atributo in dano) dano[atributo] += Math.round((DANO.diaria[dificultad] || DANO.diaria.normal) * factor);
+    const golpear = (atributo, fecha, dificultad, factor = 1) => {
+        if (atributo in golpes) golpes[atributo].push({ fecha: fecha || "", dano: Math.round((DANO.diaria[dificultad] || DANO.diaria.normal) * factor) });
     };
 
     const dificultadDe = new Map(estado.misiones.map((m) => [m.id, m.dificultad]));
     for (const c of estado.completadas) {
         // La dificultad que tenía al completarla (los registros viejos no la guardaban).
-        golpear(c.atributo, c.dificultad || dificultadDe.get(c.misionId), (c.clave ? 2 : 1) * (c.critico ? 1.5 : 1));
+        golpear(c.atributo, c.fecha, c.dificultad || dificultadDe.get(c.misionId), (c.clave ? 2 : 1) * (c.critico ? 1.5 : 1));
     }
     for (const t of estado.tareas) {
-        if (t.premio) golpear(t.premio.atributo, t.premio.dificultad);   // tareas sueltas hechas
+        if (t.premio) golpear(t.premio.atributo, t.hechaEn, t.premio.dificultad);   // tareas sueltas hechas
     }
-    for (const s of estado.enfoque.sesiones) golpear(s.atributo, s.dificultad);
+    for (const s of estado.enfoque.sesiones) golpear(s.atributo, s.fecha, s.dificultad);
     for (const p of estado.principales) {
-        if (!(p.atributo in dano)) continue;
-        const pasos = p.submisiones.filter((s) => s.hecha).length;
-        dano[p.atributo] += pasos * DANO.paso + (p.completadaEn ? DANO.principal : 0);
+        if (!(p.atributo in golpes)) continue;
+        // Los pasos viejos no guardaban su fecha: cuentan desde el principio.
+        for (const s of p.submisiones.filter((s) => s.hecha)) golpes[p.atributo].push({ fecha: s.hechaEn || "", dano: DANO.paso });
+        if (p.completadaEn) golpes[p.atributo].push({ fecha: p.completadaEn, dano: DANO.principal });
+    }
+    return golpes;
+}
+
+// Daño total que has hecho en cada categoría, sumando todo tu historial.
+export function danoPorCategoria(estado) {
+    const dano = {};
+    for (const [categoria, lista] of Object.entries(golpesConFecha(estado))) {
+        dano[categoria] = lista.reduce((suma, g) => suma + g.dano, 0);
     }
     return dano;
 }
 
 // Estado de cada campaña: qué jefe toca, en qué ronda, cuánta vida le queda y cuántos cayeron.
-// Funciona como subir de nivel: el daño se va "gastando" jefe por jefe.
-// Después del 5.º jefe sigue el 1.º de la ronda siguiente (Partida+), así que nunca se acaba.
-export function estadoCampanas(estado) {
-    const dano = danoPorCategoria(estado);
+// Funciona como subir de nivel: el daño se va "gastando" jefe por jefe, en orden de fecha.
+// Lo que te robó un jefe (al fallar) lo cura, pero solo hasta su vida llena: nunca revive
+// a uno vencido. Después del 5.º jefe sigue el 1.º de la ronda siguiente (Partida+).
+// fecha: hasta qué día contar los robos (hoy, salvo en el libro). robos: si ya los calculaste.
+export function estadoCampanas(estado, fecha = hoy(), robos = robosDeJefes(estado, fecha)) {
+    const golpes = golpesConFecha(estado);
     const resultado = {};
     for (const [categoria, campana] of Object.entries(CAMPANAS)) {
-        let restante = dano[categoria];
+        const sucesos = [
+            ...golpes[categoria].filter((g) => g.fecha <= fecha),
+            ...robos.filter((r) => r.atributo === categoria && r.fecha <= fecha).map((r) => ({ fecha: r.fecha, cura: r.cantidad })),
+        ];
+        // Por fecha; el mismo día, primero tus golpes y después lo que te robaron.
+        sucesos.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : (a.cura ? 1 : 0) - (b.cura ? 1 : 0)));
+
+        let restante = 0;     // el daño que lleva el jefe actual
         let derrotados = 0;
-        while (restante >= vidaDelJefe(derrotados)) {
-            restante -= vidaDelJefe(derrotados);
-            derrotados += 1;
+        let dano = 0;
+        let curado = 0;
+        for (const suceso of sucesos) {
+            if (suceso.cura) {
+                const cura = Math.min(suceso.cura, restante);   // no pasa de su vida llena
+                restante -= cura;
+                curado += cura;
+                continue;
+            }
+            dano += suceso.dano;
+            restante += suceso.dano;
+            while (restante >= vidaDelJefe(derrotados)) {
+                restante -= vidaDelJefe(derrotados);
+                derrotados += 1;
+            }
         }
         const ronda = Math.floor(derrotados / VIDAS.length) + 1;
         const indice = derrotados % VIDAS.length;
@@ -207,7 +244,8 @@ export function estadoCampanas(estado) {
         resultado[categoria] = {
             categoria,
             campana,
-            dano: dano[categoria],
+            dano,                          // todo el daño que le hiciste a esta campaña
+            curado,                        // lo que se curaron sus jefes con la vida que te robaron
             derrotados,                    // en total, sumando todas las rondas
             ronda,                         // 1 = la normal; 2 o más = Partida+
             indice,                        // 0 a 4: qué jefe de la ronda toca ahora

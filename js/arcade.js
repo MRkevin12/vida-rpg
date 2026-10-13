@@ -32,6 +32,31 @@ export function fichasDisponibles(estado) {
     return Math.max(0, ganadas - estado.arcade.usadas);
 }
 
+// ===== Tu equipo en los minijuegos (v24) =====
+// poder = lo que suma tu equipo (equipo.poderDelEquipo) con la ARMADURA QUE TIENES AHORA
+// (si fallaste misiones y está gastada, te protege menos).
+export function ventajasDelEquipo(poder = {}) {
+    const { armadura = 0, ataque = 0, magia = 0, suerte = 0 } = poder;
+    return {
+        escudos: Math.min(3, Math.floor(armadura / 25)),     // Carrera: choques que aguantas sin caer
+        vidasExtra: Math.min(2, Math.floor(armadura / 30)),  // Lluvia: corazones de más
+        fuerza: 1 + ataque / 20,                             // Golpe preciso: cada golpe quita (y suma) más
+        zona: 1 + Math.min(0.5, magia / 25),                 // Golpe preciso: zonas de acierto más anchas
+        suerte: 1 + suerte / 20,                             // Carrera y Lluvia: las monedas valen más
+    };
+}
+
+// Lo que te da tu equipo en un juego, en palabras. Ej: "🛡️ 1 escudo · 🍀 monedas +20 %"
+export function textoVentajas(tipo, v) {
+    const partes = [];
+    if (tipo === "carrera" && v.escudos) partes.push(`🛡️ ${v.escudos} ${v.escudos === 1 ? "escudo" : "escudos"}`);
+    if (tipo === "lluvia" && v.vidasExtra) partes.push(`❤️ +${v.vidasExtra} ${v.vidasExtra === 1 ? "vida" : "vidas"}`);
+    if (tipo === "golpe" && v.fuerza > 1) partes.push(`⚔️ +${Math.round((v.fuerza - 1) * 100)} % de daño`);
+    if (tipo === "golpe" && v.zona > 1) partes.push(`🔮 zonas ${Math.round((v.zona - 1) * 100)} % más anchas`);
+    if (tipo !== "golpe" && v.suerte > 1) partes.push(`🍀 monedas +${Math.round((v.suerte - 1) * 100)} %`);
+    return partes.join(" · ");
+}
+
 // Lo que da una partida según los puntos.
 export function premio(tipo, puntos) {
     const juego = JUEGOS[tipo];

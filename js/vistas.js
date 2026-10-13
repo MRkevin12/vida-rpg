@@ -21,6 +21,7 @@ import * as maestro from "./maestro.js";
 import * as rituales from "./rituales.js";
 import * as mapa from "./mapa.js";
 import * as mascota from "./mascota.js";
+import * as equipo from "./equipo.js";
 import { precioConEvento } from "./eventos.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
@@ -1256,12 +1257,30 @@ function barraDeVida(v) {
         <span class="barra barra-salud salud-${v.nivel}"><span class="barra-relleno" style="width: ${v.porcentaje}%"></span></span>`;
 }
 
+// La barra de armadura (v24): cuánto te protege cuando fallas una misión.
+// La parte gris es tu máximo (lo que dan tu ropa y tus objetos de protección) y la azul, lo que
+// te queda ahora. La barra entera son 100 puntos.
+function barraDeArmadura(a) {
+    const cambio = Math.round(Math.abs(1 - a.factor) * 100);
+    const efecto = !cambio ? "si fallas, el daño normal"
+        : a.factor < 1 ? `si fallas, ${cambio} % menos daño` : `si fallas, ${cambio} % más daño`;
+    return `
+        <span class="vida-linea">
+            <b class="armadura-numero">🛡️ ${a.puntos} / ${a.maxima}</b>
+            <span class="armadura-efecto ${a.factor > 1 ? "peor" : "mejor"}">${efecto}</span>
+        </span>
+        <span class="barra barra-armadura">
+            <span class="barra-capacidad" style="width: ${a.maxima}%"></span>
+            <span class="barra-relleno" style="width: ${a.puntos}%"></span>
+        </span>`;
+}
+
 // Debajo de la barra: qué te pasará hoy (o por qué estás así).
 function notaDeVida(estado, ctx) {
     const v = ctx.vida;
     if (juego.enDescanso(estado, ctx.hoy)) return "🏖️ Modo descanso: hoy no pierdes vida.";
     if (v.caido) return `Tienda y arcade cerrados hasta llegar a ${v.levantarse} ❤️. Cada misión te cura.`;
-    const pendiente = vida.danoDelDia(estado, ctx.hoy).dano;
+    const pendiente = v.pendienteHoy;
     const ayer = v.registro.find((r) => r.fecha === sumarDias(ctx.hoy, -1));
     const partes = [];
     if (pendiente) partes.push(`Si no terminas hoy: <b class="vida-menos">−${pendiente} ❤️</b>`);
@@ -1280,7 +1299,7 @@ function tarjetaHeroe(estado, ctx) {
             <span class="heroe-info">
                 <span class="etiqueta">${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</span>
                 <span class="heroe-animo">${textoAnimo(a, ctx)}</span>
-                <span class="heroe-vida">${barraDeVida(ctx.vida)}</span>
+                <span class="heroe-vida">${barraDeVida(ctx.vida)}${barraDeArmadura(ctx.vida.armadura)}</span>
                 <span class="mini texto-suave">${notaDeVida(estado, ctx)}</span>
                 <span class="mini texto-suave">${siguiente
                     ? `Evoluciona a ${siguiente.nombre} en el nivel ${siguiente.desde}`
@@ -1699,6 +1718,8 @@ export function pantallaAventuras(estado, ctx) {
            de <b>su</b> categoría: una misión diaria, tarea o sesión de enfoque hace poco daño (−${d.facil} fácil, −${d.normal} normal, −${d.dificil} difícil);
            cada paso de una <b>misión principal</b> hace −${campana.DANO.paso} y completarla entera, −${campana.DANO.principal} extra.
            Al vencer a los 5 empieza la <b>Partida+</b>: vuelven con más vida y mejores premios.</p>
+        <p class="nota">🩸 <b>Ellos también pegan:</b> cuando fallas una misión, el jefe de su categoría te golpea y
+           se cura con la vida que te roba. Tu armadura (🛡️ ${ctx.vida.armadura.puntos} / ${ctx.vida.armadura.maxima}) decide cuánto.</p>
         ${campanas.map((c) => tarjetaCampana(c, ctx)).join("")}
 
         ${cabeceraSeccion("Misiones principales", "principal", "+ Nueva")}
@@ -1778,6 +1799,12 @@ function textoRareza(objeto) {
     return `<span class="rareza-texto" style="color: ${rareza.color}">${rareza.nombre}</span>`;
 }
 
+// Lo que da un objeto, para ponerlo al final de su línea. Ej: " · 🛡️ +12 · 🍀 +4" (o nada).
+function poderDe(objeto) {
+    const texto = equipo.textoPoder(objeto.poder);
+    return texto ? ` · <span class="poder-objeto">${texto}</span>` : "";
+}
+
 // Tarjeta de una campaña: el jefe actual contra tu avatar y la ruta de los 5 jefes.
 function tarjetaCampana(c, ctx) {
     const a = juego.ATRIBUTOS[c.categoria];
@@ -1822,6 +1849,7 @@ function tarjetaCampana(c, ctx) {
             <p class="mini"><strong>Vida ${c.vida} / ${c.vidaMax}</strong>
                <span class="texto-suave">· ${FRASES_JEFE[visual]}</span></p>
             <p class="mini texto-suave">Recompensa al derrotarlo: +${premio.xp} XP y ${premio.monedas} monedas</p>
+            ${c.curado ? `<p class="mini robado">🩸 Los jefes de esta campaña se han curado ${c.curado} con la vida que te robaron.</p>` : ""}
             <ol class="ruta-jefes">${ruta}</ol>
         </article>`;
 }
@@ -1905,14 +1933,78 @@ function tarjetaLogro(logro, estado, ctx) {
 }
 
 
+// ===== El robo de vida (v24) =====
+// Aparece cuando fallas una misión (o al abrir la app, si fallaste mientras no estabas): el jefe
+// embiste, tu héroe recibe el golpe y la vida sube hasta el jefe, que se cura.
+// r = { titulo, golpes: [{ jefe, dano, curo, jefeVida: { antes, despues, maxima } }], total,
+//       base, conArmadura, armadura: { puntos, maxima, factor } }
+// avatarSvg = el dibujo de tu héroe (dibujarAvatar con { batalla: true }).
+export function pantallaRobo(r, avatarSvg) {
+    const jefes = r.golpes.slice(0, 4);
+    const uno = jefes.length === 1 ? jefes[0] : null;
+
+    const retratos = jefes.map((g) => {
+        const despues = (g.jefeVida.despues / g.jefeVida.maxima) * 100;
+        const antes = g.jefeVida.antes === null ? despues : (g.jefeVida.antes / g.jefeVida.maxima) * 100;
+        return `
+            <div class="robo-jefe">
+                <figure class="retrato furioso"><img src="${campana.imagenDe(g.jefe.id)}" alt="${esc(g.jefe.nombre)}"></figure>
+                ${(g.curo ?? g.dano) ? `<span class="robo-numero robo-mas" aria-hidden="true">+${g.curo ?? g.dano}</span>` : ""}
+                <div class="barra barra-vida barra-mini"><div class="barra-relleno robo-vida" style="--antes: ${antes}%; --despues: ${despues}%"></div></div>
+                <b class="mini">${esc(g.jefe.nombre)}</b>
+            </div>`;
+    }).join("");
+
+    // Las gotas de vida que suben del héroe al jefe (cada una un poco distinta).
+    const gotas = r.total ? Array.from({ length: 8 }, (_, i) =>
+        `<span class="robo-gota" style="--x0: ${(i % 4) * 9 - 14}px; --x1: ${((i * 5) % 7) * 8 - 24}px; animation-delay: ${(0.75 + i * 0.1).toFixed(2)}s"></span>`).join("") : "";
+
+    // El título y lo que pasó con tu armadura.
+    let titulo;
+    if (!r.total) titulo = `${uno ? esc(uno.jefe.nombre) : "Tus jefes"} te ${uno ? "golpeó" : "golpearon"}, pero ya no te queda vida que robar`;
+    else if (uno) titulo = `${esc(uno.jefe.nombre)} te robó ${r.total} de vida`;
+    else titulo = `Tus jefes te robaron ${r.total} de vida`;
+
+    const parado = r.base - r.conArmadura;   // positivo: lo que paró tu armadura; negativo: lo que dolió de más
+    const frases = [];
+    if (parado > 0) frases.push(`🛡️ Tu armadura paró ${parado} de ${r.base}.`);
+    else if (parado < 0) frases.push(`🛡️ Tu armadura está gastada: dolió ${-parado} más de lo normal.`);
+    if (uno && uno.curo > 0) frases.push(`${esc(uno.jefe.titulo)} se hace más fuerte: recuperó ${uno.curo} de vida.`);
+    else if (uno && uno.jefeVida.antes !== null && r.total) frases.push(`${esc(uno.jefe.nombre)} ya tenía la vida llena: no se curó.`);
+    else if (r.total) frases.push("Se curaron con lo que te quitaron.");
+
+    return `
+        <p class="etiqueta">${esc(r.titulo)}</p>
+        <div class="robo-escena">
+            <div class="robo-jefes robo-de-${jefes.length}">${retratos}</div>
+            <div class="robo-rio" aria-hidden="true">${gotas}</div>
+            <div class="robo-heroe">
+                <div class="robo-avatar">${avatarSvg}</div>
+                <span class="robo-tajo" aria-hidden="true"></span>
+                ${r.total ? `<span class="robo-numero robo-menos" aria-hidden="true">−${r.total} ❤️</span>` : ""}
+            </div>
+        </div>
+        <h3 class="titulo-juego robo-titulo">${titulo}</h3>
+        <p class="nota">${frases.join(" ")}</p>
+        <div class="robo-armadura">${barraDeArmadura(r.armadura)}</div>
+        <p class="mini texto-suave">Cumple misiones para curarte, reparar tu armadura y devolverle el golpe.</p>
+        <button type="button" class="boton boton-secundario boton-ancho" data-accion="robo-cerrar">Seguir</button>`;
+}
+
+
 // ===== Pantalla: Arcade (minijuegos) =====
 
 export function pantallaArcade(estado, ctx) {
     const caido = ctx.vida.caido;
     const fichas = arcade.fichasDisponibles(estado);
     const puedeJugar = fichas > 0 && !caido;   // si caíste en combate, el arcade se cierra
+    // Lo que aporta tu equipo (con la armadura que tienes ahora).
+    const poder = { ...equipo.poderDelEquipo(estado), armadura: ctx.vida.armadura.puntos };
+    const ventajas = arcade.ventajasDelEquipo(poder);
+    const heroeTorre = torre.heroeDeLaTorre({ fuerza: 1, intelecto: 1, carisma: 1, riqueza: 1 }, poder);
     const tarjetas = Object.entries(arcade.JUEGOS).map(([clave, j]) => {
         const record = estado.arcade.records[clave] || 0;
+        const ventaja = arcade.textoVentajas(clave, ventajas);
         return `
             <article class="panel minijuego-tarjeta">
                 <div class="minijuego-cabecera">
@@ -1923,6 +2015,7 @@ export function pantallaArcade(estado, ctx) {
                     </div>
                 </div>
                 <p class="nota">${j.descripcion}</p>
+                <p class="mini equipo-ventaja">${ventaja ? `🧰 Tu equipo: ${ventaja}` : "🧰 Tu equipo todavía no da ventaja aquí."}</p>
                 <p class="mini">🏅 Récord: <b>${record}</b> pts</p>
                 <button type="button" class="boton boton-principal boton-ancho" data-accion="jugar" data-juego="${clave}"
                         ${puedeJugar ? "" : "disabled"}>Jugar · 🎟️ 1 ficha</button>
@@ -1942,6 +2035,12 @@ export function pantallaArcade(estado, ctx) {
                una mejora. <b>Tu poder sale de los niveles de tus atributos reales.</b></p>
             <p class="mini">❤️ Subes con tu vida real: empiezas con el
                ${Math.round(vida.proporcionTorre(ctx.vida) * 100)} % de tu vida.</p>
+            <p class="mini equipo-ventaja">🧰 Tu equipo: ${[
+                poder.ataque ? `⚔️ +${poder.ataque} de ataque` : "",
+                poder.magia ? `🔮 +${Math.round(poder.magia * 1.5)} a los hechizos` : "",
+                poder.suerte ? `🍀 +${poder.suerte} % de crítico` : "",
+                `🛡️ tu armadura para el ${Math.round(heroeTorre.proteccion * 100)} % de cada golpe`,
+            ].filter(Boolean).join(" · ")}.</p>
             <p class="mini">🏅 Récord: ${recordTorre ? `${plural(recordTorre, "piso superado", "pisos superados")}` : "todavía ninguno"}
                · Premio: ${torre.PREMIO.monedasPorPiso} 🪙 y ${torre.PREMIO.xpPorPiso} XP de Carisma por piso
                (máx. ${torre.PREMIO.maxMonedas} 🪙 y ${torre.PREMIO.maxXp} XP)</p>
@@ -1986,7 +2085,7 @@ export function pantallaTorre(t) {
         `<span class="dano ${clase}" style="animation-delay: ${retraso}ms" aria-hidden="true">${texto}</span>`;
 
     const visual = campana.estadoVisual((m.vida / m.vidaMax) * 100);
-    const intencion = torre.textoIntencion(m);
+    const intencion = torre.textoIntencion(m, h);
     const vida = (actual, maximo, clase) => `
         <div class="barra barra-vida barra-mini ${clase}"><div class="barra-relleno" style="width: ${(actual / maximo) * 100}%"></div></div>
         <span class="mini"><b>${actual}</b> / ${maximo}</span>`;
@@ -1999,6 +2098,7 @@ export function pantallaTorre(t) {
                 ${curaHeroe ? numero(`+${curaHeroe.cura}`, "cura") : ""}
                 ${del("heroe", "hechizo") ? '<span class="torre-rayo" aria-hidden="true"></span>' : ""}
                 ${vida(h.vida, h.vidaMax, "barra-heroe")}
+                ${h.proteccion ? `<span class="mini texto-suave">🛡️ armadura: −${Math.round(h.proteccion * 100)} % de daño</span>` : ""}
             </div>
             <div class="torre-lado torre-enemigo ${golpeHeroe ? "golpeado" : ""} ${del("enemigo", "furia") ? "furia" : ""}">
                 ${p.fase === "batalla" ? `<p class="torre-intencion">${intencion.icono} ${intencion.texto}</p>` : ""}
@@ -2384,7 +2484,9 @@ export function pantallaPersonaje(estado, ctx) {
             <h2 class="titulo-juego">${esc(estado.personaje.nombre)}</h2>
             <p class="etiqueta">Nivel ${a.nivel} · ${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</p>
             <p class="heroe-animo">${textoAnimo(a, ctx)}</p>
-            <div class="ficha-vida">${barraDeVida(ctx.vida)}</div>
+            <div class="ficha-vida">${barraDeVida(ctx.vida)}${barraDeArmadura(ctx.vida.armadura)}</div>
+            <p class="mini texto-suave">🛡️ La armadura cuenta cuando fallas una misión: con ${equipo.ARMADURA.normal} recibes el daño normal;
+               con menos, más; con más, menos. Se gasta cada vez que fallas y se repara cumpliendo.</p>
             <button type="button" class="boton boton-secundario" data-accion="ir" data-pantalla="pacto">📜 ${estado.pacto ? "Mi pacto" : "Sellar mi pacto"}</button>
             <p class="mini texto-suave">${vida.ESTADOS[ctx.vida.nivel].texto}</p>
             <ol class="etapas">${etapas}</ol>
@@ -2444,6 +2546,8 @@ function seccionApariencia(estado, ctx) {
 function seccionEquipamiento(estado, ctx) {
     const a = ctx.avatar;
     const disponibles = avatar.objetosDisponibles(estado, ctx.info);
+    const poder = equipo.poderDelEquipo(estado);
+    const ropa = a.etapa.armadura || 0;
 
     const espacios = Object.entries(avatar.ESPACIOS).map(([espacio, nombre]) => {
         const id = a.equipado[espacio];
@@ -2461,7 +2565,7 @@ function seccionEquipamiento(estado, ctx) {
         return `<li class="objeto ${puesto ? "puesto" : ""}">
                     ${iconoObjeto(id)}
                     <span class="objeto-info"><b>${objeto.nombre}</b>
-                        <span class="mini texto-suave">${avatar.ESPACIOS[objeto.espacio]} · ${textoRareza(objeto)}</span></span>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[objeto.espacio]} · ${textoRareza(objeto)}${poderDe(objeto)}</span></span>
                     <button type="button" class="boton boton-chico ${puesto ? "" : "boton-oro"}" data-accion="equipar" data-id="${id}">
                         ${puesto ? "Quitar" : "Equipar"}</button>
                 </li>`;
@@ -2471,6 +2575,14 @@ function seccionEquipamiento(estado, ctx) {
         <section class="panel">
             <h2 class="titulo-juego">Equipamiento</h2>
             <div class="espacios">${espacios}</div>
+            <div class="poder-equipo">
+                <span><b>🛡️ ${ctx.vida.armadura.maxima}</b><small>Armadura máx.<br>${ropa} ropa + ${poder.armadura} objetos</small></span>
+                <span><b>⚔️ +${poder.ataque}</b><small>Ataque</small></span>
+                <span><b>🔮 +${poder.magia}</b><small>Magia</small></span>
+                <span><b>🍀 +${poder.suerte}</b><small>Suerte</small></span>
+            </div>
+            <p class="nota">Lo que llevas puesto cuenta: la <b>armadura</b> te protege cuando fallas una misión, y el
+               <b>ataque</b>, la <b>magia</b> y la <b>suerte</b> te hacen más fuerte en la Torre y en los minijuegos.</p>
             <h3 class="subtitulo">Tus objetos (${disponibles.size})</h3>
             ${disponibles.size
                 ? `<ul class="lista">${inventario}</ul>`
@@ -2524,7 +2636,7 @@ function seccionObjetosDeLogro(estado, ctx, titulo) {
         return `<li class="objeto ${ganado ? "puesto" : ""}">
                     ${iconoObjeto(id, ganado ? "" : "bloqueado")}
                     <span class="objeto-info"><b>${o.nombre}</b>
-                        <span class="mini texto-suave">${textoRareza(o)} · ${o.logro.texto}</span>
+                        <span class="mini texto-suave">${textoRareza(o)}${poderDe(o)} · ${o.logro.texto}</span>
                         ${ganado ? "" : barra(Math.round((progreso / o.logro.meta) * 100), "barra-mini")}</span>
                     <span class="mini ${ganado ? "oro" : "texto-suave"}">${ganado ? "¡Ganado!" : `${progreso}/${o.logro.meta}`}</span>
                 </li>`;
@@ -2587,7 +2699,7 @@ function tiendaDelAvatar(estado, cerrada, evento) {
         return `<li class="objeto ${tuyo ? "puesto" : ""}">
                     ${iconoObjeto(id)}
                     <span class="objeto-info"><b>${o.nombre}</b>
-                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · ${textoRareza(o)} · 🪙 ${precio < o.precio ? `<s>${o.precio}</s> ${precio}` : o.precio}</span></span>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · ${textoRareza(o)}${poderDe(o)} · 🪙 ${precio < o.precio ? `<s>${o.precio}</s> ${precio}` : o.precio}</span></span>
                     ${accion}
                 </li>`;
     }).join("");
@@ -2595,7 +2707,8 @@ function tiendaDelAvatar(estado, cerrada, evento) {
     return `
         <div class="titulo-seccion"><h2 class="titulo-juego">Equipamiento del avatar</h2></div>
         <p class="nota">Las monedas también sirven para tu avatar. Lo que compres se equipa solo;
-           puedes cambiarlo en tu Personaje.</p>
+           puedes cambiarlo en tu Personaje. 🛡️ sube tu armadura (te protege al fallar una misión);
+           ⚔️ ataque, 🔮 magia y 🍀 suerte cuentan en la Torre y en los minijuegos.</p>
         <ul class="lista">${lista}</ul>`;
 }
 

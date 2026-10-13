@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v24 — Los jefes también pegan
+- **Robo de vida:** cada misión que fallas (con «Fallé» o al terminar el día sin hacerla) es un golpe del jefe de su categoría: te quita vida y se cura con ella, hasta su vida llena y sin revivir nunca a un jefe vencido. Una escena animada lo muestra al fallar y al abrir la app si fallaste mientras no estabas.
+- **Armadura:** una barra nueva (cabecera, Hoy y Personaje) que sale de tus objetos de protección: la ropa de tu etapa (15/25/35/45) más lo que lleves en la cabeza y en la espalda. Con 40 recibes el daño normal; con 0, 50 % más; con 80 o más, la mitad. Se gasta con cada misión fallada y se repara con cada misión o tarea cumplida. Solo cuenta para las misiones falladas.
+- **El equipo cuenta:** cada objeto tiene poder (🛡️ armadura, ⚔️ ataque, 🔮 magia, 🍀 suerte), visible en la Tienda y en Personaje.
+- **Torre del héroe:** el equipo suma ataque, daño de hechizo, un hechizo extra (magia 8+) y críticos, y la armadura para hasta el 40 % de cada golpe.
+- **Minijuegos:** escudos en la Carrera (1 por cada 25 de armadura), vidas de más en la Lluvia de monedas (1 por cada 30), golpes más fuertes y zonas más anchas en Golpe preciso, y monedas que valen más con suerte.
+- Nada de esto cambia el pasado: la armadura y los robos empiezan a contar el día que llega la versión, cada «Fallé» guarda el golpe que recibió y la app apunta tu armadura máxima cuando cambia.
+
 ## v23 — Música, leyendas y un mundo con más vida
 - **Música de fondo:** tres grabaciones orquestales de dominio público o CC0 (Brahms, Holst y Grieg) que se repiten sin cortes. Se elige la pista y el volumen en Ajustes; en la Torre suena la de batalla. Se pausa al salir de la app y, una vez descargada, suena sin internet (el service worker la guarda aparte para no bajarla otra vez en cada versión).
 - **Equipo épico nuevo:** Capucha del errante, Yelmo alado, Hacha de guerra, Mandoble del juramento y Capa real.

@@ -89,6 +89,7 @@
                 </div>
                 <div class="barra barra-xp"><div class="barra-relleno" id="cab-barra"></div></div>
                 <div class="barra barra-salud" id="cab-salud"><div class="barra-relleno" id="cab-salud-relleno"></div></div>
+                <div class="barra barra-armadura" id="cab-armadura" aria-label="Armadura"><span class="barra-capacidad" id="cab-armadura-maxima"></span><div class="barra-relleno" id="cab-armadura-relleno"></div></div>
                 <div class="cab-datos"><span class="cab-xp" id="cab-xp"></span><span class="cab-vida" id="cab-vida"></span></div>
             </div>
             <div class="cab-monedas" aria-label="Monedas">🪙 <span id="cab-monedas"></span></div>
@@ -327,6 +328,11 @@
     <!-- El golpe con timing (vistas.pantallaGolpe): tocar en cualquier parte = golpear. -->
     <div id="golpe" class="capa-oscura golpe" hidden>
         <div class="golpe-caja" id="golpe-caja" role="dialog" aria-label="Golpe al jefe"></div>
+    </div>
+
+    <!-- El robo de vida (vistas.pantallaRobo): el jefe te golpea y se cura con lo que te quita. -->
+    <div id="robo" class="capa-oscura robo" hidden>
+        <div class="robo-caja" id="robo-caja" role="dialog" aria-label="Un jefe te robó vida"></div>
     </div>
 
     <!-- «Fallé»: reconocer que no hiciste una misión, y por qué. -->

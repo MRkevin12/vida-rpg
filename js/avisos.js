@@ -229,7 +229,7 @@ export function resumenParaAvisos(estado, hoy) {
         const cuerpo = lineas.join("\n");
         // De noche: cuánta vida pierdes si no terminas (y el diario, si no lo escribiste).
         const noche = [cuerpo];
-        const enJuego = vida.danoDelDia(estado, fecha).dano;
+        const enJuego = i === 0 ? salud.pendienteHoy : vida.danoDelDia(estado, fecha, salud.armadura.puntos).dano;
         if (enJuego) {
             noche.push(i === 0
                 ? `❤️ ${salud.puntos}/${salud.maxima}: si no terminas hoy pierdes ${enJuego} de vida`

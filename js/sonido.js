@@ -27,6 +27,8 @@ const SONIDOS = {
     ronroneo:  { onda: "triangle", volumen: 0.18, notas: [[82, 0, 0.18], [87, 0.16, 0.18], [82, 0.32, 0.25]] },
     // Golpe crítico: un tajo seco y un brillo agudo.
     critico:   { onda: "sawtooth", volumen: 0.14, notas: [[220, 0, 0.06], [110, 0.05, 0.12], [1568, 0.12, 0.25]] },
+    // Robo de vida: el golpe del jefe, tu vida que se escapa (notas que bajan) y su gruñido al curarse.
+    robo:      { onda: "sawtooth", volumen: 0.11, notas: [[98, 0.38, 0.14], [370, 0.78, 0.12], [311, 0.9, 0.12], [262, 1.02, 0.12], [208, 1.14, 0.3], [82, 1.7, 0.45]] },
     // Desafío relámpago: un chispazo que sube.
     relampago: { onda: "square",   volumen: 0.06, notas: [[880, 0, 0.05], [1320, 0.05, 0.05], [1760, 0.1, 0.18]] },
 };

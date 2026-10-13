@@ -29,6 +29,7 @@ import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import * as minijuegos from "./minijuegos.js";
 import * as sonido from "./sonido.js";
 import * as musica from "./musica.js";
+import * as equipo from "./equipo.js";
 import * as avisos from "./avisos.js";
 import * as nube from "./nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "./novedades.js";
@@ -53,6 +54,8 @@ let regionMapa = null;           // en el mapa: la región que miras (null = don
 let maestroVista = { modo: "inicio", respuesta: "" };   // la conversación con el Maestro
 let ritual = null;               // el ritual de la noche en curso: { paso, cola, indice, motivo }
 let golpe = null;                // el golpe con timing en curso
+let alCerrarRobo = null;         // qué hacer cuando se cierre la escena del robo de vida
+let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -125,16 +128,22 @@ function ofrecerPin() {
 // Al abrir (o volver a) la app: bonus de regreso, vida perdida, aviso de escudos usados,
 // premio de la sesión de enfoque (si terminó mientras no estabas) y desafío de la semana.
 function revisarAlAbrir() {
+    let robo = null;
     ejecutar(() => {
+        // Si un jefe te robó vida mientras no estabas, lo cuenta la escena del robo
+        // (y ya no hace falta el cartelito de «Perdiste N de vida»).
+        const perdida = acciones.revisarVidaAlAbrir(estado);
+        robo = perdida?.robo || null;
         const celebraciones = [
             ...(acciones.registrarVisita(estado)?.celebraciones || []),
-            ...(acciones.revisarVidaAlAbrir(estado)?.celebraciones || []),
+            ...(perdida?.celebraciones || []).filter((c) => !(robo && c.pequena)),
             ...(acciones.revisarEscudosUsados(estado)?.celebraciones || []),
             ...(acciones.revisarEnfoque(estado)?.celebraciones || []),
             ...(acciones.asegurarDesafio(estado)?.celebraciones || []),
         ];
         return { celebraciones };
     });
+    if (robo) mostrarRobo(robo);
     // ¿Siguen conectadas las notificaciones? Si no, aparece un aviso en Hoy para reactivarlas.
     avisos.problema().then((problema) => {
         if (problema === problemaAvisos) return;
@@ -419,6 +428,7 @@ async function jugarMinijuego(tipo) {
         ayuda: $("#mj-ayuda"),
         alTerminar: (puntos) => terminarMinijuego(tipo, puntos),
         sonar,
+        ventajas: arcade.ventajasDelEquipo(acciones.equipoDeBatalla(estado)),   // lo que te da tu equipo
     });
 }
 
@@ -489,6 +499,33 @@ function cerrarMinijuego() {
     }
     $("#minijuego").hidden = true;
     dibujarPantalla();
+}
+
+
+// ===== El robo de vida (v24) =====
+// robo = lo que devuelven acciones.fallarMision y revisarVidaAlAbrir (o null: no pasó nada).
+// alCerrar = qué hacer después (ej: ofrecer «Deshacer»).
+function mostrarRobo(robo, alCerrar = null) {
+    if (!robo || !robo.golpes.length) {
+        sonar("fallo");
+        alCerrar?.();
+        return;
+    }
+    alCerrarRobo = alCerrar;
+    roboDesde = Date.now();
+    $("#robo-caja").innerHTML = vistas.pantallaRobo(robo, dibujarAvatar(avatarActual(), { batalla: true, sinEfectos: true }));
+    $("#robo").hidden = false;
+    $("#robo").scrollTop = 0;
+    sonar("robo");
+}
+
+function cerrarRobo() {
+    if ($("#robo").hidden) return;
+    $("#robo").hidden = true;
+    $("#robo-caja").innerHTML = "";
+    const despues = alCerrarRobo;
+    alCerrarRobo = null;
+    despues?.();
 }
 
 
@@ -587,6 +624,10 @@ function actualizarCabecera(subioNivel) {
     // La vida: barra con el color de su estado (en forma, bien, herido o caído).
     const v = vida.calcularVida(estado, hoy());
     $("#cab-vida").textContent = `${v.caido ? "☠️" : "❤️"} ${v.puntos}/${v.maxima}`;
+    // La barra de armadura: en gris tu máximo, en azul lo que te queda (la barra entera son 100).
+    $("#cab-armadura-maxima").style.width = `${v.armadura.maxima}%`;
+    $("#cab-armadura-relleno").style.width = `${v.armadura.puntos}%`;
+    $("#cab-armadura").title = `Armadura ${v.armadura.puntos} de ${v.armadura.maxima}`;
     $("#cab-salud").className = `barra barra-salud salud-${v.nivel}`;
     $("#cab-salud-relleno").style.width = `${v.porcentaje}%`;
 }
@@ -891,6 +932,20 @@ function rellenarOpciones() {
            Con ${vida.VIDA.forma * 100} % o más estás <em>en plena forma</em>: +${vida.VIDA.bonoForma * 100} % de XP y monedas.
            Si llegas a 0 caes en combate: la tienda y el arcade se cierran hasta que recuperes la mitad.
            Poción: +${vida.POCION.cura} por ${vida.POCION.precio} monedas, una al día. En la Torre subes con tu vida real.</p>
+        <p><strong>Los jefes también pegan (robo de vida):</strong> cada misión que fallas es un golpe del jefe de su categoría.
+           Te quita vida y se la queda: se cura con ella (hasta su vida llena; nunca revive a un jefe vencido). Lo ves en una
+           escena al marcar «Fallé» y al abrir la app si fallaste mientras no estabas.</p>
+        <p><strong>Armadura:</strong> sale de tus objetos de protección: la ropa de tu etapa
+           (${avatar.ETAPAS.map((e) => `${e.nombre} ${e.armadura}`).join(", ")}) más lo que lleves en la cabeza y en la espalda, hasta
+           ${equipo.ARMADURA.tope}. Solo cuenta cuando fallas una misión: con ${equipo.ARMADURA.normal} recibes el daño normal; con 0,
+           un 50 % más; con ${equipo.ARMADURA.normal * 2} o más, la mitad. Cada misión fallada la gasta
+           (${equipo.ARMADURA.desgaste.facil}/${equipo.ARMADURA.desgaste.normal}/${equipo.ARMADURA.desgaste.dificil}) y cada misión o tarea cumplida la repara
+           (${equipo.ARMADURA.reparacion.facil}/${equipo.ARMADURA.reparacion.normal}/${equipo.ARMADURA.reparacion.dificil}, +${equipo.ARMADURA.diaPerfecto} en un día perfecto).
+           Las tareas vencidas pegan igual: la armadura no las cubre.</p>
+        <p><strong>Tu equipo cuenta:</strong> cada objeto dice lo que da. 🛡️ Armadura: además de protegerte al fallar, en la Torre
+           para parte de cada golpe (hasta 40 %), en la Carrera te da escudos (1 por cada 25) y en la Lluvia de monedas, vidas
+           (1 por cada 30). ⚔️ Ataque: más daño en la Torre y en Golpe preciso. 🔮 Magia: hechizos más fuertes y zonas de acierto
+           más anchas. 🍀 Suerte: más golpes críticos y monedas que valen más en los minijuegos.</p>
         <p><strong>Modo descanso:</strong> hasta ${vida.VIDA.descansoMaximo} días (vacaciones, enfermedad) sin perder vida ni racha, y sin recordatorios.</p>
         <p><strong>Tus atributos:</strong> en Progreso puedes crear hasta ${juego.MAX_ATRIBUTOS_PROPIOS} atributos para cosas
            específicas (Programación, Inglés…). Cada uno tiene su nivel y le suma a uno de los 4, así que también cuenta para
@@ -1394,7 +1449,8 @@ function ritualMision(hecha, motivo) {
         ? ejecutar(() => acciones.completarMision(estado, id, hoy()))
         : ejecutar(() => acciones.fallarMision(estado, id, hoy(), motivo));
     if (!resultado) return;
-    sonar(hecha ? "completar" : "fallo");
+    if (hecha) sonar("completar");
+    else mostrarRobo(resultado.robo);
     ritual.motivo = false;
     ritual.indice += 1;
     pintarRitual();
@@ -1953,6 +2009,7 @@ const ACCIONES = {
     // El Maestro.
     "maestro-abrir": (boton) => abrirMaestro(boton.dataset.modo || "inicio"),
     "maestro-cerrar": () => cerrarMaestro(),
+    "robo-cerrar": () => cerrarRobo(),
     "maestro-modo": (boton) => {
         maestroVista = { modo: boton.dataset.modo, respuesta: "" };
         pintarMaestro();
@@ -2233,10 +2290,10 @@ const FORMULARIOS = {
         const id = Number(valores.id);
         const resultado = ejecutar(() => acciones.fallarMision(estado, id, valores.fecha, valores.motivo));
         if (resultado) {
-            sonar("fallo");
             const mision = estado.misiones.find((m) => m.id === id);
-            ofrecerDeshacer(`✗ ${mision.nombre}${resultado.dano ? ` · −${resultado.dano} ❤️` : ""}`,
-                            () => ejecutar(() => acciones.quitarFalla(estado, id, valores.fecha)));
+            // Primero la escena del robo; al cerrarla, la opción de deshacer.
+            mostrarRobo(resultado.robo, () => ofrecerDeshacer(`✗ ${mision.nombre}${resultado.dano ? ` · −${resultado.dano} ❤️` : ""}`,
+                                                              () => ejecutar(() => acciones.quitarFalla(estado, id, valores.fecha))));
         }
         return resultado;
     },
@@ -2388,6 +2445,10 @@ function conectarEventos() {
     $("#ajustes-eventos").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "eventos", evento.target.checked)));
     // Tocar el fondo del golpe con timing = golpear.
     $("#golpe").addEventListener("pointerdown", () => golpear());
+    // Tocar fuera de la escena del robo la cierra (pero no con el mismo toque que la abrió).
+    $("#robo").addEventListener("click", (evento) => {
+        if (evento.target === evento.currentTarget && Date.now() - roboDesde > 900) cerrarRobo();
+    });
     // Deslizar la carta del ritual: → la hiciste, ← no.
     conectarCartaRitual();
 

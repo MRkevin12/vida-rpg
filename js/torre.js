@@ -9,6 +9,8 @@
 // más fuerte también aquí.
 //   Fuerza → vida y ataque · Intelecto → hechizos · Carisma → defensa y vida
 //   Riqueza → pociones y golpes críticos
+// Y de tu EQUIPO (v24, ver equipo.js): ⚔️ ataque, 🔮 magia (hechizos), 🍀 suerte (críticos)
+// y 🛡️ armadura (cada golpe del monstruo te quita menos).
 //
 // Como todo lo que es "juego puro", este archivo no dibuja ni guarda nada: recibe la
 // partida (un objeto) y la cambia. La partida se guarda en estado.arcade.torre,
@@ -66,23 +68,33 @@ function elegir(partida, lista) {
 // ===== El héroe =====
 
 // niveles = { fuerza, intelecto, carisma, riqueza } (los niveles de tus atributos, 1 o más)
-export function heroeDeLaTorre(niveles) {
+// equipo = { ataque, magia, suerte, armadura } (lo que suma tu equipo; la armadura, la que tienes ahora)
+export function heroeDeLaTorre(niveles, equipo = {}) {
+    const { ataque = 0, magia = 0, suerte = 0, armadura = 0 } = equipo;
     const vidaMax = 40 + 6 * niveles.fuerza + 4 * niveles.carisma;
-    const mana = 2 + Math.floor(niveles.intelecto / 3);
+    const mana = 2 + Math.floor(niveles.intelecto / 3) + (magia >= 8 ? 1 : 0);
     const pociones = 1 + Math.floor(niveles.riqueza / 2);
     return {
         vida: vidaMax,
         vidaMax,
-        ataque: 6 + 2 * niveles.fuerza,
-        hechizo: 10 + 3 * niveles.intelecto,
+        ataque: 6 + 2 * niveles.fuerza + ataque,
+        hechizo: 10 + 3 * niveles.intelecto + Math.round(magia * 1.5),
         mana,                 // hechizos que te quedan en este piso
         manaMax: mana,
         defensa: Math.min(0.75, 0.5 + niveles.carisma * 0.025),   // parte del daño que bloqueas al defender
         curaDefensa: 2 + niveles.carisma,
         pociones,
-        critico: Math.min(0.3, 0.08 + niveles.riqueza * 0.02),
+        critico: Math.min(0.4, Math.min(0.3, 0.08 + niveles.riqueza * 0.02) + suerte / 100),
+        proteccion: Math.min(0.4, armadura / 200),   // parte de cada golpe que para tu armadura (máx. 40 %)
         defendiendo: false,
     };
+}
+
+// Cuánto te quita un golpe del monstruo (tu armadura y, si te defiendes, tu escudo lo bajan).
+export function danoRecibido(h, dano) {
+    let total = Math.round(dano * (1 - (h.proteccion || 0)));
+    if (h.defendiendo) total = Math.round(total * (1 - h.defensa));
+    return total;
 }
 
 
@@ -124,9 +136,10 @@ export function danoPrevisto(m) {
     return 0;
 }
 
-export function textoIntencion(m) {
+// h (opcional) = tu héroe: así el número ya descuenta lo que para tu armadura.
+export function textoIntencion(m, h = null) {
     const i = INTENCIONES[m.intencion];
-    const dano = danoPrevisto(m);
+    const dano = h ? danoRecibido({ ...h, defendiendo: false }, danoPrevisto(m)) : danoPrevisto(m);
     return { icono: i.icono, texto: dano ? `${i.texto} (${dano})` : i.texto };
 }
 
@@ -135,8 +148,8 @@ export function textoIntencion(m) {
 
 // proporcion: con cuánta vida subes (1 = llena). Sale de tu vida real (ver vida.js):
 // si llegas herido, empiezas con menos.
-export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporcion = 1) {
-    const heroe = heroeDeLaTorre(niveles);
+export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporcion = 1, equipo = {}) {
+    const heroe = heroeDeLaTorre(niveles, equipo);
     heroe.vida = Math.max(1, Math.round(heroe.vidaMax * proporcion));
     return {
         semilla,
@@ -206,8 +219,7 @@ export function actuar(partida, accion) {
     // --- Turno del monstruo ---
     const intencion = m.intencion;
     if (intencion === "golpe" || intencion === "fuerte") {
-        let dano = danoPrevisto(m);
-        if (h.defendiendo) dano = Math.round(dano * (1 - h.defensa));
+        const dano = danoRecibido(h, danoPrevisto(m));
         h.vida = Math.max(0, h.vida - dano);
         eventos.push({ quien: "enemigo", tipo: intencion, dano });
         frases.push(`${m.nombre} te golpea: −${dano}${h.defendiendo ? " (bloqueaste parte)" : ""}.`);
