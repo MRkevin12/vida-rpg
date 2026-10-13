@@ -34,6 +34,7 @@ export const VIDA = {
     enfoque: 3,           // cada sesión de enfoque terminada
     paso: 4,              // cada paso de una misión principal
     diaPerfecto: 10,      // extra por hacer TODAS las misiones del día
+    diario: 2,            // escribir el diario (cuidarte también cura)
     forma: 0.8,           // desde 80 %: «En plena forma»
     bonoForma: 0.1,       // …que da +10 % de XP y monedas
     herido: 0.3,          // menos de 30 %: herido
@@ -95,6 +96,7 @@ function curacionDelDia(estado, fecha, mapas) {
     cura += del("pasos").length * VIDA.paso;
     cura += del("pociones").length * POCION.cura;
     if (juego.esDiaPerfecto(estado.misiones, fecha, mapas.hechas)) cura += VIDA.diaPerfecto;
+    if (estado.diario[fecha]) cura += VIDA.diario;
     return cura;
 }
 

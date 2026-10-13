@@ -14,11 +14,12 @@ import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as vida from "./vida.js";
+import * as diario from "./diario.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
-         diasEntre, lunesDe, relojTexto, sumarDias } from "./fechas.js";
+         diasEntre, lunesDe, relojTexto, sumarDias, MESES } from "./fechas.js";
 
 const { DIFICULTADES, ATRIBUTOS, PREMIOS, ESCUDOS, ANIMOS_DIARIO, plural } = juego;
 
@@ -185,7 +186,7 @@ export function pantallaHoy(estado, ctx) {
 
         ${esAyer ? "" : seccionTareas(estado, ctx)}
         ${tarjetaDesafio(estado, ctx)}
-        ${seccionDiario(estado, fecha, esAyer)}
+        ${seccionDiario(estado, ctx, fecha, esAyer)}
         ${jefesEnCombate(estado, ctx)}`;
 }
 
@@ -383,27 +384,208 @@ function tarjetaDesafio(estado, ctx) {
         </section>`;
 }
 
-function seccionDiario(estado, fecha, esAyer) {
+// El diario en Hoy: cómo te fue (tocar una carita guarda al instante), la pregunta del día
+// y algo que agradeces. Arriba, la racha y el botón para ver todo el diario.
+function seccionDiario(estado, ctx, fecha, esAyer) {
     const entrada = estado.diario[fecha];
+    const racha = diario.rachaDiario(estado, ctx.hoy);
+    const p = diario.PREMIO_DIARIO;
     const animos = Object.entries(ANIMOS_DIARIO).map(([clave, a]) => `
-        <label class="pildora">
+        <label class="pildora" style="--color-dificultad: ${a.color}">
             <input type="radio" name="animo" value="${clave}" ${entrada?.animo === clave ? "checked" : ""}>
             <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
         </label>`).join("");
+    const nota = entrada?.premio
+        ? `✓ Escrito${esAyer ? "" : " hoy"}. Puedes cambiarlo cuando quieras.`
+        : `Escribirlo da +${p.xp} XP de ${ATRIBUTOS[p.atributo].icono} ${ATRIBUTOS[p.atributo].nombre}, ${p.monedas} 🪙 y cura ${vida.VIDA.diario} ❤️.`;
     return `
         <section class="panel diario">
-            <h2 class="titulo-juego">📓 Diario</h2>
-            <p class="nota">¿Cómo te fue ${esAyer ? "ayer" : "hoy"}? Una frase basta. Lo verás al tocar el día en el calendario.</p>
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">📓 Diario</h2>
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="diario">📖 Ver todo</button>
+            </div>
+            <p class="nota">${racha ? `✍️ Racha de ${plural(racha, "día", "días")} escribiendo. ` : ""}${nota}</p>
             <form data-form="diario" class="formulario">
                 <input type="hidden" name="fecha" value="${fecha}">
-                <fieldset class="opciones" aria-label="Cómo te fue">${animos}</fieldset>
-                <div class="form-linea">
-                    <input type="text" name="texto" maxlength="140" autocomplete="off" value="${esc(entrada?.texto || "")}"
-                           placeholder="Ej: Terminé el problem set 3" aria-label="Tu frase del día">
-                    <button type="submit" class="boton boton-chico">${entrada ? "Actualizar" : "Guardar"}</button>
-                </div>
+                <fieldset class="opciones opciones-5"><legend>¿Cómo te fue ${esAyer ? "ayer" : "hoy"}?</legend>${animos}</fieldset>
+                <label>${esc(diario.preguntaDelDia(fecha))}
+                    <textarea name="texto" rows="3" maxlength="${diario.LARGO.texto}"
+                              placeholder="Escribe lo que quieras. Una frase basta.">${esc(entrada?.texto || "")}</textarea>
+                </label>
+                <label>🙏 Hoy agradezco…
+                    <input type="text" name="gratitud" maxlength="${diario.LARGO.gratitud}" autocomplete="off"
+                           value="${esc(entrada?.gratitud || "")}" placeholder="Ej: el café con mi mamá">
+                </label>
+                <button type="submit" class="boton boton-principal">${entrada ? "Actualizar" : "Guardar en mi diario"}</button>
             </form>
         </section>`;
+}
+
+
+// ===== Pantalla: Tu diario =====
+// ctx: mesDiario ("2026-10"), diaDiario (el día tocado), busquedaDiario, filtroDiario (un ánimo o null), limiteDiario.
+
+const coma = (numero) => String(numero).replace(".", ",");   // 4.2 → "4,2"
+
+export function pantallaDiario(estado, ctx) {
+    const total = Object.keys(estado.diario).length;
+    const racha = diario.rachaDiario(estado, ctx.hoy);
+    const delMes = Object.entries(estado.diario).filter(([fecha]) => fecha.startsWith(ctx.mesDiario)).map(([, e]) => e);
+    const promedio = diario.promedioAnimo(delMes);
+    const animoMes = promedio === null ? null : ANIMOS_DIARIO[diario.animoDe(promedio)];
+    const filtros = [[null, "Todas"], ...Object.entries(ANIMOS_DIARIO).map(([clave, a]) => [clave, a.icono])].map(([clave, texto]) => `
+        <button type="button" class="chip ${ctx.filtroDiario === clave ? "chip-activo" : ""}" data-accion="diario-filtro"
+                data-animo="${clave || ""}" aria-pressed="${ctx.filtroDiario === clave}"
+                aria-label="${clave ? ANIMOS_DIARIO[clave].nombre : "Todas"}">${texto}</button>`).join("");
+
+    return `
+        <section class="panel">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">📓 Tu diario</h2>
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="hoy">‹ Hoy</button>
+            </div>
+            <div class="fichas-dato">
+                ${ficha("Racha", `✍️ ${racha}`, `<span class="ficha-nota">${racha === 1 ? "Día seguido" : "Días seguidos"} escribiendo</span>`)}
+                ${ficha("Entradas", total, `<span class="ficha-nota">En total</span>`)}
+                ${ficha(`Ánimo de ${MESES[Number(ctx.mesDiario.slice(5)) - 1]}`, animoMes ? animoMes.icono : "—",
+                        `<span class="ficha-nota">${animoMes ? `${animoMes.nombre} · ${coma(promedio)} de 5` : "Sin ánimos ese mes"}</span>`)}
+            </div>
+        </section>
+
+        ${calendarioDeAnimo(estado, ctx)}
+        ${seccionLoQueDice(estado)}
+        ${seccionRecuerdos(estado, ctx)}
+
+        <section class="panel">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">Todas tus entradas</h2>
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="descargar-diario" ${total ? "" : "disabled"}>⬇️ Descargar</button>
+            </div>
+            <input type="search" id="diario-buscar" class="diario-buscar" placeholder="🔍 Buscar en tu diario…"
+                   value="${esc(ctx.busquedaDiario)}" autocomplete="off" aria-label="Buscar en tu diario">
+            <div class="chips filtros-animo" role="group" aria-label="Filtrar por ánimo">${filtros}</div>
+            <div id="diario-lista">${listaDiario(estado, ctx)}</div>
+        </section>`;
+}
+
+// El mes con un cuadrito por día, del color de tu ánimo. Tocar un día muestra su entrada.
+function calendarioDeAnimo(estado, ctx) {
+    const mes = ctx.mesDiario;
+    const [anio, numero] = mes.split("-").map(Number);
+    const mesVecino = (salto) => {
+        const total = anio * 12 + (numero - 1) + salto;
+        return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`;
+    };
+    const anterior = mesVecino(-1);
+    const siguiente = mesVecino(1);
+    const celdas = diario.mesDeAnimo(estado, mes, ctx.hoy).map((c) => {
+        if (!c) return '<span class="dia-animo hueco"></span>';
+        const a = c.animo ? ANIMOS_DIARIO[c.animo] : null;
+        const numeroDia = Number(c.fecha.slice(8));
+        if (c.futuro) return `<span class="dia-animo futuro">${numeroDia}</span>`;
+        const clases = ["dia-animo", c.escrito ? "escrito" : "", a ? "con-animo" : "",
+                        c.fecha === ctx.hoy ? "hoy" : "", c.fecha === ctx.diaDiario ? "elegido" : ""];
+        return `<button type="button" class="${clases.join(" ")}" ${a ? `style="--color-animo: ${a.color}"` : ""}
+                        data-accion="diario-dia" data-fecha="${c.fecha}"
+                        aria-label="${fechaLegible(c.fecha)}${a ? `: ${a.nombre}` : c.escrito ? ": escrito" : ""}">${numeroDia}</button>`;
+    }).join("");
+    const leyenda = Object.values(ANIMOS_DIARIO).map((a) => `<i class="celda" style="background: ${a.color}"></i><span>${a.icono}</span>`).join("");
+
+    return `
+        <section class="panel">
+            <div class="titulo-seccion mes-navegar">
+                <button type="button" class="boton-icono" data-accion="diario-mes" data-mes="${anterior}" aria-label="Mes anterior">‹</button>
+                <h2 class="titulo-juego">${MESES[numero - 1]} ${anio}</h2>
+                <button type="button" class="boton-icono" data-accion="diario-mes" data-mes="${siguiente}" aria-label="Mes siguiente"
+                        ${siguiente > ctx.hoy.slice(0, 7) ? "disabled" : ""}>›</button>
+            </div>
+            <div class="mes-animo">
+                ${DIAS_LETRAS.map((letra) => `<span class="mes-letra">${letra}</span>`).join("")}
+                ${celdas}
+            </div>
+            <div class="cal-leyenda">${leyenda}</div>
+            <div id="diario-detalle">${detalleEntrada(estado, ctx.diaDiario)}</div>
+        </section>`;
+}
+
+// La entrada del día tocado en el calendario (app.js la cambia sin redibujar todo).
+export function detalleEntrada(estado, fecha) {
+    if (!fecha) return '<p class="nota">Toca un día para leer lo que escribiste.</p>';
+    const entrada = estado.diario[fecha];
+    if (!entrada) return `<p class="nota"><b>${fechaLegible(fecha)}</b>: no escribiste ese día.</p>`;
+    return tarjetaEntrada(fecha, entrada);
+}
+
+function tarjetaEntrada(fecha, e) {
+    const a = e.animo ? ANIMOS_DIARIO[e.animo] : null;
+    return `
+        <article class="entrada" ${a ? `style="--color-animo: ${a.color}"` : ""}>
+            <header class="entrada-cabecera">
+                <span class="entrada-animo" aria-hidden="true">${a ? a.icono : "📓"}</span>
+                <b>${fechaLegible(fecha)}</b>
+                ${a ? `<span class="mini texto-suave">${a.nombre}</span>` : ""}
+            </header>
+            ${e.texto ? `${e.pregunta ? `<p class="entrada-pregunta">${esc(e.pregunta)}</p>` : ""}<p class="entrada-texto">${esc(e.texto)}</p>` : ""}
+            ${e.gratitud ? `<p class="entrada-gratitud">🙏 ${esc(e.gratitud)}</p>` : ""}
+        </article>`;
+}
+
+// Lo que tu diario dice de ti: tu ánimo y tus misiones, y tu mejor día de la semana.
+function seccionLoQueDice(estado) {
+    const d = diario.loQueDiceTuDiario(estado);
+    const titulo = '<h2 class="titulo-juego">🔎 Lo que dice tu diario</h2>';
+    if (!d.suficiente) {
+        return `<section class="panel">${titulo}
+            <p class="nota">Marca cómo te fue ${plural(d.faltan, "día más", "días más")} y aquí verás cómo se relaciona
+               tu ánimo con tus misiones.</p></section>`;
+    }
+    const lineas = [];
+    const { cumpliendo: c, sinCumplir: s } = d;
+    if (c.promedio !== null && s.promedio !== null) {
+        const ca = ANIMOS_DIARIO[diario.animoDe(c.promedio)];
+        const sa = ANIMOS_DIARIO[diario.animoDe(s.promedio)];
+        const diferencia = c.promedio - s.promedio;
+        if (Math.abs(diferencia) < 0.3) {
+            lineas.push(`Tu ánimo es parecido los días que cumples todas tus misiones (${ca.icono} ${coma(c.promedio)})
+                         y los que no (${sa.icono} ${coma(s.promedio)}).`);
+        } else if (diferencia > 0) {
+            lineas.push(`Los días que cumples todas tus misiones te sientes mejor: ${ca.icono} <b>${coma(c.promedio)}</b> de 5,
+                         contra ${sa.icono} ${coma(s.promedio)} los demás días.`);
+        } else {
+            lineas.push(`Los días que cumples todo te sientes peor (${ca.icono} ${coma(c.promedio)} contra ${sa.icono} ${coma(s.promedio)}).
+                         ¿Te estás exigiendo demasiado?`);
+        }
+    } else {
+        lineas.push("Todavía faltan días con y sin todas tus misiones hechas para comparar tu ánimo.");
+    }
+    if (d.mejorDia) {
+        const a = ANIMOS_DIARIO[diario.animoDe(d.mejorDia.promedio)];
+        lineas.push(`Tu mejor día de la semana es el <b>${NOMBRE_DIA[d.mejorDia.dia]}</b> (${a.icono} ${coma(d.mejorDia.promedio)} de 5).`);
+    }
+    return `<section class="panel">${titulo}
+        <ul class="semana-lista">${lineas.map((l) => `<li>${l}</li>`).join("")}</ul>
+        <p class="mini texto-suave">Según ${plural(d.total, "día", "días")} en que marcaste tu ánimo.</p></section>`;
+}
+
+// Recuerdos: lo que escribiste hace una semana, un mes y un año.
+function seccionRecuerdos(estado, ctx) {
+    const lista = diario.recuerdos(estado, ctx.hoy);
+    if (!lista.length) return "";
+    return `<section class="panel"><h2 class="titulo-juego">🕰️ Recuerdos</h2>
+        ${lista.map((r) => `<p class="etiqueta recuerdo-titulo">${r.titulo}</p>${tarjetaEntrada(r.fecha, r.entrada)}`).join("")}</section>`;
+}
+
+// La lista de entradas (con la búsqueda y el filtro). app.js la cambia sola mientras escribes en el buscador.
+export function listaDiario(estado, ctx) {
+    const entradas = diario.buscarEntradas(estado, { texto: ctx.busquedaDiario, animo: ctx.filtroDiario });
+    if (!entradas.length) {
+        return vacio(Object.keys(estado.diario).length
+            ? "No hay entradas con esa búsqueda."
+            : "Todavía no has escrito nada. Empieza hoy: el diario está al final de la pantalla Hoy.");
+    }
+    const faltan = entradas.length - ctx.limiteDiario;
+    return entradas.slice(0, ctx.limiteDiario).map((e) => tarjetaEntrada(e.fecha, e)).join("") +
+        (faltan > 0 ? `<button type="button" class="boton boton-secundario boton-ancho" data-accion="diario-mas">Ver más (${faltan})</button>` : "");
 }
 
 // La tarjeta «Tu semana»: aparece al empezar una semana nueva con el resumen de la anterior.
@@ -662,15 +844,16 @@ export function detalleDia(estado, fecha, racha) {
     if (juego.enDescanso(estado, fecha)) protegido += " · 🏖️ descanso";
     const tareas = estado.tareas.filter((t) => t.hechaEn === fecha).map((t) => esc(t.nombre));
     const minutos = estado.enfoque.sesiones.filter((s) => s.fecha === fecha).reduce((suma, s) => suma + s.minutos, 0);
-    const diario = estado.diario[fecha];
+    const entrada = estado.diario[fecha];
 
     let texto = `<strong>${fechaLegible(fecha)}</strong>: ${cumplidas} de ${total}${protegido}`;
     if (nombres.length) texto += `<br><span class="texto-suave">${nombres.join(" · ")}</span>`;
     if (tareas.length) texto += `<br><span class="texto-suave">📌 ${tareas.join(" · ")}</span>`;
     if (minutos) texto += `<br><span class="texto-suave">⏱️ ${minutos} min de enfoque</span>`;
-    if (diario) {
-        const icono = diario.animo ? ANIMOS_DIARIO[diario.animo].icono : "📓";
-        texto += `<br>${icono} ${diario.texto ? `«${esc(diario.texto)}»` : ""}`;
+    if (entrada) {
+        const icono = entrada.animo ? ANIMOS_DIARIO[entrada.animo].icono : "📓";
+        texto += `<br>${icono} ${entrada.texto ? `«${esc(entrada.texto)}»` : ""}`;
+        if (entrada.gratitud) texto += `<br>🙏 ${esc(entrada.gratitud)}`;
     }
     return texto;
 }

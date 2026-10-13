@@ -12,6 +12,7 @@
 
 import * as juego from "./juego.js";
 import * as vida from "./vida.js";
+import { preguntaDelDia } from "./diario.js";
 import { sumarDias, aTexto, lunesDe } from "./fechas.js";
 
 // La dirección del servidor y su llave pública. Ninguna de las dos es secreta.
@@ -213,7 +214,7 @@ export function resumenParaAvisos(estado, hoy) {
                 : `❤️ Si no lo haces pierdes ${enJuego} de vida`);
         }
         if (i === 0 && salud.caido) noche.push(`☠️ Estás caído: llega a ${salud.levantarse} ❤️ para abrir la tienda`);
-        if (!estado.diario[fecha]) noche.push("📓 Falta tu frase del diario");
+        if (!estado.diario[fecha]) noche.push(`📓 Diario: ${preguntaDelDia(fecha)}`);
         dias[fecha] = {
             titulo,
             cuerpo,

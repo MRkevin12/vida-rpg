@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 17;
+export const VERSION_APP = 18;
 
 export const NOVEDADES = [
+    {
+        version: 18,
+        titulo: "Un diario de verdad",
+        cambios: [
+            "📖 «Tu diario»: calendario de ánimo, recuerdos, buscador y descarga (botón «Ver todo» en el diario de Hoy).",
+            "🤩 5 ánimos, una pregunta distinta cada día y «Hoy agradezco…».",
+            "🔎 Lo que dice tu diario: cómo cambia tu ánimo los días que cumples tus misiones.",
+            "✍️ Escribirlo da +5 XP de Carisma, 2 monedas y cura 2 de vida. Lleva su propia racha.",
+        ],
+    },
     {
         version: 17,
         titulo: "Tus propios atributos",

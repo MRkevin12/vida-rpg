@@ -1610,6 +1610,7 @@ input[type="number"],
 input[type="date"],
 input[type="time"],
 input[type="password"],
+input[type="search"],
 select,
 textarea {
     width: 100%;
@@ -3885,6 +3886,165 @@ body:has(#deshacer:not([hidden])) .aviso {
 .pildora-color input:checked + span {
     border: 2px solid #fff;
     background: var(--muestra, rgba(139, 92, 246, 0.14));
+}
+
+
+/* ===== Diario (v18) ===== */
+/* 5 ánimos en una fila. */
+.opciones-5 {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.diario textarea {
+    min-height: 84px;
+}
+
+/* El mes de ánimo: 7 columnas (L a D); cada día con el color de cómo te fue. */
+.mes-navegar {
+    justify-content: space-between;
+}
+
+.mes-navegar .titulo-juego {
+    text-transform: capitalize;
+}
+
+.mes-navegar .boton-icono {
+    font-size: 1.7rem;
+    line-height: 1;
+    color: var(--texto);
+}
+
+.mes-navegar .boton-icono:disabled {
+    opacity: 0.25;
+}
+
+.mes-animo {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.mes-letra {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+.dia-animo {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    min-height: 36px;
+    padding: 0;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--texto-suave);
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.dia-animo.hueco {
+    visibility: hidden;
+}
+
+.dia-animo.futuro {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.dia-animo.escrito {
+    color: var(--texto);
+    border-color: rgba(139, 92, 246, 0.6);
+}
+
+.dia-animo.con-animo {
+    color: #120d22;
+    background: var(--color-animo);
+    border-color: var(--color-animo);
+}
+
+.dia-animo.hoy {
+    outline: 1px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 1px;
+}
+
+.dia-animo.elegido {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+}
+
+#diario-detalle {
+    margin-top: 12px;
+}
+
+/* Una entrada del diario, con una franja del color de su ánimo. */
+.entrada {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-left: 4px solid var(--color-animo, var(--borde));
+    border-radius: 14px;
+}
+
+.entrada-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.entrada-animo {
+    font-size: 1.3rem;
+}
+
+.entrada-pregunta {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.entrada-texto {
+    margin: 0;
+    white-space: pre-wrap;   /* respeta los saltos de línea que escribiste */
+    overflow-wrap: anywhere;
+}
+
+.entrada-gratitud {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #fde68a;
+}
+
+.recuerdo-titulo {
+    margin: 14px 0 0;
+}
+
+.diario-buscar {
+    margin-top: 10px;
+}
+
+.filtros-animo {
+    margin: 10px 0 4px;
+}
+
+.filtros-animo .chip {
+    min-width: 44px;
+    min-height: 36px;
+    cursor: pointer;
+}
+
+.chip-activo {
+    color: var(--texto);
+    background: rgba(139, 92, 246, 0.25);
+    border-color: var(--violeta);
 }
 
 

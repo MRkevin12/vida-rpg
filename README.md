@@ -1,7 +1,7 @@
 # <img src="iconos/icono-192.png" width="56" alt="" align="top"> Vida RPG
 
 [![Pruebas](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml/badge.svg)](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml)
-![Versión](https://img.shields.io/badge/versión-v17-8b5cf6)
+![Versión](https://img.shields.io/badge/versión-v18-8b5cf6)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-34d399)](LICENSE)
 
 Una app de productividad que convierte tu día a día en un juego de rol: completas misiones, ganas experiencia, subes de nivel y derrotas jefes.
@@ -28,7 +28,7 @@ Las capturas usan una partida de ejemplo inventada.
 - **Tareas sueltas:** pendientes de una sola vez, con o sin fecha. Aparecen en Hoy el día que vencen (y se marcan como atrasadas si pasó la fecha). También se crean desde «Nueva misión» → «Una sola vez».
 - **Bienvenida guiada** con hábitos y premios listos para elegir con un toque, y una ventana de **novedades** después de cada actualización.
 - **Modo enfoque:** un temporizador de 15, 25 o 50 minutos que da lo mismo que una misión. Sigue contando aunque cierres la app.
-- **Diario de una línea:** una frase y tu ánimo de cada día, visibles al tocar el día en el calendario.
+- **Diario:** cada día marcas cómo te fue (5 ánimos), respondes una pregunta distinta y anotas algo que agradeces. En «Tu diario» tienes un calendario de ánimo, recuerdos de hace una semana, un mes y un año, un buscador, y ves cómo cambia tu ánimo los días que cumples tus misiones. Se puede descargar como texto. Escribirlo da XP y cura un poco de vida.
 - **Desafío de la semana:** uno al azar cada lunes (adaptado a tu partida). Si lo cumples, abres un cofre.
 - **Tu semana:** al empezar una semana nueva, un resumen de la anterior: cumplimiento, días perfectos, metas, enfoque, ánimo y el desafío.
 - **XP, niveles y cuatro atributos:** Fuerza, Intelecto, Carisma y Riqueza. Además puedes crear **tus propios atributos** para cosas específicas (Programación, Inglés, Salud…): cada uno tiene su nivel y le suma a uno de los 4.
@@ -102,6 +102,7 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
 | `js/arcade.js`, `js/minijuegos.js` | Las fichas y los tres minijuegos en `<canvas>` |
 | `js/torre.js` | Las reglas de la Torre del héroe (batallas por turnos y mejoras) |
+| `js/diario.js` | El diario: pregunta del día, racha, calendario de ánimo, lo que dice tu diario, recuerdos y búsqueda |
 | `js/vida.js` | La vida del héroe: daño, curación, plena forma, caer en combate y pociones (se calcula día por día) |
 | `js/pinturas.js`, `fondos/` | Las pinturas de los fondos y escenarios, con sus créditos |
 | `js/datos.js` | Guardar, cargar y copias de seguridad |
@@ -130,7 +131,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 87 pruebas de las reglas del juego (niveles, atributos propios, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 93 pruebas de las reglas del juego (niveles, atributos propios, diario, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

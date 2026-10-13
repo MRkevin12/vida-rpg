@@ -11,6 +11,7 @@ import * as datos from "../js/datos.js";
 import * as acciones from "../js/acciones.js";
 import * as juego from "../js/juego.js";
 import { hoy, sumarDias, diaDeSemana } from "../js/fechas.js";
+import { preguntaDelDia } from "../js/diario.js";
 
 // Números "al azar" pero siempre iguales (para que la partida de ejemplo no cambie
 // cada vez). Es un generador sencillo: con la misma semilla da la misma serie.
@@ -34,13 +35,14 @@ const MISIONES = [
     { nombre: "Beber agua", dificultad: "facil", atributo: "fuerza", dias: null, cantidad: 8, unidad: "vasos", constancia: 0.75 },
 ];
 
-// Frases del diario de ejemplo (se repiten en ciclo).
+// Frases del diario de ejemplo y lo que agradece (se repiten en ciclo).
 const DIARIO = [
-    ["bien", "Terminé el módulo de funciones"],
-    ["normal", "Día largo, pero cumplí lo básico"],
-    ["bien", "Corrí sin parar por primera vez"],
-    ["mal", "Dormí poco y me costó concentrarme"],
-    ["bien", "Buena conversación con mi hermana"],
+    ["Terminé el módulo de funciones", "Que el código por fin funcionó"],
+    ["Día largo, pero cumplí lo básico", ""],
+    ["Corrí sin parar por primera vez", "Mis piernas, que aguantaron"],
+    ["Dormí poco y me costó concentrarme", ""],
+    ["Buena conversación con mi hermana", "Mi hermana"],
+    ["Organicé la semana con calma", "Tener un plan"],
 ];
 
 export function partidaDemo(dias = 45) {
@@ -112,10 +114,14 @@ export function partidaDemo(dias = 45) {
             estado.enfoque.sesiones.push({ fecha, minutos: 25, atributo: "intelecto", dificultad: "normal", xp, monedas });
             acciones.ganar(estado, { xp, monedas, atributo: "intelecto" });
         }
-        // El diario de las últimas dos semanas.
+        // El diario de las últimas dos semanas: el ánimo sigue a lo que cumplió ese día.
         if (i >= dias - 14 && !esHoy) {
-            const [animo, texto] = DIARIO[i % DIARIO.length];
-            estado.diario[fecha] = { animo, texto };
+            const tocaban = juego.misionesDelDia(estado.misiones, fecha);
+            const hechas = new Set(estado.completadas.filter((c) => c.fecha === fecha).map((c) => c.misionId));
+            const parte = tocaban.length ? tocaban.filter((m) => hechas.has(m.id)).length / tocaban.length : 1;
+            const animo = parte === 1 ? "genial" : parte >= 0.6 ? "bien" : parte >= 0.3 ? "normal" : "mal";
+            const [texto, gratitud] = DIARIO[i % DIARIO.length];
+            estado.diario[fecha] = { animo, texto, gratitud, pregunta: preguntaDelDia(fecha), premio: null };
         }
     }
 

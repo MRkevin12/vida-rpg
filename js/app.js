@@ -17,6 +17,7 @@ import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as vida from "./vida.js";
+import * as diario from "./diario.js";
 import { PINTURAS, fuentePintura } from "./pinturas.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import * as minijuegos from "./minijuegos.js";
@@ -35,6 +36,9 @@ let pantallaActual = "hoy";      // qué pestaña se está viendo
 let diaSeleccionado = null;      // día tocado en el calendario
 let diaVisto = "hoy";            // en la pantalla Hoy: "hoy" o "ayer" (por si olvidaste marcar algo)
 let rangoResumen = 7;            // en Progreso: el resumen muestra los últimos 7 o 30 días
+// Pantalla «Tu diario»: el mes que se ve (null = el actual), el día tocado, la búsqueda,
+// el filtro de ánimo y cuántas entradas se muestran.
+const diarioVista = { mes: null, dia: null, busqueda: "", filtro: null, limite: 30 };
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -49,6 +53,7 @@ const DIBUJAR = {
     personaje: vistas.pantallaPersonaje,
     arcade: vistas.pantallaArcade,
     enfoque: vistas.pantallaEnfoque,
+    diario: vistas.pantallaDiario,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -563,6 +568,7 @@ function dibujarPantalla(efectos = {}) {
         recordarRespaldo: necesitaRespaldo(fecha),
         semanaPendiente: semanaPorMostrar(estado, fecha),   // lunes de la semana pasada, o null
         ahora: Date.now(),                                  // para el reloj del modo enfoque
+        ...contextoDiario(fecha),
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
     };
 
@@ -574,6 +580,17 @@ function dibujarPantalla(efectos = {}) {
         const scroll = $("#calendario-scroll");
         scroll.scrollLeft = scroll.scrollWidth;
     }
+}
+
+// Lo que la pantalla «Tu diario» necesita saber.
+function contextoDiario(fecha) {
+    return {
+        mesDiario: diarioVista.mes || fecha.slice(0, 7),
+        diaDiario: diarioVista.dia,
+        busquedaDiario: diarioVista.busqueda,
+        filtroDiario: diarioVista.filtro,
+        limiteDiario: diarioVista.limite,
+    };
 }
 
 // Recordar la copia de seguridad: después de 7 días de juego, si nunca
@@ -756,6 +773,10 @@ function rellenarOpciones() {
         <p><strong>Misiones con cantidad:</strong> tienen un botón +1 y se completan solas al llegar a la meta (ej: 8 vasos de agua).</p>
         <p><strong>Tareas sueltas:</strong> pendientes de una sola vez, con fecha. Aparecen en Hoy el día que vencen y dan XP como una misión de su dificultad.</p>
         <p><strong>Modo enfoque:</strong> ${Object.entries(juego.ENFOQUE).map(([m, dif]) => `${m} min = misión ${d[dif].nombre.toLowerCase()}`).join(", ")}. Si cancelas, no hay premio.</p>
+        <p><strong>Diario:</strong> cada día puedes marcar cómo te fue (5 ánimos), responder la pregunta del día y anotar algo
+           que agradeces. Escribirlo da +${diario.PREMIO_DIARIO.xp} XP de Carisma y ${diario.PREMIO_DIARIO.monedas} monedas (una vez al día)
+           y cura ${vida.VIDA.diario} de vida. En «Tu diario» ves el calendario de ánimo, lo que tu diario dice de ti, tus recuerdos,
+           el buscador y puedes descargarlo.</p>
         <p><strong>Desafío de la semana:</strong> cada lunes toca uno al azar. Si lo cumples antes del domingo, abres un cofre: +${desafios.COFRE.xp} XP y ${desafios.COFRE.monedas} monedas.</p>
         <p><strong>Vida:</strong> tienes ${vida.VIDA.base} + ${vida.VIDA.porNivel} por nivel. Al terminar cada día pierdes
            ${vida.DANO.facil}/${vida.DANO.normal}/${vida.DANO.dificil} (fácil/normal/difícil) por cada misión que tocaba y no hiciste,
@@ -1205,6 +1226,29 @@ function cerrarBienvenida() {
 
 // ===== Copia de seguridad =====
 
+function pintarListaDiario() {
+    $("#diario-lista").innerHTML = vistas.listaDiario(estado, contextoDiario(hoy()));
+}
+
+// Descargar todo el diario como un archivo de texto (en el iPhone: «Guardar en Archivos»).
+async function descargarDiario() {
+    const nombre = `diario-${hoy()}.txt`;
+    const archivo = new File([diario.diarioComoTexto(estado, estado.personaje.nombre)], nombre, { type: "text/plain" });
+    try {
+        if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+            await navigator.share({ files: [archivo], title: "Mi diario" });
+        } else {
+            const enlace = document.createElement("a");
+            enlace.href = URL.createObjectURL(archivo);
+            enlace.download = nombre;
+            enlace.click();
+            setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+        }
+    } catch (error) {
+        if (error.name !== "AbortError") alert("No se pudo descargar el diario.");
+    }
+}
+
 async function exportar() {
     const nombre = `vida-rpg-${hoy()}.json`;
     const archivo = new File([datos.textoRespaldo(estado)], nombre, { type: "application/json" });
@@ -1532,6 +1576,29 @@ const ACCIONES = {
         $("#cal-detalle").innerHTML = vistas.detalleDia(estado, diaSeleccionado, racha);
     },
 
+    // Tu diario: cambiar de mes, tocar un día, filtrar por ánimo, ver más y descargar.
+    "diario-mes": (boton) => {
+        diarioVista.mes = boton.dataset.mes;
+        diarioVista.dia = null;
+        dibujarPantalla();
+    },
+    "diario-dia": (boton) => {
+        diarioVista.dia = boton.dataset.fecha;
+        document.querySelector(".dia-animo.elegido")?.classList.remove("elegido");
+        boton.classList.add("elegido");
+        $("#diario-detalle").innerHTML = vistas.detalleEntrada(estado, diarioVista.dia);
+    },
+    "diario-filtro": (boton) => {
+        diarioVista.filtro = boton.dataset.animo || null;
+        diarioVista.limite = 30;
+        dibujarPantalla();
+    },
+    "diario-mas": () => {
+        diarioVista.limite += 30;
+        pintarListaDiario();
+    },
+    "descargar-diario": () => descargarDiario(),
+
     // Resumen: cambiar entre 7 y 30 días.
     "rango-resumen": (boton) => {
         rangoResumen = Number(boton.dataset.dias);
@@ -1698,7 +1765,8 @@ const FORMULARIOS = {
     },
     diario(valores) {
         const resultado = ejecutar(() => acciones.escribirDiario(estado, valores));
-        if (resultado) avisar("📓 Guardado en tu diario");
+        if (resultado?.borrada) avisar("📓 Entrada borrada");
+        else if (resultado) avisar(resultado.xp ? `📓 Guardado en tu diario · +${resultado.xp} XP` : "📓 Diario actualizado");
         return resultado;
     },
     logro: (valores) => ejecutar(() => (valores.id ? acciones.editarLogro(estado, valores) : acciones.crearLogro(estado, valores))),
@@ -1811,6 +1879,14 @@ function conectarEventos() {
     });
     conectarGestos();
     conectarArrastre();
+
+    // Buscador de «Tu diario».
+    document.addEventListener("input", (evento) => {
+        if (evento.target.id !== "diario-buscar") return;
+        diarioVista.busqueda = evento.target.value;
+        diarioVista.limite = 30;
+        pintarListaDiario();
+    });
 
     // Diario: tocar una carita guarda al instante (junto con la frase que hayas escrito).
     document.addEventListener("change", (evento) => {

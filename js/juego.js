@@ -52,11 +52,14 @@ export const MOMENTOS = {
     noche:  { icono: "🌙", nombre: "Noche" },
 };
 
-// Diario: cómo te fue el día.
+// Diario: cómo te fue el día. "valor" sirve para sacar promedios (5 = genial … 1 = terrible)
+// y "color" para el calendario de ánimo. (Ver también diario.js.)
 export const ANIMOS_DIARIO = {
-    bien:   { icono: "😀", nombre: "Bien" },
-    normal: { icono: "😐", nombre: "Normal" },
-    mal:    { icono: "😞", nombre: "Mal" },
+    genial:   { icono: "🤩", nombre: "Genial",   valor: 5, color: "#34d399" },
+    bien:     { icono: "😀", nombre: "Bien",     valor: 4, color: "#a3e635" },
+    normal:   { icono: "😐", nombre: "Normal",   valor: 3, color: "#fbbf24" },
+    mal:      { icono: "😞", nombre: "Mal",      valor: 2, color: "#f97316" },
+    terrible: { icono: "😫", nombre: "Terrible", valor: 1, color: "#fb7185" },
 };
 
 // Tipos de condición para los logros personalizados.
@@ -72,6 +75,7 @@ export const TIPOS_LOGRO = {
     atributo:    { texto: "Subir un atributo al nivel N", campo: "atributo" },
     principales: { texto: "Completar N misiones principales" },
     jefes:       { texto: "Derrotar N jefes" },
+    diario:      { texto: "Escribir en tu diario N días" },
 };
 
 
@@ -467,6 +471,8 @@ export function progresoLogro(logro, estado, info) {
             return info.principalesCompletadas;
         case "jefes":
             return info.jefesDerrotados;
+        case "diario":
+            return Object.keys(estado.diario).length;
         default:
             return 0;
     }
@@ -499,6 +505,7 @@ export function describirLogro(logro, estado) {
         }
         case "principales": return `Completar ${plural(n, "misión principal", "misiones principales")}`;
         case "jefes":       return `Derrotar ${plural(n, "jefe", "jefes")}`;
+        case "diario":      return `Escribir en tu diario ${plural(n, "día", "días")}`;
         default:            return "";
     }
 }

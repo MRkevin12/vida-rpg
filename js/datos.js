@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 5,
+        version: 6,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
         atributosPropios: [], // los tuyos: { id, nombre, icono, color, base (uno de los 4), creadoEn }
@@ -36,7 +36,8 @@ export function estadoInicial() {
             activo: null,     // la sesión en curso: { inicio (milisegundos), minutos, atributo }
             sesiones: [],     // terminadas: { fecha, minutos, atributo, dificultad, xp, monedas }
         },
-        diario: {},           // { "2026-10-12": { animo: "bien" | "normal" | "mal" | null, texto } }
+        diario: {},           // { "2026-10-12": { animo (ver juego.ANIMOS_DIARIO) o null, texto, gratitud,
+                              //   pregunta (la del día, si escribiste texto), premio: { xp, monedas, atributo } } }
         desafios: [],         // desafío de cada semana: { semana (su lunes), tipo, meta, cobradoEn }
 
         principales: [],      // { id, nombre, atributo, creadaEn, completadaEn, archivada,

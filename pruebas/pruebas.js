@@ -19,6 +19,7 @@ import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
 import * as vida from "../js/vida.js";
+import * as diario from "../js/diario.js";
 import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "../js/novedades.js";
@@ -425,7 +426,8 @@ prueba("Enfoque: cancelar a la mitad no da premio", () => {
 prueba("Diario: guarda la frase y el ánimo de hoy o de ayer; vacío se borra", () => {
     const estado = partidaNueva();
     acciones.escribirDiario(estado, { fecha: hoy(), animo: "bien", texto: "  Buen día  " });
-    igual(estado.diario[hoy()], { animo: "bien", texto: "Buen día" });
+    igual(estado.diario[hoy()], { animo: "bien", texto: "Buen día", gratitud: "", pregunta: diario.preguntaDelDia(hoy()),
+                                  premio: diario.PREMIO_DIARIO });
     acciones.escribirDiario(estado, { fecha: hoy(), animo: "", texto: "" });
     igual(hoy() in estado.diario, false);
     debeFallar(() => acciones.escribirDiario(estado, { fecha: dia(-2), animo: "bien", texto: "" }), "hoy o de ayer");
@@ -470,9 +472,10 @@ prueba("Desafío semanal: al cumplirlo se abre el cofre una sola vez", () => {
     estado.desafios.push({ semana: lunesDe(hoy()), tipo: "diario", meta: 1, cobradoEn: null });
     const celebraciones = jugar(estado, () => acciones.escribirDiario(estado, { fecha: hoy(), animo: "bien", texto: "" }));
     cierto(celebraciones.some((c) => c.etiqueta === "¡Desafío cumplido!"), "hay celebración del cofre");
-    igual([estado.personaje.xp, estado.personaje.monedas], [desafios.COFRE.xp, desafios.COFRE.monedas]);
+    const { xp, monedas } = diario.PREMIO_DIARIO;   // escribir el diario también da su premio
+    igual([estado.personaje.xp, estado.personaje.monedas], [desafios.COFRE.xp + xp, desafios.COFRE.monedas + monedas]);
     jugar(estado, () => {});
-    igual(estado.personaje.monedas, desafios.COFRE.monedas, "el cofre no se cobra dos veces");
+    igual(estado.personaje.monedas, desafios.COFRE.monedas + monedas, "el cofre no se cobra dos veces");
 });
 
 prueba("Tu semana: resume la semana pasada de lunes a domingo y se muestra hasta cerrarla", () => {
@@ -583,7 +586,7 @@ prueba("Notificaciones: el texto dice lo que falta hoy y, de noche, recuerda el 
     let deHoy = resumenParaAvisos(estado, hoy()).dias[hoy()];
     igual([deHoy.titulo, deHoy.insignia], ["⚔️ Te falta 1 misión", 2]);
     igual(deHoy.cuerpo, "Gym\n📌 Pagar la luz\n🔥 Racha de 1 día en juego");
-    cierto(deHoy.cuerpoNoche.endsWith("📓 Falta tu frase del diario"), "de noche recuerda el diario");
+    cierto(deHoy.cuerpoNoche.endsWith(`📓 Diario: ${diario.preguntaDelDia(hoy())}`), "de noche recuerda el diario con la pregunta del día");
 
     const manana = resumenParaAvisos(estado, hoy()).dias[dia(1)];
     igual(manana.titulo, "⚔️ Te faltan 2 misiones", "mañana todavía no has hecho nada");
@@ -964,6 +967,83 @@ prueba("Copias viejas: la vida empieza a contar el día que llega la actualizaci
     delete viejo.descansos;
     const cargado = datos.desdeRespaldo(JSON.stringify(viejo));
     igual([cargado.vida.desde, cargado.vida.pociones, cargado.descansos], [hoy(), [], []]);
+});
+
+
+// ===== Diario (v18) =====
+
+prueba("Diario: la primera vez da +5 XP de Carisma y 2 monedas (una vez); al borrarlo se devuelven", () => {
+    const estado = partidaNueva();
+    const { xp, monedas } = diario.PREMIO_DIARIO;
+    const resultado = acciones.escribirDiario(estado, { fecha: hoy(), animo: "genial", texto: "Gran día", gratitud: "  Mi familia " });
+    igual(resultado.xp, xp);
+    igual([estado.personaje.xp, estado.personaje.monedas, estado.atributos.carisma], [xp, monedas, xp]);
+    igual(estado.diario[hoy()].gratitud, "Mi familia");
+    acciones.escribirDiario(estado, { fecha: hoy(), animo: "bien", texto: "Lo cambié", gratitud: "" });
+    igual(estado.personaje.xp, xp, "editarla no da otro premio");
+    acciones.escribirDiario(estado, { fecha: hoy(), animo: "", texto: "", gratitud: "" });
+    igual([hoy() in estado.diario, estado.personaje.xp, estado.personaje.monedas], [false, 0, 0], "borrada: se devuelve");
+    debeFallar(() => acciones.escribirDiario(estado, { fecha: hoy(), texto: "x".repeat(501) }), "máximo 500");
+    debeFallar(() => acciones.escribirDiario(estado, { fecha: hoy(), gratitud: "x".repeat(121) }), "máximo 120");
+});
+
+prueba("Diario: una pregunta por día (siempre la misma ese día), y escribirlo cura 2 de vida", () => {
+    igual(diario.preguntaDelDia("2026-10-12"), diario.preguntaDelDia("2026-10-12"));
+    cierto(diario.preguntaDelDia("2026-10-12") !== diario.preguntaDelDia("2026-10-13"), "mañana toca otra");
+    const estado = partidaNueva();
+    crearMision(estado);
+    vidaDesde(estado, 2);                                   // 2 días sin hacerla: 105 − 16 = 89
+    const antes = vida.calcularVida(estado, hoy()).puntos;
+    acciones.escribirDiario(estado, { fecha: dia(-1), animo: "mal", texto: "", gratitud: "" });
+    igual([antes, vida.calcularVida(estado, hoy()).puntos], [89, 89 + vida.VIDA.diario]);
+    igual(estado.diario[dia(-1)].pregunta, null, "sin texto no guarda la pregunta");
+});
+
+prueba("Diario: la racha cuenta días seguidos escribiendo (hoy sin escribir todavía no la rompe)", () => {
+    const estado = partidaNueva();
+    for (const n of [-4, -2, -1]) estado.diario[dia(n)] = { animo: "bien", texto: "", gratitud: "" };
+    igual(diario.rachaDiario(estado, hoy()), 2);
+    estado.diario[hoy()] = { animo: "bien", texto: "", gratitud: "" };
+    igual(diario.rachaDiario(estado, hoy()), 3);
+});
+
+prueba("Diario: compara tu ánimo los días que cumples todas tus misiones con los demás", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    envejecer(estado, 9);
+    for (let n = -9; n <= -1; n++) {
+        const cumplio = n % 2 === 0;                        // un día sí y otro no
+        if (cumplio) marcarEn(estado, leer, dia(n));
+        estado.diario[dia(n)] = { animo: cumplio ? "genial" : "mal", texto: "", gratitud: "" };
+    }
+    igual(diario.loQueDiceTuDiario({ ...estado, diario: { [hoy()]: { animo: "bien" } } }).suficiente, false, "con 1 día no alcanza");
+    const d = diario.loQueDiceTuDiario(estado);
+    igual([d.suficiente, d.cumpliendo.promedio, d.sinCumplir.promedio], [true, 5, 2]);
+    igual(diario.animoDe(4.2), "bien");
+});
+
+prueba("Diario: recuerdos (hace una semana, un mes y un año), búsqueda sin tildes y calendario del mes", () => {
+    const estado = partidaNueva();
+    const hoyFijo = "2026-03-31";
+    estado.diario["2026-03-24"] = { animo: "bien", texto: "Aprendí una canción", gratitud: "" };
+    estado.diario["2026-02-28"] = { animo: "mal", texto: "Examen difícil", gratitud: "Mis amigos" };   // febrero no tiene 31
+    estado.diario["2025-03-31"] = { animo: "genial", texto: "Viaje", gratitud: "" };
+    igual(diario.recuerdos(estado, hoyFijo).map((r) => r.titulo), ["Hace una semana", "Hace un mes", "Hace un año"]);
+    igual(diario.buscarEntradas(estado, { texto: "CANCION" }).map((e) => e.fecha), ["2026-03-24"]);
+    igual(diario.buscarEntradas(estado, { texto: "amigos" }).map((e) => e.fecha), ["2026-02-28"], "también busca en lo que agradeces");
+    igual(diario.buscarEntradas(estado, { animo: "genial" }).map((e) => e.fecha), ["2025-03-31"]);
+    const mes = diario.mesDeAnimo(estado, "2026-03", hoyFijo);
+    igual([mes.filter((c) => c === null).length, mes.filter(Boolean).length], [6, 31], "marzo de 2026 empieza en domingo");
+    igual(mes.find((c) => c?.fecha === "2026-03-24").animo, "bien");
+    cierto(diario.diarioComoTexto(estado, "Aria").includes("Agradezco: Mis amigos"), "se puede descargar como texto");
+});
+
+prueba("Logros: «escribir en tu diario N días»", () => {
+    const estado = partidaNueva();
+    acciones.crearLogro(estado, { nombre: "Escritor", tipo: "diario", objetivo: 1, recompensa: 20 });
+    jugar(estado, () => acciones.escribirDiario(estado, { fecha: hoy(), animo: "bien", texto: "", gratitud: "" }));
+    igual(estado.logros[0].desbloqueadoEn, hoy());
+    igual(juego.describirLogro(estado.logros[0], estado), "Escribir en tu diario 1 día");
 });
 
 

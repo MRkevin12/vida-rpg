@@ -13,6 +13,7 @@ import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as vida from "./vida.js";
+import * as diario from "./diario.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
@@ -425,14 +426,41 @@ export function revisarEnfoque(estado, ahora = Date.now()) {
 
 // ===== Diario de una línea =====
 
-export function escribirDiario(estado, { fecha, animo, texto }) {
+// Una entrada por día (hoy o ayer): cómo te fue, tu respuesta a la pregunta del día y algo que agradeces.
+// La primera vez que escribes ese día ganas un pequeño premio (ver diario.js); si la borras, se devuelve.
+export function escribirDiario(estado, { fecha, animo, texto, gratitud }) {
     validarFecha(fecha, "Solo puedes escribir el diario de hoy o de ayer.");
     if (animo && !juego.ANIMOS_DIARIO[animo]) throw new Error("Elige cómo te fue.");
     const frase = String(texto || "").trim();
-    if (frase.length > 140) throw new Error("El diario puede tener máximo 140 letras.");
+    if (frase.length > diario.LARGO.texto) throw new Error(`El diario puede tener máximo ${diario.LARGO.texto} letras.`);
+    const gracias = String(gratitud || "").trim();
+    if (gracias.length > diario.LARGO.gratitud) {
+        throw new Error(`Lo que agradeces puede tener máximo ${diario.LARGO.gratitud} letras.`);
+    }
 
-    if (!animo && !frase) delete estado.diario[fecha];   // si lo dejas vacío, se borra
-    else estado.diario[fecha] = { animo: animo || null, texto: frase };
+    const anterior = estado.diario[fecha];
+    if (!diario.tieneContenido({ animo, texto: frase, gratitud: gracias })) {
+        // Vacía: se borra y se devuelve su premio.
+        const p = anterior?.premio;
+        if (p) ganar(estado, { xp: -p.xp, monedas: -p.monedas, atributo: p.atributo });
+        delete estado.diario[fecha];
+        return { borrada: Boolean(anterior) };
+    }
+
+    let premio = anterior?.premio || null;
+    const nuevo = !premio;
+    if (nuevo) {
+        premio = { ...diario.PREMIO_DIARIO };
+        ganar(estado, premio);
+    }
+    estado.diario[fecha] = {
+        animo: animo || null,
+        texto: frase,
+        gratitud: gracias,
+        pregunta: frase ? diario.preguntaDelDia(fecha) : null,   // a qué respondiste (para leerlo después)
+        premio,                                                  // lo que dio (para devolverlo si la borras)
+    };
+    return { xp: nuevo ? premio.xp : 0 };
 }
 
 
