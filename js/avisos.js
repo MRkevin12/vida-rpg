@@ -79,16 +79,23 @@ async function pedir(ruta, datos) {
 // Los avisos de cada misión, como los necesita el servidor: solo el número de la misión
 // (nunca su nombre), su hora, sus días y hasta qué fecha NO hace falta avisar:
 //   - si ya la hiciste hoy: hasta hoy;
-//   - si es semanal y ya cumpliste las veces de la semana: hasta el domingo.
+//   - si es semanal y ya cumpliste las veces de la semana: hasta el domingo;
+//   - si es mensual: hasta el día antes de la próxima vez que toca. El servidor solo entiende
+//     días de la semana, así que para él es «todos los días», pero se calla hasta esa fecha.
 export function avisosDeMisiones(estado, hoy) {
     return estado.misiones.filter((m) => m.aviso && !m.archivadaEn).map((m) => {
+        const yaHecha = estado.completadas.some((c) => c.misionId === m.id && c.fecha === hoy) || juego.fallaDe(estado, m.id, hoy);
         let saltarHasta = null;
-        if (m.veces && juego.vecesEnSemana(estado.completadas, m.id, hoy) >= m.veces) {
+        if (m.diasMes) {
+            const proxima = juego.proximaVez(m, yaHecha ? sumarDias(hoy, 1) : hoy);
+            saltarHasta = proxima ? sumarDias(proxima, -1) : sumarDias(hoy, 62);
+            if (saltarHasta < hoy) saltarHasta = null;   // toca hoy y no la has hecho: que avise
+        } else if (m.veces && juego.vecesEnSemana(estado.completadas, m.id, hoy) >= m.veces) {
             saltarHasta = sumarDias(lunesDe(hoy), 6);
-        } else if (estado.completadas.some((c) => c.misionId === m.id && c.fecha === hoy) || juego.fallaDe(estado, m.id, hoy)) {
+        } else if (yaHecha) {
             saltarHasta = hoy;   // ya la hiciste (o ya dijiste que fallaste)
         }
-        return { id: m.id, hora: m.aviso, dias: m.veces ? null : m.dias, saltarHasta };
+        return { id: m.id, hora: m.aviso, dias: m.veces || m.diasMes ? null : m.dias, saltarHasta };
     });
 }
 

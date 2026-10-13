@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 27;
+export const VERSION_APP = 28;
 
 export const NOVEDADES = [
+    {
+        version: 28,
+        titulo: "Cada mes y pantalla de carga",
+        cambios: [
+            "📅 Misiones de cada mes: en «Nueva misión» elige «Cada mes» y los días (ej: el 5, o el 1 y el 15). El 31 es el último día del mes, aunque el mes sea más corto.",
+            "Ese día cuentan como cualquier misión (racha, vida, calendario y jefes), y en «Otros días» ves cuándo toca la próxima vez. Su aviso solo suena el día que toca.",
+            "✨ Pantalla de carga al abrir la app, con un consejo de juego cada vez.",
+        ],
+    },
     {
         version: 27,
         titulo: "Todo en su lugar",

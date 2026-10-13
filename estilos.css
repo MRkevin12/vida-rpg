@@ -1816,6 +1816,12 @@ textarea:focus {
     grid-template-columns: 1fr 1fr;
 }
 
+/* Los 31 días del mes: 7 por fila, más bajitos que los de la semana. */
+.campo-mes .pildora span {
+    padding: 8px 0;
+    font-size: 0.86rem;
+}
+
 /* Veces por semana: 6 números en una fila */
 .opciones-6 {
     grid-template-columns: repeat(6, 1fr);
@@ -6917,4 +6923,185 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 .ficha .etapas li {
     text-align: center;
+}
+
+
+/* ===== Pantalla de carga (v28) =====
+   Tapa todo mientras la app se carga. El ícono brilla, un aro de luz gira a su alrededor
+   y la barra se llena; al terminar, todo se desvanece y el ícono crece un poco. */
+.carga {
+    position: fixed;
+    inset: 0;
+    z-index: 50;   /* por encima de todo, incluido el PIN */
+    display: grid;
+    place-items: center;
+    padding: calc(env(safe-area-inset-top) + 16px) 24px calc(env(safe-area-inset-bottom) + 24px);
+    background:
+        radial-gradient(circle at 50% 38%, rgba(139, 92, 246, 0.32), transparent 52%),
+        radial-gradient(circle at 50% 110%, rgba(34, 211, 238, 0.18), transparent 50%),
+        var(--fondo);
+    transition: opacity 0.55s ease, visibility 0.55s;
+}
+
+/* Puntos de luz que suben despacio, como chispas. */
+.carga::before,
+.carga::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle, rgba(196, 181, 253, 0.8) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle, rgba(165, 243, 252, 0.7) 0 1px, transparent 2px);
+    background-size: 110px 140px, 170px 190px;
+    background-position: 10px 30px, 60px 90px;
+    opacity: 0.5;
+    /* En el centro (donde van el ícono y el texto) no hay chispas: así no se cuelan entre las letras. */
+    -webkit-mask-image: radial-gradient(ellipse 62% 26% at 50% 50%, transparent 70%, #000 100%);
+    mask-image: radial-gradient(ellipse 62% 26% at 50% 50%, transparent 70%, #000 100%);
+    animation: carga-chispas 9s linear infinite;
+}
+
+.carga::after {
+    background-size: 140px 120px, 90px 160px;
+    background-position: 40px 10px, 20px 70px;
+    opacity: 0.3;
+    animation-duration: 14s;
+}
+
+@keyframes carga-chispas {
+    from { transform: translateY(0); }
+    to { transform: translateY(-140px); }
+}
+
+.carga.saliendo {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.carga.saliendo .carga-emblema {
+    transform: scale(1.12);
+}
+
+.carga-caja {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+.carga-emblema {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 156px;
+    height: 156px;
+    margin-bottom: 8px;
+    transition: transform 0.55s ease;
+}
+
+/* El aro: un degradado que gira alrededor del ícono. */
+.carga-aro {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0 55%, rgba(34, 211, 238, 0.9) 75%, rgba(139, 92, 246, 0.95) 92%, transparent);
+    -webkit-mask: radial-gradient(circle, transparent 64%, #000 66%, #000 70%, transparent 72%);
+    mask: radial-gradient(circle, transparent 64%, #000 66%, #000 70%, transparent 72%);
+    animation: carga-girar 1.6s linear infinite;
+}
+
+@keyframes carga-girar {
+    to { transform: rotate(360deg); }
+}
+
+.carga-icono {
+    width: 112px;
+    height: 112px;
+    border-radius: 26px;
+    box-shadow: 0 0 34px rgba(139, 92, 246, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    animation: carga-latido 2s ease-in-out infinite;
+}
+
+@keyframes carga-latido {
+    50% { transform: scale(1.04); box-shadow: 0 0 46px rgba(34, 211, 238, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.12); }
+}
+
+.carga-titulo {
+    margin: 0;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.9rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: #fff;
+    background: linear-gradient(90deg, #c4b5fd, #ffffff 45%, #a5f3fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 14px rgba(139, 92, 246, 0.5));
+}
+
+.carga-lema {
+    margin-top: -4px;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 0.95rem;
+    font-style: italic;
+    color: var(--texto-suave);
+}
+
+.carga-barra {
+    width: 200px;
+    height: 6px;
+    margin-top: 14px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(60, 48, 112, 0.9);
+    border-radius: 999px;
+}
+
+.carga-barra span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--violeta), var(--cian));
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.7);
+    transform-origin: left;
+    animation: carga-llenar 1.1s cubic-bezier(0.3, 0.7, 0.3, 1) both;
+}
+
+@keyframes carga-llenar {
+    from { transform: scaleX(0.04); }
+    to { transform: scaleX(1); }
+}
+
+.carga-texto {
+    min-height: 1.3em;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #c4b5fd;
+}
+
+.carga-consejo {
+    position: absolute;
+    right: 24px;
+    bottom: calc(env(safe-area-inset-bottom) + 28px);
+    left: 24px;
+    z-index: 1;
+    margin: 0 auto;
+    max-width: 360px;
+    font-size: 0.82rem;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .carga::before,
+    .carga::after,
+    .carga-aro,
+    .carga-icono {
+        animation: none;
+    }
 }

@@ -22,6 +22,8 @@ export const PLANTILLAS_MISIONES = [
     { id: "gastos", nombre: "Anotar mis gastos", dificultad: "facil", atributo: "riqueza", momento: "noche" },
     { id: "ahorrar", nombre: "Guardar algo de dinero", dificultad: "normal", atributo: "riqueza", frecuencia: "semana", veces: 1 },
     { id: "proyecto", nombre: "Avanzar mi proyecto o negocio", dificultad: "dificil", atributo: "riqueza", dias: [0, 2, 4], momento: "tarde" },
+    { id: "finanzas-mes", nombre: "Revisar mis finanzas del mes", dificultad: "normal", atributo: "riqueza", frecuencia: "mes", diasMes: [1] },
+    { id: "cuentas-mes", nombre: "Pagar las cuentas del mes", dificultad: "normal", atributo: "riqueza", frecuencia: "mes", diasMes: [5] },
 ];
 
 export const PLANTILLAS_RECOMPENSAS = [

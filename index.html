@@ -24,6 +24,53 @@
 </head>
 <body>
 
+    <!-- ========== Pantalla de carga ==========
+         Se ve apenas se abre la app, mientras se cargan los archivos. app.js la quita al terminar de
+         dibujar (ocultarCarga). Va escrita aquí, en el HTML, para que aparezca antes que todo. -->
+    <div id="carga" class="carga" role="status" aria-label="Cargando Vida RPG">
+        <div class="carga-caja">
+            <div class="carga-emblema">
+                <span class="carga-aro" aria-hidden="true"></span>
+                <img class="carga-icono" src="iconos/icono-192.png" alt="" width="112" height="112">
+            </div>
+            <h1 class="carga-titulo">VIDA RPG</h1>
+            <p class="carga-lema">Tu vida es la aventura</p>
+            <div class="carga-barra" aria-hidden="true"><span></span></div>
+            <p class="carga-texto" id="carga-texto">Preparando tu aventura…</p>
+        </div>
+        <p class="carga-consejo" id="carga-consejo"></p>
+    </div>
+    <script>
+        // Un consejo al azar y frases que cambian mientras carga. Es un script normal (no un módulo)
+        // para que corra al instante, antes que el resto de la app.
+        (function () {
+            var consejos = [
+                "Desliza una misión a la derecha para completarla.",
+                "¿Olvidaste marcar algo? En «Ayer» todavía puedes.",
+                "Tu misión clave del día vale el doble.",
+                "Cada misión golpea al jefe de su atributo.",
+                "Cumplir misiones repara tu armadura.",
+                "Si tu mascota comió hoy, pelea 20 % más en la Torre.",
+                "Cada 7 días seguidos ganas un escudo para tu racha.",
+                "Cuando cae un jefe, su guarida del reino tiene botín.",
+            ];
+            var frases = ["Despertando a tu héroe…", "Encendiendo las antorchas…", "Consultando al Maestro Aurelio…",
+                          "Contando tus monedas…", "Abriendo las puertas del reino…"];
+            var carga = document.getElementById("carga");
+            document.getElementById("carga-consejo").textContent = "💡 " + consejos[Math.floor(Math.random() * consejos.length)];
+            var i = 0;
+            var reloj = setInterval(function () {
+                if (!document.body.contains(carga)) return clearInterval(reloj);
+                i = (i + 1) % frases.length;
+                document.getElementById("carga-texto").textContent = frases[i];
+            }, 450);
+            // Por si algo fallara al cargar: nunca se queda tapando la app más de 8 segundos.
+            setTimeout(function () {
+                if (document.body.contains(carga)) carga.remove();
+            }, 8000);
+        })();
+    </script>
+
     <!-- ========== Pantalla de bloqueo con PIN ==========
          app.js la usa para: entrar a la app, crear un PIN nuevo y confirmar cambios. -->
     <section id="bloqueo" class="bloqueo" hidden>
@@ -159,8 +206,8 @@
             </label>
             <fieldset class="opciones" data-opciones="dificultad"><legend>Dificultad</legend></fieldset>
             <fieldset class="opciones opciones-4" data-opciones="atributo"><legend>Atributo que mejora</legend></fieldset>
-            <!-- Cada cuánto: días fijos, N veces por semana, o una sola vez (se guarda como tarea) -->
-            <fieldset class="opciones" id="campo-frecuencia">
+            <!-- Cada cuánto: días fijos, N veces por semana, ciertos días de cada mes, o una sola vez (se guarda como tarea) -->
+            <fieldset class="opciones opciones-2" id="campo-frecuencia">
                 <legend>¿Cada cuánto?</legend>
                 <label class="pildora">
                     <input type="radio" name="frecuencia" value="dias" checked>
@@ -169,6 +216,10 @@
                 <label class="pildora">
                     <input type="radio" name="frecuencia" value="semana">
                     <span>Por semana<small>Tú eliges el día</small></span>
+                </label>
+                <label class="pildora">
+                    <input type="radio" name="frecuencia" value="mes">
+                    <span>Cada mes<small>Ej: el 5 de cada mes</small></span>
                 </label>
                 <label class="pildora" id="opcion-unica">
                     <input type="radio" name="frecuencia" value="unica">
@@ -186,6 +237,41 @@
                 <label class="pildora"><input type="radio" name="veces" value="4"><span>4</span></label>
                 <label class="pildora"><input type="radio" name="veces" value="5"><span>5</span></label>
                 <label class="pildora"><input type="radio" name="veces" value="6"><span>6</span></label>
+            </fieldset>
+            <!-- Cada mes: los días del mes en que toca (el 29, 30 y 31 caen en el último día si el mes es más corto) -->
+            <fieldset class="opciones opciones-7 campo-mes" id="campo-mes" hidden>
+                <legend>¿Qué días de cada mes? <span class="texto-suave">(el 31 = el último día del mes)</span></legend>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="1"><span>1</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="2"><span>2</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="3"><span>3</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="4"><span>4</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="5"><span>5</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="6"><span>6</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="7"><span>7</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="8"><span>8</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="9"><span>9</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="10"><span>10</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="11"><span>11</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="12"><span>12</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="13"><span>13</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="14"><span>14</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="15"><span>15</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="16"><span>16</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="17"><span>17</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="18"><span>18</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="19"><span>19</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="20"><span>20</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="21"><span>21</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="22"><span>22</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="23"><span>23</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="24"><span>24</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="25"><span>25</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="26"><span>26</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="27"><span>27</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="28"><span>28</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="29"><span>29</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="30"><span>30</span></label>
+                <label class="pildora"><input type="checkbox" name="diasMes" value="31"><span>31</span></label>
             </fieldset>
             <!-- Una sola vez: fecha opcional (sin fecha, queda en Hoy hasta que la hagas) -->
             <div id="campo-unica" class="formulario-grupo" hidden>

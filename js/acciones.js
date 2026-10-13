@@ -175,13 +175,24 @@ function validarDias(dias) {
     return lista.length === 7 ? null : lista;
 }
 
-// Cada cuánto toca una misión: en días fijos de la semana ("dias"),
-// o N veces por semana, el día que tú quieras ("semana").
-function validarFrecuencia({ frecuencia, dias, veces }) {
+// Los días del mes (1 … 31) también vienen como lista. El 29, 30 y 31 valen aunque el mes
+// sea más corto: ese mes tocan el último día (ver juego.tocaEnElMes).
+function validarDiasMes(dias) {
+    const lista = [...new Set((dias || []).map(Number))].filter((d) => Number.isInteger(d) && d >= 1 && d <= 31).sort((a, b) => a - b);
+    if (lista.length === 0) throw new Error("Elige al menos un día del mes.");
+    return lista;
+}
+
+// Cada cuánto toca una misión: en días fijos de la semana ("dias"), N veces por semana,
+// el día que tú quieras ("semana"), o ciertos días de cada mes ("mes").
+function validarFrecuencia({ frecuencia, dias, veces, diasMes }) {
     if (frecuencia === "semana") {
-        return { dias: null, veces: validarEntero(veces, 1, 6, "Las veces por semana") };
+        return { dias: null, veces: validarEntero(veces, 1, 6, "Las veces por semana"), diasMes: null };
     }
-    return { dias: validarDias(dias), veces: null };
+    if (frecuencia === "mes") {
+        return { dias: null, veces: null, diasMes: validarDiasMes(diasMes) };
+    }
+    return { dias: validarDias(dias), veces: null, diasMes: null };
 }
 
 // Meta de cantidad (opcional): ej. 8 vasos de agua. Si el campo viene vacío,
@@ -208,13 +219,13 @@ function validarMomento(momento) {
     return momento;
 }
 
-export function crearMision(estado, { nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad, aviso, momento }) {
+export function crearMision(estado, { nombre, dificultad, atributo, dias, frecuencia, veces, diasMes, cantidad, unidad, aviso, momento }) {
     estado.misiones.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
         dificultad: validarDificultad(dificultad),
         ...elegirAtributo(estado, atributo),                 // agrega "atributo" y "atributoPropio"
-        ...validarFrecuencia({ frecuencia, dias, veces }),   // agrega "dias" y "veces"
+        ...validarFrecuencia({ frecuencia, dias, veces, diasMes }),   // agrega "dias", "veces" y "diasMes"
         meta: validarMeta(cantidad, unidad),
         aviso: validarAviso(aviso),
         momento: validarMomento(momento),
@@ -226,12 +237,12 @@ export function crearMision(estado, { nombre, dificultad, atributo, dias, frecue
 
 // Editar una misión. Lo que ya completaste no cambia: cada registro del
 // historial guardó su propia XP, dificultad y atributo.
-export function editarMision(estado, { id, nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad, aviso, momento }) {
+export function editarMision(estado, { id, nombre, dificultad, atributo, dias, frecuencia, veces, diasMes, cantidad, unidad, aviso, momento }) {
     const mision = buscar(estado.misiones, Number(id), "esa misión");
     mision.nombre = validarNombre(nombre, 60);
     mision.dificultad = validarDificultad(dificultad);
     Object.assign(mision, elegirAtributo(estado, atributo));
-    Object.assign(mision, validarFrecuencia({ frecuencia, dias, veces }));
+    Object.assign(mision, validarFrecuencia({ frecuencia, dias, veces, diasMes }));
     mision.meta = validarMeta(cantidad, unidad);
     mision.aviso = validarAviso(aviso);
     mision.momento = validarMomento(momento);

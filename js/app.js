@@ -111,6 +111,20 @@ function iniciar() {
     } else {
         entrarAlJuego();
     }
+    ocultarCarga();
+}
+
+// La pantalla de carga (está en index.html) se va con una transición. Se queda al menos
+// CARGA_MINIMA milisegundos desde que se abrió la app: si se fuera de golpe, se vería un parpadeo.
+const CARGA_MINIMA = 1100;
+
+function ocultarCarga() {
+    const carga = $("#carga");
+    if (!carga) return;
+    setTimeout(() => {
+        carga.classList.add("saliendo");
+        setTimeout(() => carga.remove(), 600);   // lo que dura la transición (ver .carga.saliendo)
+    }, Math.max(0, CARGA_MINIMA - performance.now()));
 }
 
 function entrarAlJuego({ nuevo = false } = {}) {
@@ -982,6 +996,8 @@ function rellenarOpciones() {
     $("#reglas").innerHTML = `
         <p><strong>Misiones diarias:</strong> Fácil +${d.facil.xp} XP · Normal +${d.normal.xp} XP · Difícil +${d.dificil.xp} XP. También dan monedas y suben su atributo.</p>
         <p><strong>Veces por semana:</strong> una misión «3 veces por semana» se puede marcar cualquier día hasta cumplir la meta. No rompe la racha ni cuenta para los días perfectos.</p>
+        <p><strong>Cada mes:</strong> una misión mensual toca los días del mes que elijas (el 31 = el último día, aunque el mes sea más corto).
+           Ese día cuenta como cualquier misión: racha, vida y jefes. En «Otros días» ves cuándo toca la próxima vez.</p>
         <p><strong>Misiones con cantidad:</strong> tienen un botón +1 y se completan solas al llegar a la meta (ej: 8 vasos de agua).</p>
         <p><strong>Tareas sueltas:</strong> pendientes de una sola vez, con fecha. Aparecen en Hoy el día que vencen y dan XP como una misión de su dificultad.</p>
         <p><strong>Modo enfoque:</strong> ${Object.entries(juego.ENFOQUE).map(([m, dif]) => `${m} min = misión ${d[dif].nombre.toLowerCase()}`).join(", ")}. Si cancelas, no hay premio.</p>
@@ -1091,11 +1107,13 @@ const PREPARAR = {
         for (const casilla of formulario.querySelectorAll('input[name="dias"]')) {
             casilla.checked = !mision || !mision.dias || mision.dias.includes(Number(casilla.value));
         }
+        // Días del mes: al crear, ninguno (tú eliges); al editar, los de la misión.
+        marcarDiasMes(formulario, mision?.diasMes || []);
         if (mision) {
             formulario.elements.nombre.value = mision.nombre;
             formulario.elements.dificultad.value = mision.dificultad;
             formulario.elements.atributo.value = valorAtributo(mision);
-            formulario.elements.frecuencia.value = mision.veces ? "semana" : "dias";
+            formulario.elements.frecuencia.value = mision.veces ? "semana" : mision.diasMes ? "mes" : "dias";
             if (mision.veces) formulario.elements.veces.value = mision.veces;
             formulario.elements.cantidad.value = mision.meta ? mision.meta.cantidad : "";
             formulario.elements.unidad.value = mision.meta ? mision.meta.unidad : "";
@@ -1290,8 +1308,16 @@ function mostrarCamposFrecuencia() {
     const frecuencia = $("#dialogo-mision form").elements.frecuencia.value;
     ocultarCampo($("#campo-dias"), frecuencia !== "dias");
     ocultarCampo($("#campo-veces"), frecuencia !== "semana");
+    ocultarCampo($("#campo-mes"), frecuencia !== "mes");
     ocultarCampo($("#campo-unica"), frecuencia !== "unica");
     ocultarCampo($("#campos-repetir"), frecuencia === "unica");
+}
+
+// Marca en el formulario de misión los días del mes de la lista (y desmarca los demás).
+function marcarDiasMes(formulario, diasMes) {
+    for (const casilla of formulario.querySelectorAll('input[name="diasMes"]')) {
+        casilla.checked = diasMes.includes(Number(casilla.value));
+    }
 }
 
 // Elegir un hábito de la lista rellena el formulario de misión.
@@ -1307,6 +1333,7 @@ function usarPlantilla() {
     for (const casilla of $("#dialogo-mision form").querySelectorAll('input[name="dias"]')) {
         casilla.checked = !plantilla.dias || plantilla.dias.includes(Number(casilla.value));
     }
+    if (plantilla.diasMes) marcarDiasMes($("#dialogo-mision form"), plantilla.diasMes);
     f.cantidad.value = plantilla.cantidad || "";
     f.unidad.value = plantilla.unidad || "";
     f.momento.value = plantilla.momento || "";
@@ -2553,8 +2580,9 @@ function conectarEventos() {
         evento.preventDefault(); // no recargar la página
         const datosFormulario = new FormData(formulario);
         const valores = Object.fromEntries(datosFormulario);
-        // Las casillas de los días de la semana comparten nombre: las leemos todas.
+        // Las casillas de los días de la semana (y las del mes) comparten nombre: las leemos todas.
         if (formulario.querySelector('input[name="dias"]')) valores.dias = datosFormulario.getAll("dias");
+        if (formulario.querySelector('input[name="diasMes"]')) valores.diasMes = datosFormulario.getAll("diasMes");
         const salioBien = FORMULARIOS[tipo](valores, formulario);
         const dialogo = formulario.closest("dialog");
         if (salioBien && dialogo && tipo !== "renombrar") dialogo.close();

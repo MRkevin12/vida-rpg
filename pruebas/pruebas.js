@@ -1291,6 +1291,77 @@ prueba("Pantallas: el reino, la tienda de mascotas y la Torre con mascota y habi
 });
 
 
+// ===== Misiones de cada mes y pantalla de carga (v28) =====
+
+prueba("Misiones mensuales: tocan ciertos días de cada mes; el 31 cae en el último día de los meses cortos", () => {
+    const pago = { creadaEn: "2026-01-01", archivadaEn: null, pausas: [], dias: null, veces: null, diasMes: [5] };
+    igual(["2026-02-05", "2026-02-06", "2026-03-05", "2026-03-04"].map((f) => juego.tocaEseDia(pago, f)), [true, false, true, false]);
+    const ultimo = { ...pago, diasMes: [31] };
+    igual(["2026-01-31", "2026-02-28", "2026-04-30", "2026-04-29", "2028-02-29"].map((f) => juego.tocaEseDia(ultimo, f)),
+          [true, true, true, false, true], "el 31 = el último día (también en un año bisiesto)");
+    const quincenal = { ...pago, diasMes: [1, 15] };
+    igual(juego.proximaVez(quincenal, "2026-10-13"), "2026-10-15");
+    igual(juego.proximaVez(quincenal, "2026-10-16"), "2026-11-01");
+    igual(juego.proximaVez({ ...pago, archivadaEn: "2026-10-01" }, "2026-10-13"), null, "archivada: nunca más");
+    // Cuenta como una misión que toca ese día: está en la lista del día y no en la de otros días.
+    igual(juego.misionesDelDia([pago], "2026-10-05").length, 1);
+    igual(juego.misionesDelDia([pago], "2026-10-06").length, 0);
+});
+
+prueba("Misiones mensuales: se crean y se editan con sus días; sin días, no se puede", () => {
+    const estado = partidaNueva();
+    debeFallar(() => crearMision(estado, { frecuencia: "mes", diasMes: [] }), "al menos un día del mes");
+    debeFallar(() => crearMision(estado, { frecuencia: "mes", diasMes: ["0", "32"] }), "al menos un día del mes");
+    const m = crearMision(estado, { nombre: "Pagar el arriendo", frecuencia: "mes", diasMes: ["15", "1", "15"] });
+    igual([m.diasMes, m.dias, m.veces], [[1, 15], null, null], "ordenados y sin repetir");
+    acciones.editarMision(estado, { ...m, id: m.id, frecuencia: "semana", veces: "2" });
+    igual([m.diasMes, m.veces], [null, 2], "al pasar a semanal se olvidan los días del mes");
+    acciones.editarMision(estado, { ...m, id: m.id, frecuencia: "mes", diasMes: ["31"] });
+    igual([m.diasMes, m.veces, m.dias], [[31], null, null]);
+    igual(vistas.textoDiasMes([5]), "El 5 de cada mes");
+    igual(vistas.textoDiasMes([31]), "El último día de cada mes");
+    igual(vistas.textoDiasMes([1, 15, 31]), "Los días 1, 15 y último día de cada mes");
+    // La plantilla mensual de la lista se crea igual.
+    const plantilla = PLANTILLAS_MISIONES.find((p) => p.frecuencia === "mes");
+    acciones.crearMision(estado, plantilla);
+    igual(estado.misiones[estado.misiones.length - 1].diasMes, plantilla.diasMes);
+});
+
+prueba("Misiones mensuales: hoy salen en la lista, cuentan para la vida y el aviso se calla hasta la próxima vez", () => {
+    const estado = partidaNueva();
+    const diaDeHoy = Number(hoy().slice(8));
+    const m = crearMision(estado, { nombre: "Revisar finanzas", frecuencia: "mes", diasMes: [String(diaDeHoy)], aviso: "09:00" });
+    igual(juego.misionesDelDia(estado.misiones, hoy()).map((x) => x.id), [m.id], "toca hoy");
+    cierto(vida.calcularVida(estado, hoy()).pendienteHoy > 0, "si no la haces hoy, pierdes vida");
+    let aviso = avisosDeMisiones(estado, hoy())[0];
+    igual([aviso.dias, aviso.saltarHasta], [null, null], "hoy toca: el servidor avisa");
+    acciones.completarMision(estado, m.id);
+    aviso = avisosDeMisiones(estado, hoy())[0];
+    const proxima = juego.proximaVez(m, sumarDias(hoy(), 1));
+    igual(aviso.saltarHasta, sumarDias(proxima, -1), "hecha: se calla hasta el día antes de la próxima");
+    cierto(proxima > sumarDias(hoy(), 20), "la próxima es el mes que viene");
+    // En la ficha se mide en veces, y en «Otros días» dice cuándo toca.
+    igual(juego.estadisticasMision(estado, m, hoy()).unidad, "vez");
+    const otra = crearMision(estado, { nombre: "Pagar cuentas", frecuencia: "mes", diasMes: [String(diaDeHoy === 1 ? 2 : 1)] });
+    const html = vistas.pantallaHoy(estado, {
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info: juego.resumen(estado, hoy()),
+        avatar: avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())), vida: vida.calcularVida(estado, hoy()),
+        maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null, subvista: {}, diarioVista: {},
+    });
+    cierto(html.includes("de cada mes") && html.includes("📅 próxima:"), "Hoy muestra la frecuencia y la próxima fecha");
+    cierto(!/undefined|NaN/.test(html), "sin huecos");
+    igual(otra.diasMes.length, 1);
+});
+
+prueba("Pantalla de carga: está en la página, se quita sola al arrancar y nunca se queda más de 8 segundos", async () => {
+    const pagina = await (await fetch("../index.html", { cache: "no-store" })).text();
+    cierto(pagina.includes('id="carga"') && pagina.includes("carga-barra") && pagina.includes("carga-consejo"), "las partes de la pantalla de carga");
+    cierto(pagina.includes("8000") && pagina.indexOf('id="carga"') < pagina.indexOf('id="bloqueo"'), "va antes que todo, con su seguro de 8 segundos");
+    const app = await (await fetch("../js/app.js", { cache: "no-store" })).text();
+    cierto(/ocultarCarga\(\);\s*\}/.test(app), "iniciar() la quita al terminar");
+});
+
+
 // ===== La app ordenada (v27) =====
 
 prueba("Orden: cada pantalla larga se divide en secciones y cada cosa está en un solo lugar", () => {

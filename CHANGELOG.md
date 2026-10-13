@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v28 — Cada mes y pantalla de carga
+- **Misiones de cada mes:** la frecuencia nueva «Cada mes» (`mision.diasMes`: uno o varios días del 1 al 31). El 29, el 30 y el 31 caen en el último día si el mes es más corto. Ese día la misión toca como cualquier otra: sale en Hoy y cuenta para la racha, los días perfectos, la vida, el calendario, el resumen y el daño a los jefes. En «Otros días» dice cuándo es la próxima vez. Dos plantillas nuevas: «Revisar mis finanzas del mes» (el 1) y «Pagar las cuentas del mes» (el 5).
+- **Avisos de las mensuales:** el servidor solo entiende días de la semana, así que la app le dice «todos los días» y le pide callar hasta el día antes de la próxima vez (`saltarHasta`). No hubo que cambiar el servidor.
+- **Pantalla de carga:** al abrir la app se ve el emblema con un aro de luz que gira, el título, una barra que se llena, frases que cambian («Despertando a tu héroe…») y un consejo de juego al azar. Se queda al menos 1,1 segundos (para que no parpadee) y se desvanece; si algo fallara, se quita sola a los 8 segundos.
+- Datos versión 14.
+
 ## v27 — Todo en su lugar
 - **Navegación nueva:** la barra de abajo es Hoy · Progreso · Aventuras · **Héroe** · Tienda. La pantalla del personaje tiene pestaña propia y los logros pasan a Progreso. Las pantallas sin pestaña (el reino, el arcade, el enfoque, el diario, el libro y el pacto) iluminan la pestaña de la que salen y tienen un botón «‹ volver» a ella.
 - **Hoy, más corto (de ~4200 a ~3300 px):** la tarjeta del héroe es compacta (racha, escudos y plena forma como chips) y lleva debajo a tus **4 rivales** (antes era la lista «En combate» al final). El Maestro, el evento del día, el cofre, el desafío relámpago, tu pacto y el desafío de la semana van en **un solo panel «Tu día»** (antes eran seis tarjetas). Se quitaron los chips del mapa y del arcade (están en Aventuras). El diario muestra las caritas y pliega lo escrito.

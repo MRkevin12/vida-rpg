@@ -30,7 +30,7 @@ import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
-         diasEntre, lunesDe, relojTexto, relojLargo, sumarDias, MESES } from "./fechas.js";
+         diasEntre, lunesDe, relojTexto, relojLargo, sumarDias, MESES, hoy as fechaDeHoy } from "./fechas.js";
 
 const { DIFICULTADES, ATRIBUTOS, PREMIOS, ESCUDOS, ANIMOS_DIARIO, plural } = juego;
 
@@ -226,15 +226,25 @@ function panelDelDia(estado, ctx) {
         </section>`;
 }
 
-// Cada cuánto toca: "3 veces por semana", "L · X · V" o "Todos los días".
+// Cada cuánto toca: "3 veces por semana", "El 5 de cada mes", "L · X · V" o "Todos los días".
 function textoFrecuencia(mision) {
     if (mision.veces) return `${plural(mision.veces, "vez", "veces")} por semana`;
+    if (mision.diasMes) return textoDiasMes(mision.diasMes);
     return mision.dias ? mision.dias.map((d) => DIAS_LETRAS[d]).join(" · ") : "Todos los días";
+}
+
+// "El 5 de cada mes", "Los días 1 y 15 de cada mes", "El último día de cada mes"…
+// (el 31 es «el último»: si el mes es más corto, igual toca su último día).
+export function textoDiasMes(diasMes) {
+    const nombres = diasMes.map((d) => (d === 31 ? "último día" : String(d)));
+    if (diasMes.length === 1) return diasMes[0] === 31 ? "El último día de cada mes" : `El ${diasMes[0]} de cada mes`;
+    const lista = `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+    return `Los días ${lista} de cada mes`;
 }
 
 // conFrecuencia: en la lista de hoy no hace falta repetir "Todos los días".
 // conMomento: en Hoy ya están agrupadas por momento del día; en la ficha y en «Otros días» sí se muestra.
-function detalleMision(estado, mision, conFrecuencia = Boolean(mision.dias), conMomento = false) {
+function detalleMision(estado, mision, conFrecuencia = Boolean(mision.dias || mision.diasMes), conMomento = false) {
     const d = DIFICULTADES[mision.dificultad];
     const a = juego.infoAtributo(estado, mision.atributo, mision.atributoPropio);
     const aviso = mision.aviso ? ` · ⏰ ${mision.aviso}` : "";
@@ -306,11 +316,14 @@ function filaMision(estado, mision, accion) {
         ? `<button type="button" class="boton boton-chico" data-accion="restaurar-mision" data-id="${mision.id}">Restaurar</button>`
         : botonEditar("editar-mision", mision.id, `Editar ${mision.nombre}`);
     const meta = mision.meta ? ` · Meta: ${mision.meta.cantidad} ${esc(mision.meta.unidad)}` : "";
+    // Las mensuales dicen cuándo toca la próxima vez (en «Otros días»).
+    const proxima = mision.diasMes && !mision.archivadaEn ? juego.proximaVez(mision, sumarDias(fechaDeHoy(), 1)) : null;
+    const cuando = proxima ? ` · 📅 próxima: ${DIAS_CORTOS[diaDeSemana(proxima)]} ${fechaCorta(proxima)}` : "";
     return `
         <li class="mision apagada dificultad-${mision.dificultad}">
             <div class="mision-info" data-accion="ver-ficha" data-id="${mision.id}" role="button" aria-label="Ficha de ${esc(mision.nombre)}">
                 <span class="mision-nombre">${esc(mision.nombre)}</span>
-                <span class="mision-detalle">${detalleMision(estado, mision, true, true)}${meta}</span>
+                <span class="mision-detalle">${detalleMision(estado, mision, true, true)}${meta}${cuando}</span>
             </div>
             ${boton}
         </li>`;
@@ -321,7 +334,7 @@ function filaMision(estado, mision, accion) {
 
 export function fichaMision(estado, mision, hoy) {
     const s = juego.estadisticasMision(estado, mision, hoy);
-    const enUnidad = (n) => plural(n, s.unidad, s.unidad === "día" ? "días" : "semanas");
+    const enUnidad = (n) => plural(n, s.unidad, { día: "días", semana: "semanas", vez: "veces" }[s.unidad]);
     const celdas = s.dias.map((d) => `<i class="celda-ficha ${d.tipo}" title="${fechaCorta(d.fecha)}"></i>`).join("");
     return `
         <div class="titulo-seccion">

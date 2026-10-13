@@ -199,10 +199,29 @@ export function estaActiva(mision, fecha) {
 
 // ¿Se podía marcar ese día?
 // mision.dias: lista de días de la semana (0 = lunes … 6 = domingo), o null = todos.
+// mision.diasMes (v28): días del mes en que toca (1 … 31), o null. Ver tocaEnElMes.
 // Las misiones «N veces por semana» (mision.veces) se pueden marcar cualquier día.
 export function sePuedeMarcar(mision, fecha, diaSemana = diaDeSemana(fecha)) {
     if (!estaActiva(mision, fecha)) return false;
+    if (mision.diasMes) return tocaEnElMes(mision.diasMes, fecha);
     return !mision.dias || mision.dias.includes(diaSemana);
+}
+
+// ¿Esa fecha es uno de los días del mes de la lista? Si el mes es más corto, el 29, el 30
+// y el 31 caen en su último día (ej: «el 31» en febrero es el 28 o el 29).
+export function tocaEnElMes(diasMes, fecha) {
+    const [anio, mes, dia] = fecha.split("-").map(Number);
+    const ultimo = new Date(anio, mes, 0).getDate();   // día 0 del mes siguiente = último de este
+    return diasMes.some((d) => Math.min(d, ultimo) === dia);
+}
+
+// La próxima fecha (desde «desde», incluida) en que se puede marcar la misión, o null si no
+// hay ninguna en los próximos 62 días (ej: está archivada). Sirve para las mensuales.
+export function proximaVez(mision, desde) {
+    for (let i = 0, fecha = desde; i < 62; i++, fecha = sumarDias(fecha, 1)) {
+        if (sePuedeMarcar(mision, fecha)) return fecha;
+    }
+    return null;
 }
 
 // ¿Le TOCABA ese día? Es decir: si no la hacías, contaba como fallada.
@@ -330,7 +349,7 @@ export function estadisticasMision(estado, mision, hoy) {
         xp: registros.reduce((suma, c) => suma + (c.xp || 0), 0),
         racha,
         mejor,
-        unidad: mision.veces ? "semana" : "día",
+        unidad: mision.veces ? "semana" : mision.diasMes ? "vez" : "día",
         porcentaje: tocaron ? Math.round((cumplidas / tocaron) * 100) : null,
         dias,
     };
