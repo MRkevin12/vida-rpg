@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 16;
+export const VERSION_APP = 17;
 
 export const NOVEDADES = [
+    {
+        version: 17,
+        titulo: "Tus propios atributos",
+        cambios: [
+            "✨ Crea atributos para cosas específicas (Programación, Inglés, Salud…) en Progreso → Atributos.",
+            "📈 Cada uno tiene su propio nivel, y su XP también sube uno de tus 4 atributos.",
+            "🎯 Úsalos en misiones, tareas, enfoque, misiones principales y logros.",
+        ],
+    },
     {
         version: 16,
         titulo: "La vida de tu héroe",

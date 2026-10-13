@@ -3847,6 +3847,47 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 
+/* ===== Atributos propios (v17) ===== */
+.titulo-propios {
+    margin-top: 18px;
+}
+
+.atributo-propio {
+    display: grid;
+    gap: 2px;
+    cursor: pointer;
+}
+
+/* Los nombres propios pueden ser largos: que bajen de línea dentro de su píldora,
+   cortando con guion («Programa-ción») donde el navegador sabe hacerlo. */
+.pildora small {
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    overflow-wrap: break-word;
+}
+
+/* Elegir color: círculos de muestra (el primero, «Auto», usa el color de su atributo base). */
+.opciones-colores {
+    grid-template-columns: repeat(9, 1fr);
+    gap: 6px;
+}
+
+.pildora-color span {
+    display: grid;
+    place-items: center;
+    height: 34px;
+    padding: 0;
+    font-size: 0.66rem;
+    background: var(--muestra, var(--hundido));
+    border-radius: 999px;
+}
+
+.pildora-color input:checked + span {
+    border: 2px solid #fff;
+    background: var(--muestra, rgba(139, 92, 246, 0.14));
+}
+
+
 /* Si el iPhone tiene activado "Reducir movimiento", apagamos animaciones */
 @media (prefers-reduced-motion: reduce) {
     *, *::after {

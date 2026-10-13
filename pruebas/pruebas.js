@@ -967,6 +967,74 @@ prueba("Copias viejas: la vida empieza a contar el día que llega la actualizaci
 });
 
 
+// ===== Atributos propios (v17) =====
+
+prueba("Atributos propios: van colgados de uno de los 4, y su XP sube los dos (y pega al jefe de la base)", () => {
+    const estado = partidaNueva();
+    acciones.crearAtributoPropio(estado, { nombre: "Programación", icono: "💻", base: "intelecto" });
+    const prog = estado.atributosPropios[0];
+    igual([prog.base, prog.color], ["intelecto", juego.ATRIBUTOS.intelecto.color], "sin color elegido, usa el de su base");
+    const mision = crearMision(estado, { nombre: "Leetcode", atributo: juego.clavePropio(prog.id) });
+    igual([mision.atributo, mision.atributoPropio], ["intelecto", prog.id]);
+    acciones.completarMision(estado, mision.id);
+    igual([juego.xpDePropio(estado, prog.id), estado.atributos.intelecto], [28, 28], "normal en plena forma");
+    igual(campana.estadoCampanas(estado).intelecto.dano, campana.DANO.diaria.normal, "daño al jefe de Intelecto");
+    acciones.desmarcarMision(estado, mision.id);
+    igual(juego.xpDePropio(estado, prog.id), 0);
+});
+
+prueba("Atributos propios: también en tareas, enfoque y misiones principales; avisan al subir de nivel", () => {
+    const estado = partidaNueva();
+    acciones.crearAtributoPropio(estado, { nombre: "Inglés", icono: "🗣️", base: "carisma", color: "#60a5fa" });
+    const ingles = estado.atributosPropios[0];
+    const clave = juego.clavePropio(ingles.id);
+    acciones.crearTarea(estado, { nombre: "Examen", fecha: hoy(), dificultad: "dificil", atributo: clave });
+    const celebraciones = jugar(estado, () => acciones.alternarTarea(estado, estado.tareas[0].id));   // 55 XP: nivel 2
+    cierto(celebraciones.some((c) => c.titulo === "Inglés subió a nivel 2"), "avisa que subió de nivel");
+
+    const inicio = Date.now();
+    acciones.empezarEnfoque(estado, { minutos: "15", atributo: clave }, inicio);
+    acciones.revisarEnfoque(estado, inicio + 15 * 60 * 1000);                                          // fácil: 11 XP
+    acciones.crearPrincipal(estado, { nombre: "Llegar a B2", atributo: clave, submisiones: "Terminar el curso" });
+    const principal = estado.principales[0];
+    acciones.alternarSubmision(estado, principal.id, principal.submisiones[0].id);                     // 30 + 150
+    igual(juego.xpDePropio(estado, ingles.id), 55 + 11 + 30 + 150);
+    igual(estado.enfoque.sesiones[0].atributoPropio, ingles.id);
+});
+
+prueba("Atributos propios: nombres únicos, máximo 12; la base no se edita y al borrarlo todo vuelve a su base", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.crearAtributoPropio(estado, { nombre: "fuerza", base: "fuerza" }), "Ya tienes");
+    acciones.crearAtributoPropio(estado, { nombre: "Salud", icono: "🥗", base: "fuerza" });
+    debeFallar(() => acciones.crearAtributoPropio(estado, { nombre: "SALUD", base: "carisma" }), "Ya tienes");
+    const salud = estado.atributosPropios[0];
+    const mision = crearMision(estado, { nombre: "Ensalada", atributo: juego.clavePropio(salud.id) });
+    acciones.completarMision(estado, mision.id);
+
+    acciones.editarAtributoPropio(estado, { id: salud.id, nombre: "Comer sano", icono: "🍎", color: "#a3e635", base: "riqueza" });
+    igual([salud.nombre, salud.icono, salud.color, salud.base], ["Comer sano", "🍎", "#a3e635", "fuerza"], "la base no cambia");
+
+    acciones.borrarAtributoPropio(estado, salud.id);
+    igual([estado.atributosPropios.length, mision.atributoPropio, mision.atributo], [0, null, "fuerza"]);
+    igual(estado.atributos.fuerza, 28, "la XP de la base no se pierde");
+    debeFallar(() => crearMision(estado, { atributo: juego.clavePropio(salud.id) }), "ya no existe");
+
+    for (let i = 0; i < juego.MAX_ATRIBUTOS_PROPIOS; i++) acciones.crearAtributoPropio(estado, { nombre: `A${i}`, base: "fuerza" });
+    debeFallar(() => acciones.crearAtributoPropio(estado, { nombre: "Otro", base: "fuerza" }), "máximo 12");
+});
+
+prueba("Logros: «subir un atributo al nivel N» también sirve con los tuyos", () => {
+    const estado = partidaNueva();
+    acciones.crearAtributoPropio(estado, { nombre: "Programación", icono: "💻", base: "intelecto" });
+    const clave = juego.clavePropio(estado.atributosPropios[0].id);
+    acciones.crearLogro(estado, { nombre: "Dev", tipo: "atributo", objetivo: 2, atributo: clave, recompensa: 10 });
+    igual(juego.describirLogro(estado.logros[0], estado), "Programación al nivel 2");
+    const mision = crearMision(estado, { dificultad: "dificil", atributo: clave });
+    jugar(estado, () => acciones.completarMision(estado, mision.id));                                 // 55 XP: nivel 2
+    igual(estado.logros[0].desbloqueadoEn, hoy());
+});
+
+
 // ===== Avatar y ajustes =====
 
 prueba("Apariencia: se puede cambiar, y una opción inventada no se acepta", () => {

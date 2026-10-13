@@ -717,13 +717,18 @@ function rellenarOpciones() {
                 <span>${d.nombre}<small>+${d.xp} XP</small></span>
             </label>`).join(""));
     }
-    for (const grupo of document.querySelectorAll('[data-opciones="atributo"]')) {
-        grupo.insertAdjacentHTML("beforeend", Object.entries(juego.ATRIBUTOS).map(([clave, a], i) => `
-            <label class="pildora" style="--color-dificultad: ${a.color}">
-                <input type="radio" name="atributo" value="${clave}" ${i === 0 ? "checked" : ""}>
-                <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
-            </label>`).join(""));
-    }
+    pintarPildorasAtributo();
+    // Ventana de atributo propio: a cuál de los 4 le suma, y su color.
+    $('[data-opciones="base"]').insertAdjacentHTML("beforeend", Object.entries(juego.ATRIBUTOS).map(([clave, a], i) => `
+        <label class="pildora" style="--color-dificultad: ${a.color}">
+            <input type="radio" name="base" value="${clave}" ${i === 0 ? "checked" : ""}>
+            <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
+        </label>`).join(""));
+    $('[data-opciones="color"]').insertAdjacentHTML("beforeend", `
+        <label class="pildora pildora-color"><input type="radio" name="color" value="" checked>
+            <span title="El de su atributo base">Auto</span></label>` + juego.COLORES_PROPIOS.map((color) => `
+        <label class="pildora pildora-color"><input type="radio" name="color" value="${color}">
+            <span style="--muestra: ${color}" aria-label="Color ${color}"></span></label>`).join(""));
     for (const grupo of document.querySelectorAll('[data-opciones="dias"]')) {
         grupo.insertAdjacentHTML("beforeend", DIAS_LETRAS.map((letra, dia) => `
             <label class="pildora" title="${DIAS_CORTOS[dia]}">
@@ -761,6 +766,9 @@ function rellenarOpciones() {
            Si llegas a 0 caes en combate: la tienda y el arcade se cierran hasta que recuperes la mitad.
            Poción: +${vida.POCION.cura} por ${vida.POCION.precio} monedas, una al día. En la Torre subes con tu vida real.</p>
         <p><strong>Modo descanso:</strong> hasta ${vida.VIDA.descansoMaximo} días (vacaciones, enfermedad) sin perder vida ni racha, y sin recordatorios.</p>
+        <p><strong>Tus atributos:</strong> en Progreso puedes crear hasta ${juego.MAX_ATRIBUTOS_PROPIOS} atributos para cosas
+           específicas (Programación, Inglés…). Cada uno tiene su nivel y le suma a uno de los 4, así que también cuenta para
+           tu clase, tu avatar, los jefes y la Torre.</p>
         <p><strong>Niveles:</strong> pasar del nivel N al N+1 cuesta ${juego.BASE_PERSONAJE}×N XP. Cada atributo sube con ${juego.BASE_ATRIBUTO}×N XP.</p>
         <p><strong>Rachas:</strong> un día cuenta si completas al menos 1 misión. Cada ${juego.ESCUDOS.diasParaGanar} días seguidos ganas un escudo (máx. ${juego.ESCUDOS.maximo}) que salva tu racha si fallas un día.</p>
         <p><strong>Bonus de regreso:</strong> si vuelves tras ${juego.REGRESO.diasMinimos} días o más, ganas ${juego.REGRESO.xpPorDia} XP por día ausente (máx. ${juego.REGRESO.xpMaximo}).</p>
@@ -801,7 +809,7 @@ const PREPARAR = {
         if (mision) {
             formulario.elements.nombre.value = mision.nombre;
             formulario.elements.dificultad.value = mision.dificultad;
-            formulario.elements.atributo.value = mision.atributo;
+            formulario.elements.atributo.value = valorAtributo(mision);
             formulario.elements.frecuencia.value = mision.veces ? "semana" : "dias";
             if (mision.veces) formulario.elements.veces.value = mision.veces;
             formulario.elements.cantidad.value = mision.meta ? mision.meta.cantidad : "";
@@ -818,7 +826,7 @@ const PREPARAR = {
         if (tarea) {
             formulario.elements.nombre.value = tarea.nombre;
             formulario.elements.dificultad.value = tarea.dificultad;
-            formulario.elements.atributo.value = tarea.atributo;
+            formulario.elements.atributo.value = valorAtributo(tarea);
         }
     },
     recompensa(recompensa) {
@@ -859,6 +867,20 @@ const PREPARAR = {
                 ocultarCampo($("#campo-objetivo"), true);
                 ocultarCampo($("#campo-recompensa"), true);
             }
+        }
+    },
+    atributo(propio) {
+        const formulario = $("#dialogo-atributo form");
+        modoEdicion(formulario, propio, { crear: ["Nuevo atributo", "Crear atributo"], editar: ["Editar atributo", "Guardar cambios"] });
+        // La base no se cambia al editar (la XP que ya diste no se puede mover): se muestra como texto.
+        ocultarCampo($("#campo-base"), Boolean(propio));
+        $("#atributo-base-texto").hidden = !propio;
+        if (propio) {
+            const base = juego.ATRIBUTOS[propio.base];
+            formulario.elements.nombre.value = propio.nombre;
+            formulario.elements.icono.value = propio.icono;
+            formulario.elements.color.value = propio.color;
+            $("#atributo-base-texto").textContent = `Su XP también sube ${base.icono} ${base.nombre}.`;
         }
     },
     ajustes() {
@@ -937,8 +959,23 @@ function idEnEdicion(boton) {
     return Number(boton.closest("form").elements.id.value);
 }
 
+// Las píldoras de atributo (los 4 + los tuyos). Se arman al abrir cada ventana,
+// así siempre aparecen los atributos que hayas creado.
+function pintarPildorasAtributo(raiz = document) {
+    for (const grupo of raiz.querySelectorAll('[data-opciones="atributo"]')) {
+        const leyenda = grupo.querySelector("legend").outerHTML;
+        grupo.innerHTML = leyenda + vistas.pildorasAtributo(estado, "fuerza");
+    }
+}
+
+// El valor de la píldora de algo que ya existe: "fuerza" o, si tiene uno tuyo, "propio:5".
+function valorAtributo(elemento) {
+    return elemento.atributoPropio ? juego.clavePropio(elemento.atributoPropio) : elemento.atributo;
+}
+
 function abrirDialogo(nombre, elemento = null) {
     const dialogo = $(`#dialogo-${nombre}`);
+    pintarPildorasAtributo(dialogo);
     for (const formulario of dialogo.querySelectorAll("form")) formulario.reset();
     PREPARAR[nombre]?.(elemento);
     dialogo.showModal();
@@ -1464,6 +1501,16 @@ const ACCIONES = {
             }
         }
     },
+    "editar-atributo": (elemento) => {
+        abrirDialogo("atributo", estado.atributosPropios.find((a) => a.id === Number(elemento.dataset.id)));
+    },
+    "borrar-atributo": (boton) => {
+        if (confirm("¿Borrar este atributo? Lo que lo usaba vuelve a su atributo base. La XP que ya ganaste no se pierde.")) {
+            const id = idEnEdicion(boton);
+            boton.closest("dialog").close();
+            ejecutar(() => acciones.borrarAtributoPropio(estado, id));
+        }
+    },
     "editar-recompensa": (boton) => {
         abrirDialogo("recompensa", estado.recompensas.find((r) => r.id === Number(boton.dataset.id)));
     },
@@ -1656,6 +1703,11 @@ const FORMULARIOS = {
     },
     logro: (valores) => ejecutar(() => (valores.id ? acciones.editarLogro(estado, valores) : acciones.crearLogro(estado, valores))),
     recompensa: (valores) => ejecutar(() => (valores.id ? acciones.editarRecompensa(estado, valores) : acciones.crearRecompensa(estado, valores))),
+    atributo(valores) {
+        const resultado = ejecutar(() => (valores.id ? acciones.editarAtributoPropio(estado, valores) : acciones.crearAtributoPropio(estado, valores)));
+        if (resultado && !valores.id) avisar(`${valores.icono || "⭐"} Atributo creado: ya lo puedes elegir en tus misiones`);
+        return resultado;
+    },
     mascota(valores) {
         const resultado = ejecutar(() => acciones.nombrarMascota(estado, valores.nombre));
         if (resultado) avisar(`🐾 Tu mascota ahora se llama ${estado.mascota.nombre}`);

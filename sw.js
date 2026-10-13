@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v16";
+const VERSION = "vida-rpg-v17";
 
 const ARCHIVOS = [
     "./",

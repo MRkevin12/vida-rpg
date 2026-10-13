@@ -55,6 +55,13 @@ export function partidaDemo(dias = 45) {
     for (const m of MISIONES) acciones.crearMision(estado, m);
     for (const m of estado.misiones) m.creadaEn = inicio;
 
+    // Dos atributos propios, para lo específico (le suman a Intelecto y a Riqueza).
+    acciones.crearAtributoPropio(estado, { nombre: "Programación", icono: "💻", base: "intelecto", color: "#60a5fa" });
+    acciones.crearAtributoPropio(estado, { nombre: "Finanzas", icono: "📈", base: "riqueza", color: "#a3e635" });
+    const [programacion, finanzas] = estado.atributosPropios;
+    estado.misiones.find((m) => m.nombre === "Estudiar programación").atributoPropio = programacion.id;
+    estado.misiones.find((m) => m.nombre === "Anotar mis gastos").atributoPropio = finanzas.id;
+
     acciones.crearPrincipal(estado, {
         nombre: "Correr mis primeros 10 km",
         atributo: "fuerza",
@@ -94,7 +101,8 @@ export function partidaDemo(dias = 45) {
             if (esHoy) probabilidad = posicion < 2 ? 1 : 0;
             if (azar() >= probabilidad) return;
             const { xp, monedas } = juego.DIFICULTADES[mision.dificultad];
-            estado.completadas.push({ misionId: mision.id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad });
+            estado.completadas.push({ misionId: mision.id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad,
+                                      atributoPropio: mision.atributoPropio || null });
             acciones.ganar(estado, { xp, monedas, atributo: mision.atributo });
         });
 

@@ -310,6 +310,34 @@
         </form>
     </dialog>
 
+    <!-- Atributo propio: para algo específico (Programación, Inglés…). Le suma a uno de los 4. -->
+    <dialog id="dialogo-atributo" class="dialogo">
+        <form data-form="atributo" class="formulario">
+            <h2 class="titulo-juego" tabindex="-1" autofocus data-titulo>Nuevo atributo</h2>
+            <input type="hidden" name="id">
+            <p class="nota">Para medir algo específico: Programación, Inglés, Salud, tu emprendimiento… Tiene su propio
+               nivel, y su XP también sube uno de tus 4 atributos.</p>
+            <div class="dos-columnas columnas-icono">
+                <label>Ícono
+                    <input type="text" name="icono" maxlength="8" autocomplete="off" placeholder="💻" aria-label="Ícono (un emoji)">
+                </label>
+                <label>Nombre
+                    <input type="text" name="nombre" maxlength="24" required autocomplete="off" placeholder="Ej: Programación">
+                </label>
+            </div>
+            <fieldset id="campo-base" class="opciones opciones-4" data-opciones="base"><legend>¿A cuál de los 4 le suma?</legend></fieldset>
+            <p class="nota" id="atributo-base-texto" hidden></p>
+            <fieldset class="opciones opciones-colores" data-opciones="color"><legend>Color</legend></fieldset>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
+                <button type="submit" class="boton boton-principal" data-enviar>Crear atributo</button>
+            </div>
+            <div class="solo-editar" data-solo-editar hidden>
+                <button type="button" class="boton boton-peligro boton-ancho" data-accion="borrar-atributo">Borrar atributo</button>
+            </div>
+        </form>
+    </dialog>
+
     <dialog id="dialogo-recompensa" class="dialogo">
         <form data-form="recompensa" class="formulario">
             <h2 class="titulo-juego" tabindex="-1" autofocus data-titulo>Nueva recompensa</h2>

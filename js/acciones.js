@@ -55,6 +55,16 @@ function validarAtributo(atributo) {
     return atributo;
 }
 
+// El formulario manda uno de los 4 ("fuerza") o uno tuyo ("propio:5").
+// Devuelve el atributo base (el que sube y pega a los jefes) y, si es tuyo, su id.
+function elegirAtributo(estado, valor) {
+    const id = juego.idDePropio(valor);
+    if (id === null) return { atributo: validarAtributo(valor), atributoPropio: null };
+    const propio = juego.buscarPropio(estado, id);
+    if (!propio) throw new Error("Ese atributo ya no existe.");
+    return { atributo: propio.base, atributoPropio: propio.id };
+}
+
 function validarDificultad(dificultad) {
     if (!juego.DIFICULTADES[dificultad]) throw new Error("Elige una dificultad.");
     return dificultad;
@@ -87,6 +97,60 @@ export function crearPersonaje(estado, nombre) {
 
 export function renombrar(estado, nombre) {
     estado.personaje.nombre = validarNombre(nombre, 30);
+}
+
+
+// ===== Atributos propios (para cosas específicas: Programación, Inglés…) =====
+
+function validarIconoYColor(icono, color, base) {
+    const textoIcono = String(icono || "").trim() || "⭐";
+    if (textoIcono.length > 8) throw new Error("El ícono debe ser un solo emoji.");
+    // Si no eliges color, usa el de su atributo base.
+    return { icono: textoIcono, color: juego.COLORES_PROPIOS.includes(color) ? color : juego.ATRIBUTOS[base].color };
+}
+
+// Que no haya dos atributos con el mismo nombre (ni uno que se llame como los 4).
+function revisarNombreLibre(estado, nombre, excepto = null) {
+    const igual = (texto) => texto.toLowerCase() === nombre.toLowerCase();
+    if (Object.values(juego.ATRIBUTOS).some((a) => igual(a.nombre)) ||
+        estado.atributosPropios.some((a) => a !== excepto && igual(a.nombre))) {
+        throw new Error("Ya tienes un atributo con ese nombre.");
+    }
+}
+
+export function crearAtributoPropio(estado, { nombre, icono, color, base }) {
+    if (estado.atributosPropios.length >= juego.MAX_ATRIBUTOS_PROPIOS) {
+        throw new Error(`Puedes tener máximo ${juego.MAX_ATRIBUTOS_PROPIOS} atributos propios.`);
+    }
+    const limpio = validarNombre(nombre, 24);
+    revisarNombreLibre(estado, limpio);
+    const atributoBase = validarAtributo(base);
+    estado.atributosPropios.push({
+        id: nuevoId(estado),
+        nombre: limpio,
+        ...validarIconoYColor(icono, color, atributoBase),
+        base: atributoBase,   // su XP también sube este atributo (no se cambia después)
+        creadoEn: hoy(),
+    });
+}
+
+// Se cambian el nombre, el ícono y el color. La base no: la XP que ya diste no se puede mover.
+export function editarAtributoPropio(estado, { id, nombre, icono, color }) {
+    const propio = buscar(estado.atributosPropios, Number(id), "ese atributo");
+    const limpio = validarNombre(nombre, 24);
+    revisarNombreLibre(estado, limpio, propio);
+    propio.nombre = limpio;
+    Object.assign(propio, validarIconoYColor(icono, color, propio.base));
+}
+
+// Borrar: lo que lo usaba vuelve a su atributo base. El historial (y la XP de la base) no cambia.
+export function borrarAtributoPropio(estado, id) {
+    const propio = buscar(estado.atributosPropios, id, "ese atributo");
+    estado.atributosPropios = estado.atributosPropios.filter((a) => a !== propio);
+    for (const lista of [estado.misiones, estado.tareas, estado.principales]) {
+        for (const elemento of lista) if (elemento.atributoPropio === propio.id) elemento.atributoPropio = null;
+    }
+    if (estado.enfoque.activo?.atributoPropio === propio.id) estado.enfoque.activo.atributoPropio = null;
 }
 
 
@@ -139,7 +203,7 @@ export function crearMision(estado, { nombre, dificultad, atributo, dias, frecue
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
         dificultad: validarDificultad(dificultad),
-        atributo: validarAtributo(atributo),
+        ...elegirAtributo(estado, atributo),                 // agrega "atributo" y "atributoPropio"
         ...validarFrecuencia({ frecuencia, dias, veces }),   // agrega "dias" y "veces"
         meta: validarMeta(cantidad, unidad),
         aviso: validarAviso(aviso),
@@ -156,7 +220,7 @@ export function editarMision(estado, { id, nombre, dificultad, atributo, dias, f
     const mision = buscar(estado.misiones, Number(id), "esa misión");
     mision.nombre = validarNombre(nombre, 60);
     mision.dificultad = validarDificultad(dificultad);
-    mision.atributo = validarAtributo(atributo);
+    Object.assign(mision, elegirAtributo(estado, atributo));
     Object.assign(mision, validarFrecuencia({ frecuencia, dias, veces }));
     mision.meta = validarMeta(cantidad, unidad);
     mision.aviso = validarAviso(aviso);
@@ -204,7 +268,8 @@ export function completarMision(estado, id, fecha = hoy()) {
     const { xp, monedas, forma } = vida.premio(estado, mision.dificultad, hoy());
     // Guardamos cuánto dio (y su dificultad y atributo de ese momento), para poder
     // restarlo exacto si la desmarcas y para que editar la misión no cambie el pasado.
-    estado.completadas.push({ misionId: id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad });
+    estado.completadas.push({ misionId: id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad,
+                              atributoPropio: mision.atributoPropio || null });
     ganar(estado, { xp, monedas, atributo: mision.atributo });
     return { xp, forma };
 }
@@ -276,7 +341,7 @@ export function crearTarea(estado, { nombre, fecha, dificultad, atributo }) {
         nombre: validarNombre(nombre, 80),
         fecha: validarFechaTarea(fecha),   // el día que vence (o null: sin fecha)
         dificultad: validarDificultad(dificultad),
-        atributo: validarAtributo(atributo),
+        ...elegirAtributo(estado, atributo),
         creadaEn: hoy(),
         hechaEn: null,
         premio: null,                      // lo que dio al completarla (para poder devolverlo)
@@ -288,7 +353,7 @@ export function editarTarea(estado, { id, nombre, fecha, dificultad, atributo })
     tarea.nombre = validarNombre(nombre, 80);
     tarea.fecha = validarFechaTarea(fecha);
     tarea.dificultad = validarDificultad(dificultad);
-    tarea.atributo = validarAtributo(atributo);
+    Object.assign(tarea, elegirAtributo(estado, atributo));
 }
 
 // Completar una tarea (da su premio una sola vez) o deshacerla si la marcaste por error.
@@ -297,7 +362,7 @@ export function alternarTarea(estado, id) {
     if (!tarea.hechaEn) {
         const { xp, monedas, forma } = vida.premio(estado, tarea.dificultad, hoy());
         tarea.hechaEn = hoy();
-        tarea.premio = { xp, monedas, atributo: tarea.atributo, dificultad: tarea.dificultad };
+        tarea.premio = { xp, monedas, atributo: tarea.atributo, dificultad: tarea.dificultad, atributoPropio: tarea.atributoPropio || null };
         ganar(estado, tarea.premio);
         return { xp, forma };
     }
@@ -324,7 +389,7 @@ export function borrarTarea(estado, id) {
 export function empezarEnfoque(estado, { minutos, atributo }, ahora = Date.now()) {
     if (estado.enfoque.activo) throw new Error("Ya tienes una sesión de enfoque en curso.");
     if (!juego.ENFOQUE[minutos]) throw new Error("Elige cuántos minutos.");
-    estado.enfoque.activo = { inicio: ahora, minutos: Number(minutos), atributo: validarAtributo(atributo) };
+    estado.enfoque.activo = { inicio: ahora, minutos: Number(minutos), ...elegirAtributo(estado, atributo) };
 }
 
 // Cancelar a la mitad: no da premio.
@@ -341,11 +406,12 @@ export function revisarEnfoque(estado, ahora = Date.now()) {
     const { xp, monedas } = vida.premio(estado, dificultad, hoy());
     // La fecha es la del momento en que terminó (aunque abras la app al día siguiente).
     const fecha = aTexto(new Date(juego.finDelEnfoque(activo)));
-    estado.enfoque.sesiones.push({ fecha, minutos: activo.minutos, atributo: activo.atributo, dificultad, xp, monedas });
+    estado.enfoque.sesiones.push({ fecha, minutos: activo.minutos, atributo: activo.atributo, dificultad, xp, monedas,
+                                   atributoPropio: activo.atributoPropio || null });
     estado.enfoque.activo = null;
     ganar(estado, { xp, monedas, atributo: activo.atributo });
 
-    const a = juego.ATRIBUTOS[activo.atributo];
+    const a = juego.infoAtributo(estado, activo.atributo, activo.atributoPropio);
     return {
         celebraciones: [{
             icono: "⏱️",
@@ -381,7 +447,7 @@ export function crearPrincipal(estado, { nombre, atributo, submisiones }) {
     estado.principales.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
-        atributo: validarAtributo(atributo),
+        ...elegirAtributo(estado, atributo),
         creadaEn: hoy(),
         completadaEn: null,
         archivada: false,
@@ -543,7 +609,8 @@ export function crearLogro(estado, { nombre, tipo, objetivo, misionId, atributo,
         logro.misionId = buscar(estado.misiones, Number(misionId), "esa misión").id;
     }
     if (tipoLogro.campo === "atributo") {
-        logro.atributo = validarAtributo(atributo);
+        const elegido = elegirAtributo(estado, atributo);
+        logro.atributo = elegido.atributoPropio ? juego.clavePropio(elegido.atributoPropio) : elegido.atributo;
     }
     estado.logros.push(logro);
 }
@@ -993,6 +1060,12 @@ function fotoDelAvatar(estado, info) {
     };
 }
 
+function nivelesDePropios(estado) {
+    const niveles = {};
+    for (const propio of estado.atributosPropios) niveles[propio.id] = juego.nivelDePropio(estado, propio.id).nivel;
+    return niveles;
+}
+
 function fotoDeVida(estado) {
     const v = vida.calcularVida(estado, hoy());
     return { puntos: v.puntos, caido: v.caido, enForma: v.enForma };
@@ -1002,6 +1075,7 @@ export function foto(estado) {
     const info = juego.resumen(estado, hoy());
     return {
         vida: fotoDeVida(estado),
+        propios: nivelesDePropios(estado),
         nivel: juego.calcularNivel(estado.personaje.xp).nivel,
         atributos: nivelesDeAtributos(estado),
         escudos: info.racha.escudos,
@@ -1025,6 +1099,13 @@ export function revisarCambios(estado, antes) {
         if (nivelAtributo > antes.atributos[clave]) {
             const a = juego.ATRIBUTOS[clave];
             celebraciones.push({ pequena: true, icono: a.icono, titulo: `${a.nombre} subió a nivel ${nivelAtributo}` });
+        }
+    }
+
+    for (const [id, nivelPropio] of Object.entries(nivelesDePropios(estado))) {
+        if (nivelPropio > (antes.propios?.[id] ?? nivelPropio)) {
+            const propio = juego.buscarPropio(estado, Number(id));
+            celebraciones.push({ pequena: true, icono: propio.icono, titulo: `${propio.nombre} subió a nivel ${nivelPropio}` });
         }
     }
 

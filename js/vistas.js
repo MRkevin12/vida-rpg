@@ -55,9 +55,9 @@ function cabeceraSeccion(titulo, dialogo, textoBoton) {
         </div>`;
 }
 
-function chipAtributo(clave) {
-    const a = ATRIBUTOS[clave];
-    return `<span class="chip-atributo" style="--color-atributo: ${a.color}">${a.icono} ${a.nombre}</span>`;
+// info = { icono, nombre, color }: uno de los 4, o uno tuyo (ver juego.infoAtributo).
+function chipAtributo(clave, info = ATRIBUTOS[clave]) {
+    return `<span class="chip-atributo" style="--color-atributo: ${info.color}">${esc(info.icono)} ${esc(info.nombre)}</span>`;
 }
 
 function botonEditar(accion, id, etiqueta) {
@@ -68,12 +68,17 @@ function botonCerrar(accion, id, etiqueta) {
     return `<button type="button" class="boton-icono" data-accion="${accion}" data-id="${id}" aria-label="${esc(etiqueta)}">${ICONOS.cerrar}</button>`;
 }
 
-// Píldoras para elegir un atributo dentro de un formulario (como las de las ventanas).
-function pildorasAtributo(elegido) {
-    return Object.entries(ATRIBUTOS).map(([clave, a]) => `
-        <label class="pildora" style="--color-dificultad: ${a.color}">
-            <input type="radio" name="atributo" value="${clave}" ${clave === elegido ? "checked" : ""}>
-            <span><b class="pildora-icono">${a.icono}</b><small>${a.nombre}</small></span>
+// Píldoras para elegir un atributo en un formulario: los 4 y después los tuyos
+// (su valor es "propio:5"). Las usan todas las ventanas que piden un atributo.
+export function pildorasAtributo(estado, elegido) {
+    const opciones = [
+        ...Object.entries(ATRIBUTOS).map(([clave, a]) => ({ valor: clave, ...a })),
+        ...estado.atributosPropios.map((p) => ({ valor: juego.clavePropio(p.id), icono: p.icono, nombre: p.nombre, color: p.color })),
+    ];
+    return opciones.map((o) => `
+        <label class="pildora" style="--color-dificultad: ${o.color}">
+            <input type="radio" name="atributo" value="${o.valor}" ${o.valor === elegido ? "checked" : ""}>
+            <span><b class="pildora-icono">${esc(o.icono)}</b><small>${esc(o.nombre)}</small></span>
         </label>`).join("");
 }
 
@@ -174,9 +179,9 @@ export function pantallaHoy(estado, ctx) {
         <p class="nota nota-gesto">Desliza una misión a la derecha para completarla. Toca su nombre para ver su ficha.</p>
 
         ${plegable(`Otros días (${otrosDias.length})`,
-            `<ul class="lista">${otrosDias.map((m) => filaMision(m, "editar")).join("")}</ul>`, otrosDias.length)}
+            `<ul class="lista">${otrosDias.map((m) => filaMision(estado, m, "editar")).join("")}</ul>`, otrosDias.length)}
         ${plegable(`Archivadas (${archivadas.length})`,
-            `<ul class="lista">${archivadas.map((m) => filaMision(m, "restaurar")).join("")}</ul>`, archivadas.length)}
+            `<ul class="lista">${archivadas.map((m) => filaMision(estado, m, "restaurar")).join("")}</ul>`, archivadas.length)}
 
         ${esAyer ? "" : seccionTareas(estado, ctx)}
         ${tarjetaDesafio(estado, ctx)}
@@ -192,12 +197,12 @@ function textoFrecuencia(mision) {
 
 // conFrecuencia: en la lista de hoy no hace falta repetir "Todos los días".
 // conMomento: en Hoy ya están agrupadas por momento del día; en la ficha y en «Otros días» sí se muestra.
-function detalleMision(mision, conFrecuencia = Boolean(mision.dias), conMomento = false) {
+function detalleMision(estado, mision, conFrecuencia = Boolean(mision.dias), conMomento = false) {
     const d = DIFICULTADES[mision.dificultad];
-    const a = ATRIBUTOS[mision.atributo];
+    const a = juego.infoAtributo(estado, mision.atributo, mision.atributoPropio);
     const aviso = mision.aviso ? ` · ⏰ ${mision.aviso}` : "";
     const momento = mision.momento && conMomento ? ` · ${juego.MOMENTOS[mision.momento].icono}` : "";
-    return `${a.icono} ${a.nombre} · ${d.nombre} · +${d.xp} XP${conFrecuencia ? ` · ${textoFrecuencia(mision)}` : ""}${momento}${aviso}`;
+    return `${esc(a.icono)} ${esc(a.nombre)} · ${d.nombre} · +${d.xp} XP${conFrecuencia ? ` · ${textoFrecuencia(mision)}` : ""}${momento}${aviso}`;
 }
 
 function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
@@ -233,7 +238,7 @@ function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
             ${boton}
             <div class="mision-info" data-accion="ver-ficha" data-id="${mision.id}" role="button" aria-label="Ficha de ${esc(mision.nombre)}">
                 <span class="mision-nombre">${esc(mision.nombre)}</span>
-                <span class="mision-detalle">${detalleMision(mision)}</span>
+                <span class="mision-detalle">${detalleMision(estado, mision)}</span>
                 ${extra}
             </div>
             ${botonEditar("editar-mision", mision.id, `Editar ${mision.nombre}`)}
@@ -241,7 +246,7 @@ function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
 }
 
 // Misión que no se puede marcar ahora (toca otro día, o está archivada).
-function filaMision(mision, accion) {
+function filaMision(estado, mision, accion) {
     const boton = accion === "restaurar"
         ? `<button type="button" class="boton boton-chico" data-accion="restaurar-mision" data-id="${mision.id}">Restaurar</button>`
         : botonEditar("editar-mision", mision.id, `Editar ${mision.nombre}`);
@@ -250,7 +255,7 @@ function filaMision(mision, accion) {
         <li class="mision apagada dificultad-${mision.dificultad}">
             <div class="mision-info" data-accion="ver-ficha" data-id="${mision.id}" role="button" aria-label="Ficha de ${esc(mision.nombre)}">
                 <span class="mision-nombre">${esc(mision.nombre)}</span>
-                <span class="mision-detalle">${detalleMision(mision, true, true)}${meta}</span>
+                <span class="mision-detalle">${detalleMision(estado, mision, true, true)}${meta}</span>
             </div>
             ${boton}
         </li>`;
@@ -268,7 +273,7 @@ export function fichaMision(estado, mision, hoy) {
             <h2 class="titulo-juego">${esc(mision.nombre)}</h2>
             <button type="button" class="boton boton-chico boton-secundario" data-accion="cerrar">Cerrar</button>
         </div>
-        <p class="mision-detalle">${detalleMision(mision, true, true)}${mision.archivadaEn ? " · Archivada" : ""}</p>
+        <p class="mision-detalle">${detalleMision(estado, mision, true, true)}${mision.archivadaEn ? " · Archivada" : ""}</p>
         <div class="fichas-dato">
             ${ficha("Racha", `🔥 ${enUnidad(s.racha)}`, `<span class="ficha-nota">${s.unidad === "día" ? "Días que tocaba, seguidos" : "Semanas cumplidas, seguidas"}</span>`)}
             ${ficha("Mejor racha", `🏅 ${enUnidad(s.mejor)}`, `<span class="ficha-nota">Tu récord con este hábito</span>`)}
@@ -313,7 +318,7 @@ function seccionTareas(estado, ctx) {
     const proximas = pendientes.filter((t) => t.fecha && t.fecha > ctx.hoy).sort(porFecha);
     const anteriores = estado.tareas.filter((t) => t.hechaEn && t.hechaEn < ctx.hoy)
         .sort((a, b) => b.hechaEn.localeCompare(a.hechaEn)).slice(0, 15);   // las 15 más recientes
-    const lista = (tareas) => `<ul class="lista">${tareas.map((t) => tarjetaTarea(t, ctx)).join("")}</ul>`;
+    const lista = (tareas) => `<ul class="lista">${tareas.map((t) => tarjetaTarea(estado, t, ctx)).join("")}</ul>`;
 
     return `
         ${cabeceraSeccion("📌 Tareas", "tarea", "+ Nueva")}
@@ -326,10 +331,10 @@ function seccionTareas(estado, ctx) {
         ${plegable(`Hechas antes (${anteriores.length})`, lista(anteriores), anteriores.length)}`;
 }
 
-function tarjetaTarea(tarea, ctx) {
+function tarjetaTarea(estado, tarea, ctx) {
     const hecha = Boolean(tarea.hechaEn);
     const d = DIFICULTADES[tarea.dificultad];
-    const a = ATRIBUTOS[tarea.atributo];
+    const a = juego.infoAtributo(estado, tarea.atributo, tarea.atributoPropio);
     const clases = ["mision", "tarea", `dificultad-${tarea.dificultad}`, hecha ? "hecha" : "", ctx.recienTarea === tarea.id ? "recien-hecha" : ""];
     return `
         <li class="${clases.join(" ")}" data-tarea="${tarea.id}">
@@ -337,7 +342,7 @@ function tarjetaTarea(tarea, ctx) {
                     aria-pressed="${hecha}" aria-label="Marcar ${esc(tarea.nombre)}">${ICONOS.check}</button>
             <div class="mision-info">
                 <span class="mision-nombre">${esc(tarea.nombre)}</span>
-                <span class="mision-detalle">${a.icono} ${a.nombre} · ${d.nombre} · +${d.xp} XP · ${cuandoVence(tarea, ctx.hoy)}</span>
+                <span class="mision-detalle">${esc(a.icono)} ${esc(a.nombre)} · ${d.nombre} · +${d.xp} XP · ${cuandoVence(tarea, ctx.hoy)}</span>
             </div>
             ${botonEditar("editar-tarea", tarea.id, `Editar ${tarea.nombre}`)}
         </li>`;
@@ -590,6 +595,7 @@ export function pantallaProgreso(estado, ctx) {
         <section class="panel">
             <h2 class="titulo-juego">Atributos</h2>
             <div class="atributos">${Object.keys(ATRIBUTOS).map((clave) => tarjetaAtributo(estado, clave)).join("")}</div>
+            ${seccionAtributosPropios(estado)}
         </section>
 
         <section class="panel">
@@ -667,6 +673,38 @@ export function detalleDia(estado, fecha, racha) {
         texto += `<br>${icono} ${diario.texto ? `«${esc(diario.texto)}»` : ""}`;
     }
     return texto;
+}
+
+// Tus atributos: para lo específico. Cada uno tiene su nivel y le suma a uno de los 4.
+// Tocar uno abre la ventana para editarlo.
+function seccionAtributosPropios(estado) {
+    const propios = estado.atributosPropios;
+    const tarjetas = propios.map((p) => {
+        const n = juego.nivelDePropio(estado, p.id);
+        const base = ATRIBUTOS[p.base];
+        const usos = estado.misiones.filter((m) => m.atributoPropio === p.id && !m.archivadaEn).length;
+        return `
+            <div class="atributo atributo-propio" style="--color-atributo: ${p.color}" data-accion="editar-atributo" data-id="${p.id}"
+                 role="button" aria-label="Editar ${esc(p.nombre)}">
+                <div class="atributo-cabecera">
+                    <span class="atributo-icono">${esc(p.icono)}</span>
+                    <span class="atributo-nombre">${esc(p.nombre)}</span>
+                    <span class="atributo-nivel">Nv ${n.nivel}</span>
+                </div>
+                ${barra(n.porcentaje, "barra-mini barra-atributo")}
+                <span class="mini texto-suave">${n.xpEnNivel} / ${n.xpNecesaria} XP</span>
+                <span class="mini texto-suave">Suma a ${base.icono} ${base.nombre} · ${plural(usos, "misión", "misiones")}</span>
+            </div>`;
+    }).join("");
+    const lleno = propios.length >= juego.MAX_ATRIBUTOS_PROPIOS;
+    return `
+        <div class="titulo-seccion titulo-propios">
+            <h3 class="subtitulo">✨ Tus atributos</h3>
+            <button type="button" class="boton boton-chico" data-accion="abrir" data-dialogo="atributo" ${lleno ? "disabled" : ""}>+ Nuevo</button>
+        </div>
+        ${propios.length
+            ? `<div class="atributos">${tarjetas}</div>`
+            : vacio("Crea atributos para lo específico: Programación, Inglés, Salud, tu emprendimiento…<br>Cada uno tiene su propio nivel y también sube uno de los 4.")}`;
 }
 
 function tarjetaAtributo(estado, clave) {
@@ -867,8 +905,8 @@ export function pantallaAventuras(estado, ctx) {
         ${cabeceraSeccion("Misiones principales", "principal", "+ Nueva")}
         <p class="nota">Tus objetivos grandes, divididos en pasos. Son tu arma más fuerte contra los jefes.
            Cada paso: +${PREMIOS.submision.xp} XP. Al terminar todos: +${PREMIOS.principal.xp} XP y ${PREMIOS.principal.monedas} monedas.</p>
-        ${enCurso.length ? enCurso.map(tarjetaPrincipal).join("") : vacio("Sin misiones principales en curso. Ej: «Aprender inglés B1» o «Terminar CS50».")}
-        ${plegable(`Completadas (${terminadas.length})`, terminadas.map(tarjetaPrincipal).join(""), terminadas.length)}
+        ${enCurso.length ? enCurso.map((p) => tarjetaPrincipal(estado, p)).join("") : vacio("Sin misiones principales en curso. Ej: «Aprender inglés B1» o «Terminar CS50».")}
+        ${plegable(`Completadas (${terminadas.length})`, terminadas.map((p) => tarjetaPrincipal(estado, p)).join(""), terminadas.length)}
         ${plegable(`Archivadas (${archivadas.length})`, `<ul class="lista">${filasArchivadas}</ul>`, archivadas.length)}`;
 }
 
@@ -878,7 +916,7 @@ function plegable(titulo, contenido, cantidad) {
     return `<details class="plegable"><summary>${titulo}</summary>${contenido}</details>`;
 }
 
-function tarjetaPrincipal(p) {
+function tarjetaPrincipal(estado, p) {
     const hechas = p.submisiones.filter((s) => s.hecha).length;
     const total = p.submisiones.length;
     const pasos = p.submisiones.map((s) => `
@@ -903,7 +941,7 @@ function tarjetaPrincipal(p) {
         <article class="panel tarjeta ${p.completadaEn ? "completada" : ""}" data-id="${p.id}">
             <div class="tarjeta-cabecera">
                 <div class="tarjeta-titulo">
-                    ${chipAtributo(p.atributo)}
+                    ${chipAtributo(p.atributo, juego.infoAtributo(estado, p.atributo, p.atributoPropio))}
                     <h3>${esc(p.nombre)}</h3>
                 </div>
                 ${botonCerrar("archivar-principal", p.id, `Archivar ${p.nombre}`)}
@@ -1269,10 +1307,10 @@ export function pantallaEnfoque(estado, ctx) {
         // El reloj: app.js actualiza cada segundo el texto [data-reloj] y el anillo [data-anillo].
         const total = activo.minutos * 60 * 1000;
         const restante = Math.max(0, juego.finDelEnfoque(activo) - ctx.ahora);
-        const a = ATRIBUTOS[activo.atributo];
+        const a = juego.infoAtributo(estado, activo.atributo, activo.atributoPropio);
         principal = `
             <section class="panel enfoque-activo" style="--color-atributo: ${a.color}">
-                <p class="etiqueta">Enfocado en ${a.icono} ${a.nombre}</p>
+                <p class="etiqueta">Enfocado en ${esc(a.icono)} ${esc(a.nombre)}</p>
                 <div class="reloj">
                     <svg viewBox="0 0 120 120" aria-hidden="true">
                         <circle class="reloj-pista" cx="60" cy="60" r="52"/>
@@ -1300,15 +1338,15 @@ export function pantallaEnfoque(estado, ctx) {
                    Si cancelas a la mitad, no hay premio.</p>
                 <form data-form="enfoque" class="formulario">
                     <fieldset class="opciones"><legend>¿Cuánto tiempo?</legend>${duraciones}</fieldset>
-                    <fieldset class="opciones opciones-4"><legend>¿En qué te vas a enfocar?</legend>${pildorasAtributo("intelecto")}</fieldset>
+                    <fieldset class="opciones opciones-4"><legend>¿En qué te vas a enfocar?</legend>${pildorasAtributo(estado, "intelecto")}</fieldset>
                     <button type="submit" class="boton boton-principal">Empezar</button>
                 </form>
             </section>`;
     }
 
     const historial = recientes.map((s) => {
-        const a = ATRIBUTOS[s.atributo];
-        return `<li><span>${a.icono} ${s.minutos} min de ${a.nombre}</span><span class="texto-suave">${fechaCorta(s.fecha)} · +${s.xp} XP</span></li>`;
+        const a = juego.infoAtributo(estado, s.atributo, s.atributoPropio);
+        return `<li><span>${esc(a.icono)} ${s.minutos} min de ${esc(a.nombre)}</span><span class="texto-suave">${fechaCorta(s.fecha)} · +${s.xp} XP</span></li>`;
     }).join("");
 
     return `

@@ -97,6 +97,57 @@ export function calcularNivel(xpTotal, base = BASE_PERSONAJE) {
 }
 
 
+// ===== Atributos propios =====
+// Además de los 4 atributos, puedes crear los tuyos para cosas específicas
+// (Programación, Inglés, Salud…): estado.atributosPropios = [{ id, nombre, icono, color, base, creadoEn }].
+// Cada uno va "colgado" de uno de los 4 (su base): su XP también sube la base. Así el avatar,
+// la clase, los jefes y la Torre siguen funcionando igual. Su nivel se CALCULA del historial.
+
+export const MAX_ATRIBUTOS_PROPIOS = 12;
+export const COLORES_PROPIOS = ["#fb7185", "#f97316", "#fbbf24", "#a3e635", "#34d399", "#22d3ee", "#60a5fa", "#c084fc"];
+
+// En los formularios, un atributo propio se elige con el valor "propio:5" (5 = su id).
+const PREFIJO_PROPIO = "propio:";
+
+export function clavePropio(id) {
+    return `${PREFIJO_PROPIO}${id}`;
+}
+
+// "propio:5" → 5; "fuerza" → null.
+export function idDePropio(clave) {
+    const texto = String(clave || "");
+    return texto.startsWith(PREFIJO_PROPIO) ? Number(texto.slice(PREFIJO_PROPIO.length)) : null;
+}
+
+export function buscarPropio(estado, id) {
+    return id ? (estado.atributosPropios || []).find((a) => a.id === id) || null : null;
+}
+
+// Cómo se muestra el atributo de algo (una misión, una tarea…): el propio si tiene uno; si no, el base.
+export function infoAtributo(estado, base, propioId) {
+    const propio = buscarPropio(estado, propioId);
+    return propio ? { icono: propio.icono, nombre: propio.nombre, color: propio.color } : ATRIBUTOS[base];
+}
+
+// La XP de un atributo propio: lo que diste con él (misiones, tareas, enfoque y misiones principales).
+export function xpDePropio(estado, id) {
+    let xp = 0;
+    for (const c of estado.completadas) if (c.atributoPropio === id) xp += c.xp;
+    for (const t of estado.tareas) if (t.premio?.atributoPropio === id) xp += t.premio.xp;
+    for (const s of estado.enfoque.sesiones) if (s.atributoPropio === id) xp += s.xp;
+    for (const p of estado.principales) {
+        if (p.atributoPropio !== id) continue;
+        xp += p.submisiones.filter((s) => s.hecha).length * PREMIOS.submision.xp;
+        if (p.completadaEn) xp += PREMIOS.principal.xp;
+    }
+    return xp;
+}
+
+export function nivelDePropio(estado, id) {
+    return calcularNivel(xpDePropio(estado, id), BASE_ATRIBUTO);
+}
+
+
 // ===== Calendario y rachas =====
 
 // Cuenta cuántas misiones se completaron cada día: Map { "2026-10-12" => 3, ... }
@@ -406,8 +457,12 @@ export function progresoLogro(logro, estado, info) {
             return info.diasPerfectos;
         case "nivel":
             return calcularNivel(estado.personaje.xp).nivel;
-        case "atributo":
+        case "atributo": {
+            // logro.atributo es uno de los 4 ("fuerza") o uno tuyo ("propio:5").
+            const id = idDePropio(logro.atributo);
+            if (id !== null) return buscarPropio(estado, id) ? nivelDePropio(estado, id).nivel : 0;
             return calcularNivel(estado.atributos[logro.atributo], BASE_ATRIBUTO).nivel;
+        }
         case "principales":
             return info.principalesCompletadas;
         case "jefes":
@@ -436,7 +491,12 @@ export function describirLogro(logro, estado) {
         case "racha":       return `Lograr una racha de ${plural(n, "día", "días")}`;
         case "perfectos":   return `Tener ${plural(n, "día perfecto", "días perfectos")}`;
         case "nivel":       return `Llegar al nivel ${n}`;
-        case "atributo":    return `${ATRIBUTOS[logro.atributo].nombre} al nivel ${n}`;
+        case "atributo": {
+            const id = idDePropio(logro.atributo);
+            if (id === null) return `${ATRIBUTOS[logro.atributo].nombre} al nivel ${n}`;
+            const propio = buscarPropio(estado, id);
+            return propio ? `${propio.nombre} al nivel ${n}` : `Un atributo borrado al nivel ${n}`;
+        }
         case "principales": return `Completar ${plural(n, "misión principal", "misiones principales")}`;
         case "jefes":       return `Derrotar ${plural(n, "jefe", "jefes")}`;
         default:            return "";
