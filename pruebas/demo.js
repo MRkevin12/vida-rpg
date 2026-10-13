@@ -101,7 +101,14 @@ export function partidaDemo(dias = 45) {
             if (mision.veces && juego.vecesEnSemana(estado.completadas, mision.id, fecha) >= mision.veces) return;
             let probabilidad = MISIONES[posicion].constancia - (finDeSemana ? 0.25 : 0) + (reciente ? 0.1 : 0);
             if (esHoy) probabilidad = posicion < 2 ? 1 : 0;
-            if (azar() >= probabilidad) return;
+            if (azar() >= probabilidad) {
+                // La última semana, algunas de las que no hizo las marcó como falladas (con su motivo).
+                if (reciente && !esHoy && !mision.veces && (i + posicion) % 2 === 0) {
+                    const motivos = ["tiempo", "ganas", "olvido", "energia", "imprevisto"];
+                    estado.fallas.push({ misionId: mision.id, fecha, motivo: motivos[(i + posicion) % motivos.length] });
+                }
+                return;
+            }
             const { xp, monedas } = juego.DIFICULTADES[mision.dificultad];
             estado.completadas.push({ misionId: mision.id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad,
                                       atributoPropio: mision.atributoPropio || null });

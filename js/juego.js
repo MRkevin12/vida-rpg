@@ -52,6 +52,22 @@ export const MOMENTOS = {
     noche:  { icono: "🌙", nombre: "Noche" },
 };
 
+// Cuando marcas que fallaste una misión, dices por qué (estado.fallas = [{ misionId, fecha, motivo }]).
+// "relato" es cómo lo cuenta el libro de tu historia (ver libro.js).
+export const MOTIVOS_FALLA = {
+    tiempo:     { icono: "⏳", nombre: "No tuve tiempo",   relato: "le faltó tiempo" },
+    olvido:     { icono: "🫥", nombre: "Se me olvidó",     relato: "se le olvidó" },
+    ganas:      { icono: "🛋️", nombre: "No tuve ganas",    relato: "no tuvo ganas, y tuvo la honestidad de admitirlo" },
+    energia:    { icono: "🔋", nombre: "Me faltó energía", relato: "le faltó energía" },
+    imprevisto: { icono: "🌩️", nombre: "Surgió algo",      relato: "surgió algo que no estaba en sus planes" },
+    otro:       { icono: "❔", nombre: "Otra razón",       relato: "por razones que no quedaron escritas" },
+};
+
+// ¿Marcaste que fallaste esa misión ese día?
+export function fallaDe(estado, misionId, fecha) {
+    return (estado.fallas || []).find((f) => f.misionId === misionId && f.fecha === fecha) || null;
+}
+
 // Diario: cómo te fue el día. "valor" sirve para sacar promedios (5 = genial … 1 = terrible)
 // y "color" para el calendario de ánimo. (Ver también diario.js.)
 export const ANIMOS_DIARIO = {
@@ -301,8 +317,16 @@ export function estadisticasMision(estado, mision, hoy) {
         return { fecha, tipo };
     });
 
+    // Las veces que marcaste que fallaste, y el motivo que más se repite.
+    const fallas = (estado.fallas || []).filter((f) => f.misionId === mision.id);
+    const cuenta = {};
+    for (const f of fallas) cuenta[f.motivo] = (cuenta[f.motivo] || 0) + 1;
+    const motivoFrecuente = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a])[0] || null;
+
     return {
         total: registros.length,
+        fallas: fallas.length,
+        motivoFrecuente,
         xp: registros.reduce((suma, c) => suma + (c.xp || 0), 0),
         racha,
         mejor,

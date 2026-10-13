@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 19;
+export const VERSION_APP = 20;
 
 export const NOVEDADES = [
+    {
+        version: 20,
+        titulo: "Fallar con honor y tu libro",
+        cambios: [
+            "✗ Botón «Fallé» en cada misión: dices qué pasó, pierdes la vida en ese momento y se puede deshacer.",
+            "📊 En la ficha de cada hábito, cuántas veces fallaste y tu motivo más común.",
+            "📚 Tu diario ahora es un libro: cada día que escribes es un capítulo de «La crónica de» tu nombre.",
+            "📖 Lo cuenta con tus palabras y lo que pasó ese día: misiones, jefes, logros y tropiezos. Se puede descargar.",
+        ],
+    },
     {
         version: 19,
         titulo: "El Tratado de la Voluntad",

@@ -83,6 +83,7 @@ function prepararMapas(estado) {
         enfoque: porFecha(estado.enfoque.sesiones, (s) => s.fecha),
         pasos: porFecha(estado.principales.flatMap((p) => p.submisiones), (s) => s.hecha && s.hechaEn),
         pociones: porFecha(estado.vida.pociones, (fecha) => fecha),
+        fallas: porFecha(estado.fallas || [], (f) => f.fecha),
     };
 }
 
@@ -145,6 +146,20 @@ export function danoDelDia(estado, fecha, mapas = prepararMapas(estado)) {
     return { dano: Math.min(VIDA.danoMaximoDia, dano), faltas, descanso: false };
 }
 
+// El daño de las misiones que marcaste como falladas ese día (con el mismo tope de 30).
+function danoDeFallas(estado, fecha, mapas) {
+    const faltas = { misiones: 0, tareas: 0, semanales: 0 };
+    if (juego.enDescanso(estado, fecha)) return { dano: 0, faltas };
+    let dano = 0;
+    for (const falla of mapas.fallas.get(fecha) || []) {
+        const mision = estado.misiones.find((m) => m.id === falla.misionId);
+        if (!mision) continue;
+        dano += DANO[mision.dificultad];
+        faltas.misiones += 1;
+    }
+    return { dano: Math.min(VIDA.danoMaximoDia, dano), faltas };
+}
+
 // La vida de hoy, simulando día por día desde que empezó a contar (estado.vida.desde).
 // Cada día: primero se suma lo que curaste; al terminar el día, se resta el daño.
 // Hoy solo suma (como la racha): el día todavía no termina.
@@ -170,8 +185,10 @@ export function calcularVida(estado, hoy) {
         let dano = 0;
         let cayo = false;
         let faltas = null;
-        if (fecha < hoy) {
-            const resultado = danoDelDia(estado, fecha, mapas);
+        // Hoy solo se cobra lo que tú marcaste como fallado; al terminar el día se cobra todo
+        // lo que faltó (eso ya incluye lo fallado: no se cobra dos veces).
+        const resultado = fecha < hoy ? danoDelDia(estado, fecha, mapas) : danoDeFallas(estado, fecha, mapas);
+        if (resultado.dano) {
             faltas = resultado.faltas;
             dano = Math.min(puntos, resultado.dano);   // la vida no baja de 0
             puntos -= dano;

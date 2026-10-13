@@ -266,6 +266,8 @@ export function completarMision(estado, id, fecha = hoy()) {
         throw new Error("Esa misión ya estaba completada ese día.");
     }
 
+    // Si la habías marcado como fallada, ya no lo está: al final sí la hiciste.
+    estado.fallas = estado.fallas.filter((f) => !(f.misionId === id && f.fecha === fecha));
     // En plena forma (vida de 80 % o más) da 10 % más (ver vida.js).
     const { xp, monedas, forma } = vida.premio(estado, mision.dificultad, hoy());
     // Guardamos cuánto dio (y su dificultad y atributo de ese momento), para poder
@@ -285,6 +287,28 @@ export function desmarcarMision(estado, id, fecha = hoy()) {
     const [completada] = estado.completadas.splice(posicion, 1); // la quita de la lista
     ganar(estado, { xp: -completada.xp, monedas: -completada.monedas, atributo: completada.atributo });
     return { xp: -completada.xp };
+}
+
+// «Fallé»: reconocer que no la hiciste (y por qué). La vida se pierde en ese momento,
+// no al terminar el día (y no se cobra dos veces: ver vida.js). Solo hoy o ayer, y solo
+// misiones que tocaban ese día: las semanales tienen toda la semana.
+export function fallarMision(estado, id, fecha, motivo) {
+    const mision = buscar(estado.misiones, id, "esa misión");
+    validarFecha(fecha, "Solo puedes marcar como fallada una misión de hoy o de ayer.");
+    if (mision.veces) throw new Error("Las metas de la semana no se marcan como falladas: tienes toda la semana.");
+    if (!juego.tocaEseDia(mision, fecha)) throw new Error("Esa misión no tocaba ese día.");
+    if (estado.completadas.some((c) => c.misionId === id && c.fecha === fecha)) throw new Error("Esa misión ya está hecha ese día.");
+    if (juego.fallaDe(estado, id, fecha)) throw new Error("Ya la marcaste como fallada.");
+    if (!juego.MOTIVOS_FALLA[motivo]) throw new Error("Elige qué pasó.");
+    estado.fallas.push({ misionId: id, fecha, motivo });
+    return { dano: juego.enDescanso(estado, fecha) ? 0 : vida.DANO[mision.dificultad] };
+}
+
+// Deshacer el «Fallé» (por si te equivocaste o al final sí vas a hacerla).
+export function quitarFalla(estado, id, fecha) {
+    validarFecha(fecha, "Solo puedes cambiar misiones de hoy o de ayer.");
+    if (!juego.fallaDe(estado, id, fecha)) throw new Error("Esa misión no estaba marcada como fallada.");
+    estado.fallas = estado.fallas.filter((f) => !(f.misionId === id && f.fecha === fecha));
 }
 
 // Misiones con cantidad: guarda cuánto llevas ese día (ej: 5 de 8 vasos).

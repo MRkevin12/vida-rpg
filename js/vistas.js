@@ -16,6 +16,7 @@ import * as torre from "./torre.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
+import * as libro from "./libro.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
@@ -209,7 +210,8 @@ function detalleMision(estado, mision, conFrecuencia = Boolean(mision.dias), con
 }
 
 function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
-    const clases = ["mision", `dificultad-${mision.dificultad}`, hecha ? "hecha" : "", recienHecha ? "recien-hecha" : ""];
+    const falla = hecha ? null : juego.fallaDe(estado, mision.id, fecha);
+    const clases = ["mision", `dificultad-${mision.dificultad}`, hecha ? "hecha" : "", falla ? "fallada" : "", recienHecha ? "recien-hecha" : ""];
     let boton = `<button type="button" class="boton-check" data-accion="alternar-mision" data-id="${mision.id}"
                          aria-pressed="${hecha}" aria-label="Marcar ${esc(mision.nombre)}">${ICONOS.check}</button>`;
     let extra = "";
@@ -236,6 +238,19 @@ function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
                       ${veces} de ${mision.veces} esta semana${cumplida ? " · ✓ ¡Meta cumplida!" : ""}</span>`;
     }
 
+    // «Fallé»: si ya la marcaste como fallada, el botón redondo la desmarca y se ve el motivo.
+    // Si no, junto al lápiz aparece ✗ (solo en las que tocaban: las semanales tienen toda la semana).
+    let fallar = "";
+    if (falla) {
+        const motivo = juego.MOTIVOS_FALLA[falla.motivo] || juego.MOTIVOS_FALLA.otro;
+        boton = `<button type="button" class="boton-check boton-fallada" data-accion="quitar-falla" data-id="${mision.id}"
+                         aria-pressed="true" aria-label="Quitar «fallé» de ${esc(mision.nombre)}">✗</button>`;
+        extra += `<span class="falla-motivo">✗ Fallada · ${motivo.icono} ${motivo.nombre}</span>`;
+    } else if (!hecha && !mision.veces) {
+        fallar = `<button type="button" class="boton-icono boton-fallar" data-accion="fallar-mision" data-id="${mision.id}"
+                          aria-label="Fallé: ${esc(mision.nombre)}">✗</button>`;
+    }
+
     return `
         <li class="${clases.join(" ")}" data-id="${mision.id}">
             ${boton}
@@ -244,6 +259,7 @@ function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
                 <span class="mision-detalle">${detalleMision(estado, mision)}</span>
                 ${extra}
             </div>
+            ${fallar}
             ${botonEditar("editar-mision", mision.id, `Editar ${mision.nombre}`)}
         </li>`;
 }
@@ -284,6 +300,8 @@ export function fichaMision(estado, mision, hoy) {
                     `<span class="ficha-nota">${s.unidad === "día" ? "De los días que tocaba" : "De las semanas"}</span>`)}
             ${ficha("En total", `${s.total} <small>${s.total === 1 ? "vez" : "veces"}</small>`, `<span class="ficha-nota">+${s.xp} XP ganada</span>`)}
         </div>
+        ${s.fallas ? `<p class="nota ficha-fallas">✗ La marcaste como fallada ${plural(s.fallas, "vez", "veces")}${s.motivoFrecuente
+            ? ` · lo que más se repite: ${juego.MOTIVOS_FALLA[s.motivoFrecuente].icono} ${juego.MOTIVOS_FALLA[s.motivoFrecuente].nombre}` : ""}.</p>` : ""}
         <h3 class="subtitulo">Últimas 12 semanas</h3>
         <div class="ficha-calendario" role="img" aria-label="Calendario de las últimas 12 semanas">${celdas}</div>
         <div class="cal-leyenda">
@@ -558,6 +576,91 @@ export function pantallaPacto(estado, ctx) {
 }
 
 
+// ===== Pantalla: Tu libro =====
+// ctx.paginaLibro: "portada", "indice" o el número de un capítulo.
+
+export function pantallaLibro(estado, ctx) {
+    const capitulos = libro.capitulosDelLibro(estado, ctx.hoy);
+    const nombre = estado.pacto?.nombre || estado.personaje.nombre;
+    const total = capitulos.length;
+    const numero = Number(ctx.paginaLibro);
+    const capitulo = capitulos[numero - 1];
+    const ir = (pagina, texto, clase = "boton boton-secundario") =>
+        `<button type="button" class="${clase}" data-accion="libro-pagina" data-pagina="${pagina}">${texto}</button>`;
+
+    let pagina;
+    let navegacion = "";
+    if (!total) {
+        pagina = `
+            <div class="portada">
+                <p class="pergamino-sobre">Libro primero</p>
+                <h2>La crónica de ${esc(nombre)}</h2>
+                <p class="portada-datos">Este libro todavía está en blanco. Cada día que escribas en tu diario será
+                   un capítulo, y aquí se irá contando tu historia.</p>
+            </div>`;
+    } else if (capitulo) {
+        pagina = `
+            <header class="pergamino-cabecera">
+                <p class="pergamino-sobre">Capítulo ${libro.aRomano(capitulo.numero)}</p>
+                <h2 class="capitulo-titulo">${esc(capitulo.titulo)}</h2>
+                <p class="pergamino-entre">${fechaLegible(capitulo.fecha)}</p>
+            </header>
+            <div class="capitulo-texto">
+                ${capitulo.parrafos.map((p) => (p.tipo === "cita"
+                    ? `<blockquote class="capitulo-cita">${esc(p.texto)}</blockquote>`
+                    : `<p>${esc(p.texto)}</p>`)).join("")}
+            </div>
+            <p class="numero-pagina">— ${capitulo.numero} de ${total} —</p>`;
+        navegacion = `
+            <div class="libro-navegar">
+                ${capitulo.numero > 1 ? ir(capitulo.numero - 1, "‹ Anterior") : ir("portada", "‹ Portada")}
+                ${ir("indice", "Índice")}
+                ${capitulo.numero < total ? ir(capitulo.numero + 1, "Siguiente ›") : '<span class="libro-fin">Continuará…</span>'}
+            </div>`;
+    } else if (ctx.paginaLibro === "indice") {
+        const porMes = new Map();
+        for (const c of capitulos) {
+            const mes = `${MESES[Number(c.fecha.slice(5, 7)) - 1]} de ${c.fecha.slice(0, 4)}`;
+            if (!porMes.has(mes)) porMes.set(mes, []);
+            porMes.get(mes).push(c);
+        }
+        pagina = `
+            <header class="pergamino-cabecera"><p class="pergamino-sobre">La crónica de ${esc(nombre)}</p><h2>Índice</h2></header>
+            ${[...porMes].map(([mes, lista]) => `
+                <h3 class="indice-mes">${mes}</h3>
+                <ol class="indice">${lista.map((c) => `
+                    <li><button type="button" data-accion="libro-pagina" data-pagina="${c.numero}">
+                        <span class="indice-numero">${libro.aRomano(c.numero)}</span>
+                        <span class="indice-titulo">${esc(c.titulo)}</span>
+                        <span class="indice-fecha">${fechaCorta(c.fecha)}</span>
+                    </button></li>`).join("")}</ol>`).join("")}`;
+        navegacion = `<div class="libro-navegar">${ir("portada", "‹ Portada")}${ir(1, "Empezar a leer ›")}</div>`;
+    } else {
+        pagina = `
+            <div class="portada">
+                <p class="pergamino-sobre">Libro primero</p>
+                <h2>La crónica de ${esc(nombre)}</h2>
+                <p class="epigrafe">«${libro.EPIGRAFE.texto}»<br><span>— ${libro.EPIGRAFE.autor}</span></p>
+                <p class="portada-datos">${plural(total, "capítulo", "capítulos")} · comenzada el ${fechaLegible(capitulos[0].fecha)}</p>
+                <div class="portada-botones">
+                    ${ir(1, "Empezar a leer", "boton boton-sangre boton-ancho")}
+                    ${total > 1 ? ir(total, "Ir al último capítulo", "boton boton-secundario boton-ancho") : ""}
+                    ${ir("indice", "Índice", "boton-texto")}
+                    <button type="button" class="boton-texto" data-accion="descargar-libro">⬇️ Descargar el libro</button>
+                </div>
+            </div>`;
+    }
+
+    return `
+        <div class="titulo-seccion">
+            <h2 class="titulo-juego">📚 Tu libro</h2>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="diario">‹ Diario</button>
+        </div>
+        <article class="pergamino libro-pagina">${pagina}</article>
+        ${navegacion}`;
+}
+
+
 // ===== Pantalla: Tu diario =====
 // ctx: mesDiario ("2026-10"), diaDiario (el día tocado), busquedaDiario, filtroDiario (un ánimo o null), limiteDiario.
 
@@ -588,6 +691,11 @@ export function pantallaDiario(estado, ctx) {
             </div>
         </section>
 
+        <button type="button" class="pacto-linea boton-libro" data-accion="ir" data-pantalla="libro" ${total ? "" : "disabled"}>
+            <span class="pacto-linea-icono" aria-hidden="true">📚</span>
+            <span><b>Leer mi historia como un libro</b>
+                <span class="mini">Cada día que escribes es un capítulo de «La crónica de ${esc(estado.pacto?.nombre || estado.personaje.nombre)}».</span></span>
+        </button>
         ${calendarioDeAnimo(estado, ctx)}
         ${seccionLoQueDice(estado)}
         ${seccionRecuerdos(estado, ctx)}

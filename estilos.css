@@ -4340,6 +4340,180 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 
+/* ===== «Fallé» (v20) ===== */
+.boton-fallar {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f19aa8;
+}
+
+.mision.fallada {
+    background: rgba(251, 113, 133, 0.06);
+    border-color: rgba(251, 113, 133, 0.4);
+    border-left-color: var(--color-dificultad);
+}
+
+.mision.fallada .mision-nombre {
+    color: var(--texto-suave);
+}
+
+.boton-check.boton-fallada {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #fff;
+    background: #be4b5c;
+    border-color: #be4b5c;
+}
+
+.falla-motivo {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #f19aa8;
+}
+
+.ficha-fallas {
+    color: #f19aa8;
+}
+
+.falla-pacto {
+    font-style: italic;
+}
+
+
+/* ===== Tu libro (v20) ===== */
+.boton-libro {
+    margin: 12px 0;
+}
+
+.boton-libro:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.libro-pagina {
+    min-height: 60vh;
+    touch-action: pan-y;   /* deslizar de lado pasa la página; de arriba abajo, el scroll normal */
+}
+
+.portada {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding-top: 8vh;
+    text-align: center;
+}
+
+.portada h2 {
+    font-size: 1.7rem;
+    line-height: 1.25;
+}
+
+.portada-datos {
+    color: var(--tinta-suave);
+}
+
+.portada-botones {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 18px;
+}
+
+.capitulo-titulo {
+    text-transform: none !important;
+    letter-spacing: 0.02em !important;
+}
+
+.capitulo-texto {
+    margin-top: 18px;
+}
+
+.capitulo-texto > p:first-child::first-letter {
+    float: left;
+    margin: 4px 8px 0 0;
+    font-size: 3.2em;
+    line-height: 0.8;
+    font-weight: 700;
+    color: var(--sangre);
+}
+
+.capitulo-cita {
+    margin: 0 0 14px;
+    padding: 6px 0 6px 14px;
+    font-style: italic;
+    white-space: pre-wrap;   /* respeta los saltos de línea de tu diario */
+    overflow-wrap: anywhere;
+    color: var(--sangre);
+    border-left: 2px solid rgba(122, 20, 20, 0.45);
+}
+
+.numero-pagina {
+    margin-top: 22px !important;
+    font-size: 0.85rem;
+    text-align: center;
+    color: var(--tinta-suave);
+}
+
+.libro-navegar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.libro-fin {
+    font-style: italic;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+.indice-mes {
+    margin: 18px 0 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sangre);
+}
+
+.indice {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.indice button {
+    display: grid;
+    grid-template-columns: 3.2em 1fr auto;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 2px;
+    font: inherit;
+    text-align: left;
+    color: var(--tinta);
+    background: none;
+    border: none;
+    border-bottom: 1px dotted rgba(95, 74, 56, 0.45);
+    cursor: pointer;
+}
+
+.indice-numero {
+    font-weight: 700;
+    color: var(--sangre);
+}
+
+.indice-fecha {
+    font-size: 0.85rem;
+    color: var(--tinta-suave);
+}
+
+
 /* Si el iPhone tiene activado "Reducir movimiento", apagamos animaciones */
 @media (prefers-reduced-motion: reduce) {
     *, *::after {

@@ -85,8 +85,8 @@ export function avisosDeMisiones(estado, hoy) {
         let saltarHasta = null;
         if (m.veces && juego.vecesEnSemana(estado.completadas, m.id, hoy) >= m.veces) {
             saltarHasta = sumarDias(lunesDe(hoy), 6);
-        } else if (estado.completadas.some((c) => c.misionId === m.id && c.fecha === hoy)) {
-            saltarHasta = hoy;
+        } else if (estado.completadas.some((c) => c.misionId === m.id && c.fecha === hoy) || juego.fallaDe(estado, m.id, hoy)) {
+            saltarHasta = hoy;   // ya la hiciste (o ya dijiste que fallaste)
         }
         return { id: m.id, hora: m.aviso, dias: m.veces ? null : m.dias, saltarHasta };
     });
@@ -182,7 +182,8 @@ export function resumenParaAvisos(estado, hoy) {
     for (let i = 0; i < 7; i++) {
         const fecha = sumarDias(hoy, i);
         const hechas = new Set(estado.completadas.filter((c) => c.fecha === fecha).map((c) => c.misionId));
-        const misiones = juego.misionesDelDia(estado.misiones, fecha).filter((m) => !hechas.has(m.id)).map((m) => m.nombre);
+        const misiones = juego.misionesDelDia(estado.misiones, fecha)
+            .filter((m) => !hechas.has(m.id) && !juego.fallaDe(estado, m.id, fecha)).map((m) => m.nombre);
         const semanales = juego.semanalesDelDia(estado.misiones, fecha)
             .filter((m) => !hechas.has(m.id) && juego.vecesEnSemana(estado.completadas, m.id, fecha) < m.veces)
             .map((m) => m.nombre);
@@ -233,7 +234,7 @@ export function resumenParaAvisos(estado, hoy) {
 function textosDeMisiones(estado, fecha, hechas, racha) {
     const textos = {};
     for (const m of estado.misiones) {
-        if (!m.aviso || m.archivadaEn || !juego.sePuedeMarcar(m, fecha) || hechas.has(m.id)) continue;
+        if (!m.aviso || m.archivadaEn || !juego.sePuedeMarcar(m, fecha) || hechas.has(m.id) || juego.fallaDe(estado, m.id, fecha)) continue;
         const veces = m.veces ? juego.vecesEnSemana(estado.completadas, m.id, fecha) : 0;
         if (m.veces && veces >= m.veces) continue;   // ya cumpliste la semana
 

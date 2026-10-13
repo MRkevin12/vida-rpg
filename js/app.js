@@ -19,6 +19,7 @@ import * as torre from "./torre.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
+import * as libro from "./libro.js";
 import { PINTURAS, fuentePintura } from "./pinturas.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import * as minijuegos from "./minijuegos.js";
@@ -41,6 +42,7 @@ let rangoResumen = 7;            // en Progreso: el resumen muestra los últimos
 // el filtro de ánimo y cuántas entradas se muestran.
 const diarioVista = { mes: null, dia: null, busqueda: "", filtro: null, limite: 30 };
 let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
+let paginaLibro = "portada";     // en «Tu libro»: "portada", "indice" o el número de un capítulo
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -57,6 +59,7 @@ const DIBUJAR = {
     enfoque: vistas.pantallaEnfoque,
     diario: vistas.pantallaDiario,
     pacto: vistas.pantallaPacto,
+    libro: vistas.pantallaLibro,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -573,6 +576,7 @@ function dibujarPantalla(efectos = {}) {
         ahora: Date.now(),                                  // para el reloj del modo enfoque
         ...contextoDiario(fecha),
         renovandoPacto,
+        paginaLibro,
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
     };
 
@@ -580,6 +584,7 @@ function dibujarPantalla(efectos = {}) {
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contexto);
 
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
+    if (pantallaActual === "libro") conectarHojear();         // pasar las páginas deslizando
 
     if (pantallaActual === "progreso" && !efectos.mantenerScroll) {
         // El calendario empieza mostrando las semanas más recientes (a la derecha).
@@ -627,6 +632,7 @@ function fechaVista() {
 function cambiarPantalla(nombre) {
     diaVisto = "hoy";   // al cambiar de pantalla siempre se vuelve a "hoy"
     renovandoPacto = false;
+    if (nombre === "libro") paginaLibro = "portada";   // el libro siempre se abre por la portada
     mostrarSeccion(nombre);
     dibujarPantalla();
     window.scrollTo(0, 0);
@@ -742,6 +748,11 @@ function rellenarOpciones() {
             </label>`).join(""));
     }
     pintarPildorasAtributo();
+    $('[data-opciones="motivo"]').insertAdjacentHTML("beforeend", Object.entries(juego.MOTIVOS_FALLA).map(([clave, m], i) => `
+        <label class="pildora">
+            <input type="radio" name="motivo" value="${clave}" ${i === 0 ? "checked" : ""}>
+            <span><b class="pildora-icono">${m.icono}</b><small>${m.nombre}</small></span>
+        </label>`).join(""));
     // Ventana de atributo propio: a cuál de los 4 le suma, y su color.
     $('[data-opciones="base"]').insertAdjacentHTML("beforeend", Object.entries(juego.ATRIBUTOS).map(([clave, a], i) => `
         <label class="pildora" style="--color-dificultad: ${a.color}">
@@ -783,6 +794,11 @@ function rellenarOpciones() {
         <p><strong>Tu pacto:</strong> el Tratado de la Voluntad es un juramento contigo mismo que firmas con el dedo. Un día
            queda «honrado» si hiciste algo (una misión, una tarea, una sesión de enfoque o tu diario) o estabas de descanso;
            los días sin misiones no cuentan. Su ley: nunca fallar dos días seguidos.</p>
+        <p><strong>Fallé:</strong> el botón ✗ de una misión marca que no la hiciste y por qué. La vida se pierde en ese
+           momento (no dos veces) y el recordatorio de esa misión ya no llega. Se puede deshacer, y si al final la haces, la falla
+           se borra sola. En la ficha de cada hábito ves cuántas veces fallaste y tu motivo más común.</p>
+        <p><strong>Tu libro:</strong> cada día que escribes en el diario se vuelve un capítulo de «La crónica de» tu nombre, contado
+           con lo que pasó ese día: misiones, tareas, jefes derrotados, logros, lo que fallaste y tus propias palabras.</p>
         <p><strong>Diario:</strong> cada día puedes marcar cómo te fue (5 ánimos), responder la pregunta del día y anotar algo
            que agradeces. Escribirlo da +${diario.PREMIO_DIARIO.xp} XP de Carisma y ${diario.PREMIO_DIARIO.monedas} monedas (una vez al día)
            y cura ${vida.VIDA.diario} de vida. En «Tu diario» ves el calendario de ánimo, lo que tu diario dice de ti, tus recuerdos,
@@ -934,6 +950,19 @@ const PREPARAR = {
         if (hayPin) pintarFaceId();
         pintarNube();
         pintarDescanso();
+    },
+    // «Fallé»: la ventana que pregunta qué pasó.
+    falla(mision) {
+        const formulario = $("#dialogo-falla form");
+        const fecha = fechaVista();
+        formulario.elements.id.value = mision.id;
+        formulario.elements.fecha.value = fecha;
+        const descanso = juego.enDescanso(estado, fecha);
+        $("#falla-texto").textContent = `«${mision.nombre}» quedará como fallada ${fecha === hoy() ? "hoy" : "ayer"}.` +
+            (descanso ? " Estás de descanso: no pierdes vida." : ` Pierdes ${vida.DANO[mision.dificultad]} ❤️ ahora, no al terminar el día.`);
+        $("#falla-pacto").textContent = estado.pacto
+            ? "Reconocerlo también es cumplir tu pacto: «Solo marcaré lo que de verdad hice.» — Artículo II"
+            : "Reconocerlo con honestidad también es avanzar.";
     },
     ficha(mision) {
         $("#ficha-contenido").innerHTML = vistas.fichaMision(estado, mision, hoy());
@@ -1294,12 +1323,43 @@ function pintarListaDiario() {
 }
 
 // Descargar todo el diario como un archivo de texto (en el iPhone: «Guardar en Archivos»).
-async function descargarDiario() {
-    const nombre = `diario-${hoy()}.txt`;
-    const archivo = new File([diario.diarioComoTexto(estado, estado.personaje.nombre)], nombre, { type: "text/plain" });
+function descargarDiario() {
+    return descargarTexto(`diario-${hoy()}.txt`, diario.diarioComoTexto(estado, estado.personaje.nombre), "Mi diario");
+}
+
+// Pasar a una página del libro: "portada", "indice" o el número de un capítulo.
+function irAPaginaDelLibro(pagina) {
+    paginaLibro = pagina;
+    dibujarPantalla();
+    window.scrollTo(0, 0);
+}
+
+// Deslizar a la izquierda o a la derecha sobre la página para pasar al capítulo siguiente o al anterior.
+function conectarHojear() {
+    const hoja = $(".libro-pagina");
+    if (!hoja) return;
+    let inicio = null;
+    hoja.onpointerdown = (evento) => { inicio = { x: evento.clientX, y: evento.clientY }; };
+    hoja.onpointerup = (evento) => {
+        if (!inicio) return;
+        const dx = evento.clientX - inicio.x;
+        const dy = evento.clientY - inicio.y;
+        inicio = null;
+        if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx)) return;   // fue un toque o un scroll
+        const total = libro.capitulosDelLibro(estado, hoy()).length;
+        const actual = Number(paginaLibro) || 0;   // portada e índice cuentan como 0
+        const siguiente = dx < 0 ? actual + 1 : actual - 1;
+        if (siguiente >= 1 && siguiente <= total) irAPaginaDelLibro(siguiente);
+        else if (siguiente === 0) irAPaginaDelLibro("portada");
+    };
+}
+
+// Guardar un texto como archivo: en el iPhone abre «Compartir» (→ Guardar en Archivos); en la compu lo descarga.
+async function descargarTexto(nombre, texto, titulo) {
+    const archivo = new File([texto], nombre, { type: "text/plain" });
     try {
         if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-            await navigator.share({ files: [archivo], title: "Mi diario" });
+            await navigator.share({ files: [archivo], title: titulo });
         } else {
             const enlace = document.createElement("a");
             enlace.href = URL.createObjectURL(archivo);
@@ -1308,7 +1368,7 @@ async function descargarDiario() {
             setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
         }
     } catch (error) {
-        if (error.name !== "AbortError") alert("No se pudo descargar el diario.");
+        if (error.name !== "AbortError") alert("No se pudo descargar el archivo.");
     }
 }
 
@@ -1662,6 +1722,19 @@ const ACCIONES = {
     },
     "descargar-diario": () => descargarDiario(),
 
+    // «Fallé» y deshacerlo.
+    "fallar-mision": (boton) => {
+        const mision = estado.misiones.find((m) => m.id === Number(boton.dataset.id));
+        if (mision) abrirDialogo("falla", mision);
+    },
+    "quitar-falla": (boton) => {
+        if (ejecutar(() => acciones.quitarFalla(estado, Number(boton.dataset.id), fechaVista()))) avisar("↺ Ya no está marcada como fallada");
+    },
+
+    // Tu libro: pasar de página y descargarlo.
+    "libro-pagina": (boton) => irAPaginaDelLibro(boton.dataset.pagina),
+    "descargar-libro": () => descargarTexto(`cronica-${hoy()}.txt`, libro.libroComoTexto(estado, hoy()), "Mi libro"),
+
     // Tu pacto.
     "pacto-borrar-firma": () => prepararLienzoFirma(),
     "pacto-renovar": () => {
@@ -1843,6 +1916,17 @@ const FORMULARIOS = {
             pintarAvisos();
         }
         return false;   // no cerrar Ajustes
+    },
+    falla(valores) {
+        const id = Number(valores.id);
+        const resultado = ejecutar(() => acciones.fallarMision(estado, id, valores.fecha, valores.motivo));
+        if (resultado) {
+            sonar("fallo");
+            const mision = estado.misiones.find((m) => m.id === id);
+            ofrecerDeshacer(`✗ ${mision.nombre}${resultado.dano ? ` · −${resultado.dano} ❤️` : ""}`,
+                            () => ejecutar(() => acciones.quitarFalla(estado, id, valores.fecha)));
+        }
+        return resultado;
     },
     diario(valores) {
         const resultado = ejecutar(() => acciones.escribirDiario(estado, valores));

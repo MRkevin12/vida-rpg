@@ -110,6 +110,7 @@
             <section id="pantalla-enfoque" class="pantalla" hidden></section>
             <section id="pantalla-diario" class="pantalla" hidden></section>
             <section id="pantalla-pacto" class="pantalla" hidden></section>
+            <section id="pantalla-libro" class="pantalla" hidden></section>
         </main>
 
         <!-- Barra de pestañas de abajo (como en las apps de iPhone) -->
@@ -308,6 +309,22 @@
             </div>
             <div class="solo-editar" data-solo-editar hidden>
                 <button type="button" class="boton boton-peligro boton-ancho" data-accion="borrar-logro">Borrar logro</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- «Fallé»: reconocer que no hiciste una misión, y por qué. -->
+    <dialog id="dialogo-falla" class="dialogo">
+        <form data-form="falla" class="formulario">
+            <h2 class="titulo-juego" tabindex="-1" autofocus>✗ Fallé</h2>
+            <input type="hidden" name="id">
+            <input type="hidden" name="fecha">
+            <p class="nota" id="falla-texto"></p>
+            <fieldset class="opciones opciones-2" data-opciones="motivo"><legend>¿Qué pasó?</legend></fieldset>
+            <p class="nota falla-pacto" id="falla-pacto"></p>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
+                <button type="submit" class="boton boton-peligro">Marcar como fallada</button>
             </div>
         </form>
     </dialog>

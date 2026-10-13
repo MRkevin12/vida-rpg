@@ -24,7 +24,7 @@ export const PREGUNTAS = [
     "¿Qué harías distinto mañana?",
     "¿A quién ayudaste hoy, o quién te ayudó?",
     "¿Qué te hizo sonreír?",
-    "¿De qué te sientes orgulloso hoy?",
+    "¿Qué te enorgullece de hoy?",
     "¿Qué te preocupa y qué puedes hacer al respecto?",
     "¿Qué avance hiciste en tus metas grandes?",
     "¿Cómo cuidaste tu cuerpo hoy?",

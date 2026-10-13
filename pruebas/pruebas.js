@@ -21,6 +21,7 @@ import * as torre from "../js/torre.js";
 import * as vida from "../js/vida.js";
 import * as diario from "../js/diario.js";
 import * as pacto from "../js/pacto.js";
+import * as libro from "../js/libro.js";
 import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
@@ -969,6 +970,89 @@ prueba("Copias viejas: la vida empieza a contar el día que llega la actualizaci
     delete viejo.descansos;
     const cargado = datos.desdeRespaldo(JSON.stringify(viejo));
     igual([cargado.vida.desde, cargado.vida.pociones, cargado.descansos], [hoy(), [], []]);
+});
+
+
+// ===== «Fallé» y tu libro (v20) =====
+
+prueba("Fallé: dices por qué, pierdes la vida al instante, ya no se recuerda y se borra si al final la haces", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);                                          // normal: −8
+    const gym = crearMision(estado, { nombre: "Gym", frecuencia: "semana", veces: 2 });
+    debeFallar(() => acciones.fallarMision(estado, gym.id, hoy(), "tiempo"), "toda la semana");
+    debeFallar(() => acciones.fallarMision(estado, leer.id, hoy(), "inventado"), "Elige qué pasó");
+    igual(acciones.fallarMision(estado, leer.id, hoy(), "ganas").dano, 8);
+    igual(vida.calcularVida(estado, hoy()).puntos, 105 - 8, "se pierde ahora, no esta noche");
+    debeFallar(() => acciones.fallarMision(estado, leer.id, hoy(), "ganas"), "Ya la marcaste");
+    igual(resumenParaAvisos(estado, hoy()).dias[hoy()].titulo, "✨ ¡Todo listo por hoy!", "ya no se recuerda");
+    igual(avisosDeMisiones({ ...estado, misiones: [{ ...leer, aviso: "18:00" }] }, hoy())[0].saltarHasta, hoy(), "ni su aviso");
+    acciones.completarMision(estado, leer.id);                                 // al final sí la hizo
+    igual([estado.fallas.length, vida.calcularVida(estado, hoy()).puntos], [0, 105]);
+});
+
+prueba("Fallé ayer: la vida se pierde una sola vez, y quitar la falla no la devuelve (igual no la hiciste)", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    vidaDesde(estado, 1);
+    acciones.fallarMision(estado, leer.id, dia(-1), "tiempo");
+    igual(vida.calcularVida(estado, hoy()).puntos, 97);
+    acciones.quitarFalla(estado, leer.id, dia(-1));
+    igual(vida.calcularVida(estado, hoy()).puntos, 97);
+    debeFallar(() => acciones.fallarMision(estado, leer.id, dia(-2), "tiempo"), "hoy o de ayer");
+});
+
+prueba("Fallé: la ficha del hábito cuenta las fallas y el motivo que más se repite", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    estado.fallas.push({ misionId: leer.id, fecha: dia(-3), motivo: "ganas" }, { misionId: leer.id, fecha: dia(-2), motivo: "tiempo" },
+                       { misionId: leer.id, fecha: dia(-1), motivo: "ganas" });
+    const s = juego.estadisticasMision(estado, leer, hoy());
+    igual([s.fallas, s.motivoFrecuente], [3, "ganas"]);
+});
+
+prueba("Tu libro: cada día con diario es un capítulo, contado con lo que pasó y tus palabras", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado, { nombre: "Leer" });
+    const gym = crearMision(estado, { nombre: "Gym", atributo: "fuerza" });
+    envejecer(estado, 2);
+    marcarEn(estado, leer, dia(-2));
+    marcarEn(estado, gym, dia(-2));
+    estado.diario[dia(-2)] = { animo: "genial", texto: "Gran día <b>", gratitud: "Mi familia", pregunta: "¿Qué fue lo mejor de hoy?" };
+    marcarEn(estado, leer, dia(-1));
+    estado.fallas.push({ misionId: gym.id, fecha: dia(-1), motivo: "ganas" });
+    estado.diario[dia(-1)] = { animo: "mal", texto: "", gratitud: "" };
+
+    const [uno, dos] = libro.capitulosDelLibro(estado, hoy());
+    igual([uno.numero, dos.numero], [1, 2]);
+    cierto(["Un día sin sombras", "Todo en su lugar", "La jornada completa"].includes(uno.titulo), "un día perfecto tiene su título");
+    const textos = (c) => c.parrafos.map((p) => p.texto).join(" ");
+    cierto(textos(uno).includes("Cumplió todas sus misiones («Leer» y «Gym»): fue un día perfecto."), "las misiones");
+    cierto(uno.parrafos.some((p) => p.tipo === "cita" && p.texto === "Gran día <b>"), "tus palabras, tal cual");
+    cierto(textos(uno).includes("ante la pregunta «¿Qué fue lo mejor de hoy?»"), "la pregunta del día");
+    cierto(textos(uno).includes("dio gracias por esto: «Mi familia»"), "lo que agradeciste");
+    cierto(textos(dos).includes("«Gym» quedó sin cumplir; no tuvo ganas"), "lo que fallaste y por qué");
+    igual(libro.aRomano(1994), "MCMXCIV");
+
+    const html = vistas.pantallaLibro(estado, { hoy: hoy(), paginaLibro: 1 });
+    cierto(html.includes("Gran día &lt;b&gt;") && !html.includes("Gran día <b>"), "lo que escribiste va escapado");
+    cierto(vistas.pantallaLibro(estado, { hoy: hoy(), paginaLibro: "indice" }).includes(uno.titulo), "el índice");
+});
+
+prueba("Tu libro: el día que cae un jefe, el capítulo lleva su nombre", () => {
+    const estado = partidaNueva();
+    acciones.crearPrincipal(estado, { nombre: "Curso", atributo: "intelecto", submisiones: "Uno\nDos\nTres" });
+    const principal = estado.principales[0];
+    for (const paso of principal.submisiones.slice(0, 2)) {      // 2 pasos × 40 = 80: cae el primer jefe
+        paso.hecha = true;
+        paso.hechaEn = dia(-1);
+    }
+    estado.diario[dia(-1)] = { animo: "bien", texto: "", gratitud: "" };
+    const caidos = libro.jefesCaidos(estado, dia(-1));
+    igual(caidos.length, 1);
+    igual(libro.jefesCaidos(estado, dia(-2)).length, 0, "el día antes todavía no había caído");
+    const capitulo = libro.capitulosDelLibro(estado, hoy())[0];
+    igual(capitulo.titulo, `La caída de ${caidos[0].nombre}`);
+    cierto(capitulo.parrafos.some((p) => p.texto.includes(`dio un paso más: Uno.`)), "el paso de la misión principal");
 });
 
 

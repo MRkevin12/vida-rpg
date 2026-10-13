@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v19";
+const VERSION = "vida-rpg-v20";
 
 const ARCHIVOS = [
     "./",
@@ -42,6 +42,7 @@ const ARCHIVOS = [
     "./js/dibujo-ropa.js",
     "./js/fechas.js",
     "./js/juego.js",
+    "./js/libro.js",
     "./js/minijuegos.js",
     "./js/novedades.js",
     "./js/pacto.js",
