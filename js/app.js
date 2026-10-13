@@ -25,6 +25,7 @@ import * as libro from "./libro.js";
 import * as maestro from "./maestro.js";
 import * as rituales from "./rituales.js";
 import * as mascota from "./mascota.js";
+import * as mapa from "./mapa.js";
 import { eventoDelDia } from "./eventos.js";
 import { PINTURAS, fuentePintura } from "./pinturas.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
@@ -404,6 +405,29 @@ function olvidePin() {
 }
 
 
+// ===== El mapa del reino =====
+// La pantalla se dibuja sin la imagen del mapa: hacerla (pixel art) tarda un instante, así que
+// se pone aquí después. pixel.js la guarda: si no cambió nada, la segunda vez sale al instante.
+async function pintarMapa() {
+    const caja = $(".mapa-pixel");
+    if (!caja) return;
+    const region = Number(caja.dataset.region);
+    const datos = mapa.datosParaDibujar(estado, region, campana.estadoCampanas(estado));
+    const a = avatarActual();
+    const [imagen, heroe, compania] = await Promise.all([
+        sprites.spriteDeMapa(datos),
+        $("#mapa-heroe") ? sprites.spriteDeHeroeEnMapa(a) : null,
+        $("#mapa-mascota") ? sprites.spriteDeMascotaEnMapa(a.mascota) : null,
+    ]);
+    // Si mientras tanto cambiaste de región o de pantalla, esta imagen ya no va.
+    if ($(".mapa-pixel") !== caja) return;
+    if (imagen) $("#mapa-imagen").src = imagen;
+    if (heroe) $("#mapa-heroe").src = heroe;
+    if (compania) $("#mapa-mascota").src = compania;
+    caja.classList.add("listo");
+}
+
+
 // ===== Minijuegos =====
 
 let partida = null;        // el minijuego que se está jugando (para poder detenerlo)
@@ -472,15 +496,16 @@ let ultimoComando = "atacar";   // el último comando que usaste: ahí queda la 
 let ultimoHechizo = "fuego";    // y el último hechizo, dentro de «Magia»
 // Las imágenes en pixel art de la batalla (ver sprites.js). Hacerlas tarda un instante,
 // así que se preparan ANTES de dibujar (con await) y se guardan aquí.
-const spritesTorre = { heroe: null, enemigo: null, sala: null };
+const spritesTorre = { heroe: null, enemigo: null, sala: null, mascota: null };
 
 async function prepararSprites() {
     const partida = estado.arcade.torre;
     spritesTorre.heroe = await sprites.spriteDeHeroe(avatarActual());
     if (!partida) return;   // al cobrar ya no hay partida: quedan la sala y la criatura de antes
-    [spritesTorre.enemigo, spritesTorre.sala] = await Promise.all([
+    [spritesTorre.enemigo, spritesTorre.sala, spritesTorre.mascota] = await Promise.all([
         sprites.spriteDeMonstruo(partida.enemigo.id),
         sprites.spriteDeSala(bestiario.zonaDelPiso(partida.piso).id),
+        partida.mascota ? sprites.spriteDeMascota(partida.mascota) : null,
     ]);
 }
 
@@ -524,15 +549,19 @@ function cerrarTorre() {
     ponerMusica();
 }
 
-// Sonidos de un turno, al compás de las animaciones (tu acción y luego la de la criatura).
+// Sonidos de un turno, al compás de las animaciones (tu acción, la de tu mascota y la de la criatura).
 function sonarTurno(eventos) {
     const heroe = eventos.find((e) => e.quien === "heroe");
-    const enemigo = eventos.find((e) => e.quien === "enemigo");
+    const mascota = eventos.find((e) => e.quien === "mascota");
+    const enemigo = eventos.find((e) => e.quien === "enemigo" && e.tipo !== "derrotado");
+    const cayo = eventos.some((e) => e.tipo === "derrotado");
     if (heroe?.tipo === "hechizo") sonar(heroe.elemento);   // "fuego", "hielo" o "rayo"
     if (heroe?.dano) setTimeout(() => sonar(heroe.critico ? "critico" : "impacto"), 300);
     if (heroe?.cura) sonar("moneda");
-    if (enemigo?.tipo === "derrotado") setTimeout(() => sonar("victoria"), 750);
+    if (mascota) setTimeout(() => sonar(mascota.elemento || (mascota.dano ? "impacto" : mascota.tipo === "renacer" ? "nivel" : "moneda")), 450);
+    if (cayo) setTimeout(() => sonar("victoria"), enemigo?.reflejo ? 1250 : 750);
     else if (enemigo?.dano) setTimeout(() => sonar(estado.arcade.torre?.fase === "fin" ? "fallo" : "impacto"), 900);
+    if (eventos.some((e) => e.tipo === "renacer" || e.habilidad === "gracia")) setTimeout(() => sonar("nivel"), 1350);
 }
 
 
@@ -726,6 +755,7 @@ function dibujarPantalla(efectos = {}) {
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
+    if (pantallaActual === "mapa") pintarMapa();              // la imagen del mapa (pixel art) llega un instante después
     if (pantallaActual === "libro") conectarHojear();         // pasar las páginas deslizando
 
     if (pantallaActual === "progreso" && !efectos.mantenerScroll) {
@@ -957,9 +987,17 @@ function rellenarOpciones() {
            ${rituales.RELAMPAGO.minutos / 60} horas por +${rituales.RELAMPAGO.premio.xp} XP y ${rituales.RELAMPAGO.premio.monedas} monedas.</p>
         <p><strong>Golpe con timing:</strong> al completar una misión, toca cuando la marca esté en la zona dorada: golpe crítico
            (+50 % de daño al jefe). Se puede apagar en Ajustes.</p>
-        <p><strong>Mapa del viaje:</strong> cada cosa cumplida es un paso; cada 4 pasos llegas a un lugar. Hay tesoros,
-           santuarios y una fortaleza al final de cada región.</p>
-        <p><strong>Tu dragón:</strong> acarícialo, y aliméntalo una vez al día (15 monedas): te cura 3 de vida.</p>
+        <p><strong>El reino (el mapa):</strong> cada cosa cumplida es un paso; cada ${mapa.PASOS_POR_LUGAR} pasos llegas a un lugar.
+           Cada región tiene tesoros, santuarios y las guaridas de cuatro señores: tus jefes de Aventuras (en la región 1, los
+           primeros de cada campaña; en la 2, los segundos…). Cuando vences a un señor, su guarida queda libre y tiene botín
+           (+${mapa.LUGARES.guarida.premio.monedas} monedas y ${mapa.LUGARES.guarida.premio.xp} XP de su atributo). La fortaleza del final se abre cuando caen
+           los cuatro. La sexta región, la Ciudadela del Carácter, tiene cuatro memoriales (se encienden al vencer a los cinco
+           señores de una campaña) y la Torre. La <strong>Crónica del reino</strong> cuenta la historia y se escribe sola.</p>
+        <p><strong>Mascotas:</strong> empiezas con un dragón; en la Tienda puedes adoptar otras (común, rara, épica y legendaria).
+           Cada una llega como huevo y crece con las misiones diarias que completas desde que la tienes. La que te acompaña
+           pelea a tu lado en la Torre con su habilidad (la cría al ${mascota.POTENCIA.cria * 100} %, la adulta al 100 %, y un
+           ${Math.round((mascota.ALIMENTADA - 1) * 100)} % más si comió ese día; triste, no pelea). Acarícialas, y aliméntalas una vez al día
+           (${mascota.COMIDA.precio} monedas): te curan ${mascota.COMIDA.cura} de vida.</p>
         <p><strong>Fallé:</strong> el botón ✗ de una misión marca que no la hiciste y por qué. La vida se pierde en ese
            momento (no dos veces) y el recordatorio de esa misión ya no llega. Se puede deshacer, y si al final la haces, la falla
            se borra sola. En la ficha de cada hábito ves cuántas veces fallaste y tu motivo más común.</p>
@@ -991,7 +1029,9 @@ function rellenarOpciones() {
         <p><strong>Tu equipo cuenta:</strong> cada objeto dice lo que da. 🛡️ Armadura: además de protegerte al fallar, en la Torre
            para parte de cada golpe (hasta 40 %), en la Carrera te da escudos (1 por cada 25) y en la Lluvia de monedas, vidas
            (1 por cada 30). ⚔️ Ataque: más daño en la Torre y en Golpe preciso. 🔮 Magia: hechizos más fuertes y zonas de acierto
-           más anchas. 🍀 Suerte: más golpes críticos y monedas que valen más en los minijuegos.</p>
+           más anchas. 🍀 Suerte: más golpes críticos y monedas que valen más en los minijuegos.
+           Lo <strong>épico y legendario</strong> tiene además una habilidad especial en la Torre (esquivar, golpear dos veces,
+           resistir un golpe mortal, ver el punto débil…): cada objeto dice la suya.</p>
         <p><strong>Modo descanso:</strong> hasta ${vida.VIDA.descansoMaximo} días (vacaciones, enfermedad) sin perder vida ni racha, y sin recordatorios.</p>
         <p><strong>Tus atributos:</strong> en Progreso puedes crear hasta ${juego.MAX_ATRIBUTOS_PROPIOS} atributos para cosas
            específicas (Programación, Inglés…). Cada uno tiene su nivel y le suma a uno de los 4, así que también cuenta para
@@ -1011,7 +1051,7 @@ function rellenarOpciones() {
         <p><strong>Avatar:</strong> evoluciona en los niveles ${avatar.ETAPAS.slice(1).map((e) => `${e.desde} (${e.nombre})`).join(", ")}.
            Tu clase es tu atributo más alto. Cada atributo cambia algo visible en los niveles 3 y 6.
            Su ánimo depende de tu racha: tras 3 días sin misiones se duerme.</p>
-        <p><strong>Mascota:</strong> eclosiona con 10 misiones diarias completadas y es adulta con 50.</p>
+        <p><strong>Crecimiento de la mascota:</strong> eclosiona con 10 misiones diarias completadas (desde que la tienes) y es adulta con 50.</p>
         <p><strong>Minijuegos:</strong> empiezas con ${arcade.FICHAS_DE_REGALO} fichas y ganas 1 por cada misión diaria completada.
            Cada partida da hasta ${arcade.MAX_MONEDAS} monedas y ${arcade.MAX_XP} XP según tus puntos.</p>
         <p><strong>Torre del héroe:</strong> batallas por turnos piso a piso (1 ficha por subida; puedes salir y seguir después).
@@ -1980,6 +2020,18 @@ const ACCIONES = {
         }
     },
     equipar: (boton) => ejecutar(() => acciones.equiparObjeto(estado, boton.dataset.id)),
+    // Mascotas (v26): adoptar una en la Tienda o elegir cuál te acompaña.
+    "comprar-mascota": (boton) => {
+        const datos = mascota.MASCOTAS[boton.dataset.especie];
+        if (datos && confirm(`¿Adoptar «${datos.nombre}» por ${datos.precio} monedas? Llega como huevo.`)) {
+            if (ejecutar(() => acciones.comprarMascota(estado, boton.dataset.especie))) sonar("cofre");
+        }
+    },
+    "elegir-mascota": (boton) => {
+        if (ejecutar(() => acciones.elegirMascota(estado, boton.dataset.especie))) {
+            avisar(`🐾 Ahora te acompaña ${mascota.nombreDe(estado, boton.dataset.especie)}`);
+        }
+    },
     apariencia: (boton) => ejecutar(() => acciones.cambiarApariencia(estado, boton.dataset.campo, boton.dataset.valor)),
 
     pocion: () => {
@@ -2117,7 +2169,7 @@ const ACCIONES = {
         if (resultado && !resultado.premio) avisar("🌙 Buenas noches. El día ya estaba cerrado.");
     },
 
-    // El cofre, el desafío relámpago y el dragón.
+    // El cofre, el desafío relámpago y tu mascota.
     "abrir-cofre": (boton) => {
         if (boton.classList.contains("abriendo")) return;
         boton.classList.add("abriendo");   // tiembla y se abre (estilos.css)
@@ -2148,12 +2200,19 @@ const ACCIONES = {
         if (ejecutar(() => acciones.alimentarDragon(estado))) sonar("moneda");
     },
 
-    // El mapa del viaje.
+    // El mapa del reino.
     "reclamar-lugar": (boton) => ejecutar(() => acciones.reclamarLugar(estado, boton.dataset.id)),
     "reclamar-todo": () => ejecutar(() => acciones.reclamarTodo(estado)),
     "mapa-region": (boton) => {
         regionMapa = Number(boton.dataset.region);
         dibujarPantalla();
+    },
+    // Tocar una guarida en el mapa: se ve la ficha de su señor (y brilla un momento).
+    "mapa-senor": (boton) => {
+        const ficha = document.getElementById(boton.dataset.id);
+        if (!ficha) return;
+        ficha.scrollIntoView({ behavior: "smooth", block: "start" });
+        reproducirAnimacion(ficha, "resaltado");
     },
 
     // Tu libro: pasar de página y descargarlo.
@@ -2375,7 +2434,7 @@ const FORMULARIOS = {
     },
     mascota(valores) {
         const resultado = ejecutar(() => acciones.nombrarMascota(estado, valores.nombre));
-        if (resultado) avisar(`🐾 Tu mascota ahora se llama ${estado.mascota.nombre}`);
+        if (resultado) avisar(`🐾 Tu mascota ahora se llama ${mascota.nombreDe(estado, mascota.especieActiva(estado))}`);
         return resultado;
     },
     // Activar la copia en la nube: cifra y sube la primera copia.

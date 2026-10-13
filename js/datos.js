@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 12,
+        version: 13,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
         atributosPropios: [], // los tuyos: { id, nombre, icono, color, base (uno de los 4), creadoEn }
@@ -74,7 +74,12 @@ export function estadoInicial() {
             comprados: [],    // ids de objetos comprados en la tienda
             equipado: { cabeza: null, mano: null, espalda: null, fondo: null },
         },
-        mascota: { nombre: "Chispa", comidas: [] },   // comidas: los días que lo alimentaste (ver mascota.js)
+        mascota: {           // tus mascotas (ver mascota.js)
+            nombre: "Chispa", // el nombre del dragón, tu primera mascota
+            comidas: [],      // los días en que comió la que te acompañaba
+            activa: "dragon", // la que te acompaña
+            adoptadas: {},    // las que adoptaste en la Tienda: { fenix: { nombre, desde (fecha) } }
+        },
         arcade: { usadas: 0, records: {}, torre: null, extra: 0, bestiario: {} },   // fichas gastadas, mejor puntaje de cada
                                               //   minijuego, la partida de la Torre en curso (ver torre.js) o null, fichas de cofres
                                               //   y lo que sabes de cada criatura de la Torre (ver bestiario.js):
@@ -118,7 +123,7 @@ function completar(guardado) {
             comprados: avatar.comprados || [],
             equipado: { ...base.avatar.equipado, ...avatar.equipado },
         },
-        mascota: { ...base.mascota, ...guardado.mascota },
+        mascota: { ...base.mascota, ...guardado.mascota, adoptadas: { ...guardado.mascota?.adoptadas } },
         mapa: { reclamados: guardado.mapa?.reclamados || [] },
         arcade: {
             usadas: guardado.arcade?.usadas || 0,

@@ -857,8 +857,35 @@ export function equiparObjeto(estado, id) {
     equipado[objeto.espacio] = equipado[objeto.espacio] === id ? null : id;
 }
 
+// Renombrar a la mascota que te acompaña.
 export function nombrarMascota(estado, nombre) {
-    estado.mascota.nombre = validarNombre(nombre, 20);
+    const especie = mascota.especieActiva(estado);
+    const nuevo = validarNombre(nombre, 20);
+    if (especie === mascota.INICIAL) estado.mascota.nombre = nuevo;
+    else estado.mascota.adoptadas[especie].nombre = nuevo;
+}
+
+// Adoptar una mascota de la Tienda (v26). Llega como huevo y te acompaña desde ese momento.
+export function comprarMascota(estado, especie) {
+    const datos = mascota.MASCOTAS[especie];
+    if (!datos || !datos.precio) throw new Error("Esa mascota no se vende.");
+    if (mascota.tieneMascota(estado, especie)) throw new Error("Esa mascota ya es tuya.");
+    revisarQueNoEstesCaido(estado, "la tienda");
+    const precio = eventos.precioConEvento(datos.precio, eventos.eventoDelDia(hoy(), estado));
+    const faltan = precio - estado.personaje.monedas;
+    if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
+
+    estado.personaje.monedas -= precio;
+    estado.mascota.adoptadas[especie] = { nombre: datos.nombre, desde: hoy() };
+    estado.mascota.activa = especie;
+    return { celebraciones: [{ icono: datos.icono, etiqueta: "¡Nueva mascota!", titulo: datos.nombre,
+                               detalle: "Llega como huevo: crece con tus misiones diarias. Ya te acompaña." }] };
+}
+
+// Elegir qué mascota te acompaña (en la Torre y en tu avatar).
+export function elegirMascota(estado, especie) {
+    if (!mascota.tieneMascota(estado, especie)) throw new Error("Todavía no tienes esa mascota.");
+    estado.mascota.activa = especie;
 }
 
 // Apariencia del avatar: tono de piel, color de pelo, peinado y barba.
@@ -1014,6 +1041,8 @@ export function accionTorre(estado, accion, elemento = null) {
     const id = partida.enemigo.id;
     const turno = torre.actuar(partida, accion, elemento);   // lo que pasó: [{ quien, tipo, dano… }]
     if (accion === "hechizo") bestiario.anotarElemento(estado.arcade.bestiario, id, elemento);
+    // El aliento de tu dragón también enseña: si es de fuego o de hielo, ya sabes qué le hace.
+    for (const e of turno.filter((e) => e.quien === "mascota" && e.elemento)) bestiario.anotarElemento(estado.arcade.bestiario, id, e.elemento);
     if (turno.some((e) => e.tipo === "derrotado")) bestiario.anotarVictoria(estado.arcade.bestiario, id);
     return { eventos: turno };
 }
@@ -1041,8 +1070,16 @@ function anotarArmadura(estado) {
 
 // Lo que tu equipo aporta en la Torre y en los minijuegos: su ataque, magia y suerte, y la
 // armadura que tienes AHORA (si fallaste misiones y está gastada, protege menos).
+// Desde la v26, también las habilidades de lo épico y legendario y la mascota que te acompaña.
 export function equipoDeBatalla(estado) {
-    return { ...equipo.poderDelEquipo(estado), armadura: vida.calcularVida(estado, hoy()).armadura.puntos };
+    const fecha = hoy();
+    const a = avatar.describirAvatar(estado, fecha, juego.resumen(estado, fecha));
+    return {
+        ...equipo.poderDelEquipo(estado),
+        armadura: vida.calcularVida(estado, fecha).armadura.puntos,
+        habilidades: equipo.habilidadesDelEquipo(estado),
+        mascota: mascota.mascotaDeBatalla(estado, a.mascota, fecha),
+    };
 }
 
 // Cobrar al terminar (o al rendirte): monedas y XP de Carisma según los pisos superados.
@@ -1298,38 +1335,44 @@ export function abrirCofre(estado, azar = Math.random) {
 
 export function alimentarDragon(estado) {
     const fecha = hoy();
-    if (mascota.comioHoy(estado, fecha)) throw new Error(`${estado.mascota.nombre} ya comió hoy.`);
+    const nombre = mascota.nombreDe(estado, mascota.especieActiva(estado));
+    if (mascota.comioHoy(estado, fecha)) throw new Error(`${nombre} ya comió hoy.`);
     const faltan = mascota.COMIDA.precio - estado.personaje.monedas;
     if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
     estado.personaje.monedas -= mascota.COMIDA.precio;
     estado.mascota.comidas.push(fecha);
-    return { celebraciones: [{ pequena: true, icono: "🍖", titulo: `${estado.mascota.nombre} comió feliz: +${mascota.COMIDA.cura} de vida` }] };
+    return { celebraciones: [{ pequena: true, icono: "🍖", titulo: `${nombre} comió feliz: +${mascota.COMIDA.cura} de vida` }] };
 }
 
 
-// ===== El mapa del viaje =====
+// ===== El mapa del reino =====
 
-export function reclamarLugar(estado, id) {
-    const lugar = mapa.lugaresPorReclamar(estado).find((l) => l.id === id);
-    if (!lugar) throw new Error("Ese lugar todavía no lo alcanzas (o ya lo reclamaste).");
+// campanas (opcional): campana.estadoCampanas(estado), si ya lo tienes (así no se calcula otra vez).
+export function reclamarLugar(estado, id, campanas = null) {
+    const lugar = mapa.lugaresPorReclamar(estado, campanas).find((l) => l.id === id);
+    if (!lugar) throw new Error("Ese lugar todavía no lo alcanzas, ya lo reclamaste o su señor sigue en pie.");
     const premio = mapa.LUGARES[lugar.tipo].premio;
-    const atributo = lugar.tipo === "santuario" ? mapa.atributoMasDescuidado(estado) : null;
+    // El santuario fortalece tu atributo más descuidado; la guarida y el memorial, el de su campaña.
+    const atributo = lugar.tipo === "santuario" ? mapa.atributoMasDescuidado(estado) : lugar.categoria || null;
     ganar(estado, { xp: premio.xp || 0, monedas: premio.monedas || 0, atributo });
     estado.mapa.reclamados.push(id);
     const partes = [];
     if (premio.xp) partes.push(`+${premio.xp} XP${atributo ? ` de ${juego.ATRIBUTOS[atributo].icono} ${juego.ATRIBUTOS[atributo].nombre}` : ""}`);
     if (premio.monedas) partes.push(`+${premio.monedas} monedas`);
-    return { celebraciones: [{ icono: mapa.LUGARES[lugar.tipo].icono, etiqueta: mapa.LUGARES[lugar.tipo].nombre,
-                               titulo: mapa.nombreRegion(lugar.region), detalle: partes.join(" · ") }] };
+    const titulo = lugar.tipo === "fortaleza" ? `¡${mapa.nombreRegion(lugar.region)} está libre!`
+        : lugar.nombre ? `${lugar.nombre} · ${mapa.nombreRegion(lugar.region)}` : mapa.nombreRegion(lugar.region);
+    return { celebraciones: [{ icono: mapa.LUGARES[lugar.tipo].icono, etiqueta: lugar.tipo === "fortaleza" ? "Región liberada" : mapa.LUGARES[lugar.tipo].nombre,
+                               titulo, detalle: partes.join(" · ") }] };
 }
 
 
 // Reclamar todos los lugares con premio de una vez (un solo aviso con el total).
 export function reclamarTodo(estado) {
-    const lugares = mapa.lugaresPorReclamar(estado);
+    const campanas = campana.estadoCampanas(estado);
+    const lugares = mapa.lugaresPorReclamar(estado, campanas);
     if (!lugares.length) throw new Error("No hay premios por reclamar en el mapa.");
     const antes = { xp: estado.personaje.xp, monedas: estado.personaje.monedas };
-    for (const lugar of lugares) reclamarLugar(estado, lugar.id);
+    for (const lugar of lugares) reclamarLugar(estado, lugar.id, campanas);
     return { celebraciones: [{ icono: "🗺️", etiqueta: "Premios del mapa", titulo: juego.plural(lugares.length, "lugar reclamado", "lugares reclamados"),
                                detalle: `+${estado.personaje.xp - antes.xp} XP · +${estado.personaje.monedas - antes.monedas} monedas` }] };
 }
@@ -1403,7 +1446,9 @@ function fotoDelAvatar(estado, info) {
         etapa: a.etapa.clave,
         clase: a.clave,
         animo: a.animo,
-        mascota: a.mascota.etapa.clave,
+        // La etapa de cada mascota tuya (crecen todas, aunque no te acompañen).
+        mascotas: Object.fromEntries(mascota.mascotasTuyas(estado).map((especie) =>
+            [especie, avatar.etapaSegun(avatar.ETAPAS_MASCOTA, mascota.totalDe(estado, especie)).clave])),
         objetos: avatar.objetosDeLogroGanados(estado, info),
     };
 }
@@ -1506,13 +1551,15 @@ export function revisarCambios(estado, antes) {
         celebraciones.push({ icono: objeto.icono, etiqueta: "¡Objeto desbloqueado!", titulo: objeto.nombre,
                              detalle: "Equípalo en tu personaje." });
     }
-    if (ahora.mascota !== previo.mascota) {
-        const nombre = estado.mascota.nombre;
+    for (const [especie, etapa] of Object.entries(ahora.mascotas)) {
+        const antesEtapa = previo.mascotas?.[especie];
+        if (!antesEtapa || antesEtapa === etapa) continue;   // recién adoptada, o no cambió
+        const nombre = mascota.nombreDe(estado, especie);
         const textos = {
             cria: { icono: "🐣", etiqueta: "¡El huevo eclosionó!", detalle: `${nombre} salió del huevo.` },
-            adulto: { icono: "🐉", etiqueta: "¡Tu mascota creció!", detalle: `${nombre} ya es adulto.` },
+            adulto: { icono: mascota.MASCOTAS[especie].icono, etiqueta: "¡Tu mascota creció!", detalle: `${nombre} ya es adulto.` },
         };
-        if (textos[ahora.mascota]) celebraciones.push({ ...textos[ahora.mascota], titulo: nombre });
+        if (textos[etapa]) celebraciones.push({ ...textos[etapa], titulo: nombre });
     }
     if ((previo.animo === "dormido" || previo.animo === "cansado") && previo.animo !== ahora.animo) {
         celebraciones.push({ pequena: true, icono: "😃", titulo: "¡Tu héroe despertó!" });

@@ -14,6 +14,7 @@ import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as bestiario from "./bestiario.js";
+import * as habilidades from "./habilidades.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -21,6 +22,7 @@ import * as libro from "./libro.js";
 import * as maestro from "./maestro.js";
 import * as rituales from "./rituales.js";
 import * as mapa from "./mapa.js";
+import * as cronica from "./cronica.js";
 import * as mascota from "./mascota.js";
 import * as equipo from "./equipo.js";
 import { precioConEvento } from "./eventos.js";
@@ -686,113 +688,163 @@ export function pantallaGolpe(g) {
 }
 
 
-// ===== El mapa del viaje =====
+// ===== El mapa del reino (v26) =====
+// La imagen del mapa (pixel art) la pone app.js después de dibujar la pantalla, porque hacerla
+// tarda un instante: aquí solo va su lugar (#mapa-imagen), con tu héroe y tu mascota encima.
 
-// Decoraciones del paisaje de cada región (trazos sepia, como un mapa antiguo).
-function paisaje(tipo, puntos) {
-    const lejos = (x, y) => puntos.every((p) => Math.hypot(p.x - x, p.y - y) > 42);
-    const sitios = [];
-    for (let y = 70; y < 940; y += 58) {
-        for (const x of [40, 110, 250, 320]) {
-            const dx = ((y * 7 + x * 3) % 23) - 11;
-            if (lejos(x + dx, y)) sitios.push([x + dx, y]);
-        }
+// Dónde va algo del lienzo del mapa, en % (para ponerlo encima de la imagen).
+const enElMapa = (p) => `left: ${((p.x / mapa.LIENZO.ancho) * 100).toFixed(2)}%; top: ${((p.y / mapa.LIENZO.alto) * 100).toFixed(2)}%`;
+
+// La franja con las 6 regiones de la vuelta en que vas.
+function franjaDelReino(estado, campanas, region) {
+    return `<nav class="reino-franja" aria-label="Regiones del reino">${mapa.resumenDelReino(estado, campanas).map((r) => `
+        <button type="button" class="reino-region ${r.liberada && r.pisada ? "libre" : ""} ${r.actual ? "actual" : ""} ${r.region === region ? "vista" : ""}"
+                data-accion="mapa-region" data-region="${r.region}" ${r.pisada ? "" : "disabled"}
+                aria-label="${r.nombre}${r.pisada ? `: ${r.senoresCaidos} de 4` : " (todavía no llegas)"}">
+            <span aria-hidden="true">${r.pisada ? r.icono : "🔒"}</span>
+            <small>${cronica.ROMANOS[r.region] || r.region + 1}</small>
+            ${r.pisada ? `<i>${r.liberada ? "✓" : `${r.senoresCaidos}/4`}</i>` : ""}
+        </button>`).join("")}</nav>`;
+}
+
+// La ficha de uno de los señores de la región (o de un memorial de la Ciudadela).
+function fichaSenor(s, region, campanas, porReclamar, alcanzado) {
+    const c = campanas[s.categoria];
+    const a = juego.ATRIBUTOS[s.categoria];
+    const llegaste = s.n <= alcanzado;
+    const reclamable = porReclamar.find((l) => l.id === s.id);
+    const boton = reclamable
+        ? `<button type="button" class="boton boton-chico boton-oro" data-accion="reclamar-lugar" data-id="${s.id}">Botín</button>` : "";
+    if (s.tipo === "memorial") {
+        const llevas = Math.min(5, c.derrotados - (s.numero - 5));
+        return `<li class="senor ${s.liberada ? "libre" : ""}" id="senor-${s.id}">
+                    <span class="senor-memorial" aria-hidden="true">${s.liberada ? "🔥" : "🗿"}</span>
+                    <span class="objeto-info"><b>${s.nombre}</b>
+                        <span class="mini texto-suave">Lugar ${s.n} · ${a.icono} ${a.nombre}</span>
+                        <span class="mini">${s.liberada ? "Encendido: vencidos los 5 señores de su campaña." : `Se enciende al vencer a los 5 señores de la ${c.campana.nombre}: llevas ${llevas} de 5.`}</span>
+                        ${s.liberada ? "" : barra(Math.round((llevas / 5) * 100), "barra-mini")}</span>
+                    ${boton}
+                </li>`;
     }
-    const trazo = 'fill="none" stroke="#6b4f2e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"';
-    return sitios.map(([x, y], i) => {
-        switch (tipo) {
-            case "bosque":
-                return `<g ${trazo}><path d="M${x} ${y + 12} V${y + 2}"/><path d="M${x - 9} ${y + 4} L${x} ${y - 14} L${x + 9} ${y + 4} Z"/></g>`;
-            case "montanas":
-                return `<g ${trazo}><path d="M${x - 16} ${y + 10} L${x - 4} ${y - 12} L${x + 4} ${y - 2} L${x + 10} ${y - 9} L${x + 20} ${y + 10}"/>
-                        <path d="M${x - 7} ${y - 6} L${x - 4} ${y - 12} L${x - 1} ${y - 7}"/></g>`;
-            case "desierto":
-                return `<path ${trazo} d="M${x - 18} ${y} Q${x - 6} ${y - 10} ${x + 6} ${y} T${x + 26} ${y}"/>`;
-            case "mar":
-                return `<path ${trazo} d="M${x - 16} ${y} q6 -6 12 0 t12 0 t12 0"/>`;
-            case "ciudadela":
-                return i % 2 ? `<g ${trazo}><path d="M${x - 8} ${y + 10} V${y - 6} H${x + 8} V${y + 10}"/><path d="M${x - 8} ${y - 6} V${y - 10} M${x} ${y - 6} V${y - 10} M${x + 8} ${y - 6} V${y - 10}"/></g>`
-                    : `<path ${trazo} d="M${x - 12} ${y + 8} Q${x} ${y - 6} ${x + 12} ${y + 8}"/>`;
-            default:   // valle: colinas suaves
-                return `<path ${trazo} d="M${x - 16} ${y + 6} Q${x - 4} ${y - 8} ${x + 8} ${y + 6} M${x + 2} ${y + 6} Q${x + 12} ${y - 2} ${x + 20} ${y + 6}"/>`;
+    const jefe = s.jefe;
+    let estadoTexto;
+    if (s.liberada) {
+        estadoTexto = `<span class="mini oro">✓ Derrotado · guarida liberada${llegaste ? "" : ` (llegas en el lugar ${s.n})`}</span>`;
+    } else if (s.actual) {
+        estadoTexto = `<span class="mini">⚔️ Es tu rival ahora en Aventuras. Debilítalo con misiones de ${a.icono} ${a.nombre}:
+                           ${c.vida} de ${c.vidaMax} ❤️</span>${barra(c.porcentaje, "barra-mini barra-jefe")}`;
+    } else {
+        const antes = c.jefe;
+        estadoTexto = `<span class="mini texto-suave">Espera en su guarida. Antes tienes que vencer a ${esc(antes.nombre)} (${esc(antes.titulo.toLowerCase())}).</span>`;
+    }
+    return `<li class="senor ${s.liberada ? "libre" : s.actual ? "actual" : "lejano"}" id="senor-${s.id}">
+                <figure class="retrato mini senor-retrato ${s.liberada ? "derrotado" : ""}"><img src="${campana.imagenDe(jefe.id)}" alt="${esc(jefe.nombre)}"></figure>
+                <span class="objeto-info"><b>${esc(jefe.nombre)}</b>
+                    <span class="mini texto-suave">${esc(jefe.titulo)} · lugar ${s.n} · ${a.icono} ${a.nombre}</span>
+                    ${estadoTexto}</span>
+                ${boton}
+            </li>`;
+}
+
+// La Crónica del reino: un capítulo por región, que se va escribiendo con lo que haces.
+function seccionCronica(estado, campanas, region) {
+    const capitulos = cronica.capitulosDeLaCronica(estado, campanas, {
+        heroe: estado.personaje.nombre,
+        dragon: mascota.nombreDe(estado, mascota.INICIAL),
+    });
+    const abiertoPorDefecto = `r${region + 1}`;
+    const html = capitulos.map((c) => {
+        if (!c.abierto) {
+            return `<div class="capitulo bloqueado"><span class="capitulo-numero">Capítulo ${c.numero}</span>
+                        <b>${esc(c.titulo)}</b><small>🔒 ${esc(c.bloqueado)}</small></div>`;
         }
+        const parrafos = c.parrafos.map((p) => `<p class="parrafo-${p.tipo}">${p.tipo === "caida" ? "⚔️ " : ""}${esc(p.texto)}</p>`).join("");
+        return `<details class="capitulo" ${c.id === abiertoPorDefecto ? "open" : ""}>
+                    <summary><span class="capitulo-numero">${c.id === "prologo" ? "Prólogo" : `Capítulo ${c.numero}`}</span> <b>${esc(c.titulo)}</b></summary>
+                    ${parrafos}
+                </details>`;
     }).join("");
+    return `
+        <section class="cronica">
+            <h2 class="cronica-titulo">Crónica del reino</h2>
+            <p class="cronica-sub">Se escribe sola: cada región que alcanzas y cada señor que cae agregan una página.</p>
+            ${html}
+        </section>`;
 }
 
 export function pantallaMapa(estado, ctx) {
     const pos = mapa.posicion(estado);
     const region = Math.min(ctx.regionMapa ?? pos.region, pos.region);
+    const campanas = campana.estadoCampanas(estado);
+    const dibujo = mapa.datosParaDibujar(estado, region, campanas);
+    const senores = mapa.senoresDeRegion(region, campanas);
+    const caidos = senores.filter((s) => s.liberada).length;
+    const tramo = mapa.tramoDe(region);
+    const datos = mapa.REGIONES[tramo];
     const puntos = mapa.puntosDelCamino();
-    const alcanzado = region < pos.region ? mapa.LUGARES_POR_REGION : pos.enRegion;   // lugares alcanzados en esta región
-    const reclamados = new Set(estado.mapa.reclamados);
-    const camino = (lista) => lista.map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`).join(" ");
+    const porReclamar = mapa.lugaresPorReclamar(estado, campanas);
 
-    const lugares = puntos.slice(1).map((p, i) => {
-        const n = i + 1;
-        const tipo = mapa.tipoDeLugar(n);
-        const id = mapa.idLugar(region, n);
-        const clases = ["lugar", `lugar-${tipo}`, n <= alcanzado ? "alcanzado" : "", reclamados.has(id) ? "reclamado" : "",
-                        n <= alcanzado && tipo !== "camino" && !reclamados.has(id) ? "por-reclamar" : ""];
-        const radio = tipo === "camino" ? 6 : 13;
-        return `<g class="${clases.join(" ")}">
-                    <circle cx="${p.x}" cy="${p.y}" r="${radio}"/>
-                    ${tipo === "camino" ? "" : `<text x="${p.x}" y="${p.y + 5}" text-anchor="middle" font-size="14">${mapa.LUGARES[tipo].icono}</text>`}
-                </g>`;
-    }).join("");
+    // Encima del mapa: tu héroe y tu mascota (en la región donde vas) y un botón en cada guarida.
+    const aqui = region === pos.region ? puntos[pos.enRegion] : null;
+    const encima = `
+        ${aqui ? `<img class="mapa-heroe" id="mapa-heroe" alt="${esc(estado.personaje.nombre)}" style="${enElMapa(aqui)}">
+                  <img class="mapa-mascota" id="mapa-mascota" alt="" style="${enElMapa({ x: aqui.x + 13, y: aqui.y + 2 })}">` : ""}
+        ${senores.map((s) => `<button type="button" class="mapa-guarida" data-accion="mapa-senor" data-id="senor-${s.id}"
+                                      style="${enElMapa(puntos[s.n])}" aria-label="${esc(s.nombre)}: ${s.liberada ? "liberada" : "en pie"}"></button>`).join("")}`;
 
-    // El héroe (en la región actual): su retrato pequeño sobre el lugar donde va.
-    let heroe = "";
-    if (region === pos.region) {
-        const p = puntos[pos.enRegion];
-        heroe = `<g id="mapa-heroe"><circle cx="${p.x}" cy="${p.y}" r="22" class="heroe-halo"/>
-                 ${dibujarAvatar(ctx.avatar, { mini: true }).replace("<svg ", `<svg x="${p.x - 20}" y="${p.y - 20}" width="40" height="40" `)}</g>`;
-    }
-
-    const porReclamar = mapa.lugaresPorReclamar(estado);
     const listaReclamar = porReclamar.length ? `
         <section class="panel mapa-premios">
             <div class="titulo-seccion">
-                <h3 class="subtitulo">🎁 ${juego.plural(porReclamar.length, "lugar con premio", "lugares con premio")}</h3>
+                <h3 class="subtitulo">🎁 ${juego.plural(porReclamar.length, "lugar con botín", "lugares con botín")}</h3>
                 ${porReclamar.length > 1 ? '<button type="button" class="boton boton-chico boton-oro" data-accion="reclamar-todo">Reclamar todo</button>' : ""}
             </div>
             <ul class="lista">${porReclamar.slice(0, 3).map((l) => {
                 const lugar = mapa.LUGARES[l.tipo];
                 const premio = [lugar.premio.monedas ? `+${lugar.premio.monedas} 🪙` : "", lugar.premio.xp ? `+${lugar.premio.xp} XP` : ""].filter(Boolean).join(" · ");
+                const nombre = l.nombre ? `${lugar.nombre}: ${esc(l.nombre)}` : l.tipo === "fortaleza" ? "Fortaleza: región liberada" : `${lugar.nombre} · lugar ${l.n}`;
                 return `<li class="objeto"><span class="pocion-icono" aria-hidden="true">${lugar.icono}</span>
-                    <span class="objeto-info"><b>${lugar.nombre} · lugar ${l.n}</b><span class="mini texto-suave">${mapa.nombreRegion(l.region)} · ${premio}</span></span>
+                    <span class="objeto-info"><b>${nombre}</b><span class="mini texto-suave">${mapa.nombreRegion(l.region)} · ${premio}</span></span>
                     <button type="button" class="boton boton-chico boton-oro" data-accion="reclamar-lugar" data-id="${l.id}">Reclamar</button></li>`;
             }).join("")}</ul>
             ${porReclamar.length > 3 ? `<p class="nota">…y ${juego.plural(porReclamar.length - 3, "lugar más", "lugares más")}.</p>` : ""}
         </section>` : "";
 
+    const progreso = region === pos.region
+        ? `Lugar ${pos.enRegion} de ${mapa.LUGARES_POR_REGION} · te ${pos.hastaSiguiente === 1 ? "falta 1 paso" : `faltan ${pos.hastaSiguiente} pasos`} para el siguiente.`
+        : "Región recorrida.";
+    const fortaleza = tramo === mapa.CIUDADELA ? "la Torre" : "la fortaleza";
+
     return `
         <div class="titulo-seccion">
-            <h2 class="titulo-juego">🗺️ Mapa del viaje</h2>
+            <h2 class="titulo-juego">🗺️ El reino</h2>
             <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="hoy">‹ Hoy</button>
         </div>
+        ${franjaDelReino(estado, campanas, region)}
         <section class="panel mapa-cabecera">
             <div class="mapa-navegar">
                 <button type="button" class="boton-icono" data-accion="mapa-region" data-region="${region - 1}" ${region > 0 ? "" : "disabled"} aria-label="Región anterior">‹</button>
-                <div><p class="etiqueta">Región ${region + 1}</p><h3 class="mapa-region">${mapa.nombreRegion(region)}</h3></div>
+                <div><p class="etiqueta">Capítulo ${cronica.ROMANOS[region] || region + 1}</p><h3 class="mapa-region">${mapa.nombreRegion(region)}</h3>
+                     <p class="mapa-lema">${datos.lema}</p></div>
                 <button type="button" class="boton-icono" data-accion="mapa-region" data-region="${region + 1}" ${region < pos.region ? "" : "disabled"} aria-label="Región siguiente">›</button>
             </div>
-            <p class="nota">${region === pos.region
-                ? `Lugar ${pos.enRegion} de ${mapa.LUGARES_POR_REGION} · llevas ${juego.plural(pos.pasos, "paso", "pasos")}; te ${pos.hastaSiguiente === 1 ? "falta 1" : `faltan ${pos.hastaSiguiente}`} para el siguiente lugar.`
-                : "Región recorrida. ✓"}</p>
+            <p class="nota">${progreso} ${tramo === mapa.CIUDADELA ? "Memoriales encendidos" : "Señores vencidos"}: <b>${caidos} de 4</b>.
+               ${caidos === 4 ? `Las puertas de ${fortaleza} están abiertas.` : `Las puertas de ${fortaleza} se abren cuando caigan los cuatro.`}</p>
         </section>
         ${listaReclamar}
-        <div class="mapa-lienzo">
-            <svg viewBox="0 0 360 980" role="img" aria-label="Mapa de ${mapa.nombreRegion(region)}">
-                ${paisaje(mapa.paisajeDe(region), puntos)}
-                <path d="${camino(puntos)}" class="mapa-camino"/>
-                <path d="${camino(puntos.slice(0, alcanzado + 1))}" class="mapa-recorrido"/>
-                <g class="lugar alcanzado lugar-inicio"><circle cx="${puntos[0].x}" cy="${puntos[0].y}" r="9"/></g>
-                ${lugares}
-                ${heroe}
-            </svg>
+        <div class="mapa-pixel" data-region="${region}">
+            <img class="mapa-imagen" id="mapa-imagen" alt="Mapa de ${mapa.nombreRegion(region)}">
+            ${encima}
         </div>
-        <p class="nota">Cada misión, tarea o sesión de enfoque es un paso. Cada ${mapa.PASOS_POR_LUGAR} pasos llegas a un lugar:
-           💰 tesoros, 🕯️ santuarios (XP para tu atributo más descuidado) y 🏰 una fortaleza al final de cada región.</p>`;
+        <section class="panel">
+            <h3 class="subtitulo">${tramo === mapa.CIUDADELA ? "🗿 Los memoriales" : "⚔️ Los señores de la región"}</h3>
+            <p class="nota">${tramo === mapa.CIUDADELA
+                ? "Cada memorial se enciende cuando caen los cinco señores de su campaña."
+                : "Son tus jefes de Aventuras: caen con las misiones de su atributo. Al caer, su guarida queda libre y tiene botín."}</p>
+            <ul class="lista">${senores.map((s) => fichaSenor(s, region, campanas, porReclamar, dibujo.alcanzado)).join("")}</ul>
+        </section>
+        ${seccionCronica(estado, campanas, region)}
+        <p class="nota">Cada misión, tarea o sesión de enfoque es un paso; cada ${mapa.PASOS_POR_LUGAR} pasos llegas a un lugar:
+           💰 tesoros, 🕯️ santuarios (XP para tu atributo más descuidado), ⚔️ guaridas de los señores y, al final, ${fortaleza}.</p>`;
 }
 
 
@@ -1690,16 +1742,18 @@ export function pantallaAventuras(estado, ctx) {
             </div>
             <button type="button" class="boton boton-chico" data-accion="restaurar-principal" data-id="${p.id}">Restaurar</button>
         </li>`).join("");
-    const campanas = Object.values(campana.estadoCampanas(estado));
+    const estadoDeCampanas = campana.estadoCampanas(estado);
+    const campanas = Object.values(estadoDeCampanas);
     const d = campana.DANO.diaria;
 
     const posicionMapa = mapa.posicion(estado);
-    const premiosMapa = mapa.lugaresPorReclamar(estado).length;
+    const premiosMapa = mapa.lugaresPorReclamar(estado, estadoDeCampanas).length;
+    const caidosRegion = mapa.senoresDeRegion(posicionMapa.region, estadoDeCampanas).filter((s) => s.liberada).length;
     return `
         <button type="button" class="pacto-linea" data-accion="ir" data-pantalla="mapa">
             <span class="pacto-linea-icono" aria-hidden="true">🗺️</span>
-            <span><b>Mapa del viaje</b>
-                <span class="mini">${mapa.nombreRegion(posicionMapa.region)} · lugar ${posicionMapa.enRegion} de ${mapa.LUGARES_POR_REGION}${premiosMapa ? ` · 🎁 ${juego.plural(premiosMapa, "premio", "premios")} por reclamar` : ""}</span></span>
+            <span><b>El reino</b>
+                <span class="mini">${mapa.nombreRegion(posicionMapa.region)} · lugar ${posicionMapa.enRegion} de ${mapa.LUGARES_POR_REGION} · ⚔️ ${caidosRegion} de 4 señores${premiosMapa ? ` · 🎁 ${juego.plural(premiosMapa, "botín", "botines")}` : ""}</span></span>
         </button>
         <button type="button" class="panel acceso-arcade" data-accion="ir" data-pantalla="arcade">
             <span class="acceso-arcade-icono">🕹️</span>
@@ -1804,6 +1858,12 @@ function textoRareza(objeto) {
 function poderDe(objeto) {
     const texto = equipo.textoPoder(objeto.poder);
     return texto ? ` · <span class="poder-objeto">${texto}</span>` : "";
+}
+
+// La habilidad de la Torre de un objeto épico o legendario (v26), en su propia línea (o nada).
+function habilidadDe(objeto) {
+    const h = habilidades.HABILIDADES[objeto.habilidad];
+    return h ? `<span class="habilidad-objeto">${h.icono} <b>${h.nombre}</b> · ${h.texto} <i>(en la Torre)</i></span>` : "";
 }
 
 // Tarjeta de una campaña: el jefe actual contra tu avatar y la ruta de los 5 jefes.
@@ -2003,6 +2063,8 @@ export function pantallaArcade(estado, ctx) {
     const poder = { ...equipo.poderDelEquipo(estado), armadura: ctx.vida.armadura.puntos };
     const ventajas = arcade.ventajasDelEquipo(poder);
     const heroeTorre = torre.heroeDeLaTorre({ fuerza: 1, intelecto: 1, carisma: 1, riqueza: 1 }, poder);
+    const habilidadesTorre = equipo.habilidadesDelEquipo(estado);
+    const petTorre = mascota.mascotaDeBatalla(estado, ctx.avatar.mascota, ctx.hoy);
     const tarjetas = Object.entries(arcade.JUEGOS).map(([clave, j]) => {
         const record = estado.arcade.records[clave] || 0;
         const ventaja = arcade.textoVentajas(clave, ventajas);
@@ -2045,6 +2107,11 @@ export function pantallaArcade(estado, ctx) {
                 poder.suerte ? `🍀 +${poder.suerte} % de crítico` : "",
                 `🛡️ tu armadura para el ${Math.round(heroeTorre.proteccion * 100)} % de cada golpe`,
             ].filter(Boolean).join(" · ")}.</p>
+            ${habilidadesTorre.length
+                ? `<p class="mini equipo-ventaja">✨ Habilidades: ${habilidadesTorre.map((c) => `${habilidades.HABILIDADES[c].icono} <b>${habilidades.HABILIDADES[c].nombre}</b>`).join(" · ")}</p>`
+                : `<p class="mini texto-suave">✨ El equipo épico y legendario da habilidades especiales en la Torre.</p>`}
+            <p class="mini equipo-ventaja">${mascota.MASCOTAS[petTorre.especie].icono} ${esc(petTorre.nombre)} te acompaña:
+               «${mascota.MASCOTAS[petTorre.especie].habilidad.nombre}» · ${mascota.textoPotencia(petTorre)}.</p>
             <p class="mini">🏅 Récord: ${recordTorre ? `${plural(recordTorre, "piso superado", "pisos superados")}` : "todavía ninguno"}
                · Premio: ${torre.PREMIO.monedasPorPiso} 🪙 y ${torre.PREMIO.xpPorPiso} XP de Carisma por piso
                (máx. ${torre.PREMIO.maxMonedas} 🪙 y ${torre.PREMIO.maxXp} XP)</p>
@@ -2081,7 +2148,8 @@ export function pantallaArcade(estado, ctx) {
 //
 // Todo lo que pasa en un turno llega junto (tu acción y la respuesta de la criatura). Para que
 // se vea en orden, cada animación empieza un poco después que la anterior (animation-delay).
-const TURNO_ENEMIGO = 650;   // milisegundos: cuándo responde la criatura
+const TURNO_MASCOTA = 400;   // milisegundos: cuándo actúa tu mascota
+const TURNO_ENEMIGO = 650;   // y cuándo responde la criatura
 
 // Un número que salta sobre quien recibe el golpe o la cura.
 const numeroFF = (texto, clase, cuando) =>
@@ -2116,58 +2184,90 @@ export function pantallaTorre(t) {
     const eventos = t.eventos || [];
     const enBatalla = p.fase === "batalla";
 
-    // Lo que acaba de pasar, para las animaciones.
+    // Lo que acaba de pasar, para las animaciones. El orden: tu acción (enseguida), la de tu
+    // mascota (a los 0,4 s) y la respuesta de la criatura (a los 0,65 s).
     const tuyo = eventos.find((e) => e.quien === "heroe");
-    const suyo = eventos.find((e) => e.quien === "enemigo");
-    const cayo = suyo?.tipo === "derrotado";
+    const suyo = eventos.find((e) => e.quien === "enemigo" && e.tipo !== "derrotado");
+    const mio = eventos.find((e) => e.quien === "mascota" && e.tipo !== "renacer");   // lo que hizo tu mascota
+    const renacer = eventos.find((e) => e.tipo === "renacer");
+    const gracia = eventos.find((e) => e.habilidad === "gracia");
+    const cayo = eventos.some((e) => e.tipo === "derrotado");
     const tePego = suyo?.dano ? suyo : null;
+    const esquivaste = suyo?.esquivado;
     const elemento = tuyo?.tipo === "hechizo" ? bestiario.ELEMENTOS[tuyo.elemento] : null;
+    const pet = p.mascota;
 
-    // El cartel de arriba dice el nombre de lo que se usa, primero lo tuyo y después lo suyo.
+    // El cartel de arriba dice el nombre de lo que se usa: lo tuyo, lo de tu mascota y lo de la criatura.
     const cartel = (texto, cuando) => `<p class="ff-ventana ff-anuncio" style="animation-delay: ${cuando}ms">${esc(texto)}</p>`;
     const tuCartel = elemento ? `${elemento.icono} ${elemento.nombre}` : { defender: "Defensa", pocion: "Poción" }[tuyo?.tipo];
-    const carteles = `${tuCartel ? cartel(tuCartel, 0) : ""}${suyo?.nombre ? cartel(suyo.nombre, TURNO_ENEMIGO) : ""}`;
+    const carteles = `${tuCartel ? cartel(tuCartel, 0) : ""}${mio ? cartel(mio.nombre, TURNO_MASCOTA) : ""}` +
+                     `${suyo?.nombre ? cartel(suyo.nombre, TURNO_ENEMIGO) : ""}`;
 
     // --- La criatura ---
     const clasesEnemigo = [
         criatura.vuela ? "vuela" : "",
         tuyo?.dano ? "golpeado" : "",
-        tePego ? "ataca" : "",
+        mio?.dano ? "golpeado-mascota" : "",
+        suyo && (suyo.tipo === "golpe" || suyo.tipo === "fuerte") ? "ataca" : "",
         suyo?.tipo === "furia" ? "furia" : "",
-        cayo ? "cae" : m.vida <= 0 ? "vencido" : "",
+        mio?.tipo === "petrificar" ? "piedra" : "",
+        cayo ? (suyo?.reflejo ? "cae tarde" : "cae") : m.vida <= 0 ? "vencido" : "",
     ].join(" ");
     const efecto = !tuyo?.dano ? "" : `<span class="ff-efecto ff-${tuyo.tipo === "hechizo" ? tuyo.elemento : "tajo"}" aria-hidden="true"></span>`;
+    const efectoMascota = !mio?.dano ? "" : `<span class="ff-efecto ff-${mio.elemento || "garra"} ff-de-mascota" aria-hidden="true"></span>`;
     const enemigo = `
         <div class="ff-bando ff-enemigo ${clasesEnemigo}">
             <span class="ff-sombra"></span>
             ${spriteFF(t.sprites.enemigo, m.nombre, criatura.talla || 96, tinteDeVuelta(m.vuelta))}
-            ${efecto}
+            ${efecto}${efectoMascota}
             ${tuyo?.dano ? numeroFF(tuyo.dano, tuyo.critico ? "critico" : "", 300) : ""}
+            ${mio?.dano ? numeroFF(mio.dano, "de-mascota", TURNO_MASCOTA + 120) : ""}
+            ${suyo?.reflejo ? numeroFF(suyo.reflejo, "de-mascota", TURNO_ENEMIGO + 350) : ""}
             ${tuyo?.efecto === "debil" ? '<span class="ff-aviso" aria-hidden="true">¡Punto débil!</span>' : ""}
             ${tuyo?.efecto === "resiste" ? '<span class="ff-aviso ff-resiste" aria-hidden="true">Resiste</span>' : ""}
             ${suyo?.cura ? numeroFF(suyo.cura, "cura", TURNO_ENEMIGO + 150) : ""}
         </div>`;
 
+    // --- Tu mascota (si te acompaña) ---
+    const clasesMascota = [
+        mio && (mio.tipo === "ataque" || mio.tipo === "petrificar") ? "ataca" : "",
+        mio && (mio.tipo === "mana" || mio.tipo === "cura") ? "brilla" : "",
+        renacer ? "renace" : "",
+        pet && pet.potencia <= 0 ? "quieta" : "",
+    ].join(" ");
+    const mascotaHtml = pet && t.sprites.mascota ? `
+        <div class="ff-bando ff-mascota ${clasesMascota}">
+            <span class="ff-sombra"></span>
+            ${spriteFF(t.sprites.mascota, pet.nombre, 44)}
+        </div>` : "";
+
     // --- Tu héroe ---
     const clasesHeroe = [
         { atacar: "ataca", hechizo: "lanza", defender: "defiende", pocion: "bebe" }[tuyo?.tipo] || "",
         tePego ? "herido" : "",
+        esquivaste ? "esquiva" : "",
+        gracia || renacer ? "salvado" : "",
         p.fase === "fin" ? "ko" : "",
         p.fase === "mejora" ? "victoria" : "",
         eventos.length ? "tras-golpe" : "",
     ].join(" ");
+    const curaDeMascota = mio?.tipo === "cura" ? mio.cura : 0;
     const heroe = `
         <div class="ff-bando ff-heroe ${clasesHeroe}">
             <span class="ff-sombra"></span>
             ${spriteFF(t.sprites.heroe, t.nombre, 54)}
             ${tuyo?.tipo === "defender" ? '<span class="ff-escudo" aria-hidden="true"></span>' : ""}
             ${tuyo?.cura ? numeroFF(tuyo.cura, "cura", 150) : ""}
+            ${curaDeMascota ? numeroFF(curaDeMascota, "cura", TURNO_MASCOTA + 100) : ""}
+            ${mio?.tipo === "mana" ? numeroFF("+1 PM", "pm", TURNO_MASCOTA + 100) : ""}
             ${tePego ? numeroFF(tePego.dano, "", TURNO_ENEMIGO + 250) : ""}
+            ${esquivaste ? numeroFF("¡Esquivas!", "pm", TURNO_ENEMIGO + 250) : ""}
+            ${gracia || renacer ? numeroFF(`+${(gracia || renacer).cura}`, "cura", TURNO_ENEMIGO + 700) : ""}
         </div>`;
 
     const escena = `
         <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""}">
-            ${salaFF(t.sprites.sala)}${carteles}${enemigo}${heroe}
+            ${salaFF(t.sprites.sala)}${carteles}${enemigo}${heroe}${mascotaHtml}
         </div>`;
 
     // --- Abajo: los comandos (o el botín, o el final) y las fichas ---
@@ -2201,7 +2301,7 @@ export function pantallaTorre(t) {
         abajo = `
             <div class="ff-tablero">
                 ${comandosTorre(t)}
-                <div class="ff-fichas">${fichaEnemigo(t)}${fichaHeroe(h, t.nombre)}</div>
+                <div class="ff-fichas">${fichaEnemigo(t)}${fichaHeroe(h, t.nombre, p.mascota)}</div>
             </div>
             <button type="button" class="enlace torre-rendirse" data-accion="torre-rendirse">Huir y cobrar lo ganado</button>`;
     }
@@ -2224,8 +2324,9 @@ function comandosTorre(t) {
 
     if (t.menu === "magia") {
         const hechizos = Object.entries(bestiario.ELEMENTOS).map(([clave, e]) => {
-            // Si ya probaste ese hechizo con esta criatura, tu bestiario recuerda qué le hace.
-            const sabes = bestiario.loQueSabes(t.bestiario, m.id, clave);
+            // Si ya probaste ese hechizo con esta criatura, tu bestiario recuerda qué le hace
+            // (y con el «Ojo del dragón» lo sabes de una vez).
+            const sabes = loQueSabesEnLaTorre(t, clave);
             const detalle = { debil: "¡punto débil!", resiste: "lo resiste", normal: "daño normal" }[sabes] || "sin probar";
             return fila(clave, `${e.icono} ${e.nombre}`, detalle,
                         `data-accion="torre-accion" data-torre="hechizo" data-elemento="${clave}"`, `ff-hechizo ${sabes ? `ff-${sabes}` : ""}`);
@@ -2247,12 +2348,23 @@ function comandosTorre(t) {
         </div>`;
 }
 
+// Lo que sabes de un hechizo contra la criatura de ahora: lo de tu bestiario o, con el
+// «Ojo del dragón» (la Corona del Dragón), la verdad desde el primer turno.
+function loQueSabesEnLaTorre(t, elemento) {
+    const m = t.partida.enemigo;
+    const criatura = bestiario.CRIATURAS[m.id];
+    if (criatura && habilidades.tiene(t.partida.heroe, "ojo-dragon")) {
+        return criatura.debil === elemento ? "debil" : criatura.resiste === elemento ? "resiste" : "normal";
+    }
+    return bestiario.loQueSabes(t.bestiario, m.id, elemento);
+}
+
 // La ficha de la criatura: nombre, vida, qué planea y lo que ya sabes de ella.
 function fichaEnemigo(t) {
     const m = t.partida.enemigo;
     const intencion = torre.textoIntencion(m, t.partida.heroe);
     const iconos = (que) => Object.keys(bestiario.ELEMENTOS)
-        .filter((e) => bestiario.loQueSabes(t.bestiario, m.id, e) === que)
+        .filter((e) => loQueSabesEnLaTorre(t, e) === que)
         .map((e) => bestiario.ELEMENTOS[e].icono).join("");
     const [debil, resiste] = [iconos("debil"), iconos("resiste")];
     const sabes = [debil ? `Débil: ${debil}` : "", resiste ? `Resiste: ${resiste}` : ""].filter(Boolean).join(" · ");
@@ -2261,13 +2373,14 @@ function fichaEnemigo(t) {
             <b class="ff-nombre">${m.guardian ? "👑 " : ""}${esc(m.nombre)}</b>
             <div class="ff-vida"><i style="width: ${(m.vida / m.vidaMax) * 100}%"></i></div>
             <span class="ff-cifras">${m.vida}/${m.vidaMax}</span>
-            <span class="ff-intencion">${intencion.icono} ${esc(intencion.texto)}</span>
+            <span class="ff-intencion">${m.petrificada ? "🪨 De piedra: pierde su turno" : `${intencion.icono} ${esc(intencion.texto)}`}</span>
             ${sabes ? `<span class="ff-sabes">${sabes}</span>` : ""}
         </div>`;
 }
 
-// La ficha de tu héroe: vida (VIT), hechizos que quedan (PM), pociones y armadura.
-function fichaHeroe(h, nombre) {
+// La ficha de tu héroe: vida (VIT), hechizos que quedan (PM), pociones, armadura, tus
+// habilidades (los iconos) y tu mascota.
+function fichaHeroe(h, nombre, pet) {
     const parte = h.vida / h.vidaMax;
     const estado = h.vida <= 0 ? "ko" : parte < 0.3 ? "grave" : "";
     return `
@@ -2278,7 +2391,9 @@ function fichaHeroe(h, nombre) {
                 <dt>VIT</dt><dd>${h.vida}<small>/${h.vidaMax}</small></dd>
                 <dt>PM</dt><dd>${h.mana}<small>/${h.manaMax}</small></dd>
             </dl>
-            <span class="ff-sabes">🧪 ×${h.pociones}${h.proteccion ? ` · 🛡️ −${Math.round(h.proteccion * 100)} %` : ""}</span>
+            <span class="ff-sabes">🧪 ×${h.pociones}${h.proteccion ? ` · 🛡️ −${Math.round(h.proteccion * 100)} %` : ""}${
+                (h.habilidades || []).length ? ` · ${h.habilidades.map((c) => habilidades.HABILIDADES[c].icono).join("")}` : ""}</span>
+            ${pet ? `<span class="ff-sabes">${mascota.MASCOTAS[pet.especie].icono} ${esc(pet.nombre)} ${pet.potencia > 0 ? "" : "· no pelea"}</span>` : ""}
         </div>`;
 }
 
@@ -2726,7 +2841,8 @@ function seccionEquipamiento(estado, ctx) {
         return `<li class="objeto ${puesto ? "puesto" : ""}">
                     ${iconoObjeto(id)}
                     <span class="objeto-info"><b>${objeto.nombre}</b>
-                        <span class="mini texto-suave">${avatar.ESPACIOS[objeto.espacio]} · ${textoRareza(objeto)}${poderDe(objeto)}</span></span>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[objeto.espacio]} · ${textoRareza(objeto)}${poderDe(objeto)}</span>
+                        ${habilidadDe(objeto)}</span>
                     <button type="button" class="boton boton-chico ${puesto ? "" : "boton-oro"}" data-accion="equipar" data-id="${id}">
                         ${puesto ? "Quitar" : "Equipar"}</button>
                 </li>`;
@@ -2761,6 +2877,17 @@ function seccionMascota(estado, m, ctx) {
     const animo = m.triste
         ? "😢 Está triste: hace días que no completas misiones."
         : "😊 Está contento.";
+    const enLaTorre = mascota.textoPotencia(mascota.mascotaDeBatalla(estado, m, ctx.hoy));
+    // Las demás mascotas que tienes, para elegir cuál te acompaña.
+    const otras = mascota.mascotasTuyas(estado).filter((especie) => especie !== m.especie).map((especie) => {
+        const etapa = avatar.etapaSegun(avatar.ETAPAS_MASCOTA, mascota.totalDe(estado, especie));
+        return `<li class="objeto">
+                    ${retratoMascota(especie)}
+                    <span class="objeto-info"><b>${esc(mascota.nombreDe(estado, especie))}</b>
+                        <span class="mini texto-suave">${mascota.MASCOTAS[especie].nombre} · ${etapa.nombre} · ${textoRareza(mascota.MASCOTAS[especie])}</span></span>
+                    <button type="button" class="boton boton-chico" data-accion="elegir-mascota" data-especie="${especie}">Llevar</button>
+                </li>`;
+    }).join("");
 
     return `
         <section class="panel">
@@ -2768,11 +2895,13 @@ function seccionMascota(estado, m, ctx) {
             <div class="mascota-ficha">
                 <div class="mascota-dibujo">${dibujarMascota(m)}</div>
                 <div>
-                    <p><b>${esc(m.nombre)}</b> · ${m.etapa.nombre}</p>
+                    <p><b>${esc(m.nombre)}</b> · ${mascota.MASCOTAS[m.especie].nombre} · ${m.etapa.nombre}</p>
                     <p class="mini texto-suave">${crecimiento}</p>
                     <p class="mini">${animo}</p>
                 </div>
             </div>
+            <p class="mini">${habilidadDeMascota(m.especie)}</p>
+            <p class="mini texto-suave">🗼 En la Torre ${enLaTorre}.</p>
             <div class="mascota-acciones">
                 <button type="button" class="boton boton-secundario" data-accion="acariciar-dragon">🤚 Acariciar</button>
                 <button type="button" class="boton ${comio ? "boton-secundario" : "boton-oro"}" data-accion="alimentar-dragon" ${comio ? "disabled" : ""}>
@@ -2785,7 +2914,9 @@ function seccionMascota(estado, m, ctx) {
                 <input type="text" name="nombre" maxlength="20" required autocomplete="off" placeholder="Nuevo nombre" aria-label="Nombre de la mascota">
                 <button type="submit" class="boton boton-chico">Renombrar</button>
             </form>
-            <p class="nota">Crece con cada misión diaria que completas: huevo → cría (10) → adulto (50).</p>
+            <p class="nota">Crece con cada misión diaria que completas desde que la tienes: huevo → cría (10) → adulto (50).</p>
+            ${otras ? `<h3 class="subtitulo">Tus otras mascotas</h3><ul class="lista">${otras}</ul>` : ""}
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="ir" data-pantalla="tienda">🐾 Adoptar en la tienda</button>
         </section>`;
 }
 
@@ -2798,6 +2929,7 @@ function seccionObjetosDeLogro(estado, ctx, titulo) {
                     ${iconoObjeto(id, ganado ? "" : "bloqueado")}
                     <span class="objeto-info"><b>${o.nombre}</b>
                         <span class="mini texto-suave">${textoRareza(o)}${poderDe(o)} · ${o.logro.texto}</span>
+                        ${habilidadDe(o)}
                         ${ganado ? "" : barra(Math.round((progreso / o.logro.meta) * 100), "barra-mini")}</span>
                     <span class="mini ${ganado ? "oro" : "texto-suave"}">${ganado ? "¡Ganado!" : `${progreso}/${o.logro.meta}`}</span>
                 </li>`;
@@ -2860,7 +2992,8 @@ function tiendaDelAvatar(estado, cerrada, evento) {
         return `<li class="objeto ${tuyo ? "puesto" : ""}">
                     ${iconoObjeto(id)}
                     <span class="objeto-info"><b>${o.nombre}</b>
-                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · ${textoRareza(o)}${poderDe(o)} · 🪙 ${precio < o.precio ? `<s>${o.precio}</s> ${precio}` : o.precio}</span></span>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · ${textoRareza(o)}${poderDe(o)} · 🪙 ${precio < o.precio ? `<s>${o.precio}</s> ${precio}` : o.precio}</span>
+                        ${habilidadDe(o)}</span>
                     ${accion}
                 </li>`;
     }).join("");
@@ -2869,7 +3002,53 @@ function tiendaDelAvatar(estado, cerrada, evento) {
         <div class="titulo-seccion"><h2 class="titulo-juego">Equipamiento del avatar</h2></div>
         <p class="nota">Las monedas también sirven para tu avatar. Lo que compres se equipa solo;
            puedes cambiarlo en tu Personaje. 🛡️ sube tu armadura (te protege al fallar una misión);
-           ⚔️ ataque, 🔮 magia y 🍀 suerte cuentan en la Torre y en los minijuegos.</p>
+           ⚔️ ataque, 🔮 magia y 🍀 suerte cuentan en la Torre y en los minijuegos.
+           Lo <b>épico</b> y lo <b>legendario</b> tiene además una habilidad especial en la Torre.</p>
+        <ul class="lista">${lista}</ul>`;
+}
+
+
+// La mascota dibujada en su marco de rareza (adulta, para ver cómo será).
+function retratoMascota(especie, extra = "") {
+    const datos = mascota.MASCOTAS[especie];
+    const m = { especie, nombre: datos.nombre, etapa: { clave: "adulto", nombre: "Adulta" }, total: 0, triste: false };
+    return `<span class="objeto-icono retrato-mascota rareza-${datos.rareza} ${extra}">${dibujarMascota(m)}</span>`;
+}
+
+// Una línea con lo que hace una mascota en la Torre.
+function habilidadDeMascota(especie) {
+    const h = mascota.MASCOTAS[especie].habilidad;
+    return `<span class="habilidad-objeto">🐾 <b>${h.nombre}</b> · ${h.texto} <i>(en la Torre)</i></span>`;
+}
+
+function tiendaDeMascotas(estado, cerrada, ctx) {
+    const monedas = estado.personaje.monedas;
+    const activa = mascota.especieActiva(estado);
+    const lista = Object.entries(mascota.MASCOTAS).sort(([, a], [, b]) => (a.precio || 0) - (b.precio || 0)).map(([especie, datos]) => {
+        const tuya = mascota.tieneMascota(estado, especie);
+        const precio = datos.precio ? precioConEvento(datos.precio, ctx.evento) : 0;
+        const puede = monedas >= precio && !cerrada;
+        let accion;
+        if (especie === activa) accion = `<span class="mini oro">✓ Te acompaña</span>`;
+        else if (tuya) accion = `<button type="button" class="boton boton-chico" data-accion="elegir-mascota" data-especie="${especie}">Llevar</button>`;
+        else accion = `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="comprar-mascota" data-especie="${especie}"
+                               ${puede ? "" : "disabled"}>Adoptar</button>`;
+        const costo = datos.precio ? ` · 🪙 ${precio < datos.precio ? `<s>${datos.precio}</s> ${precio}` : datos.precio}` : " · tu primera mascota";
+        return `<li class="objeto ${tuya ? "puesto" : ""}">
+                    ${retratoMascota(especie)}
+                    <span class="objeto-info"><b>${tuya ? esc(mascota.nombreDe(estado, especie)) : datos.nombre}</b>
+                        <span class="mini texto-suave">${textoRareza(datos)}${costo}</span>
+                        <span class="mini texto-suave">${datos.texto}</span>
+                        ${habilidadDeMascota(especie)}</span>
+                    ${accion}
+                </li>`;
+    }).join("");
+    return `
+        <div class="titulo-seccion"><h2 class="titulo-juego">🐾 Mascotas</h2></div>
+        <p class="nota">Cada mascota llega como <b>huevo</b> y crece con las misiones diarias que completas desde que la adoptas
+           (cría con ${avatar.ETAPAS_MASCOTA[1].desde}, adulta con ${avatar.ETAPAS_MASCOTA[2].desde}). La que te acompaña pelea a tu lado
+           en la Torre: la cría al ${mascota.POTENCIA.cria * 100} %, la adulta al 100 % y, si comió ese día, un ${Math.round((mascota.ALIMENTADA - 1) * 100)} % más.
+           Si está triste (porque te descuidaste), no pelea.</p>
         <ul class="lista">${lista}</ul>`;
 }
 
@@ -2917,6 +3096,7 @@ export function pantallaTienda(estado, ctx) {
         ${recompensas.length ? `<ul class="lista">${lista}</ul>` : vacio("Crea tu primera recompensa. Ej: «Ver un capítulo de mi serie» por 50 monedas.")}
 
         ${tiendaDelAvatar(estado, cerrada, ctx.evento)}
+        ${tiendaDeMascotas(estado, cerrada, ctx)}
         ${seccionObjetosDeLogro(estado, ctx, "Objetos que no se venden")}
 
         ${canjes.length ? `<section class="panel"><h2 class="titulo-juego">Historial</h2><ul class="historial">${historial}</ul></section>` : ""}

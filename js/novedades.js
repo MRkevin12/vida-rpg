@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 25;
+export const VERSION_APP = 26;
 
 export const NOVEDADES = [
+    {
+        version: 26,
+        titulo: "Leyendas, mascotas y el reino",
+        cambios: [
+            "✨ Todo lo épico y legendario tiene ahora una habilidad especial en la Torre: esquivar, golpear dos veces, resistir un golpe mortal, ver el punto débil de cada criatura… Cada objeto dice la suya.",
+            "🐾 Tu mascota pelea a tu lado en la Torre: el dragón escupe fuego, y cada especie tiene su habilidad. Cría, adulta y bien alimentada pelean distinto; triste, no pelea.",
+            "🦉 Mascotas nuevas en la Tienda: Cuervo (común), Búho (rara), Basilisco y Grifo (épicas), Fénix y Dragón de escarcha (legendarias). Llegan como huevo y crecen con tus misiones.",
+            "🗺️ El mapa ahora es el reino, en pixel art: seis regiones gobernadas por tus jefes. Cuando vences a uno, su guarida se libera y tiene botín; la fortaleza se abre al caer los cuatro.",
+            "📜 La Crónica del reino cuenta la historia que une todo (las Sombras, sus veinte señores, el Maestro Aurelio, tu dragón y la Torre) y se escribe sola con lo que haces.",
+        ],
+    },
     {
         version: 25,
         titulo: "La Torre, como los clásicos",

@@ -19,6 +19,9 @@ import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
 import * as bestiario from "../js/bestiario.js";
+import * as habilidades from "../js/habilidades.js";
+import * as cronica from "../js/cronica.js";
+import { dibujarMapa } from "../js/dibujo-mapa.js";
 import * as sprites from "../js/sprites.js";
 import { retocarPuntos, redondearColor } from "../js/pixel.js";
 import { dibujarMonstruo, dibujarSala, CON_DIBUJO } from "../js/dibujo-monstruos.js";
@@ -940,6 +943,352 @@ prueba("Torre (pantalla): batalla, menú de magia, botín, final y bestiario se 
 });
 
 
+// ===== El equipo legendario, las mascotas y el reino (v26) =====
+
+// Una partida de la Torre en el piso indicado, con habilidades y (si se pide) una mascota.
+function torreCon(habilidades = [], piso = 1, mascotaDeBatalla = null, semilla = 11) {
+    const p = torre.nuevaPartida(NIVELES_1, semilla, 1, { habilidades, mascota: mascotaDeBatalla });
+    p.piso = piso;
+    p.enemigo = torre.monstruoDelPiso(piso);
+    return p;
+}
+const adulta = (especie, cambios = {}) => ({ especie, nombre: especie, etapa: "adulto", potencia: 1, alimentada: false, triste: false, ...cambios });
+
+prueba("Equipo: cada objeto épico y legendario tiene una habilidad distinta; los comunes y raros, ninguna", () => {
+    const usadas = [];
+    for (const [id, o] of Object.entries(avatar.OBJETOS)) {
+        const especial = o.rareza === "epico" || o.rareza === "legendario";
+        igual(Boolean(o.habilidad), especial, `${id} (${o.rareza})`);
+        if (o.habilidad) {
+            cierto(habilidades.HABILIDADES[o.habilidad], `${id}: su habilidad existe`);
+            cierto(!usadas.includes(o.habilidad), `${id}: no repite habilidad`);
+            usadas.push(o.habilidad);
+        }
+    }
+    const estado = partidaNueva();
+    equipar(estado, "casco", "baston", "capa-real", "galaxia");   // épico, raro, épico, épico (fondo)
+    igual(equipo.habilidadesDelEquipo(estado), ["firme", "regia", "estrellas"]);
+    igual(acciones.equipoDeBatalla(estado).habilidades, ["firme", "regia", "estrellas"], "llegan a la Torre");
+});
+
+prueba("Habilidades épicas: Firme, Sombra, Ímpetu, Desgarro, Juramento, Valor, Manto regio, Bastión y Estrellas", () => {
+    // Firme: el primer golpe de cada piso no hace daño; el segundo, sí.
+    let p = torreCon(["firme"]);
+    p.enemigo.vida = 999;
+    torre.actuar(p, "defender");
+    igual(p.heroe.vida, p.heroe.vidaMax, "el primer golpe no duele");
+    torre.actuar(p, "defender");
+    cierto(p.heroe.vida < p.heroe.vidaMax, "el segundo sí");
+    // Sombra: con 20 % de esquivar, en 40 golpes alguno se esquiva.
+    p = torreCon(["sombra"]);
+    let esquivados = 0;
+    for (let i = 0; i < 40; i++) {
+        p.heroe.vida = p.heroe.vidaMax;
+        p.enemigo.vida = 999;
+        p.enemigo.intencion = "golpe";
+        esquivados += torre.actuar(p, "defender").filter((e) => e.esquivado).length;
+    }
+    cierto(esquivados > 2 && esquivados < 20, `esquivó ${esquivados} de 40`);
+    // Ímpetu: el primer golpe de cada piso es crítico.
+    p = torreCon(["impetu"]);
+    p.heroe.critico = 0;
+    igual(torre.actuar(p, "atacar")[0].critico, true, "primer golpe crítico");
+    igual(torre.actuar(p, "atacar")[0].critico, false, "el segundo, no");
+    // Desgarro: un crítico hace ×2,8 (con la misma semilla, comparamos con y sin).
+    const golpeCritico = (lista) => { const x = torreCon(lista); x.heroe.critico = 1; return torre.actuar(x, "atacar")[0].dano; };
+    cierto(Math.abs(golpeCritico(["desgarro"]) - golpeCritico([]) * 2.8 / 1.8) <= 1, "desgarro");
+    // Juramento: 30 % más contra un guardián (piso 5).
+    const contraGuardian = (lista) => { const x = torreCon(lista, 5); x.heroe.critico = 0; return torre.actuar(x, "atacar")[0].dano; };
+    cierto(Math.abs(contraGuardian(["juramento"]) - contraGuardian([]) * 1.3) <= 1, "juramento");
+    // Valor: con menos de la mitad de la vida, 40 % más.
+    const conPocaVida = (lista) => { const x = torreCon(lista); x.heroe.critico = 0; x.heroe.vida = 5; return torre.actuar(x, "atacar")[0].dano; };
+    cierto(Math.abs(conPocaVida(["valor"]) - conPocaVida([]) * 1.4) <= 1, "valor");
+    // Manto regio: al subir de piso te curas 35 % en vez de 10 %.
+    p = torreCon(["regia"]);
+    p.heroe.vida = 10;
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    p.opciones = ["afilar", "tomo", "frasco"];
+    torre.elegirMejora(p, "afilar");
+    igual(p.heroe.vida, 10 + Math.round(p.heroe.vidaMax * 0.35));
+    // Bastión: defenderte te cura el triple. Estrellas: dos hechizos más.
+    const sin = torre.heroeDeLaTorre(NIVELES_1);
+    p = torreCon(["bastion"]);
+    p.heroe.vida = 10;
+    p.enemigo.intencion = "furia";   // no pega este turno
+    igual(torre.actuar(p, "defender")[0].cura, sin.curaDefensa * 3);
+    igual(torre.heroeDeLaTorre(NIVELES_1, { habilidades: ["estrellas"] }).manaMax, sin.manaMax + 2);
+});
+
+prueba("Habilidades legendarias: Constancia, Ojo del dragón, Sed, Embestida, Arcano, Gracia, Escamas y Gloria", () => {
+    // Constancia: 4 mejoras para elegir y +1 de ataque por piso.
+    let p = torreCon(["constancia"]);
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    igual(p.opciones.length, 4, "cuatro mejoras");
+    const ataque = p.heroe.ataque;
+    torre.elegirMejora(p, p.opciones.find((o) => o !== "afilar"));
+    igual(p.heroe.ataque, ataque + 1, "+1 de ataque al subir");
+    // Ojo del dragón: los hechizos hacen 20 % más (y la Torre muestra el punto débil: ver la prueba de pantalla).
+    const hechizo = (lista) => { const x = torreCon(lista); x.heroe.critico = 0; return torre.actuar(x, "hechizo", "hielo")[0].dano; };
+    cierto(Math.abs(hechizo(["ojo-dragon"]) - hechizo([]) * 1.2) <= 1, "ojo del dragón");
+    // Sed: te cura el 30 % de lo que pegas.
+    p = torreCon(["sed"]);
+    p.heroe.vida = 5;
+    p.enemigo.vida = 999;
+    const golpe = torre.actuar(p, "atacar")[0];
+    igual(golpe.cura, Math.round(golpe.dano * 0.3));
+    // Embestida: el ataque va dos veces (el segundo, la mitad).
+    const ataqueSimple = (lista) => { const x = torreCon(lista); x.heroe.critico = 0; return torre.actuar(x, "atacar")[0]; };
+    const [uno, doble] = [ataqueSimple([]), ataqueSimple(["embestida"])];
+    igual([doble.doble, doble.dano], [true, uno.dano + Math.round(uno.dano / 2)]);
+    // Arcano: el punto débil hace ×2,2 (el murciélago es débil al rayo).
+    cierto(Math.abs((() => { const x = torreCon(["arcano"]); x.heroe.critico = 0; return torre.actuar(x, "hechizo", "rayo")[0].dano; })()
+                    - (() => { const x = torreCon([]); x.heroe.critico = 0; return torre.actuar(x, "hechizo", "rayo")[0].dano; })() * 2.2 / 1.5) <= 1, "arcano");
+    // Gracia: una vez por piso, un golpe mortal te deja con el 40 % de tu vida.
+    p = torreCon(["gracia"]);
+    p.enemigo.vida = 999;
+    p.heroe.vida = 1;
+    p.enemigo.intencion = "fuerte";
+    const eventos = torre.actuar(p, "atacar");
+    cierto(eventos.some((e) => e.habilidad === "gracia") && p.fase === "batalla", "te salvó");
+    igual(p.heroe.vida, Math.round(p.heroe.vidaMax * 0.4));
+    p.heroe.vida = 1;
+    p.enemigo.intencion = "fuerte";
+    torre.actuar(p, "atacar");
+    igual(p.fase, "fin", "la segunda vez en el mismo piso, no");
+    // Escamas: le devuelves la mitad, y eso también puede derribarlo.
+    p = torreCon(["escamas"]);
+    p.enemigo.vida = 3;
+    p.enemigo.intencion = "fuerte";
+    const turno = torre.actuar(p, "defender");
+    const suGolpe = turno.find((e) => e.quien === "enemigo" && e.dano);
+    igual(suGolpe.reflejo, Math.round(suGolpe.dano / 2));
+    igual(p.fase, "mejora", "lo derribaron tus escamas");
+    // Gloria: 40 % más de vida máxima y una poción extra.
+    const conGloria = torre.heroeDeLaTorre(NIVELES_1, { habilidades: ["gloria"] });
+    igual([conGloria.vidaMax, conGloria.pociones], [Math.round(torre.heroeDeLaTorre(NIVELES_1).vidaMax * 1.4), torre.heroeDeLaTorre(NIVELES_1).pociones + 1]);
+});
+
+prueba("Mascotas: se adoptan en la Tienda, llegan como huevo, crecen desde ese día y se elige cuál acompaña", () => {
+    const estado = partidaNueva();
+    igual([mascota.especieActiva(estado), mascota.mascotasTuyas(estado)], ["dragon", ["dragon"]]);
+    debeFallar(() => acciones.comprarMascota(estado, "dragon"), "no se vende");
+    debeFallar(() => acciones.comprarMascota(estado, "fenix"), "Te faltan");
+    acciones.ganar(estado, { monedas: 500 });
+    const leer = crearMision(estado);
+    marcarEn(estado, leer, dia(-1));                            // una misión de ayer: cuenta para el dragón
+    const antes = jugar(estado, () => acciones.comprarMascota(estado, "buho"));
+    igual([estado.personaje.monedas, mascota.especieActiva(estado)], [500 + 10 - mascota.MASCOTAS.buho.precio, "buho"]);
+    debeFallar(() => acciones.comprarMascota(estado, "buho"), "ya es tuya");
+    igual([mascota.totalDe(estado, "dragon"), mascota.totalDe(estado, "buho")], [1, 0], "el búho crece desde hoy");
+    let a = avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy()));
+    igual([a.mascota.especie, a.mascota.nombre, a.mascota.etapa.clave], ["buho", "Búho", "huevo"]);
+    acciones.nombrarMascota(estado, "Sabio");
+    igual([mascota.nombreDe(estado, "buho"), mascota.nombreDe(estado, "dragon")], ["Sabio", "Chispa"], "renombra a la que te acompaña");
+    acciones.elegirMascota(estado, "dragon");
+    igual(mascota.especieActiva(estado), "dragon");
+    debeFallar(() => acciones.elegirMascota(estado, "grifo"), "Todavía no");
+    cierto(Array.isArray(antes), "se puede revisar lo que cambió");
+    // Al eclosionar (10 misiones desde que lo adoptaste), avisa con su nombre.
+    for (let i = 0; i < 9; i++) estado.completadas.push({ misionId: 999, fecha: hoy(), xp: 0, monedas: 0, atributo: "intelecto", dificultad: "facil" });
+    const celebraciones = jugar(estado, () => estado.completadas.push({ misionId: 998, fecha: hoy(), xp: 0, monedas: 0, atributo: "intelecto", dificultad: "facil" }));
+    cierto(celebraciones.some((c) => c.etiqueta === "¡El huevo eclosionó!" && c.titulo === "Sabio"), "el búho eclosiona");
+    a = avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy()));
+    igual(a.mascota.especie, "dragon", "eclosionó aunque no te acompañara");
+    // Una copia de antes de la v26: el dragón de siempre, sin adoptadas.
+    const vieja = JSON.parse(datos.textoRespaldo(partidaNueva()));
+    vieja.mascota = { nombre: "Humo", comidas: [] };
+    const copia = datos.desdeRespaldo(JSON.stringify(vieja));
+    igual([copia.mascota.nombre, copia.mascota.activa, copia.mascota.adoptadas], ["Humo", "dragon", {}]);
+});
+
+prueba("Mascotas en la Torre: el huevo no pelea, la cría actúa más lento, comer da 20 % y triste no pelea", () => {
+    const estado = partidaNueva();
+    const m = { especie: "dragon", nombre: "Chispa", etapa: avatar.ETAPAS_MASCOTA[2], total: 60, triste: false };
+    igual(mascota.mascotaDeBatalla(estado, m, hoy()).potencia, 1, "adulta: 100 %");
+    estado.mascota.comidas.push(hoy());
+    igual(mascota.mascotaDeBatalla(estado, m, hoy()).potencia, 1.2, "comió hoy: 120 %");
+    igual(mascota.mascotaDeBatalla(estado, { ...m, triste: true }, hoy()).potencia, 0, "triste: no pelea");
+    igual(mascota.potenciaDe("cria"), 0.6);
+    igual(mascota.potenciaDe("huevo"), 0);
+
+    // El dragón adulto escupe fuego cada 3 turnos (y el bestiario aprende que el esqueleto es débil al fuego).
+    let p = torreCon([], 2, adulta("dragon"));
+    p.enemigo.vida = 999;
+    const turnos = [1, 2, 3].map(() => torre.actuar(p, "defender").find((e) => e.quien === "mascota"));
+    igual(turnos.map((e) => e?.tipo || null), [null, null, "ataque"]);
+    igual([turnos[2].elemento, turnos[2].efecto], ["fuego", "debil"]);
+    // La cría, cada 4.
+    p = torreCon([], 2, adulta("dragon", { etapa: "cria", potencia: 0.6 }));
+    p.enemigo.vida = 999;
+    igual([1, 2, 3, 4].map(() => Boolean(torre.actuar(p, "defender").find((e) => e.quien === "mascota"))), [false, false, false, true]);
+    // El huevo, nunca.
+    p = torreCon([], 2, adulta("dragon", { etapa: "huevo", potencia: 0 }));
+    p.enemigo.vida = 999;
+    cierto([1, 2, 3, 4, 5, 6].every(() => !torre.actuar(p, "defender").some((e) => e.quien === "mascota")), "el huevo no pelea");
+
+    // En la partida de verdad, el bestiario aprende del aliento del dragón.
+    const conDragon = partidaNueva();
+    acciones.empezarTorre(conDragon, 3);
+    const t = conDragon.arcade.torre;
+    t.mascota = adulta("dragon");
+    t.turno = 2;
+    t.enemigo.vida = 999;
+    acciones.accionTorre(conDragon, "defender");
+    igual(bestiario.loQueSabes(conDragon.arcade.bestiario, "murcielago", "fuego"), "normal", "lo aprendió el dragón");
+});
+
+prueba("Mascotas en la Torre: el búho devuelve hechizos, el basilisco petrifica y el fénix cura y te levanta una vez", () => {
+    let p = torreCon([], 1, adulta("buho"));
+    p.enemigo.vida = 999;
+    p.heroe.mana = 0;
+    torre.actuar(p, "defender");
+    torre.actuar(p, "defender");
+    igual(p.heroe.mana, 0);
+    torre.actuar(p, "defender");
+    igual(p.heroe.mana, 1, "al tercer turno, un hechizo");
+
+    p = torreCon([], 3, adulta("basilisco"));
+    p.enemigo.vida = 999;
+    p.turno = 3;
+    p.heroe.vida = p.heroe.vidaMax;
+    p.enemigo.intencion = "fuerte";
+    const eventos = torre.actuar(p, "atacar");
+    cierto(eventos.some((e) => e.tipo === "petrificar") && eventos.some((e) => e.tipo === "petrificada"), "queda de piedra");
+    igual([p.heroe.vida, p.enemigo.intencion], [p.heroe.vidaMax, "fuerte"], "pierde el turno y guarda su golpe");
+
+    p = torreCon([], 1, adulta("fenix"));
+    p.enemigo.vida = 999;
+    p.heroe.vida = 10;
+    const llama = torre.actuar(p, "atacar").find((e) => e.quien === "mascota");
+    igual([llama?.tipo, llama?.cura], ["cura", Math.round(p.heroe.vidaMax * 0.04)], "la llama vital cura cada turno");
+    p.heroe.vida = 1;
+    p.enemigo.intencion = "fuerte";
+    const cae = torre.actuar(p, "atacar");
+    cierto(cae.some((e) => e.tipo === "renacer") && p.fase === "batalla", "renace");
+    igual(p.heroe.vida > p.heroe.vidaMax * 0.4, true);
+    p.heroe.vida = 1;
+    p.enemigo.intencion = "fuerte";
+    p.heroe.proteccion = 0;
+    torre.actuar(p, "atacar");
+    igual(p.fase, "fin", "solo una vez por subida");
+});
+
+prueba("Reino: las guaridas son de los jefes de cada campaña, se liberan al vencerlos y abren la fortaleza", () => {
+    igual([7, 12, 17, 22].map((n) => mapa.tipoDeLugar(n, 0)), ["guarida", "guarida", "guarida", "guarida"]);
+    igual(mapa.tipoDeLugar(7, 5), "memorial", "en la Ciudadela, memoriales");
+    igual(mapa.tipoDeLugar(7, 6), "guarida", "y en la segunda vuelta, guaridas otra vez");
+    const estado = partidaNueva();
+    let campanas = campana.estadoCampanas(estado);
+    const valle = mapa.senoresDeRegion(0, campanas);
+    igual(valle.map((s) => s.jefe.id), ["lobo", "medusa", "narciso", "recaudadores"]);
+    igual(mapa.senoresDeRegion(1, campanas).map((s) => s.jefe.id).sort(), ["cerbero", "minotauro", "pluton", "sirenas"]);
+    igual(mapa.senoresDeRegion(6, campanas)[0].numero, 5, "Valle II: los jefes de la ronda 2");
+    igual(valle.map((s) => [s.liberada, s.actual]), [[false, true], [false, true], [false, true], [false, true]]);
+
+    // 30 lecturas (Intelecto): 7 lugares y Medusa cae (pero el Lobo no).
+    const leer = crearMision(estado);
+    envejecer(estado, 29);
+    for (let n = -29; n <= 0; n++) marcarEn(estado, leer, dia(n));
+    campanas = campana.estadoCampanas(estado);
+    const medusa = mapa.senoresDeRegion(0, campanas).find((s) => s.jefe.id === "medusa");
+    igual([medusa.n, medusa.liberada], [12, true]);
+    igual(mapa.lugaresPorReclamar(estado).map((l) => l.id), ["r1-5"], "la guarida del Lobo (lugar 7) no tiene botín: sigue en pie");
+    for (let n = 0; n < 24; n++) estado.tareas.push({ id: 900 + n, nombre: "x", hechaEn: hoy(), premio: null });   // 54 pasos: lugar 13
+    igual(mapa.lugaresPorReclamar(estado).map((l) => l.id), ["r1-5", "r1-10", "r1-12"]);
+    const xp = estado.atributos.intelecto;
+    acciones.reclamarLugar(estado, "r1-12");
+    igual(estado.atributos.intelecto - xp, mapa.LUGARES.guarida.premio.xp, "el botín de la guarida es de su campaña");
+    debeFallar(() => acciones.reclamarLugar(estado, "r1-7"), "sigue en pie");
+
+    // La fortaleza: aunque llegues, se abre cuando caen los cuatro.
+    for (let n = 0; n < 50; n++) estado.tareas.push({ id: 950 + n, nombre: "x", hechaEn: hoy(), premio: null });   // lugar 26
+    cierto(!mapa.lugaresPorReclamar(estado).some((l) => l.id === "r1-25"), "fortaleza cerrada");
+    for (const atributo of ["fuerza", "carisma", "riqueza"]) {
+        const m = crearMision(estado, { atributo, dificultad: "dificil" });
+        for (let n = -5; n <= 0; n++) marcarEn(estado, m, dia(n));                       // 6 × 15 = 90 > 80
+    }
+    campanas = campana.estadoCampanas(estado);
+    cierto(mapa.regionLiberada(0, campanas), "los cuatro cayeron");
+    cierto(mapa.lugaresPorReclamar(estado).some((l) => l.id === "r1-25"), "fortaleza abierta");
+    const dibujo = mapa.datosParaDibujar(estado, 0, campanas);
+    igual([dibujo.alcanzado, dibujo.regionLibre, dibujo.lugares[12].reclamado, dibujo.lugares[7].libre], [25, true, true, true]);
+    const reino = mapa.resumenDelReino(estado, campanas);
+    igual([reino.length, reino[0].liberada, reino[1].pisada, reino[2].pisada], [6, true, true, false]);
+});
+
+prueba("Crónica: el prólogo con tu nombre, un capítulo por región y un párrafo por cada señor que cae", () => {
+    const estado = partidaNueva();
+    let capitulos = cronica.capitulosDeLaCronica(estado, campana.estadoCampanas(estado), { heroe: "Aria", dragon: "Chispa" });
+    igual(capitulos.map((c) => c.numero), ["Prólogo", "I", "II", "III", "IV", "V", "VI"]);
+    cierto(capitulos[0].parrafos.some((p) => p.texto.includes("Aria") && p.texto.includes("Chispa")), "con tu nombre y el de tu dragón");
+    igual(capitulos.filter((c) => c.abierto).length, 2, "el prólogo y el valle");
+    cierto(capitulos[2].bloqueado.includes("El Bosque de las Dudas"), "lo que falta, cerrado");
+    cierto(capitulos[1].parrafos.filter((p) => p.tipo === "pendiente").length === 4, "los cuatro señores todavía gobiernan");
+    cierto(capitulos[1].parrafos.some((p) => p.texto.startsWith("Los Recaudadores") && p.texto.includes("gobiernan")), "plural: «gobiernan»");
+    const leer = crearMision(estado);
+    for (let n = -9; n <= 0; n++) marcarEn(estado, leer, dia(n));                         // 80 de daño: cae Medusa
+    capitulos = cronica.capitulosDeLaCronica(estado, campana.estadoCampanas(estado), { heroe: "Aria", dragon: "Chispa" });
+    const caida = capitulos[1].parrafos.find((p) => p.tipo === "caida");
+    cierto(caida && caida.texto.startsWith("Medusa"), "el párrafo de Medusa");
+    cierto(capitulos.every((c) => c.parrafos.every((p) => !/undefined|NaN|\{n\}|\{m\}/.test(p.texto))), "sin huecos");
+});
+
+prueba("Dibujo: las 7 mascotas en sus 3 etapas y los mapas de las 6 regiones son SVG válidos", () => {
+    const valido = (svg, que) => {
+        dibujoSano(svg.trim(), que);
+        cierto(!new DOMParser().parseFromString(svg, "image/svg+xml").querySelector("parsererror"), `${que} se puede leer como imagen`);
+    };
+    for (const especie of Object.keys(mascota.MASCOTAS)) {
+        for (const etapa of avatar.ETAPAS_MASCOTA) {
+            for (const triste of [false, true]) valido(dibujarMascota({ especie, nombre: especie, etapa, total: 0, triste }), `${especie} ${etapa.clave}`);
+        }
+    }
+    const estado = partidaNueva();
+    const campanas = campana.estadoCampanas(estado);
+    for (let region = 0; region < 7; region++) {
+        valido(dibujarMapa({ ...mapa.datosParaDibujar(estado, region, campanas), alcanzado: 9 }), `mapa de la región ${region + 1}`);
+    }
+});
+
+prueba("Pantallas: el reino, la tienda de mascotas y la Torre con mascota y habilidades se dibujan sin huecos", async () => {
+    const estado = partidaDemo();
+    estado.mascota.adoptadas.grifo = { nombre: "Garra", desde: hoy() };
+    equipar(estado, "corona-dragon", "lanza-dragon");
+    const ctx = { vida: vida.calcularVida(estado, hoy()), avatar: avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())),
+                  info: juego.resumen(estado, hoy()), hoy: hoy(), evento: null, regionMapa: null };
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    let html = vistas.pantallaMapa(estado, ctx);
+    sano(html, "el reino");
+    cierto(html.includes("Crónica del reino") && html.includes("mapa-imagen") && html.includes("data-accion=\"mapa-senor\""), "las partes del reino");
+    html = vistas.pantallaTienda(estado, ctx);
+    sano(html, "la tienda");
+    cierto(html.includes("data-accion=\"comprar-mascota\" data-especie=\"fenix\"") && html.includes("Ojo del dragón"), "mascotas y habilidades en la tienda");
+    sano(vistas.pantallaPersonaje(estado, ctx), "el personaje");
+    sano(vistas.pantallaArcade(estado, ctx), "el arcade");
+
+    // La Torre: con el «Ojo del dragón» el menú de magia ya sabe el punto débil.
+    acciones.empezarTorre(estado, 7);
+    estado.arcade.torre.mascota = adulta("grifo", { nombre: "Garra" });
+    const t = { partida: estado.arcade.torre, nombre: "Aria", sprites: { heroe: "", enemigo: "", sala: "", mascota: "x" }, eventos: [],
+                menu: "magia", ultimo: "fuego", bestiario: {}, resultado: null, fichas: 1 };
+    html = vistas.pantallaTorre(t);
+    sano(html, "la Torre");
+    cierto(html.includes("¡punto débil!") && html.includes("ff-mascota"), "punto débil revelado y la mascota en la escena");
+    estado.arcade.torre.turno = 1;
+    estado.arcade.torre.enemigo.vida = 999;
+    const { eventos } = acciones.accionTorre(estado, "atacar");
+    html = vistas.pantallaTorre({ ...t, menu: "principal", eventos });
+    sano(html, "el turno con mascota");
+    cierto(html.includes("ff-garra") && html.includes("Garras"), "el ataque del grifo se anima");
+
+    // La imagen del mapa en pixel art.
+    const imagen = await sprites.spriteDeMapa(mapa.datosParaDibujar(estado, 0, campana.estadoCampanas(estado)));
+    cierto(imagen.startsWith("data:image/png"), "el mapa en pixel art");
+});
+
+
 // ===== Más profesional (v15) =====
 
 prueba("Momento del día: se guarda, se valida y Hoy agrupa mañana, tarde, noche y el resto", () => {
@@ -1355,7 +1704,9 @@ prueba("Equipo en la Torre: suma ataque, magia y suerte, y tu armadura para part
     // La partida de verdad empieza con lo que llevas puesto y la armadura que tienes ahora.
     const estado = partidaNueva();
     equipar(estado, "mandoble", "casco");
-    igual(acciones.equipoDeBatalla(estado), { armadura: 27, ataque: 7, magia: 0, suerte: 0 });
+    const deBatalla = acciones.equipoDeBatalla(estado);
+    igual([deBatalla.armadura, deBatalla.ataque, deBatalla.magia, deBatalla.suerte], [27, 7, 0, 0]);
+    igual(deBatalla.habilidades, ["firme", "juramento"], "y las habilidades del casco y del mandoble");
     acciones.empezarTorre(estado, 5);
     igual([estado.arcade.torre.heroe.ataque, estado.arcade.torre.heroe.proteccion], [15, 27 / 200]);
 });
@@ -1483,20 +1834,21 @@ prueba("Cofre del día: las fichas suman al arcade y la poción cura", () => {
     igual(vida.calcularVida(conPocion, hoy()).puntos, antes + cofre.CURA_POCION);
 });
 
-prueba("Mapa del viaje: cada 4 pasos un lugar; tesoros, santuarios y fortaleza se reclaman una vez", () => {
+prueba("Mapa del reino: cada 4 pasos un lugar; tesoros y santuarios se reclaman una vez", () => {
     const estado = partidaNueva();
     const leer = crearMision(estado);
     envejecer(estado, 29);
     for (let n = -29; n <= 0; n++) marcarEn(estado, leer, dia(n));           // 30 pasos
     const pos = mapa.posicion(estado);
     igual([pos.pasos, pos.lugar, pos.region, pos.enRegion, pos.hastaSiguiente], [30, 7, 0, 7, 2]);
-    igual([5, 10, 25, 7].map(mapa.tipoDeLugar), ["tesoro", "santuario", "fortaleza", "camino"]);
+    igual([5, 10, 25, 7, 8].map((n) => mapa.tipoDeLugar(n)), ["tesoro", "santuario", "fortaleza", "guarida", "camino"]);
     igual(mapa.lugaresPorReclamar(estado).map((l) => l.id), ["r1-5"]);
     const monedas = estado.personaje.monedas;
     acciones.reclamarLugar(estado, "r1-5");
     igual(estado.personaje.monedas - monedas, mapa.LUGARES.tesoro.premio.monedas);
     debeFallar(() => acciones.reclamarLugar(estado, "r1-5"), "ya lo reclamaste");
     debeFallar(() => acciones.reclamarLugar(estado, "r1-10"), "todavía no");
+    debeFallar(() => acciones.reclamarLugar(estado, "r1-7"), "sigue en pie");
     igual(mapa.nombreRegion(6), "El Valle del Comienzo II");
 
     const otra = partidaNueva();                                               // 44 pasos: lugar 11

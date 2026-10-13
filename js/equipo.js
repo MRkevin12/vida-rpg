@@ -9,6 +9,7 @@
 // Como juego.js, este archivo no dibuja ni guarda nada: solo calcula.
 
 import { OBJETOS, etapaDeNivel } from "./avatar.js";
+import { HABILIDADES } from "./habilidades.js";
 import { calcularNivel } from "./juego.js";
 
 export const PODERES = {
@@ -52,6 +53,11 @@ export function poderDelEquipo(estado) {
         for (const [clave, valor] of Object.entries(OBJETOS[id].poder || {})) poder[clave] += valor;
     }
     return poder;
+}
+
+// Las habilidades de la Torre de lo que llevas puesto (v26): ["firme", "gracia", …].
+export function habilidadesDelEquipo(estado) {
+    return objetosPuestos(estado).map((id) => OBJETOS[id].habilidad).filter((clave) => HABILIDADES[clave]);
 }
 
 // La armadura de tu ropa (según tu etapa) + la de tus objetos, hasta 100.

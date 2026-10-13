@@ -16,11 +16,17 @@
 // Y de tu EQUIPO (v24, ver equipo.js): ⚔️ ataque, 🔮 magia (hechizos), 🍀 suerte (críticos)
 // y 🛡️ armadura (cada golpe del monstruo te quita menos).
 //
+// v26: lo épico y legendario que llevas puesto suma HABILIDADES especiales (ver habilidades.js:
+// esquivar, resistir con 1 de vida, golpear dos veces…), y tu MASCOTA pelea a tu lado
+// (ver mascota.js: ataca, te devuelve hechizos, petrifica o te cura, según la especie).
+//
 // Como todo lo que es "juego puro", este archivo no dibuja ni guarda nada: recibe la
 // partida (un objeto) y la cambia. La partida se guarda en estado.arcade.torre,
 // así puedes salir y seguir después.
 
 import { CRIATURAS, ELEMENTOS, ORDEN, PISOS_POR_ZONA, idDelPiso, vueltaDelPiso, zonaDelPiso, factorElemento } from "./bestiario.js";
+import { HABILIDADES, ESQUIVAR_MAXIMO, tiene } from "./habilidades.js";
+import { MASCOTAS } from "./mascota.js";
 
 export const ATRIBUTO = "carisma";                       // el premio sube Carisma
 export const PREMIO = { monedasPorPiso: 3, xpPorPiso: 5, maxMonedas: 40, maxXp: 60 };
@@ -85,12 +91,15 @@ function elegir(partida, lista) {
 // ===== El héroe =====
 
 // niveles = { fuerza, intelecto, carisma, riqueza } (los niveles de tus atributos, 1 o más)
-// equipo = { ataque, magia, suerte, armadura } (lo que suma tu equipo; la armadura, la que tienes ahora)
+// equipo = { ataque, magia, suerte, armadura, habilidades } (lo que suma tu equipo; la armadura,
+// la que tienes ahora; habilidades, las de tus objetos épicos y legendarios)
 export function heroeDeLaTorre(niveles, equipo = {}) {
     const { ataque = 0, magia = 0, suerte = 0, armadura = 0 } = equipo;
-    const vidaMax = 40 + 6 * niveles.fuerza + 4 * niveles.carisma;
-    const mana = 2 + Math.floor(niveles.intelecto / 3) + (magia >= 8 ? 1 : 0);
-    const pociones = 1 + Math.floor(niveles.riqueza / 2);
+    const habilidades = (equipo.habilidades || []).filter((clave) => HABILIDADES[clave]);
+    const gloria = habilidades.includes("gloria");
+    const vidaMax = Math.round((40 + 6 * niveles.fuerza + 4 * niveles.carisma) * (gloria ? 1 + HABILIDADES.gloria.vida : 1));
+    const mana = 2 + Math.floor(niveles.intelecto / 3) + (magia >= 8 ? 1 : 0) + (habilidades.includes("estrellas") ? HABILIDADES.estrellas.mana : 0);
+    const pociones = 1 + Math.floor(niveles.riqueza / 2) + (gloria ? 1 : 0);
     return {
         vida: vidaMax,
         vidaMax,
@@ -104,7 +113,13 @@ export function heroeDeLaTorre(niveles, equipo = {}) {
         critico: Math.min(0.4, Math.min(0.3, 0.08 + niveles.riqueza * 0.02) + suerte / 100),
         proteccion: Math.min(0.4, armadura / 200),   // parte de cada golpe que para tu armadura (máx. 40 %)
         defendiendo: false,
+        habilidades,
+        enEstePiso: pisoNuevo(),   // lo que ya pasó en este piso (para «Firme», «Ímpetu» y «Gracia»)
     };
+}
+
+function pisoNuevo() {
+    return { golpeado: false, atacado: false, gracia: false };
 }
 
 // Cuánto te quita un golpe del monstruo (tu armadura y, si te defiendes, tu escudo lo bajan).
@@ -171,6 +186,7 @@ export function textoIntencion(m, h = null) {
 
 // proporcion: con cuánta vida subes (1 = llena). Sale de tu vida real (ver vida.js):
 // si llegas herido, empiezas con menos.
+// equipo.mascota (opcional): la mascota que te acompaña (ver mascotaDeBatalla en mascota.js).
 export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporcion = 1, equipo = {}) {
     const heroe = heroeDeLaTorre(niveles, equipo);
     heroe.vida = Math.max(1, Math.round(heroe.vidaMax * proporcion));
@@ -180,7 +196,10 @@ export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporc
         fase: "batalla",          // "batalla" | "mejora" (elegir premio) | "fin"
         heroe,
         enemigo: monstruoDelPiso(1),
-        opciones: [],             // las 3 mejoras para elegir
+        mascota: equipo.mascota && MASCOTAS[equipo.mascota.especie] ? { ...equipo.mascota } : null,
+        turno: 0,                 // cuántas acciones llevas (la mascota actúa cada tantos turnos)
+        renacio: false,           // si el fénix ya te levantó en esta subida
+        opciones: [],             // las mejoras para elegir (3, o 4 con «Constancia»)
         registro: heroe.vida < heroe.vidaMax
             ? `Piso 1. Llegas con el ${Math.round(proporcion * 100)} % de tu vida real. ¡Cuidado!`
             : "Piso 1. ¡Que empiece la subida!",
@@ -206,11 +225,12 @@ export function pisosSuperados(partida) {
     return partida.piso - 1;
 }
 
-// Una acción del héroe y la respuesta del monstruo.
+// Una acción del héroe, la de su mascota y la respuesta del monstruo.
 // accion: "atacar" | "hechizo" | "defender" | "pocion". Con "hechizo", elemento dice cuál:
 // "fuego", "hielo" o "rayo".
 // Devuelve lo que pasó (para las animaciones y los sonidos):
-//   [{ quien, tipo, dano, critico, elemento, efecto ("debil" | "resiste" | null), cura, nombre }]
+//   [{ quien ("heroe" | "mascota" | "enemigo"), tipo, dano, critico, doble, elemento,
+//      efecto ("debil" | "resiste" | null), cura, nombre, esquivado, reflejo, habilidad }]
 export function actuar(partida, accion, elemento = null) {
     if (partida.fase !== "batalla") throw new Error("Ahora no estás en una batalla.");
     const h = partida.heroe;
@@ -223,60 +243,97 @@ export function actuar(partida, accion, elemento = null) {
         if (h.mana < 1) throw new Error("No te quedan hechizos en este piso.");
         if (!ELEMENTOS[elemento]) throw new Error("Elige un hechizo: fuego, hielo o rayo.");
     }
+    if (!["atacar", "hechizo", "defender", "pocion"].includes(accion)) throw new Error("Esa acción no existe.");
+    if (accion === "pocion" && h.pociones < 1) throw new Error("No te quedan pociones.");
+    h.enEstePiso ||= pisoNuevo();   // (las partidas de antes de la v26 no lo tenían)
+    const piso = h.enEstePiso;
+    partida.turno = (partida.turno || 0) + 1;
     h.defendiendo = false;
     if (accion === "atacar" || accion === "hechizo") {
         const magia = accion === "hechizo";
         // El punto débil de la criatura multiplica el daño del hechizo; lo que resiste, lo divide.
-        const factor = magia ? factorElemento(CRIATURAS[m.id] || {}, elemento) : 1;
+        let factor = magia ? factorElemento(CRIATURAS[m.id] || {}, elemento) : 1;
         const efecto = factor > 1 ? "debil" : factor < 1 ? "resiste" : null;
+        if (efecto === "debil" && tiene(h, "arcano")) factor = HABILIDADES.arcano.debil;
         const base = magia ? h.hechizo : h.ataque;
         const variacion = magia ? 0.9 + azar(partida) * 0.2 : 0.85 + azar(partida) * 0.3;
-        const critico = azar(partida) < h.critico;
-        const dano = Math.max(1, Math.round(base * variacion * (critico ? 1.8 : 1) * factor));
+        const azarCritico = azar(partida);
+        const critico = (tiene(h, "impetu") && !piso.atacado) || azarCritico < h.critico;
+        const multiplicaCritico = tiene(h, "desgarro") ? HABILIDADES.desgarro.critico : 1.8;
+        const extra = factorDeDano(h, m) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1);
+        let dano = Math.max(1, Math.round(base * variacion * (critico ? multiplicaCritico : 1) * factor * extra));
+        // «Embestida»: el golpe va dos veces (el segundo hace la mitad).
+        const doble = !magia && tiene(h, "embestida");
+        if (doble) dano += Math.max(1, Math.round(dano * HABILIDADES.embestida.segundo));
         if (magia) h.mana -= 1;
+        piso.atacado = true;
         m.vida = Math.max(0, m.vida - dano);
+        // «Sed del vencedor»: tus golpes y hechizos te curan.
+        const cura = tiene(h, "sed") ? Math.min(Math.round(dano * HABILIDADES.sed.robo), h.vidaMax - h.vida) : 0;
+        h.vida += cura;
         eventos.push(magia
-            ? { quien: "heroe", tipo: "hechizo", elemento, efecto, dano, critico }
-            : { quien: "heroe", tipo: "atacar", dano, critico });
-        const que = magia ? `Tu hechizo de ${ELEMENTOS[elemento].nombre.toLowerCase()}` : "Tu golpe";
+            ? { quien: "heroe", tipo: "hechizo", elemento, efecto, dano, critico, cura }
+            : { quien: "heroe", tipo: "atacar", dano, critico, doble, cura });
+        const que = magia ? `Tu hechizo de ${ELEMENTOS[elemento].nombre.toLowerCase()}` : doble ? "Tu doble golpe" : "Tu golpe";
         frases.push(`${que} le quita ${dano} ${alMonstruo(m)}${critico ? " (¡crítico!)" : ""}.` +
-                    (efecto === "debil" ? " ¡Es su punto débil!" : efecto === "resiste" ? " Lo resiste: casi no le duele." : ""));
+                    (efecto === "debil" ? " ¡Es su punto débil!" : efecto === "resiste" ? " Lo resiste: casi no le duele." : "") +
+                    (cura ? ` Recuperas ${cura}.` : ""));
     } else if (accion === "defender") {
         h.defendiendo = true;
-        const cura = Math.min(h.curaDefensa, h.vidaMax - h.vida);
+        const curaBase = h.curaDefensa * (tiene(h, "bastion") ? HABILIDADES.bastion.cura : 1);
+        const cura = Math.min(curaBase, h.vidaMax - h.vida);
         h.vida += cura;
         eventos.push({ quien: "heroe", tipo: "defender", cura });
         frases.push(`Te cubres${cura ? ` y recuperas ${cura}` : ""}.`);
     } else if (accion === "pocion") {
-        if (h.pociones < 1) throw new Error("No te quedan pociones.");
         h.pociones -= 1;
         const cura = Math.min(Math.round(h.vidaMax * 0.35), h.vidaMax - h.vida);
         h.vida += cura;
         eventos.push({ quien: "heroe", tipo: "pocion", cura });
         frases.push(`Bebes una poción: +${cura} de vida.`);
-    } else {
-        throw new Error("Esa acción no existe.");
+    }
+
+    // --- Tu mascota ---
+    const suyo = actuaMascota(partida);
+    if (suyo) {
+        eventos.push(suyo.evento);
+        frases.push(suyo.frase);
     }
 
     // --- ¿Cayó el monstruo? ---
-    if (m.vida <= 0) {
-        frases.push(`¡${conMayuscula(elMonstruo(m))} cae! Piso ${partida.piso} superado.`);
-        partida.fase = "mejora";
-        partida.opciones = tresMejoras(partida);
-        partida.registro = frases.join(" ");
-        eventos.push({ quien: "enemigo", tipo: "derrotado" });
-        return eventos;
-    }
+    if (m.vida <= 0) return vencer(partida, eventos, frases);
 
     // --- Turno del monstruo ---
     const intencion = m.intencion;
     const sujeto = conMayuscula(elMonstruo(m));
+    if (m.petrificada) {
+        // La mirada del basilisco: pierde este turno (y guarda lo que planeaba para el próximo).
+        m.petrificada = false;
+        eventos.push({ quien: "enemigo", tipo: "petrificada", nombre: "De piedra" });
+        frases.push(`${sujeto} sigue de piedra: pierde su turno.`);
+        partida.registro = frases.join(" ");
+        return eventos;
+    }
     if (intencion === "golpe" || intencion === "fuerte") {
-        const dano = danoRecibido(h, danoPrevisto(m));
         const nombre = nombreDelAtaque(m);
-        h.vida = Math.max(0, h.vida - dano);
-        eventos.push({ quien: "enemigo", tipo: intencion, dano, nombre });
-        frases.push(`${sujeto} usa «${nombre}»: −${dano}${h.defendiendo ? " (bloqueaste parte)" : ""}.`);
+        // «Sombra»: puedes esquivarlo del todo.
+        const esquivar = Math.min(ESQUIVAR_MAXIMO, tiene(h, "sombra") ? HABILIDADES.sombra.esquivar : 0);
+        if (esquivar && azar(partida) < esquivar) {
+            eventos.push({ quien: "enemigo", tipo: intencion, dano: 0, nombre, esquivado: true });
+            frases.push(`${sujeto} usa «${nombre}», pero lo esquivas.`);
+        } else {
+            let dano = danoRecibido(h, danoPrevisto(m));
+            if (tiene(h, "firme") && !piso.golpeado) dano = 0;   // «Firme»: el primero no duele
+            piso.golpeado = true;
+            h.vida = Math.max(0, h.vida - dano);
+            // «Escamas»: le devuelves parte del golpe.
+            const reflejo = tiene(h, "escamas") ? Math.round(dano * HABILIDADES.escamas.reflejo) : 0;
+            m.vida = Math.max(0, m.vida - reflejo);
+            eventos.push({ quien: "enemigo", tipo: intencion, dano, nombre, reflejo });
+            frases.push(`${sujeto} usa «${nombre}»: −${dano}${h.defendiendo ? " (bloqueaste parte)" : ""}.` +
+                        (reflejo ? ` Tus escamas le devuelven ${reflejo}.` : ""));
+            salvarDeLaCaida(partida, eventos, frases);
+        }
     } else if (intencion === "furia") {
         m.ataque = Math.round(m.ataque * 1.25);
         eventos.push({ quien: "enemigo", tipo: "furia", nombre: "Furia" });
@@ -291,6 +348,8 @@ export function actuar(partida, accion, elemento = null) {
     if (h.vida <= 0) {
         partida.fase = "fin";
         frases.push(`Caíste en el piso ${partida.piso}.`);
+    } else if (m.vida <= 0) {
+        return vencer(partida, eventos, frases);   // lo derribaron tus escamas
     } else {
         m.intencion = nuevaIntencion(partida);
     }
@@ -298,11 +357,93 @@ export function actuar(partida, accion, elemento = null) {
     return eventos;
 }
 
-// Tres mejoras distintas al azar.
-function tresMejoras(partida) {
+// El monstruo cayó: se acaba el piso y toca elegir la mejora.
+function vencer(partida, eventos, frases) {
+    frases.push(`¡${conMayuscula(elMonstruo(partida.enemigo))} cae! Piso ${partida.piso} superado.`);
+    partida.fase = "mejora";
+    partida.opciones = mejorasAlAzar(partida);
+    partida.registro = frases.join(" ");
+    eventos.push({ quien: "enemigo", tipo: "derrotado" });
+    return eventos;
+}
+
+// Lo que multiplica tu daño según tus habilidades: «Valor» (con poca vida) y «Juramento» (contra guardianes).
+function factorDeDano(h, m) {
+    let factor = 1;
+    if (tiene(h, "valor") && h.vida < h.vidaMax * HABILIDADES.valor.umbral) factor *= HABILIDADES.valor.extra;
+    if (tiene(h, "juramento") && m.guardian) factor *= HABILIDADES.juramento.guardianes;
+    return factor;
+}
+
+// Si un golpe te dejó en 0: «Gracia» (una vez por piso) o el fénix (una vez por subida) te levantan.
+function salvarDeLaCaida(partida, eventos, frases) {
+    const h = partida.heroe;
+    if (h.vida > 0) return;
+    if (tiene(h, "gracia") && !h.enEstePiso.gracia) {
+        h.enEstePiso.gracia = true;
+        h.vida = Math.max(1, Math.round(h.vidaMax * HABILIDADES.gracia.vida));
+        eventos.push({ quien: "heroe", tipo: "habilidad", habilidad: "gracia", nombre: HABILIDADES.gracia.nombre, cura: h.vida });
+        frases.push(`«Gracia»: una luz te sostiene y quedas con ${h.vida} de vida.`);
+        return;
+    }
+    const pet = partida.mascota;
+    const datos = pet && MASCOTAS[pet.especie]?.torre;
+    if (datos?.tipo === "fenix" && pet.potencia > 0 && !partida.renacio) {
+        partida.renacio = true;
+        h.vida = Math.max(1, Math.round(h.vidaMax * datos.renacer * Math.min(1, pet.potencia)));
+        eventos.push({ quien: "mascota", tipo: "renacer", cura: h.vida, nombre: "Renacer" });
+        frases.push(`${pet.nombre} te envuelve en llamas: ¡renaces con ${h.vida} de vida!`);
+    }
+}
+
+// Lo que hace tu mascota en este turno (o null si no le toca o no puede pelear).
+// Una cría actúa un turno más tarde que una adulta; un huevo o una mascota triste no pelean.
+function actuaMascota(partida) {
+    const pet = partida.mascota;
+    const datos = pet && MASCOTAS[pet.especie]?.torre;
+    if (!datos || !(pet.potencia > 0)) return null;
+    const h = partida.heroe;
+    const m = partida.enemigo;
+    if (m.vida <= 0) return null;
+    const nombre = MASCOTAS[pet.especie].habilidad.nombre;
+    const cada = (datos.cada || 1) + (pet.etapa === "cria" ? 1 : 0);
+    const toca = partida.turno % cada === 0;
+
+    if (datos.tipo === "ataque" && toca) {
+        const factor = datos.elemento ? factorElemento(CRIATURAS[m.id] || {}, datos.elemento) : 1;
+        const efecto = factor > 1 ? "debil" : factor < 1 ? "resiste" : null;
+        const guardian = datos.guardianes && m.guardian ? datos.guardianes : 1;
+        const dano = Math.max(1, Math.round(h.ataque * datos.fuerza * pet.potencia * factor * guardian));
+        m.vida = Math.max(0, m.vida - dano);
+        return {
+            evento: { quien: "mascota", tipo: "ataque", dano, elemento: datos.elemento || null, efecto, nombre },
+            frase: `${pet.nombre} usa «${nombre}»: −${dano}.` + (efecto === "debil" ? " ¡Punto débil!" : efecto === "resiste" ? " Lo resiste." : ""),
+        };
+    }
+    if (datos.tipo === "mana" && toca && h.mana < h.manaMax) {
+        h.mana += 1;
+        return { evento: { quien: "mascota", tipo: "mana", nombre }, frase: `${pet.nombre} te devuelve un hechizo (PM ${h.mana}/${h.manaMax}).` };
+    }
+    if (datos.tipo === "petrificar" && toca) {
+        m.petrificada = true;
+        return { evento: { quien: "mascota", tipo: "petrificar", nombre }, frase: `${pet.nombre} usa «${nombre}»: ¡${elMonstruo(m)} queda de piedra!` };
+    }
+    if (datos.tipo === "fenix") {
+        const cura = Math.min(Math.round(h.vidaMax * datos.cura * pet.potencia), h.vidaMax - h.vida);
+        if (cura > 0) {
+            h.vida += cura;
+            return { evento: { quien: "mascota", tipo: "cura", cura, nombre: "Llama vital" }, frase: `${pet.nombre} te cura ${cura}.` };
+        }
+    }
+    return null;
+}
+
+// Mejoras distintas al azar: 3, o 4 con «Constancia».
+function mejorasAlAzar(partida) {
     const claves = Object.keys(MEJORAS);
+    const cuantas = tiene(partida.heroe, "constancia") ? 4 : 3;
     const elegidas = [];
-    while (elegidas.length < 3) {
+    while (elegidas.length < cuantas) {
         const clave = elegir(partida, claves);
         if (!elegidas.includes(clave)) elegidas.push(clave);
     }
@@ -311,7 +452,7 @@ function tresMejoras(partida) {
 
 // Aplicar la mejora elegida y subir al piso siguiente.
 export function elegirMejora(partida, clave) {
-    if (partida.fase !== "mejora" || !partida.opciones.includes(clave)) throw new Error("Elige una de las tres mejoras.");
+    if (partida.fase !== "mejora" || !partida.opciones.includes(clave)) throw new Error("Elige una de las mejoras.");
     const h = partida.heroe;
     switch (clave) {
         case "afilar":   h.ataque += 3; break;
@@ -323,10 +464,16 @@ export function elegirMejora(partida, clave) {
         case "escudo":   h.defensa = Math.min(0.85, h.defensa + 0.08); break;
         case "descanso": h.vida = Math.min(h.vidaMax, h.vida + Math.round(h.vidaMax * 0.4)); break;
     }
-    // Al subir: recuperas un poco de vida y todos tus hechizos.
-    h.vida = Math.min(h.vidaMax, h.vida + Math.round(h.vidaMax * 0.1));
+    if (tiene(h, "constancia")) {
+        h.ataque += HABILIDADES.constancia.ataque;
+        h.hechizo += HABILIDADES.constancia.hechizo;
+    }
+    // Al subir: recuperas un poco de vida (más con el «Manto regio») y todos tus hechizos.
+    const cura = 0.1 + (tiene(h, "regia") ? HABILIDADES.regia.cura : 0);
+    h.vida = Math.min(h.vidaMax, h.vida + Math.round(h.vidaMax * cura));
     h.mana = h.manaMax;
     h.defendiendo = false;
+    h.enEstePiso = pisoNuevo();
     partida.piso += 1;
     partida.enemigo = monstruoDelPiso(partida.piso);
     partida.enemigo.intencion = nuevaIntencion(partida);
