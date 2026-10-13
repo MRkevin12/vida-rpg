@@ -31,6 +31,12 @@ const SONIDOS = {
     robo:      { onda: "sawtooth", volumen: 0.11, notas: [[98, 0.38, 0.14], [370, 0.78, 0.12], [311, 0.9, 0.12], [262, 1.02, 0.12], [208, 1.14, 0.3], [82, 1.7, 0.45]] },
     // Desafío relámpago: un chispazo que sube.
     relampago: { onda: "square",   volumen: 0.06, notas: [[880, 0, 0.05], [1320, 0.05, 0.05], [1760, 0.1, 0.18]] },
+    // La Torre: el "bip" del menú y los tres hechizos (el fuego ruge grave, el hielo
+    // tintinea agudo y el rayo chasquea de arriba abajo).
+    cursor:    { onda: "square",   volumen: 0.05, notas: [[988, 0, 0.04], [1319, 0.035, 0.06]] },
+    fuego:     { onda: "sawtooth", volumen: 0.11, notas: [[110, 0, 0.14], [147, 0.1, 0.14], [196, 0.2, 0.14], [262, 0.3, 0.28]] },
+    hielo:     { onda: "triangle", volumen: 0.16, notas: [[1568, 0, 0.08], [2093, 0.07, 0.08], [1760, 0.14, 0.08], [2637, 0.21, 0.3]] },
+    rayo:      { onda: "square",   volumen: 0.07, notas: [[1976, 0, 0.04], [247, 0.04, 0.12], [1568, 0.17, 0.04], [123, 0.21, 0.3]] },
 };
 
 let contexto = null;   // el "motor" de audio; se crea la primera vez que hace falta

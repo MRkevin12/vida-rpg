@@ -12,6 +12,7 @@ import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
+import * as bestiario from "./bestiario.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -987,7 +988,13 @@ export function cerrarResumenSemanal(estado) {
 
 export function empezarTorre(estado, semilla) {
     revisarQueNoEstesCaido(estado, "el arcade");
-    if (estado.arcade.torre) return;   // ya hay una partida: se sigue esa (sin gastar otra ficha)
+    if (estado.arcade.torre) {
+        // Ya hay una partida: se sigue esa (sin gastar otra ficha). Si es de una versión
+        // anterior, su monstruo se cambia por la criatura de ese piso.
+        torre.ponerAlDia(estado.arcade.torre);
+        bestiario.anotarEncuentro(estado.arcade.bestiario, estado.arcade.torre.enemigo.id);
+        return;
+    }
     if (arcade.fichasDisponibles(estado) < 1) {
         throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
     }
@@ -995,18 +1002,27 @@ export function empezarTorre(estado, semilla) {
     // Subes con tu vida real: si llegas herido, empiezas con menos vida.
     const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
     estado.arcade.torre = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado));
+    bestiario.anotarEncuentro(estado.arcade.bestiario, estado.arcade.torre.enemigo.id);
 }
 
-export function accionTorre(estado, accion) {
+// elemento: con accion "hechizo", cuál lanzas ("fuego", "hielo" o "rayo").
+// Lo que aprendes peleando queda en tu bestiario: qué le hace cada hechizo a esa criatura
+// y cuántas veces la venciste.
+export function accionTorre(estado, accion, elemento = null) {
     const partida = estado.arcade.torre;
     if (!partida) throw new Error("No hay una partida de la Torre en curso.");
-    return { eventos: torre.actuar(partida, accion) };
+    const id = partida.enemigo.id;
+    const turno = torre.actuar(partida, accion, elemento);   // lo que pasó: [{ quien, tipo, dano… }]
+    if (accion === "hechizo") bestiario.anotarElemento(estado.arcade.bestiario, id, elemento);
+    if (turno.some((e) => e.tipo === "derrotado")) bestiario.anotarVictoria(estado.arcade.bestiario, id);
+    return { eventos: turno };
 }
 
 export function mejoraTorre(estado, clave) {
     const partida = estado.arcade.torre;
     if (!partida) throw new Error("No hay una partida de la Torre en curso.");
     torre.elegirMejora(partida, clave);
+    bestiario.anotarEncuentro(estado.arcade.bestiario, partida.enemigo.id);   // la criatura del piso nuevo
 }
 
 // Apunta cuánta armadura máxima tienes hoy, si cambió (te pusiste o quitaste algo, o cambiaste

@@ -15,7 +15,7 @@ Está pensada para el iPhone. Se instala desde Safari o Chrome, funciona sin int
   <img src="capturas/resumen.jpg" width="200" alt="Resumen con gráficas de cumplimiento de los últimos 7 días">
   <img src="capturas/jefes.jpg" width="200" alt="Campaña de jefes: el avatar contra una pintura clásica">
   <img src="capturas/personaje.jpg" width="200" alt="Pantalla del personaje con su avatar y apariencia">
-  <img src="capturas/torre.jpg" width="200" alt="Torre del héroe: batalla por turnos contra un monstruo">
+  <img src="capturas/torre.jpg" width="200" alt="Torre del héroe: batalla por turnos en pixel art contra una criatura, con ventanas azules de comandos">
 </p>
 
 Las capturas usan una partida de ejemplo inventada.
@@ -50,8 +50,8 @@ Las capturas usan una partida de ejemplo inventada.
 - **Logros** automáticos y personales, y una **tienda** donde cambias monedas por recompensas reales que tú defines.
 - **Fondos pintados:** los escenarios del avatar y de las batallas son pinturas clásicas de dominio público (Constable, Bierstadt, Van Gogh, Turner, Panini…), con luciérnagas, brasas, nieve o estrellas que flotan según el fondo y rayos de luz. Los retratos de los jefes respiran a la luz de una vela.
 - **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza (común, raro, épico y legendario: del hacha de guerra a la lanza y las alas del dragón) y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
-- **Torre del héroe:** un minijuego grande de batallas por turnos, piso a piso, con mejoras entre pisos. Tu poder sale de los niveles de tus atributos reales, y subes con tu vida real.
-- **Tres minijuegos** más, que se juegan con fichas ganadas al completar misiones.
+- **Torre del héroe:** un minijuego grande de batallas por turnos con el aspecto de un juego de rol clásico de consola: pixel art, ventanas azules y menú de comandos. Tiene 20 criaturas propias en 4 zonas, un guardián cada 5 pisos, magia de fuego, hielo y rayo (cada criatura tiene un punto débil por descubrir) y un **bestiario** que recuerda lo que aprendes. Tu poder sale de los niveles de tus atributos reales, y subes con tu vida real.
+- **Tres minijuegos** más, que se juegan con fichas ganadas al completar misiones. En «Golpe preciso» peleas contra una criatura de la Torre.
 - **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día y, de noche, cuánta vida pierdes si no terminas), un aviso propio para cada misión que le pongas hora (solo si todavía no la hiciste) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan. Cada aviso sale con prioridad alta y suena como uno nuevo; si se desconectan, la app lo detecta y ofrece reactivarlos.
 - **PIN de 4 números o Face ID** para abrir la app.
 - **Copia de seguridad automática en la nube**, cifrada con tu contraseña, además de la copia en un archivo.
@@ -112,7 +112,8 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/equipo.js` | Lo que da tu equipo: la armadura y el ataque, la magia y la suerte de cada objeto |
 | `js/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
 | `js/arcade.js`, `js/minijuegos.js` | Las fichas y los tres minijuegos en `<canvas>` |
-| `js/torre.js` | Las reglas de la Torre del héroe (batallas por turnos y mejoras) |
+| `js/torre.js`, `js/bestiario.js` | Las reglas de la Torre del héroe (batallas por turnos, magia y mejoras) y sus 20 criaturas, con lo que recuerdas de ellas |
+| `js/dibujo-monstruos.js`, `js/pixel.js`, `js/sprites.js` | Los dibujos de las criaturas y de las salas, y cómo se convierten en pixel art |
 | `js/maestro.js`, `js/rituales.js`, `js/eventos.js` | El Maestro (saludos y conversación), la misión clave, el ritual de la noche, el desafío relámpago y los eventos del día |
 | `js/cofre.js`, `js/mapa.js`, `js/mascota.js` | El cofre del día, el mapa del viaje y lo que hace tu dragón |
 | `js/libro.js` | Tu diario contado como un libro: arma los capítulos con lo que pasó cada día |
@@ -147,7 +148,7 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 125 pruebas de las reglas del juego (niveles, armadura, robo de vida, equipo, atributos propios, diario, el libro, «Fallé», el pacto, el Maestro, rituales, cofre, eventos, mapa, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 134 pruebas de las reglas del juego (niveles, armadura, robo de vida, equipo, atributos propios, diario, el libro, «Fallé», el pacto, el Maestro, rituales, cofre, eventos, mapa, rachas, escudos, vida, pociones, modo descanso, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe y su bestiario, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa, que las criaturas de la Torre sean imágenes válidas y que se conviertan en pixel art), y muestra cuáles pasan. El servidor tiene 10 pruebas más (`node servidor/pruebas.mjs`).
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
 

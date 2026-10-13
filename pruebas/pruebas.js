@@ -18,6 +18,10 @@ import * as desafios from "../js/desafios.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.js";
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
+import * as bestiario from "../js/bestiario.js";
+import * as sprites from "../js/sprites.js";
+import { retocarPuntos, redondearColor } from "../js/pixel.js";
+import { dibujarMonstruo, dibujarSala, CON_DIBUJO } from "../js/dibujo-monstruos.js";
 import * as vida from "../js/vida.js";
 import * as diario from "../js/diario.js";
 import * as pacto from "../js/pacto.js";
@@ -661,7 +665,7 @@ prueba("Torre: tu poder sale de tus atributos, y cada 5 pisos hay un guardián m
     const [p4, p5, p6] = [4, 5, 6].map(torre.monstruoDelPiso);
     igual([p4.guardian, p5.guardian, p6.guardian], [false, true, false]);
     cierto(p5.vidaMax > p6.vidaMax, "el guardián del piso 5 aguanta más que el monstruo del 6");
-    igual(torre.MONSTRUOS.length, 20, "los 20 jefes");
+    igual(torre.MONSTRUOS.length, 20, "las 20 criaturas");
 });
 
 prueba("Torre: atacar daña; defenderse reduce el golpe del monstruo", () => {
@@ -697,7 +701,7 @@ prueba("Torre: sin hechizos ni pociones no se pueden usar; la misma semilla da l
     const p = torre.nuevaPartida(NIVELES_1, 9);
     p.heroe.mana = 0;
     p.heroe.pociones = 0;
-    debeFallar(() => torre.actuar(p, "hechizo"), "hechizos");
+    debeFallar(() => torre.actuar(p, "hechizo", "fuego"), "hechizos");
     debeFallar(() => torre.actuar(p, "pocion"), "pociones");
     const jugar = () => { const x = torre.nuevaPartida(NIVELES_1, 123); for (let i = 0; i < 3; i++) torre.actuar(x, "atacar"); return x; };
     igual(jugar(), jugar(), "dos partidas con la misma semilla");
@@ -720,6 +724,219 @@ prueba("Torre: gasta una ficha al empezar, se puede seguir después y al caer se
     igual([estado.personaje.monedas, estado.atributos.carisma], [torre.premio(3).monedas, torre.premio(3).xp]);
     igual([estado.arcade.records.torre, estado.arcade.torre], [3, null]);
     igual(torre.premio(100), { monedas: torre.PREMIO.maxMonedas, xp: torre.PREMIO.maxXp }, "el premio tiene un máximo");
+});
+
+
+// ===== La Torre al estilo de los clásicos (v25) =====
+
+prueba("Torre: 4 zonas de 5 pisos con criaturas propias (ninguna es un jefe de tus campañas) y un guardián al final", () => {
+    igual(bestiario.ORDEN.length, bestiario.ZONAS.length * bestiario.PISOS_POR_ZONA, "20 criaturas");
+    const jefes = Object.values(campana.CAMPANAS).flatMap((c) => c.jefes.map((j) => j.id));
+    igual(bestiario.ORDEN.filter((id) => jefes.includes(id)), [], "ids repetidos con los jefes");
+    bestiario.ORDEN.forEach((id, i) => {
+        const piso = i + 1;
+        const c = bestiario.CRIATURAS[id];
+        igual(c.zona, bestiario.zonaDelPiso(piso).id, `${id} está en la zona de su piso`);
+        igual(Boolean(c.guardian), torre.esGuardian(piso), `${id}: solo el quinto de cada zona es guardián`);
+        cierto(bestiario.ELEMENTOS[c.debil], `${id} tiene punto débil`);
+        cierto(c.resiste === null || (bestiario.ELEMENTOS[c.resiste] && c.resiste !== c.debil), `${id}: lo que resiste no es su punto débil`);
+        cierto(c.golpe && c.fuerte && c.texto && ["m", "f"].includes(c.genero) && c.talla > 0, `${id} tiene todos sus datos`);
+        igual(torre.monstruoDelPiso(piso).id, id);
+    });
+    // Los tres hechizos se reparten parejo entre los puntos débiles.
+    for (const elemento of Object.keys(bestiario.ELEMENTOS)) {
+        cierto(bestiario.ORDEN.filter((id) => bestiario.CRIATURAS[id].debil === elemento).length >= 6, `varias criaturas débiles a ${elemento}`);
+    }
+    // Después del piso 20 vuelven las mismas, «ancestrales» y más fuertes.
+    const [primero, vuelta] = [torre.monstruoDelPiso(1), torre.monstruoDelPiso(21)];
+    igual([vuelta.id, vuelta.vuelta, vuelta.nombre], [primero.id, 1, `${primero.nombre} ancestral`]);
+    cierto(vuelta.vidaMax > primero.vidaMax && torre.esGuardian(25) && bestiario.zonaDelPiso(21).id === "cripta", "la segunda vuelta");
+});
+
+prueba("Torre: el hechizo del punto débil hace 50 % más, el que resiste la mitad, y hay que elegir cuál lanzar", () => {
+    // El Caballero sin Nombre (piso 5): débil al rayo, resiste el hielo; el fuego le hace el daño normal.
+    const lanzar = (elemento) => {
+        const p = torre.nuevaPartida(NIVELES_1, 77);
+        p.piso = 5;
+        p.enemigo = torre.monstruoDelPiso(5);
+        p.heroe.critico = 0;
+        return torre.actuar(p, "hechizo", elemento)[0];
+    };
+    const [fuego, rayo, hielo] = ["fuego", "rayo", "hielo"].map(lanzar);
+    igual([fuego.efecto, rayo.efecto, hielo.efecto], [null, "debil", "resiste"]);
+    // (Las tres partidas tienen la misma semilla: lo único que cambia es el elemento. El ±1 es por el redondeo.)
+    cierto(Math.abs(rayo.dano - fuego.dano * bestiario.DEBIL) <= 1, `el punto débil: ${rayo.dano} contra ${fuego.dano}`);
+    cierto(Math.abs(hielo.dano - fuego.dano * bestiario.RESISTE) <= 1, `lo que resiste: ${hielo.dano} contra ${fuego.dano}`);
+    igual([fuego.tipo, fuego.elemento], ["hechizo", "fuego"]);
+    const p = torre.nuevaPartida(NIVELES_1, 1);
+    debeFallar(() => torre.actuar(p, "hechizo"), "Elige un hechizo");
+    debeFallar(() => torre.actuar(p, "hechizo", "veneno"), "Elige un hechizo");
+    igual(p.heroe.mana, p.heroe.manaMax, "un hechizo que no existe no gasta nada");
+});
+
+prueba("Torre: las frases nombran a la criatura y a su ataque; la intención dice qué va a usar", () => {
+    const p = torre.nuevaPartida(NIVELES_1, 3);
+    p.piso = 4;
+    p.enemigo = torre.monstruoDelPiso(4);            // la Araña tejedora (femenino)
+    p.enemigo.intencion = "fuerte";
+    igual(torre.textoIntencion(p.enemigo).texto, `Prepara «Aguijón venenoso» (${torre.danoPrevisto(p.enemigo)})`);
+    const eventos = torre.actuar(p, "atacar");
+    cierto(p.registro.includes("a la Araña tejedora") && p.registro.includes("La Araña tejedora usa «Aguijón venenoso»"), p.registro);
+    igual(eventos[1].nombre, "Aguijón venenoso");
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    cierto(p.registro.includes("¡La Araña tejedora cae!"), p.registro);
+    torre.elegirMejora(p, p.opciones[0]);
+    cierto(p.registro.includes("el Caballero sin Nombre, guardián de la Cripta olvidada"), p.registro);
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    torre.elegirMejora(p, p.opciones[0]);
+    cierto(p.registro.startsWith("Entras a la Biblioteca prohibida. Piso 6: aparece el Ojo vigía."), p.registro);
+});
+
+prueba("Bestiario: recuerda las criaturas que viste, las que venciste y lo que le hace cada hechizo", () => {
+    const estado = partidaNueva();
+    igual(estado.arcade.bestiario, {}, "empieza vacío");
+    acciones.empezarTorre(estado, 5);
+    const b = estado.arcade.bestiario;
+    igual(b, { murcielago: { vencidos: 0, elementos: [] } }, "al entrar ya viste a la del piso 1");
+    igual(bestiario.loQueSabes(b, "murcielago", "rayo"), null, "todavía no probaste nada");
+    estado.arcade.torre.enemigo.vida = 500;         // para que aguante los tres hechizos
+    estado.arcade.torre.heroe.mana = 3;
+    for (const elemento of ["rayo", "fuego", "rayo"]) acciones.accionTorre(estado, "hechizo", elemento);
+    igual(b.murcielago.elementos, ["rayo", "fuego"], "cada hechizo se apunta una vez");
+    igual([bestiario.loQueSabes(b, "murcielago", "rayo"), bestiario.loQueSabes(b, "murcielago", "fuego"), bestiario.loQueSabes(b, "murcielago", "hielo")],
+          ["debil", "normal", null]);
+    estado.arcade.torre.enemigo.vida = 1;
+    acciones.accionTorre(estado, "atacar");
+    igual(b.murcielago.vencidos, 1);
+    acciones.mejoraTorre(estado, estado.arcade.torre.opciones[0]);
+    cierto(b.esqueleto, "al subir ves a la del piso nuevo");
+    igual(bestiario.progresoBestiario(b), { vistas: 2, total: 20 });
+    // Al terminar la subida, lo aprendido se queda.
+    acciones.terminarTorre(estado);
+    igual(estado.arcade.bestiario.murcielago.vencidos, 1, "el bestiario sobrevive a la partida");
+});
+
+prueba("Torre: una partida guardada con un jefe de la versión anterior sigue con la criatura de ese piso", () => {
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 9);
+    const p = estado.arcade.torre;
+    p.piso = 7;
+    p.enemigo = { id: "medusa", nombre: "Medusa", titulo: "La Parálisis", guardian: false, vida: 50, vidaMax: 100, ataque: 15, intencion: "fuerte" };
+    const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
+    acciones.empezarTorre(copia, 9);                 // «Continuar»
+    const m = copia.arcade.torre.enemigo;
+    const nuevo = torre.monstruoDelPiso(7);
+    igual([m.id, m.vida, m.vidaMax, m.intencion], [nuevo.id, Math.round(nuevo.vidaMax / 2), nuevo.vidaMax, "fuerte"], "misma parte de vida");
+    cierto(copia.arcade.bestiario[nuevo.id], "y queda vista en el bestiario");
+    torre.actuar(copia.arcade.torre, "atacar");      // se puede seguir jugando
+    // Una copia de antes de la v25 no tenía bestiario: empieza vacío.
+    delete estado.arcade.bestiario;
+    igual(datos.desdeRespaldo(datos.textoRespaldo(estado)).arcade.bestiario, {});
+});
+
+prueba("Pixel art: bordes duros, menos colores y un contorno oscuro alrededor", () => {
+    // Un lienzo de 3 × 3 con un solo punto en el centro (y uno casi transparente en la esquina).
+    const puntos = new Uint8ClampedArray(3 * 3 * 4);
+    puntos.set([200, 100, 50, 255], 4 * 4);          // el del centro
+    puntos.set([255, 255, 255, 90], 0);              // muy transparente: no cuenta
+    retocarPuntos(puntos, 3, 3);
+    const opacidad = (i) => puntos[i * 4 + 3];
+    igual([0, 2, 6, 8].map(opacidad), [0, 0, 0, 0], "las esquinas quedan vacías");
+    igual([1, 3, 4, 5, 7].map(opacidad), [255, 255, 255, 255, 255], "el centro y sus 4 vecinos (el contorno)");
+    cierto(puntos[1 * 4] < 40 && puntos[1 * 4 + 1] < 40, "el contorno es oscuro");
+    cierto(puntos[4 * 4] > puntos[4 * 4 + 1] && puntos[4 * 4 + 1] > puntos[4 * 4 + 2], "el centro sigue siendo naranja");
+    // Sin contorno (los fondos): solo se toca el punto que ya existía.
+    const fondo = new Uint8ClampedArray(3 * 3 * 4);
+    fondo.set([10, 20, 30, 255], 4 * 4);
+    retocarPuntos(fondo, 3, 3, { contorno: false });
+    igual([0, 1, 3, 5, 7, 8].map((i) => fondo[i * 4 + 3]), [0, 0, 0, 0, 0, 0]);
+    // Los colores se redondean: dos tonos casi iguales quedan idénticos, y blanco y negro no cambian.
+    igual(redondearColor(120, 60, 30, 14), redondearColor(122, 61, 31, 14), "dos colores casi iguales");
+    igual([redondearColor(0, 0, 0, 14), redondearColor(255, 255, 255, 14)], [[0, 0, 0], [255, 255, 255]]);
+});
+
+prueba("Dibujo: las 20 criaturas y las 4 salas de la Torre son SVG válidos (también como imagen)", () => {
+    // Para convertirlos en pixel art el navegador los lee como IMAGEN, que es más estricto que
+    // ponerlos dentro de la página: un atributo repetido o una etiqueta sin cerrar lo rompe.
+    const valido = (svg, que) => {
+        dibujoSano(svg.trim(), que);
+        const leido = new DOMParser().parseFromString(svg, "image/svg+xml");
+        cierto(!leido.querySelector("parsererror"), `${que} se puede leer como imagen`);
+    };
+    igual([...CON_DIBUJO].sort(), [...bestiario.ORDEN].sort(), "cada criatura tiene su dibujo");
+    for (const id of bestiario.ORDEN) valido(dibujarMonstruo(id), `la criatura ${id}`);
+    for (const zona of bestiario.ZONAS) valido(dibujarSala(zona.id), `la sala ${zona.id}`);
+    igual(dibujarMonstruo("no-existe").includes("<defs>"), false, "una criatura que no existe: dibujo vacío");
+    // El avatar de batalla también pasa por ahí.
+    valido(dibujarAvatar(avatarDePrueba({ etapa: avatar.ETAPAS[3] }), { batalla: true, sinEfectos: true }), "el avatar de batalla");
+});
+
+prueba("Pixel art: el héroe, una criatura y una sala se convierten en imágenes", async () => {
+    const [heroe, monstruo, sala] = await Promise.all([
+        sprites.spriteDeHeroe(avatarDePrueba()),
+        sprites.spriteDeMonstruo("esqueleto"),
+        sprites.spriteDeSala("cripta"),
+    ]);
+    for (const [imagen, que] of [[heroe, "el héroe"], [monstruo, "la criatura"], [sala, "la sala"]]) {
+        cierto(typeof imagen === "string" && imagen.startsWith("data:image/png"), `${que} es una imagen PNG`);
+    }
+    igual(await sprites.spriteDeMonstruo("esqueleto"), monstruo, "la segunda vez sale de lo guardado");
+    // Su tamaño en puntos es el que dice el bestiario.
+    const medir = (direccion) => new Promise((resolver) => {
+        const imagen = new Image();
+        imagen.onload = () => resolver([imagen.width, imagen.height]);
+        imagen.src = direccion;
+    });
+    const talla = bestiario.CRIATURAS.esqueleto.talla;
+    igual([await medir(monstruo), await medir(heroe)], [[talla, talla], [sprites.HEROE.ancho, sprites.HEROE.alto]]);
+});
+
+prueba("Torre (pantalla): batalla, menú de magia, botín, final y bestiario se dibujan sin huecos", () => {
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 11);
+    const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
+    const t = (cambios = {}) => ({ partida: estado.arcade.torre, nombre: "Prueba <b>", sprites: imagenes, eventos: [], menu: "principal",
+                                   ultimo: "atacar", bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+
+    let html = vistas.pantallaTorre(t());
+    sano(html, "la batalla");
+    cierto(html.includes("Murciélago de cripta") && html.includes("Cripta olvidada") && html.includes("Prueba &lt;b&gt;"), "nombres (escapados)");
+    cierto(html.includes('data-torre="atacar"') && html.includes('data-menu="magia"') && !html.includes("data-elemento"), "el menú principal");
+    cierto(/ff-comando elegido[^>]*data-torre="atacar"/.test(html), "la manito está en «Atacar»");
+
+    html = vistas.pantallaTorre(t({ menu: "magia", ultimo: "hielo" }));
+    sano(html, "el menú de magia");
+    cierto(["fuego", "hielo", "rayo"].every((e) => html.includes(`data-elemento="${e}"`)) && html.includes("sin probar"), "los tres hechizos");
+
+    // Después de lanzar rayo: el turno se anima y el bestiario ya sabe que es su punto débil.
+    estado.arcade.torre.enemigo.vida = 500;
+    const { eventos } = acciones.accionTorre(estado, "hechizo", "rayo");
+    html = vistas.pantallaTorre(t({ eventos }));
+    sano(html, "el turno");
+    cierto(html.includes("ff-rayo") && html.includes("¡Punto débil!") && html.includes("Débil: ⚡"), "el efecto del hechizo");
+    cierto(vistas.pantallaTorre(t({ menu: "magia" })).includes("¡punto débil!"), "y el menú lo recuerda");
+
+    estado.arcade.torre.enemigo.vida = 1;
+    html = vistas.pantallaTorre(t({ eventos: acciones.accionTorre(estado, "atacar").eventos }));
+    sano(html, "el botín");
+    cierto(html.includes("¡Victoria!") && html.includes('data-accion="torre-mejora"') && html.includes("ff-enemigo") && html.includes(" cae"), "eliges botín");
+
+    acciones.mejoraTorre(estado, estado.arcade.torre.opciones[0]);
+    sano(vistas.pantallaTorre(t()), "el piso siguiente");
+    const resultado = acciones.terminarTorre(estado);
+    html = vistas.pantallaTorre(t({ partida: null, resultado }));
+    sano(html, "el final");
+    cierto(html.includes("Premio cobrado") && html.includes("1 piso"), "el premio");
+
+    const todas = Object.fromEntries(bestiario.ORDEN.map((id) => [id, "data:image/png;base64,AA"]));
+    html = vistas.pantallaBestiario({ bestiario: estado.arcade.bestiario, sprites: todas });
+    sano(html, "el bestiario");
+    cierto(html.includes("Murciélago de cripta") && html.includes("vencido ×1") && html.includes("⚡ débil"), "lo que conoces");
+    cierto(!html.includes("Dragón de la tormenta") && html.includes("???") && html.includes("Piso 20 · Guardián"), "lo que no, en sombras");
+    sano(vistas.pantallaArcade(estado, { vida: vida.calcularVida(estado, hoy()), avatar: avatarDePrueba() }), "la tarjeta del Arcade");
 });
 
 

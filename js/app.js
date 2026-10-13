@@ -16,6 +16,8 @@ import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
+import * as bestiario from "./bestiario.js";
+import * as sprites from "./sprites.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -421,15 +423,28 @@ async function jugarMinijuego(tipo) {
     partida = await minijuegos.jugar(tipo, {
         lienzo: $("#mj-lienzo"),
         avatarSvg: dibujarAvatar(avatarActual(), { batalla: true, sinEfectos: true }),
-        // En "Golpe preciso" te enfrentas al retrato de uno de tus jefes actuales.
-        retratos: Object.values(campana.estadoCampanas(estado))
-            .map((c) => campana.imagenDe((c.jefe || c.campana.jefes[c.campana.jefes.length - 1]).id)),
+        pixel: tipo === "golpe" ? await escenaDeGolpe() : null,
         marcador: $("#mj-marcador"),
         ayuda: $("#mj-ayuda"),
         alTerminar: (puntos) => terminarMinijuego(tipo, puntos),
         sonar,
         ventajas: arcade.ventajasDelEquipo(acciones.equipoDeBatalla(estado)),   // lo que te da tu equipo
     });
+}
+
+// "Golpe preciso" se ve como una batalla de la Torre: tu héroe contra una criatura de las
+// que ya conoces (si todavía no subiste nunca, una de la primera zona), en su sala.
+async function escenaDeGolpe() {
+    const conocidas = bestiario.ORDEN.filter((id) => estado.arcade.bestiario[id]);
+    const posibles = conocidas.length ? conocidas : bestiario.ORDEN.slice(0, bestiario.PISOS_POR_ZONA - 1);
+    const id = posibles[Math.floor(Math.random() * posibles.length)];
+    const criatura = bestiario.CRIATURAS[id];
+    const [heroe, rival, sala] = await Promise.all([
+        sprites.spriteDeHeroe(avatarActual()),
+        sprites.spriteDeMonstruo(id),
+        sprites.spriteDeSala(criatura.zona),
+    ]);
+    return { heroe, rival, sala, nombre: criatura.nombre };
 }
 
 function terminarMinijuego(tipo, puntos) {
@@ -451,25 +466,55 @@ function terminarMinijuego(tipo, puntos) {
 // ===== Torre del héroe =====
 // Es por turnos, así que no usa lienzo: se vuelve a dibujar después de cada acción.
 
-let resultadoTorre = null;   // lo que se cobró al terminar (para mostrar el resumen)
+let resultadoTorre = null;      // lo que se cobró al terminar (para mostrar el resumen)
+let menuTorre = "principal";    // qué comandos se ven: "principal" o "magia" (la lista de hechizos)
+let ultimoComando = "atacar";   // el último comando que usaste: ahí queda la manito
+let ultimoHechizo = "fuego";    // y el último hechizo, dentro de «Magia»
+// Las imágenes en pixel art de la batalla (ver sprites.js). Hacerlas tarda un instante,
+// así que se preparan ANTES de dibujar (con await) y se guardan aquí.
+const spritesTorre = { heroe: null, enemigo: null, sala: null };
+
+async function prepararSprites() {
+    const partida = estado.arcade.torre;
+    spritesTorre.heroe = await sprites.spriteDeHeroe(avatarActual());
+    if (!partida) return;   // al cobrar ya no hay partida: quedan la sala y la criatura de antes
+    [spritesTorre.enemigo, spritesTorre.sala] = await Promise.all([
+        sprites.spriteDeMonstruo(partida.enemigo.id),
+        sprites.spriteDeSala(bestiario.zonaDelPiso(partida.piso).id),
+    ]);
+}
 
 function pintarTorre(eventos = []) {
     $("#torre-caja").innerHTML = vistas.pantallaTorre({
         partida: estado.arcade.torre,
-        avatar: dibujarAvatar(avatarActual(), { batalla: true }),
+        nombre: estado.personaje.nombre,
+        sprites: spritesTorre,
         eventos,
+        menu: menuTorre,
+        ultimo: menuTorre === "magia" ? ultimoHechizo : ultimoComando,
+        bestiario: estado.arcade.bestiario,
         resultado: resultadoTorre,
         fichas: arcade.fichasDisponibles(estado),
     });
 }
 
-function abrirTorre() {
+async function abrirTorre() {
     // Si no hay partida, empezar una (gasta 1 ficha). Si hay, se sigue esa.
     resultadoTorre = null;
+    menuTorre = "principal";
     if (!ejecutar(() => acciones.empezarTorre(estado))) return;
+    await prepararSprites();
     $("#torre").hidden = false;
     pintarTorre();
     ponerMusica();   // en la Torre suena la música de batalla
+}
+
+// El bestiario se muestra en la misma capa que la Torre (se cierra con la misma ✕).
+async function abrirBestiario() {
+    const imagenes = await sprites.spritesDeCriaturas();
+    $("#torre-caja").innerHTML = vistas.pantallaBestiario({ bestiario: estado.arcade.bestiario, sprites: imagenes });
+    $("#torre").hidden = false;
+    $("#torre-caja").scrollTop = 0;
 }
 
 function cerrarTorre() {
@@ -479,14 +524,15 @@ function cerrarTorre() {
     ponerMusica();
 }
 
-// Sonidos de un turno, al compás de las animaciones (el golpe del héroe y luego el del monstruo).
+// Sonidos de un turno, al compás de las animaciones (tu acción y luego la de la criatura).
 function sonarTurno(eventos) {
     const heroe = eventos.find((e) => e.quien === "heroe");
     const enemigo = eventos.find((e) => e.quien === "enemigo");
-    if (heroe?.dano) setTimeout(() => sonar("impacto"), 280);
+    if (heroe?.tipo === "hechizo") sonar(heroe.elemento);   // "fuego", "hielo" o "rayo"
+    if (heroe?.dano) setTimeout(() => sonar(heroe.critico ? "critico" : "impacto"), 300);
     if (heroe?.cura) sonar("moneda");
-    if (enemigo?.tipo === "derrotado") setTimeout(() => sonar("victoria"), 450);
-    else if (enemigo?.dano) setTimeout(() => sonar(estado.arcade.torre?.fase === "fin" ? "fallo" : "impacto"), 620);
+    if (enemigo?.tipo === "derrotado") setTimeout(() => sonar("victoria"), 750);
+    else if (enemigo?.dano) setTimeout(() => sonar(estado.arcade.torre?.fase === "fin" ? "fallo" : "impacto"), 900);
 }
 
 
@@ -970,7 +1016,12 @@ function rellenarOpciones() {
            Cada partida da hasta ${arcade.MAX_MONEDAS} monedas y ${arcade.MAX_XP} XP según tus puntos.</p>
         <p><strong>Torre del héroe:</strong> batallas por turnos piso a piso (1 ficha por subida; puedes salir y seguir después).
            Tu vida y tu ataque salen de Fuerza, los hechizos de Intelecto, la defensa de Carisma y las pociones y los críticos de Riqueza.
-           Cada ${torre.CADA_GUARDIAN} pisos hay un guardián. Premio: ${torre.PREMIO.monedasPorPiso} monedas y ${torre.PREMIO.xpPorPiso} XP de Carisma
+           Tiene ${bestiario.ZONAS.length} zonas de ${torre.CADA_GUARDIAN} pisos (${bestiario.ZONAS.map((z) => z.nombre).join(", ")}), con
+           ${bestiario.ORDEN.length} criaturas propias y un guardián al final de cada zona; después del piso ${bestiario.ORDEN.length} vuelven, más fuertes.
+           <strong>Magia:</strong> los hechizos son de fuego, hielo o rayo. Cada criatura tiene un punto débil (ese hechizo le hace
+           ${Math.round((bestiario.DEBIL - 1) * 100)} % más) y algunas resisten otro (les hace la mitad). Lo que descubres queda en tu
+           <strong>bestiario</strong> (botón en el Arcade): la próxima vez el menú de magia ya te lo dice.
+           Premio: ${torre.PREMIO.monedasPorPiso} monedas y ${torre.PREMIO.xpPorPiso} XP de Carisma
            por piso superado (máx. ${torre.PREMIO.maxMonedas} y ${torre.PREMIO.maxXp}).</p>`;
 }
 
@@ -1886,20 +1937,32 @@ const ACCIONES = {
 
     // Torre del héroe.
     "torre-abrir": () => abrirTorre(),
+    "bestiario-abrir": () => abrirBestiario(),
     "torre-salir": () => cerrarTorre(),
+    // «Magia» abre la lista de hechizos; «Volver» regresa a los comandos.
+    "torre-menu": (boton) => {
+        menuTorre = boton.dataset.menu === "magia" ? "magia" : "principal";
+        sonar("cursor");
+        pintarTorre();
+    },
     "torre-accion": (boton) => {
-        const resultado = ejecutar(() => acciones.accionTorre(estado, boton.dataset.torre));
+        const { torre: comando, elemento = null } = boton.dataset;   // elemento: solo en los hechizos
+        const resultado = ejecutar(() => acciones.accionTorre(estado, comando, elemento));
         if (!resultado) return;
+        ultimoComando = comando;
+        if (elemento) ultimoHechizo = elemento;
+        menuTorre = "principal";
         pintarTorre(resultado.eventos);
         sonarTurno(resultado.eventos);
     },
-    "torre-mejora": (boton) => {
+    "torre-mejora": async (boton) => {
         if (!ejecutar(() => acciones.mejoraTorre(estado, boton.dataset.mejora))) return;
         sonar("completar");
+        await prepararSprites();   // la criatura del piso nuevo (y su sala, si cambia la zona)
         pintarTorre();
     },
     "torre-rendirse": () => {
-        if (!confirm("¿Rendirte? Cobras lo que ganaste hasta ahora y la subida termina.")) return;
+        if (!confirm("¿Huir de la Torre? Cobras lo que ganaste hasta ahora y la subida termina.")) return;
         ACCIONES["torre-cobrar"]();
     },
     "torre-cobrar": () => {

@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v25 — La Torre, como los clásicos
+- **Aspecto de juego de rol de consola:** la Torre del héroe se ve en pixel art, con la criatura a la izquierda, tu héroe a la derecha, ventanas azules de borde blanco, una manito que señala el comando y animaciones a saltos (el paso al atacar, el parpadeo al recibir un golpe, la criatura que se deshace al caer). Tu avatar aparece como sprite, con tu ropa y tu equipo.
+- **20 criaturas nuevas**, propias de la Torre: ya no salen los jefes de las campañas de hábitos. Están en 4 zonas de 5 pisos, cada una con su sala: Cripta olvidada, Biblioteca prohibida, Fragua del abismo y Cima de la tormenta. El quinto piso de cada zona es su guardián. Después del piso 20 vuelven «ancestrales», más fuertes y de otro color.
+- **Magia de fuego, hielo y rayo:** «Magia» abre una lista de hechizos. Cada criatura tiene un punto débil (ese hechizo le hace 50 % más) y algunas resisten otro (la mitad). Las criaturas y sus ataques tienen nombre propio, y un cartel dice qué se usa en cada turno.
+- **Bestiario** (botón en el Arcade): recuerda las criaturas que viste, cuántas veces las venciste y qué le hace cada hechizo que probaste. El menú de magia usa lo que ya sabes. Las que no conoces aparecen como sombras.
+- **Golpe preciso** usa la misma escena: tu héroe contra una criatura de la Torre (de las que ya conoces), en su sala.
+- Todo se dibuja en el teléfono, sin imágenes nuevas: los dibujos son SVG propios que la app convierte en pixel art (`js/pixel.js`). Una partida de la Torre guardada con la versión anterior sigue en su piso, con la criatura nueva. El balance no cambió: conocer los puntos débiles permite subir entre 1 y 4 pisos más.
+
 ## v24 — Los jefes también pegan
 - **Robo de vida:** cada misión que fallas (con «Fallé» o al terminar el día sin hacerla) es un golpe del jefe de su categoría: te quita vida y se cura con ella, hasta su vida llena y sin revivir nunca a un jefe vencido. Una escena animada lo muestra al fallar y al abrir la app si fallaste mientras no estabas.
 - **Armadura:** una barra nueva (cabecera, Hoy y Personaje) que sale de tus objetos de protección: la ropa de tu etapa (15/25/35/45) más lo que lleves en la cabeza y en la espalda. Con 40 recibes el daño normal; con 0, 50 % más; con 80 o más, la mitad. Se gasta con cada misión fallada y se repara con cada misión o tarea cumplida. Solo cuenta para las misiones falladas.

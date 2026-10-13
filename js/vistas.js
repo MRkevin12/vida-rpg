@@ -13,6 +13,7 @@ import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
+import * as bestiario from "./bestiario.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -2025,14 +2026,17 @@ export function pantallaArcade(estado, ctx) {
     // La Torre: el minijuego grande, arriba de todo.
     const partida = estado.arcade.torre;
     const recordTorre = estado.arcade.records.torre || 0;
+    const conocidas = bestiario.progresoBestiario(estado.arcade.bestiario);
     const tarjetaTorre = `
         <article class="panel torre-tarjeta">
             <div class="torre-portada" style="background-image: url(${rutaPintura("torre")})">
                 <span class="torre-portada-titulo">🗼 Torre del héroe</span>
             </div>
-            <p class="nota">Sube piso a piso peleando por turnos contra los monstruos de tus campañas. Antes de cada
-               turno ves qué planea el monstruo: ataca, lanza un hechizo, defiéndete o toma una poción. Al ganar eliges
-               una mejora. <b>Tu poder sale de los niveles de tus atributos reales.</b></p>
+            <p class="nota">Batallas por turnos como en los juegos de rol clásicos. Sube por ${bestiario.ZONAS.length} zonas
+               con ${conocidas.total} criaturas propias de la Torre y un guardián cada ${torre.CADA_GUARDIAN} pisos. Antes de cada
+               turno ves qué planea tu rival: ataca, usa magia, defiéndete o toma una poción. Cada criatura tiene un punto
+               débil (🔥 fuego, ❄️ hielo o ⚡ rayo): descúbrelo y queda en tu bestiario.
+               <b>Tu poder sale de los niveles de tus atributos reales.</b></p>
             <p class="mini">❤️ Subes con tu vida real: empiezas con el
                ${Math.round(vida.proporcionTorre(ctx.vida) * 100)} % de tu vida.</p>
             <p class="mini equipo-ventaja">🧰 Tu equipo: ${[
@@ -2046,6 +2050,8 @@ export function pantallaArcade(estado, ctx) {
                (máx. ${torre.PREMIO.maxMonedas} 🪙 y ${torre.PREMIO.maxXp} XP)</p>
             <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" ${!caido && (partida || fichas) ? "" : "disabled"}>
                 ${partida ? `Continuar · piso ${partida.piso}` : "Subir a la torre · 🎟️ 1 ficha"}</button>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="bestiario-abrir">
+                📖 Bestiario · ${conocidas.vistas} de ${conocidas.total} criaturas</button>
         </article>`;
 
     return `
@@ -2066,127 +2072,282 @@ export function pantallaArcade(estado, ctx) {
 
 
 // ===== La Torre del héroe (pantalla completa) =====
-// t = { partida, avatar (SVG del héroe), eventos (lo que acaba de pasar), resultado (al cobrar), record, fichas }
+// Se ve como un juego de rol clásico: la criatura a la izquierda, tu héroe a la derecha y,
+// abajo, ventanas azules con los comandos y el estado de cada uno.
+// t = { partida, nombre (el de tu héroe), sprites: { heroe, enemigo, sala } (imágenes en pixel art),
+//       eventos (lo que acaba de pasar), menu ("principal" | "magia"), ultimo (el último comando
+//       que usaste: ahí queda la manito), bestiario (lo que sabes de las criaturas),
+//       resultado (al cobrar), fichas }
+//
+// Todo lo que pasa en un turno llega junto (tu acción y la respuesta de la criatura). Para que
+// se vea en orden, cada animación empieza un poco después que la anterior (animation-delay).
+const TURNO_ENEMIGO = 650;   // milisegundos: cuándo responde la criatura
+
+// Un número que salta sobre quien recibe el golpe o la cura.
+const numeroFF = (texto, clase, cuando) =>
+    `<span class="ff-numero ${clase}" style="animation-delay: ${cuando}ms" aria-hidden="true">${texto}</span>`;
+
+// La barra superior de la Torre: el título y la ✕ para salir.
+const barraTorre = (titulo, detalle = "") => `
+    <div class="minijuego-barra">
+        <span class="titulo-juego">${titulo}${detalle ? ` <small class="ff-zona">${detalle}</small>` : ""}</span>
+        <button type="button" class="boton-icono" data-accion="torre-salir" aria-label="Salir de la torre">${ICONOS.cerrar}</button>
+    </div>`;
+
+// Una imagen en pixel art. talla = cuántos puntos mide de ancho (el CSS la agranda).
+const spriteFF = (direccion, nombre, talla, tinte = "") => `
+    <span class="ff-figura"${tinte ? ` style="filter: ${tinte}"` : ""}><span class="ff-paso">
+        <img class="ff-sprite" src="${direccion || ""}" alt="${esc(nombre)}" style="--talla: ${talla}" draggable="false">
+    </span></span>`;
+
+// El fondo de la escena: la sala de esa zona.
+const salaFF = (direccion) => (direccion ? `<img class="ff-sala" src="${direccion}" alt="" draggable="false">` : "");
+
+// Las criaturas «ancestrales» (después del piso 20) son las mismas, de otro color.
+const tinteDeVuelta = (vuelta) => (vuelta ? `hue-rotate(${(vuelta * 140) % 360}deg) saturate(1.2)` : "");
 
 export function pantallaTorre(t) {
     if (t.resultado) return finalTorre(t);
     const p = t.partida;
     const h = p.heroe;
     const m = p.enemigo;
+    const criatura = bestiario.CRIATURAS[m.id] || {};
+    const zona = bestiario.zonaDelPiso(p.piso);
     const eventos = t.eventos || [];
-    const del = (quien, tipo) => eventos.find((e) => e.quien === quien && (!tipo || e.tipo === tipo));
+    const enBatalla = p.fase === "batalla";
 
     // Lo que acaba de pasar, para las animaciones.
-    const golpeHeroe = eventos.find((e) => e.quien === "heroe" && e.dano);
-    const golpeEnemigo = eventos.find((e) => e.quien === "enemigo" && e.dano);
-    const curaHeroe = eventos.find((e) => e.quien === "heroe" && e.cura);
-    const curaEnemigo = del("enemigo", "curar");
-    const numero = (texto, clase, retraso = 0) =>
-        `<span class="dano ${clase}" style="animation-delay: ${retraso}ms" aria-hidden="true">${texto}</span>`;
+    const tuyo = eventos.find((e) => e.quien === "heroe");
+    const suyo = eventos.find((e) => e.quien === "enemigo");
+    const cayo = suyo?.tipo === "derrotado";
+    const tePego = suyo?.dano ? suyo : null;
+    const elemento = tuyo?.tipo === "hechizo" ? bestiario.ELEMENTOS[tuyo.elemento] : null;
 
-    const visual = campana.estadoVisual((m.vida / m.vidaMax) * 100);
-    const intencion = torre.textoIntencion(m, h);
-    const vida = (actual, maximo, clase) => `
-        <div class="barra barra-vida barra-mini ${clase}"><div class="barra-relleno" style="width: ${(actual / maximo) * 100}%"></div></div>
-        <span class="mini"><b>${actual}</b> / ${maximo}</span>`;
+    // El cartel de arriba dice el nombre de lo que se usa, primero lo tuyo y después lo suyo.
+    const cartel = (texto, cuando) => `<p class="ff-ventana ff-anuncio" style="animation-delay: ${cuando}ms">${esc(texto)}</p>`;
+    const tuCartel = elemento ? `${elemento.icono} ${elemento.nombre}` : { defender: "Defensa", pocion: "Poción" }[tuyo?.tipo];
+    const carteles = `${tuCartel ? cartel(tuCartel, 0) : ""}${suyo?.nombre ? cartel(suyo.nombre, TURNO_ENEMIGO) : ""}`;
+
+    // --- La criatura ---
+    const clasesEnemigo = [
+        criatura.vuela ? "vuela" : "",
+        tuyo?.dano ? "golpeado" : "",
+        tePego ? "ataca" : "",
+        suyo?.tipo === "furia" ? "furia" : "",
+        cayo ? "cae" : m.vida <= 0 ? "vencido" : "",
+    ].join(" ");
+    const efecto = !tuyo?.dano ? "" : `<span class="ff-efecto ff-${tuyo.tipo === "hechizo" ? tuyo.elemento : "tajo"}" aria-hidden="true"></span>`;
+    const enemigo = `
+        <div class="ff-bando ff-enemigo ${clasesEnemigo}">
+            <span class="ff-sombra"></span>
+            ${spriteFF(t.sprites.enemigo, m.nombre, criatura.talla || 96, tinteDeVuelta(m.vuelta))}
+            ${efecto}
+            ${tuyo?.dano ? numeroFF(tuyo.dano, tuyo.critico ? "critico" : "", 300) : ""}
+            ${tuyo?.efecto === "debil" ? '<span class="ff-aviso" aria-hidden="true">¡Punto débil!</span>' : ""}
+            ${tuyo?.efecto === "resiste" ? '<span class="ff-aviso ff-resiste" aria-hidden="true">Resiste</span>' : ""}
+            ${suyo?.cura ? numeroFF(suyo.cura, "cura", TURNO_ENEMIGO + 150) : ""}
+        </div>`;
+
+    // --- Tu héroe ---
+    const clasesHeroe = [
+        { atacar: "ataca", hechizo: "lanza", defender: "defiende", pocion: "bebe" }[tuyo?.tipo] || "",
+        tePego ? "herido" : "",
+        p.fase === "fin" ? "ko" : "",
+        p.fase === "mejora" ? "victoria" : "",
+        eventos.length ? "tras-golpe" : "",
+    ].join(" ");
+    const heroe = `
+        <div class="ff-bando ff-heroe ${clasesHeroe}">
+            <span class="ff-sombra"></span>
+            ${spriteFF(t.sprites.heroe, t.nombre, 54)}
+            ${tuyo?.tipo === "defender" ? '<span class="ff-escudo" aria-hidden="true"></span>' : ""}
+            ${tuyo?.cura ? numeroFF(tuyo.cura, "cura", 150) : ""}
+            ${tePego ? numeroFF(tePego.dano, "", TURNO_ENEMIGO + 250) : ""}
+        </div>`;
 
     const escena = `
-        <div class="torre-escena" style="background-image: url(${rutaPintura("torre")})">
-            <div class="torre-lado torre-heroe ${golpeHeroe ? "atacar" : ""} ${golpeEnemigo ? "herido" : ""} ${del("heroe", "defender") ? "defiende" : ""}">
-                <div class="torre-avatar">${t.avatar}</div>
-                ${golpeEnemigo ? numero(`−${golpeEnemigo.dano}`, "", 520) : ""}
-                ${curaHeroe ? numero(`+${curaHeroe.cura}`, "cura") : ""}
-                ${del("heroe", "hechizo") ? '<span class="torre-rayo" aria-hidden="true"></span>' : ""}
-                ${vida(h.vida, h.vidaMax, "barra-heroe")}
-                ${h.proteccion ? `<span class="mini texto-suave">🛡️ armadura: −${Math.round(h.proteccion * 100)} % de daño</span>` : ""}
-            </div>
-            <div class="torre-lado torre-enemigo ${golpeHeroe ? "golpeado" : ""} ${del("enemigo", "furia") ? "furia" : ""}">
-                ${p.fase === "batalla" ? `<p class="torre-intencion">${intencion.icono} ${intencion.texto}</p>` : ""}
-                <figure class="retrato ${p.fase === "batalla" ? visual : "derrotado"}">
-                    <img src="${campana.imagenDe(m.id)}" alt="${esc(m.nombre)}">
-                    ${golpeHeroe ? '<span class="impacto"></span>' : ""}
-                </figure>
-                ${golpeHeroe ? numero(`−${golpeHeroe.dano}${golpeHeroe.critico ? "!" : ""}`, golpeHeroe.critico ? "critico" : "", 280) : ""}
-                ${curaEnemigo ? numero(`+${curaEnemigo.cura}`, "cura", 520) : ""}
-                <b class="torre-nombre">${m.guardian ? "👑 " : ""}${esc(m.nombre)}</b>
-                <span class="mini texto-suave">${esc(m.titulo)}</span>
-                ${vida(m.vida, m.vidaMax, "")}
-            </div>
+        <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""}">
+            ${salaFF(t.sprites.sala)}${carteles}${enemigo}${heroe}
         </div>`;
 
-    const botones = `
-        <div class="torre-acciones">
-            <button type="button" class="boton boton-secundario" data-accion="torre-accion" data-torre="atacar">
-                ⚔️ Atacar<small>${Math.round(h.ataque * 0.85)}–${Math.round(h.ataque * 1.15)} de daño</small></button>
-            <button type="button" class="boton boton-secundario" data-accion="torre-accion" data-torre="hechizo" ${h.mana ? "" : "disabled"}>
-                🔮 Hechizo<small>~${h.hechizo} · quedan ${h.mana}/${h.manaMax}</small></button>
-            <button type="button" class="boton boton-secundario" data-accion="torre-accion" data-torre="defender">
-                🛡️ Defender<small>bloquea ${Math.round(h.defensa * 100)} % · +${h.curaDefensa} vida</small></button>
-            <button type="button" class="boton boton-secundario" data-accion="torre-accion" data-torre="pocion" ${h.pociones ? "" : "disabled"}>
-                🧪 Poción<small>+35 % de vida · quedan ${h.pociones}</small></button>
-        </div>`;
-
-    // Ventanas encima de la batalla: elegir mejora, o la caída.
+    // --- Abajo: los comandos (o el botín, o el final) y las fichas ---
     // Si aparecen justo después de un golpe, esperan un instante para que se vea el golpe final.
     const espera = eventos.length ? "tras-golpe" : "";
-    let encima = "";
+    let abajo;
     if (p.fase === "mejora") {
-        encima = `
-            <div class="torre-ventana ${espera}">
-                <p class="etiqueta">¡Piso ${p.piso} superado!</p>
-                <h3 class="titulo-juego">Elige una mejora</h3>
-                <div class="torre-mejoras">${p.opciones.map((clave) => {
+        abajo = `
+            <div class="ff-ventana ff-botin ${espera}">
+                <p class="ff-titulo">¡Victoria! <small>Piso ${p.piso} superado</small></p>
+                <p class="ff-renglon">Elige tu botín:</p>
+                ${p.opciones.map((clave) => {
                     const mejora = torre.MEJORAS[clave];
-                    return `<button type="button" class="torre-mejora" data-accion="torre-mejora" data-mejora="${clave}">
-                                <span class="torre-mejora-icono">${mejora.icono}</span><b>${mejora.nombre}</b><small>${mejora.texto}</small></button>`;
-                }).join("")}</div>
+                    return `<button type="button" class="ff-comando" data-accion="torre-mejora" data-mejora="${clave}">
+                                <span class="ff-cursor" aria-hidden="true"></span>
+                                <span class="ff-comando-nombre">${mejora.icono} ${mejora.nombre}</span><small>${mejora.texto}</small></button>`;
+                }).join("")}
             </div>`;
     } else if (p.fase === "fin") {
         const pisos = torre.pisosSuperados(p);
         const premio = torre.premio(pisos);
-        encima = `
-            <div class="torre-ventana ${espera}">
-                <p class="etiqueta">Fin de la subida</p>
-                <h3 class="titulo-juego">Caíste en el piso ${p.piso}</h3>
-                <p>Superaste <b>${plural(pisos, "piso", "pisos")}</b>.</p>
-                <p class="minijuego-premio">+${premio.monedas} 🪙 · +${premio.xp} XP de 💬 Carisma</p>
-                <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-cobrar">Cobrar premio</button>
+        abajo = `
+            <div class="ff-ventana ff-botin ${espera}">
+                <p class="ff-titulo">Fin de la subida <small>Caíste en el piso ${p.piso}</small></p>
+                <p class="ff-renglon">Superaste <b>${plural(pisos, "piso", "pisos")}</b>.</p>
+                <p class="ff-renglon ff-oro">+${premio.monedas} 🪙 · +${premio.xp} XP de 💬 Carisma</p>
+                <button type="button" class="ff-comando elegido" data-accion="torre-cobrar">
+                    <span class="ff-cursor" aria-hidden="true"></span><span class="ff-comando-nombre">Cobrar premio</span></button>
             </div>`;
+    } else {
+        abajo = `
+            <div class="ff-tablero">
+                ${comandosTorre(t)}
+                <div class="ff-fichas">${fichaEnemigo(t)}${fichaHeroe(h, t.nombre)}</div>
+            </div>
+            <button type="button" class="enlace torre-rendirse" data-accion="torre-rendirse">Huir y cobrar lo ganado</button>`;
     }
 
     return `
-        <div class="minijuego-barra">
-            <span class="titulo-juego">🗼 Piso ${p.piso}${torre.esGuardian(p.piso) ? " · Guardián" : ""}</span>
-            <button type="button" class="boton-icono" data-accion="torre-salir" aria-label="Salir de la torre">${ICONOS.cerrar}</button>
-        </div>
+        ${barraTorre(`🗼 Piso ${p.piso}`, `${zona.nombre}${m.guardian ? " 👑" : ""}`)}
         ${escena}
-        <p class="torre-registro" role="status">${esc(p.registro)}</p>
-        ${p.fase === "batalla" ? botones : ""}
-        ${p.fase === "batalla" ? `<button type="button" class="enlace torre-rendirse" data-accion="torre-rendirse">Rendirse y cobrar lo ganado</button>` : ""}
-        ${encima}`;
+        <p class="ff-ventana ff-mensaje" role="status">${esc(p.registro)}</p>
+        ${abajo}`;
+}
+
+// La ventana de comandos. El menú principal, o la lista de hechizos si tocaste «Magia».
+function comandosTorre(t) {
+    const h = t.partida.heroe;
+    const m = t.partida.enemigo;
+    // La manito señala el último comando que usaste.
+    const fila = (clave, nombre, detalle, atributos, clase = "") => `
+        <button type="button" class="ff-comando ${clave === t.ultimo ? "elegido" : ""} ${clase}" ${atributos}>
+            <span class="ff-cursor" aria-hidden="true"></span><span class="ff-comando-nombre">${nombre}</span><small>${detalle}</small></button>`;
+
+    if (t.menu === "magia") {
+        const hechizos = Object.entries(bestiario.ELEMENTOS).map(([clave, e]) => {
+            // Si ya probaste ese hechizo con esta criatura, tu bestiario recuerda qué le hace.
+            const sabes = bestiario.loQueSabes(t.bestiario, m.id, clave);
+            const detalle = { debil: "¡punto débil!", resiste: "lo resiste", normal: "daño normal" }[sabes] || "sin probar";
+            return fila(clave, `${e.icono} ${e.nombre}`, detalle,
+                        `data-accion="torre-accion" data-torre="hechizo" data-elemento="${clave}"`, `ff-hechizo ${sabes ? `ff-${sabes}` : ""}`);
+        }).join("");
+        return `
+            <div class="ff-ventana ff-comandos">
+                <p class="ff-titulo">Magia <small>PM ${h.mana}/${h.manaMax} · daño ~${h.hechizo}</small></p>
+                ${hechizos}
+                ${fila("volver", "↩ Volver", "", 'data-accion="torre-menu" data-menu="principal"')}
+            </div>`;
+    }
+    const a = torre.ACCIONES;
+    return `
+        <div class="ff-ventana ff-comandos">
+            ${fila("atacar", a.atacar.nombre, `${Math.round(h.ataque * 0.85)}–${Math.round(h.ataque * 1.15)}`, 'data-accion="torre-accion" data-torre="atacar"')}
+            ${fila("hechizo", a.hechizo.nombre, `PM ${h.mana}/${h.manaMax}`, `data-accion="torre-menu" data-menu="magia" ${h.mana ? "" : "disabled"}`)}
+            ${fila("defender", a.defender.nombre, `−${Math.round(h.defensa * 100)} % · +${h.curaDefensa}`, 'data-accion="torre-accion" data-torre="defender"')}
+            ${fila("pocion", a.pocion.nombre, `×${h.pociones}`, `data-accion="torre-accion" data-torre="pocion" ${h.pociones ? "" : "disabled"}`)}
+        </div>`;
+}
+
+// La ficha de la criatura: nombre, vida, qué planea y lo que ya sabes de ella.
+function fichaEnemigo(t) {
+    const m = t.partida.enemigo;
+    const intencion = torre.textoIntencion(m, t.partida.heroe);
+    const iconos = (que) => Object.keys(bestiario.ELEMENTOS)
+        .filter((e) => bestiario.loQueSabes(t.bestiario, m.id, e) === que)
+        .map((e) => bestiario.ELEMENTOS[e].icono).join("");
+    const [debil, resiste] = [iconos("debil"), iconos("resiste")];
+    const sabes = [debil ? `Débil: ${debil}` : "", resiste ? `Resiste: ${resiste}` : ""].filter(Boolean).join(" · ");
+    return `
+        <div class="ff-ventana ff-ficha">
+            <b class="ff-nombre">${m.guardian ? "👑 " : ""}${esc(m.nombre)}</b>
+            <div class="ff-vida"><i style="width: ${(m.vida / m.vidaMax) * 100}%"></i></div>
+            <span class="ff-cifras">${m.vida}/${m.vidaMax}</span>
+            <span class="ff-intencion">${intencion.icono} ${esc(intencion.texto)}</span>
+            ${sabes ? `<span class="ff-sabes">${sabes}</span>` : ""}
+        </div>`;
+}
+
+// La ficha de tu héroe: vida (VIT), hechizos que quedan (PM), pociones y armadura.
+function fichaHeroe(h, nombre) {
+    const parte = h.vida / h.vidaMax;
+    const estado = h.vida <= 0 ? "ko" : parte < 0.3 ? "grave" : "";
+    return `
+        <div class="ff-ventana ff-ficha ff-ficha-heroe ${estado}">
+            <b class="ff-nombre">${esc(nombre)}</b>
+            <div class="ff-vida"><i style="width: ${parte * 100}%"></i></div>
+            <dl class="ff-datos">
+                <dt>VIT</dt><dd>${h.vida}<small>/${h.vidaMax}</small></dd>
+                <dt>PM</dt><dd>${h.mana}<small>/${h.manaMax}</small></dd>
+            </dl>
+            <span class="ff-sabes">🧪 ×${h.pociones}${h.proteccion ? ` · 🛡️ −${Math.round(h.proteccion * 100)} %` : ""}</span>
+        </div>`;
 }
 
 function finalTorre(t) {
     const r = t.resultado;
     return `
-        <div class="minijuego-barra">
-            <span class="titulo-juego">🗼 Torre del héroe</span>
-            <button type="button" class="boton-icono" data-accion="torre-salir" aria-label="Salir de la torre">${ICONOS.cerrar}</button>
-        </div>
-        <div class="torre-escena torre-escena-final" style="background-image: url(${rutaPintura("torre")})">
-            <div class="torre-avatar">${t.avatar}</div>
-        </div>
-        <div class="torre-ventana torre-ventana-fija">
-            <p class="etiqueta">Premio cobrado</p>
-            <p class="minijuego-puntos">${plural(r.pisos, "piso", "pisos")}</p>
-            <p>${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${plural(r.record, "piso", "pisos")}`}</p>
-            <p class="minijuego-premio">+${r.premio.monedas} 🪙 · +${r.premio.xp} XP de 💬 Carisma</p>
-            <div class="botones-dialogo">
-                <button type="button" class="boton boton-secundario" data-accion="torre-salir">Salir</button>
-                <button type="button" class="boton boton-principal" data-accion="torre-abrir" ${t.fichas ? "" : "disabled"}>
-                    ${t.fichas ? `Otra vez · 🎟️ ${t.fichas}` : "Sin fichas"}</button>
+        ${barraTorre("🗼 Torre del héroe")}
+        <div class="ff-escena ff-escena-final">
+            ${salaFF(t.sprites.sala)}
+            <div class="ff-bando ff-heroe ${r.pisos ? "victoria" : ""}">
+                <span class="ff-sombra"></span>${spriteFF(t.sprites.heroe, t.nombre, 54)}
             </div>
+        </div>
+        <div class="ff-ventana ff-botin">
+            <p class="ff-titulo">Premio cobrado</p>
+            <p class="ff-puntos">${plural(r.pisos, "piso", "pisos")}</p>
+            <p class="ff-renglon">${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${plural(r.record, "piso", "pisos")}`}</p>
+            <p class="ff-renglon ff-oro">+${r.premio.monedas} 🪙 · +${r.premio.xp} XP de 💬 Carisma</p>
+            <button type="button" class="ff-comando elegido" data-accion="torre-abrir" ${t.fichas ? "" : "disabled"}>
+                <span class="ff-cursor" aria-hidden="true"></span>
+                <span class="ff-comando-nombre">${t.fichas ? "Subir otra vez" : "Sin fichas"}</span><small>${t.fichas ? `🎟️ ${t.fichas}` : ""}</small></button>
+            <button type="button" class="ff-comando" data-accion="torre-salir">
+                <span class="ff-cursor" aria-hidden="true"></span><span class="ff-comando-nombre">Salir</span></button>
         </div>`;
+}
+
+
+// ===== El bestiario: las criaturas de la Torre que ya conoces =====
+// b = { bestiario (estado.arcade.bestiario), sprites: { id: imagen } }
+export function pantallaBestiario(b) {
+    const { vistas, total } = bestiario.progresoBestiario(b.bestiario);
+    const zonas = bestiario.ZONAS.map((zona, i) => {
+        const criaturas = bestiario.ORDEN.filter((id) => bestiario.CRIATURAS[id].zona === zona.id).map((id) => {
+            const c = bestiario.CRIATURAS[id];
+            const piso = bestiario.ORDEN.indexOf(id) + 1;
+            const ficha = bestiario.fichaDe(b.bestiario, id);
+            const imagen = `<img class="ff-sprite" src="${b.sprites[id] || ""}" alt="" style="--talla: ${c.talla}" draggable="false">`;
+            if (!ficha) {
+                // Todavía no te la cruzaste: solo su sombra.
+                return `<article class="ff-ventana ff-criatura desconocida">
+                            <div class="ff-retrato">${imagen}</div>
+                            <div><b class="ff-nombre">???</b><small>Piso ${piso}${c.guardian ? " · Guardián" : ""}</small></div>
+                        </article>`;
+            }
+            const elementos = Object.entries(bestiario.ELEMENTOS).map(([clave, e]) => {
+                const sabes = bestiario.loQueSabes(b.bestiario, id, clave);
+                const texto = { debil: "débil", resiste: "resiste", normal: "normal" }[sabes] || "?";
+                return `<span class="ff-elemento ${sabes ? `ff-${sabes}` : ""}">${e.icono} ${texto}</span>`;
+            }).join("");
+            return `<article class="ff-ventana ff-criatura">
+                        <div class="ff-retrato">${imagen}</div>
+                        <div>
+                            <b class="ff-nombre">${c.guardian ? "👑 " : ""}${c.nombre}</b>
+                            <small>Piso ${piso} · ${ficha.vencidos ? `vencid${c.genero === "f" ? "a" : "o"} ×${ficha.vencidos}` : "sin vencer"}</small>
+                            <p>${c.texto}</p>
+                            <div class="ff-elementos">${elementos}</div>
+                        </div>
+                    </article>`;
+        }).join("");
+        const desde = i * bestiario.PISOS_POR_ZONA + 1;
+        return `<h3 class="ff-zona-titulo">${zona.nombre} <small>pisos ${desde}–${desde + bestiario.PISOS_POR_ZONA - 1}</small></h3>
+                <p class="ff-zona-texto">${zona.texto}</p>${criaturas}`;
+    }).join("");
+
+    return `
+        ${barraTorre("📖 Bestiario", `${vistas} de ${total}`)}
+        <p class="ff-ventana ff-mensaje">Aquí queda lo que aprendes en la Torre. Lanza hechizos para descubrir el punto débil de
+           cada criatura: la próxima vez ya lo sabrás.</p>
+        <div class="ff-bestiario">${zonas}</div>`;
 }
 
 

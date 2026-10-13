@@ -230,19 +230,25 @@ function cartel(g, ancho, alto, titulo, subtitulo) {
 // ===== El ciclo del juego =====
 
 // tipo: "carrera" | "lluvia" | "golpe"
-// retratos: direcciones de las pinturas de tus jefes (para "Golpe preciso")
+// pixel: para "Golpe preciso", las imágenes en pixel art de la batalla (ver sprites.js):
+//        { heroe, rival, sala (direcciones de las imágenes), nombre (el de la criatura) }
 // alTerminar(puntos) se llama una sola vez cuando acaba la partida.
 // sonar(nombre) reproduce un sonido (app.js decide si el sonido está encendido).
 // ventajas: lo que te da tu equipo (ver arcade.ventajasDelEquipo): escudos, vidas, fuerza, zona y suerte.
-export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, ayuda, alTerminar, sonar = () => {},
+export async function jugar(tipo, { lienzo, avatarSvg, pixel = null, marcador, ayuda, alTerminar, sonar = () => {},
                                     ventajas = { escudos: 0, vidasExtra: 0, fuerza: 1, zona: 1, suerte: 1 } }) {
     const crear = { carrera, lluvia, golpe }[tipo];
 
-    // Preparamos las imágenes: tu avatar (convertido a mapa de bits) y el retrato de un jefe.
-    const [svgHeroe, rival] = await Promise.all([
+    // Preparamos las imágenes: tu avatar (convertido a mapa de bits) y, en "Golpe preciso",
+    // las de la batalla en pixel art.
+    const conEscena = tipo === "golpe" && pixel;
+    const [svgHeroe, miHeroe, rival, sala] = await Promise.all([
         imagenDeSvg(avatarSvg),
-        tipo === "golpe" && retratos.length ? cargarImagen(elegir(retratos)) : null,
+        conEscena ? cargarImagen(pixel.heroe) : null,
+        conEscena ? cargarImagen(pixel.rival) : null,
+        conEscena ? cargarImagen(pixel.sala) : null,
     ]);
+    const escena = conEscena ? { heroe: miHeroe, rival, sala, nombre: pixel.nombre } : null;
     const heroe = aMapaDeBits(svgHeroe, 300, 400);   // el avatar de batalla mide 126 × 168 (proporción 3:4)
 
     // El lienzo mide lo mismo que en pantalla, multiplicado por la densidad
@@ -256,7 +262,7 @@ export async function jugar(tipo, { lienzo, avatarSvg, retratos = [], marcador, 
     const g = lienzo.getContext("2d");
     g.setTransform(escala, 0, 0, escala, 0, 0);
 
-    const juego = crear({ ancho, alto, heroe, rival, sonar, ventajas });
+    const juego = crear({ ancho, alto, heroe, escena, sonar, ventajas });
     ayuda.textContent = juego.ayuda;
 
     let anterior = performance.now();
@@ -589,8 +595,11 @@ function lluvia({ ancho, alto, heroe, sonar, ventajas }) {
 
 
 // ===== Juego 3: Golpe preciso =====
+// Se ve como una batalla de la Torre: la sala arriba (en pixel art), con una criatura a la
+// izquierda y tu héroe a la derecha; debajo, la barra de poder.
+// escena = { heroe, rival, sala (imágenes en pixel art), nombre (el de la criatura) } o null.
 
-function golpe({ ancho, alto, heroe, rival, sonar, ventajas }) {
+function golpe({ ancho, alto, heroe, escena, sonar, ventajas }) {
     const RONDAS = 5;
     const VIDA = 300;
     // Qué tan cerca del centro tocaste. La magia de tu equipo agranda las zonas y el ataque
@@ -600,12 +609,17 @@ function golpe({ ancho, alto, heroe, rival, sonar, ventajas }) {
         { radio: 0.09, valor: 60, texto: "¡Genial!", color: "#34d399" },
         { radio: 0.18, valor: 30, texto: "Bien", color: "#67e8f9" },
     ].map((z) => ({ ...z, radio: Math.min(0.3, z.radio * ventajas.zona), valor: Math.round(z.valor * ventajas.fuerza) }));
-    const barra = { x: 22, y: alto - 50, w: ancho - 44, h: 22 };
-    const suelo = barra.y - 30;
-    const hh = Math.min(118, alto * 0.42);    // héroe
-    const hw = hh * 0.75;
-    const tm = Math.min(170, alto * 0.5);     // alto del retrato del jefe
-    const am = tm * 0.8;                      // ancho (las pinturas son 4:5)
+
+    // La sala mide 192 × 128 puntos. "px" es cuánto mide en pantalla cada punto: lo más grande
+    // que quepa a lo ancho, dejando abajo sitio para la barra.
+    const img = escena || {};
+    const px = Math.min(ancho / 192, (alto - 104) / 128);
+    const sala = { x: (ancho - 192 * px) / 2, ancho: 192 * px, alto: 128 * px };
+    const suelo = sala.alto - 10 * px;                       // donde pisan
+    const barra = { x: 22, y: sala.alto + (alto - sala.alto) / 2, w: ancho - 44, h: 22 };
+    // El rival, a la izquierda (su imagen ya viene en puntos); tu héroe (54 × 72 puntos), a la derecha.
+    const rival = { w: (img.rival ? img.rival.width : 88) * px, h: (img.rival ? img.rival.height : 88) * px, x: sala.x + 62 * px };
+    const yo = { w: 54 * px, h: 72 * px, x: sala.x + 160 * px };
     const textos = crearTextos();
     let ronda = 0;
     let marca = 0;          // posición de la marca: de 0 (izquierda) a 1 (derecha)
@@ -618,7 +632,7 @@ function golpe({ ancho, alto, heroe, rival, sonar, ventajas }) {
     let final = false;
 
     const juego = {
-        ayuda: "Toca cuando la marca blanca esté en el centro dorado. Tienes 5 golpes contra uno de tus jefes.",
+        ayuda: "Toca cuando la marca blanca esté en el centro dorado. Tienes 5 golpes contra una criatura de la Torre.",
         puntos: 0,
         termino: false,
         tocar() {
@@ -628,11 +642,11 @@ function golpe({ ancho, alto, heroe, rival, sonar, ventajas }) {
             const valor = zona ? zona.valor : 0;
             juego.puntos += valor;
             vida = Math.max(0, vida - valor);
-            textos.agregar(zona ? zona.texto : "Fallaste", ancho / 2, alto * 0.2,
+            textos.agregar(zona ? zona.texto : "Fallaste", ancho / 2, sala.alto * 0.24,
                            zona ? zona.color : "#94a3b8", zona === ZONAS[0] ? 26 : 20);
             sonar(valor ? "impacto" : "fallo");
             if (valor) {
-                textos.agregar(`-${valor}`, ancho * 0.94 - am / 2, suelo - tm * 0.6, "#fb7185", 18);
+                textos.agregar(`${valor}`, rival.x, suelo - rival.h * 0.55, "#fff", 20);
                 temblor = 0.4;
             }
             embestida = 0.4;
@@ -641,7 +655,7 @@ function golpe({ ancho, alto, heroe, rival, sonar, ventajas }) {
             espera = 0.9;
             if (vida === 0) {
                 juego.puntos += 50;
-                textos.agregar("¡K.O.! +50", ancho / 2, alto * 0.32, ORO, 24);
+                textos.agregar("¡K.O.! +50", ancho / 2, sala.alto * 0.42, ORO, 24);
                 final = true;
             }
             if (ronda >= RONDAS) final = true;
@@ -660,45 +674,74 @@ function golpe({ ancho, alto, heroe, rival, sonar, ventajas }) {
             if (marca <= 0) { marca = 0; direccion = 1; }
         },
         dibujar(g) {
-            cielo(g, ancho, alto, "#1b1033", "#120a24");
-            const brillo = g.createRadialGradient(ancho / 2, suelo, 10, ancho / 2, suelo, ancho * 0.6);
-            brillo.addColorStop(0, "rgba(251,113,133,.25)");
-            brillo.addColorStop(1, "rgba(251,113,133,0)");
-            g.fillStyle = brillo;
+            g.fillStyle = "#0b0816";
             g.fillRect(0, 0, ancho, alto);
 
-            // Héroe: se lanza hacia adelante al golpear.
-            const avance = embestida > 0 ? Math.sin((embestida / 0.4) * Math.PI) * 40 : 0;
-            dibujarImagen(g, heroe, ancho * 0.06 + avance, suelo - hh * 0.92, hw, hh);
+            // --- La sala, en pixel art: se agranda SIN suavizar para que se vean los puntos ---
+            g.imageSmoothingEnabled = false;
+            if (img.sala) g.drawImage(img.sala, sala.x, 0, sala.ancho, sala.alto);
+            else cielo(g, ancho, sala.alto, "#1b1033", "#120a24");
 
-            // Rival: el retrato de un jefe, enmarcado. Tiembla al recibir el golpe.
-            const mx = ancho * 0.94 - am + (temblor > 0 ? azar(-5, 5) : 0);
-            const my = suelo - tm;
-            g.save();
-            rectRedondo(g, mx, my, am, tm, 8);
-            g.clip();
-            if (rival) g.drawImage(rival, mx, my, am, tm);
-            else { g.fillStyle = "#1c1336"; g.fillRect(mx, my, am, tm); }
-            if (temblor > 0.25) { g.fillStyle = "rgba(255,255,255,.45)"; g.fillRect(mx, my, am, tm); }   // destello del golpe
-            if (vida === 0) { g.fillStyle = "rgba(0,0,0,.65)"; g.fillRect(mx, my, am, tm); }             // derrotado
-            g.restore();
-            g.strokeStyle = "#8a6a12";
-            g.lineWidth = 3;
-            rectRedondo(g, mx, my, am, tm, 8);
+            // Sombras en el suelo.
+            g.fillStyle = "rgba(5,3,12,.5)";
+            for (const quien of [rival, yo]) {
+                g.beginPath();
+                g.ellipse(quien.x, suelo + 1.5 * px, quien.w * 0.36, 4 * px, 0, 0, Math.PI * 2);
+                g.fill();
+            }
+
+            // El rival: al recibir el golpe tiembla y parpadea; vencido, se apaga.
+            const sacudida = temblor > 0 ? azar(-4, 4) : 0;
+            const parpadea = temblor > 0.16 && Math.floor(temblor * 18) % 2 === 0;
+            if (!parpadea) {
+                g.globalAlpha = vida === 0 ? 0.3 : 1;
+                if (img.rival) g.drawImage(img.rival, rival.x - rival.w / 2 + sacudida, suelo - rival.h, rival.w, rival.h);
+                else { g.fillStyle = "#3a2c4c"; g.fillRect(rival.x - rival.w / 2, suelo - rival.h, rival.w, rival.h); }
+                g.globalAlpha = 1;
+            }
+
+            // Tu héroe: da un paso hacia el rival al golpear.
+            const avance = embestida > 0 ? Math.sin((embestida / 0.4) * Math.PI) * 20 * px : 0;
+            if (img.heroe) g.drawImage(img.heroe, yo.x - yo.w / 2 - avance, suelo - 2 * px - yo.h, yo.w, yo.h);
+            else dibujarImagen(g, heroe, yo.x - yo.w / 2 - avance, suelo - yo.h, yo.w, yo.h);
+            g.imageSmoothingEnabled = true;
+
+            // El tajo: dos cortes blancos sobre el rival.
+            if (temblor > 0.22) {
+                g.strokeStyle = "#fff";
+                g.lineWidth = 2 * px;
+                g.beginPath();
+                g.moveTo(rival.x + rival.w * 0.3, suelo - rival.h * 0.9); g.lineTo(rival.x - rival.w * 0.3, suelo - rival.h * 0.2);
+                g.moveTo(rival.x + rival.w * 0.42, suelo - rival.h * 0.78); g.lineTo(rival.x - rival.w * 0.12, suelo - rival.h * 0.14);
+                g.stroke();
+            }
+
+            // El marco blanco de la escena.
+            g.strokeStyle = "#f1f3ff";
+            g.lineWidth = 2;
+            rectRedondo(g, Math.max(1, sala.x + 1), 1, Math.min(ancho, sala.ancho) - 2, sala.alto - 2, 8);
             g.stroke();
 
-            // Vida del rival.
-            const vx = mx;
-            const vw = am;
-            const vy = my - 14;
-            g.fillStyle = "#0d0a1c";
-            rectRedondo(g, vx, vy, vw, 8, 4);
+            // Ventana azul con el nombre y la vida del rival (como las de la Torre).
+            const ventana = { x: Math.max(8, sala.x + 8), y: 8, w: Math.min(176, ancho * 0.52), h: 36 };
+            const azul = g.createLinearGradient(0, ventana.y, 0, ventana.y + ventana.h);
+            azul.addColorStop(0, "#3350c8");
+            azul.addColorStop(1, "#0a1258");
+            g.fillStyle = azul;
+            rectRedondo(g, ventana.x, ventana.y, ventana.w, ventana.h, 7);
             g.fill();
-            g.fillStyle = "#f43f5e";
-            rectRedondo(g, vx, vy, Math.max(0.01, vw * (vida / VIDA)), 8, 4);
-            g.fill();
+            g.strokeStyle = "#f1f3ff";
+            g.stroke();
+            g.textAlign = "left";
+            g.font = "700 12px -apple-system, system-ui, sans-serif";
+            g.fillStyle = "#fff";
+            g.fillText(img.nombre || "Criatura", ventana.x + 9, ventana.y + 15, ventana.w - 18);
+            g.fillStyle = "#05072a";
+            g.fillRect(ventana.x + 9, ventana.y + 22, ventana.w - 18, 6);
+            g.fillStyle = "#e11d48";
+            g.fillRect(ventana.x + 9, ventana.y + 22, (ventana.w - 18) * (vida / VIDA), 6);
 
-            // Barra de poder: rojo (fallo), celeste (bien), verde (genial), dorado (crítico).
+            // --- La barra de poder: rojo (fallo), celeste (bien), verde (genial), dorado (crítico) ---
             g.fillStyle = "#3f1d2b";
             rectRedondo(g, barra.x, barra.y, barra.w, barra.h, 8);
             g.fill();

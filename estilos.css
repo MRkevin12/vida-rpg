@@ -3475,8 +3475,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 /* Un velo cálido sobre el grabado (es en blanco y negro): como luz de antorchas. */
-.torre-portada::before,
-.torre-escena::before {
+.torre-portada::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -3496,221 +3495,802 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-shadow: 0 2px 10px #000;
 }
 
-/* La batalla */
+/* La batalla (v25): se ve como un juego de rol clásico de consola.
+   - Las imágenes son "pixel art": dibujos muy pequeños que se agrandan SIN suavizar
+     (image-rendering: pixelated), así cada punto queda como un cuadrito.
+   - Las ventanas son azules con borde blanco (.ff-ventana).
+   - Las animaciones van "a saltos" (steps), como los sprites de antes. */
 .torre-caja {
     max-height: 100%;
     overflow-y: auto;
-}
-
-.torre-escena {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: end;
-    gap: 6px;
-    min-height: min(46vh, 340px);
-    padding: 12px 10px 10px;
-    overflow: hidden;
-    background-size: cover;
-    background-position: center;
-    border: 1px solid var(--borde);
-    border-radius: 16px;
-}
-
-.torre-lado {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    justify-items: center;
-    gap: 3px;
-    text-align: center;
-}
-
-.torre-lado .barra {
-    width: 100%;
-    max-width: 130px;
-}
-
-.torre-heroe .barra-relleno {
-    background: linear-gradient(90deg, #059669, var(--verde));
-}
-
-.torre-avatar {
-    width: min(36vw, 150px);
-}
-
-.torre-avatar svg {
-    display: block;
-    width: 100%;
-}
-
-.torre-enemigo .retrato {
-    width: min(30vw, 120px);
-}
-
-.torre-nombre {
-    font-family: "Orbitron", sans-serif;
-    font-size: 0.85rem;
-}
-
-.torre-intencion {
-    padding: 4px 9px;
-    font-size: 0.74rem;
-    font-weight: 700;
-    color: #ffe4c4;
-    background: rgba(11, 8, 22, 0.78);
-    border: 1px solid rgba(251, 113, 133, 0.55);
-    border-radius: 999px;
-}
-
-/* Animaciones del turno: el héroe golpea (.atacar), el monstruo lo recibe y responde. */
-.torre-enemigo.golpeado .retrato {
-    animation: recibir-golpe 0.55s ease-out 0.28s;
-}
-
-.torre-heroe.herido .torre-avatar {
-    animation: recibir-golpe 0.55s ease-out 0.52s;
-}
-
-.torre-heroe.defiende .torre-avatar {
-    filter: drop-shadow(0 0 10px rgba(143, 216, 255, 0.9));
-}
-
-.torre-enemigo.furia .retrato {
-    box-shadow: 0 0 24px rgba(244, 63, 94, 0.9);
-}
-
-.dano.cura {
-    color: #d1fae5;
-    text-shadow: 0 0 8px #059669, 0 2px 0 #064e3b;
-}
-
-.dano.critico {
-    font-size: 1.7rem;
-    color: #fff3c4;
-    text-shadow: 0 0 10px #f59e0b, 0 2px 0 #92400e;
-}
-
-/* El hechizo: una esfera de luz que vuela hacia el monstruo. */
-.torre-rayo {
-    position: absolute;
-    top: 38%;
-    left: 62%;
-    z-index: 3;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #fff, #8fd8ff 45%, rgba(143, 216, 255, 0) 70%);
-    opacity: 0;
-    pointer-events: none;
-    animation: rayo 0.36s ease-in;
-}
-
-@keyframes rayo {
-    0% { opacity: 1; transform: translateX(0) scale(0.6); }
-    100% { opacity: 0.2; transform: translateX(min(38vw, 160px)) scale(1.6); }
-}
-
-.torre-registro {
-    min-height: 2.8em;
-    font-size: 0.86rem;
-    text-align: center;
-    color: var(--texto-suave);
-}
-
-.torre-acciones {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
-.torre-acciones .boton {
-    display: grid;
-    gap: 1px;
-    padding: 10px 8px;
-}
-
-.torre-acciones small {
-    font-size: 0.7rem;
-    font-weight: 500;
-    color: var(--texto-suave);
 }
 
 .torre-rendirse {
     justify-self: center;
 }
 
-/* Ventanas encima de la batalla: elegir mejora, la caída y el resumen */
-.torre-ventana {
-    position: absolute;
-    inset: 44px 0 0;
-    z-index: 4;
-    display: grid;
-    align-content: center;
-    justify-items: center;
-    gap: 8px;
-    padding: 18px;
-    text-align: center;
-    background: rgba(18, 10, 36, 0.95);
-    border: 1px solid rgba(251, 191, 36, 0.45);
-    border-radius: 16px;
-    animation: entrar-celebracion 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.torre-ventana.tras-golpe {
-    animation-delay: 0.9s;
-    animation-fill-mode: both;   /* mientras espera, invisible (como al empezar la animación) */
-}
-
-.torre-ventana .etiqueta {
-    color: var(--oro);
-}
-
-.torre-ventana-fija {
-    position: static;
-}
-
-.torre-ventana .botones-dialogo,
-.torre-mejoras {
-    width: 100%;
-}
-
-.torre-mejoras {
-    display: grid;
-    gap: 8px;
-}
-
-.torre-mejora {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    column-gap: 12px;
-    align-items: center;
-    padding: 12px 14px;
-    text-align: left;
-    background: var(--hundido);
-    border: 1px solid var(--borde);
-    border-radius: 14px;
-    cursor: pointer;
-}
-
-.torre-mejora:active {
-    transform: scale(0.98);
-}
-
-.torre-mejora-icono {
-    grid-row: span 2;
-    font-size: 1.6rem;
-}
-
-.torre-mejora small {
+.ff-zona {
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0;
     color: var(--texto-suave);
 }
 
-.torre-escena-final {
-    justify-items: center;
-    grid-template-columns: 1fr;
-    min-height: 200px;
+/* --- Las ventanas azules --- */
+.ff-ventana {
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0, 0, 20, 0.85);
+    background: linear-gradient(180deg, #3350c8 0%, #1c2e96 38%, #0a1258 100%);
+    border: 2px solid #f1f3ff;
+    border-radius: 9px;
+    /* una línea oscura por dentro y otra por fuera del borde blanco */
+    box-shadow: inset 0 0 0 1px #060a3a, 0 0 0 1px #060a3a, 0 3px 10px rgba(0, 0, 0, 0.45);
+}
+
+.ff-ventana small {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #b9c6ff;
+}
+
+.ff-mensaje {
+    min-height: 3.5em;
+    font-size: 0.86rem;
+}
+
+.ff-titulo {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 4px;
+    padding-bottom: 4px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(241, 243, 255, 0.35);
+}
+
+.ff-renglon {
+    margin: 2px 0;
+}
+
+.ff-oro {
+    color: #ffe58a;
+}
+
+.ff-puntos {
+    margin: 4px 0;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.7rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+/* --- La escena --- */
+.ff-escena {
+    /* --px = cuánto mide en pantalla un punto del pixel art. La sala mide 192 puntos de ancho,
+       así que es el ancho de la escena dividido entre 192 (cqw = 1 % del ancho de la caja). */
+    --px: 1.9px;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 192 / 128;
+    overflow: hidden;
+    container-type: inline-size;
+    background: #0b0816;
+    border: 2px solid #f1f3ff;
+    border-radius: 9px;
+    box-shadow: 0 0 0 1px #060a3a;
+}
+
+@supports (width: 1cqw) {
+    .ff-escena {
+        --px: calc(100cqw / 192);
+    }
+}
+
+/* La sala llena toda la escena. */
+.ff-sala {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Cada bando (la criatura y tu héroe) se coloca por el centro de sus pies. */
+.ff-bando {
+    position: absolute;
+    bottom: calc(var(--px) * 10);
+    transform: translateX(-50%);
+}
+
+.ff-enemigo {
+    left: calc(var(--px) * 62);
+}
+
+.ff-enemigo.vuela {
+    bottom: calc(var(--px) * 22);
+}
+
+.ff-heroe {
+    left: calc(var(--px) * 160);
+    bottom: calc(var(--px) * 12);
+}
+
+.ff-figura,
+.ff-paso {
+    display: block;
+}
+
+.ff-sprite {
+    display: block;
+    width: calc(var(--px) * var(--talla));
+    height: auto;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.ff-sombra {
+    position: absolute;
+    left: 14%;
+    right: 14%;
+    bottom: calc(var(--px) * -3);
+    height: calc(var(--px) * 8);
+    background: rgba(5, 3, 12, 0.5);
+    border-radius: 50%;
+}
+
+.ff-enemigo.vuela .ff-sombra {
+    left: 26%;
+    right: 26%;
+    bottom: calc(var(--px) * -15);
+}
+
+/* En reposo se mecen un punto arriba y abajo; las que vuelan, un poco más. */
+.ff-figura {
+    animation: ff-reposo 1.3s steps(1) infinite;
+}
+
+.ff-heroe .ff-figura {
+    animation-delay: -0.5s;
+}
+
+.ff-enemigo.vuela .ff-figura {
+    animation: ff-flotar 1.6s steps(4) infinite alternate;
+}
+
+@keyframes ff-reposo {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(calc(var(--px) * -1)); }
+}
+
+@keyframes ff-flotar {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(var(--px) * -5)); }
+}
+
+/* --- Lo que pasa en un turno ---
+   Tu acción empieza enseguida; la respuesta de la criatura, a los 0,65 s. */
+
+/* Tu héroe da un paso hacia la criatura y vuelve. */
+.ff-heroe.ataca .ff-paso {
+    animation: ff-avanzar 0.5s steps(5);
+}
+
+@keyframes ff-avanzar {
+    0%, 100% { transform: translateX(0); }
+    35%, 65% { transform: translateX(calc(var(--px) * -18)); }
+}
+
+/* Al lanzar un hechizo o beber una poción, se ilumina. */
+.ff-heroe.lanza .ff-paso,
+.ff-heroe.bebe .ff-paso {
+    animation: ff-brillar 0.45s steps(4);
+}
+
+@keyframes ff-brillar {
+    0%, 100% { filter: none; transform: translateY(0); }
+    40% { filter: brightness(1.9); transform: translateY(calc(var(--px) * -2)); }
+}
+
+/* Quien recibe un golpe parpadea (así se marcaba el daño en los juegos de antes). */
+.ff-enemigo.golpeado .ff-sprite {
+    animation: ff-parpadeo 0.42s steps(1) 0.28s;
+}
+
+.ff-heroe.herido .ff-sprite {
+    animation: ff-parpadeo 0.42s steps(1) 0.9s;
+}
+
+@keyframes ff-parpadeo {
+    0% { opacity: 1; filter: brightness(4); }
+    17%, 50%, 83% { opacity: 0; }
+    33%, 66%, 100% { opacity: 1; filter: none; }
+}
+
+/* La criatura se enciende un instante y embiste. */
+.ff-enemigo.ataca .ff-paso {
+    animation: ff-embestir 0.42s steps(4) 0.65s;
+}
+
+@keyframes ff-embestir {
+    0% { filter: brightness(2.6); transform: translateX(0); }
+    30% { filter: none; transform: translateX(calc(var(--px) * 14)); }
+    100% { transform: translateX(0); }
+}
+
+.ff-enemigo.furia .ff-paso {
+    animation: ff-furia 0.6s steps(6) 0.65s;
+}
+
+@keyframes ff-furia {
+    0%, 100% { filter: none; transform: scale(1); }
+    50% { filter: sepia(1) saturate(6) hue-rotate(-35deg); transform: scale(1.06); }
+}
+
+/* Vencida: parpadea por el último golpe y se deshace. */
+.ff-enemigo.cae .ff-sprite {
+    animation: ff-parpadeo 0.42s steps(1) 0.28s, ff-deshacer 0.9s steps(9) 0.75s forwards;
+}
+
+.ff-enemigo.cae .ff-sombra {
+    animation: ff-desaparecer 0.3s steps(3) 1.3s forwards;
+}
+
+.ff-enemigo.vencido .ff-sprite,
+.ff-enemigo.vencido .ff-sombra {
+    opacity: 0;
+}
+
+@keyframes ff-deshacer {
+    0% { opacity: 1; filter: brightness(3) saturate(0); transform: translateY(0); }
+    30% { opacity: 0.9; filter: sepia(1) saturate(5) hue-rotate(230deg) brightness(1.2); }
+    100% { opacity: 0; filter: sepia(1) saturate(5) hue-rotate(230deg) brightness(0.5); transform: translateY(calc(var(--px) * 6)); }
+}
+
+@keyframes ff-desaparecer {
+    to { opacity: 0; }
+}
+
+/* Tu héroe festeja con dos saltos… */
+.ff-heroe.victoria .ff-paso {
+    animation: ff-festejo 0.5s steps(4) 2;
+}
+
+.ff-heroe.victoria.tras-golpe .ff-paso {
+    animation-delay: 1.1s;
+}
+
+@keyframes ff-festejo {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(calc(var(--px) * -8)); }
+}
+
+/* …o cae al suelo. */
+.ff-heroe.ko .ff-paso {
+    filter: grayscale(0.8) brightness(0.7);
+    transform: translateY(calc(var(--px) * 22)) rotate(90deg);
+}
+
+.ff-heroe.ko.tras-golpe .ff-paso {
+    animation: ff-caer 0.4s steps(4) 1.3s backwards;
+}
+
+@keyframes ff-caer {
+    from { filter: none; transform: none; }
+}
+
+/* El escudo al defenderte. */
+.ff-escudo {
+    position: absolute;
+    top: 8%;
+    bottom: 4%;
+    left: calc(var(--px) * -9);
+    width: calc(var(--px) * 16);
+    background: linear-gradient(90deg, rgba(190, 235, 255, 0.95), rgba(90, 170, 255, 0.35));
+    clip-path: polygon(40% 0, 100% 12%, 100% 88%, 40% 100%, 0 78%, 0 22%);
+    animation: ff-escudo 1.5s steps(8) forwards;
+}
+
+@keyframes ff-escudo {
+    0% { opacity: 0; transform: scaleY(0.3); }
+    15%, 80% { opacity: 1; transform: scaleY(1); }
+    100% { opacity: 0.35; }
+}
+
+/* --- Los efectos sobre la criatura --- */
+.ff-efecto {
+    position: absolute;
+    inset: 6% 8%;
+    z-index: 3;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Un tajo: dos cortes blancos en diagonal. */
+.ff-tajo {
+    background:
+        linear-gradient(135deg, transparent 46%, #fff 47% 51%, transparent 52%),
+        linear-gradient(135deg, transparent 56%, #dfe8ff 57% 59%, transparent 60%);
+    animation: ff-tajo 0.3s steps(4) 0.22s;
+}
+
+@keyframes ff-tajo {
+    0% { opacity: 1; clip-path: inset(0 100% 100% 0); }
+    60% { opacity: 1; clip-path: inset(0 0 0 0); }
+    100% { opacity: 0; clip-path: inset(0 0 0 0); }
+}
+
+/* Fuego: lenguas que suben desde el suelo (rojas por fuera, amarillas por dentro). */
+.ff-fuego {
+    inset: -4% 4% 0;
+    background: linear-gradient(180deg, #ff9a1f 0%, #f0500f 45%, #a81808 100%);
+    clip-path: polygon(0 100%, 6% 55%, 14% 72%, 22% 22%, 32% 60%, 40% 34%, 50% 0, 58% 40%, 66% 58%, 76% 16%, 86% 66%, 94% 46%, 100% 100%);
+    transform-origin: 50% 100%;
+    animation: ff-fuego 0.6s steps(6) 0.12s;
+}
+
+.ff-fuego::before {
+    content: "";
+    position: absolute;
+    inset: 30% 14% 0;
+    background: linear-gradient(180deg, #fff9c4, #ffd23c);
+    clip-path: polygon(0 100%, 10% 50%, 22% 70%, 34% 24%, 44% 56%, 52% 0, 62% 50%, 74% 30%, 86% 64%, 100% 100%);
+}
+
+@keyframes ff-fuego {
+    0% { opacity: 1; transform: scaleY(0.15); }
+    30% { opacity: 1; transform: scaleY(1); }
+    45% { transform: scaleY(0.82) scaleX(-1); }
+    60% { transform: scaleY(1); }
+    80% { opacity: 1; transform: scaleY(0.9) scaleX(-1); }
+    100% { opacity: 0; transform: scaleY(1.1); }
+}
+
+/* Hielo: cristales que brotan. Cada uno tiene un lado claro y otro oscuro. */
+.ff-hielo {
+    background: linear-gradient(90deg, #fff 0 12%, #bfeaff 12% 18%, #5fb4f4 18% 28%, transparent 28% 34%,
+                                #fff 34% 44%, #bfeaff 44% 50%, #5fb4f4 50% 66%, transparent 66% 72%,
+                                #fff 72% 80%, #bfeaff 80% 84%, #5fb4f4 84% 94%);
+    clip-path: polygon(8% 100%, 18% 40%, 28% 100%, 34% 100%, 50% 4%, 66% 100%, 72% 100%, 84% 30%, 94% 100%);
+    transform-origin: 50% 100%;
+    animation: ff-hielo 0.62s steps(5) 0.12s;
+}
+
+@keyframes ff-hielo {
+    0% { opacity: 1; transform: scaleY(0.1); }
+    30%, 75% { opacity: 1; transform: scaleY(1); }
+    100% { opacity: 0; transform: scaleY(1); }
+}
+
+/* Rayo: cae desde arriba y toda la sala destella. */
+.ff-rayo {
+    inset: -60% 20% 20%;
+    background: linear-gradient(180deg, #fff, #fff7a0 60%, #ffd23c);
+    clip-path: polygon(52% 0, 68% 0, 46% 40%, 66% 40%, 30% 100%, 44% 52%, 26% 52%);
+    animation: ff-rayo 0.5s steps(1) 0.12s;
+}
+
+@keyframes ff-rayo {
+    0%, 30%, 60% { opacity: 1; }
+    15%, 45% { opacity: 0.15; }
+    100% { opacity: 0; }
+}
+
+.ff-escena.relampago::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    animation: ff-destello 0.45s steps(1) 0.12s;
+}
+
+@keyframes ff-destello {
+    0%, 30% { opacity: 0.55; }
+    15%, 45%, 100% { opacity: 0; }
+}
+
+/* --- Números y carteles --- */
+.ff-numero {
+    position: absolute;
+    top: 28%;
+    left: 50%;
+    z-index: 4;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #fff;
+    /* borde negro: la misma sombra corrida hacia los cuatro lados */
+    text-shadow: -2px 0 #05030c, 2px 0 #05030c, 0 -2px #05030c, 0 2px #05030c, 0 4px 0 rgba(5, 3, 12, 0.6);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    animation: ff-saltar 1s steps(14) both;
+}
+
+.ff-numero.critico {
+    font-size: 1.7rem;
+    color: #ffe45a;
+}
+
+.ff-numero.cura {
+    top: 6%;
+    color: #86ffb0;
+}
+
+@keyframes ff-saltar {
+    0% { opacity: 0; transform: translate(-50%, 0); }
+    8% { opacity: 1; transform: translate(-50%, -16px); }
+    22% { transform: translate(-50%, 0); }
+    30% { transform: translate(-50%, -6px); }
+    38%, 82% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, 0); }
+}
+
+.ff-aviso {
+    position: absolute;
+    top: 6%;
+    left: 50%;
+    z-index: 4;
+    padding: 1px 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #1a1200;
+    white-space: nowrap;
+    background: #ffe45a;
+    border: 1px solid #05030c;
+    border-radius: 4px;
+    opacity: 0;
+    transform: translateX(-50%);
+    animation: ff-anunciar 1.1s steps(1) 0.3s;
+}
+
+.ff-aviso.ff-resiste {
+    color: #e8ecff;
+    background: #4a5578;
+}
+
+/* Si el teléfono pide menos movimiento, los números no saltan: se quedan a la vista. */
+@media (prefers-reduced-motion: reduce) {
+    .ff-numero,
+    .ff-aviso {
+        opacity: 1;
+        animation: none !important;
+    }
+}
+
+/* El cartel de arriba: el nombre de lo que se usa. */
+.ff-anuncio {
+    position: absolute;
+    top: 4%;
+    left: 50%;
+    z-index: 5;
+    min-width: 48%;
+    padding: 3px 12px;
+    text-align: center;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-50%);
+    animation: ff-anunciar 0.6s steps(1) both;
+}
+
+@keyframes ff-anunciar {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* --- Abajo: comandos a la izquierda, fichas a la derecha --- */
+.ff-tablero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
+    align-items: stretch;
+}
+
+.ff-fichas {
+    display: grid;
+    gap: 6px;
+}
+
+.ff-comandos {
+    display: grid;
+    align-content: start;
+    gap: 2px;
+    padding: 6px 6px 6px 4px;
+}
+
+.ff-comando {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 4px;
+    width: 100%;
+    min-height: 44px;
+    padding: 4px 6px 4px 2px;
+    font-weight: 700;
+    text-align: left;
+    text-shadow: inherit;
+    background: none;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.ff-comando:active:not(:disabled) {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.ff-comando:disabled {
+    color: #7c88c4;
+    cursor: default;
+}
+
+.ff-comando-nombre {
+    white-space: nowrap;
+}
+
+.ff-comando small {
+    font-size: 0.68rem;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* Los hechizos van en dos renglones: el nombre y, debajo, lo que sabes de él. */
+.ff-comando.ff-hechizo {
+    grid-template-columns: 22px minmax(0, 1fr);
+}
+
+.ff-comando.ff-hechizo .ff-cursor {
+    grid-row: 1 / 3;
+}
+
+.ff-comando.ff-hechizo small {
+    grid-column: 2;
+    text-align: left;
+}
+
+.ff-comando.ff-debil small {
+    font-weight: 800;
+    color: #ffe45a;
+}
+
+.ff-comando.ff-resiste small {
+    color: #8c96c4;
+}
+
+/* La manito que señala: un dibujo de 16 × 11 puntos hecho con rectángulos. */
+.ff-cursor {
+    width: 22px;
+    height: 15px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 11' shape-rendering='crispEdges'%3E%3Cpath fill='%2305030c' d='M3 0h6v2h6v1h1v3h-1v1h-5v1h-1v1h-1v2H2v-1H1V9H0V2h1V1h2z'/%3E%3Cpath fill='%23fff' d='M3 1h5v2h7v3h-6v1H8v1H7v2H3V9H2V2h1z'/%3E%3Cpath fill='%235b8cff' d='M1 3h2v5H1z'/%3E%3Cpath fill='%23b9c6ee' d='M4 8h3v1H4zM9 5h6v1H9z'/%3E%3C/svg%3E") center / contain no-repeat;
+    image-rendering: pixelated;
+    visibility: hidden;
+}
+
+.ff-comando.elegido:not(:disabled) .ff-cursor,
+.ff-comando:active:not(:disabled) .ff-cursor {
+    visibility: visible;
+    animation: ff-senalar 0.8s steps(2) infinite;
+}
+
+@keyframes ff-senalar {
+    50% { transform: translateX(-3px); }
+}
+
+/* Las fichas: nombre, barra de vida y datos. */
+.ff-ficha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2px 8px;
+    padding: 6px 9px;
+    font-size: 0.82rem;
+}
+
+.ff-nombre {
+    grid-column: 1 / -1;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;   /* un nombre largo pasa al renglón siguiente */
+}
+
+.ff-vida {
+    height: 7px;
+    overflow: hidden;
+    background: #05072a;
+    border: 1px solid #060a3a;
+    border-radius: 3px;
+}
+
+.ff-vida i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(180deg, #ff9aa8, #e11d48);
+    transition: width 0.3s steps(6) 0.3s;
+}
+
+.ff-ficha-heroe .ff-vida {
+    grid-column: 1 / -1;
+}
+
+.ff-ficha-heroe .ff-vida i {
+    background: linear-gradient(180deg, #a8ffd0, #10b981);
+    transition-delay: 0.9s;
+}
+
+.ff-cifras {
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+    color: #d7deff;
+}
+
+.ff-intencion,
+.ff-sabes {
+    grid-column: 1 / -1;
+    font-size: 0.76rem;
+}
+
+.ff-intencion {
+    color: #ffd9b0;
+}
+
+.ff-sabes {
+    color: #b9c6ff;
+}
+
+.ff-datos {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 10px;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.ff-datos dt {
+    font-size: 0.74rem;
+    color: #8fd0ff;
+}
+
+.ff-datos dd {
+    text-align: right;
+}
+
+/* Con poca vida, tu nombre y tu vida se ponen amarillos; sin vida, rojos. */
+.ff-ficha-heroe.grave .ff-nombre,
+.ff-ficha-heroe.grave dd {
+    color: #ffe45a;
+}
+
+.ff-ficha-heroe.ko .ff-nombre,
+.ff-ficha-heroe.ko dd {
+    color: #ff7a8a;
+}
+
+/* La ventana del botín (al vencer) y la del final. */
+.ff-botin {
+    display: grid;
+    gap: 2px;
+}
+
+.ff-botin.tras-golpe {
+    animation: ff-aparecer 0.25s steps(3) 1.5s backwards;
+}
+
+@keyframes ff-aparecer {
+    from { opacity: 0; transform: translateY(8px); }
+}
+
+.ff-botin .ff-comando {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+}
+
+.ff-botin .ff-comando small {
+    white-space: normal;
+}
+
+.ff-escena-final {
+    aspect-ratio: 192 / 96;
+}
+
+.ff-escena-final .ff-heroe {
+    left: 50%;
+}
+
+/* --- El bestiario --- */
+.ff-bestiario {
+    display: grid;
+    gap: 6px;
+}
+
+.ff-zona-titulo {
+    margin: 10px 0 0;
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.95rem;
+}
+
+.ff-zona-titulo small,
+.ff-zona-texto {
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--texto-suave);
+}
+
+.ff-zona-texto {
+    margin: 0 0 2px;
+}
+
+.ff-criatura {
+    --px: 1px;
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.ff-criatura p {
+    margin: 3px 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #dfe5ff;
+}
+
+.ff-criatura small {
+    display: block;
+}
+
+.ff-retrato {
+    display: grid;
+    place-items: center;
+    height: 84px;
+}
+
+.ff-retrato .ff-sprite {
+    width: auto;
+    max-width: 84px;
+    max-height: 84px;
+}
+
+/* Las que todavía no te cruzaste: solo su sombra. */
+.ff-criatura.desconocida .ff-sprite {
+    filter: brightness(0);
+    opacity: 0.55;
+}
+
+.ff-elementos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.ff-elemento {
+    padding: 1px 6px;
+    font-size: 0.72rem;
+    color: #b9c6ff;
+    background: rgba(5, 7, 42, 0.6);
+    border-radius: 999px;
+}
+
+.ff-elemento.ff-debil {
+    font-weight: 800;
+    color: #ffe45a;
+}
+
+.ff-elemento.ff-resiste {
+    color: #8c96c4;
 }
 
 

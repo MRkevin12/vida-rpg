@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 24;
+export const VERSION_APP = 25;
 
 export const NOVEDADES = [
+    {
+        version: 25,
+        titulo: "La Torre, como los clásicos",
+        cambios: [
+            "🗼 La Torre del héroe se ve como un juego de rol de consola: pixel art, la criatura a la izquierda, tu héroe a la derecha y ventanas azules con los comandos.",
+            "👾 20 criaturas nuevas, propias de la Torre (ya no salen los jefes de tus hábitos), en 4 zonas: Cripta, Biblioteca, Fragua y Cima. Cada 5 pisos, un guardián.",
+            "🔥 Magia de fuego, hielo y rayo: cada criatura tiene un punto débil (+50 % de daño) y algunas resisten otro. Hay que descubrirlo.",
+            "📖 Bestiario: recuerda las criaturas que viste, cuántas veces las venciste y qué les hace cada hechizo. Está en el Arcade.",
+            "🎯 Golpe preciso también cambió: ahora peleas contra una criatura de la Torre, en su sala.",
+        ],
+    },
     {
         version: 24,
         titulo: "Los jefes también pegan",

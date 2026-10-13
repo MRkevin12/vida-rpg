@@ -20,7 +20,7 @@ export const JUEGOS = {
     },
     golpe: {
         nombre: "Golpe preciso", icono: "🎯", atributo: "intelecto",
-        descripcion: "Tu héroe contra un monstruo. Toca cuando la marca esté en el centro para un golpe crítico.",
+        descripcion: "Tu héroe contra una criatura de la Torre. Toca cuando la marca esté en el centro para un golpe crítico.",
         puntosPorMoneda: 30, puntosPorXp: 20,
     },
 };
