@@ -4514,6 +4514,22 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 
+/* ===== Notificaciones (v21) ===== */
+.aviso-alerta {
+    margin-top: 12px;
+    background: rgba(251, 113, 133, 0.08);
+    border-color: rgba(251, 113, 133, 0.45);
+}
+
+.guia-avisos ol {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0;
+    padding-left: 20px;
+    font-size: 0.88rem;
+}
+
+
 /* Si el iPhone tiene activado "Reducir movimiento", apagamos animaciones */
 @media (prefers-reduced-motion: reduce) {
     *, *::after {

@@ -146,6 +146,7 @@ export function pantallaHoy(estado, ctx) {
         ${tarjetaHeroe(estado, ctx)}
         ${esAyer ? "" : lineaDelPacto(estado, ctx)}
         ${avisoDescanso(estado, ctx)}
+        ${avisoNotificaciones(ctx)}
 
         <div class="titulo-seccion">
             <div>
@@ -936,6 +937,19 @@ function tarjetaHeroe(estado, ctx) {
                 <span class="mini heroe-ver">Ver personaje ›</span>
             </span>
         </button>`;
+}
+
+// Si las notificaciones se cortaron en este iPhone, un aviso para reactivarlas.
+function avisoNotificaciones(ctx) {
+    if (ctx.problemaAvisos === "bloqueadas") {
+        return `<div class="aviso-respaldo aviso-alerta"><span>🔕 El iPhone bloqueó las notificaciones de Vida RPG.
+                    Actívalas en Ajustes del iPhone → Notificaciones → Vida RPG.</span></div>`;
+    }
+    if (ctx.problemaAvisos === "desconectadas") {
+        return `<div class="aviso-respaldo aviso-alerta"><span>🔕 Tus notificaciones dejaron de funcionar en este iPhone.</span>
+                    <button type="button" class="boton boton-chico" data-accion="reactivar-avisos">Reactivar</button></div>`;
+    }
+    return "";
 }
 
 // En modo descanso, un aviso arriba de las misiones (con el botón para terminarlo).
@@ -1853,7 +1867,33 @@ export function seccionAvisos(estado, info) {
         <div class="botones-dialogo">
             <button type="button" class="boton boton-secundario" data-accion="probar-avisos">Enviar prueba</button>
             <button type="button" class="boton boton-secundario" data-accion="desactivar-avisos">Desactivar</button>
-        </div>`;
+        </div>
+        ${guiaDeAvisos()}`;
+}
+
+// Lo que se revisa en el iPhone para que los avisos lleguen siempre y suenen.
+function guiaDeAvisos() {
+    return `
+        <details class="plegable guia-avisos">
+            <summary>📋 Para que lleguen siempre y suenen</summary>
+            <ol>
+                <li><b>Ajustes del iPhone → Notificaciones → Vida RPG:</b> «Permitir notificaciones» y <b>Sonidos</b> activados,
+                    y los tres lugares (pantalla bloqueada, centro de notificaciones y avisos). Si usas el «Resumen programado»,
+                    deja Vida RPG fuera de él (con entrega <b>inmediata</b>): si no, los junta y llegan tarde.</li>
+                <li><b>Modos de concentración</b> (No molestar, Dormir, Trabajo…): en Ajustes → Concentración, agrega Vida RPG a las
+                    apps permitidas de cada modo. Si no, llegan sin sonar.</li>
+                <li><b>El silencio del iPhone:</b> con el interruptor lateral (o el botón de acción) en silencio no suena nada.
+                    Sube el volumen de «Tono y alertas» en Ajustes → Sonidos y vibraciones.</li>
+                <li><b>Abre la app de vez en cuando:</b> al abrirla revisa que los avisos sigan conectados y, si hace falta,
+                    los repara sola o te avisa arriba en «Hoy».</li>
+            </ol>
+            <p class="nota"><b>🎺 Sobre el sonido:</b> el iPhone no deja que una app web elija un sonido propio para sus
+               notificaciones (solo las apps de la App Store pueden): suenan con el tono de alertas del iPhone. Si quieres uno
+               que reconozcas, en iOS 17.2 o más puedes cambiar el tono de alertas predeterminado en Ajustes → Sonidos y
+               vibraciones (ojo: cambia también el de otras apps que usen el predeterminado). Con la app abierta, los avisos
+               suenan con su propio toque: el cuerno de Vida RPG.</p>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="probar-cuerno">🎺 Escuchar el cuerno</button>
+        </details>`;
 }
 
 

@@ -109,7 +109,7 @@ const RUTAS = {
     async "/probar"(datos, env) {
         const config = await leer(env);
         if (!config?.suscripcion) throw new Error("Primero activa las notificaciones.");
-        const estado = await enviarPush(config.suscripcion, { tipo: "prueba" }, vapid(env), { ttl: 600 });
+        const estado = await enviarPush(config.suscripcion, { tipo: "prueba" }, vapid(env), { ttl: 600, urgencia: "high" });
         return { ok: estado >= 200 && estado < 300, estado };
     },
 
@@ -141,7 +141,9 @@ async function revisarAvisos(env, ahora) {
     if (!config?.suscripcion) return;
 
     for (const aviso of avisosQueTocan(config, ahora)) {
-        const opciones = aviso.tipo === "enfoque" ? { ttl: 600, urgencia: "high" } : { ttl: 3600 };
+        // Todos con urgencia alta: así el iPhone los entrega al instante (con "normal" puede
+        // retrasarlos para ahorrar batería). El del enfoque caduca antes: tarde ya no sirve.
+        const opciones = { ttl: aviso.tipo === "enfoque" ? 600 : 3600, urgencia: "high" };
         const estado = await enviarPush(config.suscripcion, aviso, vapid(env), opciones);
         console.log(`Aviso «${aviso.tipo}»: respuesta ${estado}`);
         if (estado === 404 || estado === 410) {

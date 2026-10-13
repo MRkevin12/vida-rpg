@@ -128,7 +128,11 @@ export async function activar(registro, codigoEscrito, estado) {
 // Volver a mandar tus ajustes al servidor. app.js la llama después de cada cambio
 // con siCambio = true: así solo se envían cuando algo cambió de verdad (por ejemplo,
 // al marcar una misión que tiene aviso). Si no hay internet, se reintenta en el próximo cambio.
+// Aunque nada cambie, cada 30 minutos (si usas la app) se vuelve a mandar: así, si el servidor
+// perdió tu suscripción, se repara sola.
 let ultimoEnviado = null;
+let ultimoEnvio = 0;
+const REENVIAR_CADA = 30 * 60 * 1000;
 
 export async function sincronizar(registro, estado, { siCambio = false } = {}) {
     if (!codigo()) return;   // no están activadas en este teléfono
@@ -136,9 +140,26 @@ export async function sincronizar(registro, estado, { siCambio = false } = {}) {
     if (!suscripcion) return;
     const config = configuracion(estado);
     const texto = JSON.stringify(config);
-    if (siCambio && texto === ultimoEnviado) return;
+    if (siCambio && texto === ultimoEnviado && Date.now() - ultimoEnvio < REENVIAR_CADA) return;
     await pedir("/guardar", { suscripcion: suscripcion.toJSON(), ...config });
     ultimoEnviado = texto;
+    ultimoEnvio = Date.now();
+}
+
+// ¿Siguen funcionando en este teléfono? Si nunca las activaste: null (no hay problema).
+//   "bloqueadas"  = el iPhone ya no da permiso (se arregla en los Ajustes del iPhone);
+//   "desconectadas" = el iPhone perdió la suscripción (se arregla con «Reactivar»).
+export async function problema() {
+    if (!codigo() || !compatible() || !instalada()) return null;
+    if (Notification.permission === "denied") return "bloqueadas";
+    if (Notification.permission !== "granted") return "desconectadas";
+    const registro = await navigator.serviceWorker.ready;
+    return (await registro.pushManager.getSubscription()) ? null : "desconectadas";
+}
+
+// Reactivar con el código que ya estaba guardado (hay que llamarla desde un toque).
+export function reactivar(registro, estado) {
+    return activar(registro, codigo(), estado);
 }
 
 // Empezaste (fin = milisegundos) o cancelaste (fin = null) una sesión de enfoque.

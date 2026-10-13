@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 20;
+export const VERSION_APP = 21;
 
 export const NOVEDADES = [
+    {
+        version: 21,
+        titulo: "Avisos más confiables",
+        cambios: [
+            "🔔 Cada aviso suena como uno nuevo (antes, si el anterior seguía en pantalla, el nuevo llegaba en silencio).",
+            "⚡ Salen con prioridad alta, para que el iPhone no los retrase.",
+            "🛡️ Si algo falla, igual llega un aviso: así el iPhone nunca corta tus notificaciones.",
+            "🔕 Si se desconectan, la app te avisa en Hoy con un botón para reactivarlas.",
+            "🎺 Con la app abierta, los avisos suenan con el cuerno de Vida RPG. Guía en Ajustes → Notificaciones.",
+        ],
+    },
     {
         version: 20,
         titulo: "Fallar con honor y tu libro",

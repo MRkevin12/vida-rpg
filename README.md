@@ -1,7 +1,7 @@
 # <img src="iconos/icono-192.png" width="56" alt="" align="top"> Vida RPG
 
 [![Pruebas](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml/badge.svg)](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml)
-![Versión](https://img.shields.io/badge/versión-v20-8b5cf6)
+![Versión](https://img.shields.io/badge/versión-v21-8b5cf6)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-34d399)](LICENSE)
 
 Una app de productividad que convierte tu día a día en un juego de rol: completas misiones, ganas experiencia, subes de nivel y derrotas jefes.
@@ -45,7 +45,7 @@ Las capturas usan una partida de ejemplo inventada.
 - **Avatar que evoluciona** en 4 etapas, de la túnica de novato a la armadura de leyenda, con clase según tu atributo más alto, equipamiento de distinta rareza y un dragón de mascota. La apariencia se personaliza: cuerpo, piel, rostro, ojos, pelo, barba y color del traje.
 - **Torre del héroe:** un minijuego grande de batallas por turnos, piso a piso, con mejoras entre pisos. Tu poder sale de los niveles de tus atributos reales, y subes con tu vida real.
 - **Tres minijuegos** más, que se juegan con fichas ganadas al completar misiones.
-- **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día y, de noche, cuánta vida pierdes si no terminas), un aviso propio para cada misión que le pongas hora (solo si todavía no la hiciste) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan.
+- **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día y, de noche, cuánta vida pierdes si no terminas), un aviso propio para cada misión que le pongas hora (solo si todavía no la hiciste) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan. Cada aviso sale con prioridad alta y suena como uno nuevo; si se desconectan, la app lo detecta y ofrece reactivarlos.
 - **PIN de 4 números o Face ID** para abrir la app.
 - **Copia de seguridad automática en la nube**, cifrada con tu contraseña, además de la copia en un archivo.
 - **Sonidos** hechos con código, que se pueden apagar en Ajustes.

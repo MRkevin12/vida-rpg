@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v20";
+const VERSION = "vida-rpg-v21";
 
 const ARCHIVOS = [
     "./",
@@ -158,15 +158,51 @@ self.addEventListener("push", (evento) => {
     try {
         datos = evento.data ? evento.data.json() : {};
     } catch { /* aviso sin datos: se muestra el texto general */ }
-    // El iPhone exige mostrar SIEMPRE una notificación por cada aviso que llega.
-    evento.waitUntil(mostrarAviso(datos.tipo, datos.id));
+    // El iPhone exige mostrar SIEMPRE una notificación por cada aviso que llega: si alguna
+    // vez no se muestra nada, al tercer aviso "mudo" el iPhone corta las notificaciones.
+    // Por eso, si algo falla al armar el texto, igual se muestra un aviso general.
+    evento.waitUntil(
+        armarAviso(datos.tipo, datos.id)
+            .catch(() => ({ titulo: "⚔️ Vida RPG", cuerpo: "Tus misiones de hoy te esperan.", etiqueta: `aviso-${Date.now()}` }))
+            .then((aviso) => mostrar(aviso, datos.tipo, datos.id))
+            .catch(() => self.registration.showNotification("⚔️ Vida RPG", { body: "Tus misiones de hoy te esperan." }))
+    );
 });
 
-async function mostrarAviso(tipo, id) {
+// Muestra la notificación. Cada aviso lleva una etiqueta NUEVA: si llevara la misma que uno que
+// sigue en el centro de notificaciones, el iPhone lo reemplazaría en silencio (sin sonar).
+// Antes se cierran los viejos del mismo tipo, para que no se amontonen.
+async function mostrar({ titulo, cuerpo, etiqueta }, tipo, id) {
+    try {
+        for (const vieja of await self.registration.getNotifications()) {
+            if (vieja.data?.tipo === (tipo || "recordatorio") && (tipo !== "mision" || vieja.data?.id === id)) vieja.close();
+        }
+    } catch { /* si no se puede, se quedan: no pasa nada */ }
+    await self.registration.showNotification(titulo, {
+        body: cuerpo,
+        icon: "./iconos/icono-192.png",
+        badge: "./iconos/icono-192.png",
+        tag: etiqueta,
+        renotify: true,     // aunque la etiqueta se repitiera, que vuelva a sonar
+        silent: false,      // con sonido (el del iPhone: la web no puede elegir otro)
+        data: { tipo: tipo || "recordatorio", id: id ?? null },
+    });
+    // Si la app está abierta, que suene su toque propio («el cuerno»: ver js/sonido.js).
+    // (Si esto falla no importa: el aviso ya se mostró, y no hay que mostrarlo dos veces.)
+    try {
+        for (const ventana of await self.clients.matchAll({ type: "window", includeUncontrolled: true })) {
+            ventana.postMessage({ tipo: "aviso-recibido" });
+        }
+    } catch { /* sin ventanas abiertas */ }
+}
+
+// El texto de cada aviso: { titulo, cuerpo, etiqueta }.
+async function armarAviso(tipo, id) {
     const ahora = new Date();
+    const hoy = fechaDeHoy(ahora);
+    const minuto = `${String(ahora.getHours()).padStart(2, "0")}${String(ahora.getMinutes()).padStart(2, "0")}`;
     let titulo = "⚔️ Vida RPG";
     let cuerpo = "Tus misiones de hoy te esperan.";
-
     if (tipo === "mision") {
         // El aviso propio de una misión: su texto está en el resumen del día.
         const resumen = await leerResumen();
@@ -179,9 +215,7 @@ async function mostrarAviso(tipo, id) {
             titulo = `✅ ${resumen.nombres[id]}`;
             cuerpo = "Ya la hiciste hoy. ¡Bien hecho!";
         }
-        return self.registration.showNotification(titulo, {
-            body: cuerpo, icon: "./iconos/icono-192.png", tag: `mision-${id}`,
-        });
+        return { titulo, cuerpo, etiqueta: `mision-${id}-${hoy}-${minuto}` };
     }
 
     if (tipo === "prueba") {
@@ -203,17 +237,18 @@ async function mostrarAviso(tipo, id) {
             }
         }
     }
-    return self.registration.showNotification(titulo, {
-        body: cuerpo,
-        icon: "./iconos/icono-192.png",
-        tag: tipo || "recordatorio",   // un aviso nuevo del mismo tipo reemplaza al anterior
-    });
+    return { titulo, cuerpo, etiqueta: `${tipo || "recordatorio"}-${hoy}-${minuto}` };
 }
 
 // El resumen que la app deja en la caché (ver js/avisos.js), o null si no hay.
+// El resumen que dejó la app (o null si no hay, o si está dañado).
 async function leerResumen() {
-    const guardado = await caches.match("./avisos-resumen.json");
-    return guardado ? guardado.json() : null;
+    try {
+        const guardado = await caches.match("./avisos-resumen.json");
+        return guardado ? await guardado.json() : null;
+    } catch {
+        return null;
+    }
 }
 
 // "AAAA-MM-DD" en hora local (como js/fechas.js).

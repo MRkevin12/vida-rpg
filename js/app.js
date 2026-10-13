@@ -43,6 +43,7 @@ let rangoResumen = 7;            // en Progreso: el resumen muestra los últimos
 const diarioVista = { mes: null, dia: null, busqueda: "", filtro: null, limite: 30 };
 let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
 let paginaLibro = "portada";     // en «Tu libro»: "portada", "indice" o el número de un capítulo
+let problemaAvisos = null;       // si las notificaciones se cortaron: "bloqueadas" o "desconectadas"
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -124,6 +125,12 @@ function revisarAlAbrir() {
         ];
         return { celebraciones };
     });
+    // ¿Siguen conectadas las notificaciones? Si no, aparece un aviso en Hoy para reactivarlas.
+    avisos.problema().then((problema) => {
+        if (problema === problemaAvisos) return;
+        problemaAvisos = problema;
+        if (estado.personaje && !$("#juego").hidden) dibujarPantalla();
+    }).catch(() => {});
     // La copia del día en la nube (si está activada). Sin internet, se intenta la próxima vez.
     nube.copiaDiaria(estado).then((hecha) => { if (hecha) avisar("☁️ Copia del día guardada en la nube"); });
 }
@@ -162,6 +169,11 @@ function registrarServiceWorker() {
         .catch(() => {
             // Si falla (ej: abriendo el archivo directo), la app igual funciona con internet.
         });
+
+    // Si llega un aviso con la app abierta, suena el cuerno (el toque propio de Vida RPG).
+    navigator.serviceWorker.addEventListener("message", (evento) => {
+        if (evento.data?.tipo === "aviso-recibido" && document.visibilityState === "visible") sonar("aviso");
+    });
 
     // Cuando un service worker NUEVO toma el control, la página sigue con el código
     // viejo en memoria: avisamos para recargar (no recargamos solos, por si estás
@@ -577,6 +589,7 @@ function dibujarPantalla(efectos = {}) {
         ...contextoDiario(fecha),
         renovandoPacto,
         paginaLibro,
+        problemaAvisos,
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
     };
 
@@ -1560,6 +1573,21 @@ const ACCIONES = {
         if (ejecutar(() => acciones.cambiarAvisoEnfoque(estado, casilla.checked))) sincronizarAvisos();
     },
     "probar-avisos": () => probarAvisos().catch((error) => alert(error.message)),
+    "probar-cuerno": () => sonar("aviso"),
+    "reactivar-avisos": () => {
+        if (!registroSW) {
+            alert("La app todavía se está preparando. Intenta otra vez en unos segundos.");
+            return;
+        }
+        avisos.reactivar(registroSW, estado)
+            .then(() => {
+                problemaAvisos = null;
+                dibujarPantalla();
+                avisar("🔔 Notificaciones reactivadas");
+                return probarAvisos();
+            })
+            .catch((error) => alert(error.message));
+    },
     "desactivar-avisos": () => {
         if (!confirm("¿Desactivar las notificaciones en este teléfono? Tus horarios quedan guardados.")) return;
         avisos.desactivar(registroSW)

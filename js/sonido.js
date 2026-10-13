@@ -19,6 +19,8 @@ const SONIDOS = {
     salto:     { onda: "square",   volumen: 0.05, notas: [[330, 0, 0.05], [495, 0.04, 0.08]] },
     impacto:   { onda: "sawtooth", volumen: 0.14, notas: [[160, 0, 0.07], [80, 0.05, 0.16]] },
     fallo:     { onda: "sawtooth", volumen: 0.1,  notas: [[196, 0, 0.12], [131, 0.1, 0.25]] },
+    // «El cuerno»: el toque propio de Vida RPG cuando llega un aviso con la app abierta.
+    aviso:     { onda: "sawtooth", volumen: 0.11, notas: [[196, 0, 0.2], [262, 0.17, 0.2], [330, 0.34, 0.2], [392, 0.51, 0.7]] },
 };
 
 let contexto = null;   // el "motor" de audio; se crea la primera vez que hace falta
