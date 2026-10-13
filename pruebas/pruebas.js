@@ -19,6 +19,9 @@ import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
 import * as arcade from "../js/arcade.js";
+import * as nube from "../js/nube.js";
+import { VERSION_APP, NOVEDADES, novedadesPorVer } from "../js/novedades.js";
+import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -42,6 +45,17 @@ function igual(real, esperado, que = "el resultado") {
 
 function cierto(valor, que) {
     if (!valor) throw new Error(`debía cumplirse: ${que}`);
+}
+
+// Como debeFallar, pero para funciones asíncronas (las que usan await).
+async function debeFallarAsync(funcion, texto) {
+    try {
+        await funcion();
+    } catch (error) {
+        if (!error.message.includes(texto)) throw new Error(`falló con otro mensaje: «${error.message}»`);
+        return;
+    }
+    throw new Error(`debía fallar con «${texto}» y no falló`);
 }
 
 // La función debe fallar con un mensaje que contenga "texto".
@@ -685,6 +699,99 @@ prueba("Torre: gasta una ficha al empezar, se puede seguir después y al caer se
 });
 
 
+// ===== Más profesional (v15) =====
+
+prueba("Momento del día: se guarda, se valida y Hoy agrupa mañana, tarde, noche y el resto", () => {
+    const estado = partidaNueva();
+    const noche = crearMision(estado, { nombre: "Leer", momento: "noche" });
+    const libre = crearMision(estado, { nombre: "Agua" });
+    const manana = crearMision(estado, { nombre: "Correr", momento: "manana" });
+    igual([noche.momento, libre.momento], ["noche", null]);
+    debeFallar(() => crearMision(estado, { momento: "madrugada" }), "momento");
+    igual(juego.agruparPorMomento(estado.misiones).map((g) => [g.clave, g.misiones.map((m) => m.nombre)]),
+          [["manana", ["Correr"]], ["noche", ["Leer"]], [null, ["Agua"]]]);
+    igual(manana.momento, "manana");
+});
+
+prueba("Ordenar: el orden nuevo se guarda y las archivadas quedan al final", () => {
+    const estado = partidaNueva();
+    const [a, b, c] = ["A", "B", "C"].map((nombre) => crearMision(estado, { nombre }));
+    const vieja = crearMision(estado, { nombre: "Vieja" });
+    acciones.archivarMision(estado, vieja.id);
+    acciones.ordenarMisiones(estado, [c.id, a.id, b.id]);
+    igual(estado.misiones.map((m) => m.nombre), ["C", "A", "B", "Vieja"]);
+    debeFallar(() => acciones.ordenarMisiones(estado, [c.id, a.id]), "orden");
+});
+
+prueba("Ficha de un hábito: racha, mejor racha y porcentaje del último mes", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado, { nombre: "Leer" });
+    envejecer(estado, 9);
+    for (const n of [-9, -8, -7, -5, -4, -3, -2, -1]) marcarEn(estado, leer, dia(n));   // falló hace 6 días
+    const s = juego.estadisticasMision(estado, leer, hoy());
+    igual([s.racha, s.mejor, s.total, s.unidad], [5, 5, 8, "día"], "hoy aún no la hace: no rompe la racha");
+    igual(s.porcentaje, Math.round((8 / 9) * 100), "8 de los 9 días que tocaban");
+    igual(s.dias.length, 84, "12 semanas de calendario");
+    igual(s.dias.find((d) => d.fecha === dia(-6)).tipo, "fallo");
+    igual(s.dias.find((d) => d.fecha === hoy()).tipo, "pendiente");
+});
+
+prueba("Ficha de un hábito semanal: la racha se cuenta en semanas cumplidas", () => {
+    const estado = partidaNueva();
+    const gym = crearMision(estado, { nombre: "Gym", frecuencia: "semana", veces: 2 });
+    const lunes = lunesDe(hoy());
+    gym.creadaEn = estado.personaje.creadoEn = sumarDias(lunes, -21);
+    for (const n of [-21, -20, -14, -13, -7]) marcarEn(estado, gym, sumarDias(lunes, n));   // la semana pasada solo 1 vez
+    const s = juego.estadisticasMision(estado, gym, hoy());
+    igual([s.racha, s.mejor, s.unidad], [0, 2, "semana"]);
+});
+
+prueba("Una sola vez: las tareas pueden no tener fecha y quedan en Hoy hasta hacerlas", () => {
+    const estado = partidaNueva();
+    acciones.crearTarea(estado, { nombre: "Llamar al banco", fecha: "", dificultad: "facil", atributo: "riqueza" });
+    igual(estado.tareas[0].fecha, null);
+    igual(resumenParaAvisos(estado, hoy()).dias[dia(3)].insignia, 1, "sigue pendiente días después");
+});
+
+prueba("Deshacer un canje devuelve las monedas", () => {
+    const estado = partidaNueva();
+    acciones.crearRecompensa(estado, { nombre: "Serie", costo: 100 });
+    acciones.ganar(estado, { monedas: 150 });
+    acciones.canjear(estado, estado.recompensas[0].id);
+    acciones.deshacerCanje(estado);
+    igual([estado.personaje.monedas, estado.canjes.length], [150, 0]);
+    debeFallar(() => acciones.deshacerCanje(estado), "ningún canje");
+});
+
+prueba("Bienvenida: todas las plantillas crean misiones y premios válidos", () => {
+    const estado = partidaNueva();
+    acciones.aplicarBienvenida(estado, { misiones: PLANTILLAS_MISIONES.map((p) => p.id), recompensas: PLANTILLAS_RECOMPENSAS.map((r) => r.id) });
+    igual([estado.misiones.length, estado.recompensas.length], [PLANTILLAS_MISIONES.length, PLANTILLAS_RECOMPENSAS.length]);
+    igual(new Set(PLANTILLAS_MISIONES.map((p) => p.id)).size, PLANTILLAS_MISIONES.length, "ids distintos");
+});
+
+prueba("Novedades: la última es la versión actual y solo se muestran las que no viste", () => {
+    igual(NOVEDADES[0].version, VERSION_APP);
+    igual(novedadesPorVer(VERSION_APP), []);
+    igual(novedadesPorVer(VERSION_APP - 1).map((n) => n.version), [VERSION_APP]);
+});
+
+prueba("Versión: la de las novedades es la misma que la del service worker", async () => {
+    const texto = await (await fetch("../sw.js", { cache: "no-store" })).text();
+    igual(Number(texto.match(/vida-rpg-v(\d+)/)[1]), VERSION_APP, "VERSION en sw.js");
+});
+
+prueba("Nube: la partida se cifra; con la contraseña se abre y con otra no", async () => {
+    const sal = crypto.getRandomValues(new Uint8Array(16));
+    const llave = await nube.derivarLlave("caballo-azul-27", sal);
+    const cifrada = await nube.cifrar('{"personaje":"Aria"}', llave);
+    cierto(!cifrada.datos.includes("Aria") && !atob(cifrada.datos).includes("Aria"), "no se ve el contenido");
+    igual(await nube.descifrar(cifrada, llave), '{"personaje":"Aria"}');
+    const otra = await nube.derivarLlave("caballo-azul-28", sal);
+    await debeFallarAsync(() => nube.descifrar(cifrada, otra), "contraseña no es correcta");
+});
+
+
 // ===== Avatar y ajustes =====
 
 prueba("Apariencia: se puede cambiar, y una opción inventada no se acepta", () => {
@@ -855,7 +962,7 @@ let fallidas = 0;
 for (const { nombre, funcion } of pruebas) {
     const fila = document.createElement("li");
     try {
-        funcion();
+        await funcion();
         fila.className = "bien";
         fila.textContent = `✅ ${nombre}`;
     } catch (error) {

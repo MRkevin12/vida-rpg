@@ -1,8 +1,12 @@
 # <img src="iconos/icono-192.png" width="56" alt="" align="top"> Vida RPG
 
+[![Pruebas](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml/badge.svg)](https://github.com/MRkevin12/vida-rpg/actions/workflows/pruebas.yml)
+![Versión](https://img.shields.io/badge/versión-v15-8b5cf6)
+[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-34d399)](LICENSE)
+
 Una app de productividad que convierte tu día a día en un juego de rol: completas misiones, ganas experiencia, subes de nivel y derrotas jefes.
 
-Está pensada para el iPhone. Se instala desde Safari o Chrome, funciona sin internet y guarda todo en el teléfono: tus datos no van a ningún servidor, y no hay cuentas ni anuncios. Lo único en la nube es un servidor pequeño de notificaciones, que solo conoce tus horarios.
+Está pensada para el iPhone. Se instala desde Safari o Chrome, funciona sin internet y guarda todo en el teléfono, sin cuentas ni anuncios. Lo único en la nube es un servidor pequeño para las notificaciones y una copia de seguridad **cifrada en el teléfono**, que el servidor no puede leer.
 
 **Abrir la app:** https://mrkevin12.github.io/vida-rpg/
 
@@ -11,14 +15,18 @@ Está pensada para el iPhone. Se instala desde Safari o Chrome, funciona sin int
   <img src="capturas/resumen.jpg" width="200" alt="Resumen con gráficas de cumplimiento de los últimos 7 días">
   <img src="capturas/jefes.jpg" width="200" alt="Campaña de jefes: el avatar contra una pintura clásica">
   <img src="capturas/personaje.jpg" width="200" alt="Pantalla del personaje con su avatar y apariencia">
+  <img src="capturas/torre.jpg" width="200" alt="Torre del héroe: batalla por turnos contra un monstruo">
 </p>
 
 Las capturas usan una partida de ejemplo inventada.
 
 ## Qué tiene
 
-- **Misiones diarias** con dificultad, atributo y los días de la semana en que tocan, o **N veces por semana** el día que quieras (sin romper la racha). Las que se cuentan («8 vasos de agua») tienen un botón +1 y se completan solas al llegar a la meta. Se pueden editar, reordenar, archivar y restaurar. Si olvidaste marcar algo, puedes marcar el día de ayer.
-- **Tareas sueltas:** pendientes de una sola vez con fecha de entrega. Aparecen en Hoy el día que vencen (y se marcan como atrasadas si pasó la fecha).
+- **Misiones diarias** con dificultad, atributo y los días de la semana en que tocan, o **N veces por semana** el día que quieras (sin romper la racha). Las que se cuentan («8 vasos de agua») tienen un botón +1 y se completan solas al llegar a la meta. Se agrupan por **momento del día** (mañana, tarde, noche) y se **ordenan arrastrando**. Si olvidaste marcar algo, puedes marcar el día de ayer.
+- **Deslizar para completar** y botón **Deshacer** por si te equivocas.
+- **Ficha de cada hábito:** su racha, su mejor racha, el porcentaje del último mes y un calendario de 12 semanas.
+- **Tareas sueltas:** pendientes de una sola vez, con o sin fecha. Aparecen en Hoy el día que vencen (y se marcan como atrasadas si pasó la fecha). También se crean desde «Nueva misión» → «Una sola vez».
+- **Bienvenida guiada** con hábitos y premios listos para elegir con un toque, y una ventana de **novedades** después de cada actualización.
 - **Modo enfoque:** un temporizador de 15, 25 o 50 minutos que da lo mismo que una misión. Sigue contando aunque cierres la app.
 - **Diario de una línea:** una frase y tu ánimo de cada día, visibles al tocar el día en el calendario.
 - **Desafío de la semana:** uno al azar cada lunes (adaptado a tu partida). Si lo cumples, abres un cofre.
@@ -35,7 +43,8 @@ Las capturas usan una partida de ejemplo inventada.
 - **Torre del héroe:** un minijuego grande de batallas por turnos, piso a piso, con mejoras entre pisos. Tu poder sale de los niveles de tus atributos reales.
 - **Tres minijuegos** más, que se juegan con fichas ganadas al completar misiones.
 - **Notificaciones:** recordatorios a las horas y días que elijas (con lo que te falta del día), un aviso propio para cada misión que le pongas hora (solo si todavía no la hiciste) y un aviso cuando termina tu sesión de enfoque. El ícono muestra cuántas misiones te faltan.
-- **PIN de 4 números** para abrir la app y **copia de seguridad** en un archivo.
+- **PIN de 4 números o Face ID** para abrir la app.
+- **Copia de seguridad automática en la nube**, cifrada con tu contraseña, además de la copia en un archivo.
 - **Sonidos** hechos con código, que se pueden apagar en Ajustes.
 
 ## Instalarla en el iPhone
@@ -65,11 +74,12 @@ Para publicar cambios del servidor, desde `servidor/` y con Node.js instalado: `
 
 ## Tus datos
 
-Todo se guarda en el teléfono con `localStorage`. Nada sale del dispositivo.
+Todo se guarda en el teléfono con `localStorage`. Si borras la app, borras tu partida, así que hay dos formas de tener copia:
 
-Eso también significa que **si borras la app, borras tu partida**. Haz una copia de seguridad cada tanto desde Ajustes → Exportar copia. Ese archivo sirve para recuperar la partida o pasarla a otro teléfono.
+- **Copia en la nube (automática):** Ajustes → ☁️ Copia en la nube. Una vez al día la app **cifra la partida en el teléfono** con una llave que sale de tu contraseña (PBKDF2 con 210 000 vueltas + AES-GCM) y la sube al servidor. El servidor solo guarda texto ilegible: sin tu contraseña nadie puede abrirla. En un teléfono nuevo: «☁️ Recuperar mi copia de la nube», con el código de activación y la contraseña (`js/nube.js`).
+- **Archivo:** Ajustes → Exportar copia. Ese archivo sirve para recuperar la partida o pasarla a otro teléfono.
 
-El PIN evita que alguien con tu teléfono desbloqueado abra la app. No cifra los datos: la protección de fondo es el código o Face ID del iPhone.
+El PIN (o Face ID, con WebAuthn) evita que alguien con tu teléfono desbloqueado abra la app. No cifra los datos del teléfono: la protección de fondo es el código o Face ID del iPhone.
 
 ## Cómo está hecha
 
@@ -93,7 +103,9 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/torre.js` | Las reglas de la Torre del héroe (batallas por turnos y mejoras) |
 | `js/pinturas.js`, `fondos/` | Las pinturas de los fondos y escenarios, con sus créditos |
 | `js/datos.js` | Guardar, cargar y copias de seguridad |
-| `js/seguridad.js` | El PIN (se guarda su huella SHA-256, nunca el PIN) |
+| `js/seguridad.js` | El PIN (se guarda su huella SHA-256, nunca el PIN) y Face ID con WebAuthn |
+| `js/nube.js` | La copia en la nube: cifrar y descifrar con tu contraseña, subir y recuperar |
+| `js/plantillas.js`, `js/novedades.js` | Hábitos y premios listos para elegir, y las novedades de cada versión |
 | `js/sonido.js` | Sonidos con la Web Audio API |
 | `js/fechas.js` | Ayudantes de fechas |
 | `sw.js`, `manifest.json` | Funcionar sin internet e instalarse como app |
@@ -116,18 +128,25 @@ Al editar un archivo, recarga la página **dos veces**: el service worker muestr
 
 ## Pruebas
 
-Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 61 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, logros, tienda, resumen y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan.
+Con el servidor encendido, abre http://localhost:8000/pruebas/. La página ejecuta 71 pruebas de las reglas del juego (niveles, rachas, escudos, días de la semana, misiones semanales y con cantidad, tareas, enfoque, diario, desafíos, jefes y Partida+, Torre del héroe, fichas de hábitos, logros, tienda, resumen, cifrado de la copia en la nube y copias de seguridad) y de los dibujos (que ninguna combinación de avatar se rompa), y muestra cuáles pasan. El servidor tiene 9 pruebas más (`node servidor/pruebas.mjs`).
 
 Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están en `pruebas/pruebas.js`, y `pruebas/demo.js` genera la partida de ejemplo de las capturas.
+
+**Pruebas automáticas:** cada vez que se suben cambios, GitHub corre todas las pruebas en un navegador sin ventana (`.github/workflows/pruebas.yml` y `pruebas/ejecutar.mjs`). La insignia de arriba dice si pasaron.
 
 ## Publicar una versión nueva
 
 1. Sube el número de `VERSION` en `sw.js`. Sin eso, los teléfonos no detectan el cambio.
 2. Si agregaste archivos, súmalos a la lista `ARCHIVOS` del mismo archivo.
-3. `git push`. GitHub Pages publica la rama `main` en uno o dos minutos.
+3. Agrega lo nuevo a `js/novedades.js` (y sube `VERSION_APP` al mismo número) y a `CHANGELOG.md`.
+4. `git push`. GitHub Pages publica la rama `main` en uno o dos minutos y GitHub corre las pruebas.
 
 ## Créditos
 
 - **Pinturas de los jefes:** 20 obras de dominio público tomadas de Wikimedia Commons (Doré, Caravaggio, Goya, Blake, Waterhouse, Redon y otros). El autor y la fuente de cada una están en la app, en Ajustes → Créditos de las imágenes, y en `js/campana.js`.
 - **Fondos y escenarios:** 13 pinturas y grabados de dominio público (Constable, Hobbema, Thomas Cole, Bierstadt, Shishkin, Christian Jank, Van Gogh, Panini, Turner, Hubert Robert, Pieter Neefs y Piranesi), con sus créditos en la app y en `js/pinturas.js`.
 - **Tipografía:** Orbitron, bajo la licencia SIL Open Font License (`fuentes/OFL.txt`).
+
+## Licencia
+
+El código está bajo la [licencia MIT](LICENSE). Las pinturas son de dominio público y la tipografía tiene su propia licencia (ver Créditos). Los cambios de cada versión están en el [registro de cambios](CHANGELOG.md).

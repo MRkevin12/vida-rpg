@@ -180,7 +180,7 @@ export function resumenParaAvisos(estado, hoy) {
         const semanales = juego.semanalesDelDia(estado.misiones, fecha)
             .filter((m) => !hechas.has(m.id) && juego.vecesEnSemana(estado.completadas, m.id, fecha) < m.veces)
             .map((m) => m.nombre);
-        const tareas = estado.tareas.filter((t) => !t.hechaEn && t.fecha <= fecha).map((t) => t.nombre);
+        const tareas = estado.tareas.filter((t) => !t.hechaEn && (!t.fecha || t.fecha <= fecha)).map((t) => t.nombre);
 
         let titulo;
         const lineas = [];

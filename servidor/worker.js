@@ -5,7 +5,8 @@
 //   - tus horarios de recordatorio y tu zona horaria,
 //   - los avisos de cada misión: su número, hora y días, y hasta qué fecha no hace falta
 //     avisar (porque ya la hiciste). El nombre de la misión nunca llega aquí,
-//   - a qué hora termina tu sesión de enfoque (si hay una en curso).
+//   - a qué hora termina tu sesión de enfoque (si hay una en curso),
+//   - tu copia de seguridad, CIFRADA en el teléfono (aquí no se puede leer: ver js/nube.js).
 // El TEXTO de cada aviso lo arma el propio iPhone (sw.js) con tus datos.
 //
 // Tiene dos partes:
@@ -111,6 +112,20 @@ const RUTAS = {
         return { ok: estado >= 200 && estado < 300, estado };
     },
 
+    // Copia de seguridad cifrada: se guarda la nueva y se conserva la anterior (por si acaso).
+    async "/respaldo/guardar"(datos, env) {
+        const respaldo = validarRespaldo(datos.respaldo);
+        if (!respaldo) throw new Error("La copia no es válida.");
+        const anterior = await env.DATOS.get("respaldo");
+        if (anterior) await env.DATOS.put("respaldo-anterior", anterior);
+        await env.DATOS.put("respaldo", JSON.stringify(respaldo));
+        return { ok: true };
+    },
+
+    async "/respaldo/leer"(datos, env) {
+        return { ok: true, respaldo: await env.DATOS.get("respaldo", "json") };
+    },
+
     async "/desactivar"(datos, env) {
         await env.DATOS.delete(CLAVE_KV);
         return { ok: true };
@@ -199,6 +214,14 @@ export function validarMisiones(lista) {
         limpias.push({ id: m.id, ...horario, saltarHasta });
     }
     return limpias;
+}
+
+// La copia llega ya cifrada: solo revisamos que tenga sus partes y no sea enorme.
+export function validarRespaldo(r) {
+    const partes = ["sal", "iv", "datos", "fecha"];
+    const valido = r && partes.every((p) => typeof r[p] === "string") && r.datos.length < 8_000_000
+        && /^\d{4}-\d{2}-\d{2}$/.test(r.fecha);
+    return valido ? { sal: r.sal, iv: r.iv, datos: r.datos, fecha: r.fecha } : null;
 }
 
 function validarSuscripcion(s) {

@@ -4,7 +4,7 @@
 // No envían nada de verdad: el KV y los servicios de push se reemplazan por imitaciones.
 
 import { cifrar, firmaVapid, aBytes, aBase64url } from "./webpush.js";
-import { horaLocal, avisosQueTocan, validarHorarios, validarMisiones } from "./worker.js";
+import { horaLocal, avisosQueTocan, validarHorarios, validarMisiones, validarRespaldo } from "./worker.js";
 
 let fallidas = 0;
 async function prueba(nombre, funcion) {
@@ -121,6 +121,14 @@ await prueba("Horarios: se rechazan horas y días inventados", () => {
     for (const malo of [[{ hora: "25:00" }], [{ hora: "7:00" }], [{ hora: "07:00", dias: [9] }], "nada",
                         Array.from({ length: 11 }, () => ({ hora: "08:00", dias: null }))]) {
         igual(validarHorarios(malo), null, JSON.stringify(malo).slice(0, 40));
+    }
+});
+
+await prueba("Copia en la nube: se aceptan copias cifradas y se rechaza lo demás", () => {
+    const buena = { sal: "c2Fs", iv: "aXY=", datos: "Y2lmcmFkbw==", fecha: "2026-10-12", extra: "se ignora" };
+    igual(validarRespaldo(buena), { sal: "c2Fs", iv: "aXY=", datos: "Y2lmcmFkbw==", fecha: "2026-10-12" });
+    for (const mala of [null, {}, { ...buena, datos: 5 }, { ...buena, fecha: "ayer" }, { ...buena, datos: "x".repeat(8_000_001) }]) {
+        igual(validarRespaldo(mala), null, JSON.stringify(mala)?.slice(0, 40));
     }
 });
 

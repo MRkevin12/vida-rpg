@@ -24,12 +24,12 @@ function azarFijo(semilla) {
 
 // Misiones diarias de ejemplo. "constancia" = probabilidad de cumplirla un día cualquiera.
 const MISIONES = [
-    { nombre: "Entrenar 30 minutos", dificultad: "dificil", atributo: "fuerza", dias: [0, 2, 4, 5], constancia: 0.8 },
-    { nombre: "Leer 20 páginas", dificultad: "normal", atributo: "intelecto", dias: null, constancia: 0.85 },
-    { nombre: "Estudiar programación", dificultad: "dificil", atributo: "intelecto", dias: [0, 1, 2, 3, 4], constancia: 0.9 },
-    { nombre: "Meditar 10 minutos", dificultad: "facil", atributo: "carisma", dias: null, constancia: 0.6 },
+    { nombre: "Entrenar 30 minutos", dificultad: "dificil", atributo: "fuerza", dias: [0, 2, 4, 5], momento: "manana", constancia: 0.8 },
+    { nombre: "Leer 20 páginas", dificultad: "normal", atributo: "intelecto", dias: null, momento: "noche", constancia: 0.85 },
+    { nombre: "Estudiar programación", dificultad: "dificil", atributo: "intelecto", dias: [0, 1, 2, 3, 4], momento: "tarde", constancia: 0.9 },
+    { nombre: "Meditar 10 minutos", dificultad: "facil", atributo: "carisma", dias: null, momento: "manana", constancia: 0.6 },
     { nombre: "Llamar a un amigo", dificultad: "facil", atributo: "carisma", dias: [2, 6], constancia: 0.5 },
-    { nombre: "Anotar mis gastos", dificultad: "facil", atributo: "riqueza", dias: null, constancia: 0.7 },
+    { nombre: "Anotar mis gastos", dificultad: "facil", atributo: "riqueza", dias: null, momento: "noche", constancia: 0.7 },
     { nombre: "Nadar", dificultad: "normal", atributo: "fuerza", frecuencia: "semana", veces: 2, constancia: 0.4 },
     { nombre: "Beber agua", dificultad: "facil", atributo: "fuerza", dias: null, cantidad: 8, unidad: "vasos", constancia: 0.75 },
 ];

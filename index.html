@@ -48,6 +48,7 @@
                 <button type="button" data-tecla="0">0</button>
                 <button type="button" data-tecla="borrar" aria-label="Borrar">⌫</button>
             </div>
+            <button type="button" class="boton boton-secundario" id="bloqueo-faceid" hidden>🙂 Usar Face ID</button>
             <button type="button" class="enlace" id="bloqueo-secundario"></button>
         </div>
     </section>
@@ -66,6 +67,7 @@
             </form>
             <div class="separador-o"><span>o</span></div>
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="importar">Importar mi copia de seguridad</button>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="abrir" data-dialogo="nube">☁️ Recuperar mi copia de la nube</button>
         </div>
     </section>
 
@@ -140,23 +142,31 @@
     <dialog id="dialogo-mision" class="dialogo">
         <!-- Sirve para crear y para editar: si el campo oculto "id" tiene un número, se está editando. -->
         <form data-form="mision" class="formulario">
-            <h2 class="titulo-juego" tabindex="-1" autofocus data-titulo>Nueva misión diaria</h2>
+            <h2 class="titulo-juego" tabindex="-1" autofocus data-titulo>Nueva misión</h2>
             <input type="hidden" name="id">
-            <label>¿Qué hábito quieres cumplir?
+            <!-- Solo al crear: elegir un hábito de la lista rellena el formulario -->
+            <label id="campo-plantilla">📋 Elegir de una lista (opcional)
+                <select id="mision-plantilla" aria-label="Plantilla de hábito"></select>
+            </label>
+            <label>¿Qué quieres cumplir?
                 <input type="text" name="nombre" maxlength="60" required autocomplete="off" placeholder="Ej: Ir al gym">
             </label>
             <fieldset class="opciones" data-opciones="dificultad"><legend>Dificultad</legend></fieldset>
             <fieldset class="opciones opciones-4" data-opciones="atributo"><legend>Atributo que mejora</legend></fieldset>
-            <!-- Cada cuánto: días fijos, o N veces por semana el día que quieras -->
-            <fieldset class="opciones opciones-2" id="campo-frecuencia">
+            <!-- Cada cuánto: días fijos, N veces por semana, o una sola vez (se guarda como tarea) -->
+            <fieldset class="opciones" id="campo-frecuencia">
                 <legend>¿Cada cuánto?</legend>
                 <label class="pildora">
                     <input type="radio" name="frecuencia" value="dias" checked>
-                    <span>Días fijos<small>Ej: lunes y jueves</small></span>
+                    <span>Días fijos<small>Ej: L y J</small></span>
                 </label>
                 <label class="pildora">
                     <input type="radio" name="frecuencia" value="semana">
-                    <span>Veces por semana<small>Tú eliges el día</small></span>
+                    <span>Por semana<small>Tú eliges el día</small></span>
+                </label>
+                <label class="pildora" id="opcion-unica">
+                    <input type="radio" name="frecuencia" value="unica">
+                    <span>Una sola vez<small>Y listo</small></span>
                 </label>
             </fieldset>
             <fieldset class="opciones opciones-7" data-opciones="dias" id="campo-dias">
@@ -171,22 +181,39 @@
                 <label class="pildora"><input type="radio" name="veces" value="5"><span>5</span></label>
                 <label class="pildora"><input type="radio" name="veces" value="6"><span>6</span></label>
             </fieldset>
-            <!-- Meta de cantidad (opcional): la misión se marca sola al llegar al número -->
-            <div class="dos-columnas">
-                <label>Cantidad (opcional)
-                    <input type="number" name="cantidad" min="2" max="1000" step="1" inputmode="numeric" placeholder="Ej: 8">
+            <!-- Una sola vez: fecha opcional (sin fecha, queda en Hoy hasta que la hagas) -->
+            <div id="campo-unica" class="formulario-grupo" hidden>
+                <label>¿Para cuándo? (opcional)
+                    <input type="date" name="fecha">
                 </label>
-                <label>Unidad
-                    <input type="text" name="unidad" maxlength="20" autocomplete="off" placeholder="Ej: vasos">
-                </label>
+                <p class="nota">Se guarda en <b>📌 Tareas</b>: da su premio una sola vez. Sin fecha, queda en Hoy hasta que la hagas.</p>
             </div>
-            <p class="nota">Con cantidad, la misión tiene un botón <b>+1</b> y se completa sola al llegar a la meta
-               (ej: «Beber agua», 8 vasos). Déjala vacía para una misión normal.</p>
-            <label>⏰ Avisarme a esta hora (opcional)
-                <input type="time" name="aviso">
-            </label>
-            <p class="nota">Te llega una notificación solo de esta misión, los días que toca, y solo si todavía no la
-               hiciste. Necesita las notificaciones activadas (Ajustes → 🔔). Déjala vacía para no recibir aviso.</p>
+            <!-- Lo que solo tienen las misiones que se repiten -->
+            <div id="campos-repetir" class="formulario-grupo">
+                <fieldset class="opciones opciones-4" id="campo-momento">
+                    <legend>¿En qué momento del día? <span class="texto-suave">(para ordenar tu lista)</span></legend>
+                    <label class="pildora"><input type="radio" name="momento" value="manana"><span><b class="pildora-icono">🌅</b><small>Mañana</small></span></label>
+                    <label class="pildora"><input type="radio" name="momento" value="tarde"><span><b class="pildora-icono">☀️</b><small>Tarde</small></span></label>
+                    <label class="pildora"><input type="radio" name="momento" value="noche"><span><b class="pildora-icono">🌙</b><small>Noche</small></span></label>
+                    <label class="pildora"><input type="radio" name="momento" value="" checked><span><b class="pildora-icono">🕐</b><small>Cualquiera</small></span></label>
+                </fieldset>
+                <!-- Meta de cantidad (opcional): la misión se marca sola al llegar al número -->
+                <div class="dos-columnas">
+                    <label>Cantidad (opcional)
+                        <input type="number" name="cantidad" min="2" max="1000" step="1" inputmode="numeric" placeholder="Ej: 8">
+                    </label>
+                    <label>Unidad
+                        <input type="text" name="unidad" maxlength="20" autocomplete="off" placeholder="Ej: vasos">
+                    </label>
+                </div>
+                <p class="nota">Con cantidad, la misión tiene un botón <b>+1</b> y se completa sola al llegar a la meta
+                   (ej: «Beber agua», 8 vasos). Déjala vacía para una misión normal.</p>
+                <label>⏰ Avisarme a esta hora (opcional)
+                    <input type="time" name="aviso">
+                </label>
+                <p class="nota">Te llega una notificación solo de esta misión, los días que toca, y solo si todavía no la
+                   hiciste. Necesita las notificaciones activadas (Ajustes → 🔔). Déjala vacía para no recibir aviso.</p>
+            </div>
             <div class="botones-dialogo">
                 <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
                 <button type="submit" class="boton boton-principal" data-enviar>Crear misión</button>
@@ -210,8 +237,8 @@
             <label>¿Qué tienes que hacer?
                 <input type="text" name="nombre" maxlength="80" required autocomplete="off" placeholder="Ej: Pagar el recibo de la luz">
             </label>
-            <label>¿Para cuándo?
-                <input type="date" name="fecha" required>
+            <label>¿Para cuándo? (opcional)
+                <input type="date" name="fecha">
             </label>
             <fieldset class="opciones" data-opciones="dificultad"><legend>Dificultad</legend></fieldset>
             <fieldset class="opciones opciones-4" data-opciones="atributo"><legend>Atributo que mejora</legend></fieldset>
@@ -322,6 +349,11 @@
             </section>
 
             <section class="ajustes-bloque">
+                <h3>☁️ Copia en la nube</h3>
+                <div class="ajustes-bloque-contenido" id="ajustes-nube"></div>
+            </section>
+
+            <section class="ajustes-bloque">
                 <h3>🔔 Notificaciones</h3>
                 <!-- app.js lo rellena según el estado: instalar, activar o tus horarios -->
                 <div class="ajustes-bloque-contenido" id="ajustes-avisos"></div>
@@ -345,6 +377,10 @@
             </section>
 
             <p class="nota" id="ajustes-version"></p>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="ver-novedades">🆕 Novedades</button>
+                <button type="button" class="boton boton-secundario" data-accion="bienvenida-abrir">🧭 Ver la guía</button>
+            </div>
 
             <details class="plegable">
                 <summary>📜 Reglas del juego</summary>
@@ -366,6 +402,53 @@
             </section>
         </div>
     </dialog>
+
+
+    <!-- Ficha de un hábito (racha, récord, calendario). app.js la rellena. -->
+    <dialog id="dialogo-ficha" class="dialogo">
+        <div class="formulario" id="ficha-contenido"></div>
+    </dialog>
+
+    <!-- Ordenar misiones arrastrando ☰ -->
+    <dialog id="dialogo-ordenar" class="dialogo">
+        <div class="formulario">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego" tabindex="-1" autofocus>Ordenar misiones</h2>
+                <button type="button" class="boton boton-chico boton-principal" data-accion="cerrar">Listo</button>
+            </div>
+            <p class="nota">Mantén el dedo en ☰ y arrastra. En Hoy se agrupan por momento del día, en este orden.</p>
+            <ul class="lista lista-ordenar" id="ordenar-lista"></ul>
+        </div>
+    </dialog>
+
+    <!-- Novedades de cada versión -->
+    <dialog id="dialogo-novedades" class="dialogo">
+        <div class="formulario" id="novedades-contenido"></div>
+    </dialog>
+
+    <!-- Recuperar la copia de la nube (en un teléfono nuevo, o para volver a una copia) -->
+    <dialog id="dialogo-nube" class="dialogo">
+        <form data-form="nube-recuperar" class="formulario">
+            <h2 class="titulo-juego" tabindex="-1" autofocus>☁️ Recuperar copia</h2>
+            <p class="nota">Baja tu última copia de la nube y la abre con tu contraseña. <b>Reemplaza</b> la partida de este teléfono.</p>
+            <label id="nube-campo-codigo">Código de activación
+                <input type="text" name="codigo" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ej: ABCD-1234">
+            </label>
+            <label>Contraseña de la copia
+                <input type="password" name="contrasena" required autocomplete="current-password">
+            </label>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
+                <button type="submit" class="boton boton-principal">Recuperar</button>
+            </div>
+        </form>
+    </dialog>
+
+
+    <!-- ========== Bienvenida (la primera vez) ========== -->
+    <div id="bienvenida" class="minijuego bienvenida" hidden>
+        <div class="minijuego-caja bienvenida-caja" id="bienvenida-caja"></div>
+    </div>
 
 
     <!-- ========== Minijuego en pantalla completa ========== -->
@@ -416,6 +499,12 @@
     <div id="actualizacion" class="actualizacion" role="status" hidden>
         <span>✨ Hay una versión nueva de la app</span>
         <button type="button" class="boton boton-chico boton-oro" id="actualizar-ahora">Actualizar</button>
+    </div>
+
+    <!-- «Deshacer»: aparece unos segundos después de completar algo -->
+    <div id="deshacer" class="deshacer" role="status" hidden>
+        <span id="deshacer-texto"></span>
+        <button type="button" class="boton boton-chico boton-oro" id="deshacer-boton">Deshacer</button>
     </div>
 
     <!-- Aviso pequeño que aparece un momento abajo -->

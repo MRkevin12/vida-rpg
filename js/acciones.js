@@ -12,6 +12,7 @@ import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
+import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -124,7 +125,14 @@ function validarAviso(hora) {
     return texto;
 }
 
-export function crearMision(estado, { nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad, aviso }) {
+// Momento del día (opcional): mañana, tarde o noche. Vacío = cualquier momento.
+function validarMomento(momento) {
+    if (!momento) return null;
+    if (!juego.MOMENTOS[momento]) throw new Error("Elige un momento del día.");
+    return momento;
+}
+
+export function crearMision(estado, { nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad, aviso, momento }) {
     estado.misiones.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
@@ -133,6 +141,7 @@ export function crearMision(estado, { nombre, dificultad, atributo, dias, frecue
         ...validarFrecuencia({ frecuencia, dias, veces }),   // agrega "dias" y "veces"
         meta: validarMeta(cantidad, unidad),
         aviso: validarAviso(aviso),
+        momento: validarMomento(momento),
         creadaEn: hoy(),
         archivadaEn: null,
         pausas: [],
@@ -141,7 +150,7 @@ export function crearMision(estado, { nombre, dificultad, atributo, dias, frecue
 
 // Editar una misión. Lo que ya completaste no cambia: cada registro del
 // historial guardó su propia XP, dificultad y atributo.
-export function editarMision(estado, { id, nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad, aviso }) {
+export function editarMision(estado, { id, nombre, dificultad, atributo, dias, frecuencia, veces, cantidad, unidad, aviso, momento }) {
     const mision = buscar(estado.misiones, Number(id), "esa misión");
     mision.nombre = validarNombre(nombre, 60);
     mision.dificultad = validarDificultad(dificultad);
@@ -149,6 +158,7 @@ export function editarMision(estado, { id, nombre, dificultad, atributo, dias, f
     Object.assign(mision, validarFrecuencia({ frecuencia, dias, veces }));
     mision.meta = validarMeta(cantidad, unidad);
     mision.aviso = validarAviso(aviso);
+    mision.momento = validarMomento(momento);
 }
 
 // Mover una misión un puesto arriba (-1) o abajo (+1) entre las que no están archivadas.
@@ -160,6 +170,17 @@ export function moverMision(estado, id, direccion) {
     const a = estado.misiones.indexOf(visibles[posicion]);
     const b = estado.misiones.indexOf(vecina);
     [estado.misiones[a], estado.misiones[b]] = [estado.misiones[b], estado.misiones[a]];   // intercambiar
+}
+
+// Ordenar arrastrando: "ids" es el orden nuevo de TODAS las misiones no archivadas.
+// Las archivadas quedan al final, como estaban.
+export function ordenarMisiones(estado, ids) {
+    const activas = estado.misiones.filter((m) => !m.archivadaEn);
+    const nuevas = ids.map(Number);
+    if (nuevas.length !== activas.length || !activas.every((m) => nuevas.includes(m.id))) {
+        throw new Error("No se pudo guardar el orden. Vuelve a intentarlo.");
+    }
+    estado.misiones = [...nuevas.map((id) => buscar(activas, id, "esa misión")), ...estado.misiones.filter((m) => m.archivadaEn)];
 }
 
 // Solo se puede marcar hoy o ayer (por si se te olvidó).
@@ -239,8 +260,10 @@ export function restaurarMision(estado, id) {
 
 // ===== Tareas sueltas (pendientes de una sola vez, con fecha) =====
 
+// La fecha es opcional: sin fecha, la tarea queda en Hoy hasta que la hagas.
 function validarFechaTarea(fecha) {
-    if (!esFechaValida(String(fecha || ""))) throw new Error("Elige para cuándo es la tarea.");
+    if (!fecha) return null;
+    if (!esFechaValida(String(fecha))) throw new Error("Elige para cuándo es la tarea.");
     return fecha;
 }
 
@@ -248,7 +271,7 @@ export function crearTarea(estado, { nombre, fecha, dificultad, atributo }) {
     estado.tareas.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 80),
-        fecha: validarFechaTarea(fecha),   // el día que vence
+        fecha: validarFechaTarea(fecha),   // el día que vence (o null: sin fecha)
         dificultad: validarDificultad(dificultad),
         atributo: validarAtributo(atributo),
         creadaEn: hoy(),
@@ -612,6 +635,28 @@ export function canjear(estado, id) {
             detalle: "¡Te lo ganaste! Disfrútalo.",
         }],
     };
+}
+
+
+// Deshacer el último canje: te devuelve las monedas.
+export function deshacerCanje(estado) {
+    const canje = estado.canjes.pop();
+    if (!canje) throw new Error("No hay ningún canje para deshacer.");
+    estado.personaje.monedas += canje.costo;
+}
+
+
+// ===== Bienvenida: los primeros hábitos y premios =====
+
+export function aplicarBienvenida(estado, { misiones = [], recompensas = [] }) {
+    for (const id of misiones) {
+        const plantilla = PLANTILLAS_MISIONES.find((p) => p.id === id);
+        if (plantilla) crearMision(estado, plantilla);
+    }
+    for (const id of recompensas) {
+        const plantilla = PLANTILLAS_RECOMPENSAS.find((p) => p.id === id);
+        if (plantilla) crearRecompensa(estado, plantilla);
+    }
 }
 
 

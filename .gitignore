@@ -9,3 +9,6 @@ CLAUDE.md
 servidor/.dev.vars
 servidor/.wrangler/
 servidor/node_modules/
+
+# Dependencias de las pruebas automáticas (se instalan en GitHub, no se suben).
+node_modules/

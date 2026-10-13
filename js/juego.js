@@ -45,6 +45,13 @@ export const BASE_ATRIBUTO = 50;   // atributos:  50, 100, 150...
 // dificultad: la misma XP, las mismas monedas y el mismo daño al jefe.
 export const ENFOQUE = { 15: "facil", 25: "normal", 50: "dificil" };
 
+// Momento del día de una misión (opcional): en Hoy se agrupan así.
+export const MOMENTOS = {
+    manana: { icono: "🌅", nombre: "Mañana" },
+    tarde:  { icono: "☀️", nombre: "Tarde" },
+    noche:  { icono: "🌙", nombre: "Noche" },
+};
+
 // Diario: cómo te fue el día.
 export const ANIMOS_DIARIO = {
     bien:   { icono: "😀", nombre: "Bien" },
@@ -158,6 +165,84 @@ export function cantidadDe(estado, mision, fecha) {
     const meta = mision.meta.cantidad;
     const hecha = estado.completadas.some((c) => c.misionId === mision.id && c.fecha === fecha);
     return hecha ? meta : Math.min(estado.avances[`${mision.id}|${fecha}`] || 0, meta);
+}
+
+// Agrupa misiones por momento del día (mañana, tarde, noche y "cualquier momento" al final),
+// respetando el orden que tú les diste. Solo devuelve los grupos que tienen misiones.
+export function agruparPorMomento(misiones) {
+    const grupos = [...Object.entries(MOMENTOS), [null, { icono: "🕐", nombre: "Cualquier momento" }]]
+        .map(([clave, m]) => ({ clave, ...m, misiones: misiones.filter((mision) => (mision.momento || null) === clave) }));
+    return grupos.filter((g) => g.misiones.length);
+}
+
+// ===== Ficha de un hábito =====
+// Racha, mejor racha, porcentaje de cumplimiento y un calendario de las últimas 12 semanas.
+// Las misiones de días fijos se miden en días; las de «N veces por semana», en semanas.
+export function estadisticasMision(estado, mision, hoy) {
+    const registros = estado.completadas.filter((c) => c.misionId === mision.id);
+    const hechas = new Set(registros.map((c) => c.fecha));
+    const desde = mision.creadaEn;
+    let racha = 0;
+    let mejor = 0;
+    let tocaron = 0;
+    let cumplidas = 0;
+    const hace30 = sumarDias(hoy, -29);
+
+    if (mision.veces) {
+        // Semana a semana: la racha son las semanas seguidas en que cumpliste las veces.
+        for (let lunes = lunesDe(desde); lunes <= hoy; lunes = sumarDias(lunes, 7)) {
+            const cumplida = vecesEnSemana(estado.completadas, mision.id, lunes) >= mision.veces;
+            const enCurso = lunes === lunesDe(hoy);
+            if (cumplida) {
+                racha += 1;
+                mejor = Math.max(mejor, racha);
+            } else if (!enCurso) {
+                racha = 0;              // la semana en curso todavía no rompe la racha
+            }
+            if (!enCurso && sumarDias(lunes, 6) >= hace30) {
+                tocaron += 1;
+                if (cumplida) cumplidas += 1;
+            }
+        }
+    } else {
+        for (let fecha = desde; fecha <= hoy; fecha = sumarDias(fecha, 1)) {
+            if (!tocaEseDia(mision, fecha)) continue;
+            const hecha = hechas.has(fecha);
+            if (hecha) {
+                racha += 1;
+                mejor = Math.max(mejor, racha);
+            } else if (fecha < hoy) {
+                racha = 0;              // hoy todavía no termina: no rompe la racha
+            }
+            if (fecha >= hace30 && (fecha < hoy || hecha)) {
+                tocaron += 1;
+                if (hecha) cumplidas += 1;
+            }
+        }
+    }
+
+    // Calendario: 12 semanas, de lunes a domingo, terminando en esta semana.
+    const inicio = sumarDias(lunesDe(hoy), -77);
+    const dias = Array.from({ length: 84 }, (_, i) => {
+        const fecha = sumarDias(inicio, i);
+        let tipo;
+        if (fecha > hoy) tipo = "futuro";
+        else if (fecha < desde) tipo = "antes";
+        else if (hechas.has(fecha)) tipo = "hecha";
+        else if (!mision.veces && tocaEseDia(mision, fecha)) tipo = fecha === hoy ? "pendiente" : "fallo";
+        else tipo = "libre";
+        return { fecha, tipo };
+    });
+
+    return {
+        total: registros.length,
+        xp: registros.reduce((suma, c) => suma + (c.xp || 0), 0),
+        racha,
+        mejor,
+        unidad: mision.veces ? "semana" : "día",
+        porcentaje: tocaron ? Math.round((cumplidas / tocaron) * 100) : null,
+        dias,
+    };
 }
 
 // Cuándo termina una sesión de enfoque (en milisegundos, como Date.now()).

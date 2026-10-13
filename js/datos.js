@@ -13,19 +13,20 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 2,
+        version: 3,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
 
         misiones: [],         // diarias: { id, nombre, dificultad, atributo, dias, veces, meta, aviso, creadaEn, archivadaEn, pausas }
                               //   aviso: hora del aviso de esa misión ("18:00") o null
+                              //   momento: "manana" | "tarde" | "noche" | null (para agruparlas en Hoy)
                               //   dias: días de la semana que toca (0 = lunes … 6 = domingo) o null = todos
                               //   veces: si es «N veces por semana», ese N (y dias = null); si no, null
                               //   meta: { cantidad, unidad } si se cuenta (ej: 8 vasos); si no, null
         completadas: [],      // historial: { misionId, fecha, xp, monedas, atributo, dificultad }
         avances: {},          // misiones con cantidad: cuánto llevas hoy y ayer, { "id|fecha": 3 }
 
-        tareas: [],           // sueltas: { id, nombre, fecha (vence), dificultad, atributo, creadaEn,
+        tareas: [],           // sueltas: { id, nombre, fecha (vence, o null = sin fecha), dificultad, atributo, creadaEn,
                               //   hechaEn, premio: { xp, monedas, atributo, dificultad } }
         enfoque: {            // modo enfoque (pomodoro)
             activo: null,     // la sesión en curso: { inicio (milisegundos), minutos, atributo }

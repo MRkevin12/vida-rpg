@@ -110,7 +110,12 @@ export function pantallaHoy(estado, ctx) {
 
     let lista = "";
     if (delDia.length) {
-        lista = `<ul class="lista">${delDia.map(tarjeta).join("")}</ul>`;
+        // Si usas momentos del día (mañana, tarde, noche), la lista se divide en grupos.
+        const grupos = juego.agruparPorMomento(delDia);
+        lista = grupos.length > 1 || grupos[0].clave
+            ? grupos.map((g) => `<h3 class="subtitulo subtitulo-momento">${g.icono} ${g.nombre}</h3>
+                                 <ul class="lista">${g.misiones.map(tarjeta).join("")}</ul>`).join("")
+            : `<ul class="lista">${delDia.map(tarjeta).join("")}</ul>`;
     } else if (sinMisiones) {
         lista = vacio("Aún no tienes misiones diarias.<br>Crea tu primer hábito: ir al gym, leer, estudiar inglés…");
     } else if (!semanales.length) {
@@ -159,9 +164,12 @@ export function pantallaHoy(estado, ctx) {
         ${lista}
         ${metasSemana}
 
-        <button type="button" class="boton boton-principal boton-ancho" data-accion="abrir" data-dialogo="mision">
-            + Nueva misión diaria
-        </button>
+        <div class="botones-dialogo botones-hoy">
+            <button type="button" class="boton boton-principal" data-accion="abrir" data-dialogo="mision">+ Nueva misión</button>
+            <button type="button" class="boton boton-secundario" data-accion="abrir" data-dialogo="ordenar"
+                    ${estado.misiones.filter((m) => !m.archivadaEn).length > 1 ? "" : "disabled"}>↕ Ordenar</button>
+        </div>
+        <p class="nota nota-gesto">Desliza una misión a la derecha para completarla. Toca su nombre para ver su ficha.</p>
 
         ${plegable(`Otros días (${otrosDias.length})`,
             `<ul class="lista">${otrosDias.map((m) => filaMision(m, "editar")).join("")}</ul>`, otrosDias.length)}
@@ -181,11 +189,13 @@ function textoFrecuencia(mision) {
 }
 
 // conFrecuencia: en la lista de hoy no hace falta repetir "Todos los días".
-function detalleMision(mision, conFrecuencia = Boolean(mision.dias)) {
+// conMomento: en Hoy ya están agrupadas por momento del día; en la ficha y en «Otros días» sí se muestra.
+function detalleMision(mision, conFrecuencia = Boolean(mision.dias), conMomento = false) {
     const d = DIFICULTADES[mision.dificultad];
     const a = ATRIBUTOS[mision.atributo];
     const aviso = mision.aviso ? ` · ⏰ ${mision.aviso}` : "";
-    return `${a.icono} ${a.nombre} · ${d.nombre} · +${d.xp} XP${conFrecuencia ? ` · ${textoFrecuencia(mision)}` : ""}${aviso}`;
+    const momento = mision.momento && conMomento ? ` · ${juego.MOMENTOS[mision.momento].icono}` : "";
+    return `${a.icono} ${a.nombre} · ${d.nombre} · +${d.xp} XP${conFrecuencia ? ` · ${textoFrecuencia(mision)}` : ""}${momento}${aviso}`;
 }
 
 function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
@@ -219,7 +229,7 @@ function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
     return `
         <li class="${clases.join(" ")}" data-id="${mision.id}">
             ${boton}
-            <div class="mision-info">
+            <div class="mision-info" data-accion="ver-ficha" data-id="${mision.id}" role="button" aria-label="Ficha de ${esc(mision.nombre)}">
                 <span class="mision-nombre">${esc(mision.nombre)}</span>
                 <span class="mision-detalle">${detalleMision(mision)}</span>
                 ${extra}
@@ -236,26 +246,69 @@ function filaMision(mision, accion) {
     const meta = mision.meta ? ` · Meta: ${mision.meta.cantidad} ${esc(mision.meta.unidad)}` : "";
     return `
         <li class="mision apagada dificultad-${mision.dificultad}">
-            <div class="mision-info">
+            <div class="mision-info" data-accion="ver-ficha" data-id="${mision.id}" role="button" aria-label="Ficha de ${esc(mision.nombre)}">
                 <span class="mision-nombre">${esc(mision.nombre)}</span>
-                <span class="mision-detalle">${detalleMision(mision, true)}${meta}</span>
+                <span class="mision-detalle">${detalleMision(mision, true, true)}${meta}</span>
             </div>
             ${boton}
         </li>`;
 }
 
 
+// ===== Ficha de un hábito =====
+
+export function fichaMision(estado, mision, hoy) {
+    const s = juego.estadisticasMision(estado, mision, hoy);
+    const enUnidad = (n) => plural(n, s.unidad, s.unidad === "día" ? "días" : "semanas");
+    const celdas = s.dias.map((d) => `<i class="celda-ficha ${d.tipo}" title="${fechaCorta(d.fecha)}"></i>`).join("");
+    return `
+        <div class="titulo-seccion">
+            <h2 class="titulo-juego">${esc(mision.nombre)}</h2>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="cerrar">Cerrar</button>
+        </div>
+        <p class="mision-detalle">${detalleMision(mision, true, true)}${mision.archivadaEn ? " · Archivada" : ""}</p>
+        <div class="fichas-dato">
+            ${ficha("Racha", `🔥 ${enUnidad(s.racha)}`, `<span class="ficha-nota">${s.unidad === "día" ? "Días que tocaba, seguidos" : "Semanas cumplidas, seguidas"}</span>`)}
+            ${ficha("Mejor racha", `🏅 ${enUnidad(s.mejor)}`, `<span class="ficha-nota">Tu récord con este hábito</span>`)}
+            ${ficha("Último mes", s.porcentaje === null ? "—" : `${s.porcentaje} %`,
+                    `<span class="ficha-nota">${s.unidad === "día" ? "De los días que tocaba" : "De las semanas"}</span>`)}
+            ${ficha("En total", `${s.total} <small>${s.total === 1 ? "vez" : "veces"}</small>`, `<span class="ficha-nota">+${s.xp} XP ganada</span>`)}
+        </div>
+        <h3 class="subtitulo">Últimas 12 semanas</h3>
+        <div class="ficha-calendario" role="img" aria-label="Calendario de las últimas 12 semanas">${celdas}</div>
+        <div class="cal-leyenda">
+            <i class="celda-ficha hecha"></i><span>Hecha</span>
+            <i class="celda-ficha fallo"></i><span>No la hiciste</span>
+            <i class="celda-ficha libre"></i><span>No tocaba</span>
+        </div>
+        <button type="button" class="boton boton-secundario boton-ancho" data-accion="editar-mision" data-id="${mision.id}">✏️ Editar misión</button>`;
+}
+
+// Lista para ordenar arrastrando (☰). Muestra todas las misiones no archivadas.
+export function listaOrdenar(estado) {
+    return estado.misiones.filter((m) => !m.archivadaEn).map((m) => `
+        <li class="mision fila-ordenar dificultad-${m.dificultad}" data-id="${m.id}">
+            <span class="mango" data-mango aria-label="Arrastrar para mover">☰</span>
+            <div class="mision-info">
+                <span class="mision-nombre">${esc(m.nombre)}</span>
+                <span class="mision-detalle">${m.momento ? `${juego.MOMENTOS[m.momento].icono} ${juego.MOMENTOS[m.momento].nombre} · ` : ""}${textoFrecuencia(m)}</span>
+            </div>
+        </li>`).join("");
+}
+
+
 // ===== Hoy: tareas sueltas =====
 
 function seccionTareas(estado, ctx) {
-    const porFecha = (a, b) => a.fecha.localeCompare(b.fecha);
+    // Las que no tienen fecha van después de las que sí.
+    const porFecha = (a, b) => (a.fecha || "9999").localeCompare(b.fecha || "9999");
     const pendientes = estado.tareas.filter((t) => !t.hechaEn);
-    // En la lista principal: las que vencen hoy o ya vencieron, y las que hiciste hoy.
+    // En la lista principal: las que vencen hoy o ya vencieron, las sin fecha y las que hiciste hoy.
     const paraHoy = [
-        ...pendientes.filter((t) => t.fecha <= ctx.hoy).sort(porFecha),
+        ...pendientes.filter((t) => !t.fecha || t.fecha <= ctx.hoy).sort(porFecha),
         ...estado.tareas.filter((t) => t.hechaEn === ctx.hoy),
     ];
-    const proximas = pendientes.filter((t) => t.fecha > ctx.hoy).sort(porFecha);
+    const proximas = pendientes.filter((t) => t.fecha && t.fecha > ctx.hoy).sort(porFecha);
     const anteriores = estado.tareas.filter((t) => t.hechaEn && t.hechaEn < ctx.hoy)
         .sort((a, b) => b.hechaEn.localeCompare(a.hechaEn)).slice(0, 15);   // las 15 más recientes
     const lista = (tareas) => `<ul class="lista">${tareas.map((t) => tarjetaTarea(t, ctx)).join("")}</ul>`;
@@ -291,6 +344,7 @@ function tarjetaTarea(tarea, ctx) {
 // "Vence hoy", "Vence mañana", "Vence el vie 16 oct", "Atrasada"…
 function cuandoVence(tarea, hoy) {
     if (tarea.hechaEn) return tarea.hechaEn === hoy ? "Hecha hoy" : `Hecha el ${fechaCorta(tarea.hechaEn)}`;
+    if (!tarea.fecha) return "Sin fecha";
     const dias = diasEntre(hoy, tarea.fecha);
     if (dias < 0) return `<span class="atrasada">Atrasada: vencía el ${fechaCorta(tarea.fecha)}</span>`;
     if (dias === 0) return "Vence hoy";
@@ -425,7 +479,7 @@ function tarjetaHeroe(ctx) {
 function avisoRespaldo() {
     return `
         <div class="aviso-respaldo">
-            <span>💾 Tus datos viven solo en este teléfono. Haz una copia de seguridad.</span>
+            <span>💾 Tus datos viven solo en este teléfono. Activa la copia en la nube o exporta una copia.</span>
             <button type="button" class="boton boton-chico" data-accion="abrir" data-dialogo="ajustes">Ir a ajustes</button>
         </div>`;
 }
@@ -1262,6 +1316,104 @@ export function seccionAvisos(estado, info) {
             <button type="button" class="boton boton-secundario" data-accion="probar-avisos">Enviar prueba</button>
             <button type="button" class="boton boton-secundario" data-accion="desactivar-avisos">Desactivar</button>
         </div>`;
+}
+
+
+// ===== Ajustes: copia en la nube =====
+// info = { configurada, ultima (fecha de la última copia), codigoGuardado (ya está el código de las notificaciones) }
+
+export function seccionNube(info) {
+    if (!info.configurada) {
+        return `
+            <p class="nota">Guarda una copia de tu partida en la nube, <b>sola, una vez al día</b>. Se cifra en el teléfono
+               con una contraseña tuya: en la nube nadie puede leerla. Si cambias de teléfono, la recuperas con esa contraseña.</p>
+            <form data-form="nube-activar" class="formulario-grupo">
+                ${info.codigoGuardado ? "" : `<input type="text" name="codigo" required autocomplete="off" autocapitalize="characters"
+                    spellcheck="false" placeholder="Código de activación" aria-label="Código de activación">`}
+                <input type="password" name="contrasena" required minlength="8" autocomplete="new-password"
+                       placeholder="Contraseña (mínimo 8 letras)" aria-label="Contraseña de la copia">
+                <input type="password" name="repetir" required minlength="8" autocomplete="new-password"
+                       placeholder="Repite la contraseña" aria-label="Repite la contraseña">
+                <p class="nota">⚠️ Anótala en un lugar seguro: si la olvidas, nadie puede abrir la copia (ni siquiera el servidor).</p>
+                <button type="submit" class="boton boton-principal">Activar copia en la nube</button>
+            </form>`;
+    }
+    return `
+        <p class="nota">✅ Activada. ${info.ultima ? `Última copia: <b>${fechaLegible(info.ultima)}</b>.` : "Todavía sin copias."}
+           Se hace sola una vez al día, al abrir la app con internet.</p>
+        <div class="botones-dialogo">
+            <button type="button" class="boton boton-secundario" data-accion="nube-subir">Respaldar ahora</button>
+            <button type="button" class="boton boton-secundario" data-accion="abrir" data-dialogo="nube">Recuperar</button>
+        </div>
+        <button type="button" class="enlace" data-accion="nube-desactivar">Desactivar en este teléfono</button>`;
+}
+
+
+// ===== Novedades =====
+
+export function contenidoNovedades(lista, titulo = "🆕 Novedades") {
+    return `
+        <div class="titulo-seccion">
+            <h2 class="titulo-juego">${titulo}</h2>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="cerrar">Cerrar</button>
+        </div>
+        ${lista.map((n) => `
+            <section class="novedad">
+                <p class="etiqueta">Versión ${n.version}</p>
+                <h3>${n.titulo}</h3>
+                <ul>${n.cambios.map((c) => `<li>${c}</li>`).join("")}</ul>
+            </section>`).join("")}`;
+}
+
+
+// ===== Bienvenida (al crear el personaje) =====
+// b = { paso (1 a 3), misiones: Set, recompensas: Set }
+
+export function pantallaBienvenida(b, nombre, plantillas) {
+    const puntos = `<div class="pasos" aria-label="Paso ${b.paso} de 3">${[1, 2, 3].map((n) =>
+        `<i class="${n === b.paso ? "actual" : n < b.paso ? "hecho" : ""}"></i>`).join("")}</div>`;
+    const pie = (izquierda, derecha) => `<div class="botones-dialogo">${izquierda}${derecha}</div>`;
+
+    if (b.paso === 1) {
+        const idea = (icono, titulo, texto) => `<li><span>${icono}</span><div><b>${titulo}</b><small>${texto}</small></div></li>`;
+        return `${puntos}
+            <p class="etiqueta">Bienvenido, ${esc(nombre)}</p>
+            <h2 class="titulo-juego titulo-grande">Así funciona</h2>
+            <ul class="bienvenida-lista">
+                ${idea("⚔️", "Misiones", "Cada hábito que cumples te da XP y monedas, y sube uno de tus cuatro atributos.")}
+                ${idea("🔥", "Racha", "Cumple al menos una misión al día. Cada 7 días seguidos ganas un escudo que te protege si fallas.")}
+                ${idea("👹", "Jefes", "Tus misiones golpean a jefes que representan la pereza, el miedo, la codicia…")}
+                ${idea("🎁", "Tienda", "Cambia tus monedas por premios reales que tú decides. Así el premio se gana.")}
+            </ul>
+            ${pie(`<button type="button" class="boton boton-secundario" data-accion="bienvenida-saltar">Saltar</button>`,
+                  `<button type="button" class="boton boton-principal" data-accion="bienvenida-paso" data-paso="2">Siguiente</button>`)}`;
+    }
+
+    if (b.paso === 2) {
+        const grupos = Object.entries(ATRIBUTOS).map(([clave, a]) => `
+            <h3 class="subtitulo">${a.icono} ${a.nombre}</h3>
+            <div class="opciones-plantilla">${plantillas.misiones.filter((p) => p.atributo === clave).map((p) => {
+                const detalle = `${DIFICULTADES[p.dificultad].nombre} · ${textoFrecuencia(p)}${p.cantidad ? ` · ${p.cantidad} ${p.unidad}` : ""}`;
+                return `<button type="button" class="opcion-plantilla" data-accion="bienvenida-mision" data-id="${p.id}"
+                                aria-pressed="${b.misiones.has(p.id)}"><b>${p.nombre}</b><small>${detalle}</small></button>`;
+            }).join("")}</div>`).join("");
+        return `${puntos}
+            <h2 class="titulo-juego titulo-grande">Tus primeros hábitos</h2>
+            <p class="nota">Elige pocos: con <b>2 o 3</b> basta para empezar. Después puedes cambiarlos o agregar los tuyos.</p>
+            ${grupos}
+            ${pie(`<button type="button" class="boton boton-secundario" data-accion="bienvenida-paso" data-paso="1">Atrás</button>`,
+                  `<button type="button" class="boton boton-principal" data-accion="bienvenida-paso" data-paso="3">Siguiente${b.misiones.size ? ` (${b.misiones.size})` : ""}</button>`)}`;
+    }
+
+    return `${puntos}
+        <h2 class="titulo-juego titulo-grande">¿Con qué te premias?</h2>
+        <p class="nota">Estos premios cuestan monedas. La regla de oro: date ese gusto <b>solo</b> si lo canjeas aquí.
+           Puedes cambiar los precios en la Tienda.</p>
+        <div class="opciones-plantilla">${plantillas.recompensas.map((r) => `
+            <button type="button" class="opcion-plantilla" data-accion="bienvenida-recompensa" data-id="${r.id}"
+                    aria-pressed="${b.recompensas.has(r.id)}"><b>${r.nombre}</b><small>🪙 ${r.costo}</small></button>`).join("")}</div>
+        ${pie(`<button type="button" class="boton boton-secundario" data-accion="bienvenida-paso" data-paso="2">Atrás</button>`,
+              `<button type="button" class="boton boton-principal" data-accion="bienvenida-fin">¡Empezar!</button>`)}`;
 }
 
 

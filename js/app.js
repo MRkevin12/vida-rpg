@@ -17,9 +17,12 @@ import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import { PINTURAS, fuentePintura } from "./pinturas.js";
+import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import * as minijuegos from "./minijuegos.js";
 import * as sonido from "./sonido.js";
 import * as avisos from "./avisos.js";
+import * as nube from "./nube.js";
+import { VERSION_APP, NOVEDADES, novedadesPorVer } from "./novedades.js";
 import { calcularResumen, semanaPorMostrar } from "./resumen.js";
 import { dibujarAvatar } from "./dibujo.js";
 import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
@@ -69,21 +72,31 @@ function iniciar() {
     if (!estado.personaje) {
         $("#crear-personaje").hidden = false;
     } else if (seguridad.hayPin()) {
-        pedirPinParaEntrar(entrarAlJuego);   // primero el PIN, después el juego
+        pedirPinParaEntrar(entrarAlJuego);   // primero el PIN (o Face ID), después el juego
+        entrarConFaceId(entrarAlJuego, { silencioso: true });
     } else {
         entrarAlJuego();
     }
 }
 
-function entrarAlJuego() {
+function entrarAlJuego({ nuevo = false } = {}) {
     $("#crear-personaje").hidden = true;
     $("#juego").hidden = false;
     refrescar();
     revisarAlAbrir();
-    // Si nunca has creado un PIN (ni dijiste "Ahora no"), te lo ofrecemos.
-    if (seguridad.debePreguntar()) {
-        crearPin({ conAhoraNo: true, mensaje: "Protege tu app: elige 4 números" });
+    if (nuevo) {
+        // La primera vez: la guía de bienvenida y, al terminarla, ofrecer el PIN.
+        marcarNovedadesVistas();
+        abrirBienvenida(ofrecerPin);
+    } else {
+        ofrecerPin();
+        mostrarNovedades();
     }
+}
+
+// Si nunca has creado un PIN (ni dijiste "Ahora no"), te lo ofrecemos.
+function ofrecerPin() {
+    if (seguridad.debePreguntar()) crearPin({ conAhoraNo: true, mensaje: "Protege tu app: elige 4 números" });
 }
 
 // Al abrir (o volver a) la app: bonus de regreso, aviso de escudos usados,
@@ -98,6 +111,8 @@ function revisarAlAbrir() {
         ];
         return { celebraciones };
     });
+    // La copia del día en la nube (si está activada). Sin internet, se intenta la próxima vez.
+    nube.copiaDiaria(estado).then((hecha) => { if (hecha) avisar("☁️ Copia del día guardada en la nube"); });
 }
 
 // Reloj del modo enfoque: cada segundo cambia solo el texto del tiempo y el anillo
@@ -176,6 +191,7 @@ let esperarHasta = 0;          // tras 5 errores hay que esperar 30 segundos
 function mostrarTeclado({ titulo = "Vida RPG", mensaje, error = false, alCompletar, secundario }) {
     // Las ventanas abiertas quedarían encima del bloqueo: las cerramos.
     for (const dialogo of document.querySelectorAll("dialog[open]")) dialogo.close();
+    $("#bloqueo-faceid").hidden = true;   // solo se muestra al entrar (ver pedirPinParaEntrar)
     $("#bloqueo-titulo").textContent = titulo;
     ponerMensaje(mensaje, error);
     pinEscrito = "";
@@ -247,12 +263,33 @@ function pedirPinParaEntrar(alEntrar) {
                 }
                 return false;
             }
-            intentosFallidos = 0;
-            cerrarTeclado();
-            $("#juego").hidden = false;
-            alEntrar();
+            desbloquear(alEntrar);
         },
     });
+    if (seguridad.hayFaceId()) {
+        const boton = $("#bloqueo-faceid");
+        boton.hidden = false;
+        boton.onclick = () => entrarConFaceId(alEntrar);
+    }
+}
+
+function desbloquear(alEntrar) {
+    intentosFallidos = 0;
+    cerrarTeclado();
+    $("#juego").hidden = false;
+    alEntrar();
+}
+
+// Face ID: si el iPhone reconoce tu cara, entras sin escribir el PIN.
+// "silencioso": al abrir la app se intenta solo; si el iPhone no deja (pide un toque), no se muestra error.
+async function entrarConFaceId(alEntrar, { silencioso = false } = {}) {
+    if (!seguridad.hayFaceId() || $("#bloqueo").hidden) return;
+    try {
+        if (await seguridad.comprobarFaceId()) desbloquear(alEntrar);
+        else if (!silencioso) ponerMensaje("No se pudo comprobar. Usa tu PIN.", true);
+    } catch {
+        if (!silencioso) ponerMensaje("Face ID no respondió. Usa tu PIN.", true);
+    }
 }
 
 // Crear un PIN nuevo: escribirlo y repetirlo.
@@ -529,6 +566,7 @@ function dibujarPantalla(efectos = {}) {
 // Recordar la copia de seguridad: después de 7 días de juego, si nunca
 // la hiciste o pasó más de un mes desde la última.
 function necesitaRespaldo(fecha) {
+    if (nube.configurada()) return false;   // la copia en la nube se hace sola cada día
     if (diasEntre(estado.personaje.creadoEn, fecha) < 7) return false;
     return !estado.ultimoRespaldo || diasEntre(estado.ultimoRespaldo, fecha) > 30;
 }
@@ -680,6 +718,10 @@ function rellenarOpciones() {
                 <span>${letra}</span>
             </label>`).join(""));
     }
+    $("#mision-plantilla").innerHTML = '<option value="">— Escribir la mía —</option>' +
+        Object.entries(juego.ATRIBUTOS).map(([clave, a]) => `<optgroup label="${a.icono} ${a.nombre}">${
+            PLANTILLAS_MISIONES.filter((p) => p.atributo === clave).map((p) => `<option value="${p.id}">${p.nombre}</option>`).join("")}</optgroup>`).join("");
+
     $("#logro-tipo").innerHTML = Object.entries(juego.TIPOS_LOGRO)
         .map(([clave, t]) => `<option value="${clave}">${t.texto}</option>`).join("");
 
@@ -726,7 +768,10 @@ function rellenarOpciones() {
 const PREPARAR = {
     mision(mision) {
         const formulario = $("#dialogo-mision form");
-        modoEdicion(formulario, mision, { crear: ["Nueva misión diaria", "Crear misión"], editar: ["Editar misión", "Guardar cambios"] });
+        modoEdicion(formulario, mision, { crear: ["Nueva misión", "Crear misión"], editar: ["Editar misión", "Guardar cambios"] });
+        // La lista de plantillas y «Una sola vez» solo sirven al crear.
+        ocultarCampo($("#campo-plantilla"), Boolean(mision));
+        ocultarCampo($("#opcion-unica"), Boolean(mision));
         // Días: al crear, todos marcados; al editar, los de la misión.
         for (const casilla of formulario.querySelectorAll('input[name="dias"]')) {
             casilla.checked = !mision || !mision.dias || mision.dias.includes(Number(casilla.value));
@@ -740,6 +785,7 @@ const PREPARAR = {
             formulario.elements.cantidad.value = mision.meta ? mision.meta.cantidad : "";
             formulario.elements.unidad.value = mision.meta ? mision.meta.unidad : "";
             formulario.elements.aviso.value = mision.aviso || "";
+            formulario.elements.momento.value = mision.momento || "";
         }
         mostrarCamposFrecuencia();
     },
@@ -810,8 +856,38 @@ const PREPARAR = {
             ? `<button type="button" class="boton boton-secundario" data-accion="cambiar-pin">Cambiar PIN</button>
                <button type="button" class="boton boton-secundario" data-accion="quitar-pin">Quitar PIN</button>`
             : `<button type="button" class="boton boton-principal" data-accion="activar-pin">Activar PIN</button>`;
+        if (hayPin) pintarFaceId();
+        pintarNube();
+    },
+    ficha(mision) {
+        $("#ficha-contenido").innerHTML = vistas.fichaMision(estado, mision, hoy());
+    },
+    ordenar() {
+        $("#ordenar-lista").innerHTML = vistas.listaOrdenar(estado);
+    },
+    nube() {
+        // El código solo se pide si este teléfono todavía no lo tiene.
+        const pedirCodigo = !nube.hayCodigo();
+        ocultarCampo($("#nube-campo-codigo"), !pedirCodigo);
+        $("#nube-campo-codigo input").required = pedirCodigo;
     },
 };
+
+// Face ID en Ajustes (solo si el teléfono lo tiene y hay PIN: el PIN es el plan B).
+async function pintarFaceId() {
+    if (!(await seguridad.faceIdDisponible())) return;
+    $("#ajustes-pin-botones").insertAdjacentHTML("beforeend", seguridad.hayFaceId()
+        ? `<button type="button" class="boton boton-secundario" data-accion="quitar-faceid">Quitar Face ID</button>`
+        : `<button type="button" class="boton boton-principal" data-accion="activar-faceid">🙂 Activar Face ID</button>`);
+}
+
+function pintarNube() {
+    $("#ajustes-nube").innerHTML = vistas.seccionNube({
+        configurada: nube.configurada(),
+        ultima: nube.ultimaCopia(),
+        codigoGuardado: nube.hayCodigo(),
+    });
+}
 
 // Pone un formulario en modo "crear" o "editar": título, texto del botón,
 // los botones que solo sirven al editar y el id oculto del elemento.
@@ -842,10 +918,32 @@ function abrirDialogo(nombre, elemento = null) {
 }
 
 // En la misión: mostrar los días de la semana, o cuántas veces por semana.
+// En la misión: mostrar los días de la semana, las veces por semana o la fecha (si es de una sola vez).
 function mostrarCamposFrecuencia() {
-    const porSemana = $("#dialogo-mision form").elements.frecuencia.value === "semana";
-    ocultarCampo($("#campo-dias"), porSemana);
-    ocultarCampo($("#campo-veces"), !porSemana);
+    const frecuencia = $("#dialogo-mision form").elements.frecuencia.value;
+    ocultarCampo($("#campo-dias"), frecuencia !== "dias");
+    ocultarCampo($("#campo-veces"), frecuencia !== "semana");
+    ocultarCampo($("#campo-unica"), frecuencia !== "unica");
+    ocultarCampo($("#campos-repetir"), frecuencia === "unica");
+}
+
+// Elegir un hábito de la lista rellena el formulario de misión.
+function usarPlantilla() {
+    const plantilla = PLANTILLAS_MISIONES.find((p) => p.id === $("#mision-plantilla").value);
+    if (!plantilla) return;
+    const f = $("#dialogo-mision form").elements;
+    f.nombre.value = plantilla.nombre;
+    f.dificultad.value = plantilla.dificultad;
+    f.atributo.value = plantilla.atributo;
+    f.frecuencia.value = plantilla.frecuencia || "dias";
+    if (plantilla.veces) f.veces.value = plantilla.veces;
+    for (const casilla of $("#dialogo-mision form").querySelectorAll('input[name="dias"]')) {
+        casilla.checked = !plantilla.dias || plantilla.dias.includes(Number(casilla.value));
+    }
+    f.cantidad.value = plantilla.cantidad || "";
+    f.unidad.value = plantilla.unidad || "";
+    f.momento.value = plantilla.momento || "";
+    mostrarCamposFrecuencia();
 }
 
 // En el logro, mostrar solo los campos que usa el tipo de condición elegido.
@@ -880,6 +978,164 @@ function probarAvisos() {
     return avisos.probar().then((respuesta) => avisar(respuesta.ok
         ? "🔔 Aviso de prueba enviado"
         : `⚠️ El servicio de avisos respondió ${respuesta.estado}`));
+}
+
+
+// ===== Deshacer =====
+// Después de completar algo aparece abajo «Deshacer» unos segundos, por si te equivocaste.
+
+let temporizadorDeshacer = null;
+let alDeshacer = null;
+
+function ofrecerDeshacer(texto, accion) {
+    alDeshacer = accion;
+    $("#deshacer-texto").textContent = texto;
+    const caja = $("#deshacer");
+    caja.hidden = false;
+    reproducirAnimacion(caja, "entrar");
+    clearTimeout(temporizadorDeshacer);
+    temporizadorDeshacer = setTimeout(ocultarDeshacer, 5000);
+}
+
+function ocultarDeshacer() {
+    $("#deshacer").hidden = true;
+    alDeshacer = null;
+}
+
+
+// ===== Gestos: deslizar una misión a la derecha para completarla =====
+// Se usan "pointer events" (sirven igual para el dedo y el ratón). Mientras el dedo se
+// mueve en horizontal, la tarjeta lo sigue; si pasa del umbral al soltar, se toca su botón.
+// Si el dedo se mueve más en vertical, es un scroll normal y no se hace nada.
+
+const UMBRAL_GESTO = 72;      // píxeles que hay que deslizar
+let gestoReciente = false;    // para que soltar el dedo no abra también la ficha
+
+function conectarGestos() {
+    let gesto = null;
+    document.addEventListener("pointerdown", (evento) => {
+        const tarjeta = evento.target.closest(".lista .mision:not(.apagada):not(.fila-ordenar)");
+        if (!tarjeta || !tarjeta.querySelector(":scope > .boton-check")) return;
+        if (evento.target.closest("button, input")) return;
+        gesto = { tarjeta, x: evento.clientX, y: evento.clientY, dx: 0, activo: false, puntero: evento.pointerId };
+    });
+    document.addEventListener("pointermove", (evento) => {
+        if (!gesto || evento.pointerId !== gesto.puntero) return;
+        const dx = evento.clientX - gesto.x;
+        const dy = evento.clientY - gesto.y;
+        if (!gesto.activo) {
+            if (Math.abs(dy) > 10) { gesto = null; return; }   // es un scroll
+            if (dx < 12) return;
+            gesto.activo = true;
+            gesto.tarjeta.classList.add("deslizando");
+        }
+        gesto.dx = Math.max(0, Math.min(120, dx));
+        gesto.tarjeta.style.transform = `translateX(${gesto.dx}px)`;
+        gesto.tarjeta.classList.toggle("gesto-listo", gesto.dx > UMBRAL_GESTO);
+    });
+    const soltar = (cancelado) => {
+        if (!gesto) return;
+        const { tarjeta, dx, activo } = gesto;
+        gesto = null;
+        if (!activo) return;
+        tarjeta.classList.remove("deslizando", "gesto-listo");
+        tarjeta.style.transform = "";
+        gestoReciente = true;
+        setTimeout(() => { gestoReciente = false; }, 80);
+        if (!cancelado && dx > UMBRAL_GESTO) tarjeta.querySelector(":scope > .boton-check").click();
+    };
+    document.addEventListener("pointerup", () => soltar(false));
+    document.addEventListener("pointercancel", () => soltar(true));
+}
+
+
+// ===== Ordenar arrastrando ☰ =====
+// Mientras arrastras, la fila sigue al dedo; al pasar la mitad de la vecina, cambian de lugar.
+
+function conectarArrastre() {
+    const lista = $("#ordenar-lista");
+    let arrastre = null;
+    lista.addEventListener("pointerdown", (evento) => {
+        const mango = evento.target.closest("[data-mango]");
+        if (!mango) return;
+        evento.preventDefault();
+        mango.setPointerCapture(evento.pointerId);
+        arrastre = { fila: mango.closest("li"), y: evento.clientY };
+        arrastre.fila.classList.add("arrastrando");
+    });
+    lista.addEventListener("pointermove", (evento) => {
+        if (!arrastre) return;
+        const { fila } = arrastre;
+        let dy = evento.clientY - arrastre.y;
+        const siguiente = fila.nextElementSibling;
+        const anterior = fila.previousElementSibling;
+        if (siguiente && dy > siguiente.offsetHeight / 2) {
+            siguiente.after(fila);
+            arrastre.y += siguiente.offsetHeight + 10;
+        } else if (anterior && dy < -anterior.offsetHeight / 2) {
+            anterior.before(fila);
+            arrastre.y -= anterior.offsetHeight + 10;
+        }
+        dy = evento.clientY - arrastre.y;
+        fila.style.transform = `translateY(${dy}px)`;
+    });
+    const soltar = () => {
+        if (!arrastre) return;
+        arrastre.fila.classList.remove("arrastrando");
+        arrastre.fila.style.transform = "";
+        arrastre = null;
+        const ids = [...lista.children].map((fila) => Number(fila.dataset.id));
+        ejecutar(() => acciones.ordenarMisiones(estado, ids));
+    };
+    lista.addEventListener("pointerup", soltar);
+    lista.addEventListener("pointercancel", soltar);
+}
+
+
+// ===== Novedades =====
+// Después de actualizar la app, una ventana con lo nuevo (una sola vez por versión).
+
+const CLAVE_NOVEDADES = "vida-rpg-novedades";   // la última versión cuyas novedades viste
+
+function marcarNovedadesVistas() {
+    try { localStorage.setItem(CLAVE_NOVEDADES, String(VERSION_APP)); } catch { /* sin espacio: no importa */ }
+}
+
+function mostrarNovedades() {
+    let vista = 0;
+    try { vista = Number(localStorage.getItem(CLAVE_NOVEDADES)) || 0; } catch { /* nada */ }
+    const lista = novedadesPorVer(vista);
+    marcarNovedadesVistas();
+    if (!lista.length) return;
+    // Si nunca habías visto esta ventana, solo lo de esta versión (no toda la historia).
+    $("#novedades-contenido").innerHTML = vistas.contenidoNovedades(vista ? lista : lista.slice(0, 1), `🆕 Novedades de la v${VERSION_APP}`);
+    $("#dialogo-novedades").showModal();
+}
+
+
+// ===== Bienvenida (la primera vez, o desde Ajustes) =====
+
+let bienvenida = null;   // { paso, misiones: Set, recompensas: Set, alTerminar }
+
+function abrirBienvenida(alTerminar = () => {}) {
+    bienvenida = { paso: 1, misiones: new Set(), recompensas: new Set(), alTerminar };
+    $("#bienvenida").hidden = false;
+    pintarBienvenida();
+}
+
+function pintarBienvenida({ mantenerScroll = false } = {}) {
+    const caja = $("#bienvenida-caja");
+    const y = caja.scrollTop;
+    caja.innerHTML = vistas.pantallaBienvenida(bienvenida, estado.personaje.nombre,
+                                               { misiones: PLANTILLAS_MISIONES, recompensas: PLANTILLAS_RECOMPENSAS });
+    caja.scrollTop = mantenerScroll ? y : 0;
+}
+
+function cerrarBienvenida() {
+    const alTerminar = bienvenida?.alTerminar;
+    bienvenida = null;
+    $("#bienvenida").hidden = true;
+    alTerminar?.();
 }
 
 
@@ -921,16 +1177,21 @@ async function importar(archivo) {
             const seguro = confirm(`¿Reemplazar tu partida actual por la copia de «${nuevo.personaje.nombre}»? Lo que tienes ahora se perderá.`);
             if (!seguro) return;
         }
-        const veniaDelInicio = $("#juego").hidden;
-        estado = nuevo;
-        datos.guardar(estado);
-        $("#dialogo-ajustes").close();
-        avisar(`📥 Bienvenido, ${estado.personaje.nombre}`);
-        if (veniaDelInicio) entrarAlJuego();
-        else refrescar();
+        cargarPartida(nuevo, `📥 Bienvenido, ${nuevo.personaje.nombre}`);
     } catch (error) {
         alert(error.message);
     }
+}
+
+// Reemplaza la partida de este teléfono por otra (de un archivo o de la nube).
+function cargarPartida(nuevo, mensaje) {
+    const veniaDelInicio = $("#juego").hidden;
+    estado = nuevo;
+    datos.guardar(estado);
+    $("#dialogo-ajustes").close();
+    avisar(mensaje);
+    if (veniaDelInicio) entrarAlJuego();
+    else refrescar();
 }
 
 function borrarTodo() {
@@ -974,13 +1235,24 @@ const ACCIONES = {
         if (!resultado) return;
         sonar(estabaHecha ? "desmarcar" : "completar");
         flotarXp(`.mision[data-id="${id}"]`, resultado.xp);
+        if (!estabaHecha) {
+            const mision = estado.misiones.find((m) => m.id === id);
+            ofrecerDeshacer(`✔ ${mision.nombre} · +${resultado.xp} XP`, () => ejecutar(() => acciones.desmarcarMision(estado, id, fecha)));
+        }
     },
     "ver-fecha": (boton) => {
         diaVisto = boton.dataset.dia;
         dibujarPantalla();
     },
     "editar-mision": (boton) => {
+        boton.closest("dialog")?.close();   // si viene de la ficha, la ficha se cierra
         abrirDialogo("mision", estado.misiones.find((m) => m.id === Number(boton.dataset.id)));
+    },
+    // Tocar una misión abre su ficha (salvo justo después de deslizarla).
+    "ver-ficha": (elemento) => {
+        if (gestoReciente) return;
+        const mision = estado.misiones.find((m) => m.id === Number(elemento.dataset.id));
+        if (mision) abrirDialogo("ficha", mision);
     },
     // Estos tres botones están dentro de la ventana de editar misión.
     "mover-mision": (boton) => {
@@ -990,7 +1262,9 @@ const ACCIONES = {
         if (confirm("¿Archivar esta misión? Dejará de aparecer, pero su historial se guarda y la puedes restaurar.")) {
             const id = idEnEdicion(boton);
             boton.closest("dialog").close();
-            ejecutar(() => acciones.archivarMision(estado, id));
+            if (ejecutar(() => acciones.archivarMision(estado, id))) {
+                ofrecerDeshacer("📦 Misión archivada", () => ejecutar(() => acciones.restaurarMision(estado, id)));
+            }
         }
     },
     "restaurar-mision": (boton) => ejecutar(() => acciones.restaurarMision(estado, Number(boton.dataset.id))),
@@ -1021,6 +1295,10 @@ const ACCIONES = {
         if (!resultado) return;
         sonar(estabaHecha ? "desmarcar" : "completar");
         flotarXp(`.tarea[data-tarea="${id}"]`, resultado.xp);
+        if (!estabaHecha) {
+            const tarea = estado.tareas.find((x) => x.id === id);
+            ofrecerDeshacer(`✔ ${tarea.nombre} · +${resultado.xp} XP`, () => ejecutar(() => acciones.alternarTarea(estado, id)));
+        }
     },
     "editar-tarea": (boton) => {
         abrirDialogo("tarea", estado.tareas.find((t) => t.id === Number(boton.dataset.id)));
@@ -1063,10 +1341,14 @@ const ACCIONES = {
 
     "alternar-submision": (boton) => {
         const id = Number(boton.dataset.id);
-        const resultado = ejecutar(() => acciones.alternarSubmision(estado, id, Number(boton.dataset.sub)));
+        const sub = Number(boton.dataset.sub);
+        const resultado = ejecutar(() => acciones.alternarSubmision(estado, id, sub));
         if (!resultado) return;
         sonar(resultado.xp > 0 ? "completar" : "desmarcar");
         flotarXp(`.tarjeta[data-id="${id}"]`, resultado.xp);
+        if (resultado.xp > 0) {
+            ofrecerDeshacer(`✔ Paso completado · +${resultado.xp} XP`, () => ejecutar(() => acciones.alternarSubmision(estado, id, sub)));
+        }
     },
     "borrar-submision": (boton) => {
         ejecutar(() => acciones.borrarSubmision(estado, Number(boton.dataset.id), Number(boton.dataset.sub)));
@@ -1133,7 +1415,10 @@ const ACCIONES = {
     canjear: (boton) => {
         const recompensa = estado.recompensas.find((r) => r.id === Number(boton.dataset.id));
         if (recompensa && confirm(`¿Canjear «${recompensa.nombre}» por ${recompensa.costo} monedas?`)) {
-            if (ejecutar(() => acciones.canjear(estado, recompensa.id))) sonar("moneda");
+            if (ejecutar(() => acciones.canjear(estado, recompensa.id))) {
+                sonar("moneda");
+                ofrecerDeshacer(`🎁 ${recompensa.nombre} · −${recompensa.costo} 🪙`, () => ejecutar(() => acciones.deshacerCanje(estado)));
+            }
         }
     },
     "editar-recompensa": (boton) => {
@@ -1177,6 +1462,65 @@ const ACCIONES = {
         avisar("🔓 PIN desactivado");
     }),
 
+    // Face ID (en Ajustes).
+    "activar-faceid": async () => {
+        try {
+            await seguridad.activarFaceId(estado.personaje.nombre);
+            avisar("🙂 Face ID activado");
+        } catch {
+            alert("No se pudo activar Face ID. Revisa que esté configurado en tu iPhone e inténtalo otra vez.");
+        }
+        PREPARAR.ajustes();
+    },
+    "quitar-faceid": () => {
+        seguridad.quitarFaceId();
+        avisar("Face ID desactivado");
+        PREPARAR.ajustes();
+    },
+
+    // Copia en la nube.
+    "nube-subir": () => {
+        avisar("☁️ Cifrando y subiendo…");
+        nube.subir(estado).then(() => { pintarNube(); avisar("☁️ Copia guardada en la nube"); }).catch((error) => alert(error.message));
+    },
+    "nube-desactivar": () => {
+        if (!confirm("¿Desactivar la copia en la nube en este teléfono? La última copia queda guardada en la nube.")) return;
+        nube.desactivar();
+        pintarNube();
+    },
+
+    // Novedades y bienvenida.
+    "ver-novedades": () => {
+        $("#dialogo-ajustes").close();
+        $("#novedades-contenido").innerHTML = vistas.contenidoNovedades(NOVEDADES);
+        $("#dialogo-novedades").showModal();
+    },
+    "bienvenida-abrir": () => {
+        $("#dialogo-ajustes").close();
+        abrirBienvenida();
+    },
+    "bienvenida-paso": (boton) => {
+        bienvenida.paso = Number(boton.dataset.paso);
+        pintarBienvenida();
+    },
+    "bienvenida-mision": (boton) => {
+        const elegidas = bienvenida.misiones;
+        elegidas.has(boton.dataset.id) ? elegidas.delete(boton.dataset.id) : elegidas.add(boton.dataset.id);
+        pintarBienvenida({ mantenerScroll: true });
+    },
+    "bienvenida-recompensa": (boton) => {
+        const elegidas = bienvenida.recompensas;
+        elegidas.has(boton.dataset.id) ? elegidas.delete(boton.dataset.id) : elegidas.add(boton.dataset.id);
+        pintarBienvenida({ mantenerScroll: true });
+    },
+    "bienvenida-saltar": () => cerrarBienvenida(),
+    "bienvenida-fin": () => {
+        const { misiones, recompensas } = bienvenida;
+        ejecutar(() => acciones.aplicarBienvenida(estado, { misiones: [...misiones], recompensas: [...recompensas] }));
+        cerrarBienvenida();
+        avisar("⚔️ ¡Que empiece la aventura!");
+    },
+
     exportar: () => exportar(),
     importar: () => $("#archivo-respaldo").click(),
     "borrar-todo": () => borrarTodo(),
@@ -1186,12 +1530,16 @@ const ACCIONES = {
 // Cambia cuánto llevas de una misión con cantidad. Si así llega a la meta,
 // se completa (con su animación); si baja de la meta, se desmarca.
 function cambiarCantidad(mision, fecha, nueva) {
-    const completa = nueva >= mision.meta.cantidad && juego.cantidadDe(estado, mision, fecha) < mision.meta.cantidad;
+    const antes = juego.cantidadDe(estado, mision, fecha);
+    const completa = nueva >= mision.meta.cantidad && antes < mision.meta.cantidad;
     const resultado = ejecutar(() => acciones.fijarCantidad(estado, mision.id, fecha, nueva),
                                completa ? { recienHecha: mision.id } : {});
     if (!resultado) return;
     sonar(resultado.xp > 0 ? "completar" : resultado.xp < 0 ? "desmarcar" : "salto");
     flotarXp(`.mision[data-id="${mision.id}"]`, resultado.xp);
+    if (resultado.xp > 0) {
+        ofrecerDeshacer(`✔ ${mision.nombre} · +${resultado.xp} XP`, () => ejecutar(() => acciones.fijarCantidad(estado, mision.id, fecha, antes)));
+    }
 }
 
 
@@ -1208,11 +1556,20 @@ const FORMULARIOS = {
             return false;
         }
         datos.guardar(estado);
-        entrarAlJuego();
+        entrarAlJuego({ nuevo: true });
         return true;
     },
     // Si el formulario trae un id, se está editando; si no, creando.
-    mision: (valores) => ejecutar(() => (valores.id ? acciones.editarMision(estado, valores) : acciones.crearMision(estado, valores))),
+    mision(valores) {
+        if (valores.id) return ejecutar(() => acciones.editarMision(estado, valores));
+        // «Una sola vez» se guarda como tarea (da su premio una vez y aparece en 📌 Tareas).
+        if (valores.frecuencia === "unica") {
+            const resultado = ejecutar(() => acciones.crearTarea(estado, valores));
+            if (resultado) avisar("📌 Guardada en Tareas");
+            return resultado;
+        }
+        return ejecutar(() => acciones.crearMision(estado, valores));
+    },
     tarea: (valores) => ejecutar(() => (valores.id ? acciones.editarTarea(estado, valores) : acciones.crearTarea(estado, valores))),
     principal: (valores) => ejecutar(() => acciones.crearPrincipal(estado, valores)),
     enfoque(valores) {
@@ -1261,6 +1618,44 @@ const FORMULARIOS = {
         if (resultado) avisar(`🐾 Tu mascota ahora se llama ${estado.mascota.nombre}`);
         return resultado;
     },
+    // Activar la copia en la nube: cifra y sube la primera copia.
+    "nube-activar"(valores, formulario) {
+        if (valores.contrasena !== valores.repetir) {
+            alert("Las dos contraseñas no coinciden.");
+            return false;
+        }
+        const boton = formulario.querySelector('[type="submit"]');
+        boton.disabled = true;
+        boton.textContent = "Cifrando y subiendo…";
+        nube.activar(estado, valores.contrasena, valores.codigo)
+            .then(() => { pintarNube(); avisar("☁️ Copia en la nube activada"); })
+            .catch((error) => {
+                alert(error.message);
+                boton.disabled = false;
+                boton.textContent = "Activar copia en la nube";
+            });
+        return false;   // no cerrar Ajustes
+    },
+    // Recuperar la copia de la nube (reemplaza la partida de este teléfono).
+    "nube-recuperar"(valores, formulario) {
+        const boton = formulario.querySelector('[type="submit"]');
+        boton.disabled = true;
+        boton.textContent = "Descifrando…";
+        nube.recuperar(valores.codigo, valores.contrasena)
+            .then(({ texto, fecha }) => {
+                const nuevo = datos.desdeRespaldo(texto);
+                const pregunta = `¿Reemplazar la partida de este teléfono por la copia del ${fechaLegible(fecha)} («${nuevo.personaje.nombre}»)?`;
+                if (estado.personaje && !confirm(pregunta)) return;
+                $("#dialogo-nube").close();
+                cargarPartida(nuevo, `☁️ Copia del ${fechaLegible(fecha)} recuperada`);
+            })
+            .catch((error) => alert(error.message))
+            .finally(() => {
+                boton.disabled = false;
+                boton.textContent = "Recuperar";
+            });
+        return false;
+    },
     renombrar(valores) {
         const resultado = ejecutar(() => acciones.renombrar(estado, valores.nombre));
         if (resultado) avisar("✏️ Nombre actualizado");
@@ -1303,6 +1698,17 @@ function conectarEventos() {
 
     $("#logro-tipo").addEventListener("change", mostrarCamposLogro);
     $("#campo-frecuencia").addEventListener("change", mostrarCamposFrecuencia);
+    $("#mision-plantilla").addEventListener("change", usarPlantilla);
+    $("#deshacer-boton").addEventListener("click", () => {
+        const accion = alDeshacer;
+        ocultarDeshacer();
+        if (accion) {
+            accion();
+            sonar("desmarcar");
+        }
+    });
+    conectarGestos();
+    conectarArrastre();
 
     // Diario: tocar una carita guarda al instante (junto con la frase que hayas escrito).
     document.addEventListener("change", (evento) => {
@@ -1368,7 +1774,8 @@ function conectarEventos() {
                 $("#juego").hidden = false;
                 alVolver();
             }
-            return; // si no, el teclado ya está esperando tu PIN
+            entrarConFaceId(alVolver, { silencioso: true });
+            return; // si no, el teclado ya está esperando tu PIN (o Face ID)
         }
         if (!$("#juego").hidden) alVolver();
     });
