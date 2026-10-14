@@ -407,6 +407,27 @@ button {
     box-shadow: 0 0 8px var(--color-atributo);
 }
 
+.barra-oro .barra-relleno {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+/* Reto del día del arcade (v40) */
+.reto-dia {
+    display: grid;
+    gap: 6px;
+    border-color: rgba(34, 211, 238, 0.4);
+}
+
+.reto-dia.cumplido {
+    border-color: rgba(251, 191, 36, 0.55);
+}
+
+.reto-texto {
+    margin: 0;
+    font-size: 1rem;
+}
+
 .barra-vida {
     height: 14px;
 }

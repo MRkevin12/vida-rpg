@@ -169,6 +169,7 @@ function revisarAlAbrir() {
             ...(acciones.revisarEnfoque(estado)?.celebraciones || []),
             ...(acciones.asegurarDesafio(estado)?.celebraciones || []),
         ];
+        acciones.asegurarRetoDelDia(estado);
         return { celebraciones };
     });
     if (robo) mostrarRobo(robo);
@@ -504,7 +505,8 @@ function terminarMinijuego(tipo, puntos) {
     const atributo = juego.ATRIBUTOS[arcade.JUEGOS[tipo].atributo];
     $("#mj-puntos").textContent = `${resultado.puntos} ${resultado.puntos === 1 ? "punto" : "puntos"}`;
     $("#mj-record").textContent = resultado.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${resultado.record}`;
-    $("#mj-premio").textContent = `+${resultado.premio.gemas} 💎 · +${resultado.premio.xp} XP de ${atributo.icono} ${atributo.nombre}`;
+    $("#mj-premio").textContent = `+${resultado.premio.gemas} 💎 · +${resultado.premio.xp} XP de ${atributo.icono} ${atributo.nombre}` +
+        (resultado.reto ? ` · 🎯 ¡Reto del día! ${vistas.textoPremioReto(resultado.reto)}` : "");
     const fichas = arcade.fichasDisponibles(estado);
     $("#mj-otra").disabled = fichas < 1;
     $("#mj-otra").textContent = fichas ? `Otra vez · 🎟️ ${fichas}` : "Sin fichas";

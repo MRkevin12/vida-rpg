@@ -34,6 +34,7 @@ import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import * as resumen from "./resumen.js";
+import * as retos from "./retos.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
          diasEntre, lunesDe, relojTexto, relojLargo, sumarDias, MESES, hoy as fechaDeHoy } from "./fechas.js";
 
@@ -2368,6 +2369,7 @@ export function pantallaArcade(estado, ctx) {
     return `
         ${encabezado("🕹️ Arcade", "aventuras", "Aventuras")}
         ${caido ? avisoCaido(ctx.vida, "El arcade está cerrado") : ""}
+        ${tarjetaReto(estado, ctx)}
         ${tarjetaTorre}
         ${tarjetaMazmorra(estado, caido, fichas)}
         ${panelBazar(estado, caido)}
@@ -2382,6 +2384,29 @@ export function pantallaArcade(estado, ctx) {
         </section>
         ${fichas || caido ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
         ${tarjetas}`;
+}
+
+
+// ===== El reto del día (v40) =====
+// Un objetivo distinto cada día (ver retos.js). Se crea al abrir la app; si todavía no existe, no se muestra.
+export function textoPremioReto(premio) {
+    return `+${premio.gemas} 💎 · +${premio.xp} XP`;
+}
+
+function tarjetaReto(estado, ctx) {
+    const reto = estado.arcade.retos[ctx.hoy];
+    if (!reto) return "";
+    const datos = retos.RETOS[reto.tipo];
+    const hecho = Boolean(reto.cobradoEn);
+    return `
+        <section class="panel reto-dia ${hecho ? "cumplido" : ""}" aria-label="Reto del día">
+            <p class="etiqueta">🎯 Reto del día</p>
+            <h3 class="reto-texto">${datos.icono} ${datos.texto(reto.meta)}</h3>
+            ${barra(retos.porcentajeDelReto(reto), hecho ? "barra-oro" : "")}
+            <p class="mini">${hecho
+                ? `✅ ¡Cumplido hoy! Ganaste ${textoPremioReto(retos.PREMIO_RETO)}.`
+                : `Llevas <b>${Math.min(reto.mejor, reto.meta)}</b> de ${reto.meta} ${datos.unidad} · Premio: ${textoPremioReto(retos.PREMIO_RETO)} (una vez al día).`}</p>
+        </section>`;
 }
 
 
@@ -2831,6 +2856,7 @@ function finalTorre(t) {
             <p class="ff-puntos">${plural(r.pisos, piso, `${piso}s`)}</p>
             <p class="ff-renglon">${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${plural(r.record, piso, `${piso}s`)}`}</p>
             <p class="ff-renglon ff-oro">+${r.premio.gemas} 💎 · +${r.premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
+            ${r.reto ? `<p class="ff-renglon ff-oro">🎯 ¡Reto del día cumplido! ${textoPremioReto(r.reto)}</p>` : ""}
             <button type="button" class="ff-comando elegido" data-accion="torre-abrir" data-lugar="${sitio.id}" ${t.fichas ? "" : "disabled"}>
                 <span class="ff-cursor" aria-hidden="true"></span>
                 <span class="ff-comando-nombre">${t.fichas ? (sitio.id === "mazmorra" ? "Bajar otra vez" : "Subir otra vez") : "Sin fichas"}</span><small>${t.fichas ? `🎟️ ${t.fichas}` : ""}</small></button>

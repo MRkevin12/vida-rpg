@@ -119,7 +119,7 @@ export const DESAFIOS = {
 // ===== Elegir y medir =====
 
 // Convierte un texto en un número (siempre el mismo para el mismo texto).
-function semilla(texto) {
+export function semilla(texto) {
     let n = 0;
     for (const letra of texto) n = (n * 31 + letra.charCodeAt(0)) % 1000003;
     return n;

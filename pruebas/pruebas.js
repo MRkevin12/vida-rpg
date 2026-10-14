@@ -15,6 +15,7 @@ import * as acciones from "../js/acciones.js";
 import * as juego from "../js/juego.js";
 import * as campana from "../js/campana.js";
 import * as desafios from "../js/desafios.js";
+import * as retos from "../js/retos.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO } from "../js/resumen.js";
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
@@ -102,6 +103,9 @@ function partidaNueva() {
     const estado = datos.estadoInicial();
     acciones.crearPersonaje(estado, "Prueba");
     estado.ajustes.eventos = false;
+    // El reto del día (v40) también cambia con la fecha: se deja uno que nunca se cumple (las pruebas del reto
+    // ponen el suyo).
+    estado.arcade.retos[hoy()] = { tipo: "partidas", meta: 9999, mejor: 0, cobradoEn: null };
     return estado;
 }
 
@@ -2872,6 +2876,83 @@ prueba("Monedas y gemas: el arcade paga en gemas (y la mitad de XP); las monedas
     cierto([desafios.COFRE, rituales.RELAMPAGO.premio, campana.premioJefe(1), mapa.LUGARES.fortaleza.premio]
         .every((p) => p.gemas > 0 && !("monedas" in p)), "desafío, relámpago, jefes y mapa: en gemas");
     cierto(!cofre.PREMIOS_COFRE.some((p) => p.tipo === "monedas"), "el cofre del día ya no da monedas");
+});
+
+// ===== Reto del día del arcade (v40) =====
+
+prueba("Reto del día: la meta sale de tu récord, nunca baja de la base y la Torre tiene tope", () => {
+    const estado = partidaNueva();
+    igual(retos.metaDelReto(estado, "carrera", hoy()), retos.RETOS.carrera.base, "sin récord: la base");
+    estado.arcade.records.carrera = 500;
+    cierto([350, 400, 450].includes(retos.metaDelReto(estado, "carrera", hoy())), "70, 80 o 90 % del récord, de 10 en 10");
+    estado.arcade.records.carrera = 20;
+    igual(retos.metaDelReto(estado, "carrera", hoy()), 100, "un récord chico no baja de la base");
+    estado.arcade.records.torre = 100;
+    igual(retos.metaDelReto(estado, "torre", hoy()), 30, "la Torre tiene 30 pisos");
+});
+
+prueba("Reto del día: cada día uno distinto, sin repetir el de ayer; la Mazmorra solo si ya está abierta", () => {
+    const estado = partidaNueva();
+    estado.arcade.retos = {};
+    let anterior = null;
+    const vistos = new Set();
+    for (let n = -40; n <= 0; n++) {
+        const reto = retos.asegurarReto(estado, dia(n));
+        cierto(reto.tipo !== anterior, `el día ${n} repite el de ayer (${reto.tipo})`);
+        cierto(reto.tipo !== "mazmorra", "la Mazmorra está cerrada");
+        vistos.add(reto.tipo);
+        anterior = reto.tipo;
+    }
+    cierto(vistos.size >= 4, `en 41 días salen varios retos distintos (salieron ${[...vistos]})`);
+    igual(retos.asegurarReto(estado, dia(0)), estado.arcade.retos[dia(0)], "pedirlo otra vez no lo cambia");
+    cierto(!(dia(-40) in estado.arcade.retos), "los de hace más de 30 días se borran");
+
+    estado.arcade.records.torre = 25;   // abre la Mazmorra
+    const abiertos = new Set();
+    for (let n = 1; n <= 60; n++) abiertos.add(retos.asegurarReto(estado, dia(n)).tipo);
+    cierto(abiertos.has("mazmorra"), "con la Mazmorra abierta también puede tocar");
+});
+
+prueba("Reto del día: se cumple una sola vez, paga gemas y XP extra y no mueve la meta", () => {
+    const estado = partidaNueva();
+    estado.arcade.retos[hoy()] = { tipo: "carrera", meta: 100, mejor: 0, cobradoEn: null };
+    const gemasAntes = estado.personaje.gemas;
+
+    let r = acciones.terminarPartida(estado, "carrera", 60);
+    igual([r.reto, estado.arcade.retos[hoy()].mejor], [null, 60], "60 de 100: todavía no");
+    r = acciones.terminarPartida(estado, "lluvia", 500);
+    igual(estado.arcade.retos[hoy()].mejor, 60, "otro juego no cuenta");
+    r = acciones.terminarPartida(estado, "carrera", 120);
+    igual([r.reto.gemas, r.reto.xp], [retos.PREMIO_RETO.gemas, retos.PREMIO_RETO.xp]);
+    igual(estado.arcade.retos[hoy()].cobradoEn, hoy());
+    const delasPartidas = arcade.premio("carrera", 60).gemas + arcade.premio("lluvia", 500).gemas + arcade.premio("carrera", 120).gemas;
+    igual(estado.personaje.gemas, gemasAntes + delasPartidas + retos.PREMIO_RETO.gemas, "gemas: las 3 partidas + el reto");
+    r = acciones.terminarPartida(estado, "carrera", 300);
+    igual(r.reto, null, "no se cobra dos veces");
+    igual(estado.arcade.retos[hoy()].meta, 100, "la meta no se mueve aunque superes tu récord");
+});
+
+prueba("Reto del día: la Torre cuenta pisos superados y «partidas» cuenta cualquier juego", () => {
+    const estado = partidaNueva();
+    estado.arcade.retos[hoy()] = { tipo: "torre", meta: 3, mejor: 0, cobradoEn: null };
+    acciones.empezarTorre(estado, 1);
+    estado.arcade.torre.piso = 3;                       // 2 pisos superados
+    igual(acciones.terminarTorre(estado).reto, null, "2 de 3");
+    acciones.empezarTorre(estado, 1);
+    estado.arcade.torre.piso = 4;                       // 3 pisos superados
+    const r = acciones.terminarTorre(estado);
+    igual([r.reto.tipo, r.reto.atributo], ["torre", "carisma"]);
+
+    estado.arcade.retos[dia(0)] = { tipo: "partidas", meta: 2, mejor: 0, cobradoEn: null };
+    igual(acciones.terminarPartida(estado, "golpe", 10).reto, null);
+    igual(acciones.terminarPartida(estado, "lluvia", 5).reto.tipo, "partidas");
+});
+
+prueba("Reto del día: empezar una partida crea el reto de hoy (por si la app llevaba abierta desde ayer)", () => {
+    const estado = partidaNueva();
+    estado.arcade.retos = {};
+    acciones.empezarPartida(estado, "carrera");
+    cierto(estado.arcade.retos[hoy()], "se creó el reto de hoy");
 });
 
 prueba("Bazar: las provisiones se pagan con gemas, una de cada una, y se usan al empezar la próxima partida", () => {

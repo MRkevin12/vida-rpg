@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v40 — Reto del día en el arcade
+- **Reto del día** (`js/retos.js`, nuevo): cada día toca uno de 6 retos (puntos en Carrera / Lluvia / Golpe preciso, pisos de la Torre, sótanos de la Mazmorra si ya está abierta, o «juega N partidas»). Sin repetir el de ayer. La meta es el 70–90 % de tu récord (50–70 % en pisos), redondeada y nunca menor que una base, y se fija al crear el reto: superar tu récord ese día no la mueve.
+- **Premio:** 6 💎 y 4 XP (del atributo del juego) una sola vez al día, al cumplirlo. Sale en la pantalla de resultado de la partida o de la Torre.
+- **Pantalla:** tarjeta «🎯 Reto del día» arriba del Arcade con barra de progreso.
+- Datos versión 21 (`estado.arcade.retos`, un reto por fecha; se guardan 30 días). 195 pruebas (5 nuevas; `partidaNueva()` deja un reto neutro para que las demás pruebas no dependan de la fecha).
+
 ## v39 — Revisión semanal
 - **Revisión de la semana** (`guardarRevision` en `acciones.js`, `contenidoRevision` en `vistas.js`): botón «📝 Hacer mi revisión» en la tarjeta «Tu semana». Se escribe qué salió bien y qué mejorar (hasta 500 letras cada uno) y se eligen hasta 3 misiones de foco. Se guarda en `estado.revisiones` por el lunes de la semana revisada, y guardar también cierra la tarjeta.
 - **Pista de fallas** (`pistaDeFallas` en `resumen.js`): dice cuántas misiones fallaste esa semana, cuál más y el motivo más repetido.

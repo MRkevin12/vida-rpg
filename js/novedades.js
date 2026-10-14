@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 39;
+export const VERSION_APP = 40;
 
 export const NOVEDADES = [
+    {
+        version: 40,
+        titulo: "Reto del día en el arcade",
+        cambios: [
+            "🎯 Cada día hay un reto nuevo arriba del Arcade, por ejemplo «Llega a 300 puntos en la Carrera» o «Supera 4 pisos de la Torre». Se mide contra tu propio récord: ni imposible ni regalado.",
+            "💎 Si lo cumples, ganas 6 💎 y 4 XP extra, una sola vez al día. Una barra te dice cuánto llevas.",
+            "🔁 El reto cambia cada mañana y no repite el de ayer. La meta se fija al empezar el día: aunque hoy superes tu récord, el reto no se mueve.",
+        ],
+    },
     {
         version: 39,
         titulo: "Revisión semanal",

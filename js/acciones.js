@@ -29,6 +29,7 @@ import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import { PISTAS } from "./musica.js";
 import * as equipo from "./equipo.js";
 import * as resumen from "./resumen.js";
+import * as retos from "./retos.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -970,6 +971,7 @@ export function empezarPartida(estado, tipo) {
         throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
     }
     estado.arcade.usadas += 1;
+    asegurarRetoDelDia(estado);   // (por si la app llevaba abierta desde ayer: así la meta se fija ANTES de jugar)
 }
 
 export function terminarPartida(estado, tipo, puntosObtenidos) {
@@ -981,16 +983,34 @@ export function terminarPartida(estado, tipo, puntosObtenidos) {
     const anterior = estado.arcade.records[tipo] || 0;
     const nuevoRecord = puntos > anterior;
     if (nuevoRecord) estado.arcade.records[tipo] = puntos;
+    const reto = cobrarReto(estado, tipo, puntos);
 
     return {
         puntos,
         premio,
+        reto,
         record: estado.arcade.records[tipo] || 0,
         nuevoRecord: nuevoRecord && puntos > 0,
         celebraciones: nuevoRecord && anterior > 0
             ? [{ icono: "🏅", etiqueta: "¡Nuevo récord!", titulo: `${puntos} puntos`, detalle: juego.nombre }]
             : [],
     };
+}
+
+
+// ===== Reto del día del arcade (v40) =====
+
+// Crea el reto de hoy si todavía no existe (se llama al abrir la app y al terminar cada partida).
+export function asegurarRetoDelDia(estado) {
+    retos.asegurarReto(estado, hoy());
+}
+
+// Anota la partida que acabas de terminar y, si con ella se cumple el reto de hoy, cobra el premio.
+// Devuelve { gemas, xp, tipo } si se cumplió ahora mismo, o null.
+function cobrarReto(estado, juego, valor) {
+    const premio = retos.registrarPartida(estado, hoy(), juego, valor);
+    if (premio) ganar(estado, premio);
+    return premio;
 }
 
 
@@ -1079,6 +1099,7 @@ export function empezarTorre(estado, semilla, lugar = "torre") {
         throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
     }
     estado.arcade.usadas += 1;   // la ficha se gasta al EMPEZAR
+    asegurarRetoDelDia(estado);
     // Entras con tu vida real: si llegas herido, empiezas con menos vida.
     const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
     const partida = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado), lugar);
@@ -1177,6 +1198,7 @@ export function terminarTorre(estado, lugar = "torre") {
     const nuevoRecord = pisos > anterior;
     if (nuevoRecord) estado.arcade.records[lugar] = pisos;
     estado.arcade[lugar] = null;
+    const reto = cobrarReto(estado, lugar, pisos);
     const celebraciones = [];
     if (nuevoRecord && anterior > 0) {
         celebraciones.push({ icono: sitio.icono, etiqueta: `¡Nuevo récord en la ${sitio.nombre}!`,
@@ -1186,7 +1208,7 @@ export function terminarTorre(estado, lugar = "torre") {
         celebraciones.push({ icono: "⛓️", etiqueta: "¡Se abrió una mazmorra!", titulo: "Mazmorra del Abismo",
                              detalle: "Bajo la Torre hay una escalera. Más difícil y con criaturas nuevas: búscala en el Arcade." });
     }
-    return { lugar, pisos, premio, atributo, record: estado.arcade.records[lugar] || 0, nuevoRecord: nuevoRecord && pisos > 0, celebraciones };
+    return { lugar, pisos, premio, reto, atributo, record: estado.arcade.records[lugar] || 0, nuevoRecord: nuevoRecord && pisos > 0, celebraciones };
 }
 
 
