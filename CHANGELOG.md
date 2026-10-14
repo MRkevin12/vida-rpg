@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v37 — La Torre, en el valle
+- **La Torre de los Vigías está en el Valle del Comienzo**, al principio del camino, donde Aurelio vive a su pie. Antes, el mapa y la Crónica la ponían al final, en la Ciudadela, y no cuadraba que se pudiera subir en el Arcade desde el primer día (ni con el pergamino, que cuenta que Lía la levantó en su valle, ni con las memorias de Aurelio).
+- **El mapa:** en el valle, la Torre se dibuja junto al punto de partida y sus 6 ventanas se encienden con los pisos que subes (tocarla abre el Arcade); en lo alto arde la Llama cuando terminas la saga. En las demás regiones se ve a lo lejos, más chica cuanto más te alejas, y otra vez más cerca en la Ciudadela, porque el camino da la vuelta hacia el valle.
+- **La Ciudadela** termina ahora en el **brasero de los Vigías**, donde se junta el fuego de los cuatro memoriales (mismo premio que antes). El final de la saga es volver al valle con ese fuego y encender la Llama: el camino termina donde empezó.
+- Textos ajustados en la Crónica (prólogo, el valle, el mar y la Ciudadela), la historia de la Torre, el pergamino, la primera memoria de Aurelio y la saga.
+
 ## v36 — La Llama, al final del camino
 - **El arcade ya no termina la saga.** Antes, superar el piso 20 de la Torre encendía la Llama (el objetivo de la saga) aunque el reino siguiera en manos de las Sombras. Ahora la Llama solo prende con el fuego de los cuatro memoriales de la Ciudadela, que arden cuando vences a los 20 señores (tus jefes): el final de la saga se gana con la vida real, al final del camino del reino.
 - **Nuevo orden de los actos:** La primera piedra, El juramento, El huevo de Aurelio, El reino dividido, **La cima de la Torre** (piso 20: liberas al último Vigía y se abre la Mazmorra), **El Rey Hueco** (sótano 20) y, al final, **La Llama de los Vigías** (los 20 señores).

@@ -2476,10 +2476,52 @@ prueba("Historias conectadas: Aurelio no está en la cima antes de tiempo y cada
     cierto(leyendasJs.includes("una muchacha llamada Lía"), "la Torre nombra a Lía");
     cierto(memorias.MEMORIAS[1].parrafos[0].includes("«La primera piedra»"), "Casio le dio el pergamino a Aurelio");
     cierto(memorias.MEMORIAS[7].parrafos[1].includes("junto a la Llama apagada"), "y al final suben juntos a esperar el fuego");
-    cierto(cronicaJs.includes("El fuego de los memoriales es el que falta en la cima"), "la Crónica lleva a la Llama");
+    cierto(cronicaJs.includes("ese fuego es el que falta en la cima"), "la Crónica lleva a la Llama");
     cierto(pergamino.pergaminoPara("Ana").dedicatoria[0].includes("Casio") && pergamino.pergaminoPara("Ana").dedicatoria[0].includes("Aurelio"),
            "el pergamino pasó de Casio a Aurelio, y de Aurelio a ti");
     cierto(mascota.MASCOTAS.dragon.texto.includes("último huevo de los dragones de la Torre"), "tu dragón, el último de la Torre");
+});
+
+
+// ===== La Torre, en el valle (v37) =====
+
+prueba("La Torre en el valle (v37): el mapa la dibuja al principio del camino y la Ciudadela tiene el brasero", () => {
+    const estado = partidaNueva();
+    const campanas = campana.estadoCampanas(estado);
+    // Las ventanas de la Torre que están encendidas (6 para 20 pisos).
+    const ventanas = (svg) => {
+        const torre = svg.slice(svg.indexOf('<g class="torre-valle">'), svg.indexOf("</g>", svg.indexOf('<g class="torre-valle">')));
+        return torre.split('height="3" fill="#ffd27a"').length - 1;
+    };
+    let valle = mapa.datosParaDibujar(estado, 0, campanas);
+    igual(valle.torre, { pisos: 0, encendida: false });
+    cierto(dibujarMapa(valle).includes('<g class="torre-valle">'), "la Torre está en el valle, junto a la partida");
+    igual(ventanas(dibujarMapa(valle)), 0, "sin pisos, ventanas apagadas");
+
+    estado.arcade.records.torre = 10;
+    valle = mapa.datosParaDibujar(estado, 0, campanas);
+    igual([valle.torre.pisos, ventanas(dibujarMapa(valle))], [10, 3], "10 pisos: 3 de 6 ventanas");
+    estado.arcade.records.torre = 27;
+    igual(mapa.datosParaDibujar(estado, 0, campanas).torre.pisos, 20, "más de 20 pisos cuenta como la cima");
+
+    const ciudadela = dibujarMapa(mapa.datosParaDibujar(estado, mapa.CIUDADELA, campanas));
+    cierto(ciudadela.includes('<g class="brasero">') && !ciudadela.includes("torre-valle"), "en la Ciudadela, el brasero (la Torre no)");
+    cierto(!dibujarMapa(mapa.datosParaDibujar(estado, 2, campanas)).includes("torre-valle"), "en las demás regiones, solo a lo lejos");
+    cierto(dibujarMapa(mapa.datosParaDibujar(estado, mapa.REGIONES.length, campanas)).includes("torre-valle"), "el Valle II también la tiene");
+
+    // En el valle, la nota del mapa lleva al Arcade; en la Ciudadela se habla del brasero.
+    const ctx = { regionMapa: 0 };
+    cierto(vistas.pantallaMapa(estado, ctx).includes('data-pantalla="arcade"'), "desde el mapa del valle se sube la Torre");
+});
+
+prueba("La Torre en el valle (v37): ninguna historia la pone en la Ciudadela", async () => {
+    const leer = async (ruta) => (await fetch(ruta, { cache: "no-store" })).text();
+    const [cronicaJs, pergaminoJs, leyendasJs] = await Promise.all([leer("../js/cronica.js"), leer("../js/pergamino.js"), leer("../js/leyendas.js")]);
+    cierto(cronicaJs.includes("vive en el Valle del Comienzo, al pie de la Torre"), "Aurelio vive al pie de la Torre, en el valle");
+    cierto(!cronicaJs.includes("en la Ciudadela del Carácter, se alza la Torre"), "la Crónica ya no la pone al final");
+    cierto(!pergaminoJs.includes("Dicen en la Ciudadela") && !leyendasJs.includes("En la Ciudadela dicen"), "lo de la primera piedra se dice en el valle");
+    cierto(!memorias.MEMORIAS[0].parrafos.join(" ").includes("Ciudadela"), "Aurelio vio a Casio en el valle");
+    cierto(saga.ACTOS.find((a) => a.id === "llama").objetivo.includes("de vuelta a la Torre"), "el final: volver a la Torre con el fuego");
 });
 
 

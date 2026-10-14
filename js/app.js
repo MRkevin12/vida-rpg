@@ -1101,7 +1101,8 @@ function rellenarOpciones() {
            primeros de cada campaña; en la 2, los segundos…). Cuando vences a un señor, su guarida queda libre y tiene botín
            (+${mapa.LUGARES.guarida.premio.gemas} gemas y ${mapa.LUGARES.guarida.premio.xp} XP de su atributo). La fortaleza del final se abre cuando caen
            los cuatro. La sexta región, la Ciudadela del Carácter, tiene cuatro memoriales (se encienden al vencer a los cinco
-           señores de una campaña) y la Torre. La <strong>Crónica del reino</strong> cuenta la historia y se escribe sola.</p>
+           señores de una campaña) y el brasero de los Vigías, donde se junta su fuego. La Torre está en el Valle del Comienzo, al
+           principio del camino (se sube en el Arcade). La <strong>Crónica del reino</strong> cuenta la historia y se escribe sola.</p>
         <p><strong>Mascotas:</strong> empiezas con un dragón; en la Tienda puedes adoptar otras con gemas (común, rara, épica y legendaria).
            Cada una llega como huevo y crece con las misiones diarias que completas desde que la tienes. La que te acompaña
            pelea a tu lado en la Torre con su habilidad (la cría al ${mascota.POTENCIA.cria * 100} %, la adulta al 100 %, y un

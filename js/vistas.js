@@ -858,7 +858,9 @@ export function pantallaMapa(estado, ctx) {
         ${aqui ? `<img class="mapa-heroe" id="mapa-heroe" alt="${esc(estado.personaje.nombre)}" style="${enElMapa(aqui)}">
                   <img class="mapa-mascota" id="mapa-mascota" alt="" style="${enElMapa({ x: aqui.x + 13, y: aqui.y + 2 })}">` : ""}
         ${senores.map((s) => `<button type="button" class="mapa-guarida" data-accion="mapa-senor" data-id="senor-${s.id}"
-                                      style="${enElMapa(puntos[s.n])}" aria-label="${esc(s.nombre)}: ${s.liberada ? "liberada" : "en pie"}"></button>`).join("")}`;
+                                      style="${enElMapa(puntos[s.n])}" aria-label="${esc(s.nombre)}: ${s.liberada ? "liberada" : "en pie"}"></button>`).join("")}
+        ${tramo === 0 ? `<button type="button" class="mapa-guarida" data-accion="ir" data-pantalla="arcade"
+                                 style="${enElMapa({ x: mapa.TORRE_VALLE.x, y: mapa.TORRE_VALLE.y - 30 })}" aria-label="La Torre de los Vigías: súbela en el Arcade"></button>` : ""}`;
 
     const listaReclamar = porReclamar.length ? `
         <section class="panel mapa-premios">
@@ -869,7 +871,9 @@ export function pantallaMapa(estado, ctx) {
             <ul class="lista">${porReclamar.slice(0, 3).map((l) => {
                 const lugar = mapa.LUGARES[l.tipo];
                 const premio = [lugar.premio.gemas ? `+${lugar.premio.gemas} 💎` : "", lugar.premio.xp ? `+${lugar.premio.xp} XP` : ""].filter(Boolean).join(" · ");
-                const nombre = l.nombre ? `${lugar.nombre}: ${esc(l.nombre)}` : l.tipo === "fortaleza" ? "Fortaleza: región liberada" : `${lugar.nombre} · lugar ${l.n}`;
+                const nombre = l.nombre ? `${lugar.nombre}: ${esc(l.nombre)}`
+                    : l.tipo === "fortaleza" ? (mapa.tramoDe(l.region) === mapa.CIUDADELA ? "Brasero de los Vigías: arden los cuatro" : "Fortaleza: región liberada")
+                    : `${lugar.nombre} · lugar ${l.n}`;
                 return `<li class="objeto"><span class="pocion-icono" aria-hidden="true">${lugar.icono}</span>
                     <span class="objeto-info"><b>${nombre}</b><span class="mini texto-suave">${mapa.nombreRegion(l.region)} · ${premio}</span></span>
                     <button type="button" class="boton boton-chico boton-oro" data-accion="reclamar-lugar" data-id="${l.id}">Reclamar</button></li>`;
@@ -880,7 +884,15 @@ export function pantallaMapa(estado, ctx) {
     const progreso = region === pos.region
         ? `Lugar ${pos.enRegion} de ${mapa.LUGARES_POR_REGION} · te ${pos.hastaSiguiente === 1 ? "falta 1 paso" : `faltan ${pos.hastaSiguiente} pasos`} para el siguiente.`
         : "Región recorrida.";
-    const fortaleza = tramo === mapa.CIUDADELA ? "la Torre" : "la fortaleza";
+    const ciudadela = tramo === mapa.CIUDADELA;
+    const finalDeRegion = ciudadela
+        ? (caidos === 4 ? "El brasero de los Vigías arde: su fuego es el que falta en la Torre, de vuelta en el Valle del Comienzo."
+                        : "Cuando ardan los cuatro, su fuego se juntará en el brasero de los Vigías.")
+        : (caidos === 4 ? "Las puertas de la fortaleza están abiertas." : "Las puertas de la fortaleza se abren cuando caigan los cuatro.");
+    const notaTorre = tramo === 0
+        ? `<p class="nota">🗼 Al principio del camino, junto a la casa de Aurelio, se alza la Torre de los Vigías. Se sube desde el
+           <button type="button" class="enlace enlace-en-linea" data-accion="ir" data-pantalla="arcade">Arcade</button>; sus ventanas se encienden con los pisos que subes.</p>`
+        : "";
 
     return `
         ${encabezado("🗺️ El reino", "aventuras", "Aventuras")}
@@ -892,8 +904,9 @@ export function pantallaMapa(estado, ctx) {
                      <p class="mapa-lema">${datos.lema}</p></div>
                 <button type="button" class="boton-icono" data-accion="mapa-region" data-region="${region + 1}" ${region < pos.region ? "" : "disabled"} aria-label="Región siguiente">›</button>
             </div>
-            <p class="nota">${progreso} ${tramo === mapa.CIUDADELA ? "Memoriales encendidos" : "Señores vencidos"}: <b>${caidos} de 4</b>.
-               ${caidos === 4 ? `Las puertas de ${fortaleza} están abiertas.` : `Las puertas de ${fortaleza} se abren cuando caigan los cuatro.`}</p>
+            <p class="nota">${progreso} ${ciudadela ? "Memoriales encendidos" : "Señores vencidos"}: <b>${caidos} de 4</b>.
+               ${finalDeRegion}</p>
+            ${notaTorre}
         </section>
         ${listaReclamar}
         <div class="mapa-pixel" data-region="${region}">
@@ -909,7 +922,7 @@ export function pantallaMapa(estado, ctx) {
         </section>
         ${seccionCronica(estado, campanas, region)}
         <p class="nota">Cada misión, tarea o sesión de enfoque es un paso; cada ${mapa.PASOS_POR_LUGAR} pasos llegas a un lugar:
-           💰 tesoros, 🕯️ santuarios (XP para tu atributo más descuidado), ⚔️ guaridas de los señores y, al final, ${fortaleza}.</p>`;
+           💰 tesoros, 🕯️ santuarios (XP para tu atributo más descuidado), ⚔️ guaridas de los señores y, al final, ${ciudadela ? "el brasero de los Vigías" : "la fortaleza"}.</p>`;
 }
 
 

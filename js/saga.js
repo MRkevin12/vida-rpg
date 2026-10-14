@@ -16,6 +16,7 @@
 //
 // La Llama es el FINAL, y se enciende con la vida real (v36): no prende con antorchas, sino con el
 // fuego de los cuatro memoriales de la Ciudadela, que arden cuando caen los 20 señores (tus jefes).
+// La Torre está en el Valle del Comienzo, donde empieza el camino (v37): el final es volver a ella.
 // Por eso la Torre y la Mazmorra (el arcade) pueden ir por delante, pero no terminan la saga: llegar
 // a la cima libera a Casio y abre la Mazmorra; encender la Llama exige terminar el camino del reino.
 //
@@ -96,7 +97,7 @@ export const ACTOS = [
         // El final: se cumple con la vida real (tus jefes), nunca solo con el arcade.
         id: "llama", titulo: "La Llama de los Vigías",
         relato: "La Llama no prende con antorchas. Prende con el fuego de los cuatro memoriales de la Ciudadela, y cada memorial se enciende cuando caen los cinco señores de su Sombra. Es lo único que no se gana en una batalla: se gana cada día.",
-        objetivo: "Enciende los cuatro memoriales y lleva su fuego a la cima: vence a los 20 señores (los 5 jefes de cada atributo).",
+        objetivo: "Enciende los cuatro memoriales y lleva su fuego de vuelta a la Torre: vence a los 20 señores (los 5 jefes de cada atributo).",
         condicion: { tipo: "senores", meta: 20 }, lee: "cronica",
         cierre: "La Llama arde otra vez, encendida con tus días. Cien años esperé para ver esto.",
     },
@@ -105,7 +106,7 @@ export const ACTOS = [
 // Cuando ya cumpliste los 7 actos: la saga no termina, se mantiene.
 export const VIGIA = {
     titulo: "Vigía de la Llama",
-    relato: "{n} subió el fuego de los cuatro memoriales hasta la cima y la Llama de los Vigías volvió a arder. La saga no termina: como Lía, como Casio, cada día se pone una piedra y la Llama sigue encendida.",
+    relato: "{n} volvió al Valle del Comienzo con el fuego de los cuatro memoriales, lo subió hasta la cima y la Llama de los Vigías volvió a arder. La saga no termina: como Lía, como Casio, cada día se pone una piedra y la Llama sigue encendida.",
     objetivo: "Mantén la Llama encendida: no falles dos días seguidos.",
 };
 

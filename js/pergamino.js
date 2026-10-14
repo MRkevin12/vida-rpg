@@ -13,7 +13,7 @@ export const TITULO = "La primera piedra";
 export const SUBTITULO = "Pergamino hallado en la Biblioteca prohibida, en el estante más bajo, debajo de todos los demás.";
 
 export const PROLOGO = [
-    "Dicen en la Ciudadela que nadie recuerda quién puso la primera piedra de la Torre. No es verdad. Alguien lo recordó lo suficiente para escribirlo, y lo escribió despacio, como se hacen las cosas que duran.",
+    "Dicen en el valle que nadie recuerda quién puso la primera piedra de la Torre. No es verdad. Alguien lo recordó lo suficiente para escribirlo, y lo escribió despacio, como se hacen las cosas que duran.",
     "Este pergamino es su historia. Léelo sin prisa: fue escrito igual.",
 ];
 

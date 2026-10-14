@@ -5,11 +5,13 @@
 //   el cielo y, a lo lejos, la Torre → el suelo de la región → el paisaje (árboles, montañas,
 //   dunas, islas…) → el camino → los lugares (cofres, santuarios, guaridas, la fortaleza)
 //   → la niebla sobre lo que todavía no exploras.
+// La Torre está en el Valle del Comienzo, junto al punto de partida (v37); en las demás regiones
+// se ve a lo lejos: más chica cuanto más lejos del valle (el camino da la vuelta y vuelve a él).
 // Tu héroe y tu mascota NO van aquí: se ponen encima, como imágenes aparte, para que se muevan.
 //
 // Todo es grande y simple: lo que mida menos de un punto desaparece al pixelar.
 
-import { LIENZO, LUGARES_POR_REGION, puntosDelCamino, tramoDe, CIUDADELA } from "./mapa.js";
+import { LIENZO, LUGARES_POR_REGION, puntosDelCamino, tramoDe, CIUDADELA, TORRE_VALLE } from "./mapa.js";
 
 const { ancho: ANCHO, alto: ALTO } = LIENZO;
 const CIELO = 24;                     // alto de la franja del cielo
@@ -182,6 +184,7 @@ function paisaje(tipo, puntos, c, region) {
             const [px, py] = [x + (azar() - 0.5) * 8, y + (azar() - 0.5) * 6];
             if (distanciaAlCamino(px, py, puntos) < 13) continue;
             if (py < 60 && Math.abs(px - puntos[LUGARES_POR_REGION].x) < 30) continue;   // el lugar de la fortaleza
+            if (tipo === "valle" && px > TORRE_VALLE.x - 18 && py > TORRE_VALLE.y - 86) continue;   // la Torre
             const cosa = cosaDelPaisaje(tipo, Math.round(px), Math.round(py), azar, c);
             if (cosa) cosas.push({ y: py, cosa });
         }
@@ -202,12 +205,15 @@ function manchas(c, region) {
     return d;
 }
 
-// El cielo y, a lo lejos, la Torre (cada región más cerca). En la Ciudadela la Torre está en el mapa.
-function cielo(tipo, c, tramo, id) {
-    const torreLejos = tramo === CIUDADELA ? "" : (() => {
-        const alto = 7 + tramo * 3.2;
+// El cielo y, a lo lejos, la Torre. En el valle no: ahí está en el mapa, junto a la partida.
+// Cuanto más lejos del valle, más chica (el camino es una vuelta: la Ciudadela queda cerca otra vez).
+function cielo(tipo, c, tramo, id, encendida) {
+    const torreLejos = tramo === 0 ? "" : (() => {
+        const lejos = Math.min(tramo, 6 - tramo);          // 1 (bosque, Ciudadela) … 3 (desierto)
+        const alto = 22 - lejos * 4;
         const x = 152;
-        return `<path d="M${x - 2.4} ${CIELO} L${x - 1.6} ${CIELO - alto} L${x} ${CIELO - alto - 4} L${x + 1.6} ${CIELO - alto} L${x + 2.4} ${CIELO} Z" fill="#2a2440"/>
+        return `${encendida ? `<circle cx="${x}" cy="${CIELO - alto - 4}" r="4" fill="#ffd27a" opacity=".45"/>` : ""}
+                <path d="M${x - 2.4} ${CIELO} L${x - 1.6} ${CIELO - alto} L${x} ${CIELO - alto - 4} L${x + 1.6} ${CIELO - alto} L${x + 2.4} ${CIELO} Z" fill="#2a2440"/>
                 <rect x="${x - 0.5}" y="${CIELO - alto + 3}" width="1" height="1" fill="#ffd27a"/>`;
     })();
     return `<rect width="${ANCHO}" height="${CIELO + 2}" fill="url(#${id}-cielo)"/>
@@ -287,20 +293,40 @@ function fortaleza(p, abierta) {
         ${abierta ? "" : `<path d="M${x - 5} ${y - 6} h10 M${x - 5} ${y - 3} h10 M${x - 2} ${y - 11} v11 M${x + 2} ${y - 11} v11" stroke="#5a5060" stroke-width=".8"/>`}`;
 }
 
-// La Torre, al final de la Ciudadela.
-function laTorre(p, encendida) {
+// La Torre de los Vigías, en el valle, junto a la partida (v37). Sus ventanas se encienden de
+// abajo hacia arriba con los pisos que subiste (6 ventanas para 20 pisos), y arriba arde la
+// Llama cuando terminas la saga.
+function laTorre(p, pisos, encendida) {
     const { x } = p;
     const y = p.y + 4;
+    const luces = Math.ceil((Math.min(20, pisos) * 6) / 20);
     let ventanas = "";
-    for (let i = 0; i < 6; i++) ventanas += `<rect x="${x - 1}" y="${y - 10 - i * 9}" width="2" height="3" fill="${encendida || i < 2 ? "#ffd27a" : "#2a2230"}"/>`;
-    return `<ellipse cx="${x}" cy="${y + 2}" rx="16" ry="3" fill="#000" opacity=".4"/>
-        ${encendida ? `<circle cx="${x}" cy="${y - 64}" r="12" fill="#ffd27a" opacity=".35"/>` : ""}
+    for (let i = 0; i < 6; i++) ventanas += `<rect x="${x - 1}" y="${y - 10 - i * 9}" width="2" height="3" fill="${i < luces ? "#ffd27a" : "#2a2230"}"/>`;
+    const llama = encendida ? `<circle cx="${x}" cy="${y - 84}" r="12" fill="#ffd27a" opacity=".35"/>
+        <path d="M${x} ${y - 92} q4 5 0 9 q-4 -4 0 -9 Z" fill="#ffb020"/>` : "";
+    return `<g class="torre-valle"><ellipse cx="${x}" cy="${y + 2}" rx="16" ry="3" fill="#000" opacity=".4"/>
+        ${llama}
         <path d="M${x - 11} ${y} L${x - 8} ${y - 58} L${x + 8} ${y - 58} L${x + 11} ${y} Z" fill="#8a8698" stroke="${LINEA}" stroke-width="1"/>
         <path d="M${x + 2} ${y - 58} L${x + 8} ${y - 58} L${x + 11} ${y} L${x + 4} ${y} Z" fill="#6a6678"/>
         <rect x="${x - 10}" y="${y - 62}" width="20" height="5" fill="#9a96a8" stroke="${LINEA}" stroke-width="1"/>
         <path d="M${x - 8} ${y - 62} L${x} ${y - 80} L${x + 8} ${y - 62} Z" fill="#4a3a6a" stroke="${LINEA}" stroke-width="1"/>
         ${ventanas}
-        <path d="M${x - 4} ${y} L${x - 4} ${y - 7} Q${x} ${y - 11} ${x + 4} ${y - 7} L${x + 4} ${y} Z" fill="#1a1222"/>`;
+        <path d="M${x - 4} ${y} L${x - 4} ${y - 7} Q${x} ${y - 11} ${x + 4} ${y - 7} L${x + 4} ${y} Z" fill="#1a1222"/></g>`;
+}
+
+// El brasero de los Vigías, al final de la Ciudadela: ahí se junta el fuego de los cuatro
+// memoriales. Se enciende cuando arden los cuatro.
+function brasero(p, encendido) {
+    const { x } = p;
+    const y = p.y + 4;
+    const fuego = encendido ? `<circle cx="${x}" cy="${y - 34}" r="13" fill="#ffd27a" opacity=".4"/>
+        <path d="M${x - 9} ${y - 27} q2 -10 6 -14 q0 6 3 7 q1 -9 5 -13 q2 8 4 11 q1 -3 3 -5 q2 6 -2 14 Z" fill="#ff8a1f"/>
+        <path d="M${x - 4} ${y - 27} q1 -6 4 -9 q2 5 4 9 Z" fill="#ffe45a"/>` : "";
+    return `<g class="brasero"><ellipse cx="${x}" cy="${y + 2}" rx="14" ry="3" fill="#000" opacity=".35"/>
+        <rect x="${x - 10}" y="${y - 4}" width="20" height="4" fill="#8a8698" stroke="${LINEA}" stroke-width="1"/>
+        <rect x="${x - 4}" y="${y - 20}" width="8" height="16" fill="#9a96a8" stroke="${LINEA}" stroke-width="1"/>
+        <path d="M${x - 13} ${y - 27} L${x + 13} ${y - 27} L${x + 8} ${y - 20} L${x - 8} ${y - 20} Z" fill="#6a6678" stroke="${LINEA}" stroke-width="1"/>
+        ${fuego}</g>`;
 }
 
 // El punto de partida: una fogata.
@@ -316,6 +342,7 @@ const fogata = (p) => `<ellipse cx="${p.x}" cy="${p.y + 2}" rx="6" ry="2" fill="
 //           regionLibre (los 4 señores cayeron) }
 export function dibujarMapa(datos) {
     const tramo = tramoDe(datos.region);
+    const torre = datos.torre || { pisos: 0, encendida: false };
     const tipo = ["valle", "bosque", "montanas", "desierto", "mar", "ciudadela"][tramo];
     const c = PALETAS[tipo];
     const puntos = puntosDelCamino();
@@ -347,7 +374,7 @@ export function dibujarMapa(datos) {
             case "santuario": return santuario(p, alcanzado, lugar.reclamado);
             case "guarida": return guarida(p, lugar.libre, alcanzado);
             case "memorial": return memorial(p, lugar.libre);
-            case "fortaleza": return tramo === CIUDADELA ? laTorre(p, datos.regionLibre) : fortaleza(p, datos.regionLibre && alcanzado);
+            case "fortaleza": return tramo === CIUDADELA ? brasero(p, datos.regionLibre) : fortaleza(p, datos.regionLibre && alcanzado);
             default: return marca(p, alcanzado);
         }
     });
@@ -370,8 +397,9 @@ export function dibujarMapa(datos) {
         <rect width="${ANCHO}" height="${ALTO}" fill="${c.suelo}"/>
         ${manchas(c, datos.region)}
         ${empedrado}${islas}${lago}${oasis}
-        ${cielo(tipo, c, tramo, id)}
+        ${cielo(tipo, c, tramo, id, torre.encendida)}
         ${paisaje(tipo, puntos, c, datos.region)}
+        ${tramo === 0 ? laTorre(TORRE_VALLE, torre.pisos, torre.encendida) : ""}
         <path d="${camino}" fill="none" stroke="${c.borde}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="${camino}" fill="none" stroke="${c.camino}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="${camino}" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2 5" opacity=".25"/>

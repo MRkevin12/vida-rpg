@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 36;
+export const VERSION_APP = 37;
 
 export const NOVEDADES = [
+    {
+        version: 37,
+        titulo: "La Torre, en el valle",
+        cambios: [
+            "🗼 La Torre de los Vigías está en el Valle del Comienzo, al principio del camino, donde Aurelio vive a su pie (como ya contaban el pergamino y sus memorias). Por eso se puede subir desde el primer día. Sus ventanas, en el mapa, se encienden con los pisos que subes.",
+            "🔥 Al final de la Ciudadela ahora está el brasero de los Vigías, donde se junta el fuego de los cuatro memoriales. El final de la saga es volver al valle con ese fuego y encender la Llama: el camino termina donde empezó.",
+            "🗺️ Desde las demás regiones, la Torre se ve a lo lejos: más chica cuanto más te alejas del valle, y otra vez más cerca al llegar a la Ciudadela, porque el camino da la vuelta.",
+        ],
+    },
     {
         version: 36,
         titulo: "La Llama, al final del camino",

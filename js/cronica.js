@@ -5,7 +5,8 @@
 // veinte señores: tus jefes de Aventuras (la Pereza, la Parálisis, el Ego, las Deudas…).
 // El Maestro Aurelio te dio un huevo (tu dragón) y una advertencia: a esos señores se les
 // vence con lo que haces cada día. Recorres el mapa región por región, cada una gobernada
-// por cuatro señores, hasta la Ciudadela del Carácter, donde se alza la Torre.
+// por cuatro señores, desde el Valle del Comienzo (donde se alza la Torre y vive Aurelio) hasta
+// la Ciudadela del Carácter, con sus memoriales. Su fuego se lleva de vuelta a la Torre (v37).
 //
 // Es una parte de la Saga de la Llama (ver saga.js): las Sombras volvieron cuando la Llama de la
 // Torre se apagó, y Aurelio fue el aprendiz del último Vigía.
@@ -27,15 +28,15 @@ const PROLOGO = {
     parrafos: [
         "Hubo un tiempo en que el reino de {n} se gobernaba solo. El cuerpo descansaba lo justo, la mente aprendía, la voz se atrevía y el tesoro crecía despacio, como crecen las cosas que duran.",
         "Hace cien años, la Llama de la Torre se apagó. Entonces volvieron las Cuatro Sombras —la del Cuerpo, la de la Mente, la de la Voz y la del Tesoro— y repartieron el reino entre veinte señores. Ninguno empuñó una espada: cada uno es una costumbre con nombre. La Pereza, la Parálisis, el Ego, las Deudas… Se alimentan de cada «mañana» y de cada «no tengo tiempo».",
-        "El Maestro Aurelio, el último aprendiz de los Vigías, encontró a {n} en el Valle del Comienzo. No le dio un arma. Le dio un huevo tibio —el último de los dragones de la Torre— y una advertencia: «A estos señores no se los vence en una batalla. Se los vence con lo que haces cada día. Cada misión cumplida es un golpe; cada paso, un palmo de tierra recuperada». De ese huevo nació {m}.",
-        "Al final del camino, en la Ciudadela del Carácter, se alza la Torre de los Vigías, con su Llama apagada. Sus puertas nunca se cierran y nadie sabe cuántos pisos tiene. Los que la suben vuelven distintos. Mientras nadie vuelva a encender la Llama, dicen, las Sombras volverán una y otra vez.",
+        "El Maestro Aurelio, el último aprendiz de los Vigías, vive en el Valle del Comienzo, al pie de la Torre. Allí encontró a {n}. No le dio un arma. Le dio un huevo tibio —el último de los dragones de la Torre— y una advertencia: «A estos señores no se los vence en una batalla. Se los vence con lo que haces cada día. Cada misión cumplida es un golpe; cada paso, un palmo de tierra recuperada». De ese huevo nació {m}.",
+        "La Torre de los Vigías se alza en el mismo valle, con su Llama apagada, y se ve desde todo el reino. Sus puertas nunca se cierran y nadie sabe cuántos pisos tiene. Los que la suben vuelven distintos. Pero la Llama no prende con antorchas: dicen que solo arde con el fuego de los cuatro memoriales de la Ciudadela del Carácter, al final del camino. Mientras no vuelva a arder, las Sombras volverán una y otra vez.",
     ],
 };
 
 // Un capítulo por región: lo que encuentras al llegar y lo que pasa cuando queda libre.
 const CAPITULOS = [
     {
-        llegada: "El valle es verde y engañoso: aquí todo invita a quedarse. Las casas tienen las ventanas cerradas hasta tarde y los caminos se borran de tanto no usarlos. En sus cuatro rincones viven los primeros señores, los más pequeños y los más difíciles de ver, porque se parecen al descanso.",
+        llegada: "A la sombra de la Torre, el valle es verde y engañoso: aquí todo invita a quedarse. Las casas tienen las ventanas cerradas hasta tarde y los caminos se borran de tanto no usarlos. En sus cuatro rincones viven los primeros señores, los más pequeños y los más difíciles de ver, porque se parecen al descanso.",
         libre: "El valle despierta. Las ventanas se abren temprano y el camino vuelve a marcarse con pisadas. {n} sigue hacia el norte, donde los árboles empiezan a cerrarse.",
     },
     {
@@ -52,11 +53,11 @@ const CAPITULOS = [
     },
     {
         llegada: "El mar no se cruza: se espera. Las mareas tienen su propio tiempo y no se apuran por nadie. En sus islas viven los señores más antiguos, los que gobernaban el reino desde mucho antes de que {n} naciera.",
-        libre: "El mar se calma. Por primera vez las islas están en paz, y el horizonte muestra lo que siempre estuvo ahí: la Ciudadela y, sobre ella, la Torre.",
+        libre: "El mar se calma. Por primera vez las islas están en paz, y el horizonte muestra lo que siempre estuvo ahí: la Ciudadela y, detrás, a lo lejos, la Torre del valle. El camino da la vuelta.",
     },
     {
-        llegada: "La Ciudadela no tiene señores: la construyen quienes los vencieron. En su plaza hay cuatro memoriales apagados, uno por cada Sombra, que se encienden cuando sus cinco señores han caído. En el centro, la Torre de los Vigías. Dicen que solo el fuego de los cuatro puede volver a encender su Llama.",
-        libre: "Los cuatro memoriales arden. El reino de {n} vuelve a gobernarse solo. Al pie de la Torre, el Maestro Aurelio mira el camino recorrido y no dice nada: no hace falta. Solo señala hacia arriba. El fuego de los memoriales es el que falta en la cima: con él, la Llama de los Vigías puede volver a arder.",
+        llegada: "La Ciudadela no tiene señores: la construyen quienes los vencieron. En su plaza hay cuatro memoriales apagados, uno por cada Sombra, que se encienden cuando sus cinco señores han caído. En el centro, un brasero vacío: el brasero de los Vigías, donde se junta el fuego de los cuatro. A lo lejos, de vuelta en el valle, se ve la Torre. Dicen que solo ese fuego puede volver a encender su Llama.",
+        libre: "Los cuatro memoriales arden y su fuego se junta en el brasero de los Vigías. El reino de {n} vuelve a gobernarse solo. {n} enciende la antorcha de Aurelio en el brasero y emprende el regreso al Valle del Comienzo, donde el viejo maestro espera al pie de la Torre: ese fuego es el que falta en la cima. El camino termina donde empezó.",
     },
 ];
 

@@ -24,7 +24,7 @@ export const MEMORIAS = [
         condicion: { tipo: "siempre", valor: 0 },
         parrafos: [
             "Antes de ser maestro, Aurelio fue un muchacho con talento y sin constancia. Empezaba cien cosas y no terminaba ninguna, y siempre tenía una buena razón para dejar la siguiente para mañana.",
-            "Una tarde, en la plaza de la Ciudadela, vio pasar a un hombre de armadura celeste que subía a la Torre como quien va a trabajar. Le preguntó por qué subía todos los días. El hombre ni se detuvo: «Porque ayer subí».",
+            "Una tarde, en la plaza del valle, vio pasar a un hombre de armadura celeste que subía a la Torre como quien va a trabajar. Le preguntó por qué subía todos los días. El hombre ni se detuvo: «Porque ayer subí».",
         ],
         leccion: "La constancia no empieza con ganas. Empieza con ayer.",
     },

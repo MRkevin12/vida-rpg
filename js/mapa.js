@@ -7,20 +7,27 @@
 // Aventuras): en la región 1 están los primeros jefes de cada campaña (el Lobo, Medusa,
 // Narciso y los Recaudadores), en la 2 los segundos… y así hasta el Mar de la Paciencia.
 // La sexta, la Ciudadela del Carácter, no tiene señores: tiene cuatro memoriales (uno por
-// campaña, que se encienden al vencer a sus cinco señores) y, al final, la Torre.
-// Después vuelve a empezar («El Valle del Comienzo II»), con los jefes de la ronda siguiente.
+// campaña, que se encienden al vencer a sus cinco señores) y, al final, el brasero de los Vigías,
+// donde se junta su fuego. Después el camino da la vuelta y vuelve al valle («El Valle del
+// Comienzo II»), con los jefes de la ronda siguiente.
+//
+// La Torre de los Vigías está en el Valle del Comienzo, al principio del camino (v37): ahí vive
+// Aurelio, a su pie, y por eso se puede subir (en el Arcade) desde el primer día. Desde las demás
+// regiones se ve a lo lejos. El final de la saga es volver al valle con el fuego de la Ciudadela.
 //
 // En cada lugar puede haber algo:
 //   💰 tesoro · 🕯️ santuario (XP para tu atributo más descuidado)
 //   ⚔️ guarida de un señor: si ya lo venciste (en Aventuras), se libera y tiene botín
 //   🗿 memorial (en la Ciudadela)
 //   🏰 fortaleza, al final de la región: se abre cuando caen sus cuatro señores
+//      (en la Ciudadela, el brasero de los Vigías: se enciende cuando arden los cuatro memoriales)
 //
 // La posición y el estado de las guaridas se CALCULAN de tu historial; solo se guarda qué
 // lugares ya reclamaste (estado.mapa.reclamados = ["r1-5", "r1-7", …]).
 
 import { ATRIBUTOS } from "./juego.js";
 import { CAMPANAS, VIDAS, estadoCampanas } from "./campana.js";
+import * as saga from "./saga.js";
 
 export const PASOS_POR_LUGAR = 4;
 export const LUGARES_POR_REGION = 25;
@@ -186,11 +193,15 @@ export function datosParaDibujar(estado, region, campanas) {
         const senor = senores.find((s) => s.n === n);
         lugares[n] = { tipo, reclamado: reclamados.has(idLugar(region, n)), libre: senor ? senor.liberada : false };
     }
+    // La Torre (en el valle; desde las demás regiones, a lo lejos): sus ventanas se encienden con
+    // los pisos que subiste, y la Llama, al terminar la saga.
+    const sagaDeAhora = saga.estadoDeSaga(saga.datosDeSaga(estado, campanas));
     return {
         region,
         alcanzado: region < pos.region ? LUGARES_POR_REGION : pos.enRegion,
         lugares,
         regionLibre: senores.every((s) => s.liberada),
+        torre: { pisos: sagaDeAhora.actos.find((a) => a.id === "cima").avance, encendida: sagaDeAhora.completada },
     };
 }
 
@@ -218,6 +229,8 @@ export function resumenDelReino(estado, campanas) {
 // Dónde va cada lugar en el mapa (un camino que sube haciendo curvas), en un lienzo de
 // 192 × 416 puntos: el lugar 0 (la partida) abajo, el 25 (la fortaleza) arriba.
 export const LIENZO = { ancho: 192, alto: 416 };
+// Dónde está la Torre en el mapa del valle (v37): junto al punto de partida, a la derecha del camino.
+export const TORRE_VALLE = { x: 174, y: 398 };
 
 export function puntosDelCamino() {
     return Array.from({ length: LUGARES_POR_REGION + 1 }, (_, i) => ({

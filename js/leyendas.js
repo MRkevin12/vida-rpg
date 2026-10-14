@@ -27,7 +27,7 @@ export const LEYENDAS = {
         prologo: {
             titulo: "La Torre sin cima",
             parrafos: [
-                "Nadie recuerda quién puso la primera piedra. En la Ciudadela dicen que fueron los Vigías: los primeros que vencieron a las Sombras y que, para no olvidar cómo lo hicieron, levantaron una torre en la que cada piso es una prueba. (Un pergamino de la Biblioteca prohibida cuenta otra cosa: que fue una muchacha llamada Lía.)",
+                "Nadie recuerda quién puso la primera piedra. En el valle dicen que fueron los Vigías: los primeros que vencieron a las Sombras y que, para no olvidar cómo lo hicieron, levantaron una torre en la que cada piso es una prueba. (Un pergamino de la Biblioteca prohibida cuenta otra cosa: que fue una muchacha llamada Lía.)",
                 "En lo alto ardía la Llama del Vigía. Mientras alumbraba el reino, las Sombras no se atrevían a volver. Hace cien años se apagó, la Torre se llenó de criaturas que nadie invitó y las Cuatro Sombras volvieron a repartirse el reino.",
                 "El Maestro Aurelio, que fue aprendiz del último Vigía, le entrega a {n} una antorcha apagada. «Sube. No por la gloria: para saber de qué eres capaz. Esta antorcha no la encenderás aquí dentro, sino allá afuera, con cada Sombra que venzas.»",
             ],
@@ -54,8 +54,8 @@ export const LEYENDAS = {
         epilogo: {
             titulo: "Lo que había debajo",
             parrafos: [
-                "Desde la cima se ve todo el reino y, en la plaza de la Ciudadela, los cuatro memoriales. Y al pie de la Torre, una grieta que antes no estaba: al caer el Dragón, el sello de los cimientos terminó de quebrarse. Una escalera baja hacia la oscuridad.",
-                "El Maestro Aurelio la mira en silencio. «Las Sombras no vienen de lejos —dice al fin—. Vienen de abajo. Siempre vinieron de abajo. Y la Llama no se enciende aquí arriba: se enciende allá afuera, con cada señor que cae.»",
+                "Desde la cima se ve todo el reino: el camino que sale del valle y, muy lejos, al final, la Ciudadela con sus cuatro memoriales. Y al pie de la Torre, una grieta que antes no estaba: al caer el Dragón, el sello de los cimientos terminó de quebrarse. Una escalera baja hacia la oscuridad.",
+                "El Maestro Aurelio la mira en silencio. «Las Sombras no vienen de lejos —dice al fin—. Vienen de abajo. Siempre vinieron de abajo. Y la Llama no se enciende con lo que haces aquí arriba, sino con lo que haces allá afuera: con cada señor que cae.»",
             ],
             aviso: "🔓 Se abrió la Mazmorra del Abismo. La encontrarás en el Arcade.",
         },
