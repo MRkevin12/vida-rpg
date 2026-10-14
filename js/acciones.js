@@ -854,11 +854,12 @@ export function comprarObjeto(estado, id) {
     if (objeto.logro) throw new Error("Ese objeto no se vende: se gana con un logro.");
     if (estado.avatar.comprados.includes(id)) throw new Error("Ya tienes ese objeto.");
     revisarQueNoEstesCaido(estado, "la tienda");
+    // El equipo se paga con gemas 💎 (desde la v32): es para el juego, no un premio real.
     const precio = eventos.precioConEvento(objeto.precio, eventos.eventoDelDia(hoy(), estado));
-    const faltan = precio - estado.personaje.monedas;
-    if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
+    const faltan = precio - (estado.personaje.gemas || 0);
+    if (faltan > 0) throw new Error(`Te faltan ${faltan} gemas 💎. Se ganan en el arcade, con los jefes, el cofre del día, los desafíos y el mapa.`);
 
-    estado.personaje.monedas -= precio;
+    estado.personaje.gemas -= precio;
     estado.avatar.comprados.push(id);
     estado.avatar.equipado[objeto.espacio] = id; // se lo pone de una vez
     return { celebraciones: [{ pequena: true, icono: objeto.icono, titulo: `¡Nuevo equipo: ${objeto.nombre}!` }] };

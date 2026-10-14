@@ -2258,7 +2258,7 @@ function panelBazar(estado, caido) {
                 <span class="saldo-gemas">💎 ${gemas}</span>
             </div>
             <p class="nota">Provisiones para tu próxima subida a la Torre o bajada a la Mazmorra: se usan al empezar.
-               Se pagan con <b>gemas</b>, la moneda del arcade (también adoptas mascotas con ellas).</p>
+               Se pagan con <b>gemas</b>, la moneda del juego (con ellas también compras equipo y adoptas mascotas).</p>
             <ul class="provisiones">${filas}</ul>
             <details class="plegable">
                 <summary>💎 Cómo ganar gemas</summary>
@@ -3196,7 +3196,7 @@ function seccionEquipamiento(estado, ctx) {
             <h3 class="subtitulo">Tus objetos (${disponibles.size})</h3>
             ${disponibles.size
                 ? `<ul class="lista">${inventario}</ul>`
-                : vacio("Aún no tienes objetos. Cómpralos en la Tienda con tus monedas o gánalos con logros.")}
+                : vacio("Aún no tienes objetos. Cómpralos en la Tienda con gemas 💎 o gánalos con logros.")}
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="subvista" data-pantalla="tienda" data-vista="equipo">⚔️ Ver el equipo de la tienda</button>
         </section>`;
 }
@@ -3310,9 +3310,9 @@ function tarjetaPocion(estado, v) {
         </ul>`;
 }
 
-// Equipamiento que se compra con monedas (además de las recompensas reales).
+// Equipamiento para tu avatar. Se compra con gemas 💎 (desde la v32), como las mascotas.
 function tiendaDelAvatar(estado, cerrada, evento) {
-    const monedas = estado.personaje.monedas;
+    const gemas = estado.personaje.gemas || 0;
     const enVenta = Object.entries(avatar.OBJETOS)
         .filter(([, o]) => !o.logro)
         .sort(([, a], [, b]) => a.precio - b.precio);
@@ -3320,7 +3320,7 @@ function tiendaDelAvatar(estado, cerrada, evento) {
     const lista = enVenta.map(([id, o]) => {
         const tuyo = estado.avatar.comprados.includes(id);
         const precio = precioConEvento(o.precio, evento);
-        const puede = monedas >= precio && !cerrada;
+        const puede = gemas >= precio && !cerrada;
         const accion = tuyo
             ? `<span class="mini oro">✓ Tuyo</span>`
             : `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="comprar" data-id="${id}"
@@ -3328,15 +3328,16 @@ function tiendaDelAvatar(estado, cerrada, evento) {
         return `<li class="objeto ${tuyo ? "puesto" : ""}">
                     ${iconoObjeto(id)}
                     <span class="objeto-info"><b>${o.nombre}</b>
-                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · ${textoRareza(o)}${poderDe(o)} · 🪙 ${precio < o.precio ? `<s>${o.precio}</s> ${precio}` : o.precio}</span>
+                        <span class="mini texto-suave">${avatar.ESPACIOS[o.espacio]} · ${textoRareza(o)}${poderDe(o)} · 💎 ${precio < o.precio ? `<s>${o.precio}</s> ${precio}` : o.precio}</span>
                         ${habilidadDe(o)}</span>
                     ${accion}
                 </li>`;
     }).join("");
 
     return `
-        <div class="titulo-seccion"><h2 class="titulo-juego">⚔️ Equipamiento</h2></div>
-        <p class="nota">Las monedas también sirven para tu avatar. Lo que compres se equipa solo;
+        <div class="titulo-seccion"><h2 class="titulo-juego">⚔️ Equipamiento</h2><span class="saldo-gemas">💎 ${gemas}</span></div>
+        <p class="nota">El equipo se compra con <b>gemas</b>, la moneda del juego (las monedas quedan para tus premios reales).
+           Lo que compres se equipa solo;
            puedes cambiarlo en tu Héroe. 🛡️ sube tu armadura (te protege al fallar una misión);
            ⚔️ ataque, 🔮 magia y 🍀 suerte cuentan en la Torre y en los minijuegos.
            Lo <b>épico</b> y lo <b>legendario</b> tiene además una habilidad especial en la Torre.</p>
@@ -3439,7 +3440,7 @@ export function pantallaTienda(estado, ctx) {
         <section class="panel saldo">
             <span class="etiqueta">Tus monedas</span>
             <span class="saldo-numero">🪙 ${monedas}</span>
-            <span class="mini texto-suave">💎 ${estado.personaje.gemas || 0} gemas · para el arcade y las mascotas</span>
+            <span class="mini texto-suave">💎 ${estado.personaje.gemas || 0} gemas · para el equipo, las mascotas y el arcade</span>
             ${tarjetaPocion(estado, ctx.vida)}
         </section>
         ${cerrada ? avisoCaido(ctx.vida, "Tienda cerrada") : ""}
@@ -3449,7 +3450,7 @@ export function pantallaTienda(estado, ctx) {
         <details class="plegable">
             <summary>🪙 Cómo ganar monedas</summary>
             <p class="nota">Solo con lo que haces en la vida real. Lo del arcade y los premios extra (jefes, cofres, desafíos y
-               mapa) dan gemas 💎, que sirven para el arcade y las mascotas.</p>
+               mapa) dan gemas 💎, que sirven para el equipo, las mascotas y el arcade.</p>
             <dl class="estadisticas">
                 ${Object.values(DIFICULTADES).map((d) => `<div><dt>Misión ${d.nombre.toLowerCase()}</dt><dd>🪙 ${d.monedas}</dd></div>`).join("")}
                 <div><dt>Paso de misión principal</dt><dd>🪙 ${PREMIOS.submision.monedas}</dd></div>

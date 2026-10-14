@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 31;
+export const VERSION_APP = 32;
 
 export const NOVEDADES = [
+    {
+        version: 32,
+        titulo: "El equipo, con gemas",
+        cambios: [
+            "⚔️ El equipo de tu avatar (cascos, armas, capas…) ahora se compra con gemas 💎, igual que las mascotas. Las monedas 🪙 quedan solo para tus premios reales y las pociones de vida.",
+        ],
+    },
     {
         version: 31,
         titulo: "Monedas y gemas",

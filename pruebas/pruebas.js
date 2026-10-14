@@ -2049,7 +2049,7 @@ prueba("Armadura: lo que te pones hoy no cambia el pasado, y llega entero", () =
     let v = vida.calcularVida(estado, hoy());
     igual([v.puntos, v.armadura.puntos], [83, 3]);
     jugar(estado, () => {
-        acciones.ganar(estado, { monedas: 200 });
+        acciones.ganar(estado, { gemas: 200 });
         acciones.comprarObjeto(estado, "casco");            // +12 de armadura (se equipa solo)
     });
     v = vida.calcularVida(estado, hoy());
@@ -2065,7 +2065,7 @@ prueba("Armadura: lo que te pones hoy no cambia el pasado, y llega entero", () =
     igual(acciones.fallarMision(otra, leer.id, hoy(), "tiempo").dano, 11);
     igual(otra.fallas[0].golpe, 11, "el golpe queda en el registro");
     jugar(otra, () => {
-        acciones.ganar(otra, { monedas: 2000 });
+        acciones.ganar(otra, { gemas: 2000 });
         acciones.comprarObjeto(otra, "corona-dragon");      // +18 de armadura
     });
     igual(vida.calcularVida(otra, hoy()).puntos, 105 - 11, "sigue costando 11");
@@ -2411,6 +2411,18 @@ prueba("Monedas y gemas: las copias viejas empiezan sin gemas, y el arcade y la 
     cierto(!html.includes("🪙 y"), "el arcade ya no promete monedas");
     html = vistas.pantallaTienda(copia, ctx);
     cierto(!/undefined|NaN/.test(html) && html.includes("💎 180") && html.includes("💎 120 gemas"), "las mascotas cuestan gemas");
+    html = vistas.pantallaTienda(copia, { ...ctx, subvista: { tienda: "equipo" } });
+    cierto(!/undefined|NaN/.test(html) && html.includes(`💎 ${avatar.OBJETOS.gorra.precio}`) &&
+           !html.split("Equipamiento")[1].split("Los objetos legendarios")[0].includes("🪙"),
+           "el equipo también (la poción de vida sigue en monedas)");
+
+    // Comprar equipo: con gemas, no con monedas.
+    copia.personaje.monedas = 5000;
+    copia.personaje.gemas = 0;
+    debeFallar(() => acciones.comprarObjeto(copia, "gorra"), "gemas");
+    copia.personaje.gemas = 100;
+    acciones.comprarObjeto(copia, "gorra");
+    igual([copia.personaje.gemas, copia.personaje.monedas], [100 - avatar.OBJETOS.gorra.precio, 5000]);
 });
 
 

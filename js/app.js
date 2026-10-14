@@ -1079,7 +1079,8 @@ function rellenarOpciones() {
         <p><strong>Monedas y gemas:</strong> las monedas 🪙 son para tus premios reales y solo salen de lo que haces en la vida
            real (misiones, tareas, enfoque, misiones principales, tu diario, cerrar el día y tus logros). Las gemas 💎 son la moneda
            del juego: se ganan en el arcade (minijuegos, Torre y Mazmorra) y con los premios extra (jefes, cofre del día, desafíos y
-           mapa), y se gastan en el bazar del arcade y en las mascotas. Así, lo que ganas jugando no se convierte en premios reales.</p>
+           mapa), y se gastan en el equipo de tu avatar, las mascotas y el bazar del arcade. Así, lo que ganas jugando no se
+           convierte en premios reales.</p>
         <p><strong>Cofre del día:</strong> con lo primero que cumplas se desbloquea un cofre con un premio al azar (gemas, XP,
            fichas, una poción o, rara vez, equipo).</p>
         <p><strong>Eventos del día:</strong> más o menos la mitad de los días pasa algo (Mercader ambulante, Luna de sangre,
@@ -2178,7 +2179,7 @@ const ACCIONES = {
 
     comprar: (boton) => {
         const objeto = avatar.OBJETOS[boton.dataset.id];
-        if (objeto && confirm(`¿Comprar «${objeto.nombre}» por ${objeto.precio} monedas?`)) {
+        if (objeto && confirm(`¿Comprar «${objeto.nombre}» por ${objeto.precio} gemas 💎?`)) {
             if (ejecutar(() => acciones.comprarObjeto(estado, boton.dataset.id))) sonar("moneda");
         }
     },

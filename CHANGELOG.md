@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v32 — El equipo, con gemas
+- El equipo del avatar (Tienda › Equipo) se compra con gemas 💎, con los mismos precios. Las monedas 🪙 quedan para los premios reales y las pociones de vida. El descuento del «Mercader ambulante» sigue valiendo para el equipo.
+
 ## v31 — Monedas y gemas
 - **Economía más justa:** las monedas 🪙 (las de tus premios reales) salen solo de la vida real: misiones, tareas, enfoque, misiones principales, el diario, cerrar el día y tus logros. Antes el arcade podía pagar más que las propias misiones (1 ficha por misión y hasta 15 🪙 por minijuego, 40 por la Torre y 80 por la Mazmorra).
 - **Gemas 💎**, la moneda del juego (`personaje.gemas`): se ganan en el arcade (minijuegos hasta 15, Torre 3 por piso hasta 40, Mazmorra 5 por sótano hasta 80) y con los premios extra, que antes daban monedas: jefes (50×N), cofre del día (15–40), desafío semanal (50), desafío relámpago (40) y mapa (20–100). Se gastan en las mascotas (adoptarlas y su comida) y en el **bazar del arcade**.
