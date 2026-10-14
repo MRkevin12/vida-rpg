@@ -16,6 +16,7 @@ import * as bestiario from "./bestiario.js";
 import * as leyendas from "./leyendas.js";
 import * as maestro from "./maestro.js";
 import * as memorias from "./memorias.js";
+import * as saga from "./saga.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -1547,7 +1548,13 @@ export function foto(estado) {
         dano: campana.danoPorCategoria(estado),
         avatar: fotoDelAvatar(estado, info),
         memorias: memorias.cuantasAbiertas(memorias.datosDeMemorias(estado, info)),
+        saga: sagaDe(estado).indice,
     };
+}
+
+// Cómo va la Saga de la Llama (ver saga.js).
+function sagaDe(estado) {
+    return saga.estadoDeSaga(saga.datosDeSaga(estado, campana.estadoCampanas(estado)));
 }
 
 export function revisarCambios(estado, antes) {
@@ -1559,6 +1566,15 @@ export function revisarCambios(estado, antes) {
     if (nivel > antes.nivel) {
         celebraciones.push({ tipo: "nivel", avatar: true, etiqueta: "¡Subiste de nivel!", titulo: `NIVEL ${nivel}`,
                              maestro: maestro.palabrasDeNivel(nivel) });
+    }
+
+    // La Saga de la Llama: cada acto que cumples se celebra y dice cuál es tu siguiente objetivo.
+    const s = sagaDe(estado);
+    for (let i = antes.saga ?? s.indice; i < s.indice; i++) {
+        const acto = s.actos[i];
+        const siguiente = s.actos[i + 1];
+        celebraciones.push({ icono: "🧭", etiqueta: `Saga · Acto ${acto.numero} cumplido`, titulo: acto.titulo,
+                             detalle: siguiente ? `Siguiente: ${siguiente.objetivo}` : `Eres ${saga.VIGIA.titulo}.`, maestro: acto.cierre });
     }
 
     // Aurelio te cuenta un capítulo más de su historia (ver memorias.js).

@@ -26,9 +26,9 @@ export const LEYENDAS = {
         prologo: {
             titulo: "La Torre sin cima",
             parrafos: [
-                "Nadie recuerda quién puso la primera piedra. En la Ciudadela dicen que fueron los Vigías: los primeros que vencieron a las Sombras y que, para no olvidar cómo lo hicieron, levantaron una torre en la que cada piso es una prueba.",
-                "En lo alto ardía la Llama del Vigía. Mientras alumbraba el reino, las Sombras no se atrevían a volver. Hace cien años se apagó, y la Torre se llenó de criaturas que nadie invitó.",
-                "El Maestro Aurelio le entrega a {n} una antorcha apagada. «Sube. No por la gloria: para saber de qué eres capaz. Y si llegas arriba, enciéndela.»",
+                "Nadie recuerda quién puso la primera piedra. En la Ciudadela dicen que fueron los Vigías: los primeros que vencieron a las Sombras y que, para no olvidar cómo lo hicieron, levantaron una torre en la que cada piso es una prueba. (Un pergamino de la Biblioteca prohibida cuenta otra cosa: que fue una muchacha llamada Lía.)",
+                "En lo alto ardía la Llama del Vigía. Mientras alumbraba el reino, las Sombras no se atrevían a volver. Hace cien años se apagó, la Torre se llenó de criaturas que nadie invitó y las Cuatro Sombras volvieron a repartirse el reino.",
+                "El Maestro Aurelio, que fue aprendiz del último Vigía, le entrega a {n} una antorcha apagada. «Sube. No por la gloria: para saber de qué eres capaz. Y si llegas arriba, enciéndela.»",
             ],
         },
         // Una entrada por zona (la clave es su id, ver bestiario.ZONAS).
@@ -46,7 +46,7 @@ export const LEYENDAS = {
                 caida: "El Señor de la Fragua se apaga como un horno sin carbón. Sobre el yunque queda lo último que se forjó aquí: un sello de hierro, partido en dos. {n} comprende que la Torre no se construyó solo para mirar el cielo. Se construyó encima de algo. Para mantenerlo cerrado.",
             },
             cima: {
-                entrada: "Sin techo ni muros: solo el viento y, sobre un pedestal, la Llama apagada. Entre los rayos se ve una figura con armadura celeste. Es el último Vigía que subió. Nunca volvió a bajar.",
+                entrada: "Sin techo ni muros: solo el viento y, sobre un pedestal, la Llama apagada. Entre los rayos se ve una figura con armadura celeste. Es el último Vigía que subió, hace cien años. Nunca volvió a bajar.",
                 caida: "El Dragón de la tormenta cae, y con él la tormenta. Por primera vez en cien años el cielo se abre sobre la Torre. {n} acerca la antorcha al pedestal y la Llama del Vigía vuelve a arder.",
             },
         },
@@ -91,7 +91,7 @@ export const LEYENDAS = {
         epilogo: {
             titulo: "Saber bajar",
             parrafos: [
-                "{n} sube los veinte sótanos y los veinte pisos con la corona hueca en la mano. No hay fanfarria. En la cima, Aurelio aviva la Llama.",
+                "{n} sube los veinte sótanos con la corona hueca en la mano. No hay fanfarria. Al pie de la Torre lo espera Aurelio, que esa noche, después de cien años, sube con {n} los veinte pisos hasta la Llama.",
                 "«No las venciste para siempre —le dice—. Nadie puede. Pero ahora sabes dónde viven, y sabes bajar a buscarlas.» Desde ese día, cuando una Sombra vuelve, {n} ya no le tiene miedo: la conoce por su nombre.",
             ],
             aviso: "🏆 Venciste al Rey Hueco. La Mazmorra sigue abierta: más abajo esperan las criaturas abisales.",

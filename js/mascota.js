@@ -38,7 +38,7 @@ export const ALIMENTADA = 1.2;    // si comió hoy, pelea 20 % más
 export const MASCOTAS = {
     dragon: {
         nombre: "Dragón", rareza: "raro", precio: null, icono: "🐉",
-        texto: "Tu compañero desde el primer día. Nació del huevo que te dio el Maestro Aurelio.",
+        texto: "Tu compañero desde el primer día. Nació del último huevo de los dragones de la Torre, que el Maestro Aurelio guardó cien años.",
         habilidad: { nombre: "Aliento de fuego", texto: "Cada 3 turnos escupe fuego: 60 % de tu ataque, de fuego (cuenta el punto débil)." },
         torre: { tipo: "ataque", cada: 3, fuerza: 0.6, elemento: "fuego" },
     },

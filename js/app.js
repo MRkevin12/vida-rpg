@@ -25,6 +25,7 @@ import * as pacto from "./pacto.js";
 import * as libro from "./libro.js";
 import * as maestro from "./maestro.js";
 import * as memorias from "./memorias.js";
+import * as saga from "./saga.js";
 import * as rituales from "./rituales.js";
 import * as mascota from "./mascota.js";
 import * as mapa from "./mapa.js";
@@ -825,6 +826,7 @@ function contextoActual(efectos = {}) {
         campanaVista,
         maestro: maestro.contexto(estado, fecha, ahora, info),   // lo que el Maestro sabe de tu día
         memoriasDesde,
+        saga: saga.estadoDeSaga(saga.datosDeSaga(estado, campana.estadoCampanas(estado))),   // tu objetivo en la saga
         evento: eventoDelDia(fecha, estado),
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
     };
@@ -1073,6 +1075,10 @@ function rellenarOpciones() {
            <em>misión clave</em>: si la cumples vale el doble (XP, monedas y daño al jefe). En la noche, el ritual te hace repasar
            lo que falta (la hice / no la hice), escribir el diario y leer tu capítulo; cerrar el día da +${rituales.PREMIO_CIERRE.xp} XP
            y ${rituales.PREMIO_CIERRE.monedas} monedas.</p>
+        <p><strong>La Saga de la Llama:</strong> todas las historias del juego son una sola (Héroe › Historia las ordena: la primera
+           piedra, las memorias de Aurelio, la Crónica del reino, la Torre, la Mazmorra y tu libro). Su objetivo: convertirte en Vigía.
+           Son ${saga.ACTOS.length} actos que se cumplen en orden (${saga.ACTOS.map((a) => a.titulo).join(", ")}); el que toca es tu
+           objetivo de ahora y se ve en Hoy, en «Tu día».</p>
         <p><strong>Aurelio en todo el juego:</strong> te da una pista antes de cada guardián de la Torre y de la Mazmorra y te habla
            cuando caes; comenta cuando subes de nivel o vences a un jefe, responde a tu diario y te despide al cerrar el día.
            Sus <strong>memorias</strong> (Héroe › Historia) cuentan quién fue antes de ser tu maestro: ${memorias.MEMORIAS.length}

@@ -33,7 +33,7 @@ export const MEMORIAS = [
         titulo: "Casio, el último Vigía",
         condicion: { tipo: "racha", valor: 7 },
         parrafos: [
-            "Aquel hombre se llamaba Casio y era el último de los Vigías. Aceptó a Aurelio como aprendiz con una sola condición: subir con él un piso cada día, sin excepciones.",
+            "Aquel hombre se llamaba Casio y era el último de los Vigías. Aceptó a Aurelio como aprendiz con una sola condición: subir con él un piso cada día, sin excepciones. El primer día le dio a leer un pergamino viejo, «La primera piedra». «Léelo cuando quieras rendirte», le dijo.",
             "La primera semana, Aurelio inventó once excusas. Casio las escuchó todas sin responder ninguna. Al octavo día, Aurelio dejó de inventarlas: no porque Casio lo hubiera convencido, sino porque entendió que la única persona que escuchaba sus excusas era él mismo.",
         ],
         leccion: "Las excusas solo convencen a quien las dice.",
@@ -94,7 +94,7 @@ export const MEMORIAS = [
         condicion: { tipo: "mazmorra", valor: 20 },
         parrafos: [
             "Al ver la corona hueca, Aurelio contó su último secreto. Él sabe cómo se empieza a ser como el Rey Hueco, porque estuvo a punto: el primer Vigía que dejó de subir no cayó en un día; se fue quedando, un «mañana» tras otro, igual que Aurelio al pie de la Torre.",
-            "«Por eso te enseño —le dijo a {n}—. No porque yo sepa ganar, sino porque sé cómo se pierde. Y se pierde igual que se gana: un día a la vez.» Esa noche, después de cien años, el viejo maestro subió el primer piso de la Torre.",
+            "«Por eso te enseño —le dijo a {n}—. No porque yo sepa ganar, sino porque sé cómo se pierde. Y se pierde igual que se gana: un día a la vez.» Esa noche, después de cien años, el viejo maestro volvió a subir la Torre, piso por piso, hasta la Llama.",
         ],
         leccion: "Se pierde igual que se gana: un día a la vez.",
     },

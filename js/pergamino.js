@@ -115,7 +115,7 @@ export const ENSENANZAS = [
 
 // La dedicatoria final, con el nombre de quien lo lee.
 export const DEDICATORIA = [
-    "Este pergamino pasó de mano en mano durante siglos. Ahora está en las tuyas, {n}.",
+    "Este pergamino pasó por las manos de todos los Vigías. El último fue Casio, que se lo dio a leer a su aprendiz, Aurelio. Ahora está en las tuyas, {n}.",
     "No sé qué torre estás construyendo ni qué niebla te tapa el horizonte. Pero sé cómo se sube. Tu primera piedra no es la de ayer, ni la de mañana. Es la de hoy.",
 ];
 

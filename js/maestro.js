@@ -15,6 +15,7 @@
 
 import * as juego from "./juego.js";
 import * as memorias from "./memorias.js";
+import * as saga from "./saga.js";
 import * as campana from "./campana.js";
 import { ETAPAS, CLASES, APARIENCIA_INICIAL } from "./avatar.js";
 import { calcularVida } from "./vida.js";
@@ -252,6 +253,8 @@ export function responder(estado, c, opcion, azar = Math.random) {
             ];
             if (c.pacto?.porcentaje !== null && c.pacto?.porcentaje !== undefined) partes.push(`Has honrado tu pacto el ${c.pacto.porcentaje} % de los días.`);
             if (jefe) partes.push(`${jefe.jefe.nombre} es el jefe más cerca de caer: le quedan ${jefe.vida} de vida.`);
+            const s = saga.estadoDeSaga(saga.datosDeSaga(estado, campana.estadoCampanas(estado)));
+            partes.push(s.completada ? "Ya eres Vigía: mantén la Llama encendida." : `En la saga, tu objetivo es este: ${s.objetivo}`);
             return partes.join(" ");
         }
         case "consejo": {

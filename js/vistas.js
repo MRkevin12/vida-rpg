@@ -23,6 +23,7 @@ import * as libro from "./libro.js";
 import * as maestro from "./maestro.js";
 import * as memorias from "./memorias.js";
 import * as pergamino from "./pergamino.js";
+import * as saga from "./saga.js";
 import * as rituales from "./rituales.js";
 import * as mapa from "./mapa.js";
 import * as cronica from "./cronica.js";
@@ -220,7 +221,11 @@ export function pantallaHoy(estado, ctx) {
 // «Tu día»: en un solo panel, el Maestro y todo lo que trae el día (antes eran 6 tarjetas sueltas):
 // el evento, el cofre, el desafío relámpago, tu pacto y el desafío de la semana.
 function panelDelDia(estado, ctx) {
-    const filas = [avisoEvento(ctx), tarjetaCofre(estado, ctx), tarjetaRelampago(ctx), lineaDelPacto(estado, ctx), tarjetaDesafio(estado, ctx)]
+    const s = sagaDe(estado, ctx);
+    // Si tu objetivo de la saga es firmar el pacto, la invitación al pacto sobra (la fila de la saga ya lo dice).
+    const pactoSobra = !estado.pacto && s.actos[s.indice]?.id === "juramento";
+    const filas = [lineaDeSaga(estado, ctx, s), avisoEvento(ctx), tarjetaCofre(estado, ctx), tarjetaRelampago(ctx),
+                   pactoSobra ? "" : lineaDelPacto(estado, ctx), tarjetaDesafio(estado, ctx)]
         .filter(Boolean);
     return `
         <section class="panel panel-dia" aria-label="Tu día">
@@ -912,6 +917,80 @@ export function pantallaMapa(estado, ctx) {
 
 // En Hoy: si no lo has firmado, una invitación; si sí, el día de tu pacto y una cita
 // (o una advertencia si ayer fallaste: el artículo III dice «nunca fallar dos días seguidos»).
+// ===== La Saga de la Llama (v35) =====
+// Tu objetivo de ahora, en Hoy: el acto de la saga que toca y cuánto te falta. Al tocarlo, abre
+// Héroe › Historia, donde está la saga completa.
+function sagaDe(estado, ctx) {
+    return ctx.saga || saga.estadoDeSaga(saga.datosDeSaga(estado, campana.estadoCampanas(estado)));
+}
+
+const nombresDeSaga = (estado) => ({ heroe: estado.personaje.nombre, dragon: mascota.nombreDe(estado, mascota.INICIAL) });
+
+function lineaDeSaga(estado, ctx, s) {
+    const acto = s.actos[s.indice];
+    const titulo = acto ? `Saga · Acto ${acto.numero}: ${acto.titulo}` : `Saga · ${saga.VIGIA.titulo}`;
+    const detalle = acto
+        ? `${barra((s.avance / s.meta) * 100, "barra-mini")}<span class="mini texto-suave">${s.avance} / ${s.meta}</span>`
+        : `<span class="mini texto-suave">Racha de ${plural(ctx.info?.racha?.actual || 0, "día", "días")}</span>`;
+    return `
+        <button type="button" class="pacto-linea saga-linea" data-accion="subvista" data-pantalla="personaje" data-vista="historia">
+            <span class="pacto-linea-icono" aria-hidden="true">🧭</span>
+            <span><b>${esc(titulo)}</b>
+                <span class="mini">🎯 ${esc(s.objetivo)}</span>
+                ${detalle}</span>
+        </button>`;
+}
+
+// Cómo se abre cada historia (los atributos del botón).
+function abrirHistoriaDeSaga(abrir) {
+    if (abrir.accion === "ir") return `data-accion="ir" data-pantalla="${abrir.pantalla}"`;
+    if (abrir.accion === "historia-abrir") return `data-accion="historia-abrir" data-lugar="${abrir.lugar}"`;
+    return `data-accion="${abrir.accion}"`;
+}
+
+// El panel grande de la saga (Héroe › Historia): el objetivo final, el acto de ahora y los siete actos.
+function panelSaga(estado, ctx, s) {
+    const nombres = nombresDeSaga(estado);
+    const acto = s.actos[s.indice];
+    let actual;
+    if (acto) {
+        const historia = saga.HISTORIAS.find((h) => h.id === acto.lee);
+        const leer = acto.lee === "pacto"
+            ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="pacto">📜 Firmar tu pacto</button>`
+            : `<button type="button" class="boton boton-chico boton-secundario" ${abrirHistoriaDeSaga(historia.abrir)}>${historia.icono} Leer: ${esc(historia.titulo)}</button>`;
+        actual = `
+            <div class="saga-acto">
+                <span class="saga-numero">Acto ${acto.numero} de ${s.actos.length}</span>
+                <h3>${esc(acto.titulo)}</h3>
+                <p class="saga-relato">${esc(saga.conNombres(acto.relato, nombres))}</p>
+                <p class="saga-objetivo">🎯 ${esc(acto.objetivo)}</p>
+                ${barra((s.avance / s.meta) * 100)}
+                <div class="saga-pie"><span class="mini texto-suave">${s.avance} de ${s.meta}</span>${leer}</div>
+            </div>`;
+    } else {
+        actual = `
+            <div class="saga-acto saga-vigia">
+                <span class="saga-numero">Saga completa</span>
+                <h3>🕯️ ${esc(saga.VIGIA.titulo)}</h3>
+                <p class="saga-relato">${esc(saga.conNombres(saga.VIGIA.relato, nombres))}</p>
+                <p class="saga-objetivo">🎯 ${esc(saga.VIGIA.objetivo)}</p>
+            </div>`;
+    }
+    const actos = s.actos.map((a) => `
+        <li class="${a.hecho ? "hecho" : a.actual ? "actual" : "futuro"}">
+            <span class="saga-marca" aria-hidden="true">${a.hecho ? "✓" : a.actual ? "▶" : a.numero}</span>
+            <span><b>${esc(a.titulo)}</b><small>${a.hecho ? "Cumplido" : esc(a.objetivo)}</small></span>
+        </li>`).join("");
+    return `
+        <section class="panel saga">
+            <p class="etiqueta">🧭 ${saga.TITULO}</p>
+            <p class="saga-final">${esc(saga.OBJETIVO)}</p>
+            ${actual}
+            <ol class="saga-actos">${actos}</ol>
+        </section>`;
+}
+
+
 function lineaDelPacto(estado, ctx) {
     if (!estado.pacto) {
         return `
@@ -1103,6 +1182,7 @@ export function pantallaLibro(estado, ctx) {
             <div class="portada">
                 <p class="pergamino-sobre">Libro primero</p>
                 <h2>La crónica de ${esc(nombre)}</h2>
+                <p class="pergamino-entre">El capítulo más nuevo de la ${saga.TITULO}: el que escribes tú, día a día.</p>
                 <p class="epigrafe">«${libro.EPIGRAFE.texto}»<br><span>— ${libro.EPIGRAFE.autor}</span></p>
                 <p class="portada-datos">${plural(total, "capítulo", "capítulos")} · comenzada el ${fechaLegible(capitulos[0].fecha)}</p>
                 <div class="portada-botones">
@@ -3056,24 +3136,36 @@ function seccionHistoria(estado, ctx) {
     const rachaDiario = diario.rachaDiario(estado, ctx.hoy);
     const pos = mapa.posicion(estado);
     const conseguidos = estado.logros.filter((l) => l.desbloqueadoEn).length;
+    const s = sagaDe(estado, ctx);
+    const m = ctx.maestro?.memorias;
+    const records = estado.arcade.records;
+    // Lo que se ve debajo del título de cada historia: cuándo pasa y cuánto llevas.
+    const detalle = {
+        pergamino: `${pergamino.minutosDeLectura()} min de lectura`,
+        memorias: m ? `${m.abiertas} de ${m.total} capítulos${m.sinLeer ? ` · ${plural(m.sinLeer, "nuevo", "nuevos")}` : ""}` : "",
+        cronica: `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
+        torre: `Tu récord: ${records.torre || 0} de ${torre.ABRIR_MAZMORRA} pisos`,
+        mazmorra: torre.mazmorraAbierta(estado.arcade) ? `Tu récord: ${records.mazmorra || 0} de 20 sótanos` : "🔒 Se abre al encender la Llama",
+        libro: `${plural(escritos, "día escrito", "días escritos")} en tu diario`,
+    };
+    const historias = saga.HISTORIAS.map((h) =>
+        filaEnlace(h.icono, esc(h.titulo), `<i>${h.cuando}.</i> ${esc(h.texto)} · ${detalle[h.id]}`, abrirHistoriaDeSaga(h.abrir))).join("");
     return `
+        ${panelSaga(estado, ctx, s)}
         <section class="panel">
-            <h2 class="titulo-juego">📜 Tu historia</h2>
+            <h2 class="titulo-juego">📚 Las historias, en orden</h2>
+            <p class="nota">Todas cuentan la misma historia en distintos tiempos: de la primera piedra a tus días de hoy.</p>
+            <div class="filas-enlace">${historias}</div>
+        </section>
+        <section class="panel">
+            <h2 class="titulo-juego">✍️ Lo tuyo</h2>
             <p class="nota">Lo que has jurado, lo que has escrito y lo que has conseguido.</p>
             <div class="filas-enlace">
-                ${filaEnlace("📜", "Tu pacto", c ? `Día ${c.dia}${c.porcentaje === null ? "" : ` · ${c.porcentaje} % honrado`}` : "Todavía sin firmar: un juramento contigo",
+                ${filaEnlace("📜", "Tu pacto", c ? `El juramento de los Vigías · día ${c.dia}${c.porcentaje === null ? "" : ` · ${c.porcentaje} % honrado`}`
+                                                 : "El juramento de los Vigías: todavía sin firmar",
                              'data-accion="ir" data-pantalla="pacto"')}
                 ${filaEnlace("📓", "Tu diario", `${plural(escritos, "día escrito", "días escritos")}${rachaDiario ? ` · racha de ${rachaDiario}` : ""}`,
                              'data-accion="ir" data-pantalla="diario"')}
-                ${filaEnlace("📖", "Tu libro", `La crónica de ${esc(estado.personaje.nombre)}, contada con tu diario`,
-                             'data-accion="ir" data-pantalla="libro"')}
-                ${filaEnlace("🗺️", "Crónica del reino", `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
-                             'data-accion="ir" data-pantalla="mapa"')}
-                ${filaEnlace("📜", pergamino.TITULO, `Una historia para los días difíciles · ${pergamino.minutosDeLectura()} min de lectura`,
-                             'data-accion="pergamino-abrir"')}
-                ${filaEnlace("🧙", "Memorias de Aurelio", `${ctx.maestro.memorias.abiertas} de ${ctx.maestro.memorias.total} capítulos` +
-                             `${ctx.maestro.memorias.sinLeer ? ` · ${plural(ctx.maestro.memorias.sinLeer, "nuevo", "nuevos")}` : ""}`,
-                             'data-accion="memorias-abrir"')}
                 ${filaEnlace("🏆", "Logros", `${conseguidos} de ${plural(estado.logros.length, "logro", "logros")} conseguidos`,
                              'data-accion="subvista" data-pantalla="progreso" data-vista="logros"')}
             </div>

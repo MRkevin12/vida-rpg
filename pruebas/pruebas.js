@@ -38,6 +38,7 @@ import * as mascota from "../js/mascota.js";
 import * as maestro from "../js/maestro.js";
 import * as memorias from "../js/memorias.js";
 import * as pergamino from "../js/pergamino.js";
+import * as saga from "../js/saga.js";
 import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
@@ -2376,6 +2377,80 @@ prueba("La primera piedra (pantalla): se lee como un rollo, sin huecos, y se lle
     cierto(dialogo("sinGanas").includes('data-accion="pergamino-abrir"') && dialogo("abrumado").includes('data-accion="pergamino-abrir"'),
            "Aurelio lo ofrece si no tienes ganas o estás abrumado");
     igual(dialogo("consejo").includes("pergamino-abrir"), false, "y no en cualquier respuesta");
+});
+
+
+// ===== La Saga de la Llama (v35) =====
+
+prueba("Saga: 7 actos en orden con un objetivo final; el primero que falta es el de ahora", () => {
+    igual(saga.ACTOS.length, 7);
+    igual(new Set(saga.ACTOS.map((a) => a.id)).size, 7, "ids distintos");
+    const historias = saga.HISTORIAS.map((h) => h.id);
+    igual(historias, ["pergamino", "memorias", "cronica", "torre", "mazmorra", "libro"], "las historias, en el orden en que pasan");
+    for (const h of saga.HISTORIAS) cierto(["pergamino-abrir", "memorias-abrir", "ir", "historia-abrir"].includes(h.abrir.accion), `${h.id} se puede abrir`);
+    for (const a of saga.ACTOS) {
+        cierto(a.titulo && a.relato && a.objetivo && a.cierre && a.condicion.meta > 0, `${a.id} tiene todo`);
+        cierto(a.lee === "pacto" || historias.includes(a.lee), `${a.id} lleva a una historia`);
+    }
+    igual(saga.ACTOS.find((a) => a.id === "huevo").condicion.meta, avatar.ETAPAS_MASCOTA[1].desde, "el huevo se abre cuando el dragón eclosiona");
+
+    const campanas = (...derrotados) => Object.fromEntries(derrotados.map((d, i) => [`c${i}`, { derrotados: d }]));
+    const ir = (cambios) => saga.estadoDeSaga({ completadas: 0, pacto: false, campanas: campanas(0, 0, 0, 0), records: {}, torreEnCurso: 0, ...cambios });
+    igual([ir({}).indice, ir({}).objetivo], [0, "Pon tu primera piedra: cumple tu primera misión."]);
+    igual(ir({ completadas: 3 }).indice, 1, "después, el juramento");
+    igual(ir({ completadas: 3, pacto: true }).indice, 2);
+    let s = ir({ completadas: 10, pacto: true, campanas: campanas(2, 1, 1, 0) });
+    igual([s.indice, s.avance, s.meta], [3, 3, 4], "faltan los primeros señores de una Sombra");
+    igual(ir({ completadas: 10, pacto: true, campanas: campanas(1, 1, 1, 1) }).indice, 4, "la Llama");
+    igual(ir({ completadas: 10, pacto: true, campanas: campanas(1, 1, 1, 1), torreEnCurso: 20 }).indice, 5, "la subida de ahora también cuenta");
+    s = ir({ completadas: 10, pacto: true, campanas: campanas(5, 7, 5, 4), records: { torre: 22 } });
+    igual([s.indice, s.avance], [5, 19], "los 20 señores (cada Sombra cuenta hasta 5)");
+    s = ir({ completadas: 10, pacto: true, campanas: campanas(5, 5, 5, 5), records: { torre: 22, mazmorra: 20 } });
+    igual([s.indice, s.completada, s.objetivo], [7, true, saga.VIGIA.objetivo], "eres Vigía");
+    igual(ir({ completadas: 10, campanas: campanas(5, 5, 5, 5), records: { torre: 22, mazmorra: 20 } }).indice, 1, "en orden: sin el juramento no se avanza");
+    igual(saga.conNombres("{n} y {m}", { heroe: "Ana", dragon: "Chispa" }), "Ana y Chispa");
+});
+
+prueba("Saga en la partida: se ve en Hoy y en Héroe › Historia, y cada acto cumplido se celebra", () => {
+    const estado = partidaNueva();
+    const info = () => juego.resumen(estado, hoy());
+    const ctx = (subvista = {}) => ({
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info: info(), avatar: avatar.describirAvatar(estado, hoy(), info()),
+        vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
+        rangoResumen: 7, subvista, campanaVista: null, diarioVista: {},
+    });
+    let html = vistas.pantallaHoy(estado, ctx());
+    cierto(html.includes("Saga · Acto I: La primera piedra") && html.includes("Pon tu primera piedra"), "el objetivo de ahora, en Hoy");
+
+    const leer = crearMision(estado);
+    const celebraciones = jugar(estado, () => acciones.completarMision(estado, leer.id));
+    const acto = celebraciones.find((c) => c.etiqueta === "Saga · Acto I cumplido");
+    cierto(acto && acto.detalle.startsWith("Siguiente: Haz el juramento") && acto.maestro, "se celebra y dice lo que sigue");
+
+    html = vistas.pantallaHoy(estado, ctx());
+    cierto(html.includes("Acto II: El juramento") && !html.includes("Sella tu pacto"), "el pacto no se repite: lo pide la saga");
+
+    html = vistas.pantallaPersonaje(estado, ctx({ personaje: "historia" }));
+    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(html.includes("La Saga de la Llama") && html.includes("Las historias, en orden") && html.includes("📜 Firmar tu pacto"), "la saga en Héroe");
+    const orden = ["La primera piedra", "Memorias de Aurelio", "Crónica del reino", "La Llama de los Vigías", "El Rey Hueco", "Tu libro"]
+        .map((titulo) => html.indexOf(titulo, html.indexOf("Las historias, en orden")));
+    cierto(orden.every((posicion, i) => posicion > 0 && (i === 0 || posicion > orden[i - 1])), `en orden: ${orden}`);
+    cierto(maestro.responder(estado, maestro.contexto(estado, hoy()), "comoVoy").includes("En la saga, tu objetivo es este: Haz el juramento"), "Aurelio te lo recuerda");
+});
+
+prueba("Historias conectadas: Aurelio no está en la cima antes de tiempo y cada historia nombra a las otras", async () => {
+    const leer = async (ruta) => (await fetch(ruta, { cache: "no-store" })).text();
+    const [cronicaJs, leyendasJs] = await Promise.all([leer("../js/cronica.js"), leer("../js/leyendas.js")]);
+    cierto(!cronicaJs.includes("Desde lo alto de la Torre, el Maestro Aurelio"), "la Crónica: Aurelio espera al pie de la Torre");
+    cierto(!leyendasJs.includes("En la cima, Aurelio aviva la Llama"), "la Mazmorra: Aurelio sube recién al final");
+    cierto(cronicaJs.includes("la Llama de la Torre se apagó. Entonces volvieron las Cuatro Sombras"), "las Sombras volvieron por la Llama");
+    cierto(leyendasJs.includes("una muchacha llamada Lía"), "la Torre nombra a Lía");
+    cierto(memorias.MEMORIAS[1].parrafos[0].includes("«La primera piedra»"), "Casio le dio el pergamino a Aurelio");
+    cierto(memorias.MEMORIAS[7].parrafos[1].includes("hasta la Llama"), "y al final suben juntos");
+    cierto(pergamino.pergaminoPara("Ana").dedicatoria[0].includes("Casio") && pergamino.pergaminoPara("Ana").dedicatoria[0].includes("Aurelio"),
+           "el pergamino pasó de Casio a Aurelio, y de Aurelio a ti");
+    cierto(mascota.MASCOTAS.dragon.texto.includes("último huevo de los dragones de la Torre"), "tu dragón, el último de la Torre");
 });
 
 

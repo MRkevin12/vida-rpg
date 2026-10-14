@@ -7673,3 +7673,131 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-align: right;
     color: var(--tinta-suave);
 }
+
+
+/* =====================================================================
+   La Saga de la Llama (v35)
+   ===================================================================== */
+
+.saga {
+    display: grid;
+    gap: 12px;
+    border-color: rgba(251, 191, 36, 0.4);
+    background:
+        radial-gradient(circle at 85% 0%, rgba(255, 179, 71, 0.14), transparent 55%),
+        var(--panel);
+}
+
+.saga .etiqueta {
+    margin: 0;
+}
+
+.saga-final {
+    margin: 0;
+    font-size: 0.92rem;
+    font-style: italic;
+    color: var(--texto-suave);
+}
+
+/* El acto de ahora: tu objetivo. */
+.saga-acto {
+    display: grid;
+    gap: 6px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    border-radius: 14px;
+}
+
+.saga-acto h3 {
+    margin: 0;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.1rem;
+}
+
+.saga-numero {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #fbbf24;
+}
+
+.saga-relato {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: var(--texto-suave);
+}
+
+.saga-objetivo {
+    margin: 2px 0 0;
+    font-weight: 700;
+}
+
+.saga-pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.saga-vigia {
+    border-color: rgba(255, 179, 71, 0.8);
+    box-shadow: 0 0 24px rgba(255, 179, 71, 0.18);
+}
+
+/* Los siete actos. */
+.saga-actos {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.saga-actos li {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.saga-actos small {
+    display: block;
+    color: var(--texto-suave);
+}
+
+.saga-marca {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--texto-suave);
+    border: 1px solid var(--borde);
+    border-radius: 50%;
+}
+
+.saga-actos .hecho .saga-marca {
+    color: #0b0816;
+    background: #fbbf24;
+    border-color: #fbbf24;
+}
+
+.saga-actos .actual .saga-marca {
+    color: #fbbf24;
+    border-color: #fbbf24;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.saga-actos .futuro {
+    opacity: 0.6;
+}
+
+/* En Hoy: la fila del objetivo. */
+.saga-linea .barra {
+    margin: 4px 0 2px;
+}

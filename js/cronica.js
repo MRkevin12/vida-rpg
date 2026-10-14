@@ -7,6 +7,9 @@
 // vence con lo que haces cada día. Recorres el mapa región por región, cada una gobernada
 // por cuatro señores, hasta la Ciudadela del Carácter, donde se alza la Torre.
 //
+// Es una parte de la Saga de la Llama (ver saga.js): las Sombras volvieron cuando la Llama de la
+// Torre se apagó, y Aurelio fue el aprendiz del último Vigía.
+//
 // Cada región es un capítulo. Se lee al llegar a ella, y se completa a medida que caen sus
 // señores (con un párrafo para cada uno) y cuando queda libre.
 //
@@ -23,9 +26,9 @@ const PROLOGO = {
     titulo: "El reino dividido",
     parrafos: [
         "Hubo un tiempo en que el reino de {n} se gobernaba solo. El cuerpo descansaba lo justo, la mente aprendía, la voz se atrevía y el tesoro crecía despacio, como crecen las cosas que duran.",
-        "Entonces llegaron las Cuatro Sombras —la del Cuerpo, la de la Mente, la de la Voz y la del Tesoro— y repartieron el reino entre veinte señores. Ninguno empuñó una espada: cada uno es una costumbre con nombre. La Pereza, la Parálisis, el Ego, las Deudas… Se alimentan de cada «mañana» y de cada «no tengo tiempo».",
-        "El Maestro Aurelio encontró a {n} en el Valle del Comienzo. No le dio un arma. Le dio un huevo tibio y una advertencia: «A estos señores no se los vence en una batalla. Se los vence con lo que haces cada día. Cada misión cumplida es un golpe; cada paso, un palmo de tierra recuperada». De ese huevo nació {m}.",
-        "Al final del camino, en la Ciudadela del Carácter, se alza la Torre. Sus puertas nunca se cierran y nadie sabe cuántos pisos tiene. Los que la suben vuelven distintos. Los que liberan el reino, dicen, por fin la ven desde arriba.",
+        "Hace cien años, la Llama de la Torre se apagó. Entonces volvieron las Cuatro Sombras —la del Cuerpo, la de la Mente, la de la Voz y la del Tesoro— y repartieron el reino entre veinte señores. Ninguno empuñó una espada: cada uno es una costumbre con nombre. La Pereza, la Parálisis, el Ego, las Deudas… Se alimentan de cada «mañana» y de cada «no tengo tiempo».",
+        "El Maestro Aurelio, el último aprendiz de los Vigías, encontró a {n} en el Valle del Comienzo. No le dio un arma. Le dio un huevo tibio —el último de los dragones de la Torre— y una advertencia: «A estos señores no se los vence en una batalla. Se los vence con lo que haces cada día. Cada misión cumplida es un golpe; cada paso, un palmo de tierra recuperada». De ese huevo nació {m}.",
+        "Al final del camino, en la Ciudadela del Carácter, se alza la Torre de los Vigías, con su Llama apagada. Sus puertas nunca se cierran y nadie sabe cuántos pisos tiene. Los que la suben vuelven distintos. Mientras nadie vuelva a encender la Llama, dicen, las Sombras volverán una y otra vez.",
     ],
 };
 
@@ -52,8 +55,8 @@ const CAPITULOS = [
         libre: "El mar se calma. Por primera vez las islas están en paz, y el horizonte muestra lo que siempre estuvo ahí: la Ciudadela y, sobre ella, la Torre.",
     },
     {
-        llegada: "La Ciudadela no tiene señores: la construyen quienes los vencieron. En su plaza hay cuatro memoriales apagados, uno por cada Sombra, que se encienden cuando sus cinco señores han caído. En el centro, la Torre.",
-        libre: "Los cuatro memoriales arden. El reino de {n} vuelve a gobernarse solo. Desde lo alto de la Torre, el Maestro Aurelio mira el camino recorrido y no dice nada: no hace falta. Pero en el horizonte, muy lejos, algo se mueve. Las Sombras nunca se van del todo.",
+        llegada: "La Ciudadela no tiene señores: la construyen quienes los vencieron. En su plaza hay cuatro memoriales apagados, uno por cada Sombra, que se encienden cuando sus cinco señores han caído. En el centro, la Torre de los Vigías.",
+        libre: "Los cuatro memoriales arden. El reino de {n} vuelve a gobernarse solo. Al pie de la Torre, el Maestro Aurelio mira el camino recorrido y no dice nada: no hace falta. Pero las Sombras nunca se van del todo: no vienen de lejos, sino de abajo, de donde nacen.",
     },
 ];
 

@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v35 — La Saga de la Llama
+- **Una sola historia con un objetivo** (`js/saga.js`): el pergamino de Lía, las memorias de Aurelio, la Crónica del reino, la Torre, la Mazmorra y tu libro son partes de la misma saga. El objetivo: convertirte en Vigía, liberar el reino de las Cuatro Sombras, volver a encender la Llama de la Torre y vencer al Rey Hueco.
+- **Siete actos que se cumplen en orden** (se calculan con lo que ya hiciste, no se guardan): La primera piedra (1 misión), El juramento (firmar el pacto), El huevo de Aurelio (10 misiones: el dragón se abre), El reino dividido (el primer jefe de cada atributo), La Llama de los Vigías (piso 20 de la Torre), Las Cuatro Sombras (los 20 jefes) y El Rey Hueco (sótano 20 de la Mazmorra). Después eres «Vigía de la Llama».
+- **Tu objetivo, siempre a la vista:** en Hoy, «Tu día» muestra el acto de ahora con su progreso. Cada acto cumplido se celebra con unas palabras de Aurelio y el objetivo siguiente, y «¿Cómo voy?» te lo recuerda.
+- **Héroe › Historia** muestra la saga completa, con el acto de ahora y un botón para leer su historia, y las historias ordenadas en el tiempo (hace siglos, hace cien años, ahora…).
+- **Las historias ya no se contradicen:** las Sombras volvieron cuando se apagó la Llama; Aurelio fue el aprendiz del último Vigía y espera al pie de la Torre (sube a la cima recién al final, después de la Mazmorra); Casio le dio el pergamino de Lía, y la dedicatoria del pergamino lo cuenta; la Torre nombra a Lía; y tu dragón nació del último huevo de los dragones de la Torre.
+
 ## v34 — Armadura de pecho y equipo nuevo
 - **Espacio nuevo: el pecho** (`avatar.ESPACIOS.pecho`), que va encima de la ropa de tu etapa (`dibujo-objetos.armaduraDePecho`): Peto de cuero (común, 🛡️ +5, 80 💎), Cota de malla (raro, 🛡️ +9, 160), Túnica arcana (raro, 🛡️ +3 🔮 +5, 170), Coraza de acero (épico, 🛡️ +16, 420, «Muralla») y Coraza del Vigía (legendario, 🛡️ +20 ⚔️ +2 🔮 +2, «Llama del Vigía»; se gana encendiendo la Llama: 20 pisos de la Torre).
 - **Más objetos en cada espacio:** Diadema de plata (raro) y Yelmo astado (épico, «Rugido») en la cabeza; Daga del ladrón (raro) y Martillo de guerra (épico, «Aturdir») en la mano; Escudo redondo (raro) y Capa de plumas de cuervo (épico, «Presagio») en la espalda; y dos fondos con pinturas de dominio público: Mar embravecido («La novena ola», Aivazovski, 1850) y Aurora boreal (Church, 1865, épico, «Aurora»).

@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 34;
+export const VERSION_APP = 35;
 
 export const NOVEDADES = [
+    {
+        version: 35,
+        titulo: "La Saga de la Llama",
+        cambios: [
+            "🧭 Todas las historias del juego ahora son una sola, con un objetivo: convertirte en Vigía. Liberar el reino de las Cuatro Sombras, volver a encender la Llama de la Torre y vencer al Rey Hueco.",
+            "📚 En Héroe › Historia ves la saga completa: siete actos en orden, el de ahora con su meta y su progreso, y las historias ordenadas en el tiempo (la primera piedra, las memorias de Aurelio, la Crónica, la Torre, la Mazmorra y tu libro).",
+            "🎯 Tu objetivo de la saga aparece en Hoy, en «Tu día», y cada acto que cumples se celebra y te dice cuál es el siguiente.",
+            "🔗 Las historias se conectan: las Sombras volvieron cuando se apagó la Llama, Aurelio fue el aprendiz del último Vigía, el pergamino de Lía pasó por sus manos y tu dragón nació del último huevo de la Torre.",
+        ],
+    },
     {
         version: 34,
         titulo: "Armadura de pecho y equipo nuevo",
