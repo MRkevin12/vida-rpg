@@ -5,10 +5,16 @@
 // desafío relámpago, y en la noche te invita a cerrar el día. También puedes conversar con
 // él eligiendo respuestas.
 //
+// v30: participa en más partes del juego. Te cuenta su historia por capítulos (memorias.js),
+// te da una pista antes de cada guardián de la Torre y la Mazmorra y te habla cuando caes,
+// comenta cuando subes de nivel o vences a un jefe, responde a tu diario y te despide en el
+// ritual de la noche.
+//
 // No es inteligencia artificial: son frases preparadas que se eligen según tu partida.
 // Se dibuja con el mismo sistema del avatar (dibujo.js): un anciano de barba blanca.
 
 import * as juego from "./juego.js";
+import * as memorias from "./memorias.js";
 import * as campana from "./campana.js";
 import { ETAPAS, CLASES, APARIENCIA_INICIAL } from "./avatar.js";
 import { calcularVida } from "./vida.js";
@@ -38,17 +44,29 @@ export function describirMaestro() {
 }
 
 // Todo lo que el Maestro necesita saber de tu día.
-export function contexto(estado, hoy, ahora = Date.now()) {
+// info (opcional) = juego.resumen(estado, hoy), si ya lo calculaste (así no se repite el trabajo).
+export function contexto(estado, hoy, ahora = Date.now(), info = juego.resumen(estado, hoy)) {
     const hora = new Date(ahora).getHours();
     const pendientes = rituales.pendientesDelDia(estado, hoy);
     const clave = rituales.claveDelDia(estado, hoy);
     const orden = { facil: 0, normal: 1, dificil: 2 };
+    const datos = memorias.datosDeMemorias(estado, info);
+    const abiertas = memorias.cuantasAbiertas(datos);
+    const leidas = Math.min(estado.maestro?.leidas || 0, abiertas);
     return {
         hoy,
         hora,
         nombre: estado.pacto?.nombre || estado.personaje.nombre,
         vida: calcularVida(estado, hoy),
-        racha: juego.calcularRacha(estado, hoy).actual,
+        racha: info.racha.actual,
+        // Sus memorias: cuántas te contó, cuántas leíste y lo que falta para la siguiente.
+        memorias: {
+            abiertas,
+            leidas,
+            sinLeer: abiertas - leidas,
+            total: memorias.MEMORIAS.length,
+            siguiente: abiertas < memorias.MEMORIAS.length ? memorias.pista(memorias.MEMORIAS[abiertas], datos) : null,
+        },
         pacto: cumplimientoDelPacto(estado, hoy),
         cofre: cofreDisponible(estado, hoy),
         relampago: rituales.estadoRelampago(estado, hoy, ahora, hora),
@@ -83,6 +101,12 @@ export function saludo(c) {
     if (c.hora >= 18 && !c.cerrado) {
         return `Cae la noche, ${n}. ${c.pendientes.length ? `Te quedan ${misiones(c.pendientes.length)}. ` : ""}¿Cerramos el día juntos?`;
     }
+    // Si te contó algo nuevo de su pasado (y no es momento de algo más urgente).
+    if (c.memorias?.sinLeer) {
+        return c.memorias.leidas
+            ? `Siéntate un momento, ${n}. Hay algo más de mi pasado que ya puedes saber.`
+            : `Nunca te conté quién fui antes de ser tu maestro, ${n}. Cuando quieras, siéntate y te lo cuento.`;
+    }
     if (c.clave && !c.claveHecha) return `Tu misión clave de hoy es «${c.clave.nombre}». Vale el doble: no la sueltes.`;
     if (c.racha >= 7) return `${c.racha} días seguidos. No es suerte, ${n}: es carácter.`;
     const cita = citaDelDia(c.hoy);
@@ -99,6 +123,7 @@ export const OPCIONES = [
     { id: "abrumado", texto: "😵 Estoy abrumado" },
     { id: "comoVoy",  texto: "📊 ¿Cómo voy?" },
     { id: "consejo",  texto: "💡 Dame un consejo" },
+    { id: "historia", texto: "📜 Háblame de ti" },
 ];
 
 // Citas de clásicos (traducciones libres de obras de dominio público).
@@ -110,6 +135,94 @@ export const CONSEJOS = [
     { texto: "Quien conoce a los demás es sabio; quien se conoce a sí mismo es iluminado.", autor: "Lao-Tse" },
     { texto: "Primero dite a ti mismo lo que quieres ser; luego haz lo que tienes que hacer.", autor: "Epicteto" },
 ];
+
+// ===== Sus palabras en el resto del juego (v30) =====
+// Se eligen por un número (el nivel, el piso, la fecha…), no al azar: así no cambian cada vez
+// que se vuelve a dibujar la pantalla.
+const una = (lista, numero) => lista[Math.abs(Math.round(numero)) % lista.length];
+
+// Antes de cada guardián de la Torre y de la Mazmorra: una pista sobre su punto débil (y lo que resiste).
+export const CONSEJOS_DE_GUARDIAN = {
+    caballero: "Una armadura vacía no siente el frío: ya está muerta. Pero el metal llama al rayo.",
+    liche: "Toda su vida está escrita en papel. Y el papel le tiene miedo al fuego.",
+    demonio: "No le lleves fuego a quien vive en la fragua. Lo que apaga un horno es el frío.",
+    dragon: "El rayo es su aliento: no se lo devuelvas. El hielo, en cambio, le pesa en las alas.",
+    kraken: "Vive en agua helada: el frío no le hace nada. Pero el agua lleva el rayo hasta el fondo.",
+    arbol: "Un árbol muerto por dentro arde como yesca. Y el rayo ya le cayó muchas veces.",
+    reflejo: "Tiene tu fuego, porque es tuyo. Lo que no tiene es calma: enfríalo.",
+    "rey-hueco": "Está hecho de días fríos y vacíos. Llévale lo único que nunca tuvo: la Llama.",
+};
+
+export function consejoDeGuardian(id) {
+    return CONSEJOS_DE_GUARDIAN[id] || "Este es más fuerte que los demás. Mira bien lo que planea antes de cada golpe.";
+}
+
+// Cuando caes en la Torre o en la Mazmorra.
+const CONSUELOS = [
+    "Caer no es perder. Perder es no volver a subir.",
+    "Casio caía a menudo. Lo que nunca hizo fue quedarse en el suelo.",
+    "Cada criatura que te venció hoy ya te enseñó algo. Mira tu bestiario antes de volver.",
+    "Tu fuerza aquí sale de lo que haces allá afuera. Cumple tus misiones y vuelve más fuerte.",
+    "Mañana, un piso más que hoy. Así se sube una torre, y así se baja a un abismo.",
+];
+
+export function consueloAlCaer(pisos) {
+    return una(CONSUELOS, pisos);
+}
+
+// Al subir de nivel.
+const AL_SUBIR = [
+    "Un nivel más. No lo celebres demasiado: mañana se sube igual.",
+    "Lo que hiciste pesa más que lo que prometiste. Sigue así.",
+    "Casio decía: «El nivel no se gana: se acumula». Sigue acumulando.",
+    "Más fuerte que ayer. Es la única comparación que importa.",
+    "Cada nivel es la suma de días que nadie vio. Yo los vi.",
+];
+
+export function palabrasDeNivel(nivel) {
+    return una(AL_SUBIR, nivel);
+}
+
+// Al vencer a un jefe de tus campañas (numero = cuántos llevas vencidos).
+const AL_VENCER = [
+    "Una Sombra menos. Ahora no le vuelvas a dar de comer.",
+    "No lo venciste con un golpe, sino con muchos días. Recuérdalo cuando quiera volver.",
+    "Así cayó mi primera Sombra: sin gloria y sin atajos. Bien hecho.",
+    "Las Sombras no mueren: se mueren de hambre. Sigue sin alimentarla.",
+];
+
+export function palabrasDeJefe(numero) {
+    return una(AL_VENCER, numero);
+}
+
+// Lo que te responde cuando escribes en tu diario, según cómo te fue (ver juego.ANIMOS_DIARIO).
+const AL_DIARIO = {
+    genial: ["Guarda este día en la memoria: los malos pasan más rápido cuando recuerdas los buenos.",
+             "Disfrútalo sin culpa. Te lo ganaste."],
+    bien: ["Un buen día no es un día perfecto. Es un día honesto.",
+           "«Bien», muchas veces seguidas, termina siendo extraordinario."],
+    normal: ["Los días normales son los ladrillos de la Torre. Nadie los aplaude, pero sin ellos no hay torre.",
+             "No todos los días tienen que significar algo. Algunos solo tienen que pasar bien hechos."],
+    mal: ["Un mal día no es una mala vida. Mañana empieza en cero.",
+          "Escribirlo ya es empezar a soltarlo."],
+    terrible: ["Hoy solo te pido una cosa: descansa. Mañana hablamos de lo demás.",
+               "Hasta Casio tuvo días así. Si te pesan muchos seguidos, habla con alguien de confianza: pedir ayuda también es valentía."],
+};
+
+// fecha: "AAAA-MM-DD" (para elegir la frase sin que cambie en todo el día).
+export function respuestaAlDiario(animo, fecha) {
+    const lista = AL_DIARIO[animo];
+    return lista ? una(lista, Number(fecha.replaceAll("-", ""))) : null;
+}
+
+// Al cerrar el día en el ritual de la noche. d = { hechas, falladas, pendientes } de hoy.
+export function palabrasDeLaNoche(d) {
+    if (d.hechas && !d.falladas && !d.pendientes) return "Día completo. Duerme en paz: hoy no le debes nada a nadie, tampoco a ti.";
+    if (d.falladas) return "Fallaste en algo y lo dijiste en voz alta. Eso también es honrar tu pacto. Mañana, otra vez.";
+    if (!d.hechas) return "Hoy no fue tu día. Que no sean dos seguidos.";
+    return "Lo que hiciste hoy cuenta, aunque no haya sido todo. Descansa.";
+}
+
 
 // El jefe que está más cerca de caer.
 function jefeMasCercano(estado) {
@@ -144,6 +257,12 @@ export function responder(estado, c, opcion, azar = Math.random) {
         case "consejo": {
             const consejo = CONSEJOS[Math.floor(azar() * CONSEJOS.length)];
             return `«${consejo.texto}» — ${consejo.autor}`;
+        }
+        case "historia": {
+            const m = c.memorias;
+            if (m.sinLeer) return "Hay cosas que no le cuento a cualquiera. A ti ya te puedo contar más: lee mis memorias.";
+            if (m.siguiente) return `Ya te conté ${m.abiertas} de ${m.total} capítulos de mi vida. El que sigue te lo contaré ${m.siguiente}.`;
+            return "Ya lo sabes todo de mí. Ahora la historia que importa es la tuya.";
         }
         default:
             return saludo(c);

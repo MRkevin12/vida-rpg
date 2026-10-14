@@ -24,6 +24,7 @@ import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
 import * as libro from "./libro.js";
 import * as maestro from "./maestro.js";
+import * as memorias from "./memorias.js";
 import * as rituales from "./rituales.js";
 import * as mascota from "./mascota.js";
 import * as mapa from "./mapa.js";
@@ -56,6 +57,7 @@ let paginaLibro = "portada";     // en «Tu libro»: "portada", "indice" o el n�
 let problemaAvisos = null;       // si las notificaciones se cortaron: "bloqueadas" o "desconectadas"
 let regionMapa = null;           // en el mapa: la región que miras (null = donde vas)
 let maestroVista = { modo: "inicio", respuesta: "" };   // la conversación con el Maestro
+let memoriasDesde = null;   // cuántas memorias de Aurelio habías leído al abrirlas (las demás se marcan «Nuevo»)
 let ritual = null;               // el ritual de la noche en curso: { paso, cola, indice, motivo }
 let golpe = null;                // el golpe con timing en curso
 let alCerrarRobo = null;         // qué hacer cuando se cierre la escena del robo de vida
@@ -65,7 +67,7 @@ let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
 
 // Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
-const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje" };
+const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje" };
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -83,6 +85,7 @@ const DIBUJAR = {
     pacto: vistas.pantallaPacto,
     libro: vistas.pantallaLibro,
     mapa: vistas.pantallaMapa,
+    memorias: vistas.pantallaMemorias,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -520,11 +523,12 @@ let ultimoHechizo = "fuego";    // y el último hechizo, dentro de «Magia»
 let relatoEnCurso = null;
 // Las imágenes en pixel art de la batalla (ver sprites.js). Hacerlas tarda un instante,
 // así que se preparan ANTES de dibujar (con await) y se guardan aquí.
-const spritesTorre = { heroe: null, enemigo: null, sala: null, mascota: null };
+const spritesTorre = { heroe: null, enemigo: null, sala: null, mascota: null, maestro: null };
 
 async function prepararSprites() {
     const partida = estado.arcade[lugarAbierto];
     spritesTorre.heroe = await sprites.spriteDeHeroe(avatarActual());
+    spritesTorre.maestro = await sprites.spriteDeMaestro(maestro.describirMaestro());   // su cara, para sus consejos
     if (!partida) return;   // al cobrar ya no hay partida: quedan la sala y la criatura de antes
     [spritesTorre.enemigo, spritesTorre.sala, spritesTorre.mascota] = await Promise.all([
         sprites.spriteDeMonstruo(partida.enemigo.id, avatarActual()),   // (el Reflejo sombrío es tu héroe)
@@ -817,7 +821,8 @@ function contextoActual(efectos = {}) {
         regionMapa,
         subvista,                                           // la sección elegida en Progreso, Tienda y Héroe
         campanaVista,
-        maestro: maestro.contexto(estado, fecha, ahora),    // lo que el Maestro sabe de tu día
+        maestro: maestro.contexto(estado, fecha, ahora, info),   // lo que el Maestro sabe de tu día
+        memoriasDesde,
         evento: eventoDelDia(fecha, estado),
         ...efectos,   // ej: { recienHecha: 3 } para animar la misión 3
     };
@@ -883,6 +888,7 @@ function cambiarPantalla(nombre) {
         nombre = "progreso";
     }
     diaVisto = "hoy";   // al cambiar de pantalla siempre se vuelve a "hoy"
+    if (nombre !== "memorias") memoriasDesde = null;
     renovandoPacto = false;
     if (nombre === "libro") paginaLibro = "portada";   // el libro siempre se abre por la portada
     if (nombre === "mapa") regionMapa = null;           // el mapa se abre donde vas
@@ -955,9 +961,13 @@ function siguienteCelebracion() {
     $("#cel-etiqueta").textContent = celebracion.etiqueta;
     $("#cel-titulo").textContent = celebracion.titulo;
     $("#cel-detalle").textContent = celebracion.detalle || "";
+    // Lo que dice el Maestro Aurelio (al subir de nivel, vencer a un jefe o contarte su historia).
+    $("#cel-maestro").textContent = celebracion.maestro ? `🧙 «${celebracion.maestro}»` : "";
+    $("#cel-maestro").hidden = !celebracion.maestro;
     capa.hidden = false;
     reproducirAnimacion($(".celebracion-caja"), "entrar");
-    temporizadorCelebracion = setTimeout(siguienteCelebracion, 3200);
+    // Con las palabras del Maestro se queda un poco más, para que alcance a leerse.
+    temporizadorCelebracion = setTimeout(siguienteCelebracion, celebracion.maestro ? 4600 : 3200);
 }
 
 // Aviso pequeño abajo de la pantalla.
@@ -1061,6 +1071,10 @@ function rellenarOpciones() {
            <em>misión clave</em>: si la cumples vale el doble (XP, monedas y daño al jefe). En la noche, el ritual te hace repasar
            lo que falta (la hice / no la hice), escribir el diario y leer tu capítulo; cerrar el día da +${rituales.PREMIO_CIERRE.xp} XP
            y ${rituales.PREMIO_CIERRE.monedas} monedas.</p>
+        <p><strong>Aurelio en todo el juego:</strong> te da una pista antes de cada guardián de la Torre y de la Mazmorra y te habla
+           cuando caes; comenta cuando subes de nivel o vences a un jefe, responde a tu diario y te despide al cerrar el día.
+           Sus <strong>memorias</strong> (Héroe › Historia) cuentan quién fue antes de ser tu maestro: ${memorias.MEMORIAS.length}
+           capítulos que se abren en orden con tu mejor racha, tus jefes vencidos, tu nivel y tus récords de la Torre y la Mazmorra.</p>
         <p><strong>Cofre del día:</strong> con lo primero que cumplas se desbloquea un cofre con un premio al azar (monedas, XP,
            fichas, una poción o, rara vez, equipo).</p>
         <p><strong>Eventos del día:</strong> más o menos la mitad de los días pasa algo (Mercader ambulante, Luna de sangre,
@@ -2265,6 +2279,13 @@ const ACCIONES = {
 
     // El Maestro.
     "maestro-abrir": (boton) => abrirMaestro(boton.dataset.modo || "inicio"),
+    // Sus memorias: al abrirlas quedan leídas (las que eran nuevas se marcan «Nuevo» esta vez).
+    "memorias-abrir": () => {
+        memoriasDesde = estado.maestro.leidas || 0;
+        if (!$("#maestro").hidden) cerrarMaestro();
+        ejecutar(() => acciones.leerMemorias(estado));
+        cambiarPantalla("memorias");
+    },
     "maestro-cerrar": () => cerrarMaestro(),
     "robo-cerrar": () => cerrarRobo(),
     "maestro-modo": (boton) => {
@@ -2273,7 +2294,8 @@ const ACCIONES = {
     },
     "maestro-opcion": (boton) => {
         const c = maestro.contexto(estado, hoy());
-        maestroVista = { modo: "respuesta", respuesta: maestro.responder(estado, c, boton.dataset.opcion) };
+        const opcion = boton.dataset.opcion;
+        maestroVista = { modo: "respuesta", respuesta: maestro.responder(estado, c, opcion), opcion };
         pintarMaestro();
     },
     "maestro-clave": (boton) => {

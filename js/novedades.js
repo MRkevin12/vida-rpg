@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 29;
+export const VERSION_APP = 30;
 
 export const NOVEDADES = [
+    {
+        version: 30,
+        titulo: "El Maestro Aurelio",
+        cambios: [
+            "🧙 Memorias de Aurelio: quién fue tu maestro antes de serlo, en 8 capítulos que te va contando a medida que avanzas (tu mejor racha, tus jefes, tu nivel, la Torre y la Mazmorra). Están en Héroe › Historia, y en Hoy te avisa cuando tiene algo nuevo que contarte.",
+            "⚔️ En la Torre y en la Mazmorra te da una pista antes de cada guardián, y unas palabras cuando caes.",
+            "🎉 Comenta cuando subes de nivel o vences a un jefe, responde a tu diario según cómo te fue y te despide al cerrar el día.",
+            "💬 Puedes preguntarle «Háblame de ti» cuando conversas con él.",
+        ],
+    },
     {
         version: 29,
         titulo: "La Mazmorra del Abismo",

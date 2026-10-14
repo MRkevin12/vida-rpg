@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v30 — El Maestro Aurelio
+- **Memorias de Aurelio** (`js/memorias.js`): la historia de tu maestro en 8 capítulos que se abren en orden a medida que avanzas (siempre, mejor racha de 7, primer jefe, nivel 10, piso 10 de la Torre, 5 jefes, piso 20 de la Torre y sótano 20 de la Mazmorra). Fue aprendiz de Casio, el último Vigía, que subió a salvar la Llama y nunca volvió (es el Centinela celeste de la Torre); por miedo se quedó cien años al pie de la Torre, como el Rey Hueco se quedó abajo. Cada capítulo termina con una lección. Se leen en Héroe › Historia, en un pergamino como la Crónica; los cerrados dicen qué falta.
+- **Aurelio en todo el juego:** en Hoy avisa cuando tiene algo nuevo que contarte («📜 Escuchar»); en la conversación hay «Háblame de ti»; en la Torre y la Mazmorra da una pista antes de cada guardián (sobre su punto débil) y unas palabras cuando caes; comenta al subir de nivel y al vencer a un jefe; responde a tu diario según tu ánimo y te despide en el ritual de la noche.
+- Datos versión 16 (`estado.maestro.leidas`).
+
 ## v29 — La Mazmorra del Abismo
 - **Una mazmorra nueva bajo la Torre:** se abre al superar el piso 20 de la Torre del héroe (vencer al Dragón de la tormenta); mientras tanto, en el Arcade se ve cerrada con lo que falta. Se juega igual que la Torre pero bajando, con su propia partida guardada (`estado.arcade.mazmorra`) y su récord. Cuesta 1 ficha y paga más: 5 monedas y 8 XP de Fuerza por sótano (máx. 80 y 120).
 - **20 criaturas nuevas en 4 zonas:** Cisternas anegadas (Sanguijuela gigante, Ahogado, Aguaviva pálida, Cangrejo acorazado y la Bestia de la cisterna), Bosque de raíces (Hongo carroñero, Escorpión de raíz, Gusano devorador, Raíz estranguladora y el Árbol hueco), Santuario de las Sombras (Acólito, Can del umbral, Sacerdotisa velada, Sabueso de ceniza y el **Reflejo sombrío**, que es tu propio héroe en sombras) y Corazón del Abismo (los cuatro Heraldos de las Sombras y el Rey Hueco). Dibujos SVG propios convertidos en pixel art, con 4 salas nuevas.

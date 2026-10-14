@@ -36,6 +36,7 @@ import * as cofre from "../js/cofre.js";
 import * as mapa from "../js/mapa.js";
 import * as mascota from "../js/mascota.js";
 import * as maestro from "../js/maestro.js";
+import * as memorias from "../js/memorias.js";
 import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
@@ -2336,6 +2337,111 @@ prueba("El Maestro: su saludo depende de cómo vas, y responde a lo que le dices
     crearMision(raro, { nombre: "<img src=x onerror=alert(1)>" });
     const html = vistas.dialogoMaestro({ maestro: maestro.contexto(raro, hoy(), a(8)) }, { modo: "clave" });
     cierto(html.includes("&lt;img") && !html.includes("<img src=x"), "los nombres van escapados");
+});
+
+
+// ===== El Maestro Aurelio en todo el juego (v30) =====
+
+prueba("Memorias de Aurelio: 8 capítulos que se abren en orden, según cómo avanzas", () => {
+    igual(memorias.MEMORIAS.length, 8);
+    igual(new Set(memorias.MEMORIAS.map((m) => m.id)).size, 8, "ids distintos");
+    for (const m of memorias.MEMORIAS) cierto(m.titulo && m.parrafos.length === 2 && m.leccion, `${m.id} tiene título, dos párrafos y su lección`);
+    const nada = { siempre: 0, racha: 0, jefes: 0, nivel: 1, torre: 0, mazmorra: 0 };
+    igual(memorias.cuantasAbiertas(nada), 1, "la primera, desde el primer día");
+    igual(memorias.cuantasAbiertas({ ...nada, racha: 7 }), 2);
+    igual(memorias.cuantasAbiertas({ ...nada, racha: 9, jefes: 1, nivel: 10 }), 4);
+    igual(memorias.cuantasAbiertas({ ...nada, mazmorra: 20, torre: 20 }), 1, "en orden: sin la racha no se abre lo demás");
+    igual(memorias.cuantasAbiertas({ siempre: 0, racha: 30, jefes: 9, nivel: 25, torre: 22, mazmorra: 20 }), 8, "todas");
+
+    const datos = { ...nada, racha: 12, nivel: 6 };
+    const capitulos = memorias.capitulosDeMemorias(datos, 1, { heroe: "Ana", dragon: "Chispa" });
+    igual(capitulos.map((c) => c.abierto), [true, true, false, false, false, false, false, false]);
+    igual(capitulos.map((c) => c.nueva), [false, true, false, false, false, false, false, false], "la segunda todavía no la leíste");
+    igual(capitulos[2].pista, "Aurelio te lo contará cuando venzas a tu primer jefe.");
+    igual([capitulos[3].pista, capitulos[3].parrafos, capitulos[3].leccion], [null, [], null], "lo que no se abrió no se ve");
+    cierto(memorias.pista(memorias.MEMORIAS[3], datos).includes("vas en el 6"), "dice cuánto te falta");
+    const todo = memorias.capitulosDeMemorias({ siempre: 0, racha: 30, jefes: 9, nivel: 25, torre: 22, mazmorra: 20 }, 8, { heroe: "Ana", dragon: "Chispa" });
+    const texto = JSON.stringify(todo);
+    cierto(!texto.includes("{n}") && !texto.includes("{m}") && texto.includes("Ana") && texto.includes("De él nació Chispa"), "los nombres en su lugar");
+});
+
+prueba("Memorias en la partida: Aurelio avisa en Hoy, se celebran al abrirse y quedan leídas al abrirlas", () => {
+    const estado = partidaNueva();
+    const a = (hora) => { const f = new Date(); f.setHours(hora, 0, 0, 0); return f.getTime(); };
+    let c = maestro.contexto(estado, hoy(), a(14));
+    igual([c.memorias.abiertas, c.memorias.leidas, c.memorias.sinLeer, c.memorias.total], [1, 0, 1, 8]);
+    cierto(maestro.saludo(c).includes("Nunca te conté quién fui"), maestro.saludo(c));
+    cierto(maestro.saludo(maestro.contexto(estado, hoy(), a(21))).includes("Cae la noche"), "de noche, primero cerrar el día");
+    cierto(vistas.dialogoMaestro({ maestro: c }, { modo: "inicio" }).includes('data-accion="memorias-abrir"'), "en la conversación, «Escuchar su historia»");
+    cierto(maestro.responder(estado, c, "historia").includes("lee mis memorias"), "«Háblame de ti»");
+
+    acciones.leerMemorias(estado);
+    c = maestro.contexto(estado, hoy(), a(14));
+    igual([c.memorias.leidas, c.memorias.sinLeer], [1, 0], "leídas");
+    cierto(!maestro.saludo(c).includes("pasado") && maestro.responder(estado, c, "historia").includes("Ya te conté 1 de 8"), "y ya no insiste");
+
+    // Al abrirse un capítulo, se celebra con su lección.
+    const antes = acciones.foto(estado);
+    antes.memorias = 0;
+    const celebracion = acciones.revisarCambios(estado, antes).find((x) => x.etiqueta === "Aurelio quiere contarte algo");
+    igual([celebracion.titulo, celebracion.maestro], [memorias.MEMORIAS[0].titulo, memorias.MEMORIAS[0].leccion]);
+    // Al subir de nivel, también dice algo.
+    const previo = acciones.foto(estado);
+    estado.personaje.xp += 100;
+    const nivel = acciones.revisarCambios(estado, previo).find((x) => x.tipo === "nivel");
+    igual(nivel.maestro, maestro.palabrasDeNivel(2));
+    // Las copias de antes de la v30 empiezan sin memorias leídas.
+    delete estado.maestro;
+    igual(datos.desdeRespaldo(datos.textoRespaldo(estado)).maestro, { leidas: 0 });
+});
+
+prueba("Aurelio en la Torre y la Mazmorra: una pista antes de cada guardián y unas palabras si caes", () => {
+    const guardianes = [...bestiario.ORDEN, ...bestiario.ORDEN_MAZMORRA].filter((id) => bestiario.CRIATURAS[id].guardian);
+    igual(guardianes.length, 8);
+    for (const id of guardianes) cierto(maestro.CONSEJOS_DE_GUARDIAN[id], `tiene un consejo para ${id}`);
+    igual(Object.keys(maestro.CONSEJOS_DE_GUARDIAN).sort(), [...guardianes].sort(), "y ninguno de más");
+
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 6);
+    const p = estado.arcade.torre;
+    const imagenes = { heroe: "data:,", enemigo: "data:,", sala: "data:,", maestro: "data:image/png;base64,MM" };
+    const t = (cambios = {}) => ({ partida: estado.arcade.torre, nombre: "Prueba", sprites: imagenes, eventos: [], menu: "principal",
+                                   ultimo: "atacar", bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
+    igual(vistas.pantallaTorre(t()).includes("ff-maestro"), false, "contra una criatura normal no dice nada");
+    p.piso = 5;
+    p.enemigo = torre.monstruoDelPiso(5);
+    let html = vistas.pantallaTorre(t());
+    cierto(html.includes("ff-maestro") && html.includes("el metal llama al rayo") && html.includes("data:image/png;base64,MM"), "antes del Caballero");
+    p.heroe.vida = 1;
+    p.enemigo.intencion = "golpe";
+    const { eventos } = acciones.accionTorre(estado, "defender");
+    html = vistas.pantallaTorre(t({ eventos }));
+    igual(p.fase, "fin");
+    cierto(html.includes(maestro.consueloAlCaer(4)), "al caer, unas palabras");
+});
+
+prueba("Aurelio responde a tu diario, te despide en la noche y sus memorias se leen sin huecos", () => {
+    for (const animo of Object.keys(juego.ANIMOS_DIARIO)) cierto(maestro.respuestaAlDiario(animo, hoy()), `responde a «${animo}»`);
+    igual(maestro.respuestaAlDiario("mal", "2026-10-13"), maestro.respuestaAlDiario("mal", "2026-10-13"), "el mismo día, la misma frase");
+    igual(maestro.respuestaAlDiario("inventado", hoy()), null);
+    cierto(maestro.palabrasDeLaNoche({ hechas: 3, falladas: 0, pendientes: 0 }).includes("Día completo"), "día completo");
+    cierto(maestro.palabrasDeLaNoche({ hechas: 2, falladas: 1, pendientes: 0 }).includes("Fallaste"), "con una fallada");
+    cierto(maestro.palabrasDeLaNoche({ hechas: 0, falladas: 0, pendientes: 2 }).includes("no fue tu día"), "sin nada");
+
+    const estado = partidaNueva();
+    estado.personaje.nombre = "Ana <b>";
+    const info = juego.resumen(estado, hoy());
+    const ctx = { hoy: hoy(), info, maestro: maestro.contexto(estado, hoy(), Date.now(), info), memoriasDesde: 0 };
+    let html = vistas.pantallaMemorias(estado, ctx);
+    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(html.includes("Memorias de Aurelio") && html.includes("El que dejaba todo para mañana") && html.includes("Nuevo"), "el primer capítulo, nuevo");
+    cierto(html.includes("???") && html.includes("🔒 Aurelio te lo contará cuando logres una racha de 7 días"), "el siguiente, con lo que falta");
+    estado.diario[hoy()] = { animo: "bien", texto: "" };
+    html = vistas.pantallaHoy(estado, {
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+        vida: vida.calcularVida(estado, hoy()), maestro: ctx.maestro, evento: null, subvista: {}, diarioVista: {},
+    });
+    cierto(html.includes(maestro.respuestaAlDiario("bien", hoy())) && html.includes('data-accion="memorias-abrir"'), "en Hoy: su respuesta y «Escuchar»");
 });
 
 

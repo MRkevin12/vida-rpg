@@ -21,6 +21,7 @@ import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
 import * as libro from "./libro.js";
 import * as maestro from "./maestro.js";
+import * as memorias from "./memorias.js";
 import * as rituales from "./rituales.js";
 import * as mapa from "./mapa.js";
 import * as cronica from "./cronica.js";
@@ -494,11 +495,21 @@ function seccionDiario(estado, ctx, fecha, esAyer) {
                     <button type="submit" class="boton boton-principal boton-ancho">${entrada ? "Actualizar" : "Guardar en mi diario"}</button>
                 </details>
             </form>
+            ${entrada?.animo ? palabrasDelMaestro(maestro.respuestaAlDiario(entrada.animo, fecha)) : ""}
         </section>`;
 }
 
 
 // ===== El Maestro, el evento del día, el cofre y el relámpago (en Hoy) =====
+
+// Lo que dice el Maestro en medio de otra pantalla (el diario, el ritual): su cara pequeña y la frase.
+function palabrasDelMaestro(texto) {
+    return `
+        <div class="maestro-dice">
+            <span class="maestro-dice-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { mini: true })}</span>
+            <p><b>${maestro.NOMBRE}</b>${esc(texto)}</p>
+        </div>`;
+}
 
 // La tarjeta del Maestro: lo que te dice ahora y los botones para hablar, elegir tu misión clave o cerrar el día.
 function tarjetaMaestro(ctx) {
@@ -509,6 +520,10 @@ function tarjetaMaestro(ctx) {
     }
     if (!c.cerrado && (c.hora >= 17 || (c.tocan && !c.pendientes.length))) {
         botones.push('<button type="button" class="boton boton-chico boton-secundario" data-accion="ritual-abrir">🌙 Cerrar el día</button>');
+    }
+    // Si te contó algo nuevo de su pasado (ver memorias.js).
+    if (c.memorias.sinLeer) {
+        botones.push(`<button type="button" class="boton boton-chico boton-secundario" data-accion="memorias-abrir">📜 Escuchar${c.memorias.sinLeer > 1 ? ` (${c.memorias.sinLeer})` : ""}</button>`);
     }
     return `
         <section class="maestro-tarjeta">
@@ -612,12 +627,14 @@ export function dialogoMaestro(ctx, m) {
         opciones += opcion("maestro-modo", "‹ Volver", 'data-modo="inicio"');
     } else if (m.modo === "respuesta") {
         texto = m.respuesta;
+        if (m.opcion === "historia" && c.memorias.abiertas) opciones += opcion("memorias-abrir", "📜 Leer sus memorias");
         if (puedeClave) opciones += opcion("maestro-modo", "🔑 Elegir mi misión clave", 'data-modo="clave"');
         opciones += opcion("maestro-modo", "‹ Seguir hablando", 'data-modo="inicio"');
         opciones += opcion("maestro-cerrar", "Gracias, maestro");
     } else {
         texto = maestro.saludo(c);
-        opciones = maestro.OPCIONES.map((o) => opcion("maestro-opcion", o.texto, `data-opcion="${o.id}"`)).join("");
+        if (c.memorias.sinLeer) opciones += opcion("memorias-abrir", "📜 Escuchar su historia");
+        opciones += maestro.OPCIONES.map((o) => opcion("maestro-opcion", o.texto, `data-opcion="${o.id}"`)).join("");
         if (puedeClave) opciones += opcion("maestro-modo", "🔑 Elegir mi misión clave", 'data-modo="clave"');
         if (!c.cerrado) opciones += opcion("ritual-abrir", "🌙 Cerrar el día");
     }
@@ -703,10 +720,12 @@ export function pantallaRitual(estado, ctx, r) {
            </article>
            <button type="button" class="boton-texto" data-accion="ir" data-pantalla="libro">Leer el capítulo completo ›</button>`
         : '<p class="nota">Hoy no escribiste en tu diario, así que tu libro no tendrá capítulo de hoy.</p>';
+    const despedida = maestro.palabrasDeLaNoche({ hechas, falladas, pendientes: ctx.maestro.pendientes.length });
     return `${cabecera(3, "Tu día, en tu libro")}
         <p class="ritual-resumen">✓ ${juego.plural(hechas, "cumplida", "cumplidas")} · ✗ ${juego.plural(falladas, "fallada", "falladas")} ·
            ❤️ ${ctx.vida.puntos}/${ctx.vida.maxima} · 🔥 ${juego.plural(ctx.info.racha.actual, "día", "días")}</p>
         ${lectura}
+        ${palabrasDelMaestro(despedida)}
         <button type="button" class="boton boton-sangre boton-ancho" data-accion="ritual-terminar">🌙 Cerrar el día</button>`;
 }
 
@@ -2436,10 +2455,20 @@ export function pantallaTorre(t) {
             <button type="button" class="enlace torre-rendirse" data-accion="torre-rendirse">Huir y cobrar lo ganado</button>`;
     }
 
+    // El Maestro Aurelio: una pista antes de pelear con un guardián, y unas palabras si caes.
+    const consejo = p.fase === "fin" ? maestro.consueloAlCaer(torre.pisosSuperados(p))
+        : p.fase === "batalla" && m.guardian && !eventos.length && m.vida === m.vidaMax ? maestro.consejoDeGuardian(m.id) : null;
+    const aurelio = consejo ? `
+        <div class="ff-ventana ff-maestro ${espera}">
+            ${t.sprites.maestro ? `<img class="ff-maestro-retrato" src="${t.sprites.maestro}" alt="" draggable="false">` : ""}
+            <p><b>Aurelio</b>${esc(consejo)}</p>
+        </div>` : "";
+
     return `
         ${barraTorre(`${sitio.icono} ${sitio.piso} ${p.piso}`, `${zona.nombre}${m.guardian ? " 👑" : ""}`)}
         ${escena}
         <p class="ff-ventana ff-mensaje" role="status">${esc(p.registro)}</p>
+        ${aurelio}
         ${abajo}`;
 }
 
@@ -2991,11 +3020,54 @@ function seccionHistoria(estado, ctx) {
                              'data-accion="ir" data-pantalla="libro"')}
                 ${filaEnlace("🗺️", "Crónica del reino", `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
                              'data-accion="ir" data-pantalla="mapa"')}
+                ${filaEnlace("🧙", "Memorias de Aurelio", `${ctx.maestro.memorias.abiertas} de ${ctx.maestro.memorias.total} capítulos` +
+                             `${ctx.maestro.memorias.sinLeer ? ` · ${plural(ctx.maestro.memorias.sinLeer, "nuevo", "nuevos")}` : ""}`,
+                             'data-accion="memorias-abrir"')}
                 ${filaEnlace("🏆", "Logros", `${conseguidos} de ${plural(estado.logros.length, "logro", "logros")} conseguidos`,
                              'data-accion="subvista" data-pantalla="progreso" data-vista="logros"')}
             </div>
         </section>`;
 }
+
+// ===== Pantalla: Memorias de Aurelio (v30) =====
+// La historia de tu maestro, en un pergamino como la Crónica. Los capítulos se abren al avanzar
+// (ver memorias.js); los que no, se ven como «???» y el siguiente dice qué falta.
+// ctx.memoriasDesde = cuántos habías leído antes de abrir (los de después se marcan «Nuevo»).
+export function pantallaMemorias(estado, ctx) {
+    const datos = memorias.datosDeMemorias(estado, ctx.info);
+    const desde = ctx.memoriasDesde ?? ctx.maestro.memorias.leidas;
+    const capitulos = memorias.capitulosDeMemorias(datos, desde, {
+        heroe: estado.personaje.nombre,
+        dragon: mascota.nombreDe(estado, mascota.INICIAL),
+    });
+    const abiertos = capitulos.filter((c) => c.abierto);
+    // Se abre el primero nuevo; si no hay, el último que te contó.
+    const elegido = (capitulos.find((c) => c.nueva) || abiertos[abiertos.length - 1])?.id;
+    const html = capitulos.map((c) => {
+        if (!c.abierto) {
+            return `<div class="capitulo bloqueado"><span class="capitulo-numero">Capítulo ${c.numero}</span>
+                        <b>???</b>${c.pista ? `<small>🔒 ${esc(c.pista)}</small>` : ""}</div>`;
+        }
+        return `<details class="capitulo" ${c.id === elegido ? "open" : ""}>
+                    <summary><span class="capitulo-numero">Capítulo ${c.numero}</span> <b>${esc(c.titulo)}</b>
+                        ${c.nueva ? '<span class="memoria-nueva">Nuevo</span>' : ""}</summary>
+                    ${c.parrafos.map((texto) => `<p>${esc(texto)}</p>`).join("")}
+                    <blockquote class="memoria-leccion">«${esc(c.leccion)}»</blockquote>
+                </details>`;
+    }).join("");
+    const todo = abiertos.length === capitulos.length;
+    return `
+        ${encabezado("🧙 Memorias", "personaje", "Héroe")}
+        <section class="cronica memorias">
+            <div class="memorias-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { batalla: true })}</div>
+            <h2 class="cronica-titulo">Memorias de Aurelio</h2>
+            <p class="cronica-sub">${todo
+                ? "Ya te lo contó todo. Lo demás lo estás escribiendo tú."
+                : "Lo que tu maestro no le cuenta a cualquiera. Te lo irá contando a medida que avances."}</p>
+            ${html}
+        </section>`;
+}
+
 
 // Apariencia: cuerpo, piel, rostro, ojos, pelo, peinado, barba y color del traje.
 // Los colores se eligen con círculos de color; lo demás, con botones de texto.

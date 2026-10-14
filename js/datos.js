@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 15,
+        version: 16,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
         atributosPropios: [], // los tuyos: { id, nombre, icono, color, base (uno de los 4), creadoEn }
@@ -87,6 +87,7 @@ export function estadoInicial() {
                                               //   fichas de cofres y lo que sabes de cada criatura (ver bestiario.js):
                                               //   { esqueleto: { vencidos: 3, elementos: ["fuego"] } }
         campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
+        maestro: { leidas: 0 },               // cuántos capítulos de las memorias de Aurelio ya leíste (ver memorias.js)
         // Cómo se ve tu avatar (las opciones están en avatar.js → APARIENCIA).
         apariencia: { cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
                       pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase" },
@@ -136,6 +137,7 @@ function completar(guardado) {
             bestiario: { ...guardado.arcade?.bestiario },
         },
         campana: { recompensados: { ...guardado.campana?.recompensados } },
+        maestro: { leidas: guardado.maestro?.leidas || 0 },
         // La vida empieza a contar el día en que llega esta versión: no castiga el pasado.
         vida: {
             desde: guardado.vida?.desde || (guardado.personaje ? hoy() : null),

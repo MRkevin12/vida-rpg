@@ -14,6 +14,8 @@ import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as bestiario from "./bestiario.js";
 import * as leyendas from "./leyendas.js";
+import * as maestro from "./maestro.js";
+import * as memorias from "./memorias.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -659,6 +661,7 @@ function sincronizarCampanas(estado, danoAntes) {
                 etiqueta: ronda > 1 ? `¡Jefe derrotado! · Ronda ${ronda}` : "¡Jefe derrotado!",
                 titulo: jefe.nombre,
                 detalle: `Venciste: ${jefe.titulo} · +${premio.xp} XP · +${premio.monedas} monedas`,
+                maestro: maestro.palabrasDeJefe(dados),   // lo que te dice Aurelio
             });
             if (dados % porRonda === 0) {
                 celebraciones.push({
@@ -1144,6 +1147,14 @@ export function terminarTorre(estado, lugar = "torre") {
 }
 
 
+// ===== Las memorias de Aurelio (v30) =====
+// Al abrirlas, todas las que ya te contó quedan leídas (y su aviso en Hoy desaparece).
+export function leerMemorias(estado) {
+    const abiertas = memorias.cuantasAbiertas(memorias.datosDeMemorias(estado, juego.resumen(estado, hoy())));
+    estado.maestro.leidas = Math.max(estado.maestro.leidas || 0, abiertas);
+}
+
+
 // ===== Vida: pociones y modo descanso =====
 // La vida se calcula en vida.js. Aquí solo se guardan las pociones y los descansos.
 
@@ -1512,6 +1523,7 @@ export function foto(estado) {
         escudos: info.racha.escudos,
         dano: campana.danoPorCategoria(estado),
         avatar: fotoDelAvatar(estado, info),
+        memorias: memorias.cuantasAbiertas(memorias.datosDeMemorias(estado, info)),
     };
 }
 
@@ -1522,7 +1534,16 @@ export function revisarCambios(estado, antes) {
 
     const nivel = juego.calcularNivel(estado.personaje.xp).nivel;
     if (nivel > antes.nivel) {
-        celebraciones.push({ tipo: "nivel", avatar: true, etiqueta: "¡Subiste de nivel!", titulo: `NIVEL ${nivel}` });
+        celebraciones.push({ tipo: "nivel", avatar: true, etiqueta: "¡Subiste de nivel!", titulo: `NIVEL ${nivel}`,
+                             maestro: maestro.palabrasDeNivel(nivel) });
+    }
+
+    // Aurelio te cuenta un capítulo más de su historia (ver memorias.js).
+    const abiertas = memorias.cuantasAbiertas(memorias.datosDeMemorias(estado, info));
+    for (let i = antes.memorias ?? abiertas; i < abiertas; i++) {
+        const m = memorias.MEMORIAS[i];
+        celebraciones.push({ icono: "🧙", etiqueta: "Aurelio quiere contarte algo", titulo: m.titulo,
+                             detalle: `Capítulo ${memorias.ROMANOS[i]} de sus memorias. Léelo en Héroe › Historia.`, maestro: m.leccion });
     }
 
     const atributos = nivelesDeAtributos(estado);

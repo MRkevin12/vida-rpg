@@ -36,6 +36,11 @@ export function spriteDeReflejo(d) {
     return pixelar(svg, ancho, Math.round((ancho * HEROE.alto) / HEROE.ancho), { clave: `reflejo-${JSON.stringify(d)}`, sombra: true, espejo: true });
 }
 
+// La cara del Maestro Aurelio, para sus consejos en la batalla. d = maestro.describirMaestro().
+export function spriteDeMaestro(d) {
+    return pixelar(dibujarAvatar(d, { mini: true }), 30, 30, { clave: "maestro" });
+}
+
 // Tu mascota en la Torre. b = la de la partida: { especie, etapa ("huevo" | "cria" | "adulto"), triste }.
 export function spriteDeMascota(b) {
     const m = { especie: b.especie, nombre: b.nombre, etapa: { clave: b.etapa, nombre: b.etapa }, triste: Boolean(b.triste) };
