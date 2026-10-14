@@ -70,6 +70,9 @@ const subvista = { progreso: "numeros", tienda: "recompensas", personaje: "equip
 let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (null = la del jefe más cerca de caer)
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
 
+// Modo esencial (v46): las únicas pantallas que quedan a la mano. Si lo enciendes estando en otra, vuelves a Hoy.
+const PANTALLAS_ESENCIALES = new Set(["hoy", "progreso", "tienda", "enfoque", "diario", "libro"]);
+
 // Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
 const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje" };
 
@@ -918,6 +921,7 @@ function contextoActual(efectos = {}) {
 }
 
 function dibujarPantalla(efectos = {}) {
+    document.body.classList.toggle("modo-esencial", Boolean(estado.ajustes.esencial));   // (v46) esconde pestañas y secciones
     const contenedor = $(`#pantalla-${pantallaActual}`);
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
@@ -969,6 +973,13 @@ function mostrarSeccion(nombre) {
 // La fecha que muestra la pantalla Hoy (hoy, o ayer si lo elegiste).
 function fechaVista() {
     return diaVisto === "ayer" ? sumarDias(hoy(), -1) : hoy();
+}
+
+// Enciende o apaga el modo esencial (el botón de Hoy y el interruptor de Ajustes). Si queda encendido y estabas en una
+// pantalla que ya no está a la mano (Aventuras, Héroe…), te lleva a Hoy.
+function cambiarModoEsencial(encendido) {
+    if (!ejecutar(() => acciones.cambiarAjuste(estado, "esencial", encendido))) return;
+    if (encendido && !PANTALLAS_ESENCIALES.has(pantallaActual)) cambiarPantalla("hoy");
 }
 
 function cambiarPantalla(nombre) {
@@ -1382,6 +1393,7 @@ const PREPARAR = {
         $("#ajustes-golpe").checked = estado.ajustes.golpe;
         $("#ajustes-eventos").checked = estado.ajustes.eventos;
         $("#ajustes-cinematicas").checked = estado.ajustes.cinematicas !== false;
+        $("#ajustes-esencial").checked = Boolean(estado.ajustes.esencial);
         $("#ajustes-musica").checked = estado.ajustes.musica;
         $("#ajustes-volumen").value = Math.round((Number.isFinite(estado.ajustes.volumen) ? estado.ajustes.volumen : 0.6) * 100);
         for (const radio of document.querySelectorAll('input[name="pista"]')) radio.checked = radio.value === estado.ajustes.pista;
@@ -2165,6 +2177,7 @@ const ACCIONES = {
             .then(pintarAvisos)
             .then(() => avisar("🔕 Notificaciones desactivadas"));
     },
+    "alternar-esencial": () => cambiarModoEsencial(!estado.ajustes.esencial),
     "cerrar-semana": () => {
         ejecutar(() => acciones.cerrarResumenSemanal(estado));
         window.scrollTo(0, 0);
@@ -2920,6 +2933,7 @@ function conectarEventos() {
     // Interruptor de sonido (Ajustes): al encenderlo suena una muestra.
     $("#ajustes-golpe").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "golpe", evento.target.checked)));
     $("#ajustes-eventos").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "eventos", evento.target.checked)));
+    $("#ajustes-esencial").addEventListener("change", (evento) => cambiarModoEsencial(evento.target.checked));
     $("#ajustes-cinematicas").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "cinematicas", evento.target.checked)));
     // Tocar el fondo del golpe con timing = golpear.
     $("#golpe").addEventListener("pointerdown", () => golpear());

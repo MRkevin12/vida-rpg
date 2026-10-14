@@ -8564,3 +8564,27 @@ body:has(#deshacer:not([hidden])) .aviso {
         animation: none;
     }
 }
+
+
+/* ===== Modo esencial (v46) =====
+   dibujarPantalla() pone la clase «modo-esencial» en <body>. Quedan 3 pestañas (Hoy, Progreso y Tienda); Hoy se
+   arma sin héroe ni «Tu día» (ver vistas.pantallaHoy). */
+.modo-esencial .pestanas {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.modo-esencial .pestana[data-pantalla="aventuras"],
+.modo-esencial .pestana[data-pantalla="personaje"] {
+    display: none;
+}
+
+.chip-esencial {
+    color: #fde68a;
+    border-color: rgba(251, 191, 36, 0.45);
+    cursor: pointer;
+}
+
+.chip-esencial.activo {
+    background: rgba(251, 191, 36, 0.14);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
+}

@@ -175,16 +175,22 @@ export function pantallaHoy(estado, ctx) {
         ? `⏱️ <span data-reloj>${relojTexto(juego.finDelEnfoque(activo) - ctx.ahora)}</span>`
         : "⏱️ Enfoque";
 
+    // Modo esencial (v46): solo lo importante. Se quitan tu héroe, «Tu día», los avisos y la semana; se queda lo que
+    // se usa todos los días (misiones, tareas, misiones principales y diario). El aviso de la copia de seguridad se queda.
+    const esencial = Boolean(estado.ajustes.esencial);
+    const chipEsencial = `<button type="button" class="chip chip-esencial ${esencial ? "activo" : ""}" data-accion="alternar-esencial"
+                                  aria-pressed="${esencial}" title="Solo lo importante: tus misiones, tareas y objetivos">🎯 Esencial</button>`;
+
     // Arriba, lo que pide atención (avisos y tu semana); después tu héroe y tu día;
     // en el centro, las misiones; abajo, las tareas y el diario.
     return `
-        ${esAyer ? "" : tarjetaSemana(estado, ctx)}
+        ${esencial ? "" : `${esAyer ? "" : tarjetaSemana(estado, ctx)}
         ${esAyer ? "" : tarjetaFoco(estado, ctx)}
         ${avisoNotificaciones(ctx)}
-        ${avisoDescanso(estado, ctx)}
+        ${avisoDescanso(estado, ctx)}`}
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
-        ${tarjetaHeroe(estado, ctx)}
-        ${esAyer ? "" : panelDelDia(estado, ctx)}
+        ${esencial ? "" : `${tarjetaHeroe(estado, ctx)}
+        ${esAyer ? "" : panelDelDia(estado, ctx)}`}
 
         <section class="bloque" aria-label="Misiones">
             <div class="titulo-seccion">
@@ -201,7 +207,8 @@ export function pantallaHoy(estado, ctx) {
                     <button type="button" data-accion="ver-fecha" data-dia="ayer" aria-pressed="${esAyer}">Ayer</button>
                     <button type="button" data-accion="ver-fecha" data-dia="hoy" aria-pressed="${!esAyer}">Hoy</button>
                 </div>
-                <button type="button" class="chip chip-enfoque ${activo ? "activo" : ""}" data-accion="ir" data-pantalla="enfoque">${botonEnfoque}</button>
+                ${esencial && !activo ? "" : `<button type="button" class="chip chip-enfoque ${activo ? "activo" : ""}" data-accion="ir" data-pantalla="enfoque">${botonEnfoque}</button>`}
+                ${chipEsencial}
             </div>
             ${esAyer ? '<p class="nota">Estás viendo <b>ayer</b>. Marca lo que hiciste y se te olvidó anotar.</p>' : ""}
             ${lista}
@@ -219,6 +226,7 @@ export function pantallaHoy(estado, ctx) {
         </section>
 
         ${esAyer ? "" : `<section class="bloque" aria-label="Tareas">${seccionTareas(estado, ctx)}</section>`}
+        ${esencial ? seccionPrincipales(estado) : ""}
         ${seccionDiario(estado, ctx, fecha, esAyer)}`;
 }
 
@@ -1965,7 +1973,8 @@ function graficaDias(r, elegida) {
 // ===== Pantalla: Aventuras (misiones principales y jefes) =====
 
 
-export function pantallaAventuras(estado, ctx) {
+// Tus misiones principales (objetivos grandes con pasos). Está en Aventuras y, en el modo esencial, también en Hoy.
+function seccionPrincipales(estado) {
     const principales = estado.principales.filter((p) => !p.archivada);
     const enCurso = principales.filter((p) => !p.completadaEn);
     const terminadas = principales.filter((p) => p.completadaEn);
@@ -1978,6 +1987,18 @@ export function pantallaAventuras(estado, ctx) {
             </div>
             <button type="button" class="boton boton-chico" data-accion="restaurar-principal" data-id="${p.id}">Restaurar</button>
         </li>`).join("");
+    return `
+        <section class="bloque" aria-label="Misiones principales">
+            ${cabeceraSeccion("🎯 Misiones principales", "principal", "+ Nueva")}
+            <p class="nota">Tus objetivos grandes, divididos en pasos: tu arma más fuerte contra los jefes.
+               Cada paso: +${PREMIOS.submision.xp} XP. Al terminar todos: +${PREMIOS.principal.xp} XP y ${PREMIOS.principal.monedas} monedas.</p>
+            ${enCurso.length ? enCurso.map((p) => tarjetaPrincipal(estado, p)).join("") : vacio("Sin misiones principales en curso. Ej: «Aprender inglés B1» o «Terminar CS50».")}
+            ${plegable(`Completadas (${terminadas.length})`, terminadas.map((p) => tarjetaPrincipal(estado, p)).join(""), terminadas.length)}
+            ${plegable(`Archivadas (${archivadas.length})`, `<ul class="lista">${filasArchivadas}</ul>`, archivadas.length)}
+        </section>`;
+}
+
+export function pantallaAventuras(estado, ctx) {
     const estadoDeCampanas = campana.estadoCampanas(estado);
     const campanas = Object.values(estadoDeCampanas);
     const d = campana.DANO.diaria;
@@ -2040,14 +2061,7 @@ export function pantallaAventuras(estado, ctx) {
             </details>
         </section>
 
-        <section class="bloque" aria-label="Misiones principales">
-            ${cabeceraSeccion("🎯 Misiones principales", "principal", "+ Nueva")}
-            <p class="nota">Tus objetivos grandes, divididos en pasos: tu arma más fuerte contra los jefes.
-               Cada paso: +${PREMIOS.submision.xp} XP. Al terminar todos: +${PREMIOS.principal.xp} XP y ${PREMIOS.principal.monedas} monedas.</p>
-            ${enCurso.length ? enCurso.map((p) => tarjetaPrincipal(estado, p)).join("") : vacio("Sin misiones principales en curso. Ej: «Aprender inglés B1» o «Terminar CS50».")}
-            ${plegable(`Completadas (${terminadas.length})`, terminadas.map((p) => tarjetaPrincipal(estado, p)).join(""), terminadas.length)}
-            ${plegable(`Archivadas (${archivadas.length})`, `<ul class="lista">${filasArchivadas}</ul>`, archivadas.length)}
-        </section>`;
+        ${seccionPrincipales(estado)}`;
 }
 
 // <details> es una sección que se abre y se cierra sola (sin JavaScript).

@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 45;
+export const VERSION_APP = 46;
 
 export const NOVEDADES = [
+    {
+        version: 46,
+        titulo: "Modo esencial",
+        cambios: [
+            "🎯 Un modo nuevo para ver solo lo importante. En la pantalla Hoy hay un botón «🎯 Esencial» (y un interruptor en Ajustes) que esconde tu héroe, «Tu día», los avisos y la semana, y deja tus misiones, las tareas, las misiones principales y el diario. Agregar misiones, tareas y objetivos queda a un toque.",
+            "En ese modo, las pestañas quedan en Hoy, Progreso y Tienda. La Torre, las Voces del Valle, el Arcade y el Héroe siguen guardados: vuelven al apagarlo, y tu partida no cambia.",
+            "No lo confundas con «⏱️ Enfoque», el temporizador de concentración: ese sigue igual (en el modo esencial solo aparece si tienes una sesión en marcha).",
+        ],
+    },
     {
         version: 45,
         titulo: "Más voces para el valle",

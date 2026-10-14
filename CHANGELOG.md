@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v46 — Modo esencial
+- **🎯 Modo esencial** (`ajustes.esencial`): un botón «🎯 Esencial» en la pantalla Hoy (junto al selector Ayer/Hoy) y un interruptor en Ajustes. Encendido, **Hoy** muestra solo lo importante: tus misiones del día con «+ Nueva misión» y «Ordenar», las tareas, las **misiones principales** (que antes estaban solo en Aventuras) y el diario. Se esconden el héroe, «Tu día» (Aurelio, cofre, relámpago, pacto, desafío), los avisos, la tarjeta de la semana y el foco semanal; el aviso de la copia de seguridad se queda.
+- **Pestañas:** quedan **Hoy, Progreso y Tienda**. Aventuras (campaña, Torre, Voces, Arcade, mapa) y Héroe se esconden, pero siguen guardados; la partida no cambia al encenderlo ni al apagarlo. Si lo enciendes estando en otra pantalla, te lleva a Hoy.
+- El botón «⏱️ Enfoque» (el temporizador de concentración, otra cosa) solo aparece en el modo esencial si hay una sesión en marcha.
+- Interno: `seccionPrincipales(estado)` sale de `pantallaAventuras` y se usa también en Hoy. Datos versión 25. 220 pruebas.
+
 ## v45 — Más voces para el valle
 - **Las cinco voces completas, con dos personas cada una** (`js/voces-valle-2.js`, nuevo; `voces-datos.js` suma lo suyo con lo de la v44): 🟥 **Orgullo** — Maren (pedir ayuda) y el capitán **Edmundo** (dar el primer paso con su hermano, tras veinte años); 🟦 **Qué dirán** — Tobías (decir que no) y **Wren** (elegir su camino frente a su familia); 🟪 **Envidia** — Ilse (entre hermanas) y el carpintero **Gaspar** (reconocer a un aprendiz que lo supera); 🟨 **Miedo** — el bardo **Cassiel** (hablar en público) y la panadera **Marta** (reclamar lo suyo sin pelear); 🟩 **Ego** — **don Anselmo**, el notario que no escucha, y el boticario **Valerio** (admitir un error).
 - **7 personas, 14 conversaciones y 6 lugares nuevos** (el muelle, el taller, la notaría, el teatro, la botica y el cruce del camino): en total 10 personas, 20 conversaciones. Mismo formato, mismas técnicas y Valor. Todas se pueden ganar sin técnicas (hay prueba que las juega con un héroe nuevo).

@@ -4265,7 +4265,7 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     const vieja = JSON.stringify({ version: 1, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] });
     const estado = datos.desdeRespaldo(vieja);
     igual(estado.version, datos.estadoInicial().version, "la versión de los datos");
-    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true });
+    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true, esencial: false });
     igual([estado.claves, estado.cofres, estado.noches, estado.mapa, estado.arcade.extra], [{}, {}, [], { reclamados: [] }, 0], "lo de la v22");
     igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
     igual(estado.campana, { recompensados: {} });
@@ -4390,6 +4390,52 @@ prueba("Partida de ejemplo: su historial respeta las reglas", () => {
     const tareas = suma(estado.tareas.filter((t) => t.premio).map((t) => t.premio));
     igual(estado.personaje.xp,
           suma(estado.completadas) + pasos * juego.PREMIOS.submision.xp + jefes + tareas + suma(estado.enfoque.sesiones));
+});
+
+
+
+// ===== Modo esencial (v46) =====
+
+prueba("Modo esencial: Hoy muestra solo lo importante, y Aventuras sigue teniendo sus misiones principales", () => {
+    const estado = partidaDemo();
+    const info = juego.resumen(estado, hoy());
+    const ctx = () => ({
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+        vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
+        rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {},
+    });
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    igual(datos.estadoInicial().ajustes.esencial, false, "viene apagado");
+
+    // Completo: el héroe, «Tu día» y las misiones; las principales NO están en Hoy (viven en Aventuras).
+    const completo = vistas.pantallaHoy(estado, ctx());
+    sano(completo, "Hoy completo");
+    cierto(completo.includes('aria-label="Tu día"') && completo.includes("Misiones de hoy"), "Hoy completo");
+    cierto(!completo.includes('aria-label="Misiones principales"'), "sin las principales");
+    cierto(completo.includes('data-accion="alternar-esencial"') && completo.includes('aria-pressed="false"'), "con su botón apagado");
+
+    // Esencial: misiones, nueva misión, tareas, principales y diario; sin héroe, sin «Tu día», sin semana.
+    acciones.cambiarAjuste(estado, "esencial", true);
+    const html = vistas.pantallaHoy(estado, ctx());
+    sano(html, "Hoy esencial");
+    cierto(html.includes("Misiones de hoy") && html.includes('data-dialogo="mision"') && html.includes("+ Nueva misión"), "misiones y agregar");
+    cierto(html.includes('aria-label="Tareas"') && html.includes('aria-label="Misiones principales"'), "tareas y principales");
+    cierto(html.includes("Diario"), "el diario se queda");
+    cierto(!html.includes('aria-label="Tu día"') && !html.includes("Rivales") && !html.includes('class="panel semana"'), "sin héroe, sin «Tu día» y sin semana");
+    cierto(html.includes('aria-pressed="true"') && html.length < completo.length, "el botón queda encendido y la pantalla es más corta");
+
+    // El enfoque (temporizador) solo aparece si tienes una sesión en marcha.
+    cierto(!html.includes('data-pantalla="enfoque"'), "sin sesión, sin botón de enfoque");
+    acciones.empezarEnfoque(estado, { minutos: 25, atributo: "intelecto" });
+    cierto(vistas.pantallaHoy(estado, ctx()).includes('data-pantalla="enfoque"'), "con una sesión activa, sí");
+    acciones.cancelarEnfoque(estado);
+
+    // Las misiones principales siguen en Aventuras.
+    acciones.cambiarAjuste(estado, "esencial", false);
+    const aventuras = vistas.pantallaAventuras(estado, ctx());
+    sano(aventuras, "Aventuras");
+    igual(aventuras.split('aria-label="Misiones principales"').length - 1, 1, "una sola vez en Aventuras");
+    cierto(aventuras.includes("Campaña de jefes"), "y la campaña de jefes sigue ahí");
 });
 
 
