@@ -33,6 +33,7 @@ import { precioConEvento } from "./eventos.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
+import * as resumen from "./resumen.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
          diasEntre, lunesDe, relojTexto, relojLargo, sumarDias, MESES, hoy as fechaDeHoy } from "./fechas.js";
 
@@ -176,6 +177,7 @@ export function pantallaHoy(estado, ctx) {
     // en el centro, las misiones; abajo, las tareas y el diario.
     return `
         ${esAyer ? "" : tarjetaSemana(estado, ctx)}
+        ${esAyer ? "" : tarjetaFoco(estado, ctx)}
         ${avisoNotificaciones(ctx)}
         ${avisoDescanso(estado, ctx)}
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
@@ -1435,7 +1437,53 @@ function tarjetaSemana(estado, ctx) {
                         `<span class="ficha-nota">${s.mejorDia ? `${s.mejorDia.pct} % cumplido` : "Sin misiones hechas"}</span>`)}
             </div>
             ${lineas.length ? `<ul class="semana-lista">${lineas.map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="revisar-semana">📝 Hacer mi revisión de la semana</button>
             <button type="button" class="boton boton-principal boton-ancho" data-accion="cerrar-semana">¡A por esta semana!</button>
+        </section>`;
+}
+
+// El contenido de la ventana «Revisión semanal»: dos preguntas y la elección de hasta 3 misiones de foco.
+export function contenidoRevision(estado, lunes, hoy) {
+    const pista = resumen.pistaDeFallas(estado, lunes);
+    const misiones = resumen.misionesParaFoco(estado, hoy);
+    const previa = estado.revisiones[lunes];   // si ya la hiciste, se puede corregir
+    const marcadas = new Set(previa ? previa.foco : []);
+    return `
+        <h2 class="titulo-juego" tabindex="-1" autofocus>📝 Revisión semanal</h2>
+        <p class="nota">Del ${fechaCorta(lunes)} al ${fechaCorta(sumarDias(lunes, 6))}. Tómate un minuto: lo que escribas te ayuda a decidir la semana que empieza.</p>
+        <input type="hidden" name="lunes" value="${lunes}">
+        <label>¿Qué salió bien?
+            <textarea name="bien" rows="2" maxlength="500" placeholder="Ej: fui al gym 4 veces">${esc(previa?.bien || "")}</textarea>
+        </label>
+        ${pista ? `<p class="nota">💡 ${plural(pista.total, "misión fallada", "misiones falladas")} esa semana` +
+            (pista.mision ? `; la que más: «${esc(pista.mision)}» (${pista.veces})` : "") +
+            (pista.motivo ? `. Motivo más repetido: ${pista.motivo.icono} ${esc(pista.motivo.nombre)}` : "") + `.</p>` : ""}
+        <label>¿Qué quieres mejorar?
+            <textarea name="mejorar" rows="2" maxlength="500" placeholder="Ej: dormirme antes de las 11">${esc(previa?.mejorar || "")}</textarea>
+        </label>
+        ${misiones.length ? `
+        <fieldset class="opciones opciones-1">
+            <legend>Misiones de foco para esta semana <span class="texto-suave">(elige hasta ${resumen.MAX_FOCO})</span></legend>
+            ${misiones.map((m) => `
+                <label class="pildora"><input type="checkbox" name="foco" value="${m.id}" ${marcadas.has(m.id) ? "checked" : ""}>
+                    <span>${esc(m.nombre)}</span></label>`).join("")}
+        </fieldset>` : `<p class="nota">Aún no tienes misiones para elegir como foco.</p>`}
+        <div class="botones-dialogo">
+            <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
+            <button type="submit" class="boton boton-principal">Guardar revisión</button>
+        </div>`;
+}
+
+// «⭐ Foco de la semana»: las misiones que elegiste en tu revisión, con una marca si hoy ya las hiciste.
+function tarjetaFoco(estado, ctx) {
+    const foco = resumen.focoDeLaSemana(estado, ctx.hoy);
+    if (!foco.length) return "";
+    const hechasHoy = new Set(estado.completadas.filter((c) => c.fecha === ctx.hoy).map((c) => c.misionId));
+    return `
+        <section class="panel foco" aria-label="Foco de la semana">
+            <p class="etiqueta">⭐ Foco de la semana</p>
+            <ul class="semana-lista">${foco.map((m) =>
+                `<li>${hechasHoy.has(m.id) ? "✅" : "▫️"} ${esc(m.nombre)}</li>`).join("")}</ul>
         </section>`;
 }
 

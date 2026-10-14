@@ -5,7 +5,7 @@
 // Los días de descanso (sin misiones) no cuentan ni a favor ni en contra.
 
 import { sumarDias, diaDeSemana, lunesDe } from "./fechas.js";
-import { ATRIBUTOS, ANIMOS_DIARIO, hechasPorFecha, misionesDelDia, estaActiva, vecesEnSemana } from "./juego.js";
+import { ATRIBUTOS, ANIMOS_DIARIO, MOTIVOS_FALLA, hechasPorFecha, misionesDelDia, estaActiva, vecesEnSemana } from "./juego.js";
 import { DESAFIOS, progresoDesafio, textoDesafio } from "./desafios.js";
 
 function porcentaje(hechas, total) {
@@ -185,4 +185,52 @@ export function resumenSemana(estado, lunes) {
             ? { texto: textoDesafio(desafio), progreso: progresoDesafio(estado, desafio), meta: desafio.meta, cobrado: Boolean(desafio.cobradoEn) }
             : null,
     };
+}
+
+
+// ===== Revisión semanal (v39) =====
+// Al terminar una semana, escribes qué salió bien, qué mejorar, y eliges hasta 3 misiones de "foco"
+// para la semana que empieza. Se guarda en estado.revisiones[lunes de la semana revisada].
+
+export const MAX_FOCO = 3;
+
+// Misiones que se pueden elegir como foco: las activas el día que haces la revisión.
+export function misionesParaFoco(estado, hoy) {
+    return estado.misiones.filter((m) => estaActiva(m, hoy));
+}
+
+// Lo que se ve en la revisión como pista: qué misión fallaste más esa semana y por qué motivo (o null).
+export function pistaDeFallas(estado, lunes) {
+    const domingo = sumarDias(lunes, 6);
+    const fallas = (estado.fallas || []).filter((f) => f.fecha >= lunes && f.fecha <= domingo);
+    if (!fallas.length) return null;
+
+    const contar = (claves) => {
+        const cuenta = {};
+        for (const clave of claves) cuenta[clave] = (cuenta[clave] || 0) + 1;
+        return Object.entries(cuenta).sort((a, b) => b[1] - a[1])[0];   // [clave, veces] la más repetida (undefined si no hay)
+    };
+    const [idMision, veces] = contar(fallas.map((f) => f.misionId));
+    const mision = estado.misiones.find((m) => m.id === Number(idMision));
+    const motivoFrecuente = contar(fallas.map((f) => f.motivo).filter((m) => MOTIVOS_FALLA[m]));   // puede no haber ninguno
+    return {
+        total: fallas.length,
+        mision: mision ? mision.nombre : null,
+        veces,
+        motivo: motivoFrecuente ? MOTIVOS_FALLA[motivoFrecuente[0]] : null,
+    };
+}
+
+// La revisión que hiciste al empezar esta semana (la de la semana pasada), o null.
+export function revisionVigente(estado, hoy) {
+    return estado.revisiones[sumarDias(lunesDe(hoy), -7)] || null;
+}
+
+// Las misiones de foco de esta semana, que todavía existen y no están archivadas.
+export function focoDeLaSemana(estado, hoy) {
+    const revision = revisionVigente(estado, hoy);
+    if (!revision) return [];
+    return revision.foco
+        .map((id) => estado.misiones.find((m) => m.id === id))
+        .filter((m) => m && estaActiva(m, hoy));
 }

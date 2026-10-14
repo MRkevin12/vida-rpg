@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 38;
+export const VERSION_APP = 39;
 
 export const NOVEDADES = [
+    {
+        version: 39,
+        titulo: "Revisión semanal",
+        cambios: [
+            "📝 Al empezar la semana, la tarjeta «Tu semana» tiene un botón nuevo: «Hacer mi revisión». Tres pasos cortos: qué salió bien, qué quieres mejorar y cuáles misiones serán tu foco.",
+            "💡 La revisión te recuerda qué misión fallaste más la semana pasada y el motivo que más repetiste, para que decidas con datos y no de memoria.",
+            "⭐ Las misiones de foco (hasta 3) aparecen arriba de Hoy toda la semana, con una marca cuando ya las hiciste ese día.",
+        ],
+    },
     {
         version: 38,
         titulo: "La Torre despierta",

@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 19,
+        version: 20,
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -106,6 +106,8 @@ export function estadoInicial() {
         ultimoAvisoEscudo: null,
         ultimoRespaldo: null,
         semanaVista: null,    // lunes de la semana en que cerraste la tarjeta «Tu semana»
+        revisiones: {},       // revisión semanal (v39), por el lunes de la semana revisada:
+                              //   { "2026-10-05": { bien, mejorar, foco (ids de misiones, máx. 3), hechaEn } }
         siguienteId: 1,       // contador para darle un id único a cada cosa nueva
     };
 }
@@ -128,6 +130,7 @@ function completar(guardado) {
             sesiones: guardado.enfoque?.sesiones || [],
         },
         diario: { ...guardado.diario },
+        revisiones: { ...guardado.revisiones },
         avatar: {
             comprados: avatar.comprados || [],
             equipado: { ...base.avatar.equipado, ...avatar.equipado },

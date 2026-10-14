@@ -3427,6 +3427,22 @@ body:has(#deshacer:not([hidden])) .aviso {
     list-style: none;
 }
 
+/* Revisión semanal (v39): «⭐ Foco de la semana» en Hoy y la lista de misiones a elegir */
+.foco {
+    display: grid;
+    gap: 8px;
+    border-color: rgba(251, 191, 36, 0.35);
+}
+
+.opciones-1 {
+    grid-template-columns: 1fr;
+}
+
+.opciones-1 .pildora span {
+    padding: 11px 12px;
+    text-align: left;
+}
+
 
 /* ===== Modo enfoque ===== */
 .chip-enfoque {

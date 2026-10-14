@@ -15,7 +15,7 @@ import * as acciones from "../js/acciones.js";
 import * as juego from "../js/juego.js";
 import * as campana from "../js/campana.js";
 import * as desafios from "../js/desafios.js";
-import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.js";
+import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO } from "../js/resumen.js";
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
 import * as bestiario from "../js/bestiario.js";
@@ -520,6 +520,43 @@ prueba("Tu semana: resume la semana pasada de lunes a domingo y se muestra hasta
     igual([s.completadas, s.perfectos, s.cumplimiento.pct, s.animos.bien], [4, 4, 57, 1]);
     acciones.cerrarResumenSemanal(estado);
     igual(semanaPorMostrar(estado, hoy()), null, "después de cerrarla");
+});
+
+prueba("Revisión semanal: se guarda por semana, cierra la tarjeta y deja hasta 3 misiones de foco", () => {
+    const estado = partidaNueva();
+    const [a, b, c, d] = ["A", "B", "C", "D"].map((nombre) => crearMision(estado, { nombre }));
+    const lunesPasado = sumarDias(lunesDe(hoy()), -7);
+    estado.personaje.creadoEn = lunesPasado;
+    for (const m of estado.misiones) m.creadaEn = lunesPasado;
+
+    igual(focoDeLaSemana(estado, hoy()), [], "sin revisión no hay foco");
+    acciones.guardarRevision(estado, { lunes: lunesPasado, bien: "  gym  ", mejorar: "dormir", foco: [String(a.id), b.id] });
+    igual(estado.revisiones[lunesPasado].bien, "gym", "se limpian los espacios");
+    igual(estado.revisiones[lunesPasado].foco, [a.id, b.id], "los ids del formulario llegan como texto");
+    igual(semanaPorMostrar(estado, hoy()), null, "guardar la revisión cierra la tarjeta");
+    igual(focoDeLaSemana(estado, hoy()).map((m) => m.nombre), ["A", "B"]);
+
+    acciones.archivarMision(estado, b.id);
+    igual(focoDeLaSemana(estado, hoy()).map((m) => m.nombre), ["A"], "una misión archivada sale del foco");
+
+    debeFallar(() => acciones.guardarRevision(estado, { lunes: lunesPasado, foco: [a.id, c.id, d.id, b.id] }), "como máximo");
+    debeFallar(() => acciones.guardarRevision(estado, { lunes: lunesPasado, foco: [999] }), "ya no existe");
+    debeFallar(() => acciones.guardarRevision(estado, { lunes: sumarDias(lunesPasado, 2), foco: [] }), "no es válida");
+    igual(MAX_FOCO, 3);
+});
+
+prueba("Revisión semanal: la pista dice qué misión fallaste más y por qué motivo", () => {
+    const estado = partidaNueva();
+    const a = crearMision(estado, { nombre: "A" });
+    const b = crearMision(estado, { nombre: "B" });
+    const lunes = sumarDias(lunesDe(hoy()), -7);
+    igual(pistaDeFallas(estado, lunes), null, "sin fallas no hay pista");
+    estado.fallas.push({ misionId: a.id, fecha: lunes, motivo: "ganas" });
+    estado.fallas.push({ misionId: b.id, fecha: sumarDias(lunes, 1), motivo: "tiempo" });
+    estado.fallas.push({ misionId: b.id, fecha: sumarDias(lunes, 2), motivo: "tiempo" });
+    estado.fallas.push({ misionId: b.id, fecha: sumarDias(lunes, 8), motivo: "otro" });   // otra semana: no cuenta
+    const pista = pistaDeFallas(estado, lunes);
+    igual([pista.total, pista.mision, pista.veces, pista.motivo.nombre], [3, "B", 2, "No tuve tiempo"]);
 });
 
 

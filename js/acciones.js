@@ -28,6 +28,7 @@ import * as mascota from "./mascota.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import { PISTAS } from "./musica.js";
 import * as equipo from "./equipo.js";
+import * as resumen from "./resumen.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -1027,6 +1028,21 @@ function revisarDesafios(estado) {
 
 // La tarjeta «Tu semana» (resumen de la semana pasada) se muestra hasta que la cierras.
 export function cerrarResumenSemanal(estado) {
+    estado.semanaVista = lunesDe(hoy());
+}
+
+// Revisión semanal (v39): qué salió bien, qué mejorar y hasta 3 misiones de foco para esta semana.
+// Se guarda con el lunes de la semana REVISADA. Al guardarla, la tarjeta «Tu semana» también se cierra.
+export function guardarRevision(estado, { lunes, bien, mejorar, foco }) {
+    if (!esFechaValida(lunes) || lunesDe(lunes) !== lunes) throw new Error("Esa semana no es válida.");
+    const ids = [...new Set((foco || []).map(Number))];
+    if (ids.length > resumen.MAX_FOCO) throw new Error(`Elige como máximo ${resumen.MAX_FOCO} misiones de foco.`);
+    for (const id of ids) {
+        const mision = estado.misiones.find((m) => m.id === id);
+        if (!mision || !juego.estaActiva(mision, hoy())) throw new Error("Una de las misiones de foco ya no existe.");
+    }
+    const limpiar = (texto) => String(texto || "").trim().slice(0, 500);
+    estado.revisiones[lunes] = { bien: limpiar(bien), mejorar: limpiar(mejorar), foco: ids, hechaEn: hoy() };
     estado.semanaVista = lunesDe(hoy());
 }
 

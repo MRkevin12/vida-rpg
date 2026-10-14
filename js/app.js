@@ -1336,6 +1336,10 @@ const PREPARAR = {
     ficha(mision) {
         $("#ficha-contenido").innerHTML = vistas.fichaMision(estado, mision, hoy());
     },
+    // Revisión semanal: recibe el lunes de la semana que se revisa.
+    revision(lunes) {
+        $("#revision-contenido").innerHTML = vistas.contenidoRevision(estado, lunes, hoy());
+    },
     ordenar() {
         $("#ordenar-lista").innerHTML = vistas.listaOrdenar(estado);
     },
@@ -2084,6 +2088,10 @@ const ACCIONES = {
         ejecutar(() => acciones.cerrarResumenSemanal(estado));
         window.scrollTo(0, 0);
     },
+    "revisar-semana": () => {
+        const lunes = semanaPorMostrar(estado, hoy());
+        if (lunes) abrirDialogo("revision", lunes);
+    },
 
     "alternar-submision": (boton) => {
         const id = Number(boton.dataset.id);
@@ -2628,6 +2636,11 @@ const FORMULARIOS = {
         }
         return resultado;
     },
+    revision(valores) {
+        const resultado = ejecutar(() => acciones.guardarRevision(estado, valores));
+        if (resultado) avisar("📝 Revisión guardada. ¡A por esta semana!");
+        return resultado;
+    },
     diario(valores) {
         const resultado = ejecutar(() => acciones.escribirDiario(estado, valores));
         if (resultado?.borrada) avisar("📓 Entrada borrada");
@@ -2733,6 +2746,7 @@ function conectarEventos() {
         // Las casillas de los días de la semana (y las del mes) comparten nombre: las leemos todas.
         if (formulario.querySelector('input[name="dias"]')) valores.dias = datosFormulario.getAll("dias");
         if (formulario.querySelector('input[name="diasMes"]')) valores.diasMes = datosFormulario.getAll("diasMes");
+        valores.foco = datosFormulario.getAll("foco");   // revisión semanal: las misiones de foco marcadas
         const salioBien = FORMULARIOS[tipo](valores, formulario);
         const dialogo = formulario.closest("dialog");
         if (salioBien && dialogo && tipo !== "renombrar") dialogo.close();

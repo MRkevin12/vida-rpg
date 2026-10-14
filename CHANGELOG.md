@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v39 — Revisión semanal
+- **Revisión de la semana** (`guardarRevision` en `acciones.js`, `contenidoRevision` en `vistas.js`): botón «📝 Hacer mi revisión» en la tarjeta «Tu semana». Se escribe qué salió bien y qué mejorar (hasta 500 letras cada uno) y se eligen hasta 3 misiones de foco. Se guarda en `estado.revisiones` por el lunes de la semana revisada, y guardar también cierra la tarjeta.
+- **Pista de fallas** (`pistaDeFallas` en `resumen.js`): dice cuántas misiones fallaste esa semana, cuál más y el motivo más repetido.
+- **⭐ Foco de la semana** (`focoDeLaSemana`): tarjeta arriba de Hoy con las misiones de foco que siguen activas, marcadas con ✅ cuando ya las hiciste hoy.
+- Datos versión 20 (`revisiones: {}`; las partidas viejas la reciben vacía). 190 pruebas (2 nuevas).
+
 ## v38 — La Torre despierta
 - **La historia lo explica** («La Torre despierta», `leyendas.js`): una torre que nadie sube se duerme; desde que tu héroe volvió a subirla, despertó. La tormenta escondía la mitad: sobre la cima siguen los **Puentes de nubes** y la **Corona de la Llama**. Las Sombras lo notaron y les enseñaron trucos a sus criaturas, y Aurelio te enseñó las técnicas de los Vigías y la Voluntad. Se cuenta en el prólogo a quien empieza y una vez aparte a quien ya había subido, y se puede releer en «📜 Historia».
 - **30 pisos** (antes 20) y **10 criaturas nuevas**: Arpía de los vientos, Nubarrón, Esfinge alada, Espíritu del viento y el Coloso de las nubes (guardián del 25); Vigía caído, Llama negra, Espejo de la Corona, Ojo de la Corona y el **Apagador** (guardián del 30, el que apagó la Llama hace cien años). Dos dibujos nuevos (la Arpía y el Apagador) y dos salas nuevas. Sobre la tormenta las criaturas tienen 10 % más de vida y de ataque.
