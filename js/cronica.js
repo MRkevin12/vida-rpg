@@ -55,8 +55,8 @@ const CAPITULOS = [
         libre: "El mar se calma. Por primera vez las islas están en paz, y el horizonte muestra lo que siempre estuvo ahí: la Ciudadela y, sobre ella, la Torre.",
     },
     {
-        llegada: "La Ciudadela no tiene señores: la construyen quienes los vencieron. En su plaza hay cuatro memoriales apagados, uno por cada Sombra, que se encienden cuando sus cinco señores han caído. En el centro, la Torre de los Vigías.",
-        libre: "Los cuatro memoriales arden. El reino de {n} vuelve a gobernarse solo. Al pie de la Torre, el Maestro Aurelio mira el camino recorrido y no dice nada: no hace falta. Pero las Sombras nunca se van del todo: no vienen de lejos, sino de abajo, de donde nacen.",
+        llegada: "La Ciudadela no tiene señores: la construyen quienes los vencieron. En su plaza hay cuatro memoriales apagados, uno por cada Sombra, que se encienden cuando sus cinco señores han caído. En el centro, la Torre de los Vigías. Dicen que solo el fuego de los cuatro puede volver a encender su Llama.",
+        libre: "Los cuatro memoriales arden. El reino de {n} vuelve a gobernarse solo. Al pie de la Torre, el Maestro Aurelio mira el camino recorrido y no dice nada: no hace falta. Solo señala hacia arriba. El fuego de los memoriales es el que falta en la cima: con él, la Llama de los Vigías puede volver a arder.",
     },
 ];
 

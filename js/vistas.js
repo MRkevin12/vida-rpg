@@ -903,7 +903,7 @@ export function pantallaMapa(estado, ctx) {
         <section class="panel">
             <h3 class="subtitulo">${tramo === mapa.CIUDADELA ? "🗿 Los memoriales" : "⚔️ Los señores de la región"}</h3>
             <p class="nota">${tramo === mapa.CIUDADELA
-                ? "Cada memorial se enciende cuando caen los cinco señores de su campaña."
+                ? "Cada memorial se enciende cuando caen los cinco señores de su campaña. Su fuego es el único que vuelve a encender la Llama de la Torre."
                 : "Son tus jefes de Aventuras: caen con las misiones de su atributo. Al caer, su guarida queda libre y tiene botín."}</p>
             <ul class="lista">${senores.map((s) => fichaSenor(s, region, campanas, porReclamar, dibujo.alcanzado)).join("")}</ul>
         </section>
@@ -979,7 +979,7 @@ function panelSaga(estado, ctx, s) {
     const actos = s.actos.map((a) => `
         <li class="${a.hecho ? "hecho" : a.actual ? "actual" : "futuro"}">
             <span class="saga-marca" aria-hidden="true">${a.hecho ? "✓" : a.actual ? "▶" : a.numero}</span>
-            <span><b>${esc(a.titulo)}</b><small>${a.hecho ? "Cumplido" : esc(a.objetivo)}</small></span>
+            <span><b>${esc(a.titulo)}</b><small>${a.hecho ? "Cumplido" : !a.actual && a.listo ? "✓ Ya lo lograste: cuenta cuando llegues a este acto." : esc(a.objetivo)}</small></span>
         </li>`).join("");
     return `
         <section class="panel saga">
@@ -3145,7 +3145,7 @@ function seccionHistoria(estado, ctx) {
         memorias: m ? `${m.abiertas} de ${m.total} capítulos${m.sinLeer ? ` · ${plural(m.sinLeer, "nuevo", "nuevos")}` : ""}` : "",
         cronica: `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
         torre: `Tu récord: ${records.torre || 0} de ${torre.ABRIR_MAZMORRA} pisos`,
-        mazmorra: torre.mazmorraAbierta(estado.arcade) ? `Tu récord: ${records.mazmorra || 0} de 20 sótanos` : "🔒 Se abre al encender la Llama",
+        mazmorra: torre.mazmorraAbierta(estado.arcade) ? `Tu récord: ${records.mazmorra || 0} de 20 sótanos` : "🔒 Se abre al llegar a la cima de la Torre",
         libro: `${plural(escritos, "día escrito", "días escritos")} en tu diario`,
     };
     const historias = saga.HISTORIAS.map((h) =>

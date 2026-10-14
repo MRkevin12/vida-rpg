@@ -1,13 +1,14 @@
 // leyendas.js — La historia de la Torre del héroe y de la Mazmorra del Abismo (v29).
 //
 // La historia en pocas palabras (sigue a la Crónica del reino, ver cronica.js):
-//   - TORRE, «La Llama de los Vigías»: los Vigías, los primeros que vencieron a las Sombras,
+//   - TORRE, «La Torre de los Vigías»: los Vigías, los primeros que vencieron a las Sombras,
 //     levantaron la Torre y encendieron en su cima una Llama que las mantenía lejos. Hace cien
-//     años se apagó. Tu héroe sube a encenderla y descubre, guardián tras guardián, que la Torre
-//     no se construyó para mirar el cielo, sino para tapar algo que hay debajo.
-//   - MAZMORRA, «El Rey Hueco»: al encender la Llama se abre una escalera bajo la Torre. Abajo
-//     está el lugar donde nacen las Sombras, y en el fondo, el Rey Hueco: el primer Vigía que
-//     dejó de subir.
+//     años se apagó. Tu héroe sube hasta la cima y descubre, guardián tras guardián, que la Torre
+//     no se construyó para mirar el cielo, sino para tapar algo que hay debajo. Arriba la Llama
+//     NO prende: solo arde con el fuego de los cuatro memoriales del reino (ver saga.js, v36).
+//   - MAZMORRA, «El Rey Hueco»: al caer el Dragón de la cima se abre una escalera bajo la Torre.
+//     Abajo está el lugar donde nacen las Sombras, y en el fondo, el Rey Hueco: el primer Vigía
+//     que dejó de subir.
 //
 // Cada lugar tiene un prólogo, un capítulo por zona (lo que encuentras al llegar y lo que pasa
 // cuando cae su guardián) y un epílogo. Se cuentan en la batalla la PRIMERA vez que llegas a
@@ -22,13 +23,13 @@ const ROMANOS = ["I", "II", "III", "IV", "V", "VI"];
 
 export const LEYENDAS = {
     torre: {
-        titulo: "La Llama de los Vigías",
+        titulo: "La Torre de los Vigías",
         prologo: {
             titulo: "La Torre sin cima",
             parrafos: [
                 "Nadie recuerda quién puso la primera piedra. En la Ciudadela dicen que fueron los Vigías: los primeros que vencieron a las Sombras y que, para no olvidar cómo lo hicieron, levantaron una torre en la que cada piso es una prueba. (Un pergamino de la Biblioteca prohibida cuenta otra cosa: que fue una muchacha llamada Lía.)",
                 "En lo alto ardía la Llama del Vigía. Mientras alumbraba el reino, las Sombras no se atrevían a volver. Hace cien años se apagó, la Torre se llenó de criaturas que nadie invitó y las Cuatro Sombras volvieron a repartirse el reino.",
-                "El Maestro Aurelio, que fue aprendiz del último Vigía, le entrega a {n} una antorcha apagada. «Sube. No por la gloria: para saber de qué eres capaz. Y si llegas arriba, enciéndela.»",
+                "El Maestro Aurelio, que fue aprendiz del último Vigía, le entrega a {n} una antorcha apagada. «Sube. No por la gloria: para saber de qué eres capaz. Esta antorcha no la encenderás aquí dentro, sino allá afuera, con cada Sombra que venzas.»",
             ],
         },
         // Una entrada por zona (la clave es su id, ver bestiario.ZONAS).
@@ -47,14 +48,14 @@ export const LEYENDAS = {
             },
             cima: {
                 entrada: "Sin techo ni muros: solo el viento y, sobre un pedestal, la Llama apagada. Entre los rayos se ve una figura con armadura celeste. Es el último Vigía que subió, hace cien años. Nunca volvió a bajar.",
-                caida: "El Dragón de la tormenta cae, y con él la tormenta. Por primera vez en cien años el cielo se abre sobre la Torre. {n} acerca la antorcha al pedestal y la Llama del Vigía vuelve a arder.",
+                caida: "El Dragón de la tormenta cae, y con él la tormenta. Por primera vez en cien años el cielo se abre sobre la Torre, y la figura de armadura celeste baja la espada, como quien por fin puede descansar. {n} acerca la antorcha al pedestal, pero la Llama no prende. En la piedra hay una inscripción: «Solo arde con el fuego de las Sombras vencidas».",
             },
         },
         epilogo: {
             titulo: "Lo que había debajo",
             parrafos: [
-                "Desde la cima se ve todo el reino. Y al pie de la Torre, una grieta que antes no estaba: con la luz de la Llama, el sello de los cimientos terminó de quebrarse. Una escalera baja hacia la oscuridad.",
-                "El Maestro Aurelio la mira en silencio. «Las Sombras no vienen de lejos —dice al fin—. Vienen de abajo. Siempre vinieron de abajo.»",
+                "Desde la cima se ve todo el reino y, en la plaza de la Ciudadela, los cuatro memoriales. Y al pie de la Torre, una grieta que antes no estaba: al caer el Dragón, el sello de los cimientos terminó de quebrarse. Una escalera baja hacia la oscuridad.",
+                "El Maestro Aurelio la mira en silencio. «Las Sombras no vienen de lejos —dice al fin—. Vienen de abajo. Siempre vinieron de abajo. Y la Llama no se enciende aquí arriba: se enciende allá afuera, con cada señor que cae.»",
             ],
             aviso: "🔓 Se abrió la Mazmorra del Abismo. La encontrarás en el Arcade.",
         },
@@ -65,7 +66,7 @@ export const LEYENDAS = {
         prologo: {
             titulo: "La escalera",
             parrafos: [
-                "La escalera baja más de lo que debería. A cada vuelta el aire es más frío y la luz de la Llama, allá arriba, más pequeña.",
+                "La escalera baja más de lo que debería. A cada vuelta el aire es más frío y el cielo abierto de la cima, allá arriba, más pequeño.",
                 "Ahora {n} sabe la verdad: los Vigías no levantaron la Torre para vigilar el cielo. La clavaron en la tierra como una estaca, para sujetar la puerta del lugar donde nacen las Sombras. Cada «mañana» y cada «no puedo» empezaron aquí abajo, como una semilla.",
                 "Aurelio no baja. «Allá abajo no te sirve lo que sabes —le dice a {n}—. Te sirve lo que eres cuando nadie te mira.»",
             ],
@@ -91,8 +92,8 @@ export const LEYENDAS = {
         epilogo: {
             titulo: "Saber bajar",
             parrafos: [
-                "{n} sube los veinte sótanos con la corona hueca en la mano. No hay fanfarria. Al pie de la Torre lo espera Aurelio, que esa noche, después de cien años, sube con {n} los veinte pisos hasta la Llama.",
-                "«No las venciste para siempre —le dice—. Nadie puede. Pero ahora sabes dónde viven, y sabes bajar a buscarlas.» Desde ese día, cuando una Sombra vuelve, {n} ya no le tiene miedo: la conoce por su nombre.",
+                "{n} sube los veinte sótanos con la corona hueca en la mano. No hay fanfarria. Al pie de la Torre lo espera Aurelio, que esa noche, después de cien años, sube con {n} los veinte pisos hasta la cima y se sienta junto al pedestal frío.",
+                "«No las venciste para siempre —le dice—. Nadie puede. Pero ahora sabes dónde nacen, y sabes bajar a buscarlas. Lo que falta no se hace aquí: la Llama se enciende allá afuera, con el fuego de los cuatro memoriales.» Desde ese día, cuando una Sombra vuelve, {n} ya no le tiene miedo: la conoce por su nombre.",
             ],
             aviso: "🏆 Venciste al Rey Hueco. La Mazmorra sigue abierta: más abajo esperan las criaturas abisales.",
         },

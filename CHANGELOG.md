@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v36 — La Llama, al final del camino
+- **El arcade ya no termina la saga.** Antes, superar el piso 20 de la Torre encendía la Llama (el objetivo de la saga) aunque el reino siguiera en manos de las Sombras. Ahora la Llama solo prende con el fuego de los cuatro memoriales de la Ciudadela, que arden cuando vences a los 20 señores (tus jefes): el final de la saga se gana con la vida real, al final del camino del reino.
+- **Nuevo orden de los actos:** La primera piedra, El juramento, El huevo de Aurelio, El reino dividido, **La cima de la Torre** (piso 20: liberas al último Vigía y se abre la Mazmorra), **El Rey Hueco** (sótano 20) y, al final, **La Llama de los Vigías** (los 20 señores).
+- Los actos que ya cumpliste antes de tiempo (por ejemplo, la Torre subida antes de liberar el valle) se marcan «Ya lo lograste» y cuentan cuando llegas a ellos.
+- **Historias ajustadas:** en la cima, la antorcha no prende («Solo arde con el fuego de las Sombras vencidas»); la historia de la Torre se llama ahora «La Torre de los Vigías»; Aurelio y la Mazmorra mandan de vuelta al reino; la Crónica dice que el fuego de los memoriales es el que falta en la cima. La Coraza del Vigía se gana «al llegar a la cima» (igual que antes: 20 pisos).
+
 ## v35 — La Saga de la Llama
 - **Una sola historia con un objetivo** (`js/saga.js`): el pergamino de Lía, las memorias de Aurelio, la Crónica del reino, la Torre, la Mazmorra y tu libro son partes de la misma saga. El objetivo: convertirte en Vigía, liberar el reino de las Cuatro Sombras, volver a encender la Llama de la Torre y vencer al Rey Hueco.
 - **Siete actos que se cumplen en orden** (se calculan con lo que ya hiciste, no se guardan): La primera piedra (1 misión), El juramento (firmar el pacto), El huevo de Aurelio (10 misiones: el dragón se abre), El reino dividido (el primer jefe de cada atributo), La Llama de los Vigías (piso 20 de la Torre), Las Cuatro Sombras (los 20 jefes) y El Rey Hueco (sótano 20 de la Mazmorra). Después eres «Vigía de la Llama».

@@ -151,7 +151,7 @@ export const CONSEJOS_DE_GUARDIAN = {
     kraken: "Vive en agua helada: el frío no le hace nada. Pero el agua lleva el rayo hasta el fondo.",
     arbol: "Un árbol muerto por dentro arde como yesca. Y el rayo ya le cayó muchas veces.",
     reflejo: "Tiene tu fuego, porque es tuyo. Lo que no tiene es calma: enfríalo.",
-    "rey-hueco": "Está hecho de días fríos y vacíos. Llévale lo único que nunca tuvo: la Llama.",
+    "rey-hueco": "Está hecho de días fríos y vacíos. Llévale lo único que nunca tuvo: fuego.",
 };
 
 export function consejoDeGuardian(id) {

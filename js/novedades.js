@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 35;
+export const VERSION_APP = 36;
 
 export const NOVEDADES = [
+    {
+        version: 36,
+        titulo: "La Llama, al final del camino",
+        cambios: [
+            "🕯️ La Llama de los Vigías ya no se enciende en el arcade: prende con el fuego de los cuatro memoriales de la Ciudadela, que arden cuando vences a los 20 señores del reino. Es el último acto de la saga, y se gana con tus días.",
+            "🗼 Llegar a la cima de la Torre libera al último Vigía y abre la Mazmorra, pero la Llama sigue fría hasta que el reino sea libre. La Torre y la Mazmorra pueden ir por delante; ya no terminan la historia antes de tiempo.",
+            "🧭 Nuevo orden de la saga: … El reino dividido, La cima de la Torre, El Rey Hueco y, al final, La Llama de los Vigías.",
+        ],
+    },
     {
         version: 35,
         titulo: "La Saga de la Llama",

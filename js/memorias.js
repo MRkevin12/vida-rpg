@@ -94,7 +94,7 @@ export const MEMORIAS = [
         condicion: { tipo: "mazmorra", valor: 20 },
         parrafos: [
             "Al ver la corona hueca, Aurelio contó su último secreto. Él sabe cómo se empieza a ser como el Rey Hueco, porque estuvo a punto: el primer Vigía que dejó de subir no cayó en un día; se fue quedando, un «mañana» tras otro, igual que Aurelio al pie de la Torre.",
-            "«Por eso te enseño —le dijo a {n}—. No porque yo sepa ganar, sino porque sé cómo se pierde. Y se pierde igual que se gana: un día a la vez.» Esa noche, después de cien años, el viejo maestro volvió a subir la Torre, piso por piso, hasta la Llama.",
+            "«Por eso te enseño —le dijo a {n}—. No porque yo sepa ganar, sino porque sé cómo se pierde. Y se pierde igual que se gana: un día a la vez.» Esa noche, después de cien años, el viejo maestro volvió a subir la Torre, piso por piso, hasta la cima, y se sentó junto a la Llama apagada a esperar el fuego de los memoriales.",
         ],
         leccion: "Se pierde igual que se gana: un día a la vez.",
     },
@@ -130,7 +130,7 @@ export function pista(memoria, datos) {
         jefes: valor === 1 ? "cuando venzas a tu primer jefe" : `cuando hayas vencido a ${valor} jefes (llevas ${tienes})`,
         nivel: `cuando llegues al nivel ${valor} (vas en el ${tienes})`,
         torre: valor >= 20
-            ? `cuando enciendas la Llama: supera el piso ${valor} de la Torre del héroe (tu récord: ${tienes})`
+            ? `cuando llegues a la cima: supera el piso ${valor} de la Torre del héroe (tu récord: ${tienes})`
             : `cuando superes el piso ${valor} de la Torre del héroe (tu récord: ${tienes})`,
         mazmorra: `cuando vuelvas del fondo de la Mazmorra: supera el sótano ${valor} (tu récord: ${tienes})`,
     }[tipo];

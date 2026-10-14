@@ -10,14 +10,19 @@
 //   Ahora            Sin la Llama, las Cuatro Sombras se reparten el reino entre veinte señores
 //                    (tus jefes). Aurelio te encuentra y te da el huevo. Tú pones tu primera piedra.
 //
-// La saga le da un OBJETIVO a todo: convertirte en Vigía. Son 7 actos que se cumplen en orden
-// (como las memorias); el primero que falta es tu objetivo de ahora y se ve en Hoy. Nada se
-// guarda: se CALCULA con lo que ya hiciste.
+// La saga le da un OBJETIVO a todo: convertirte en Vigía volviendo a encender la Llama. Son 7 actos
+// que se cumplen en orden (como las memorias); el primero que falta es tu objetivo de ahora y se ve
+// en Hoy. Nada se guarda: se CALCULA con lo que ya hiciste.
+//
+// La Llama es el FINAL, y se enciende con la vida real (v36): no prende con antorchas, sino con el
+// fuego de los cuatro memoriales de la Ciudadela, que arden cuando caen los 20 señores (tus jefes).
+// Por eso la Torre y la Mazmorra (el arcade) pueden ir por delante, pero no terminan la saga: llegar
+// a la cima libera a Casio y abre la Mazmorra; encender la Llama exige terminar el camino del reino.
 //
 // Texto plano (vistas.js lo escapa). {n} es tu héroe y {m} tu dragón. Sin género para el héroe.
 
 export const TITULO = "La Saga de la Llama";
-export const OBJETIVO = "Convertirte en Vigía: liberar el reino de las Cuatro Sombras, volver a encender la Llama de la Torre y vencer al Rey Hueco en el fondo del Abismo.";
+export const OBJETIVO = "Convertirte en Vigía: volver a encender la Llama de la Torre. No prende con antorchas, sino con el fuego de los cuatro memoriales, que arden cuando liberas el reino de las Cuatro Sombras.";
 
 // Las historias de la app, en el orden en que pasan las cosas.
 // abrir = cómo se abre (la acción de app.js y sus datos).
@@ -31,8 +36,8 @@ export const HISTORIAS = [
     { id: "cronica", icono: "🗺️", titulo: "Crónica del reino", cuando: "Ahora",
       texto: "Sin la Llama, las Cuatro Sombras se reparten el reino entre veinte señores: tus jefes. Aurelio te da el huevo.",
       abrir: { accion: "ir", pantalla: "mapa" } },
-    { id: "torre", icono: "🗼", titulo: "La Llama de los Vigías", cuando: "Ahora",
-      texto: "Subes la Torre, piso a piso, para volver a encender la Llama.",
+    { id: "torre", icono: "🗼", titulo: "La Torre de los Vigías", cuando: "Ahora",
+      texto: "Subes la Torre, piso a piso, hasta la cima, donde la Llama apagada espera el fuego del reino.",
       abrir: { accion: "historia-abrir", lugar: "torre" } },
     { id: "mazmorra", icono: "⛓️", titulo: "El Rey Hueco", cuando: "Después",
       texto: "Bajo la Torre está el lugar donde nacen las Sombras, y en el fondo, el primer Vigía que dejó de subir.",
@@ -74,32 +79,33 @@ export const ACTOS = [
         cierre: "El valle despierta. Las Sombras ya saben tu nombre.",
     },
     {
-        id: "llama", titulo: "La Llama de los Vigías",
-        relato: "Mientras la Llama ardía, las Sombras no se atrevían a volver. En la cima de la Torre, entre los rayos, alguien sigue montando guardia desde hace cien años.",
-        objetivo: "Sube la Torre del héroe y vuelve a encender la Llama: supera el piso 20.",
+        id: "cima", titulo: "La cima de la Torre",
+        relato: "En la cima de la Torre, entre los rayos, alguien monta guardia desde hace cien años junto a la Llama apagada. Llegar arriba no la enciende, pero libera a quien la espera.",
+        objetivo: "Sube la Torre del héroe hasta la cima: supera el piso 20.",
         condicion: { tipo: "torre", meta: 20 }, lee: "torre",
-        cierre: "La Llama arde otra vez. Y Casio, por fin, descansa.",
-    },
-    {
-        id: "sombras", titulo: "Las Cuatro Sombras",
-        relato: "Con la Llama encendida, los señores pierden fuerza. En la Ciudadela, cuatro memoriales esperan a que caigan los veinte.",
-        objetivo: "Enciende los cuatro memoriales: vence a los 20 señores (los 5 jefes de cada atributo).",
-        condicion: { tipo: "senores", meta: 20 }, lee: "cronica",
-        cierre: "El reino vuelve a gobernarse solo. Pero las Sombras nacen más abajo.",
+        cierre: "Llegaste arriba y Casio, por fin, descansa. La Llama sigue fría: no prende con antorchas, sino con lo que vences allá afuera.",
     },
     {
         id: "abismo", titulo: "El Rey Hueco",
-        relato: "Las Sombras vuelven porque nacen bajo la Torre. En el fondo del Abismo espera el primer Vigía que dejó de subir.",
+        relato: "Al caer el Dragón de la tormenta se abrió una escalera bajo la Torre. Allá abajo nacen las Sombras, y en el fondo espera el primer Vigía que dejó de subir.",
         objetivo: "Baja al fondo de la Mazmorra del Abismo y vence al Rey Hueco: supera el sótano 20.",
         condicion: { tipo: "mazmorra", meta: 20 }, lee: "mazmorra",
-        cierre: "Ahora sabes dónde viven, y sabes bajar a buscarlas. Eres Vigía.",
+        cierre: "Ahora sabes dónde nacen las Sombras y sabes bajar a buscarlas. Solo falta encender la Llama.",
+    },
+    {
+        // El final: se cumple con la vida real (tus jefes), nunca solo con el arcade.
+        id: "llama", titulo: "La Llama de los Vigías",
+        relato: "La Llama no prende con antorchas. Prende con el fuego de los cuatro memoriales de la Ciudadela, y cada memorial se enciende cuando caen los cinco señores de su Sombra. Es lo único que no se gana en una batalla: se gana cada día.",
+        objetivo: "Enciende los cuatro memoriales y lleva su fuego a la cima: vence a los 20 señores (los 5 jefes de cada atributo).",
+        condicion: { tipo: "senores", meta: 20 }, lee: "cronica",
+        cierre: "La Llama arde otra vez, encendida con tus días. Cien años esperé para ver esto.",
     },
 ];
 
 // Cuando ya cumpliste los 7 actos: la saga no termina, se mantiene.
 export const VIGIA = {
     titulo: "Vigía de la Llama",
-    relato: "{n} es Vigía. La saga no termina: como Lía, como Casio, cada día se pone una piedra y la Llama sigue encendida.",
+    relato: "{n} subió el fuego de los cuatro memoriales hasta la cima y la Llama de los Vigías volvió a arder. La saga no termina: como Lía, como Casio, cada día se pone una piedra y la Llama sigue encendida.",
     objetivo: "Mantén la Llama encendida: no falles dos días seguidos.",
 };
 
@@ -134,8 +140,10 @@ export function datosDeSaga(estado, campanas) {
 const ROMANOS = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
 // Cómo va tu saga. Los actos se cumplen EN ORDEN: el primero que falta es el de ahora.
-// Devuelve { actos: [{ ...acto, numero, avance, hecho, actual }], indice (el de ahora, o 7 si terminaste),
+// Devuelve { actos: [{ ...acto, numero, avance, hecho, actual, listo }], indice (el de ahora, o 7 si terminaste),
 //            completada, objetivo, avance, meta }
+// listo = su meta ya se cumplió aunque todavía no le toca (por ejemplo, la Torre subida antes de liberar
+// el valle): se cuenta cuando llegues a ese acto.
 
 export function estadoDeSaga(datos) {
     const avances = ACTOS.map((a) => avanceDe(a.condicion, datos));
@@ -143,7 +151,7 @@ export function estadoDeSaga(datos) {
     if (indice === -1) indice = ACTOS.length;
     const actos = ACTOS.map((a, i) => ({
         ...a, numero: ROMANOS[i], avance: avances[i],
-        hecho: i < indice, actual: i === indice,
+        hecho: i < indice, actual: i === indice, listo: avances[i] >= a.condicion.meta,
     }));
     const actual = actos[indice];
     return {

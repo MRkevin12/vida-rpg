@@ -2401,14 +2401,42 @@ prueba("Saga: 7 actos en orden con un objetivo final; el primero que falta es el
     igual(ir({ completadas: 3, pacto: true }).indice, 2);
     let s = ir({ completadas: 10, pacto: true, campanas: campanas(2, 1, 1, 0) });
     igual([s.indice, s.avance, s.meta], [3, 3, 4], "faltan los primeros señores de una Sombra");
-    igual(ir({ completadas: 10, pacto: true, campanas: campanas(1, 1, 1, 1) }).indice, 4, "la Llama");
+    igual(ir({ completadas: 10, pacto: true, campanas: campanas(1, 1, 1, 1) }).indice, 4, "la cima de la Torre");
     igual(ir({ completadas: 10, pacto: true, campanas: campanas(1, 1, 1, 1), torreEnCurso: 20 }).indice, 5, "la subida de ahora también cuenta");
-    s = ir({ completadas: 10, pacto: true, campanas: campanas(5, 7, 5, 4), records: { torre: 22 } });
-    igual([s.indice, s.avance], [5, 19], "los 20 señores (cada Sombra cuenta hasta 5)");
+    s = ir({ completadas: 10, pacto: true, campanas: campanas(5, 7, 5, 4), records: { torre: 22, mazmorra: 20 } });
+    igual([s.indice, s.avance], [6, 19], "los 20 señores (cada Sombra cuenta hasta 5)");
     s = ir({ completadas: 10, pacto: true, campanas: campanas(5, 5, 5, 5), records: { torre: 22, mazmorra: 20 } });
     igual([s.indice, s.completada, s.objetivo], [7, true, saga.VIGIA.objetivo], "eres Vigía");
     igual(ir({ completadas: 10, campanas: campanas(5, 5, 5, 5), records: { torre: 22, mazmorra: 20 } }).indice, 1, "en orden: sin el juramento no se avanza");
     igual(saga.conNombres("{n} y {m}", { heroe: "Ana", dragon: "Chispa" }), "Ana y Chispa");
+});
+
+prueba("Saga (v36): el arcade no termina la historia; la Llama se enciende al final del camino del reino", () => {
+    const campanas = (...derrotados) => Object.fromEntries(derrotados.map((d, i) => [`c${i}`, { derrotados: d }]));
+    const ir = (cambios) => saga.estadoDeSaga({ completadas: 50, pacto: true, campanas: campanas(1, 1, 1, 1), records: {}, torreEnCurso: 0, ...cambios });
+    const ultimo = saga.ACTOS[saga.ACTOS.length - 1];
+    igual([ultimo.id, ultimo.condicion.tipo], ["llama", "senores"], "el último acto es la Llama, y se gana con tus jefes (la vida real)");
+    igual(saga.ACTOS.map((a) => a.id).slice(3), ["reino", "cima", "abismo", "llama"], "el reino, la cima, el abismo y, al final, la Llama");
+
+    // Torre y Mazmorra completas, pero el reino a medias: la saga sigue en la Llama.
+    let s = ir({ records: { torre: 30, mazmorra: 30 } });
+    igual([s.actos[s.indice].id, s.completada, s.avance, s.meta], ["llama", false, 4, 20], "con todo el arcade, falta el reino");
+    s = ir({ campanas: campanas(1, 0, 1, 0), records: { torre: 30, mazmorra: 30 } });
+    igual(s.actos.map((a) => a.hecho ? "hecho" : a.actual ? "ahora" : a.listo ? "listo" : "falta"),
+          ["hecho", "hecho", "hecho", "ahora", "listo", "listo", "falta"], "lo que ya lograste del arcade espera su turno");
+    // El reino libre sin haber subido la Torre: falta llegar a la cima.
+    s = ir({ campanas: campanas(5, 5, 5, 5) });
+    igual([s.actos[s.indice].id, s.completada], ["cima", false]);
+    // Las dos cosas: Vigía.
+    cierto(ir({ campanas: campanas(5, 5, 5, 5), records: { torre: 20, mazmorra: 20 } }).completada, "las dos: eres Vigía");
+
+    // Los textos: ni la Torre ni la Mazmorra dicen que la Llama ya arde.
+    const textoDe = (lugar) => JSON.stringify(leyendas.capitulosDeLeyenda(lugar, 99, "Ana"));
+    cierto(leyendas.LEYENDAS.torre.zonas.cima.caida.includes("la Llama no prende"), "en la cima la Llama sigue fría");
+    cierto(!/vuelve a arder|hasta la Llama|luz de la Llama/.test(textoDe("torre") + textoDe("mazmorra")), "nadie la enciende en el arcade");
+    cierto(textoDe("mazmorra").includes("fuego de los cuatro memoriales"), "la Mazmorra manda de vuelta al reino");
+    cierto(avatar.OBJETOS["coraza-vigia"].logro.texto.startsWith("Llegar a la cima"), "la Coraza del Vigía, al llegar a la cima");
+    cierto(saga.conNombres(saga.VIGIA.relato, { heroe: "Ana", dragon: "Chispa" }).includes("fuego de los cuatro memoriales"), "el final: el fuego del reino");
 });
 
 prueba("Saga en la partida: se ve en Hoy y en Héroe › Historia, y cada acto cumplido se celebra", () => {
@@ -2433,7 +2461,7 @@ prueba("Saga en la partida: se ve en Hoy y en Héroe › Historia, y cada acto c
     html = vistas.pantallaPersonaje(estado, ctx({ personaje: "historia" }));
     cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
     cierto(html.includes("La Saga de la Llama") && html.includes("Las historias, en orden") && html.includes("📜 Firmar tu pacto"), "la saga en Héroe");
-    const orden = ["La primera piedra", "Memorias de Aurelio", "Crónica del reino", "La Llama de los Vigías", "El Rey Hueco", "Tu libro"]
+    const orden = ["La primera piedra", "Memorias de Aurelio", "Crónica del reino", "La Torre de los Vigías", "El Rey Hueco", "Tu libro"]
         .map((titulo) => html.indexOf(titulo, html.indexOf("Las historias, en orden")));
     cierto(orden.every((posicion, i) => posicion > 0 && (i === 0 || posicion > orden[i - 1])), `en orden: ${orden}`);
     cierto(maestro.responder(estado, maestro.contexto(estado, hoy()), "comoVoy").includes("En la saga, tu objetivo es este: Haz el juramento"), "Aurelio te lo recuerda");
@@ -2447,7 +2475,8 @@ prueba("Historias conectadas: Aurelio no está en la cima antes de tiempo y cada
     cierto(cronicaJs.includes("la Llama de la Torre se apagó. Entonces volvieron las Cuatro Sombras"), "las Sombras volvieron por la Llama");
     cierto(leyendasJs.includes("una muchacha llamada Lía"), "la Torre nombra a Lía");
     cierto(memorias.MEMORIAS[1].parrafos[0].includes("«La primera piedra»"), "Casio le dio el pergamino a Aurelio");
-    cierto(memorias.MEMORIAS[7].parrafos[1].includes("hasta la Llama"), "y al final suben juntos");
+    cierto(memorias.MEMORIAS[7].parrafos[1].includes("junto a la Llama apagada"), "y al final suben juntos a esperar el fuego");
+    cierto(cronicaJs.includes("El fuego de los memoriales es el que falta en la cima"), "la Crónica lleva a la Llama");
     cierto(pergamino.pergaminoPara("Ana").dedicatoria[0].includes("Casio") && pergamino.pergaminoPara("Ana").dedicatoria[0].includes("Aurelio"),
            "el pergamino pasó de Casio a Aurelio, y de Aurelio a ti");
     cierto(mascota.MASCOTAS.dragon.texto.includes("último huevo de los dragones de la Torre"), "tu dragón, el último de la Torre");
@@ -2474,7 +2503,7 @@ prueba("Equipo (v34): el espacio del pecho y objetos nuevos en todos los espacio
     delete estado.avatar.equipado.pecho;
     igual(datos.desdeRespaldo(datos.textoRespaldo(estado)).avatar.equipado.pecho, null);
 
-    // La Coraza del Vigía se gana encendiendo la Llama (20 pisos de la Torre).
+    // La Coraza del Vigía se gana al llegar a la cima (20 pisos de la Torre).
     const vigia = avatar.OBJETOS["coraza-vigia"];
     estado.arcade.records.torre = 19;
     cierto(!avatar.objetosDeLogroGanados(estado, juego.resumen(estado, hoy())).includes("coraza-vigia"), "con 19 pisos, no");
