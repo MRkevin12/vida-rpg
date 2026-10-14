@@ -1081,8 +1081,11 @@ function partidaDe(estado, lugar) {
 }
 
 // Devuelve { relato }: la historia que se cuenta al entrar por primera vez (o null).
-export function empezarTorre(estado, semilla, lugar = "torre") {
+// marca (v41, opcional): una de las marcas que se ofrecen hoy (ver torre.marcasDelDia). Solo cuenta al EMPEZAR
+// una partida nueva: si ya hay una en curso, esa sigue con la suya.
+export function empezarTorre(estado, semilla, lugar = "torre", marca = null) {
     if (!bestiario.LUGARES[lugar]) throw new Error("Ese lugar no existe.");
+    if (marca && !torre.marcasDelDia(hoy(), lugar).includes(marca)) throw new Error("Esa marca no se ofrece hoy.");
     revisarQueNoEstesCaido(estado, "el arcade");
     const enCurso = estado.arcade[lugar];
     if (enCurso) {
@@ -1102,7 +1105,7 @@ export function empezarTorre(estado, semilla, lugar = "torre") {
     asegurarRetoDelDia(estado);
     // Entras con tu vida real: si llegas herido, empiezas con menos vida.
     const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
-    const partida = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado), lugar);
+    const partida = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado), lugar, marca);
     // Las provisiones del bazar se usan al empezar (y se gastan).
     torre.usarProvisiones(partida, estado.arcade.bazar);
     estado.arcade.bazar = [];
@@ -1189,7 +1192,7 @@ export function terminarTorre(estado, lugar = "torre") {
     const pisos = torre.pisosSuperados(partida);
     // «Eco de la Torre»: la Torre paga el doble ese día (la Mazmorra, no).
     const factor = lugar === "torre" ? eventos.factorTorre(eventos.eventoDelDia(hoy(), estado)) : 1;
-    const base = torre.premio(pisos, lugar);
+    const base = torre.premio(pisos, lugar, partida.marca);
     const premio = { gemas: base.gemas * factor, xp: base.xp * factor };
     const atributo = torre.REGLAS[lugar].atributo;
     ganar(estado, { ...premio, atributo });
@@ -1208,7 +1211,7 @@ export function terminarTorre(estado, lugar = "torre") {
         celebraciones.push({ icono: "⛓️", etiqueta: "¡Se abrió una mazmorra!", titulo: "Mazmorra del Abismo",
                              detalle: "Bajo la Torre hay una escalera. Más difícil y con criaturas nuevas: búscala en el Arcade." });
     }
-    return { lugar, pisos, premio, reto, atributo, record: estado.arcade.records[lugar] || 0, nuevoRecord: nuevoRecord && pisos > 0, celebraciones };
+    return { lugar, pisos, premio, reto, marca: partida.marca || null, atributo, record: estado.arcade.records[lugar] || 0, nuevoRecord: nuevoRecord && pisos > 0, celebraciones };
 }
 
 

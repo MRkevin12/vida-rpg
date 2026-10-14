@@ -2358,6 +2358,7 @@ export function pantallaArcade(estado, ctx) {
             <p class="mini">🏅 Récord: ${recordTorre ? `${plural(recordTorre, "piso superado", "pisos superados")}` : "todavía ninguno"}
                · Premio: ${torre.PREMIO.gemasPorPiso} 💎 y ${String(torre.PREMIO.xpPorPiso).replace(".", ",")} XP de Carisma por piso
                (máx. ${torre.PREMIO.maxGemas} 💎 y ${torre.PREMIO.maxXp} XP)</p>
+            ${selectorDeMarcas("torre", partida, ctx.hoy)}
             <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" data-lugar="torre" ${!caido && (partida || fichas) ? "" : "disabled"}>
                 ${partida ? `Continuar · piso ${partida.piso}` : "Subir a la torre · 🎟️ 1 ficha"}</button>
             <div class="torre-botones">
@@ -2371,7 +2372,7 @@ export function pantallaArcade(estado, ctx) {
         ${caido ? avisoCaido(ctx.vida, "El arcade está cerrado") : ""}
         ${tarjetaReto(estado, ctx)}
         ${tarjetaTorre}
-        ${tarjetaMazmorra(estado, caido, fichas)}
+        ${tarjetaMazmorra(estado, caido, fichas, ctx.hoy)}
         ${panelBazar(estado, caido)}
         <section class="panel arcade-cabecera">
             <div class="arcade-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
@@ -2456,7 +2457,27 @@ function panelBazar(estado, caido) {
 }
 
 // La Mazmorra del Abismo (v29): cerrada (con lo que falta para abrirla) o abierta.
-function tarjetaMazmorra(estado, caido, fichas) {
+// Las marcas de partida (v41): 3 al día, o la que llevas si ya hay una partida en curso.
+// Los botones de radio se llaman "marca-torre" / "marca-mazmorra"; app.js lee el que esté marcado.
+const textoPremioMarca = (m) => `premio ×${String(m.premio).replace(".", ",")}`;
+
+function selectorDeMarcas(lugar, partida, fecha) {
+    if (partida) {
+        const m = torre.MARCAS[partida.marca];
+        return `<p class="mini equipo-ventaja">${m ? `✦ Marca: ${m.icono} <b>${m.nombre}</b> (${m.texto} · ${textoPremioMarca(m)})` : "✦ Sin marca"}</p>`;
+    }
+    return `
+        <fieldset class="opciones opciones-1 marcas">
+            <legend>Marca de esta partida <span class="texto-suave">(opcional: más riesgo, más premio)</span></legend>
+            <label class="pildora"><input type="radio" name="marca-${lugar}" value="" checked><span><b>Sin marca</b><small>Como siempre</small></span></label>
+            ${torre.marcasDelDia(fecha, lugar).map((clave) => {
+                const m = torre.MARCAS[clave];
+                return `<label class="pildora"><input type="radio" name="marca-${lugar}" value="${clave}"><span><b>${m.icono} ${m.nombre}</b><small>${m.texto} · ${textoPremioMarca(m)}</small></span></label>`;
+            }).join("")}
+        </fieldset>`;
+}
+
+function tarjetaMazmorra(estado, caido, fichas, fecha) {
     const record = estado.arcade.records.torre || 0;
     if (!torre.mazmorraAbierta(estado.arcade)) {
         return `
@@ -2490,6 +2511,7 @@ function tarjetaMazmorra(estado, caido, fichas) {
             <p class="mini">🏅 Récord: ${recordMazmorra ? plural(recordMazmorra, "sótano superado", "sótanos superados") : "todavía ninguno"}
                · Premio: ${reglas.premio.gemasPorPiso} 💎 y ${reglas.premio.xpPorPiso} XP de ${atributo.icono} ${atributo.nombre} por sótano
                (máx. ${reglas.premio.maxGemas} 💎 y ${reglas.premio.maxXp} XP)</p>
+            ${selectorDeMarcas("mazmorra", partida, fecha)}
             <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" data-lugar="mazmorra" ${!caido && (partida || fichas) ? "" : "disabled"}>
                 ${partida ? `Continuar · sótano ${partida.piso}` : "Bajar a la mazmorra · 🎟️ 1 ficha"}</button>
             <div class="torre-botones">
@@ -2668,12 +2690,12 @@ export function pantallaTorre(t) {
                     const mejora = torre.MEJORAS[clave];
                     return `<button type="button" class="ff-comando" data-accion="torre-mejora" data-mejora="${clave}">
                                 <span class="ff-cursor" aria-hidden="true"></span>
-                                <span class="ff-comando-nombre">${mejora.icono} ${mejora.nombre}</span><small>${mejora.texto}</small></button>`;
+                                <span class="ff-comando-nombre">${mejora.icono} ${mejora.nombre}</span><small>${mejora.don ? "✦ Don raro · " : ""}${mejora.texto}</small></button>`;
                 }).join("")}
             </div>`;
     } else if (p.fase === "fin") {
         const pisos = torre.pisosSuperados(p);
-        const premio = torre.premio(pisos, p.lugar);
+        const premio = torre.premio(pisos, p.lugar, p.marca);
         const atributo = ATRIBUTOS[torre.REGLAS[sitio.id].atributo];
         const piso = sitio.piso.toLowerCase();
         abajo = `
@@ -2703,7 +2725,7 @@ export function pantallaTorre(t) {
         </div>` : "";
 
     return `
-        ${barraTorre(`${sitio.icono} ${sitio.piso} ${p.piso}`, `${zona.nombre}${m.guardian ? " 👑" : ""}`)}
+        ${barraTorre(`${sitio.icono} ${sitio.piso} ${p.piso}`, `${p.marca ? `${torre.MARCAS[p.marca].icono} ` : ""}${zona.nombre}${m.guardian ? " 👑" : ""}`)}
         ${escena}
         <p class="ff-ventana ff-mensaje" role="status">${esc(p.registro)}</p>
         ${aurelio}
@@ -2856,6 +2878,7 @@ function finalTorre(t) {
             <p class="ff-puntos">${plural(r.pisos, piso, `${piso}s`)}</p>
             <p class="ff-renglon">${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${plural(r.record, piso, `${piso}s`)}`}</p>
             <p class="ff-renglon ff-oro">+${r.premio.gemas} 💎 · +${r.premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
+            ${r.marca ? `<p class="ff-renglon">✦ Marca: ${torre.MARCAS[r.marca].icono} ${torre.MARCAS[r.marca].nombre} · ${textoPremioMarca(torre.MARCAS[r.marca])}</p>` : ""}
             ${r.reto ? `<p class="ff-renglon ff-oro">🎯 ¡Reto del día cumplido! ${textoPremioReto(r.reto)}</p>` : ""}
             <button type="button" class="ff-comando elegido" data-accion="torre-abrir" data-lugar="${sitio.id}" ${t.fichas ? "" : "disabled"}>
                 <span class="ff-cursor" aria-hidden="true"></span>

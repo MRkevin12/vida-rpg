@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v41 — Marcas y dones en la Torre
+- **Marcas de partida** (`MARCAS` y `marcasDelDia` en `torre.js`): al empezar una subida o un descenso se puede elegir una de las 3 marcas del día (según la fecha y el lugar), o ninguna. 💎 Cristal (−25 % de vida), 🚫 Sin frascos (sin pociones), 🐗 Criaturas salvajes (+25 % de ataque), 🪨 Pieles duras (+30 % de vida), 🤐 Magia muda (sin hechizos) y 🍂 Ayuno (sin cura al subir de piso; solo en la Torre). El premio final se multiplica entre ×1,2 y ×1,3 (después del tope de gemas/XP). `empezarTorre(estado, semilla, lugar, marca)` solo acepta las del día.
+- **Dones** (6 mejoras raras en `MEJORAS`, con `don: true`): 🩸 Sed de sangre, 🔔 Eco arcano, 🌵 Piel de espinas, 🏹 Ojo de cazador, 🔥 Fervor y 🎒 Botín de guerra. Desde el piso 3 puede salir uno (50 %) entre las opciones de mejora, nunca repetido; se guardan en `heroe.dones`.
+- **Pantalla:** selector de marcas en las tarjetas de la Torre y la Mazmorra; la marca se ve en la cabecera de la batalla y en el resumen final; los dones se marcan «✦ Don raro» al elegirlos.
+- Los datos no cambian de versión (la marca y los dones viven dentro de la partida de la Torre; las partidas viejas siguen sin marca). 201 pruebas (6 nuevas).
+
 ## v40 — Reto del día en el arcade
 - **Reto del día** (`js/retos.js`, nuevo): cada día toca uno de 6 retos (puntos en Carrera / Lluvia / Golpe preciso, pisos de la Torre, sótanos de la Mazmorra si ya está abierta, o «juega N partidas»). Sin repetir el de ayer. La meta es el 70–90 % de tu récord (50–70 % en pisos), redondeada y nunca menor que una base, y se fija al crear el reto: superar tu récord ese día no la mueve.
 - **Premio:** 6 💎 y 4 XP (del atributo del juego) una sola vez al día, al cumplirlo. Sale en la pantalla de resultado de la partida o de la Torre.

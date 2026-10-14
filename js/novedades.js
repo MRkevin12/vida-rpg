@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 40;
+export const VERSION_APP = 41;
 
 export const NOVEDADES = [
+    {
+        version: 41,
+        titulo: "Marcas y dones en la Torre",
+        cambios: [
+            "✦ Antes de subir a la Torre (o bajar a la Mazmorra) puedes elegir una marca: un trato con la Torre. Cada día se ofrecen 3 distintas. Te pone una dificultad extra (menos vida, sin pociones, sin magia, criaturas más duras, sin cura al subir…) y a cambio el premio final sube entre un 20 % y un 30 %.",
+            "🎁 Dones: mejoras raras que cambian cómo peleas. Desde el piso 3, a veces entre tus tres opciones sale uno: 🩸 Sed de sangre, 🔔 Eco arcano, 🌵 Piel de espinas, 🏹 Ojo de cazador, 🔥 Fervor o 🎒 Botín de guerra. Cada uno se puede tener una sola vez por partida.",
+            "Si ya tenías una partida a medias, sigue igual; las marcas y los dones valen para las que empieces ahora.",
+        ],
+    },
     {
         version: 40,
         titulo: "Reto del día en el arcade",

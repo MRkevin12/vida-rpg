@@ -43,6 +43,7 @@
 import { CRIATURAS, ELEMENTOS, ORDEN, PISOS_POR_ZONA, idDelPiso, vueltaDelPiso, zonaDelPiso, factorElemento, lugarDe, aLaZona, deLaZona } from "./bestiario.js";
 import { HABILIDADES, ESQUIVAR_MAXIMO, tiene } from "./habilidades.js";
 import { MASCOTAS } from "./mascota.js";
+import { semilla as hashDeTexto } from "./desafios.js";
 
 // El premio es en gemas 💎 (la moneda del arcade, v31) y algo de XP (desde la v31, la mitad).
 export const ATRIBUTO = "carisma";                       // el premio sube Carisma
@@ -58,6 +59,44 @@ export const REGLAS = {
     mazmorra: { atributo: "fuerza", premio: { gemasPorPiso: 5, xpPorPiso: 4, maxGemas: 80, maxXp: 60 },
                 curaAlSubir: 0, enfurecer: true },
 };
+
+// ===== Marcas de partida (v41) =====
+// Antes de empezar una subida (o un descenso) puedes elegir UNA marca: un trato con la Torre. Te pone una
+// dificultad extra y, a cambio, el premio final sube (`premio` = cuánto se multiplica). Cada día se ofrecen
+// 3 de ellas (las mismas todo el día), y siempre puedes ir sin marca.
+//   solo: si es de un solo lugar («Ayuno» no sirve en la Mazmorra, donde ya no hay descanso).
+export const MARCAS = {
+    cristal:    { icono: "💎", nombre: "Cristal",           texto: "−25 % de vida máxima",                   premio: 1.3 },
+    sinfrascos: { icono: "🚫", nombre: "Sin frascos",       texto: "Empiezas sin pociones",                  premio: 1.2 },
+    salvaje:    { icono: "🐗", nombre: "Criaturas salvajes", texto: "Pegan 25 % más fuerte",                  premio: 1.3 },
+    piel:       { icono: "🪨", nombre: "Pieles duras",      texto: "Tienen 30 % más de vida",                premio: 1.25 },
+    silencio:   { icono: "🤐", nombre: "Magia muda",        texto: "No tienes hechizos",                     premio: 1.3 },
+    ayuno:      { icono: "🍂", nombre: "Ayuno",             texto: "No recuperas vida al pasar de piso",     premio: 1.25, solo: "torre" },
+};
+export const MARCAS_POR_DIA = 3;
+
+// Las marcas que se ofrecen ese día en ese lugar: siempre las mismas para la misma fecha.
+export function marcasDelDia(fecha, lugar = "torre") {
+    const claves = Object.keys(MARCAS).filter((clave) => !MARCAS[clave].solo || MARCAS[clave].solo === lugar);
+    let semilla = hashDeTexto(`${fecha}${lugar}`) || 1;
+    const elegidas = [];
+    while (elegidas.length < MARCAS_POR_DIA) {
+        semilla = (semilla * 1664525 + 1013904223) % 4294967296;
+        elegidas.push(...claves.splice(Math.floor((semilla / 4294967296) * claves.length), 1));
+    }
+    return elegidas;
+}
+
+// La criatura que sale en cada piso, ya con lo que cambia la marca («Criaturas salvajes», «Pieles duras»).
+function marcarEnemigo(marca, m) {
+    if (marca === "salvaje") m.ataque = Math.round(m.ataque * 1.25);
+    if (marca === "piel") {
+        const parte = m.vida / m.vidaMax;   // (con «Rugido» la criatura ya sale herida: se mantiene esa parte)
+        m.vidaMax = Math.round(m.vidaMax * 1.3);
+        m.vida = Math.round(m.vidaMax * parte);
+    }
+    return m;
+}
 
 // ===== El bazar del arcade (v31) =====
 // Provisiones que se compran con gemas y se usan al EMPEZAR tu próxima subida (o bajada):
@@ -186,7 +225,19 @@ export const MEJORAS = {
     // v38
     impulso:  { icono: "✨", nombre: "Llama interior",   texto: "+35 de Voluntad" },
     maestria: { icono: "🎓", nombre: "Maestría",         texto: "Cada técnica, una vez más por piso" },
+    // v41: los DONES. Cambian cómo peleas (no solo un número) y son raros: desde el piso 3 a veces sale uno entre
+    // las opciones, y cada don se puede tener una sola vez por partida (quedan en `heroe.dones`).
+    sangre:   { icono: "🩸", nombre: "Sed de sangre",    texto: "Cada golpe crítico te cura 10 % de tu vida máxima", don: true },
+    eco:      { icono: "🔔", nombre: "Eco arcano",       texto: "Tu primer hechizo de cada piso pega el doble", don: true },
+    espinas:  { icono: "🌵", nombre: "Piel de espinas",  texto: "Le devuelves 30 % del daño que recibes", don: true },
+    cazador:  { icono: "🏹", nombre: "Ojo de cazador",   texto: "Tus críticos pegan ×2,3 en vez de ×1,8", don: true },
+    fervor:   { icono: "🔥", nombre: "Fervor",           texto: "Ganas 50 % más de Voluntad", don: true },
+    botin:    { icono: "🎒", nombre: "Botín de guerra",  texto: "Al vencer a una criatura recuperas 10 % de tu vida", don: true },
 };
+
+// Los números de los dones (para que el texto y las reglas no se separen).
+export const DONES = { sangre: 0.1, espinas: 0.3, cazador: 0.5, fervor: 1.5, botin: 0.1, probabilidad: 0.5, desdePiso: 3 };
+const tieneDon = (h, clave) => (h.dones || []).includes(clave);
 
 const INTENCIONES = {
     golpe:    { icono: "⚔️", texto: "Va a atacar" },
@@ -268,7 +319,7 @@ export function heroeDeLaTorre(niveles, equipo = {}) {
 }
 
 function pisoNuevo() {
-    return { golpeado: false, atacado: false, gracia: false, aurora: false, aturdio: false, tecnicas: {} };
+    return { golpeado: false, atacado: false, gracia: false, aurora: false, aturdio: false, eco: false, tecnicas: {} };
 }
 
 // ¿Puedes usar esa técnica ahora? Devuelve null si sí, o el motivo si no.
@@ -280,7 +331,11 @@ export function motivoTecnica(h, clave) {
     return null;
 }
 
-const sumarVoluntad = (h, cuanto) => { h.voluntad = Math.min(VOLUNTAD.max, (h.voluntad || 0) + cuanto); };
+// («Fervor» es un don: sube lo que ganas, no lo que ya tienes.)
+const sumarVoluntad = (h, cuanto) => {
+    const ganado = Math.round(cuanto * (tieneDon(h, "fervor") ? DONES.fervor : 1));
+    h.voluntad = Math.min(VOLUNTAD.max, (h.voluntad || 0) + ganado);
+};
 
 // Le pega a la criatura: primero se gasta su barrera (si tiene). Devuelve cuánto absorbió.
 function golpearA(m, dano) {
@@ -396,25 +451,34 @@ export function textoIntencion(m, h = null) {
 // si llegas herido, empiezas con menos.
 // equipo.mascota (opcional): la mascota que te acompaña (ver mascotaDeBatalla en mascota.js).
 // lugar: "torre" (se sube) o "mazmorra" (se baja).
-export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporcion = 1, equipo = {}, lugar = "torre") {
+// marca (v41, opcional): una clave de MARCAS; la partida la recuerda en `partida.marca`.
+export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporcion = 1, equipo = {}, lugar = "torre", marca = null) {
+    if (marca && !MARCAS[marca]) throw new Error("Esa marca no existe.");
+    marca = marca || null;
     const heroe = heroeDeLaTorre(niveles, equipo);
+    // Lo que la marca le quita al héroe ANTES de calcular con cuánta vida entra.
+    if (marca === "cristal") heroe.vidaMax = Math.round(heroe.vidaMax * 0.75);
+    if (marca === "sinfrascos") heroe.pociones = 0;
+    if (marca === "silencio") { heroe.mana = 0; heroe.manaMax = 0; }
     heroe.vida = Math.max(1, Math.round(heroe.vidaMax * proporcion));
     const mazmorra = lugar === "mazmorra";
     const primero = mazmorra ? "Sótano 1" : "Piso 1";
     return {
         lugar: mazmorra ? "mazmorra" : "torre",
         semilla,
+        marca,                    // la marca elegida (o null)
         piso: 1,
         fase: "batalla",          // "batalla" | "mejora" (elegir premio) | "fin"
         heroe,
-        enemigo: rugir(heroe, monstruoDelPiso(1, lugar)),
+        enemigo: marcarEnemigo(marca, rugir(heroe, monstruoDelPiso(1, lugar))),
         mascota: equipo.mascota && MASCOTAS[equipo.mascota.especie] ? { ...equipo.mascota } : null,
         turno: 0,                 // cuántas acciones llevas (la mascota actúa cada tantos turnos)
         renacio: false,           // si el fénix ya te levantó en esta subida
         opciones: [],             // las mejoras para elegir (3, o 4 con «Constancia»)
-        registro: heroe.vida < heroe.vidaMax
+        registro: (heroe.vida < heroe.vidaMax
             ? `${primero}. Llegas con el ${Math.round(proporcion * 100)} % de tu vida real. ¡Cuidado!`
-            : `${primero}. ¡Que empiece ${mazmorra ? "el descenso" : "la subida"}!`,
+            : `${primero}. ¡Que empiece ${mazmorra ? "el descenso" : "la subida"}!`) +
+            (marca ? ` Marca: ${MARCAS[marca].icono} ${MARCAS[marca].nombre} (${MARCAS[marca].texto}).` : ""),
     };
 }
 
@@ -532,8 +596,11 @@ export function actuar(partida, accion, opcion = null) {
         const variacion = magia ? 0.9 + azar(partida) * 0.2 : 0.85 + azar(partida) * 0.3;
         const azarCritico = azar(partida);
         const critico = tecnica === "certero" || (tiene(h, "impetu") && !piso.atacado) || azarCritico < h.critico;
-        const multiplicaCritico = tiene(h, "desgarro") ? HABILIDADES.desgarro.critico : 1.8;
-        const extra = factorDeDano(h, m) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1)
+        const multiplicaCritico = (tiene(h, "desgarro") ? HABILIDADES.desgarro.critico : 1.8) + (tieneDon(h, "cazador") ? DONES.cazador : 0);
+        // «Eco arcano» (don): el primer hechizo de cada piso pega el doble.
+        const eco = magia && tieneDon(h, "eco") && !piso.eco;
+        if (eco) piso.eco = true;
+        const extra = factorDeDano(h, m) * (eco ? 2 : 1) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1)
             * (magia && elemento === "fuego" && tiene(h, "llama") ? HABILIDADES.llama.fuego : 1)   // «Llama del Vigía»
             * (tecnica === "quebrar" ? TECNICAS.quebrar.fuerza : 1);
         // «Quebrar» rompe su barrera y su coraza antes de pegar.
@@ -562,7 +629,9 @@ export function actuar(partida, accion, opcion = null) {
         const absorbido = golpearA(m, dano);
         sumarVoluntad(h, VOLUNTAD.alGolpear);
         // «Sed del vencedor»: tus golpes y hechizos te curan.
-        const cura = tiene(h, "sed") ? Math.min(Math.round(dano * HABILIDADES.sed.robo), h.vidaMax - h.vida) : 0;
+        let cura = tiene(h, "sed") ? Math.min(Math.round(dano * HABILIDADES.sed.robo), h.vidaMax - h.vida) : 0;
+        // «Sed de sangre» (don): cada golpe crítico te cura.
+        if (critico && tieneDon(h, "sangre")) cura += Math.min(Math.round(h.vidaMax * DONES.sangre), h.vidaMax - h.vida - cura);
         h.vida += cura;
         const conTecnica = tecnica ? { tecnica, nombre: TECNICAS[tecnica].nombre, rompio } : {};
         eventos.push(magia
@@ -575,6 +644,7 @@ export function actuar(partida, accion, opcion = null) {
                     (absorbido ? ` Su barrera para ${absorbido}${m.barrera ? ` (le queda ${m.barrera})` : " y se rompe"}.` : "") +
                     (m.coraza ? " Su coraza para la mitad." : "") +
                     (gratis ? " La aurora no te cobra el hechizo." : "") +
+                    (eco ? " ¡El eco arcano duplica tu hechizo!" : "") +
                     (aturde ? ` ¡${conMayuscula(elMonstruo(m))} queda aturdid${m.genero === "f" ? "a" : "o"}!` : "") +
                     (cura ? ` Recuperas ${cura}.` : ""));
     } else if (accion === "defender") {
@@ -688,7 +758,9 @@ export function actuar(partida, accion, opcion = null) {
             if (dano > 0) sumarVoluntad(h, VOLUNTAD.alRecibir);   // lo que aguantas te da Voluntad
             if (intencion === "descarga") m.cargando = false;
             // «Escamas»: le devuelves parte del golpe.
-            const reflejo = tiene(h, "escamas") ? Math.round(dano * HABILIDADES.escamas.reflejo) : 0;
+            // (y «Piel de espinas», un don, le devuelve parte del golpe).
+            const reflejoEscamas = tiene(h, "escamas") ? Math.round(dano * HABILIDADES.escamas.reflejo) : 0;
+            const reflejo = reflejoEscamas + (tieneDon(h, "espinas") ? Math.round(dano * DONES.espinas) : 0);
             golpearA(m, reflejo);
             const evento = { quien: "enemigo", tipo: intencion, especial: tipoEspecial, dano, nombre, reflejo };
             let extra = "";
@@ -708,7 +780,7 @@ export function actuar(partida, accion, opcion = null) {
             }
             eventos.push(evento);
             frases.push(`${sujeto} usa «${nombre}»: −${dano}${h.defendiendo ? " (bloqueaste parte)" : ""}.${extra}` +
-                        (reflejo ? ` Tus escamas le devuelven ${reflejo}.` : ""));
+                        (reflejo ? ` Tus ${reflejoEscamas ? "escamas" : "espinas"} le devuelven ${reflejo}.` : ""));
             salvarDeLaCaida(partida, eventos, frases);
         }
     } else if (intencion === "furia") {
@@ -755,6 +827,13 @@ export function actuar(partida, accion, opcion = null) {
 // El monstruo cayó: se acaba el piso y toca elegir la mejora.
 function vencer(partida, eventos, frases) {
     frases.push(`¡${conMayuscula(elMonstruo(partida.enemigo))} cae! ${nombreDelPiso(partida)} superado.`);
+    // «Botín de guerra» (don): al vencer recuperas un poco de vida.
+    const h = partida.heroe;
+    if (tieneDon(h, "botin") && h.vida > 0) {
+        const cura = Math.min(Math.round(h.vidaMax * DONES.botin), h.vidaMax - h.vida);
+        h.vida += cura;
+        if (cura) frases.push(`Del botín de guerra recuperas ${cura}.`);
+    }
     partida.fase = "mejora";
     partida.opciones = mejorasAlAzar(partida);
     partida.registro = frases.join(" ");
@@ -834,17 +913,21 @@ function actuaMascota(partida) {
     return null;
 }
 
-// Mejoras distintas al azar: 3, o 4 con «Constancia».
+// Mejoras distintas al azar: 3, o 4 con «Constancia». Desde el piso 3, a veces una de ellas es un don (la última).
 function mejorasAlAzar(partida) {
     const h = partida.heroe;
     // «Maestría» solo si ya sabes alguna técnica (y hasta 2 veces).
-    const claves = Object.keys(MEJORAS).filter((clave) => clave !== "maestria" || ((h.tecnicas || []).length && (h.maestria || 0) < 2));
+    const claves = Object.keys(MEJORAS).filter((clave) => !MEJORAS[clave].don &&
+        (clave !== "maestria" || ((h.tecnicas || []).length && (h.maestria || 0) < 2)));
+    const dones = Object.keys(MEJORAS).filter((clave) => MEJORAS[clave].don && !tieneDon(h, clave));
     const cuantas = tiene(partida.heroe, "constancia") ? 4 : 3;
+    const conDon = dones.length > 0 && partida.piso >= DONES.desdePiso && azar(partida) < DONES.probabilidad;
     const elegidas = [];
-    while (elegidas.length < cuantas) {
+    while (elegidas.length < cuantas - (conDon ? 1 : 0)) {
         const clave = elegir(partida, claves);
         if (!elegidas.includes(clave)) elegidas.push(clave);
     }
+    if (conDon) elegidas.push(elegir(partida, dones));
     return elegidas;
 }
 
@@ -852,6 +935,7 @@ function mejorasAlAzar(partida) {
 export function elegirMejora(partida, clave) {
     if (partida.fase !== "mejora" || !partida.opciones.includes(clave)) throw new Error("Elige una de las mejoras.");
     const h = partida.heroe;
+    if (MEJORAS[clave].don) h.dones = [...(h.dones || []), clave];   // un don no hace nada aquí: lo leen las batallas
     switch (clave) {
         case "afilar":   h.ataque += 3; break;
         case "tomo":     h.hechizo += 5; break;
@@ -870,14 +954,15 @@ export function elegirMejora(partida, clave) {
     }
     // Al subir: recuperas un poco de vida (más con el «Manto regio») y todos tus hechizos.
     // En la Mazmorra no hay descanso: solo lo del «Manto regio». El veneno se pasa.
-    const cura = reglasDe(partida).curaAlSubir + (tiene(h, "regia") ? HABILIDADES.regia.cura : 0);
+    // Con la marca «Ayuno» no recuperas nada.
+    const cura = partida.marca === "ayuno" ? 0 : reglasDe(partida).curaAlSubir + (tiene(h, "regia") ? HABILIDADES.regia.cura : 0);
     h.vida = Math.min(h.vidaMax, h.vida + Math.round(h.vidaMax * cura));
     h.mana = h.manaMax;
     h.veneno = 0;
     h.defendiendo = false;
     h.enEstePiso = pisoNuevo();
     partida.piso += 1;
-    partida.enemigo = rugir(h, monstruoDelPiso(partida.piso, partida.lugar));
+    partida.enemigo = marcarEnemigo(partida.marca, rugir(h, monstruoDelPiso(partida.piso, partida.lugar)));
     partida.enemigo.intencion = nuevaIntencion(partida);
     partida.opciones = [];
     partida.fase = "batalla";
@@ -891,10 +976,12 @@ export function elegirMejora(partida, clave) {
 
 // Lo que ganas al terminar, según los pisos que superaste (y el lugar: la Mazmorra paga más).
 // En gemas 💎 (no en monedas) y XP.
-export function premio(pisos, lugar = "torre") {
+// marca (v41, opcional): la que elegiste al empezar; multiplica el premio (ya con el tope puesto).
+export function premio(pisos, lugar = "torre", marca = null) {
     const p = (REGLAS[lugar] || REGLAS.torre).premio;
+    const factor = MARCAS[marca]?.premio || 1;
     return {
-        gemas: Math.min(p.maxGemas, pisos * p.gemasPorPiso),
-        xp: Math.min(p.maxXp, Math.floor(pisos * p.xpPorPiso)),
+        gemas: Math.floor(Math.min(p.maxGemas, pisos * p.gemasPorPiso) * factor),
+        xp: Math.floor(Math.min(p.maxXp, Math.floor(pisos * p.xpPorPiso)) * factor),
     };
 }

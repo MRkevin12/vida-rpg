@@ -1090,6 +1090,159 @@ prueba("Mazmorra: al superar el piso 20 de la Torre se celebra que se abrió", (
     cierto(!acciones.terminarTorre(estado).celebraciones.some((c) => c.titulo === "Mazmorra del Abismo"), "y no se repite");
 });
 
+
+// ===== Marcas de partida y dones (v41) =====
+
+prueba("Marcas: cada día se ofrecen 3 distintas (las mismas todo el día); «Ayuno» no va a la Mazmorra", () => {
+    for (const lugar of ["torre", "mazmorra"]) {
+        for (let n = 0; n < 40; n++) {
+            const marcas = torre.marcasDelDia(dia(n), lugar);
+            igual(new Set(marcas).size, torre.MARCAS_POR_DIA, "3 distintas");
+            igual(torre.marcasDelDia(dia(n), lugar), marcas, "siempre las mismas para el mismo día");
+            cierto(marcas.every((m) => torre.MARCAS[m]), "todas existen");
+            if (lugar === "mazmorra") cierto(!marcas.includes("ayuno"), "Ayuno solo sirve en la Torre");
+        }
+    }
+    const distintas = new Set(Array.from({ length: 40 }, (_, n) => torre.marcasDelDia(dia(n)).join()));
+    cierto(distintas.size > 5, "los días cambian las marcas");
+});
+
+prueba("Marcas: cada una cambia la partida (vida, pociones, magia, criaturas) y el premio sube", () => {
+    const base = torre.nuevaPartida(NIVELES_1, 5);
+    const con = (marca) => torre.nuevaPartida(NIVELES_1, 5, 1, {}, "torre", marca);
+    igual(con("cristal").heroe.vidaMax, Math.round(base.heroe.vidaMax * 0.75));
+    cierto(base.heroe.pociones > 0 && con("sinfrascos").heroe.pociones === 0, "sin pociones");
+    const muda = con("silencio");
+    igual([muda.heroe.mana, muda.heroe.manaMax], [0, 0]);
+    debeFallar(() => torre.actuar(muda, "hechizo", "fuego"), "No te quedan hechizos");
+    igual(con("salvaje").enemigo.ataque, Math.round(base.enemigo.ataque * 1.25));
+    igual(con("piel").enemigo.vidaMax, Math.round(base.enemigo.vidaMax * 1.3));
+    igual(con("piel").enemigo.vida, con("piel").enemigo.vidaMax, "sale con toda su vida");
+    igual([con("ayuno").marca, base.marca], ["ayuno", null]);
+    debeFallar(() => con("inventada"), "no existe");
+    cierto(con("cristal").registro.includes("Cristal"), "el registro cuenta la marca");
+
+    // El premio se multiplica (después del tope) y sin marca queda igual que antes.
+    igual(torre.premio(10), { gemas: 30, xp: 25 });
+    igual(torre.premio(10, "torre", "salvaje"), { gemas: 39, xp: 32 });
+    igual(torre.premio(100, "torre", "salvaje"), { gemas: 78, xp: 58 }, "máx. 60 💎 y 45 XP, ×1,3");
+    cierto(Object.values(torre.MARCAS).every((m) => m.premio > 1), "todas dan más premio");
+});
+
+prueba("Marcas: «Pieles duras» respeta el «Rugido» (la criatura sigue saliendo herida) y «Ayuno» quita la cura al subir", () => {
+    const rugida = torre.nuevaPartida(NIVELES_1, 3, 1, { habilidades: ["rugido"] }, "torre", "piel");
+    cierto(rugida.enemigo.vida < rugida.enemigo.vidaMax, "con Rugido no sale con toda su vida");
+
+    const curar = (marca) => {
+        const p = torre.nuevaPartida(NIVELES_1, 9, 1, {}, "torre", marca);
+        p.heroe.vida = 10;
+        p.fase = "mejora";
+        p.opciones = ["afilar"];
+        torre.elegirMejora(p, "afilar");
+        return p.heroe.vida;
+    };
+    cierto(curar(null) > 10, "normalmente subir de piso te cura");
+    igual(curar("ayuno"), 10, "con Ayuno no");
+});
+
+prueba("Marcas: se elige al empezar, solo entre las del día, y cambia el premio al cobrar", () => {
+    const estado = partidaNueva();
+    const del = torre.marcasDelDia(hoy(), "torre");
+    const fuera = Object.keys(torre.MARCAS).find((m) => !del.includes(m));
+    debeFallar(() => acciones.empezarTorre(estado, 1, "torre", fuera), "no se ofrece hoy");
+    igual(estado.arcade.usadas, 0, "si falla no gasta la ficha");
+    acciones.empezarTorre(estado, 1, "torre", del[0]);
+    igual(estado.arcade.torre.marca, del[0]);
+    acciones.empezarTorre(estado, 1, "torre", del[1]);   // ya había una: sigue con su marca
+    igual(estado.arcade.torre.marca, del[0], "una partida en curso no cambia de marca");
+    estado.arcade.torre.piso = 11;                         // 10 pisos superados
+    const r = acciones.terminarTorre(estado);
+    igual([r.marca, r.premio], [del[0], torre.premio(10, "torre", del[0])]);
+    cierto(r.premio.gemas > torre.premio(10).gemas, "más gemas que sin marca");
+});
+
+prueba("Dones: salen entre las mejoras desde el piso 3, nunca repetidos, y quedan guardados", () => {
+    const opcionesDe = (semilla, piso, dones = []) => {
+        const p = torre.nuevaPartida(NIVELES_1, semilla);
+        p.piso = piso;
+        p.heroe.dones = dones;
+        p.enemigo.vida = 1;
+        torre.actuar(p, "atacar");
+        return p;
+    };
+    let visto = false;
+    for (let semilla = 1; semilla <= 60; semilla++) {
+        cierto(!opcionesDe(semilla, 2).opciones.some((c) => torre.MEJORAS[c].don), "antes del piso 3 no salen");
+        const p = opcionesDe(semilla, 6);
+        igual(p.fase, "mejora");
+        const dones = p.opciones.filter((c) => torre.MEJORAS[c].don);
+        cierto(dones.length <= 1, "como mucho uno por pantalla");
+        igual(new Set(p.opciones).size, p.opciones.length, "sin repetidos");
+        if (dones.length) {
+            visto = true;
+            torre.elegirMejora(p, dones[0]);
+            igual(p.heroe.dones, dones, "queda guardado");
+        }
+        const sinElDon = opcionesDe(semilla, 6, Object.keys(torre.MEJORAS).filter((c) => torre.MEJORAS[c].don));
+        cierto(!sinElDon.opciones.some((c) => torre.MEJORAS[c].don), "si ya tienes todos, no salen más");
+    }
+    cierto(visto, "en 60 partidas salió al menos un don");
+});
+
+prueba("Dones: cada uno hace lo que dice", () => {
+    const pelea = (dones, semilla = 11) => {
+        const p = torre.nuevaPartida(NIVELES_1, semilla);
+        p.heroe.dones = dones;
+        p.enemigo.vida = p.enemigo.vidaMax = 9999;   // que no muera
+        return p;
+    };
+    const dano = (p, accion, opcion) => torre.actuar(p, accion, opcion).find((e) => e.quien === "heroe").dano;
+
+    // Sed de sangre: un crítico te cura el 10 % de tu vida máxima.
+    let p = pelea(["sangre"]);
+    Object.assign(p.heroe, { vidaMax: 100, vida: 50, critico: 1 });
+    igual(torre.actuar(p, "atacar").find((e) => e.quien === "heroe").cura, 10);
+
+    // Ojo de cazador: el crítico pega ×2,3 en vez de ×1,8.
+    p = pelea([]);
+    p.heroe.critico = 1;
+    const normal = dano(p, "atacar");
+    p = pelea(["cazador"]);
+    p.heroe.critico = 1;
+    const cazador = dano(p, "atacar");
+    cierto(cazador > normal * 1.2 && cazador < normal * 1.35, `cazador ${cazador} contra ${normal}`);
+
+    // Eco arcano: el primer hechizo del piso pega el doble; el segundo, normal.
+    p = pelea([]);
+    const [a1, a2] = [dano(p, "hechizo", "fuego"), dano(p, "hechizo", "fuego")];
+    p = pelea(["eco"]);
+    const [b1, b2] = [dano(p, "hechizo", "fuego"), dano(p, "hechizo", "fuego")];
+    cierto(Math.abs(b1 - 2 * a1) <= 2, `eco: primer hechizo ${b1} contra ${a1} ×2`);
+    igual(b2, a2, "el segundo no cambia");
+
+    // Piel de espinas: le devuelves el 30 % de lo que te pega.
+    p = pelea(["espinas"]);
+    const respuesta = torre.actuar(p, "atacar").find((e) => e.quien === "enemigo");
+    cierto(respuesta.dano > 0, "te pegó");
+    igual(respuesta.reflejo, Math.round(respuesta.dano * 0.3));
+
+    // Fervor: 50 % más de Voluntad (golpear +6 y aguantar un golpe +10).
+    p = pelea([]);
+    torre.actuar(p, "atacar");
+    const sin = p.heroe.voluntad;
+    p = pelea(["fervor"]);
+    torre.actuar(p, "atacar");
+    cierto(p.heroe.voluntad > sin, `fervor ${p.heroe.voluntad} contra ${sin}`);
+    igual(p.heroe.voluntad, Math.round(6 * 1.5) + Math.round(10 * 1.5));
+
+    // Botín de guerra: al vencer recuperas el 10 % de tu vida.
+    p = pelea(["botin"]);
+    Object.assign(p.heroe, { vidaMax: 100, vida: 50 });
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    igual([p.fase, p.heroe.vida], ["mejora", 60]);
+});
+
 // Una partida de la Mazmorra contra la criatura del sótano indicado, con la intención dada.
 function mazmorraContra(piso, intencion = "especial", semilla = 21) {
     const p = torre.nuevaPartida(NIVELES_1, semilla, 1, {}, "mazmorra");
