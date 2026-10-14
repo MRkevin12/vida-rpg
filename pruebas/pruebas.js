@@ -391,7 +391,7 @@ prueba("Partida+: tras los 5 jefes empieza la ronda 2, con más vida y mejores p
     const c = campana.estadoCampanas(estado).fuerza;
     igual([c.derrotados, c.ronda, c.indice], [5, 2, 0]);
     igual([c.vidaMax, c.vida], [120, 100], "el primer jefe de la ronda 2 tiene 50 % más de vida");
-    igual(campana.premioJefe(6), { xp: 150, monedas: 75 }, "y da 50 % más de premio");
+    igual(campana.premioJefe(6), { xp: 150, gemas: 75 }, "y da 50 % más de premio (en gemas)");
     igual(estado.campana.recompensados.fuerza, 5, "premios entregados");
     cierto(celebraciones.some((x) => x.etiqueta === "¡Campaña completada!"), "avisa que empieza la Partida+");
 });
@@ -494,10 +494,11 @@ prueba("Desafío semanal: al cumplirlo se abre el cofre una sola vez", () => {
     estado.desafios.push({ semana: lunesDe(hoy()), tipo: "diario", meta: 1, cobradoEn: null });
     const celebraciones = jugar(estado, () => acciones.escribirDiario(estado, { fecha: hoy(), animo: "bien", texto: "" }));
     cierto(celebraciones.some((c) => c.etiqueta === "¡Desafío cumplido!"), "hay celebración del cofre");
-    const { xp, monedas } = diario.PREMIO_DIARIO;   // escribir el diario también da su premio
-    igual([estado.personaje.xp, estado.personaje.monedas], [desafios.COFRE.xp + xp, desafios.COFRE.monedas + monedas]);
+    const { xp, monedas } = diario.PREMIO_DIARIO;   // escribir el diario también da su premio (en monedas: es de la vida real)
+    igual([estado.personaje.xp, estado.personaje.monedas, estado.personaje.gemas], [desafios.COFRE.xp + xp, monedas, desafios.COFRE.gemas],
+          "el cofre del desafío paga en gemas");
     jugar(estado, () => {});
-    igual(estado.personaje.monedas, desafios.COFRE.monedas + monedas, "el cofre no se cobra dos veces");
+    igual(estado.personaje.gemas, desafios.COFRE.gemas, "el cofre no se cobra dos veces");
 });
 
 prueba("Tu semana: resume la semana pasada de lunes a domingo y se muestra hasta cerrarla", () => {
@@ -726,9 +727,10 @@ prueba("Torre: gasta una ficha al empezar, se puede seguir después y al caer se
     igual(p.fase, "fin", "cayó");
     const r = acciones.terminarTorre(estado);
     igual([r.pisos, r.premio], [3, torre.premio(3)]);
-    igual([estado.personaje.monedas, estado.atributos.carisma], [torre.premio(3).monedas, torre.premio(3).xp]);
+    igual([estado.personaje.monedas, estado.personaje.gemas, estado.atributos.carisma], [0, torre.premio(3).gemas, torre.premio(3).xp],
+          "paga en gemas, no en monedas");
     igual([estado.arcade.records.torre, estado.arcade.torre], [3, null]);
-    igual(torre.premio(100), { monedas: torre.PREMIO.maxMonedas, xp: torre.PREMIO.maxXp }, "el premio tiene un máximo");
+    igual(torre.premio(100), { gemas: torre.PREMIO.maxGemas, xp: torre.PREMIO.maxXp }, "el premio tiene un máximo");
 });
 
 
@@ -997,8 +999,8 @@ prueba("Mazmorra: es más difícil que la Torre (más vida y ataque en cada sót
     cierto(subir.heroe.vida > 20, "en la Torre, sí");
     cierto(bajar.registro.startsWith("Sótano 2:"), bajar.registro);
     const [premioAbajo, premioArriba] = [torre.premio(20, "mazmorra"), torre.premio(20)];
-    cierto(premioAbajo.monedas > premioArriba.monedas && premioAbajo.xp > premioArriba.xp, "paga más");
-    igual(torre.premio(100, "mazmorra"), { monedas: torre.REGLAS.mazmorra.premio.maxMonedas, xp: torre.REGLAS.mazmorra.premio.maxXp });
+    cierto(premioAbajo.gemas > premioArriba.gemas && premioAbajo.xp > premioArriba.xp, "paga más");
+    igual(torre.premio(100, "mazmorra"), { gemas: torre.REGLAS.mazmorra.premio.maxGemas, xp: torre.REGLAS.mazmorra.premio.maxXp });
 });
 
 prueba("Mazmorra: no se abre hasta superar el piso 20 de la Torre; se juega aparte y paga en Fuerza", () => {
@@ -1384,11 +1386,13 @@ prueba("Mascotas: se adoptan en la Tienda, llegan como huevo, crecen desde ese d
     igual([mascota.especieActiva(estado), mascota.mascotasTuyas(estado)], ["dragon", ["dragon"]]);
     debeFallar(() => acciones.comprarMascota(estado, "dragon"), "no se vende");
     debeFallar(() => acciones.comprarMascota(estado, "fenix"), "Te faltan");
-    acciones.ganar(estado, { monedas: 500 });
+    acciones.ganar(estado, { monedas: 2000 });
+    debeFallar(() => acciones.comprarMascota(estado, "buho"), "gemas");   // las monedas no sirven: se adoptan con gemas
+    acciones.ganar(estado, { gemas: 500 });
     const leer = crearMision(estado);
     marcarEn(estado, leer, dia(-1));                            // una misión de ayer: cuenta para el dragón
     const antes = jugar(estado, () => acciones.comprarMascota(estado, "buho"));
-    igual([estado.personaje.monedas, mascota.especieActiva(estado)], [500 + 10 - mascota.MASCOTAS.buho.precio, "buho"]);
+    igual([estado.personaje.gemas, estado.personaje.monedas, mascota.especieActiva(estado)], [500 - mascota.MASCOTAS.buho.precio, 2010, "buho"]);
     debeFallar(() => acciones.comprarMascota(estado, "buho"), "ya es tuya");
     igual([mascota.totalDe(estado, "dragon"), mascota.totalDe(estado, "buho")], [1, 0], "el búho crece desde hoy");
     let a = avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy()));
@@ -2242,9 +2246,9 @@ prueba("Cofre del día: se abre con lo primero que cumplas, una vez, y entrega s
     const leer = crearMision(estado);
     debeFallar(() => acciones.abrirCofre(estado), "lo primero que cumplas");
     acciones.completarMision(estado, leer.id);
-    const monedas = estado.personaje.monedas;
-    const { premio } = acciones.abrirCofre(estado, azarFijo(0.1, 0.5));    // 10 → monedas: 15 + 13 = 28
-    igual([premio.tipo, premio.cantidad, estado.personaje.monedas - monedas], ["monedas", 28, 28]);
+    const [monedas, gemas] = [estado.personaje.monedas, estado.personaje.gemas];
+    const { premio } = acciones.abrirCofre(estado, azarFijo(0.1, 0.5));    // 10 → gemas: 15 + 13 = 28
+    igual([premio.tipo, premio.cantidad, estado.personaje.gemas - gemas, estado.personaje.monedas - monedas], ["gemas", 28, 28, 0]);
     debeFallar(() => acciones.abrirCofre(estado), "Ya abriste");
     igual(cofre.sortearPremio(estado, azarFijo(0.5, 0, 0)).tipo, "xp");
     igual(cofre.sortearPremio(estado, azarFijo(0.75)).tipo, "fichas");
@@ -2277,9 +2281,9 @@ prueba("Mapa del reino: cada 4 pasos un lugar; tesoros y santuarios se reclaman 
     igual([pos.pasos, pos.lugar, pos.region, pos.enRegion, pos.hastaSiguiente], [30, 7, 0, 7, 2]);
     igual([5, 10, 25, 7, 8].map((n) => mapa.tipoDeLugar(n)), ["tesoro", "santuario", "fortaleza", "guarida", "camino"]);
     igual(mapa.lugaresPorReclamar(estado).map((l) => l.id), ["r1-5"]);
-    const monedas = estado.personaje.monedas;
+    const gemas = estado.personaje.gemas;
     acciones.reclamarLugar(estado, "r1-5");
-    igual(estado.personaje.monedas - monedas, mapa.LUGARES.tesoro.premio.monedas);
+    igual(estado.personaje.gemas - gemas, mapa.LUGARES.tesoro.premio.gemas);
     debeFallar(() => acciones.reclamarLugar(estado, "r1-5"), "ya lo reclamaste");
     debeFallar(() => acciones.reclamarLugar(estado, "r1-10"), "todavía no");
     debeFallar(() => acciones.reclamarLugar(estado, "r1-7"), "sigue en pie");
@@ -2290,20 +2294,20 @@ prueba("Mapa del reino: cada 4 pasos un lugar; tesoros y santuarios se reclaman 
     envejecer(otra, 43);
     for (let n = -43; n <= 0; n++) marcarEn(otra, gym, dia(n));
     igual(mapa.lugaresPorReclamar(otra).map((l) => l.id), ["r1-5", "r1-10"]);
-    const [xp, monedasAntes] = [otra.personaje.xp, otra.personaje.monedas];
+    const [xp, gemasAntes] = [otra.personaje.xp, otra.personaje.gemas];
     acciones.reclamarTodo(otra);
-    igual([otra.personaje.monedas - monedasAntes, otra.personaje.xp - xp, mapa.lugaresPorReclamar(otra).length], [25, 40, 0], "reclamar todo");
+    igual([otra.personaje.gemas - gemasAntes, otra.personaje.xp - xp, mapa.lugaresPorReclamar(otra).length], [25, 40, 0], "reclamar todo");
 });
 
 prueba("Tu dragón: alimentarlo cuesta 15, una vez al día, y te cura 3; acariciarlo responde", () => {
     const estado = partidaNueva();
     debeFallar(() => acciones.alimentarDragon(estado), "Te faltan 15");
-    acciones.ganar(estado, { monedas: 50 });
+    acciones.ganar(estado, { gemas: 50 });                                     // la comida se paga con gemas
     crearMision(estado);
     vidaDesde(estado, 2);                                                      // 105 − 16 = 89
     const antes = vida.calcularVida(estado, hoy()).puntos;
     acciones.alimentarDragon(estado);
-    igual([vida.calcularVida(estado, hoy()).puntos - antes, estado.personaje.monedas], [mascota.COMIDA.cura, 35]);
+    igual([vida.calcularVida(estado, hoy()).puntos - antes, estado.personaje.gemas], [mascota.COMIDA.cura, 35]);
     debeFallar(() => acciones.alimentarDragon(estado), "ya comió hoy");
     const d = avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy()));
     cierto(mascota.fraseAlAcariciar(estado, d.mascota, hoy(), () => 0).length > 10, "responde con una frase");
@@ -2337,6 +2341,76 @@ prueba("El Maestro: su saludo depende de cómo vas, y responde a lo que le dices
     crearMision(raro, { nombre: "<img src=x onerror=alert(1)>" });
     const html = vistas.dialogoMaestro({ maestro: maestro.contexto(raro, hoy(), a(8)) }, { modo: "clave" });
     cierto(html.includes("&lt;img") && !html.includes("<img src=x"), "los nombres van escapados");
+});
+
+
+// ===== Monedas y gemas (v31) =====
+
+prueba("Monedas y gemas: el arcade paga en gemas (y la mitad de XP); las monedas solo salen de la vida real", () => {
+    igual(arcade.premio("carrera", 100000), { gemas: arcade.MAX_GEMAS, xp: arcade.MAX_XP });
+    igual([arcade.MAX_GEMAS, arcade.MAX_XP], [15, 10], "minijuegos: máx. 15 💎 y 10 XP (antes 20)");
+    igual([torre.PREMIO.maxXp, torre.REGLAS.mazmorra.premio.maxXp], [30, 60], "la Torre y la Mazmorra, la mitad de XP");
+    igual(torre.premio(3), { gemas: 9, xp: 7 }, "3 pisos: 9 💎 y 7 XP (2,5 por piso, hacia abajo)");
+
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    acciones.completarMision(estado, leer.id);
+    const [monedas, gemas] = [estado.personaje.monedas, estado.personaje.gemas];
+    cierto(monedas > 0 && gemas === 0, "una misión da monedas, no gemas");
+    const r = acciones.terminarPartida(estado, "golpe", 300);
+    igual([estado.personaje.monedas, estado.personaje.gemas], [monedas, r.premio.gemas], "un minijuego da gemas, no monedas");
+    // Los premios extra también son gemas.
+    cierto([desafios.COFRE, rituales.RELAMPAGO.premio, campana.premioJefe(1), mapa.LUGARES.fortaleza.premio]
+        .every((p) => p.gemas > 0 && !("monedas" in p)), "desafío, relámpago, jefes y mapa: en gemas");
+    cierto(!cofre.PREMIOS_COFRE.some((p) => p.tipo === "monedas"), "el cofre del día ya no da monedas");
+});
+
+prueba("Bazar: las provisiones se pagan con gemas, una de cada una, y se usan al empezar la próxima partida", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.comprarProvision(estado, "afilar"), "Te faltan");
+    debeFallar(() => acciones.comprarProvision(estado, "inventada"), "no se vende");
+    acciones.ganar(estado, { gemas: 200 });
+    for (const clave of ["afilar", "pocion", "antidoto", "amuleto"]) acciones.comprarProvision(estado, clave);
+    debeFallar(() => acciones.comprarProvision(estado, "pocion"), "Ya llevas");
+    const p = torre.PROVISIONES;
+    igual(estado.personaje.gemas, 200 - p.afilar.precio - p.pocion.precio - p.antidoto.precio - p.amuleto.precio);
+    igual(estado.arcade.bazar, ["afilar", "pocion", "antidoto", "amuleto"]);
+
+    const normal = torre.heroeDeLaTorre(NIVELES_1);   // un héroe nuevo, sin provisiones
+    acciones.empezarTorre(estado, 4, "torre");
+    const h = estado.arcade.torre.heroe;
+    igual([h.ataque, h.pociones, h.vidaMax, h.inmuneVeneno], [normal.ataque + 4, normal.pociones + 1, normal.vidaMax + Math.round(normal.vidaMax * 0.15), true]);
+    igual(estado.arcade.bazar, [], "se gastaron al empezar");
+    cierto(estado.arcade.torre.registro.includes("Llevas: ⚔️ Piedra de afilar"), estado.arcade.torre.registro);
+
+    // La raíz amarga para el veneno de la Mazmorra.
+    const m = torre.nuevaPartida(NIVELES_1, 5, 1, {}, "mazmorra");
+    torre.usarProvisiones(m, ["antidoto"]);
+    m.piso = 3;
+    m.enemigo = torre.monstruoDelPiso(3, "mazmorra");   // la Aguaviva pálida: veneno
+    m.enemigo.intencion = "especial";
+    m.heroe.vida = m.heroe.vidaMax = 500;
+    const eventos = torre.actuar(m, "defender");
+    cierto(!m.heroe.veneno && !eventos.some((e) => e.quien === "veneno") && m.registro.includes("raíz amarga"), m.registro);
+});
+
+prueba("Monedas y gemas: las copias viejas empiezan sin gemas, y el arcade y la tienda las muestran", () => {
+    const estado = partidaNueva();
+    estado.personaje.monedas = 300;
+    delete estado.personaje.gemas;
+    delete estado.arcade.bazar;
+    const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
+    igual([copia.personaje.monedas, copia.personaje.gemas, copia.arcade.bazar], [300, 0, []], "las monedas se quedan igual");
+
+    copia.personaje.gemas = 120;
+    copia.arcade.bazar = ["pocion"];
+    const ctx = { vida: vida.calcularVida(copia, hoy()), avatar: avatarDePrueba(), evento: null, subvista: { tienda: "mascotas" } };
+    let html = vistas.pantallaArcade(copia, ctx);
+    cierto(!/undefined|NaN/.test(html) && html.includes("💎 Bazar") && html.includes("💎 120") && html.includes("✓ La llevas") &&
+           html.includes('data-accion="comprar-provision" data-clave="afilar"'), "el bazar en el Arcade");
+    cierto(!html.includes("🪙 y"), "el arcade ya no promete monedas");
+    html = vistas.pantallaTienda(copia, ctx);
+    cierto(!/undefined|NaN/.test(html) && html.includes("💎 180") && html.includes("💎 120 gemas"), "las mascotas cuestan gemas");
 });
 
 

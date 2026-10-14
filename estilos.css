@@ -346,12 +346,20 @@ button {
 }
 
 .cab-monedas {
+    display: grid;
+    justify-items: end;
     flex-shrink: 0;
     font-family: "Orbitron", sans-serif;
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--oro);
     font-variant-numeric: tabular-nums;
+}
+
+/* Las gemas (v31): la moneda del arcade, más pequeña debajo de las monedas. */
+.cab-gemas {
+    font-size: 0.74rem;
+    color: #a5f3fc;
 }
 
 
@@ -7422,4 +7430,56 @@ body:has(#deshacer:not([hidden])) .aviso {
     color: #6a1a14;
     border-top: 1px solid rgba(107, 79, 46, 0.35);
     border-bottom: 1px solid rgba(107, 79, 46, 0.35);
+}
+
+
+/* =====================================================================
+   Las gemas y el bazar del arcade (v31)
+   ===================================================================== */
+
+.saldo-gemas {
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #a5f3fc;
+    font-variant-numeric: tabular-nums;
+}
+
+.bazar {
+    display: grid;
+    gap: 10px;
+    border-color: rgba(165, 243, 252, 0.35);
+}
+
+.provisiones {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.provision {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+}
+
+.provision.llevada {
+    border-color: rgba(251, 191, 36, 0.45);
+}
+
+.provision-icono {
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.provision small {
+    display: block;
+    color: var(--texto-suave);
 }

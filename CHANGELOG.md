@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v31 — Monedas y gemas
+- **Economía más justa:** las monedas 🪙 (las de tus premios reales) salen solo de la vida real: misiones, tareas, enfoque, misiones principales, el diario, cerrar el día y tus logros. Antes el arcade podía pagar más que las propias misiones (1 ficha por misión y hasta 15 🪙 por minijuego, 40 por la Torre y 80 por la Mazmorra).
+- **Gemas 💎**, la moneda del juego (`personaje.gemas`): se ganan en el arcade (minijuegos hasta 15, Torre 3 por piso hasta 40, Mazmorra 5 por sótano hasta 80) y con los premios extra, que antes daban monedas: jefes (50×N), cofre del día (15–40), desafío semanal (50), desafío relámpago (40) y mapa (20–100). Se gastan en las mascotas (adoptarlas y su comida) y en el **bazar del arcade**.
+- **Bazar** (`torre.PROVISIONES`): provisiones para la próxima subida o bajada, una de cada una, que se gastan al empezar: Poción de reserva (+1 poción, 25 💎), Piedra de afilar (+4 de ataque, 40), Pergamino arcano (+1 hechizo por piso, 45), Raíz amarga (inmune al veneno, 50) y Amuleto de vigor (+15 % de vida máxima, 60). Las fichas no se venden: siguen saliendo de tus misiones.
+- **La mitad de XP en el arcade:** minijuegos hasta 10 (antes 20), Torre 2,5 por piso hasta 30 (antes 5 y 60), Mazmorra 4 por sótano hasta 60 (antes 8 y 120).
+- La cabecera muestra monedas y gemas. Las monedas que ya tenías no cambian; las gemas empiezan en 0. Datos versión 17.
+
 ## v30 — El Maestro Aurelio
 - **Memorias de Aurelio** (`js/memorias.js`): la historia de tu maestro en 8 capítulos que se abren en orden a medida que avanzas (siempre, mejor racha de 7, primer jefe, nivel 10, piso 10 de la Torre, 5 jefes, piso 20 de la Torre y sótano 20 de la Mazmorra). Fue aprendiz de Casio, el último Vigía, que subió a salvar la Llama y nunca volvió (es el Centinela celeste de la Torre); por miedo se quedó cien años al pie de la Torre, como el Rey Hueco se quedó abajo. Cada capítulo termina con una lección. Se leen en Héroe › Historia, en un pergamino como la Crónica; los cerrados dicen qué falta.
 - **Aurelio en todo el juego:** en Hoy avisa cuando tiene algo nuevo que contarte («📜 Escuchar»); en la conversación hay «Háblame de ti»; en la Torre y la Mazmorra da una pista antes de cada guardián (sobre su punto débil) y unas palabras cuando caes; comenta al subir de nivel y al vencer a un jefe; responde a tu diario según tu ánimo y te despide en el ritual de la noche.

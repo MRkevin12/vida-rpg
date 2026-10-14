@@ -83,12 +83,14 @@ function validarDificultad(dificultad) {
     return dificultad;
 }
 
-// Suma (o resta, si los números son negativos) XP, monedas y XP de un atributo.
-// Nada baja de 0.
-export function ganar(estado, { xp = 0, monedas = 0, atributo = null }) {
+// Suma (o resta, si los números son negativos) XP, monedas, gemas y XP de un atributo.
+// Nada baja de 0. Monedas 🪙 = lo que haces en la vida real (para tus premios reales);
+// gemas 💎 = el arcade y los premios extra (para el arcade y las mascotas). Ver arcade.js.
+export function ganar(estado, { xp = 0, monedas = 0, gemas = 0, atributo = null }) {
     const personaje = estado.personaje;
     personaje.xp = Math.max(0, personaje.xp + xp);
     personaje.monedas = Math.max(0, personaje.monedas + monedas);
+    personaje.gemas = Math.max(0, (personaje.gemas || 0) + gemas);
     if (atributo) {
         estado.atributos[atributo] = Math.max(0, estado.atributos[atributo] + xp);
     }
@@ -102,6 +104,7 @@ export function crearPersonaje(estado, nombre) {
         nombre: validarNombre(nombre, 30),
         xp: 0,
         monedas: 0,
+        gemas: 0,
         creadoEn: hoy(),
     };
     estado.vida = { desde: hoy(), pociones: [], avisadoHasta: null };   // la vida empieza a contar hoy
@@ -660,7 +663,7 @@ function sincronizarCampanas(estado, danoAntes) {
                 imagen: campana.imagenDe(jefe.id),
                 etiqueta: ronda > 1 ? `¡Jefe derrotado! · Ronda ${ronda}` : "¡Jefe derrotado!",
                 titulo: jefe.nombre,
-                detalle: `Venciste: ${jefe.titulo} · +${premio.xp} XP · +${premio.monedas} monedas`,
+                detalle: `Venciste: ${jefe.titulo} · +${premio.xp} XP · +${premio.gemas} 💎`,
                 maestro: maestro.palabrasDeJefe(dados),   // lo que te dice Aurelio
             });
             if (dados % porRonda === 0) {
@@ -674,7 +677,7 @@ function sincronizarCampanas(estado, danoAntes) {
         }
         while (dados > c.derrotados) {
             const premio = campana.premioJefe(dados);
-            ganar(estado, { xp: -premio.xp, monedas: -premio.monedas, atributo: categoria });
+            ganar(estado, { xp: -premio.xp, gemas: -premio.gemas, atributo: categoria });
             dados -= 1;
         }
         recompensados[categoria] = dados;
@@ -886,11 +889,12 @@ export function comprarMascota(estado, especie) {
     if (!datos || !datos.precio) throw new Error("Esa mascota no se vende.");
     if (mascota.tieneMascota(estado, especie)) throw new Error("Esa mascota ya es tuya.");
     revisarQueNoEstesCaido(estado, "la tienda");
+    // Las mascotas se pagan con gemas 💎 (desde la v31).
     const precio = eventos.precioConEvento(datos.precio, eventos.eventoDelDia(hoy(), estado));
-    const faltan = precio - estado.personaje.monedas;
-    if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
+    const faltan = precio - (estado.personaje.gemas || 0);
+    if (faltan > 0) throw new Error(`Te faltan ${faltan} gemas 💎. Se ganan en el arcade, con los jefes, el cofre del día, los desafíos y el mapa.`);
 
-    estado.personaje.monedas -= precio;
+    estado.personaje.gemas -= precio;
     estado.mascota.adoptadas[especie] = { nombre: datos.nombre, desde: hoy() };
     estado.mascota.activa = especie;
     return { celebraciones: [{ icono: datos.icono, etiqueta: "¡Nueva mascota!", titulo: datos.nombre,
@@ -1013,7 +1017,7 @@ function revisarDesafios(estado) {
             icono: "🎁",
             etiqueta: "¡Desafío cumplido!",
             titulo: "Cofre abierto",
-            detalle: `${desafios.textoDesafio(desafio)} · +${desafios.COFRE.xp} XP · +${desafios.COFRE.monedas} monedas`,
+            detalle: `${desafios.textoDesafio(desafio)} · +${desafios.COFRE.xp} XP · +${desafios.COFRE.gemas} 💎`,
         });
     }
     return celebraciones;
@@ -1060,6 +1064,9 @@ export function empezarTorre(estado, semilla, lugar = "torre") {
     // Entras con tu vida real: si llegas herido, empiezas con menos vida.
     const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
     const partida = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado), lugar);
+    // Las provisiones del bazar se usan al empezar (y se gastan).
+    torre.usarProvisiones(partida, estado.arcade.bazar);
+    estado.arcade.bazar = [];
     estado.arcade[lugar] = partida;
     bestiario.anotarEncuentro(estado.arcade.bestiario, partida.enemigo.id);
     return { relato: leyendas.relatoAlEmpezar(lugar, estado.arcade.records[lugar] || 0, estado.personaje.nombre) };
@@ -1117,7 +1124,7 @@ export function equipoDeBatalla(estado) {
     };
 }
 
-// Cobrar al terminar (o al rendirte): monedas y XP según los pisos superados (en la Torre,
+// Cobrar al terminar (o al rendirte): gemas 💎 y XP según los pisos superados (en la Torre,
 // de Carisma; en la Mazmorra, más, y de Fuerza).
 export function terminarTorre(estado, lugar = "torre") {
     const partida = partidaDe(estado, lugar);
@@ -1126,7 +1133,7 @@ export function terminarTorre(estado, lugar = "torre") {
     // «Eco de la Torre»: la Torre paga el doble ese día (la Mazmorra, no).
     const factor = lugar === "torre" ? eventos.factorTorre(eventos.eventoDelDia(hoy(), estado)) : 1;
     const base = torre.premio(pisos, lugar);
-    const premio = { monedas: base.monedas * factor, xp: base.xp * factor };
+    const premio = { gemas: base.gemas * factor, xp: base.xp * factor };
     const atributo = torre.REGLAS[lugar].atributo;
     ganar(estado, { ...premio, atributo });
     const abiertaAntes = torre.mazmorraAbierta({ records: estado.arcade.records });
@@ -1144,6 +1151,21 @@ export function terminarTorre(estado, lugar = "torre") {
                              detalle: "Bajo la Torre hay una escalera. Más difícil y con criaturas nuevas: búscala en el Arcade." });
     }
     return { lugar, pisos, premio, atributo, record: estado.arcade.records[lugar] || 0, nuevoRecord: nuevoRecord && pisos > 0, celebraciones };
+}
+
+
+// ===== El bazar del arcade (v31) =====
+// Provisiones para tu próxima subida a la Torre o bajada a la Mazmorra (ver torre.PROVISIONES).
+// Se pagan con gemas 💎, se puede tener una de cada una y se gastan al empezar la partida.
+export function comprarProvision(estado, clave) {
+    const provision = torre.PROVISIONES[clave];
+    if (!provision) throw new Error("Eso no se vende en el bazar.");
+    revisarQueNoEstesCaido(estado, "el arcade");
+    if (estado.arcade.bazar.includes(clave)) throw new Error(`Ya llevas ${provision.nombre}: se usa al empezar tu próxima partida.`);
+    const faltan = provision.precio - (estado.personaje.gemas || 0);
+    if (faltan > 0) throw new Error(`Te faltan ${faltan} gemas 💎.`);
+    estado.personaje.gemas -= provision.precio;
+    estado.arcade.bazar.push(clave);
 }
 
 
@@ -1358,7 +1380,7 @@ function revisarRelampago(estado, ahora = Date.now()) {
     ganar(estado, rituales.RELAMPAGO.premio);
     const p = rituales.RELAMPAGO.premio;
     return [{ icono: "⚡", etiqueta: "¡Desafío relámpago cumplido!", titulo: `${r.meta} misiones a tiempo`,
-              detalle: `+${p.xp} XP · +${p.monedas} monedas` }];
+              detalle: `+${p.xp} XP · +${p.gemas} 💎` }];
 }
 
 
@@ -1369,7 +1391,7 @@ export function abrirCofre(estado, azar = Math.random) {
     if (estado.cofres[fecha]) throw new Error("Ya abriste el cofre de hoy. Mañana habrá otro.");
     if (!cofre.huboActividad(estado, fecha)) throw new Error("El cofre se abre con lo primero que cumplas hoy.");
     const premio = cofre.sortearPremio(estado, azar);
-    if (premio.tipo === "monedas") ganar(estado, { monedas: premio.cantidad });
+    if (premio.tipo === "gemas") ganar(estado, { gemas: premio.cantidad });
     if (premio.tipo === "xp") ganar(estado, { xp: premio.cantidad, atributo: premio.atributo });
     if (premio.tipo === "fichas") estado.arcade.extra = (estado.arcade.extra || 0) + premio.cantidad;
     if (premio.tipo === "objeto") estado.avatar.comprados.push(premio.objeto);
@@ -1385,9 +1407,9 @@ export function alimentarDragon(estado) {
     const fecha = hoy();
     const nombre = mascota.nombreDe(estado, mascota.especieActiva(estado));
     if (mascota.comioHoy(estado, fecha)) throw new Error(`${nombre} ya comió hoy.`);
-    const faltan = mascota.COMIDA.precio - estado.personaje.monedas;
-    if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
-    estado.personaje.monedas -= mascota.COMIDA.precio;
+    const faltan = mascota.COMIDA.precio - (estado.personaje.gemas || 0);   // en gemas 💎 (v31)
+    if (faltan > 0) throw new Error(`Te faltan ${faltan} gemas 💎.`);
+    estado.personaje.gemas -= mascota.COMIDA.precio;
     estado.mascota.comidas.push(fecha);
     return { celebraciones: [{ pequena: true, icono: "🍖", titulo: `${nombre} comió feliz: +${mascota.COMIDA.cura} de vida` }] };
 }
@@ -1402,11 +1424,11 @@ export function reclamarLugar(estado, id, campanas = null) {
     const premio = mapa.LUGARES[lugar.tipo].premio;
     // El santuario fortalece tu atributo más descuidado; la guarida y el memorial, el de su campaña.
     const atributo = lugar.tipo === "santuario" ? mapa.atributoMasDescuidado(estado) : lugar.categoria || null;
-    ganar(estado, { xp: premio.xp || 0, monedas: premio.monedas || 0, atributo });
+    ganar(estado, { xp: premio.xp || 0, gemas: premio.gemas || 0, atributo });
     estado.mapa.reclamados.push(id);
     const partes = [];
     if (premio.xp) partes.push(`+${premio.xp} XP${atributo ? ` de ${juego.ATRIBUTOS[atributo].icono} ${juego.ATRIBUTOS[atributo].nombre}` : ""}`);
-    if (premio.monedas) partes.push(`+${premio.monedas} monedas`);
+    if (premio.gemas) partes.push(`+${premio.gemas} 💎`);
     const titulo = lugar.tipo === "fortaleza" ? `¡${mapa.nombreRegion(lugar.region)} está libre!`
         : lugar.nombre ? `${lugar.nombre} · ${mapa.nombreRegion(lugar.region)}` : mapa.nombreRegion(lugar.region);
     return { celebraciones: [{ icono: mapa.LUGARES[lugar.tipo].icono, etiqueta: lugar.tipo === "fortaleza" ? "Región liberada" : mapa.LUGARES[lugar.tipo].nombre,
@@ -1419,10 +1441,10 @@ export function reclamarTodo(estado) {
     const campanas = campana.estadoCampanas(estado);
     const lugares = mapa.lugaresPorReclamar(estado, campanas);
     if (!lugares.length) throw new Error("No hay premios por reclamar en el mapa.");
-    const antes = { xp: estado.personaje.xp, monedas: estado.personaje.monedas };
+    const antes = { xp: estado.personaje.xp, gemas: estado.personaje.gemas || 0 };
     for (const lugar of lugares) reclamarLugar(estado, lugar.id, campanas);
     return { celebraciones: [{ icono: "🗺️", etiqueta: "Premios del mapa", titulo: juego.plural(lugares.length, "lugar reclamado", "lugares reclamados"),
-                               detalle: `+${estado.personaje.xp - antes.xp} XP · +${estado.personaje.monedas - antes.monedas} monedas` }] };
+                               detalle: `+${estado.personaje.xp - antes.xp} XP · +${estado.personaje.gemas - antes.gemas} 💎` }] };
 }
 
 

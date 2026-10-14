@@ -50,12 +50,13 @@ function vidaDelJefe(n) {
 }
 
 // Recompensa al derrotar al jefe número n de una categoría, contando todas las rondas
-// (1 a 5 = ronda 1, 6 a 10 = ronda 2…): XP del atributo de la campaña y monedas.
+// (1 a 5 = ronda 1, 6 a 10 = ronda 2…): XP del atributo de la campaña y gemas 💎 (desde la v31;
+// antes eran monedas: las monedas quedan solo para lo que haces en la vida real).
 export function premioJefe(n) {
     const ronda = Math.floor((n - 1) / VIDAS.length) + 1;
     const numero = ((n - 1) % VIDAS.length) + 1;   // su puesto dentro de la ronda (1 a 5)
     const m = multiplicador(ronda);
-    return { xp: Math.round(100 * numero * m), monedas: Math.round(50 * numero * m) };
+    return { xp: Math.round(100 * numero * m), gemas: Math.round(50 * numero * m) };
 }
 
 export const CAMPANAS = {

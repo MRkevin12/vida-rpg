@@ -1,15 +1,16 @@
 // cofre.js — El cofre del día.
 //
 // Con lo primero que cumplas cada día (una misión, una tarea o una sesión de enfoque) se
-// desbloquea un cofre. Lo abres tocándolo y trae un premio al azar: monedas, XP, una poción,
-// fichas o, muy rara vez, una pieza de equipo. Se guarda en estado.cofres["2026-10-13"].
+// desbloquea un cofre. Lo abres tocándolo y trae un premio al azar: gemas (desde la v31; antes
+// monedas), XP, una poción, fichas o, muy rara vez, una pieza de equipo. Se guarda en
+// estado.cofres["2026-10-13"].
 
 import { ATRIBUTOS } from "./juego.js";
 import { OBJETOS } from "./avatar.js";
 
 // Qué puede salir y qué tan seguido (de cada 100 cofres).
 export const PREMIOS_COFRE = [
-    { tipo: "monedas", peso: 45 },
+    { tipo: "gemas",   peso: 45 },
     { tipo: "xp",      peso: 25 },
     { tipo: "fichas",  peso: 15 },
     { tipo: "pocion",  peso: 12 },
@@ -43,9 +44,9 @@ export function sortearPremio(estado, azar = Math.random) {
         tirada -= opcion.peso;
     }
 
-    if (tipo === "monedas") {
+    if (tipo === "gemas") {
         const cantidad = 15 + Math.floor(azar() * 26);   // de 15 a 40
-        return { tipo, cantidad, icono: "🪙", texto: `${cantidad} monedas` };
+        return { tipo, cantidad, icono: "💎", texto: `${cantidad} gemas` };
     }
     if (tipo === "xp") {
         const cantidad = 20 + Math.floor(azar() * 31);   // de 20 a 50
@@ -56,10 +57,10 @@ export function sortearPremio(estado, azar = Math.random) {
     if (tipo === "fichas") return { tipo, cantidad: FICHAS, icono: "🎟️", texto: `${FICHAS} fichas para el arcade` };
     if (tipo === "pocion") return { tipo, cantidad: CURA_POCION, icono: "🧪", texto: `Una poción: +${CURA_POCION} de vida` };
 
-    // Equipo: uno raro o épico que todavía no tengas. Si ya los tienes todos, 100 monedas.
+    // Equipo: uno raro o épico que todavía no tengas. Si ya los tienes todos, 100 gemas.
     const posibles = Object.entries(OBJETOS)
         .filter(([id, o]) => !o.logro && (o.rareza === "raro" || o.rareza === "epico") && !estado.avatar.comprados.includes(id));
-    if (!posibles.length) return { tipo: "monedas", cantidad: 100, icono: "🪙", texto: "100 monedas (¡ya tienes todo el equipo!)" };
+    if (!posibles.length) return { tipo: "gemas", cantidad: 100, icono: "💎", texto: "100 gemas (¡ya tienes todo el equipo!)" };
     const [id, objeto] = posibles[Math.floor(azar() * posibles.length)];
     return { tipo, objeto: id, icono: objeto.icono, texto: `${objeto.nombre} (${objeto.rareza === "epico" ? "épico" : "raro"})` };
 }

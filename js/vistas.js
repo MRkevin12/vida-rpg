@@ -442,7 +442,7 @@ function tarjetaDesafio(estado, ctx) {
     const cofre = desafios.COFRE;
     const pie = desafio.cobradoEn
         ? "¡Cofre abierto! Vuelve el lunes por otro desafío."
-        : `Cofre: +${cofre.monedas} 🪙 y +${cofre.xp} XP · ${quedan === 0 ? "termina hoy" : `quedan ${plural(quedan, "día", "días")}`}`;
+        : `Cofre: +${cofre.gemas} 💎 y +${cofre.xp} XP · ${quedan === 0 ? "termina hoy" : `quedan ${plural(quedan, "día", "días")}`}`;
     return `
         <section class="panel desafio ${desafio.cobradoEn ? "cumplido" : ""}">
             <span class="desafio-icono" aria-hidden="true">${desafio.cobradoEn ? "🎁" : desafios.DESAFIOS[desafio.tipo].icono}</span>
@@ -577,7 +577,7 @@ function tarjetaCofre(estado, ctx) {
         <button type="button" class="cofre-tarjeta" data-accion="abrir-cofre">
             ${dibujoCofre()}
             <span><b>🎁 Tu cofre del día está listo</b>
-                <span class="mini">Tócalo para abrirlo: monedas, XP, una poción, fichas… o algo mejor.</span></span>
+                <span class="mini">Tócalo para abrirlo: gemas, XP, una poción, fichas… o algo mejor.</span></span>
         </button>`;
 }
 
@@ -589,7 +589,7 @@ function tarjetaRelampago(ctx) {
         return `
             <section class="relampago">
                 <p><b>⚡ Desafío relámpago</b><br>Completa ${juego.plural(r.meta, "misión", "misiones")} en las próximas
-                   ${rituales.RELAMPAGO.minutos / 60} horas. Premio: +${p.xp} XP y +${p.monedas} 🪙.</p>
+                   ${rituales.RELAMPAGO.minutos / 60} horas. Premio: +${p.xp} XP y +${p.gemas} 💎.</p>
                 <div class="botones-dialogo">
                     <button type="button" class="boton boton-secundario" data-accion="rechazar-relampago">Ahora no</button>
                     <button type="button" class="boton boton-principal" data-accion="aceptar-relampago">⚡ Acepto</button>
@@ -860,7 +860,7 @@ export function pantallaMapa(estado, ctx) {
             </div>
             <ul class="lista">${porReclamar.slice(0, 3).map((l) => {
                 const lugar = mapa.LUGARES[l.tipo];
-                const premio = [lugar.premio.monedas ? `+${lugar.premio.monedas} 🪙` : "", lugar.premio.xp ? `+${lugar.premio.xp} XP` : ""].filter(Boolean).join(" · ");
+                const premio = [lugar.premio.gemas ? `+${lugar.premio.gemas} 💎` : "", lugar.premio.xp ? `+${lugar.premio.xp} XP` : ""].filter(Boolean).join(" · ");
                 const nombre = l.nombre ? `${lugar.nombre}: ${esc(l.nombre)}` : l.tipo === "fortaleza" ? "Fortaleza: región liberada" : `${lugar.nombre} · lugar ${l.n}`;
                 return `<li class="objeto"><span class="pocion-icono" aria-hidden="true">${lugar.icono}</span>
                     <span class="objeto-info"><b>${nombre}</b><span class="mini texto-suave">${mapa.nombreRegion(l.region)} · ${premio}</span></span>
@@ -2022,7 +2022,7 @@ function tarjetaCampana(c, ctx) {
             ${barra(c.porcentaje, "barra-vida")}
             <p class="mini"><strong>Vida ${c.vida} / ${c.vidaMax}</strong>
                <span class="texto-suave">· ${FRASES_JEFE[visual]}</span></p>
-            <p class="mini texto-suave">Recompensa al derrotarlo: +${premio.xp} XP y ${premio.monedas} monedas</p>
+            <p class="mini texto-suave">Recompensa al derrotarlo: +${premio.xp} XP y ${premio.gemas} 💎</p>
             ${c.curado ? `<p class="mini robado">🩸 Los jefes de esta campaña se han curado ${c.curado} con la vida que te robaron.</p>` : ""}
             <ol class="ruta-jefes">${ruta}</ol>
         </article>`;
@@ -2201,8 +2201,8 @@ export function pantallaArcade(estado, ctx) {
             <p class="mini equipo-ventaja">${mascota.MASCOTAS[petTorre.especie].icono} ${esc(petTorre.nombre)} te acompaña:
                «${mascota.MASCOTAS[petTorre.especie].habilidad.nombre}» · ${mascota.textoPotencia(petTorre)}.</p>
             <p class="mini">🏅 Récord: ${recordTorre ? `${plural(recordTorre, "piso superado", "pisos superados")}` : "todavía ninguno"}
-               · Premio: ${torre.PREMIO.monedasPorPiso} 🪙 y ${torre.PREMIO.xpPorPiso} XP de Carisma por piso
-               (máx. ${torre.PREMIO.maxMonedas} 🪙 y ${torre.PREMIO.maxXp} XP)</p>
+               · Premio: ${torre.PREMIO.gemasPorPiso} 💎 y ${String(torre.PREMIO.xpPorPiso).replace(".", ",")} XP de Carisma por piso
+               (máx. ${torre.PREMIO.maxGemas} 💎 y ${torre.PREMIO.maxXp} XP)</p>
             <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" data-lugar="torre" ${!caido && (partida || fichas) ? "" : "disabled"}>
                 ${partida ? `Continuar · piso ${partida.piso}` : "Subir a la torre · 🎟️ 1 ficha"}</button>
             <div class="torre-botones">
@@ -2216,19 +2216,65 @@ export function pantallaArcade(estado, ctx) {
         ${caido ? avisoCaido(ctx.vida, "El arcade está cerrado") : ""}
         ${tarjetaTorre}
         ${tarjetaMazmorra(estado, caido, fichas)}
+        ${panelBazar(estado, caido)}
         <section class="panel arcade-cabecera">
             <div class="arcade-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
             <div>
                 <h2 class="titulo-juego">Arcade del héroe</h2>
                 <p class="fichas">🎟️ ${plural(fichas, "ficha", "fichas")}</p>
-                <p class="nota">Ganas <b>1 ficha</b> por cada misión diaria completada. Cada partida da monedas y XP
-                   según tus puntos (máx. ${arcade.MAX_MONEDAS} 🪙 y ${arcade.MAX_XP} XP).</p>
+                <p class="nota">Ganas <b>1 ficha</b> por cada misión diaria completada. Cada partida da gemas 💎 y XP
+                   según tus puntos (máx. ${arcade.MAX_GEMAS} 💎 y ${arcade.MAX_XP} XP).</p>
             </div>
         </section>
         ${fichas || caido ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
         ${tarjetas}`;
 }
 
+
+// ===== Las gemas y el bazar del arcade (v31) =====
+// Las gemas 💎 se ganan jugando y con los premios extra; se gastan aquí y en las mascotas.
+// Las monedas 🪙 quedan para tus premios reales.
+function panelBazar(estado, caido) {
+    const gemas = estado.personaje.gemas || 0;
+    const llevas = estado.arcade.bazar || [];
+    const filas = Object.entries(torre.PROVISIONES).map(([clave, p]) => {
+        const la = llevas.includes(clave);
+        const puede = !la && !caido && gemas >= p.precio;
+        const accion = la
+            ? '<span class="mini oro">✓ La llevas</span>'
+            : `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="comprar-provision" data-clave="${clave}"
+                       ${puede ? "" : "disabled"}>💎 ${p.precio}</button>`;
+        return `<li class="provision ${la ? "llevada" : ""}">
+                    <span class="provision-icono" aria-hidden="true">${p.icono}</span>
+                    <span><b>${p.nombre}</b><small>${p.texto}</small></span>
+                    ${accion}
+                </li>`;
+    }).join("");
+    const premioJefe = [campana.premioJefe(1).gemas, campana.premioJefe(5).gemas];
+    return `
+        <section class="panel bazar">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">💎 Bazar</h2>
+                <span class="saldo-gemas">💎 ${gemas}</span>
+            </div>
+            <p class="nota">Provisiones para tu próxima subida a la Torre o bajada a la Mazmorra: se usan al empezar.
+               Se pagan con <b>gemas</b>, la moneda del arcade (también adoptas mascotas con ellas).</p>
+            <ul class="provisiones">${filas}</ul>
+            <details class="plegable">
+                <summary>💎 Cómo ganar gemas</summary>
+                <dl class="estadisticas">
+                    <div><dt>Minijuegos</dt><dd>💎 hasta ${arcade.MAX_GEMAS}</dd></div>
+                    <div><dt>Torre del héroe</dt><dd>💎 ${torre.PREMIO.gemasPorPiso} por piso (máx. ${torre.PREMIO.maxGemas})</dd></div>
+                    <div><dt>Mazmorra del Abismo</dt><dd>💎 ${torre.REGLAS.mazmorra.premio.gemasPorPiso} por sótano (máx. ${torre.REGLAS.mazmorra.premio.maxGemas})</dd></div>
+                    <div><dt>Jefe derrotado (1.º al 5.º)</dt><dd>💎 ${premioJefe[0]}–${premioJefe[1]}</dd></div>
+                    <div><dt>Cofre del día</dt><dd>💎 15–40 (a veces)</dd></div>
+                    <div><dt>Desafío de la semana</dt><dd>💎 ${desafios.COFRE.gemas}</dd></div>
+                    <div><dt>Desafío relámpago</dt><dd>💎 ${rituales.RELAMPAGO.premio.gemas}</dd></div>
+                    <div><dt>Tesoros y guaridas del mapa</dt><dd>💎 20–100</dd></div>
+                </dl>
+            </details>
+        </section>`;
+}
 
 // La Mazmorra del Abismo (v29): cerrada (con lo que falta para abrirla) o abierta.
 function tarjetaMazmorra(estado, caido, fichas) {
@@ -2263,8 +2309,8 @@ function tarjetaMazmorra(estado, caido, fichas) {
                ${e.sellar.icono} sellar tu magia o ${e.coraza.icono} coraza (tu próximo golpe le hace la mitad). Los guardianes se enfurecen a
                media vida y entre sótano y sótano no hay descanso.</p>
             <p class="mini">🏅 Récord: ${recordMazmorra ? plural(recordMazmorra, "sótano superado", "sótanos superados") : "todavía ninguno"}
-               · Premio: ${reglas.premio.monedasPorPiso} 🪙 y ${reglas.premio.xpPorPiso} XP de ${atributo.icono} ${atributo.nombre} por sótano
-               (máx. ${reglas.premio.maxMonedas} 🪙 y ${reglas.premio.maxXp} XP)</p>
+               · Premio: ${reglas.premio.gemasPorPiso} 💎 y ${reglas.premio.xpPorPiso} XP de ${atributo.icono} ${atributo.nombre} por sótano
+               (máx. ${reglas.premio.maxGemas} 💎 y ${reglas.premio.maxXp} XP)</p>
             <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" data-lugar="mazmorra" ${!caido && (partida || fichas) ? "" : "disabled"}>
                 ${partida ? `Continuar · sótano ${partida.piso}` : "Bajar a la mazmorra · 🎟️ 1 ficha"}</button>
             <div class="torre-botones">
@@ -2442,7 +2488,7 @@ export function pantallaTorre(t) {
             <div class="ff-ventana ff-botin ${espera}">
                 <p class="ff-titulo">${sitio.id === "mazmorra" ? "Fin del descenso" : "Fin de la subida"} <small>Caíste en el ${piso} ${p.piso}</small></p>
                 <p class="ff-renglon">Superaste <b>${plural(pisos, piso, `${piso}s`)}</b>.</p>
-                <p class="ff-renglon ff-oro">+${premio.monedas} 🪙 · +${premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
+                <p class="ff-renglon ff-oro">+${premio.gemas} 💎 · +${premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
                 <button type="button" class="ff-comando elegido" data-accion="torre-cobrar">
                     <span class="ff-cursor" aria-hidden="true"></span><span class="ff-comando-nombre">Cobrar premio</span></button>
             </div>`;
@@ -2575,7 +2621,7 @@ function finalTorre(t) {
             <p class="ff-titulo">Premio cobrado</p>
             <p class="ff-puntos">${plural(r.pisos, piso, `${piso}s`)}</p>
             <p class="ff-renglon">${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${plural(r.record, piso, `${piso}s`)}`}</p>
-            <p class="ff-renglon ff-oro">+${r.premio.monedas} 🪙 · +${r.premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
+            <p class="ff-renglon ff-oro">+${r.premio.gemas} 💎 · +${r.premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
             <button type="button" class="ff-comando elegido" data-accion="torre-abrir" data-lugar="${sitio.id}" ${t.fichas ? "" : "disabled"}>
                 <span class="ff-cursor" aria-hidden="true"></span>
                 <span class="ff-comando-nombre">${t.fichas ? (sitio.id === "mazmorra" ? "Bajar otra vez" : "Subir otra vez") : "Sin fichas"}</span><small>${t.fichas ? `🎟️ ${t.fichas}` : ""}</small></button>
@@ -3192,7 +3238,7 @@ function seccionMascota(estado, m, ctx) {
             <div class="mascota-acciones">
                 <button type="button" class="boton boton-secundario" data-accion="acariciar-dragon">🤚 Acariciar</button>
                 <button type="button" class="boton ${comio ? "boton-secundario" : "boton-oro"}" data-accion="alimentar-dragon" ${comio ? "disabled" : ""}>
-                    🍖 ${comio ? "Ya comió hoy" : `Alimentar · 🪙 ${mascota.COMIDA.precio}`}</button>
+                    🍖 ${comio ? "Ya comió hoy" : `Alimentar · 💎 ${mascota.COMIDA.precio}`}</button>
             </div>
             <p class="mini mascota-frase" id="mascota-frase">${comio
                 ? `${esc(m.nombre)} comió hoy y está de buen ánimo.`
@@ -3311,19 +3357,20 @@ function habilidadDeMascota(especie) {
     return `<span class="habilidad-objeto">🐾 <b>${h.nombre}</b> · ${h.texto} <i>(en la Torre)</i></span>`;
 }
 
+// Las mascotas se adoptan con gemas 💎 (v31), no con monedas.
 function tiendaDeMascotas(estado, cerrada, ctx) {
-    const monedas = estado.personaje.monedas;
+    const gemas = estado.personaje.gemas || 0;
     const activa = mascota.especieActiva(estado);
     const lista = Object.entries(mascota.MASCOTAS).sort(([, a], [, b]) => (a.precio || 0) - (b.precio || 0)).map(([especie, datos]) => {
         const tuya = mascota.tieneMascota(estado, especie);
         const precio = datos.precio ? precioConEvento(datos.precio, ctx.evento) : 0;
-        const puede = monedas >= precio && !cerrada;
+        const puede = gemas >= precio && !cerrada;
         let accion;
         if (especie === activa) accion = `<span class="mini oro">✓ Te acompaña</span>`;
         else if (tuya) accion = `<span class="mini oro">✓ Tuya</span>`;
         else accion = `<button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="comprar-mascota" data-especie="${especie}"
                                ${puede ? "" : "disabled"}>Adoptar</button>`;
-        const costo = datos.precio ? ` · 🪙 ${precio < datos.precio ? `<s>${datos.precio}</s> ${precio}` : datos.precio}` : " · tu primera mascota";
+        const costo = datos.precio ? ` · 💎 ${precio < datos.precio ? `<s>${datos.precio}</s> ${precio}` : datos.precio}` : " · tu primera mascota";
         return `<li class="objeto ${tuya ? "puesto" : ""}">
                     ${retratoMascota(especie)}
                     <span class="objeto-info"><b>${tuya ? esc(mascota.nombreDe(estado, especie)) : datos.nombre}</b>
@@ -3334,8 +3381,9 @@ function tiendaDeMascotas(estado, cerrada, ctx) {
                 </li>`;
     }).join("");
     return `
-        <div class="titulo-seccion"><h2 class="titulo-juego">🐾 Mascotas</h2></div>
-        <p class="nota">Eliges cuál te acompaña en
+        <div class="titulo-seccion"><h2 class="titulo-juego">🐾 Mascotas</h2><span class="saldo-gemas">💎 ${gemas}</span></div>
+        <p class="nota">Las mascotas se adoptan con <b>gemas</b>, la moneda del arcade: se ganan jugando y con los jefes, el cofre
+           del día, los desafíos y el mapa (las monedas quedan para tus premios reales). Eliges cuál te acompaña en
            <button type="button" class="enlace enlace-en-linea" data-accion="subvista" data-pantalla="personaje" data-vista="mascotas">tu Héroe › Mascotas</button>.
            Cada mascota llega como <b>huevo</b> y crece con las misiones diarias que completas desde que la adoptas
            (cría con ${avatar.ETAPAS_MASCOTA[1].desde}, adulta con ${avatar.ETAPAS_MASCOTA[2].desde}). La que te acompaña pelea a tu lado
@@ -3391,6 +3439,7 @@ export function pantallaTienda(estado, ctx) {
         <section class="panel saldo">
             <span class="etiqueta">Tus monedas</span>
             <span class="saldo-numero">🪙 ${monedas}</span>
+            <span class="mini texto-suave">💎 ${estado.personaje.gemas || 0} gemas · para el arcade y las mascotas</span>
             ${tarjetaPocion(estado, ctx.vida)}
         </section>
         ${cerrada ? avisoCaido(ctx.vida, "Tienda cerrada") : ""}
@@ -3399,15 +3448,15 @@ export function pantallaTienda(estado, ctx) {
         <section class="bloque">${(secciones[vista] || secciones.recompensas)()}</section>
         <details class="plegable">
             <summary>🪙 Cómo ganar monedas</summary>
+            <p class="nota">Solo con lo que haces en la vida real. Lo del arcade y los premios extra (jefes, cofres, desafíos y
+               mapa) dan gemas 💎, que sirven para el arcade y las mascotas.</p>
             <dl class="estadisticas">
                 ${Object.values(DIFICULTADES).map((d) => `<div><dt>Misión ${d.nombre.toLowerCase()}</dt><dd>🪙 ${d.monedas}</dd></div>`).join("")}
                 <div><dt>Paso de misión principal</dt><dd>🪙 ${PREMIOS.submision.monedas}</dd></div>
                 <div><dt>Misión principal completa</dt><dd>🪙 ${PREMIOS.principal.monedas}</dd></div>
                 <div><dt>Tarea suelta o sesión de enfoque</dt><dd>Como una misión</dd></div>
-                <div><dt>Jefe derrotado (1.º al 5.º)</dt><dd>🪙 ${campana.premioJefe(1).monedas}–${campana.premioJefe(5).monedas}</dd></div>
-                <div><dt>Jefes en Partida+</dt><dd>🪙 Más cada ronda</dd></div>
-                <div><dt>Cofre del desafío semanal</dt><dd>🪙 ${desafios.COFRE.monedas}</dd></div>
-                <div><dt>Minijuegos</dt><dd>🪙 hasta ${arcade.MAX_MONEDAS}</dd></div>
+                <div><dt>Escribir tu diario</dt><dd>🪙 ${diario.PREMIO_DIARIO.monedas}</dd></div>
+                <div><dt>Cerrar el día (ritual)</dt><dd>🪙 ${rituales.PREMIO_CIERRE.monedas}</dd></div>
                 <div><dt>Logros</dt><dd>Tú decides</dd></div>
             </dl>
         </details>`;

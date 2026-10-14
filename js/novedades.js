@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 30;
+export const VERSION_APP = 31;
 
 export const NOVEDADES = [
+    {
+        version: 31,
+        titulo: "Monedas y gemas",
+        cambios: [
+            "🪙 Tus monedas ahora salen solo de lo que haces en la vida real: misiones, tareas, enfoque, misiones principales, tu diario, cerrar el día y tus logros. Son para tus premios reales.",
+            "💎 Nueva moneda, las gemas: se ganan en el arcade (minijuegos, Torre y Mazmorra) y con los premios extra (jefes, cofre del día, desafíos y mapa). Se gastan en el arcade y en las mascotas.",
+            "🧪 Bazar en el Arcade: con gemas compras provisiones para tu próxima subida o bajada (poción de reserva, piedra de afilar, pergamino arcano, raíz amarga contra el veneno y amuleto de vigor).",
+            "⚖️ El arcade da la mitad de XP que antes. Tus monedas de siempre no cambian; las gemas empiezan en 0.",
+        ],
+    },
     {
         version: 30,
         titulo: "El Maestro Aurelio",

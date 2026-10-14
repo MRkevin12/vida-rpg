@@ -2,26 +2,31 @@
 //
 // Para que los juegos sean un premio a tu productividad (y no la reemplacen),
 // se juega con fichas: ganas 1 por cada misión diaria que completas.
+//
+// v31: el arcade paga en GEMAS 💎, no en monedas. Las monedas 🪙 son para tus premios de la
+// vida real y solo salen de lo que haces en la vida real; las gemas se ganan jugando (y con
+// los premios extra: jefes, cofre del día, desafíos y mapa) y se gastan en el arcade y en
+// las mascotas. Así, lo que ganas jugando es lo que es: un juego.
 
 export const FICHAS_DE_REGALO = 3;   // para que puedas probar desde el primer día
-export const MAX_MONEDAS = 15;       // máximo que da una partida
-export const MAX_XP = 20;
+export const MAX_GEMAS = 15;         // máximo que da una partida
+export const MAX_XP = 10;            // (v31: la mitad que antes)
 
 export const JUEGOS = {
     carrera: {
         nombre: "Carrera del héroe", icono: "🏃", atributo: "fuerza",
         descripcion: "Tu héroe corre sin parar. Toca para saltar a los monstruos y atrapa monedas.",
-        puntosPorMoneda: 50, puntosPorXp: 25,
+        puntosPorGema: 50, puntosPorXp: 50,
     },
     lluvia: {
         nombre: "Lluvia de monedas", icono: "🪙", atributo: "riqueza",
         descripcion: "Desliza el dedo para mover a tu héroe: atrapa monedas y gemas, esquiva las bombas.",
-        puntosPorMoneda: 3, puntosPorXp: 2,
+        puntosPorGema: 3, puntosPorXp: 4,
     },
     golpe: {
         nombre: "Golpe preciso", icono: "🎯", atributo: "intelecto",
         descripcion: "Tu héroe contra una criatura de la Torre. Toca cuando la marca esté en el centro para un golpe crítico.",
-        puntosPorMoneda: 30, puntosPorXp: 20,
+        puntosPorGema: 30, puntosPorXp: 40,
     },
 };
 
@@ -57,11 +62,11 @@ export function textoVentajas(tipo, v) {
     return partes.join(" · ");
 }
 
-// Lo que da una partida según los puntos.
+// Lo que da una partida según los puntos (en gemas, no en monedas).
 export function premio(tipo, puntos) {
     const juego = JUEGOS[tipo];
     return {
-        monedas: Math.min(MAX_MONEDAS, Math.floor(puntos / juego.puntosPorMoneda)),
+        gemas: Math.min(MAX_GEMAS, Math.floor(puntos / juego.puntosPorGema)),
         xp: Math.min(MAX_XP, Math.floor(puntos / juego.puntosPorXp)),
     };
 }

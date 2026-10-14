@@ -10,8 +10,8 @@
 import { estaActiva, sePuedeMarcar, misionesDelDia, hechasPorFecha, esDiaPerfecto, plural } from "./juego.js";
 import { sumarDias, diasEntre } from "./fechas.js";
 
-// Lo que trae el cofre.
-export const COFRE = { xp: 100, monedas: 50 };
+// Lo que trae el cofre (en gemas 💎 desde la v31; antes, monedas).
+export const COFRE = { xp: 100, gemas: 50 };
 
 
 // ===== Ayudantes =====

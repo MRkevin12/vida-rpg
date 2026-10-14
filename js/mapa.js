@@ -42,13 +42,14 @@ export const MEMORIALES = {
     carisma: "Memorial de la Voz", riqueza: "Memorial del Tesoro",
 };
 
+// Los premios del mapa son en gemas 💎 (desde la v31; antes, monedas) y XP.
 export const LUGARES = {
     camino:    { icono: "", nombre: "Camino" },
-    tesoro:    { icono: "💰", nombre: "Tesoro", premio: { monedas: 25 } },
+    tesoro:    { icono: "💰", nombre: "Tesoro", premio: { gemas: 25 } },
     santuario: { icono: "🕯️", nombre: "Santuario", premio: { xp: 40 } },              // al atributo más descuidado
-    guarida:   { icono: "⚔️", nombre: "Guarida liberada", premio: { monedas: 20, xp: 20 } },   // al atributo de su campaña
-    memorial:  { icono: "🗿", nombre: "Memorial encendido", premio: { monedas: 50, xp: 50 } }, // al atributo de su campaña
-    fortaleza: { icono: "🏰", nombre: "Fortaleza", premio: { monedas: 100, xp: 100 } },
+    guarida:   { icono: "⚔️", nombre: "Guarida liberada", premio: { gemas: 20, xp: 20 } },   // al atributo de su campaña
+    memorial:  { icono: "🗿", nombre: "Memorial encendido", premio: { gemas: 50, xp: 50 } }, // al atributo de su campaña
+    fortaleza: { icono: "🏰", nombre: "Fortaleza", premio: { gemas: 100, xp: 100 } },
 };
 
 

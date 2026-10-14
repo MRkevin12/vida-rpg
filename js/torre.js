@@ -33,8 +33,9 @@ import { CRIATURAS, ELEMENTOS, ORDEN, PISOS_POR_ZONA, idDelPiso, vueltaDelPiso, 
 import { HABILIDADES, ESQUIVAR_MAXIMO, tiene } from "./habilidades.js";
 import { MASCOTAS } from "./mascota.js";
 
+// El premio es en gemas 💎 (la moneda del arcade, v31) y algo de XP (desde la v31, la mitad).
 export const ATRIBUTO = "carisma";                       // el premio sube Carisma
-export const PREMIO = { monedasPorPiso: 3, xpPorPiso: 5, maxMonedas: 40, maxXp: 60 };
+export const PREMIO = { gemasPorPiso: 3, xpPorPiso: 2.5, maxGemas: 40, maxXp: 30 };
 export const CADA_GUARDIAN = PISOS_POR_ZONA;             // cada 5 pisos, un guardián (más fuerte)
 
 // Lo que cambia según el lugar:
@@ -42,9 +43,39 @@ export const CADA_GUARDIAN = PISOS_POR_ZONA;             // cada 5 pisos, un gua
 //   al pasar de piso · enfurecer: los guardianes se enfurecen al quedar con media vida.
 export const REGLAS = {
     torre:    { atributo: ATRIBUTO, premio: PREMIO, curaAlSubir: 0.1, enfurecer: false },
-    mazmorra: { atributo: "fuerza", premio: { monedasPorPiso: 5, xpPorPiso: 8, maxMonedas: 80, maxXp: 120 },
+    mazmorra: { atributo: "fuerza", premio: { gemasPorPiso: 5, xpPorPiso: 4, maxGemas: 80, maxXp: 60 },
                 curaAlSubir: 0, enfurecer: true },
 };
+
+// ===== El bazar del arcade (v31) =====
+// Provisiones que se compran con gemas y se usan al EMPEZAR tu próxima subida (o bajada):
+// todas las que tengas, una vez. Se puede tener una de cada una.
+export const PROVISIONES = {
+    pocion:    { icono: "🧪", nombre: "Poción de reserva", texto: "+1 poción", precio: 25 },
+    afilar:    { icono: "⚔️", nombre: "Piedra de afilar",  texto: "+4 de ataque", precio: 40 },
+    pergamino: { icono: "📜", nombre: "Pergamino arcano",  texto: "+1 hechizo por piso", precio: 45 },
+    antidoto:  { icono: "🌿", nombre: "Raíz amarga",       texto: "El veneno no te hace nada", precio: 50 },
+    amuleto:   { icono: "❤️", nombre: "Amuleto de vigor",  texto: "+15 % de vida máxima", precio: 60 },
+};
+
+// Le da al héroe de una partida nueva las provisiones que llevas (claves de PROVISIONES).
+export function usarProvisiones(partida, claves = []) {
+    const h = partida.heroe;
+    const usadas = claves.filter((clave) => PROVISIONES[clave]);
+    for (const clave of usadas) {
+        if (clave === "pocion") h.pociones += 1;
+        if (clave === "afilar") h.ataque += 4;
+        if (clave === "pergamino") { h.manaMax += 1; h.mana += 1; }
+        if (clave === "antidoto") h.inmuneVeneno = true;
+        if (clave === "amuleto") {
+            const extra = Math.round(h.vidaMax * 0.15);
+            h.vidaMax += extra;
+            h.vida += extra;
+        }
+    }
+    if (usadas.length) partida.registro += ` Llevas: ${usadas.map((c) => `${PROVISIONES[c].icono} ${PROVISIONES[c].nombre}`).join(", ")}.`;
+    return usadas;
+}
 const reglasDe = (partida) => REGLAS[partida.lugar] || REGLAS.torre;
 
 // Cuántos pisos de la Torre hay que superar para que se abra la Mazmorra (vencer al guardián del 20).
@@ -423,7 +454,9 @@ export function actuar(partida, accion, elemento = null) {
             m.vida = Math.max(0, m.vida - reflejo);
             const evento = { quien: "enemigo", tipo: intencion, especial: tipoEspecial, dano, nombre, reflejo };
             let extra = "";
-            if (tipoEspecial === "veneno") {
+            if (tipoEspecial === "veneno" && h.inmuneVeneno) {
+                extra = " Tu raíz amarga para el veneno.";
+            } else if (tipoEspecial === "veneno") {
                 h.veneno = ESPECIALES.veneno.turnos;
                 extra = " ¡Te envenena!";
             } else if (tipoEspecial === "drenar" && m.vida > 0) {
@@ -607,10 +640,11 @@ export function elegirMejora(partida, clave) {
 }
 
 // Lo que ganas al terminar, según los pisos que superaste (y el lugar: la Mazmorra paga más).
+// En gemas 💎 (no en monedas) y XP.
 export function premio(pisos, lugar = "torre") {
     const p = (REGLAS[lugar] || REGLAS.torre).premio;
     return {
-        monedas: Math.min(p.maxMonedas, pisos * p.monedasPorPiso),
-        xp: Math.min(p.maxXp, pisos * p.xpPorPiso),
+        gemas: Math.min(p.maxGemas, pisos * p.gemasPorPiso),
+        xp: Math.min(p.maxXp, Math.floor(pisos * p.xpPorPiso)),
     };
 }

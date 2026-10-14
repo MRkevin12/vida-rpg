@@ -22,6 +22,7 @@
 //
 // Este archivo no importa nada: avatar.js y torre.js lo usan sin crear círculos.
 
+// Los precios de las mascotas y de su comida son en gemas 💎 (desde la v31; antes, monedas).
 export const COMIDA = { precio: 15, cura: 3 };
 
 // Las etapas y cuánto pelea cada una en la Torre.

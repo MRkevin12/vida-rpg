@@ -41,7 +41,7 @@ export function diaCerrado(estado, fecha) {
 export const RELAMPAGO = {
     meta: 3,                 // misiones a completar…
     minutos: 120,            // …en este tiempo
-    premio: { xp: 40, monedas: 40 },
+    premio: { xp: 40, gemas: 40 },     // en gemas 💎 desde la v31 (antes, monedas)
     desde: 8, hasta: 18,     // solo se ofrece entre las 8 y las 18 (para que alcance el tiempo)
     probabilidad: 35,        // de cada 100 días, en cuántos aparece
 };

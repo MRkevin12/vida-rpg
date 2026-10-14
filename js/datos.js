@@ -15,8 +15,10 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 16,
-        personaje: null,      // { nombre, xp, monedas, creadoEn }
+        version: 17,
+        personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
+                              //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
+                              //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
         atributosPropios: [], // los tuyos: { id, nombre, icono, color, base (uno de los 4), creadoEn }
                               //   misiones, tareas, principales, sesiones y registros guardan "atributoPropio" (su id o null)
@@ -81,11 +83,12 @@ export function estadoInicial() {
             activa: "dragon", // la que te acompaña
             adoptadas: {},    // las que adoptaste en la Tienda: { fenix: { nombre, desde (fecha) } }
         },
-        arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, extra: 0, bestiario: {} },   // fichas gastadas, mejor
+        arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, extra: 0, bestiario: {}, bazar: [] },   // fichas gastadas, mejor
                                               //   puntaje de cada minijuego (records.torre y records.mazmorra = pisos superados),
                                               //   la partida de la Torre y la de la Mazmorra en curso (ver torre.js) o null,
                                               //   fichas de cofres y lo que sabes de cada criatura (ver bestiario.js):
                                               //   { esqueleto: { vencidos: 3, elementos: ["fuego"] } }
+                                              //   bazar: las provisiones compradas para la próxima partida ("pocion"…)
         campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
         maestro: { leidas: 0 },               // cuántos capítulos de las memorias de Aurelio ya leíste (ver memorias.js)
         // Cómo se ve tu avatar (las opciones están en avatar.js → APARIENCIA).
@@ -115,6 +118,8 @@ function completar(guardado) {
         ...base,
         ...guardado,
         version: base.version,
+        // Las gemas llegaron en la v31: las partidas de antes empiezan sin gemas.
+        personaje: guardado.personaje ? { ...guardado.personaje, gemas: guardado.personaje.gemas || 0 } : null,
         atributos: { ...base.atributos, ...guardado.atributos },
         avances: { ...guardado.avances },
         enfoque: {
@@ -135,6 +140,7 @@ function completar(guardado) {
             mazmorra: guardado.arcade?.mazmorra || null,
             extra: guardado.arcade?.extra || 0,
             bestiario: { ...guardado.arcade?.bestiario },
+            bazar: guardado.arcade?.bazar || [],
         },
         campana: { recompensados: { ...guardado.campana?.recompensados } },
         maestro: { leidas: guardado.maestro?.leidas || 0 },
