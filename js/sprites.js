@@ -11,6 +11,7 @@ import { dibujarAvatar, dibujarMascota } from "./dibujo.js";
 import { dibujarMonstruo, dibujarSala, SALA } from "./dibujo-monstruos.js";
 import { dibujarMapa, MEDIDAS } from "./dibujo-mapa.js";
 import { CRIATURAS, ORDEN, ORDEN_MAZMORRA } from "./bestiario.js";
+import { describirPersona } from "./voces.js";
 
 export const HEROE = { ancho: 54, alto: 72 };   // el tamaño de tu héroe, en puntos
 export const MASCOTA = { ancho: 44, alto: 34 }; // el de tu mascota (su dibujo mide 72 × 56)
@@ -39,6 +40,17 @@ export function spriteDeReflejo(d) {
 // La cara del Maestro Aurelio, para sus consejos en la batalla. d = maestro.describirMaestro().
 export function spriteDeMaestro(d) {
     return pixelar(dibujarAvatar(d, { mini: true }), 30, 30, { clave: "maestro" });
+}
+
+// Una persona de la aldea (Las Voces del Valle, v44): de cuerpo entero para la conversación, y solo la cara
+// (como el Maestro) para las listas. id = "maren", "tobias"… (ver voces-datos.js).
+export function spriteDePersona(id) {
+    const svg = dibujarAvatar(describirPersona(id), { batalla: true, sinEfectos: true });
+    return pixelar(svg, HEROE.ancho, HEROE.alto, { clave: `persona-${id}` });
+}
+
+export function spriteDeBusto(id) {
+    return pixelar(dibujarAvatar(describirPersona(id), { mini: true }), 30, 30, { clave: `busto-${id}` });
 }
 
 // Tu mascota en la Torre. b = la de la partida: { especie, etapa ("huevo" | "cria" | "adulto"), triste }.

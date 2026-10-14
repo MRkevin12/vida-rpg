@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 43;
+export const VERSION_APP = 44;
 
 export const NOVEDADES = [
+    {
+        version: 44,
+        titulo: "Las Voces del Valle",
+        cambios: [
+            "🗣️ Un juego nuevo de Carisma: una aventura de diálogos. Al pie de la Torre hay una aldea a la que la Sombra de la Voz le quitó la voz, y cada persona guarda algo que no puede decir: el orgullo de Maren, el qué dirán de Tobías, la envidia de Ilse. Lo encuentras en Aventuras → Las Voces del Valle.",
+            "📅 La aldea cambia cada día: no todos están siempre en su lugar. Hablar con alguien cuesta 🎟️ 1 ficha y paga gemas 💎 y XP de Carisma. Eliges qué decir; la conversación tiene ramas y varios finales.",
+            "🎶 Tu Carisma real te da poder: sus técnicas (Escuchar, Empatía, Verdad, Firmeza, Humor) se desbloquean con el nivel del atributo, y tu Valor sube con las misiones y tareas de Carisma de los últimos 7 días. Cada lección se puede convertir en una tarea de verdad.",
+            "Por ahora hay 3 personas con 6 conversaciones. Vendrán más voces.",
+        ],
+    },
     {
         version: 43,
         titulo: "Cinemáticas en la Torre",

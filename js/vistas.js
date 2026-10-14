@@ -35,6 +35,7 @@ import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
+import * as voces from "./voces.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
          diasEntre, lunesDe, relojTexto, relojLargo, sumarDias, MESES, hoy as fechaDeHoy } from "./fechas.js";
 
@@ -2012,6 +2013,12 @@ export function pantallaAventuras(estado, ctx) {
                 <small>La Torre y 3 minijuegos</small>
                 <small>🎟️ ${plural(fichas, "ficha", "fichas")}</small>
             </button>
+            <button type="button" class="acceso acceso-voces" data-accion="ir" data-pantalla="voces">
+                <span class="acceso-icono" aria-hidden="true">🗣️</span>
+                <b>Las Voces del Valle</b>
+                <small>Aventura de diálogos · cambia cada día</small>
+                <small>${voces.progreso(estado).hechas} de ${voces.progreso(estado).total} voces recuperadas</small>
+            </button>
         </div>
 
         <section class="bloque" aria-label="Campaña de jefes">
@@ -3338,6 +3345,7 @@ function seccionHistoria(estado, ctx) {
         cronica: `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
         torre: `Tu récord: ${records.torre || 0} de ${torre.ABRIR_MAZMORRA} pisos`,
         mazmorra: torre.mazmorraAbierta(estado.arcade) ? `Tu récord: ${records.mazmorra || 0} de 20 sótanos` : "🔒 Se abre al llegar a la cima de la Torre",
+        voces: `${voces.progreso(estado).hechas} de ${voces.progreso(estado).total} voces recuperadas`,
         libro: `${plural(escritos, "día escrito", "días escritos")} en tu diario`,
     };
     const historias = saga.HISTORIAS.map((h) =>

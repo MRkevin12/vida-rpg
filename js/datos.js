@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 22,
+        version: 23,
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -107,6 +107,13 @@ export function estadoInicial() {
         ultimoAvisoEscudo: null,
         ultimoRespaldo: null,
         semanaVista: null,    // lunes de la semana en que cerraste la tarjeta «Tu semana»
+        voces: {              // Las Voces del Valle (v44; ver voces.js): la aventura de diálogos de Carisma
+            escena: null,     //   la conversación en curso: { id, nodo, fecha, confianza, marcas, historial, reaccion } o null
+            hechas: {},       //   las que ya viviste: { "maren-1": { fin: "bien" | "regular", fecha } } (guarda el mejor final)
+            fallos: {},       //   las que salieron mal: { "maren-1": "2026-10-14" } (se puede volver al día siguiente)
+            ultima: {},       //   la última vez que hablaste con cada persona: { maren: "2026-10-14" }
+            tareas: {},       //   las lecciones que ya convertiste en tarea: { "maren-1": true }
+        },
         revisiones: {},       // revisión semanal (v39), por el lunes de la semana revisada:
                               //   { "2026-10-05": { bien, mejorar, foco (ids de misiones, máx. 3), hechaEn } }
         siguienteId: 1,       // contador para darle un id único a cada cosa nueva
@@ -132,6 +139,13 @@ function completar(guardado) {
         },
         diario: { ...guardado.diario },
         revisiones: { ...guardado.revisiones },
+        voces: {
+            escena: guardado.voces?.escena || null,
+            hechas: { ...guardado.voces?.hechas },
+            fallos: { ...guardado.voces?.fallos },
+            ultima: { ...guardado.voces?.ultima },
+            tareas: { ...guardado.voces?.tareas },
+        },
         avatar: {
             comprados: avatar.comprados || [],
             equipado: { ...base.avatar.equipado, ...avatar.equipado },

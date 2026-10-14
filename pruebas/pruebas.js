@@ -17,6 +17,8 @@ import * as campana from "../js/campana.js";
 import * as desafios from "../js/desafios.js";
 import * as retos from "../js/retos.js";
 import * as cinematicas from "../js/cinematicas.js";
+import * as voces from "../js/voces.js";
+import * as vistasVoces from "../js/vistas-voces.js";
 import { existeSonido } from "../js/sonido.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO } from "../js/resumen.js";
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
@@ -1477,6 +1479,290 @@ prueba("Cinemáticas: cada zona de la Torre y la Mazmorra tiene las suyas, compl
     igual(["retumbo", "campana"].every(existeSonido), true, "los dos sonidos nuevos");
 });
 
+
+// ===== Las Voces del Valle (v44) =====
+
+// Las personas de la aldea están en su lugar ciertos días de la semana: para que las pruebas no dependan del día en que se
+// corran, aquí están todas todos los días (y al terminar se deja todo como estaba).
+function conLaAldeaAbierta(prueba) {
+    const antes = Object.fromEntries(Object.entries(voces.PERSONAS).map(([id, p]) => [id, p.dias]));
+    for (const p of Object.values(voces.PERSONAS)) p.dias = [0, 1, 2, 3, 4, 5, 6];
+    try {
+        return prueba();
+    } finally {
+        for (const [id, dias] of Object.entries(antes)) voces.PERSONAS[id].dias = dias;
+    }
+}
+
+// Juega una conversación eligiendo siempre la opción libre que más confianza da (sin técnicas ni valor, con lo que tiene
+// un héroe nuevo), o la que diga elegirIndice(nodo, opcionesLibres). Devuelve lo que devolvió elegirEnEscena al terminar.
+function jugarConversacion(estado, idEscena, elegirIndice = null) {
+    acciones.empezarEscena(estado, idEscena);
+    for (let paso = 0; paso < 40; paso++) {
+        const en = estado.voces.escena;
+        const opciones = voces.opcionesDe(estado, en, hoy()).filter((o) => !o.bloqueada);
+        const nodo = voces.nodoActual(en);
+        const confianzaDe = (o) => nodo.opciones[o.indice].confianza || 0;
+        const indice = elegirIndice ? elegirIndice(nodo, opciones) : opciones.reduce((a, b) => (confianzaDe(b) > confianzaDe(a) ? b : a)).indice;
+        const r = acciones.elegirEnEscena(estado, indice);
+        if (r.terminada) return r;
+    }
+    throw new Error("la conversación no terminó");
+}
+
+prueba("Voces: ninguna conversación se queda sin salida y las tres salidas son posibles", () => {
+    cierto(Object.keys(voces.ESCENAS).length >= 6, "hay conversaciones");
+    const titulos = new Set();
+    for (const [id, escena] of Object.entries(voces.ESCENAS)) {
+        cierto(voces.PERSONAS[escena.persona]?.escenas.includes(id), `${id}: su persona la lista`);
+        cierto(escena.requiere.every((previa) => voces.ESCENAS[previa]?.persona === escena.persona), `${id}: lo que pide existe y es de la misma persona`);
+        cierto(!titulos.has(escena.titulo), `${id}: título repetido`);
+        titulos.add(escena.titulo);
+        const nodos = escena.nodos;
+        cierto(nodos[escena.inicio], `${id}: tiene inicio`);
+
+        // Cada nodo tiene opciones, decide solo o es un final; todo lo que apunta existe; siempre hay una opción libre.
+        for (const [nombre, nodo] of Object.entries(nodos)) {
+            const donde = `${id}/${nombre}`;
+            if (nodo.fin) {
+                cierto(["bien", "regular", "mal"].includes(nodo.fin) && nodo.texto, `${donde}: final`);
+                cierto(nodo.leccion, `${donde}: tiene lección`);
+                cierto(!nodo.tarea || nodo.tarea.length <= 80, `${donde}: la tarea cabe (80 letras)`);
+            } else if (nodo.evalua) {
+                cierto(nodo.evalua.every((r) => nodos[r.ir]), `${donde}: sus reglas apuntan a nodos que existen`);
+                const ultima = nodo.evalua[nodo.evalua.length - 1];
+                cierto(ultima.confianzaMin === undefined && !ultima.marca, `${donde}: la última regla siempre se cumple`);
+            } else {
+                cierto(nodo.texto && nodo.opciones?.length, `${donde}: dice algo y da opciones`);
+                cierto(nodo.opciones.every((o) => nodos[o.ir] && o.texto), `${donde}: todas las opciones llevan a un nodo que existe`);
+                cierto(nodo.opciones.some((o) => !o.tecnica && !o.valor && !o.si), `${donde}: hay una opción libre (nadie se queda encerrado)`);
+                cierto(nodo.opciones.every((o) => !o.tecnica || voces.TECNICAS[o.tecnica]), `${donde}: la técnica existe`);
+            }
+            if (nodo.quien) cierto(voces.personaDe(nodo.quien), `${donde}: quien habla existe`);
+            // Los gestos van entre _guiones bajos_: tienen que estar emparejados.
+            for (const texto of [nodo.texto, ...(nodo.opciones || []).map((o) => o.texto)].filter(Boolean)) {
+                cierto((texto.match(/_/g) || []).length % 2 === 0, `${donde}: guiones bajos sin cerrar en «${texto.slice(0, 30)}»`);
+            }
+        }
+
+        // Se puede llegar a todos los nodos, y a los tres finales; y a «bien» solo con opciones libres.
+        const alcanzables = new Set();
+        const finales = new Set();
+        const finalesLibres = new Set();
+        const visto = new Set();
+        const recorrer = (nombre, confianza, marcas, libre) => {
+            const clave = `${nombre}|${confianza}|${marcas.join()}|${libre}`;
+            if (visto.has(clave)) return;
+            visto.add(clave);
+            alcanzables.add(nombre);
+            const nodo = nodos[nombre];
+            if (nodo.fin) {
+                finales.add(nodo.fin);
+                if (libre) finalesLibres.add(nodo.fin);
+            } else if (nodo.evalua) {
+                const regla = nodo.evalua.find((r) => (r.confianzaMin === undefined || confianza >= r.confianzaMin) && (!r.marca || marcas.includes(r.marca)));
+                recorrer(regla.ir, confianza, marcas, libre);
+            } else {
+                for (const o of nodo.opciones) {
+                    recorrer(o.ir, confianza + (o.confianza || 0), o.marca && !marcas.includes(o.marca) ? [...marcas, o.marca].sort() : marcas, libre && !o.tecnica && !o.valor);
+                }
+            }
+        };
+        recorrer(escena.inicio, 0, [], true);
+        igual(Object.keys(nodos).filter((n) => !alcanzables.has(n)), [], `${id}: nodos a los que nunca se llega`);
+        igual([...finales].sort(), ["bien", "mal", "regular"], `${id}: los tres finales se pueden alcanzar`);
+        cierto(finalesLibres.has("bien"), `${id}: se puede llegar al mejor final sin técnicas ni valor`);
+    }
+});
+
+prueba("Voces: las técnicas salen del nivel de Carisma y el Valor, de lo que hiciste de verdad esta semana", () => {
+    igual(voces.tecnicasDe(1), ["escuchar"]);
+    igual(voces.tecnicasDe(3), ["escuchar", "empatia", "verdad"]);
+    igual(voces.tecnicasDe(9).length, Object.keys(voces.TECNICAS).length);
+
+    const estado = partidaNueva();
+    igual([voces.nivelDeCarisma(estado), voces.valorDe(estado, hoy())], [1, 0]);
+    estado.atributos.carisma = 150;   // 50 + 100 de XP: nivel 3
+    igual(voces.nivelDeCarisma(estado), 3);
+
+    const carisma = crearMision(estado, { atributo: "carisma" });
+    const fuerza = crearMision(estado, { nombre: "Correr", atributo: "fuerza" });
+    for (const m of [carisma, fuerza]) m.creadaEn = dia(-30);
+    marcarEn(estado, carisma, dia(-2));
+    marcarEn(estado, carisma, dia(-6));
+    marcarEn(estado, carisma, dia(-7));      // hace 7 días: ya no cuenta
+    marcarEn(estado, fuerza, dia(-1));       // de otro atributo: no cuenta
+    igual(voces.valorDe(estado, hoy()), 2);
+    acciones.crearTarea(estado, { nombre: "Llamar a alguien", dificultad: "facil", atributo: "carisma" });
+    acciones.alternarTarea(estado, estado.tareas[0].id);
+    igual(voces.valorDe(estado, hoy()), 3, "una tarea de Carisma hecha también suma");
+    for (let n = 0; n < 8; n++) marcarEn(estado, carisma, hoy());
+    igual(voces.valorDe(estado, hoy()), voces.MAX_VALOR, "tiene tope");
+});
+
+prueba("Voces: la agenda del día (quién está, con quién se puede hablar y por qué no)", () => {
+    // Cada día de la semana hay al menos dos personas en la aldea.
+    const estado = partidaNueva();
+    for (let n = 0; n < 7; n++) {
+        const fecha = dia(n);
+        const presentes = voces.agendaDelDia(estado, fecha).flatMap((l) => l.personas);
+        cierto(presentes.length >= 2, `${fecha}: solo ${presentes.length} personas`);
+    }
+
+    conLaAldeaAbierta(() => {
+        const estado2 = partidaNueva();
+        igual(voces.motivoBloqueo(estado2, "maren-1", hoy()), null, "la primera está libre");
+        cierto(voces.motivoBloqueo(estado2, "maren-2", hoy()).includes("Antes, habla con Maren"), "la segunda pide la primera");
+        igual(voces.motivoBloqueo(estado2, "no-existe", hoy()), "Esa conversación no existe.");
+        estado2.voces.hechas["maren-1"] = { fin: "regular", fecha: hoy() };
+        estado2.voces.ultima.maren = hoy();
+        cierto(voces.motivoBloqueo(estado2, "maren-2", hoy()).includes("hoy"), "hoy ya hablaste con ella");
+        estado2.voces.ultima.maren = dia(-1);
+        igual(voces.motivoBloqueo(estado2, "maren-2", hoy()), null, "al día siguiente ya se puede");
+        const maren = voces.agendaDelDia(estado2, hoy()).flatMap((l) => l.personas).find((p) => p.id === "maren");
+        igual(maren.escenaId, "maren-2", "le toca la siguiente");
+        estado2.voces.hechas["maren-1"] = { fin: "bien", fecha: hoy() };
+        cierto(voces.motivoBloqueo(estado2, "maren-1", hoy()).includes("mejor final"), "con el mejor final no se repite");
+    });
+
+    // Un día en que no está, el motivo lo dice.
+    const e3 = partidaNueva();
+    const domingo = Array.from({ length: 7 }, (_, n) => dia(n)).find((f) => diaDeSemana(f) === 6);
+    cierto(voces.motivoBloqueo(e3, "maren-1", domingo).includes("no está"), "Maren no trabaja los domingos");
+    cierto(voces.progreso(e3).total >= 6 && voces.progreso(e3).hechas === 0);
+});
+
+prueba("Voces: elegir cambia la confianza, lo bloqueado no se puede elegir y la conversación decide su final", () => {
+    const estado = partidaNueva();
+    const en = voces.iniciarEscena("maren-1", hoy());
+    igual([en.nodo, en.confianza, en.historial.length], ["a1", 0, 1]);
+    let opciones = voces.opcionesDe(estado, en, hoy());
+    igual(opciones.map((o) => o.bloqueada === null), [true, true, true], "con Carisma 1, «Escuchar» ya está aprendida");
+
+    voces.elegir(estado, en, 2, hoy());          // pisarle el orgullo: −1
+    igual([en.nodo, en.confianza, en.reaccion], ["a2d", -1, -1]);
+    igual(en.historial.map((h) => h.quien), ["narrador", "yo", "maren"]);
+    opciones = voces.opcionesDe(estado, en, hoy());
+    cierto(opciones[2].bloqueada.includes("Firmeza"), "la Firmeza pide Carisma 4");
+    debeFallar(() => voces.elegir(estado, en, 2, hoy()), "Todavía no puedes");
+    debeFallar(() => voces.elegir(estado, en, 9, hoy()), "no existe");
+
+    // Con Carisma 4, se desbloquea.
+    estado.atributos.carisma = 300;
+    cierto(voces.opcionesDe(estado, en, hoy())[2].bloqueada === null, "con nivel 4 la Firmeza se abre");
+    voces.elegir(estado, en, 0, hoy());          // «Perdona…»: +1 → a3
+    igual(en.nodo, "a3");
+    cierto(voces.opcionesDe(estado, en, hoy())[3].bloqueada === "Valor 2", "la valiente pide Valor 2");
+    const carisma = crearMision(estado, { atributo: "carisma" });
+    carisma.creadaEn = dia(-3);
+    marcarEn(estado, carisma, dia(-1));
+    marcarEn(estado, carisma, dia(-2));
+    igual(voces.opcionesDe(estado, en, hoy())[3].bloqueada, null, "con 2 misiones de Carisma de verdad, se abre");
+
+    // El final lo decide la confianza (nodo «ev»): a1 → +0, a2 → +1, a3 → +0, a4 → +1, a5 → +2 = 4: bien.
+    const ruta = voces.iniciarEscena("maren-1", hoy());
+    for (const i of [0, 1, 0, 0, 1]) voces.elegir(estado, ruta, i, hoy());
+    igual([voces.finDe(ruta).fin, ruta.confianza], ["bien", 4]);
+    // Y por el camino de pisarle el orgullo, mal.
+    const mala = voces.iniciarEscena("maren-1", hoy());
+    for (const i of [2, 1, 2, 1]) voces.elegir(estado, mala, i, hoy());   // −1, 0, −1 (le quitas importancia) y te vas: −2
+    igual(voces.finDe(mala).fin, "mal");
+});
+
+prueba("Voces: empezar gasta una ficha (seguir, no), cada final paga lo suyo y las conversaciones se encadenan", () => {
+    conLaAldeaAbierta(() => {
+        const estado = partidaNueva();
+        const fichas = arcade.fichasDisponibles(estado);
+        acciones.empezarEscena(estado, "maren-1");
+        igual(arcade.fichasDisponibles(estado), fichas - 1, "gasta una ficha");
+        acciones.empezarEscena(estado, "maren-1");
+        igual(arcade.fichasDisponibles(estado), fichas - 1, "seguir la conversación no gasta otra");
+        debeFallar(() => acciones.empezarEscena(estado, "tobias-1"), "conversación a medias");
+        acciones.abandonarEscena(estado);
+        igual([estado.voces.escena, estado.voces.fallos["maren-1"]], [null, hoy()]);
+        debeFallar(() => acciones.empezarEscena(estado, "maren-1"), "Ya hablaste con Maren hoy");
+
+        // Una conversación completa: bien.
+        const gemas = estado.personaje.gemas;
+        const xp = estado.atributos.carisma;
+        const r = jugarConversacion(estado, "tobias-1");
+        igual([r.terminada, r.fin, r.persona], [true, "bien", "tobias"]);
+        igual(r.premio, voces.PREMIOS.bien);
+        igual([estado.personaje.gemas, estado.atributos.carisma], [gemas + voces.PREMIOS.bien.gemas, xp + voces.PREMIOS.bien.xp]);
+        igual([estado.voces.hechas["tobias-1"].fin, estado.voces.escena], ["bien", null]);
+        cierto(r.leccion && r.tarea && r.texto.includes("Tobías"), "trae su lección y su tarea");
+        debeFallar(() => acciones.empezarEscena(estado, "tobias-1"), "mejor final");
+
+        // Esa misma persona ya no habla más hoy; al día siguiente toca la segunda; y la primera con el mejor final ya no se repite.
+        debeFallar(() => acciones.empezarEscena(estado, "tobias-2"), "Ya hablaste con Tobías hoy");
+        estado.voces.ultima.tobias = dia(-1);
+        const r2 = jugarConversacion(estado, "tobias-2");
+        igual(r2.fin, "bien");
+
+        // Sin fichas no se empieza.
+        estado.arcade.usadas = 9999;
+        debeFallar(() => acciones.empezarEscena(estado, "ilse-1"), "No tienes fichas");
+    });
+});
+
+prueba("Voces: un mal final se repite otro día, uno regular se puede mejorar (paga la diferencia) y la lección se vuelve tarea", () => {
+    conLaAldeaAbierta(() => {
+        const estado = partidaNueva();
+        // Mal: elige siempre lo que menos confianza da.
+        const peor = (nodo, opciones) => opciones.reduce((a, b) => ((nodo.opciones[b.indice].confianza || 0) < (nodo.opciones[a.indice].confianza || 0) ? b : a)).indice;
+        const gemas = estado.personaje.gemas;
+        const mal = jugarConversacion(estado, "maren-1", peor);
+        igual([mal.fin, mal.premio], ["mal", voces.PREMIOS.mal]);
+        igual(estado.personaje.gemas, gemas, "un mal final no da gemas");
+        igual([estado.voces.hechas["maren-1"], estado.voces.fallos["maren-1"]], [undefined, hoy()]);
+        igual(voces.siguienteEscena(estado, "maren"), "maren-1", "sigue siendo la que le toca");
+
+        // Mejorar un regular: paga solo lo que falta.
+        estado.voces.hechas["maren-1"] = { fin: "regular", fecha: dia(-3) };
+        estado.voces.ultima.maren = dia(-1);
+        const antes = estado.personaje.gemas;
+        const mejor = jugarConversacion(estado, "maren-1");
+        igual(mejor.fin, "bien");
+        igual(mejor.premio, { gemas: voces.PREMIOS.bien.gemas - voces.PREMIOS.regular.gemas, xp: voces.PREMIOS.bien.xp - voces.PREMIOS.regular.xp });
+        igual([estado.personaje.gemas - antes, mejor.mejoro, estado.voces.hechas["maren-1"].fin], [4, true, "bien"]);
+
+        // La lección se vuelve una tarea real de Carisma, una sola vez, y solo con una tarea que la conversación propone.
+        debeFallar(() => acciones.crearTareaDeEscena(estado, "maren-1", "Una tarea inventada"), "no existe");
+        debeFallar(() => acciones.crearTareaDeEscena(estado, "ilse-1", mejor.tarea), "Primero vive");
+        acciones.crearTareaDeEscena(estado, "maren-1", mejor.tarea);
+        const tarea = estado.tareas[estado.tareas.length - 1];
+        igual([tarea.nombre, tarea.atributo, tarea.fecha], [mejor.tarea, "carisma", hoy()]);
+        debeFallar(() => acciones.crearTareaDeEscena(estado, "maren-1", mejor.tarea), "ya la creaste");
+    });
+});
+
+prueba("Voces: la partida nueva trae lo suyo, el texto se escapa y las pantallas se dibujan", () => {
+    const estado = partidaNueva();
+    igual(estado.voces, { escena: null, hechas: {}, fallos: {}, ultima: {}, tareas: {} });
+
+    // Los gestos van en cursiva; el nombre del héroe, escapado (lo escribió el usuario).
+    const nombre = '<img src=x onerror="alert(1)">';
+    const html = vistasVoces.formato("Hola, {n}. _Sonríe._ <b>no</b>", nombre);
+    cierto(!html.includes("<img") && !html.includes("<b>") && html.includes('<em class="voces-gesto">Sonríe.</em>'), html);
+
+    conLaAldeaAbierta(() => {
+        const ctx = { hoy: hoy(), vida: { caido: false } };
+        const aldea = vistasVoces.pantallaVoces(estado, ctx);
+        cierto(["Maren", "Tobías", "Ilse", "La fragua", "Hablar", "Tu Carisma", "Escuchar"].every((t) => aldea.includes(t)), "la aldea muestra lo suyo");
+        acciones.empezarEscena(estado, "maren-1");
+        const escena = vistasVoces.pantallaEscena({ estado, nombre, hoy: hoy(), resultado: null });
+        cierto(escena.includes("hoz") && escena.includes('data-accion="voces-elegir"'), "la conversación muestra su texto y sus opciones");
+        cierto(!escena.includes("<img src=x"), "el nombre no se cuela como HTML");
+        cierto(vistasVoces.pantallaVoces(estado, ctx).includes("Seguir hablando"), "la aldea ofrece seguir la conversación");
+
+        const otra = partidaNueva();
+        const r = jugarConversacion(otra, "ilse-1");
+        const final = vistasVoces.pantallaEscena({ estado: otra, nombre: "Aria", hoy: hoy(), resultado: r });
+        cierto(final.includes("Aurelio anota") && final.includes("Crear la tarea") && final.includes("Volver a la aldea"), "el final trae la lección y la tarea");
+    });
+});
+
+
 // Una partida de la Mazmorra contra la criatura del sótano indicado, con la intención dada.
 function mazmorraContra(piso, intencion = "especial", semilla = 21) {
     const p = torre.nuevaPartida(NIVELES_1, semilla, 1, {}, "mazmorra");
@@ -2819,7 +3105,7 @@ prueba("Saga: 7 actos en orden con un objetivo final; el primero que falta es el
     igual(saga.ACTOS.length, 7);
     igual(new Set(saga.ACTOS.map((a) => a.id)).size, 7, "ids distintos");
     const historias = saga.HISTORIAS.map((h) => h.id);
-    igual(historias, ["pergamino", "memorias", "cronica", "torre", "mazmorra", "libro"], "las historias, en el orden en que pasan");
+    igual(historias, ["pergamino", "memorias", "cronica", "torre", "mazmorra", "voces", "libro"], "las historias, en el orden en que pasan");
     for (const h of saga.HISTORIAS) cierto(["pergamino-abrir", "memorias-abrir", "ir", "historia-abrir"].includes(h.abrir.accion), `${h.id} se puede abrir`);
     for (const a of saga.ACTOS) {
         cierto(a.titulo && a.relato && a.objetivo && a.cierre && a.condicion.meta > 0, `${a.id} tiene todo`);

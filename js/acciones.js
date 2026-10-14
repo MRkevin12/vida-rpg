@@ -30,6 +30,7 @@ import { PISTAS } from "./musica.js";
 import * as equipo from "./equipo.js";
 import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
+import * as voces from "./voces.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -995,6 +996,72 @@ export function terminarPartida(estado, tipo, puntosObtenidos) {
             ? [{ icono: "🏅", etiqueta: "¡Nuevo récord!", titulo: `${puntos} puntos`, detalle: juego.nombre }]
             : [],
     };
+}
+
+
+// ===== Las Voces del Valle (v44) =====
+// La aventura de diálogos de Carisma (ver voces.js). Una conversación nueva gasta una ficha; seguir la que dejaste a
+// medias, no. Los premios son gemas 💎 y XP de Carisma.
+
+// Empieza (o sigue) una conversación. Devuelve la conversación en curso.
+export function empezarEscena(estado, id) {
+    revisarQueNoEstesCaido(estado, "la aldea");
+    const v = estado.voces;
+    const motivo = voces.motivoBloqueo(estado, id, hoy());
+    if (motivo) throw new Error(motivo);
+    if (v.escena) return v.escena;   // seguir la que ya empezaste: sin ficha
+    if (arcade.fichasDisponibles(estado) < 1) {
+        throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
+    }
+    estado.arcade.usadas += 1;   // la ficha se gasta al EMPEZAR
+    v.escena = voces.iniciarEscena(id, hoy());
+    return v.escena;
+}
+
+// Eliges qué decir. Si con eso termina la conversación, se cobra y se guarda cómo salió.
+// Devuelve { terminada: false } o, al terminar, { terminada: true, id, titulo, persona, fin, texto, leccion, tarea, premio, mejoro }.
+export function elegirEnEscena(estado, indice) {
+    const v = estado.voces;
+    if (!v.escena) throw new Error("No estás en ninguna conversación.");
+    const en = v.escena;
+    voces.elegir(estado, en, indice, hoy());
+    const final = voces.finDe(en);
+    if (!final) return { terminada: false };
+
+    const escena = voces.ESCENAS[en.id];
+    const previo = v.hechas[en.id]?.fin || null;
+    const premio = voces.premioDeFin(final.fin, previo);
+    ganar(estado, { gemas: premio.gemas, xp: premio.xp, atributo: "carisma" });
+    if (final.fin === "mal") v.fallos[en.id] = hoy();
+    else v.hechas[en.id] = { fin: voces.mejorFin(previo, final.fin), fecha: hoy() };
+    v.ultima[escena.persona] = hoy();
+    v.escena = null;
+    return {
+        terminada: true, id: en.id, titulo: escena.titulo, persona: escena.persona, fin: final.fin,
+        texto: final.texto, leccion: final.leccion || "", tarea: final.tarea || null,
+        premio, mejoro: Boolean(previo) && final.fin !== previo && final.fin !== "mal",
+    };
+}
+
+// Dejar una conversación a medias para siempre: la ficha ya se gastó, y hoy no se vuelve a hablar con esa persona.
+export function abandonarEscena(estado) {
+    const v = estado.voces;
+    if (!v.escena) throw new Error("No estás en ninguna conversación.");
+    v.fallos[v.escena.id] = hoy();
+    v.ultima[voces.ESCENAS[v.escena.id].persona] = hoy();
+    v.escena = null;
+}
+
+// Convierte la lección de una conversación en una tarea real (de Carisma, para hoy). Una sola vez por conversación.
+export function crearTareaDeEscena(estado, id, nombre) {
+    const escena = voces.ESCENAS[id];
+    const v = estado.voces;
+    if (!escena || !v.hechas[id]) throw new Error("Primero vive esa conversación.");
+    if (v.tareas[id]) throw new Error("Esa tarea ya la creaste.");
+    // Solo vale una de las tareas que propone esa conversación (no un texto cualquiera).
+    if (!Object.values(escena.nodos).some((nodo) => nodo.tarea === nombre)) throw new Error("Esa tarea no existe.");
+    crearTarea(estado, { nombre, fecha: hoy(), dificultad: "normal", atributo: "carisma" });
+    v.tareas[id] = true;
 }
 
 

@@ -8198,3 +8198,369 @@ body:has(#deshacer:not([hidden])) .aviso {
         display: none;
     }
 }
+
+
+/* ===== Las Voces del Valle (v44) =====
+   La aldea es una pantalla normal; cada conversación se juega en la capa #voces, a pantalla completa (como la Torre).
+   --pintura es el fondo de cada lugar (una pintura de fondos/). */
+.acceso-voces {
+    grid-column: 1 / -1;
+    min-height: 0;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(244, 114, 182, 0.26), transparent 60%),
+        linear-gradient(180deg, var(--panel-claro), var(--panel));
+    border-color: rgba(244, 114, 182, 0.45);
+}
+
+.voces-intro,
+.voces-poder,
+.voces-encurso {
+    display: grid;
+    gap: 8px;
+}
+
+.voces-tecnicas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.voces-tecnica {
+    padding: 5px 10px;
+    font-size: 0.84rem;
+    color: var(--texto-suave);
+    border: 1px dashed var(--borde);
+    border-radius: 999px;
+}
+
+.voces-tecnica small {
+    font-size: 0.7rem;
+}
+
+.voces-tecnica.sabida {
+    color: var(--texto);
+    background: rgba(244, 114, 182, 0.1);
+    border: 1px solid rgba(244, 114, 182, 0.55);
+}
+
+.voces-valor {
+    display: grid;
+    gap: 4px;
+}
+
+.voces-valor small {
+    font-size: 0.78rem;
+    color: var(--texto-suave);
+}
+
+.voces-pips {
+    display: inline-flex;
+    gap: 5px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.voces-pip {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--oro);
+    border-radius: 50%;
+}
+
+.voces-pip.lleno {
+    background: var(--oro);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+}
+
+.voces-lugar {
+    display: grid;
+    gap: 10px;
+    overflow: hidden;
+    background-image: linear-gradient(rgba(10, 6, 22, 0.78), rgba(10, 6, 22, 0.92)), var(--pintura);
+    background-position: center;
+    background-size: cover;
+}
+
+.voces-lugar-nombre {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.voces-persona {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.38);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+}
+
+.voces-busto {
+    flex: none;
+    width: 72px;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    image-rendering: pixelated;
+}
+
+.voces-persona-datos {
+    display: grid;
+    flex: 1;
+    gap: 4px;
+    min-width: 0;
+}
+
+.voces-persona-datos .nota {
+    margin: 0;
+}
+
+.voces-persona-datos .boton {
+    margin-top: 4px;
+}
+
+.voces-vacio {
+    margin: 0;
+}
+
+.voces-vividas {
+    gap: 0;
+}
+
+.voces-vivida {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--borde);
+}
+
+.voces-vivida > span:nth-child(2) {
+    flex: 1;
+}
+
+.voces-final-icono {
+    font-size: 1.5rem;
+}
+
+/* --- La conversación --- */
+.voces {
+    overflow-y: auto;
+    place-items: start center;
+}
+
+.voces-caja {
+    width: min(560px, 100%);
+}
+
+.voces-escena {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    min-height: calc(100dvh - 16px);
+    padding: 12px;
+    background-image: linear-gradient(rgba(10, 6, 22, 0.72), rgba(10, 6, 22, 0.94)), var(--pintura);
+    background-position: center;
+    background-size: cover;
+    border: 1px solid var(--borde);
+    border-radius: 16px;
+}
+
+.voces-barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.voces-donde {
+    font-size: 0.86rem;
+    color: var(--texto-suave);
+}
+
+.voces-donde b {
+    color: var(--texto);
+}
+
+.voces-retrato-caja {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding-top: 6px;
+}
+
+.voces-retrato {
+    width: 162px;   /* el sprite mide 54 puntos de ancho: 3 pantalla por punto */
+    height: auto;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6));
+    animation: voces-aparece 0.4s ease-out;
+}
+
+.voces-reaccion {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    background: rgba(0, 0, 0, 0.62);
+    border-radius: 999px;
+    animation: voces-aparece 0.4s ease-out;
+}
+
+.voces-reaccion.sube {
+    color: #f9a8d4;
+    border: 1px solid rgba(244, 114, 182, 0.5);
+}
+
+.voces-reaccion.baja {
+    color: #fca5a5;
+    border: 1px solid rgba(248, 113, 113, 0.5);
+}
+
+.voces-dialogo {
+    display: grid;
+    gap: 8px;
+}
+
+.voces-antes,
+.voces-yo {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    opacity: 0.78;
+}
+
+.voces-antes {
+    color: var(--texto-suave);
+}
+
+.voces-yo {
+    font-style: italic;
+    text-align: right;
+    color: #a5f3fc;
+}
+
+.voces-ahora {
+    padding: 14px 16px;
+    background: rgba(15, 10, 40, 0.92);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    animation: voces-aparece 0.35s ease-out;
+}
+
+.voces-nombre {
+    margin: 0 0 4px;
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--oro);
+}
+
+.voces-texto {
+    margin: 0;
+    font-size: 1.02rem;
+    line-height: 1.55;
+}
+
+.voces-gesto {
+    font-style: italic;
+    color: #a5f3fc;
+}
+
+.voces-opciones {
+    display: grid;
+    gap: 8px;
+}
+
+.voces-opcion {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    font: inherit;
+    color: var(--texto);
+    text-align: left;
+    background: rgba(139, 92, 246, 0.18);
+    border: 1px solid rgba(139, 92, 246, 0.55);
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.voces-opcion:active {
+    transform: scale(0.99);
+}
+
+.voces-opcion.bloqueada {
+    cursor: default;
+    border-style: dashed;
+    opacity: 0.55;
+}
+
+.voces-etiqueta {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #f9a8d4;
+}
+
+.voces-bloqueo {
+    font-size: 0.74rem;
+    color: var(--texto-suave);
+}
+
+.voces-abandonar {
+    justify-self: center;
+    margin-top: 6px;
+    font-size: 0.8rem;
+}
+
+.voces-final-titulo {
+    margin: 0;
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.voces-leccion {
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    background: rgba(251, 191, 36, 0.08);
+    border-left: 3px solid var(--oro);
+    border-radius: 6px;
+}
+
+.voces-premio {
+    margin: 0;
+    font-weight: 700;
+    text-align: center;
+    color: var(--oro);
+}
+
+.voces-volver {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--borde);
+}
+
+@keyframes voces-aparece {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .voces-retrato,
+    .voces-ahora,
+    .voces-reaccion {
+        animation: none;
+    }
+}

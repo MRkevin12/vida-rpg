@@ -21,6 +21,7 @@ import * as leyendas from "./leyendas.js";
 import * as sprites from "./sprites.js";
 import * as cinematicas from "./cinematicas.js";
 import * as cine from "./cine.js";
+import * as vistasVoces from "./vistas-voces.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -70,7 +71,7 @@ let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
 
 // Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
-const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje" };
+const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje" };
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -83,6 +84,7 @@ const DIBUJAR = {
     tienda: vistas.pantallaTienda,
     personaje: vistas.pantallaPersonaje,
     arcade: vistas.pantallaArcade,
+    voces: vistasVoces.pantallaVoces,
     enfoque: vistas.pantallaEnfoque,
     diario: vistas.pantallaDiario,
     pacto: vistas.pantallaPacto,
@@ -652,6 +654,43 @@ function cerrarTorre() {
     ponerMusica();
 }
 
+// ===== Las Voces del Valle (v44) =====
+// La aventura de diálogos de Carisma (ver voces.js y vistas-voces.js). La aldea es una pantalla (Aventuras → Las Voces del
+// Valle); cada conversación se juega en una capa a pantalla completa (#voces), como la Torre.
+let resultadoVoces = null;   // cómo terminó la conversación que acaba de acabar (para mostrar el final)
+
+// Los dibujos de las personas (pixel art) llegan un instante después del HTML.
+function pintarRetratosVoces(raiz) {
+    for (const imagen of raiz.querySelectorAll("img[data-persona]")) {
+        sprites.spriteDePersona(imagen.dataset.persona).then((direccion) => { if (direccion) imagen.src = direccion; });
+    }
+    for (const imagen of raiz.querySelectorAll("img[data-busto]")) {
+        sprites.spriteDeBusto(imagen.dataset.busto).then((direccion) => { if (direccion) imagen.src = direccion; });
+    }
+}
+
+function pintarEscenaVoces() {
+    const caja = $("#voces-caja");
+    caja.innerHTML = vistasVoces.pantallaEscena({ estado, nombre: estado.personaje.nombre, hoy: hoy(), resultado: resultadoVoces });
+    pintarRetratosVoces(caja);
+    caja.scrollTop = 0;
+}
+
+// Empieza una conversación (gasta una ficha) o sigue la que dejaste a medias.
+function abrirVoces(escenaId) {
+    resultadoVoces = null;
+    if (!ejecutar(() => acciones.empezarEscena(estado, escenaId))) return;
+    $("#voces").hidden = false;
+    pintarEscenaVoces();
+}
+
+// Cerrar la capa no pierde nada: una conversación a medias queda guardada en la partida.
+function cerrarVoces() {
+    $("#voces").hidden = true;
+    resultadoVoces = null;
+    dibujarPantalla();
+}
+
 // En el Arcade, la portada de la Mazmorra es su sala más honda, en pixel art (llega un instante después).
 function pintarPortadas() {
     for (const imagen of document.querySelectorAll("img[data-sala]")) {
@@ -882,6 +921,7 @@ function dibujarPantalla(efectos = {}) {
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
     if (pantallaActual === "mapa") pintarMapa();              // la imagen del mapa (pixel art) llega un instante después
     if (pantallaActual === "arcade") pintarPortadas();        // la portada de la Mazmorra (pixel art)
+    if (pantallaActual === "voces") pintarRetratosVoces($("#pantalla-voces"));   // las caras de la aldea (pixel art)
     if (pantallaActual === "libro") conectarHojear();         // pasar las páginas deslizando
 
     if (pantallaActual === "progreso" && !efectos.mantenerScroll) {
@@ -2202,6 +2242,29 @@ const ACCIONES = {
         ponerMusica();
     },
     "torre-salir": () => cerrarTorre(),
+    // Las Voces del Valle (v44)
+    "voces-hablar": (boton) => abrirVoces(boton.dataset.escena),
+    "voces-elegir": (boton) => {
+        const resultado = ejecutar(() => acciones.elegirEnEscena(estado, Number(boton.dataset.indice)));
+        if (!resultado) return;
+        sonar("cursor");
+        if (resultado.terminada) {
+            resultadoVoces = resultado;
+            sonar(resultado.fin === "bien" ? "logro" : resultado.fin === "mal" ? "fallo" : "completar");
+        }
+        pintarEscenaVoces();
+    },
+    "voces-salir": () => cerrarVoces(),      // la conversación queda guardada: se sigue después
+    "voces-cerrar": () => cerrarVoces(),
+    "voces-abandonar": () => {
+        if (!confirm("¿Dar por perdida esta conversación? La ficha ya se gastó y hoy no volverás a hablar con esta persona.")) return;
+        if (ejecutar(() => acciones.abandonarEscena(estado))) cerrarVoces();
+    },
+    "voces-tarea": (boton) => {
+        if (!ejecutar(() => acciones.crearTareaDeEscena(estado, boton.dataset.escena, boton.dataset.tarea))) return;
+        avisar("📌 Tarea creada para hoy");
+        pintarEscenaVoces();
+    },
     // «Continuar» en una página de la historia: la siguiente, o volver a la batalla.
     "torre-relato": () => {
         if (!relatoEnCurso) return;
