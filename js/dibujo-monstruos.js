@@ -1,4 +1,4 @@
-// dibujo-monstruos.js — Los dibujos de las criaturas de la Torre y de sus salas.
+// dibujo-monstruos.js — Los dibujos de las criaturas de la Torre y de la Mazmorra (v29), y de sus salas.
 //
 // Cada criatura es un SVG de 100 × 100 (el suelo está en y = 94 y miran hacia la derecha,
 // donde está tu héroe). La Torre no los muestra así: pixel.js los convierte en "pixel art"
@@ -577,6 +577,519 @@ function dragon(c) {
 }
 
 
+// ===== Mazmorra del Abismo (v29) =====
+
+// Una línea gruesa que se afina hacia la punta (tentáculos, colas, raíces): el mismo camino
+// pintado tres veces, cada vez más delgado y más corto (stroke-dasharray corta el final).
+function afinado(d, color, grosor, largo = 120) {
+    const tramo = (g, parte) => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${g}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${(largo * parte).toFixed(1)} 400"/>`;
+    const bordeTramo = (g, parte) => `<path d="${d}" fill="none" stroke="${LINEA}" stroke-width="${g + 2}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${(largo * parte).toFixed(1)} 400"/>`;
+    return `${bordeTramo(grosor * 0.35, 1)}${bordeTramo(grosor * 0.7, 0.7)}${bordeTramo(grosor, 0.42)}
+            ${tramo(grosor * 0.35, 1)}${tramo(grosor * 0.7, 0.7)}${tramo(grosor, 0.42)}`;
+}
+
+// Un anillo de dientes que apuntan hacia el centro (bocas redondas: sanguijuela, gusano).
+function aroDeDientes(cx, cy, rx, ry, cuantos, largo) {
+    let d = "";
+    for (let i = 0; i < cuantos; i++) {
+        const a = (i / cuantos) * Math.PI * 2;
+        const b = a + Math.PI / cuantos;
+        const c = a + (Math.PI * 2) / cuantos;
+        const punto = (angulo, r) => `${(cx + Math.cos(angulo) * rx * r).toFixed(1)} ${(cy + Math.sin(angulo) * ry * r).toFixed(1)}`;
+        d += `M${punto(a, 1)} L${punto(b, 1 - largo)} L${punto(c, 1)} Z `;
+    }
+    return `<path d="${d}" fill="${MARFIL}" stroke="${LINEA}" stroke-width=".5" stroke-linejoin="round"/>`;
+}
+
+// Una pinza que mira a la derecha (cangrejo y escorpión). (x, y) = el centro de la palma.
+// Arriba el dedo fijo, abajo el que se mueve, y entre los dos una «V» abierta.
+function pinza(L, nombre, x, y, color, escala = 1) {
+    const p = (dx, dy) => `${(x + dx * escala).toFixed(1)} ${(y + dy * escala).toFixed(1)}`;
+    const caparazon = L.bola(nombre, color, 0.5, 0.6);
+    return `<path d="M${p(-10, 0)} C${p(-10, -9)} ${p(-2, -11)} ${p(4, -9)} C${p(10, -8)} ${p(15, -6)} ${p(17, -2)}
+                     C${p(13, -3)} ${p(8, -2)} ${p(3, -0.5)} L${p(3, 0.5)} C${p(8, 1.6)} ${p(12, 3)} ${p(15, 5)}
+                     C${p(12, 9)} ${p(6, 10)} ${p(2, 9)} C${p(-4, 10)} ${p(-10, 7)} ${p(-10, 0)} Z" fill="${caparazon}" ${borde()}/>`;
+}
+
+// --- Cisternas anegadas ---
+
+// Sanguijuela gigante: sale del agua en forma de S, con una boca redonda llena de dientes.
+function sanguijuela(c) {
+    const L = lienzo();
+    const cuerpo = "M16 90 C6 72 20 58 38 64 C56 70 70 62 64 46 C59 33 65 22 76 20";
+    const trazo = (color, grosor, extra = 'stroke-linecap="round"') => `<path d="${cuerpo}" fill="none" stroke="${color}" stroke-width="${grosor}" ${extra}/>`;
+    return L.armar(`
+        <!-- el charco del que sale -->
+        <ellipse cx="22" cy="91" rx="21" ry="5" fill="${c.agua}" ${borde(1)}/>
+        <path d="M6 91 q8 -3 16 0 q8 3 16 0" fill="none" stroke="${aclarar(c.agua, 0.4)}" stroke-width="1" stroke-linecap="round"/>
+        <!-- el cuerpo: borde, color, anillos, raya y luz -->
+        ${trazo(LINEA, 22)}${trazo(c.piel, 19)}
+        ${trazo(oscurecer(c.piel, 0.45), 19, 'stroke-dasharray="1.3 5.2"')}
+        ${trazo(c.raya, 3, 'stroke-linecap="round" stroke-dasharray="7 3" transform="translate(3 1.4)"')}
+        ${trazo(aclarar(c.piel, 0.45), 2.6, 'stroke-linecap="round" transform="translate(-4.4 -2.4)"')}
+        <!-- la boca: una ventosa con un anillo de dientes -->
+        <ellipse cx="80" cy="21" rx="12" ry="13" fill="${L.bola("cabeza", c.piel, 0.45, 0.6)}" ${borde()}/>
+        <ellipse cx="83" cy="21" rx="7.6" ry="9" fill="${c.boca}" ${borde(1)}/>
+        ${aroDeDientes(83, 21, 7.6, 9, 11, 0.42)}
+        <circle cx="83.6" cy="21" r="2.2" fill="#07030a"/>
+        <!-- gotas -->
+        <path d="M88 36 q1.4 3.4 0 4.6 q-1.4 -1.2 0 -4.6 Z M71 33 q1.2 3 0 4 q-1.2 -1 0 -4 Z" fill="${aclarar(c.agua, 0.5)}"/>`);
+}
+
+// Ahogado: un cuerpo hinchado y pálido, con algas en los hombros, que estira un brazo hacia ti.
+function ahogado(c) {
+    const L = lienzo();
+    const piel = L.mate("piel", c.piel, 0.3, 0.55);
+    const ropa = L.mate("ropa", c.ropa, 0.25, 0.6);
+    const alga = (d) => tubo(d, c.alga, 2);
+    return L.armar(`
+        <!-- piernas y pies -->
+        <path d="${capsula(44, 64, 6, 41, 89, 5)}" fill="${piel}" ${borde()}/>
+        <path d="${capsula(56, 64, 6, 59, 89, 5)}" fill="${piel}" ${borde()}/>
+        <ellipse cx="39" cy="91.6" rx="7" ry="3" fill="${piel}" ${borde(1)}/><ellipse cx="62" cy="91.6" rx="7" ry="3" fill="${piel}" ${borde(1)}/>
+        <!-- pantalón roto -->
+        <path d="M36 57 L64 57 L66 75 L60 71 L56 78 L50 72 L45 77 L40 71 L34 75 Z" fill="${ropa}" ${borde()}/>
+        <!-- brazo de atrás, colgando -->
+        <path d="${capsula(37, 35, 5, 30, 53, 4.4)}" fill="${piel}" ${borde()}/>
+        <path d="${capsula(30, 53, 4.4, 31, 69, 4)}" fill="${piel}" ${borde()}/>
+        <path d="M27 70 l-1 5 M30 71 l0 5.4 M33 70 l1 5" stroke="${LINEA}" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M27 70 l-1 5 M30 71 l0 5.4 M33 70 l1 5" stroke="${c.piel}" stroke-width="1.2" stroke-linecap="round"/>
+        <!-- torso: la camisa rota deja ver el pecho -->
+        <path d="M35 31 C33 43 34 51 36 60 L64 60 C67 50 67 42 65 31 C57 26 43 26 35 31 Z" fill="${ropa}" ${borde()}/>
+        <path d="M44 30 L56 30 L54 44 L58 52 L49 48 L42 54 L45 42 Z" fill="${piel}" ${borde(0.9)}/>
+        <path d="M46 37 q4 2 8 0 M46 42 q4 2 8 0" fill="none" stroke="${oscurecer(c.piel, 0.45)}" stroke-width=".9"/>
+        <!-- algas que cuelgan -->
+        ${alga("M38 30 C34 40 40 46 36 56")}${alga("M62 30 C66 38 61 44 64 52")}${alga("M42 29 C42 36 46 40 44 46")}
+        <!-- brazo de adelante, estirado hacia ti -->
+        <path d="${capsula(62, 35, 5.4, 75, 44, 4.6)}" fill="${piel}" ${borde()}/>
+        <path d="${capsula(75, 44, 4.6, 88, 41, 4)}" fill="${piel}" ${borde()}/>
+        <path d="M90 37 l6 -2 M91 40 l7 0 M91 43 l6 2 M88 45 l3 4" stroke="${LINEA}" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M90 37 l6 -2 M91 40 l7 0 M91 43 l6 2 M88 45 l3 4" stroke="${c.piel}" stroke-width="1.3" stroke-linecap="round"/>
+        <!-- la cabeza ladeada: pelo mojado, ojos sin vida y la boca abierta -->
+        <path d="M40 22 C38 12 44 6 51 6 C58 6 63 12 61 22 C60 30 56 34 50 34 C44 34 41 30 40 22 Z" fill="${L.bola("cara", c.piel, 0.35, 0.6)}" ${borde()} transform="rotate(10 50 20)"/>
+        <path d="M39 18 C40 8 48 4 54 5 C60 6 63 12 62 18 L60 13 L58 30 L56 14 L52 12 L46 14 L43 30 L42 15 Z" fill="${c.pelo}" ${borde(1)} transform="rotate(10 50 20)"/>
+        ${ojoDeLuz(47, 20, 2.4, c.ojo, 14)}${ojoDeLuz(55.6, 21.6, 2.4, c.ojo, -6)}
+        <ellipse cx="51" cy="28" rx="3" ry="3.8" fill="#0a1214" ${borde(0.7)} transform="rotate(10 51 28)"/>
+        <!-- gotas -->
+        <path d="M33 80 q1.4 3.4 0 4.6 q-1.4 -1.2 0 -4.6 Z M68 66 q1.2 3 0 4 q-1.2 -1 0 -4 Z M86 52 q1.2 3 0 4 q-1.2 -1 0 -4 Z" fill="${c.gota}"/>`);
+}
+
+// Aguaviva: una campana pálida que flota, con un corazón que brilla y tentáculos largos.
+function aguaviva(c) {
+    const L = lienzo();
+    const campana = L.bola("campana", c.campana, 0.5, 0.55);
+    const brazo = L.mate("brazo", c.brazo, 0.3, 0.5);
+    const tentaculo = (d) => `<path d="${d}" fill="none" stroke="${LINEA}" stroke-width="3" stroke-linecap="round"/>
+                              <path d="${d}" fill="none" stroke="${c.tentaculo}" stroke-width="1.4" stroke-linecap="round"/>`;
+    return L.armar(`
+        <!-- tentáculos largos -->
+        ${tentaculo("M24 46 C20 58 28 66 22 78 C18 86 24 90 22 96")}
+        ${tentaculo("M34 48 C32 60 38 68 34 80 C32 88 36 92 34 97")}
+        ${tentaculo("M66 48 C68 60 62 68 66 80 C68 88 64 92 66 97")}
+        ${tentaculo("M76 46 C80 58 72 66 78 78 C82 86 76 90 78 96")}
+        <!-- los brazos del centro, con volados -->
+        <path d="M40 46 C38 58 46 62 40 72 C36 80 44 84 42 92 L48 90 C50 82 44 78 48 70 C52 62 46 56 48 46 Z" fill="${brazo}" ${borde(1)}/>
+        <path d="M60 46 C62 58 54 62 60 72 C64 80 56 84 58 92 L52 90 C50 82 56 78 52 70 C48 62 54 56 52 46 Z" fill="${brazo}" ${borde(1)}/>
+        <!-- la campana, con su borde ondulado -->
+        <path d="M14 46 C14 20 32 8 50 8 C68 8 86 20 86 46 C80 51 74 44 68 50 C62 44 56 51 50 46 C44 51 38 44 32 50 C26 44 20 51 14 46 Z" fill="${campana}" ${borde()}/>
+        <path d="M24 40 C24 28 30 18 40 13 M76 40 C76 28 70 18 60 13 M50 10 L50 40" fill="none" stroke="${oscurecer(c.campana, 0.3)}" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M22 30 C24 22 30 15 38 12" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+        <!-- adentro: lo que se tragó (una calavera a medio deshacer) y el corazón que brilla -->
+        <path d="M40 30 C40 23 44 20 49 20 C54 20 58 23 58 30 C58 33 56.6 34.4 55 35 L55 38 L43 38 L43 35 C41.4 34.4 40 33 40 30 Z" fill="${oscurecer(c.campana, 0.25)}" stroke="${oscurecer(c.campana, 0.55)}" stroke-width=".8"/>
+        <ellipse cx="45.4" cy="29.6" rx="2.6" ry="3" fill="${oscurecer(c.campana, 0.7)}"/><ellipse cx="52.6" cy="29.6" rx="2.6" ry="3" fill="${oscurecer(c.campana, 0.7)}"/>
+        <path d="M45 36 l0 2 M48 36 l0 2 M51 36 l0 2" stroke="${oscurecer(c.campana, 0.55)}" stroke-width=".8"/>
+        <path d="M50 40 C54 40 57 43 54 46 L50 49 L46 46 C43 43 46 40 50 40 Z" fill="${c.nucleo}" ${borde(0.9)}/>
+        <path d="M48 42 C49 41.4 50.6 41.4 51.4 42.2" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round"/>`);
+}
+
+// Cangrejo acorazado: un caparazón de escudos remachados, ojos en antenas y dos pinzas.
+function cangrejo(c) {
+    const L = lienzo();
+    const caparazon = L.bola("caparazon", c.caparazon, 0.45, 0.6);
+    const placa = L.metal("placa", c.placa);
+    const pata = (d) => tubo(d, c.pata, 3.2);
+    const remache = (x, y) => `<circle cx="${x}" cy="${y}" r="1.2" fill="${aclarar(c.placa, 0.6)}" stroke="${LINEA}" stroke-width=".5"/>`;
+    return L.armar(`
+        <!-- las patas -->
+        ${espejo(pata("M36 70 L22 74 L16 92") + pata("M40 73 L30 80 L28 94") + pata("M33 66 L16 64 L8 84"))}
+        <!-- los brazos y las pinzas, levantadas -->
+        ${tubo("M28 62 L18 50 L18 40", c.pata, 4)}
+        ${tubo("M72 62 L82 52 L82 42", c.pata, 4.6)}
+        <g transform="rotate(-70 18 34)">${pinza(L, "pinza1", 18, 34, c.caparazon, 0.85)}</g>
+        <g transform="rotate(-62 84 34)">${pinza(L, "pinza2", 84, 34, c.caparazon, 1.05)}</g>
+        <!-- los ojos en sus antenas -->
+        ${tubo("M44 50 L41 38", c.pata, 2)}${tubo("M56 50 L59 38", c.pata, 2)}
+        ${ojoDeFiera(41, 36, 3, c.ojo)}${ojoDeFiera(59, 36, 3, c.ojo)}
+        <!-- el caparazón: escudos viejos remachados -->
+        <path d="M20 68 C20 50 34 44 50 44 C66 44 80 50 80 68 C72 78 28 78 20 68 Z" fill="${caparazon}" ${borde()}/>
+        <path d="M32 50 L44 47 L46 62 L33 64 Z" fill="${placa}" ${borde(0.9)}/>
+        <path d="M56 47 L68 50 L67 64 L54 62 Z" fill="${placa}" ${borde(0.9)}/>
+        <path d="M45 60 L55 60 L56 72 L50 75 L44 72 Z" fill="${placa}" ${borde(0.9)}/>
+        ${remache(35, 53)}${remache(42, 51)}${remache(58, 51)}${remache(65, 53)}${remache(50, 64)}
+        <path d="M24 66 C34 72 66 72 76 66" fill="none" stroke="${oscurecer(c.caparazon, 0.5)}" stroke-width="1.2"/>
+        <!-- la boca -->
+        <path d="M45 72 l2 4 l3 -3 l3 3 l2 -4" fill="none" stroke="${LINEA}" stroke-width="1.3" stroke-linejoin="round"/>`);
+}
+
+// Bestia de la cisterna: una cabeza enorme que sale del agua, con tentáculos alrededor.
+function kraken(c) {
+    const L = lienzo();
+    const piel = L.bola("piel", c.piel, 0.45, 0.62);
+    const ventosas = (puntos) => puntos.map(([x, y, r = 1.3]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c.ventosa}" stroke="${LINEA}" stroke-width=".4"/>`).join("");
+    return L.armar(`
+        <!-- tentáculos de atrás -->
+        ${afinado("M24 86 C10 74 6 54 14 40 C18 32 26 34 24 42", c.piel, 9, 95)}
+        ${afinado("M76 86 C92 72 96 50 86 36 C80 30 72 34 76 42", c.piel, 9, 95)}
+        ${ventosas([[12, 66], [11, 58], [13, 50], [89, 64], [90, 56], [88, 48]])}
+        <!-- la cabeza: un manto con dos ojos enormes -->
+        <path d="M28 86 C24 60 28 30 38 18 C44 10 56 10 62 18 C72 30 76 60 72 86 Z" fill="${piel}" ${borde()}/>
+        <path d="M36 28 C38 22 42 18 47 16" fill="none" stroke="${aclarar(c.piel, 0.5)}" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M34 74 C40 70 60 70 66 74 M36 64 C42 61 58 61 64 64" fill="none" stroke="${oscurecer(c.piel, 0.45)}" stroke-width="1.2"/>
+        <ellipse cx="41" cy="50" rx="7" ry="6" fill="${c.ventosa}" ${borde(1)}/>${ojoDeFiera(41, 50, 4.6, c.ojo)}
+        <ellipse cx="60" cy="50" rx="7" ry="6" fill="${c.ventosa}" ${borde(1)}/>${ojoDeFiera(60, 50, 4.6, c.ojo)}
+        <path d="M32 42 L47 46 M68 42 L54 46" stroke="${LINEA}" stroke-width="2" stroke-linecap="round"/>
+        <!-- el pico, entre los tentáculos de la boca -->
+        <path d="M42 62 C46 58 54 58 58 62 L54 70 L50 76 L46 70 Z" fill="#1a0814" ${borde()}/>
+        <path d="M43 62 l2.6 4 l2 -3.4 l2 4 l2 -4 l2 3.4 l2.4 -4" fill="none" stroke="${MARFIL}" stroke-width="1.3" stroke-linejoin="round"/>
+        <path d="M46 70 L50 76 L54 70 L50 72 Z" fill="${MARFIL}" ${borde(0.6)}/>
+        ${tubo("M40 64 C36 70 38 76 34 80", c.piel, 2.6)}${tubo("M60 64 C64 70 62 76 66 80", c.piel, 2.6)}
+        <!-- tentáculos de adelante: uno se estira hacia ti -->
+        ${afinado("M62 82 C76 80 86 72 97 60", c.piel, 8, 50)}
+        ${afinado("M40 84 C30 90 20 88 8 82", c.piel, 7, 40)}
+        ${ventosas([[72, 80], [80, 75], [87, 70], [30, 89], [22, 88]])}
+        <!-- el agua -->
+        <path d="M2 88 C14 84 26 90 38 87 C50 84 62 90 74 87 C84 85 92 89 98 87 L98 96 L2 96 Z" fill="${c.agua}" ${borde(1)}/>
+        <path d="M8 90 q8 -2.4 16 0 M44 90 q8 -2.4 16 0 M76 91 q7 -2 14 0" fill="none" stroke="${aclarar(c.agua, 0.45)}" stroke-width="1.1" stroke-linecap="round"/>`);
+}
+
+// --- Bosque de raíces ---
+
+// Hongo carroñero: un sombrero enorme con manchas que brillan, y una cara en el tallo.
+function hongo(c) {
+    const L = lienzo();
+    const sombrero = L.bola("sombrero", c.sombrero, 0.45, 0.6);
+    const tallo = L.mate("tallo", c.tallo, 0.3, 0.55);
+    const mancha = (x, y, rx, ry) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${c.brillo}" stroke="${LINEA}" stroke-width=".6"/>`;
+    return L.armar(`
+        <!-- raíces -->
+        ${tubo("M36 90 L24 94", c.tallo, 2.6)}${tubo("M64 90 L78 94", c.tallo, 2.6)}${tubo("M44 92 L40 96", c.tallo, 2)}
+        <!-- brazos largos, como raíces, con garras -->
+        ${afinado("M38 60 C30 66 24 72 18 84", c.tallo, 5, 34)}
+        ${afinado("M62 60 C72 62 80 60 90 66", c.tallo, 5, 34)}
+        <!-- el tallo, con la cara en la sombra -->
+        <path d="M36 46 C34 62 32 78 30 92 L70 92 C68 78 66 62 64 46 Z" fill="${tallo}" ${borde()}/>
+        <path d="M37 50 C42 54 58 54 63 50 L63 60 C58 62 42 62 37 60 Z" fill="${oscurecer(c.tallo, 0.6)}"/>
+        <path d="M40 57 L48 60 L47 63 L40 61 Z M60 57 L52 60 L53 63 L60 61 Z" fill="#0a0604"/>
+        <path d="M42 58.6 L46.6 60.4 M58 58.6 L53.4 60.4" stroke="${c.ojo}" stroke-width="1.4" stroke-linecap="round"/>
+        <!-- la boca: un tajo con colmillos -->
+        <path d="M39 68 C44 66 56 66 61 68 C60 76 56 80 50 80 C44 80 40 76 39 68 Z" fill="#1a0a10" ${borde()}/>
+        ${dientes(40, 60, 68, 7, 4.4)}
+        <path d="M43 79 l2 -4 l2 4 M53 79 l2 -4 l2 4" fill="${MARFIL}" stroke="${LINEA}" stroke-width=".5" stroke-linejoin="round"/>
+        <path d="M40 84 q2 4 0 8 M60 84 q-2 3 0 6" fill="none" stroke="${oscurecer(c.tallo, 0.35)}" stroke-width="1"/>
+        <!-- el sombrero (roto en el borde) y sus láminas -->
+        <path d="M14 46 C24 52 76 52 86 46 L82 50 C70 56 30 56 18 50 Z" fill="${oscurecer(c.sombrero, 0.5)}" ${borde(1)}/>
+        <path d="M8 44 C8 22 28 6 50 6 C72 6 92 22 92 44 L88 50 L84 45 L78 51 L72 47 L64 52 L56 48 L50 52 L44 48 L36 52 L28 47 L22 51 L16 45 L12 49 Z" fill="${sombrero}" ${borde()}/>
+        <path d="M18 30 C22 20 32 13 42 10" fill="none" stroke="${aclarar(c.sombrero, 0.5)}" stroke-width="2.2" stroke-linecap="round"/>
+        ${mancha(30, 24, 5, 3.6)}${mancha(52, 16, 4, 3)}${mancha(70, 26, 6, 4)}${mancha(42, 36, 3.6, 2.6)}${mancha(80, 38, 3, 2.2)}${mancha(20, 38, 2.6, 2)}
+        <!-- esporas -->
+        <circle cx="12" cy="58" r="1.4" fill="${c.brillo}"/><circle cx="88" cy="56" r="1.6" fill="${c.brillo}"/>
+        <circle cx="18" cy="70" r="1" fill="${c.brillo}"/><circle cx="90" cy="74" r="1.2" fill="${c.brillo}"/>`);
+}
+
+// Escorpión de raíz: de lado, con la cola en alto y las pinzas hacia ti.
+function escorpion(c) {
+    const L = lienzo();
+    const coraza = L.bola("coraza", c.coraza, 0.5, 0.62);
+    const pata = (d) => tubo(d, oscurecer(c.coraza, 0.25), 2.6);
+    // La cola: bolitas cada vez más chicas a lo largo de una curva.
+    const cola = [[26, 72, 7], [17, 63, 6.6], [14, 51, 6.2], [18, 39, 5.8], [27, 30, 5.4], [39, 25, 5]]
+        .map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${coraza}" ${borde(1)}/>`).join("");
+    return L.armar(`
+        <!-- patas de atrás -->
+        ${pata("M34 78 L26 84 L22 94")}${pata("M44 79 L40 86 L38 94")}${pata("M54 79 L54 86 L56 94")}
+        <!-- la cola y el aguijón -->
+        ${cola}
+        <path d="M43 22 C52 18 60 22 60 30 C60 34 57 37 55 38 L52 30 C50 27 47 27 44 28 Z" fill="${coraza}" ${borde()}/>
+        <path d="M55 37 C58 40 62 40 64 37 L58 33 Z" fill="${c.aguijon}" ${borde(0.9)}/>
+        <circle cx="63" cy="38.6" r="1.3" fill="${c.aguijon}"/>
+        <!-- el cuerpo, en placas -->
+        <ellipse cx="38" cy="75" rx="13" ry="8" fill="${coraza}" ${borde()}/>
+        <ellipse cx="52" cy="74" rx="11" ry="8.6" fill="${coraza}" ${borde()}/>
+        <path d="M32 70 l0 10 M44 69 l0 12 M56 68 l0 12" stroke="${oscurecer(c.coraza, 0.5)}" stroke-width="1"/>
+        <!-- patas de adelante -->
+        ${pata("M60 80 L64 86 L70 94")}${pata("M64 78 L72 84 L80 92")}
+        <!-- la cabeza y las pinzas -->
+        <ellipse cx="67" cy="71" rx="9" ry="7.6" fill="${coraza}" ${borde()}/>
+        ${ojoDeLuz(69, 67, 1.6, c.ojo)}${ojoDeLuz(73.6, 68, 1.4, c.ojo)}
+        ${tubo("M70 74 L80 78", c.coraza, 4)}${tubo("M68 66 L78 58", c.coraza, 4)}
+        ${pinza(L, "pinza1", 85, 80, c.coraza, 0.8)}
+        ${pinza(L, "pinza2", 83, 57, c.coraza, 0.9)}
+        <path d="M22 48 C18 44 20 38 24 36" fill="none" stroke="${aclarar(c.coraza, 0.55)}" stroke-width="1.6" stroke-linecap="round"/>`);
+}
+
+// Gusano devorador: sale de la tierra y abre una boca de pétalos llena de dientes.
+function gusano(c) {
+    const L = lienzo();
+    const cuerpo = "M40 92 C36 70 40 50 54 40 C62 34 70 32 76 33";
+    const trazo = (color, grosor, extra = 'stroke-linecap="round"') => `<path d="${cuerpo}" fill="none" stroke="${color}" stroke-width="${grosor}" ${extra}/>`;
+    const petalo = L.mate("petalo", c.piel, 0.35, 0.6);
+    return L.armar(`
+        <!-- el cuerpo: borde, color, anillos y luz -->
+        ${trazo(LINEA, 27)}${trazo(c.piel, 24)}
+        ${trazo(c.anillo, 24, 'stroke-dasharray="2 5"')}
+        ${trazo(aclarar(c.piel, 0.45), 3, 'stroke-linecap="round" transform="translate(-6 -3)"')}
+        <!-- los pétalos de la boca, abiertos -->
+        <path d="M74 25 C78 14 88 8 97 9 C94 16 92 22 86 28 Z" fill="${petalo}" ${borde()}/>
+        <path d="M74 42 C78 52 88 58 97 56 C94 50 92 44 86 38 Z" fill="${petalo}" ${borde()}/>
+        <path d="M70 26 C66 16 70 8 76 4 C78 12 80 18 78 26 Z" fill="${petalo}" ${borde()}/>
+        <!-- la garganta -->
+        <ellipse cx="82" cy="33" rx="9" ry="11" fill="${c.boca}" ${borde()}/>
+        ${aroDeDientes(82, 33, 9, 11, 12, 0.38)}
+        ${aroDeDientes(82, 33, 4.6, 5.6, 8, 0.45)}
+        <circle cx="82" cy="33" r="1.8" fill="#07030a"/>
+        <!-- la tierra removida -->
+        <path d="M14 94 C16 84 28 80 40 80 C52 80 62 84 66 94 Z" fill="${c.tierra}" ${borde()}/>
+        <path d="M20 88 l4 -2 l3 2 M48 84 l5 -1 l2 3 M56 90 l4 -1" fill="none" stroke="${aclarar(c.tierra, 0.35)}" stroke-width="1.2" stroke-linecap="round"/>
+        <circle cx="10" cy="92" r="2.6" fill="${c.tierra}" ${borde(0.8)}/><circle cx="72" cy="92" r="2.2" fill="${c.tierra}" ${borde(0.8)}/>`);
+}
+
+// Raíz estranguladora: un nudo de raíces con ojos, y látigos con espinas.
+function raiz(c) {
+    const L = lienzo();
+    const corteza = L.mate("corteza", c.corteza, 0.35, 0.6);
+    const espinas = (puntos) => puntos.map(([x, y, a]) => `<path d="M${x} ${y} l${(Math.cos(a) * 4).toFixed(1)} ${(Math.sin(a) * 4).toFixed(1)} l${(Math.cos(a + 2) * 2).toFixed(1)} ${(Math.sin(a + 2) * 2).toFixed(1)} Z" fill="${c.espina}" stroke="${LINEA}" stroke-width=".5"/>`).join("");
+    return L.armar(`
+        <!-- raíces que se clavan en el suelo -->
+        ${afinado("M40 76 C30 82 22 86 10 94", c.corteza, 7, 40)}
+        ${afinado("M48 80 C46 86 44 90 40 96", c.corteza, 6, 22)}
+        ${afinado("M58 78 C66 84 76 88 88 94", c.corteza, 7, 40)}
+        <!-- látigos: uno arriba y otro hacia ti -->
+        ${afinado("M40 40 C30 28 16 30 12 18 C10 12 16 8 20 12", c.corteza, 6, 70)}
+        ${afinado("M62 52 C74 50 82 40 92 42 C97 43 98 50 93 51", c.corteza, 6, 60)}
+        ${espinas([[22, 29, -2.2], [14, 22, -2.6], [78, 46, -1.4], [88, 41, -1.2], [30, 33, -2]])}
+        <!-- el cuerpo: raíces retorcidas como un tronco, más ancho abajo -->
+        <path d="M30 86 C34 74 36 62 34 50 C32 40 34 28 40 20 C44 14 52 12 58 16 C64 20 66 30 64 40 C62 52 64 66 70 86 C60 90 40 90 30 86 Z" fill="${corteza}" ${borde()}/>
+        <path d="M38 84 C42 70 38 56 42 44 C44 36 42 28 46 20 M52 86 C50 72 54 58 50 44 C48 34 54 26 54 16 M62 82 C58 70 60 56 58 46" fill="none" stroke="${oscurecer(c.corteza, 0.5)}" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M37 46 C36 36 38 28 42 22" fill="none" stroke="${aclarar(c.corteza, 0.4)}" stroke-width="1.6" stroke-linecap="round"/>
+        <!-- musgo -->
+        <path d="M30 76 C32 70 38 70 40 74 C38 78 32 80 30 76 Z M56 18 C60 16 64 20 62 24 C58 24 56 22 56 18 Z" fill="${c.musgo}" ${borde(0.6)}/>
+        <!-- la cara: dos ojos como brasas y una grieta llena de espinas por boca -->
+        <path d="M39 34 L48 37 L47 41 L39 38 Z M53 37 L62 34 L62 38 L54 41 Z" fill="#0a0604"/>
+        <path d="M41 36 L46 37.6 L45.6 39.4 L41 38 Z M55 37.6 L60 36 L60 38 L55.4 39.4 Z" fill="${c.ojo}"/>
+        <path d="M40 50 L44 46 L48 52 L52 46 L56 52 L60 48 L58 58 L50 62 L42 58 Z" fill="#0a0604" ${borde(0.7)}/>
+        <path d="M43 50 l2 4 l1 -4 M49 52 l1.4 4 l1.2 -4 M55 51 l1.4 4 l1 -4" fill="${c.espina}" stroke="${LINEA}" stroke-width=".4"/>`);
+}
+
+// Árbol hueco: un árbol muerto enorme con cara, brazos de ramas y un hueco por boca.
+function arbol(c) {
+    const L = lienzo();
+    const corteza = L.mate("corteza", c.corteza, 0.35, 0.6);
+    const rama = (d, g) => tubo(d, c.corteza, g);
+    return L.armar(`
+        <!-- raíces -->
+        ${afinado("M36 88 C26 90 16 92 4 95", c.corteza, 7, 36)}
+        ${afinado("M64 88 C74 90 86 92 97 95", c.corteza, 7, 36)}
+        <!-- ramas de arriba -->
+        ${rama("M44 26 L38 12 L32 4", 4)}${rama("M38 12 L44 4", 2.4)}
+        ${rama("M56 26 L62 10 L60 2", 4)}${rama("M62 10 L70 6", 2.4)}
+        <!-- brazo izquierdo -->
+        ${rama("M36 40 L22 30 L10 16", 6)}${rama("M22 30 L10 32", 3)}${rama("M10 16 L4 12 M10 16 L10 8 M10 16 L16 10", 2)}
+        <!-- el tronco -->
+        <path d="M30 92 C33 74 35 58 34 42 C33 30 39 22 50 22 C61 22 67 30 66 42 C65 58 67 74 70 92 Z" fill="${corteza}" ${borde()}/>
+        <path d="M38 30 C38 46 40 66 38 88 M62 34 C61 50 60 70 63 88 M50 76 L50 90" fill="none" stroke="${oscurecer(c.corteza, 0.5)}" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M37 34 C37 28 41 24 46 23" fill="none" stroke="${aclarar(c.corteza, 0.4)}" stroke-width="1.8" stroke-linecap="round"/>
+        <!-- el hueco: la boca, con astillas -->
+        <path d="M40 56 C42 50 58 50 60 56 C62 64 58 74 50 76 C42 74 38 64 40 56 Z" fill="${c.hueco}" ${borde()}/>
+        <path d="M42 56 l3 5 l3 -6 l3 6 l3 -6 l3 5 M43 72 l3 -4 l4 5 l4 -5 l3 4" fill="none" stroke="${aclarar(c.corteza, 0.25)}" stroke-width="1.6" stroke-linejoin="round"/>
+        <!-- los ojos: dos nudos huecos con una luz adentro -->
+        <ellipse cx="43" cy="40" rx="4.6" ry="4" fill="${c.hueco}" ${borde(0.9)}/><ellipse cx="57" cy="40" rx="4.6" ry="4" fill="${c.hueco}" ${borde(0.9)}/>
+        ${ojoDeLuz(43, 40.4, 1.8, c.ojo)}${ojoDeLuz(57, 40.4, 1.8, c.ojo)}
+        <path d="M37 34 L48 37 M63 34 L52 37" stroke="${LINEA}" stroke-width="1.6" stroke-linecap="round"/>
+        <!-- hongos que brillan en la corteza -->
+        <path d="M64 62 C66 58 72 58 72 62 Z M65 68 C66 65 70 65 70 68 Z M30 74 C31 70 36 70 37 74 Z" fill="${c.hongo}" ${borde(0.6)}/>
+        <!-- brazo derecho, con garras de ramas hacia ti -->
+        ${rama("M64 40 L80 32 L92 34", 6)}${rama("M92 34 L98 30 M92 34 L99 36 M92 34 L96 40", 2)}${rama("M80 32 L84 22", 2.6)}`);
+}
+
+// --- Santuario de las Sombras ---
+
+// Acólito: una túnica con capucha, ojos que brillan en la sombra y una daga ondulada.
+// Con velo y báculo es la Sacerdotisa velada.
+function acolito(c) {
+    const L = lienzo();
+    const tunica = L.mate("tunica", c.tunica, 0.3, 0.6);
+    const acero = L.metal("acero", c.acero || "#9aa0b0");
+    const objeto = c.baston
+        ? `${tubo("M84 20 L84 95", "#2a1a22", 2.6)}
+           <path d="M77 18 C77 10 84 6 90 9 C86 10 83 14 84 20 Z" fill="${L.metal("luna", c.adorno)}" ${borde(0.9)}/>
+           <circle cx="84" cy="22" r="4.6" fill="${L.bola("orbe", c.orbe, 0.6, 0.6)}" ${borde(0.9)}/><circle cx="82.6" cy="20.6" r="1.2" fill="#fff"/>`
+        : `<path d="M80 50 C84 44 80 38 84 32 C86 28 84 24 86 18 C90 24 90 30 88 36 C86 42 90 46 86 52 Z" fill="${acero}" ${borde(0.9)}/>
+           <path d="M76 52 L90 50" stroke="${LINEA}" stroke-width="4" stroke-linecap="round"/><path d="M76 52 L90 50" stroke="${c.adorno}" stroke-width="2.2" stroke-linecap="round"/>`;
+    const velo = c.velo
+        ? `<path d="M38 22 C38 14 44 9 50 9 C56 9 62 14 62 22 L64 44 C58 40 42 40 36 44 Z" fill="${c.velo}" ${borde(0.9)}/>
+           <path d="M42 26 L42 40 M50 24 L50 40 M58 26 L58 40" stroke="${oscurecer(c.velo, 0.3)}" stroke-width=".8"/>
+           <path d="M39 18 Q50 12 61 18" fill="none" stroke="${c.adorno}" stroke-width="2.2"/><circle cx="50" cy="14.6" r="1.8" fill="${c.orbe}" stroke="${LINEA}" stroke-width=".5"/>`
+        : "";
+    return L.armar(`
+        <!-- la túnica, hasta el suelo -->
+        <path d="M50 12 C40 12 34 20 33 30 C31 48 27 72 18 94 L82 94 C73 72 69 48 67 30 C66 20 60 12 50 12 Z" fill="${tunica}" ${borde()}/>
+        <path d="M42 46 C40 62 36 80 32 92 M58 46 C60 62 64 80 68 92" fill="none" stroke="${oscurecer(c.tunica, 0.5)}" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M47 44 L47 94 L53 94 L53 44 Z" fill="${c.adorno}" ${borde(0.8)}/>
+        <path d="M20 90 L80 90" stroke="${c.adorno}" stroke-width="2"/>
+        <!-- el cordón y el sello del pecho -->
+        <path d="M36 54 Q50 58 64 54" fill="none" stroke="${c.cordon}" stroke-width="2.2"/>
+        ${tubo("M44 56 L42 70", c.cordon, 1.4)}
+        <circle cx="50" cy="36" r="4.6" fill="none" stroke="${c.adorno}" stroke-width="1.6"/><path d="M50 32 L54 39 L46 39 Z" fill="none" stroke="${c.adorno}" stroke-width="1.1"/>
+        <!-- las mangas: una sostiene el objeto -->
+        <path d="M36 30 C30 40 26 52 26 62 L36 64 C36 54 38 44 40 36 Z" fill="${tunica}" ${borde()}/>
+        <circle cx="31" cy="65" r="3.4" fill="${c.mano}" ${borde(0.9)}/>
+        ${objeto}
+        <path d="M64 30 C72 36 78 44 82 50 L76 56 C72 50 66 44 62 40 Z" fill="${tunica}" ${borde()}/>
+        <circle cx="83" cy="51" r="3.4" fill="${c.mano}" ${borde(0.9)}/>
+        <!-- la capucha y la cara en sombras -->
+        <path d="M36 32 C33 16 42 6 50 6 C58 6 67 16 64 32 C60 28 40 28 36 32 Z" fill="${tunica}" ${borde()}/>
+        <ellipse cx="51" cy="23" rx="8.6" ry="9.4" fill="#07040b" ${borde(0.9)}/>
+        ${ojoDeLuz(47.6, 23, 1.7, c.ojo, 12)}${ojoDeLuz(54.4, 23, 1.7, c.ojo, -12)}
+        ${velo}`);
+}
+
+// Can del umbral: un perro flaco y erizado, de lado, con los colmillos afuera.
+// Gris, con grietas de brasa y fuego en el lomo, es el Sabueso de ceniza.
+function can(c) {
+    const L = lienzo();
+    const pelo = L.mate("pelo", c.pelo, 0.4, 0.6);
+    const atras = oscurecer(c.pelo, 0.35);
+    const pata = (x, color) => `<path d="${capsula(x, 66, 4.6, x - 2, 80, 3.6)}" fill="${color}" ${borde()}/>
+                                <path d="${capsula(x - 2, 80, 3.6, x + 1, 91, 3)}" fill="${color}" ${borde()}/>
+                                <ellipse cx="${x + 3}" cy="92.4" rx="4.6" ry="2.2" fill="${color}" ${borde(0.9)}/>`;
+    const grietas = c.grietas
+        ? `<path d="M34 56 l4 4 l-2 4 M48 52 l3 5 l-3 4 M60 54 l-2 5 l3 3 M80 44 l3 3" fill="none" stroke="${c.grietas}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`
+        : `<path d="M38 58 q4 3 8 0 M48 58 q4 3 8 0" fill="none" stroke="${oscurecer(c.pelo, 0.6)}" stroke-width="1"/>`;
+    const fuego = c.fuego
+        ? `<path d="M28 46 C30 38 34 40 34 34 C38 40 40 36 42 30 C44 36 48 36 48 30 C52 36 56 34 56 38 C60 36 62 40 62 44 Q46 40 28 46 Z" fill="#ff8a1f"/>
+           <path d="M34 45 C36 40 38 42 40 37 C42 41 45 40 46 36 C48 41 52 40 52 42 Q44 41 34 45 Z" fill="#ffe45a"/>`
+        : `<path d="M26 48 l3 -6 l3 4 l3 -7 l3 5 l4 -7 l3 6 l4 -6 l3 6 l4 -5 l2 6 l4 -4 l2 5" fill="${c.pelo}" ${borde(1)}/>`;
+    return L.armar(`
+        <!-- patas de atrás (las del otro lado, más oscuras) -->
+        ${pata(30, atras)}${pata(64, atras)}
+        <!-- la cola -->
+        ${afinado("M24 54 C14 50 10 40 4 34", c.pelo, 5, 32)}
+        ${fuego}
+        <!-- el cuerpo flaco -->
+        <path d="M22 56 C22 46 34 44 48 46 C58 47 66 44 74 46 C78 56 74 66 66 68 L34 68 C24 68 22 62 22 56 Z" fill="${pelo}" ${borde()}/>
+        <path d="M40 54 l0 9 M45 53 l0 10 M50 53 l0 10 M55 54 l0 9" stroke="${oscurecer(c.pelo, 0.5)}" stroke-width="1"/>
+        ${grietas}
+        <!-- patas de este lado -->
+        ${pata(34, pelo)}${pata(68, pelo)}
+        <!-- el cuello y la cabeza -->
+        <path d="M64 50 C68 40 74 34 80 34 L84 46 C80 52 72 56 66 58 Z" fill="${pelo}" ${borde()}/>
+        <path d="M74 40 L72 26 L80 34 Z M80 36 L82 24 L86 36 Z" fill="${c.pelo}" ${borde(1)}/>
+        <path d="M76 34 C82 32 90 36 98 42 L96 46 L82 48 C78 46 76 40 76 34 Z" fill="${pelo}" ${borde()}/>
+        <path d="M82 48 L96 47 L92 53 L82 52 Z" fill="${pelo}" ${borde()}/>
+        <path d="M84 46.6 l1 3 l1.4 -3 l1.2 3 l1.4 -3 l1.2 3 l1.4 -3 M85 52 l1.2 -3 l1.4 3 l1.2 -3 l1.4 3" fill="#fff" stroke="${LINEA}" stroke-width=".5" stroke-linejoin="round"/>
+        <circle cx="97" cy="42.6" r="1.4" fill="${LINEA}"/>
+        ${ojoDeLuz(84, 39, 1.9, c.ojo, -10)}`);
+}
+
+// --- Corazón del Abismo ---
+
+// Heraldo: una armadura alta con máscara, corona de púas y un manto roto. Cada uno lleva
+// lo que representa: el del Cuerpo, una maza; el de la Mente, un libro; el de la Voz, un
+// cuerno; el del Tesoro, una balanza.
+function heraldo(c) {
+    const L = lienzo();
+    const armadura = L.metal("armadura", c.armadura);
+    const oscuro = L.mate("oscuro", oscurecer(c.armadura, 0.45), 0.3, 0.5);
+    const manto = L.mate("manto", c.manto, 0.25, 0.6);
+    const brillo = L.bola("brillo", c.brillo, 0.6, 0.5);
+    const objetos = {
+        maza: `${tubo("M84 52 L88 70", "#3a3238", 2)}${tubo("M88 70 L86 78", "#6a6a72", 1.4)}
+               <circle cx="86" cy="84" r="7" fill="${L.metal("bola", "#6a6070")}" ${borde()}/>
+               <path d="M86 75 l-1.4 -3 l2.8 0 Z M86 93 l-1.4 3 l2.8 0 Z M77 84 l-3 -1.4 l0 2.8 Z M95 84 l3 -1.4 l0 2.8 Z M80 78 l-2.4 -2 l2 -1 Z M92 90 l2.4 2 l-2 1 Z" fill="${c.brillo}" ${borde(0.5)}/>`,
+        libro: `<path d="M74 40 L86 36 L98 40 L98 54 L86 50 L74 54 Z" fill="${L.mate("tapa", "#2a2a5a", 0.3, 0.5)}" ${borde()}/>
+                <path d="M76 40 L86 37.4 L86 49 L76 52 Z M86 37.4 L96 40 L96 52 L86 49 Z" fill="#e9e4f8"/>
+                <path d="M78 42 l6 -1.6 M78 45 l6 -1.6 M88 41 l6 1.6 M88 44 l6 1.6" stroke="${c.brillo}" stroke-width=".9"/>
+                <circle cx="86" cy="32" r="3.4" fill="${brillo}"/>`,
+        cuerno: `<path d="M78 44 C84 40 90 38 96 30 C98 36 98 40 97 44 C92 48 86 50 80 50 Z" fill="${L.metal("cuerno", c.brillo)}" ${borde()}/>
+                 <path d="M96 30 C99 34 99 40 97 44" fill="none" stroke="${LINEA}" stroke-width="1"/>
+                 <path d="M84 44 L85 49 M89 41 L90.6 46.6" stroke="${oscurecer(c.brillo, 0.5)}" stroke-width="1"/>`,
+        balanza: `${tubo("M86 34 L86 60", "#3a3238", 1.6)}${tubo("M76 38 L96 38", c.brillo, 1.6)}
+                  <path d="M76 38 L72 48 L80 48 Z M96 38 L92 50 L100 50 Z" fill="none" stroke="${c.brillo}" stroke-width=".9"/>
+                  <path d="M71 48 Q76 53 81 48 Z" fill="${L.metal("plato1", c.brillo)}" ${borde(0.8)}/>
+                  <path d="M91 50 Q96 55 101 50 Z" fill="${L.metal("plato2", c.brillo)}" ${borde(0.8)}/>
+                  <ellipse cx="96" cy="49" rx="3" ry="1.4" fill="#f2c230" stroke="${LINEA}" stroke-width=".5"/>`,
+    };
+    return L.armar(`
+        <!-- el manto, roto abajo -->
+        <path d="M30 28 C18 46 16 72 10 94 L20 88 L27 95 L36 88 L46 94 L54 88 L64 94 L72 88 L80 95 L90 90 C84 72 82 46 70 28 Z" fill="${manto}" ${borde()}/>
+        <!-- la falda larga y el peto -->
+        <path d="M36 58 L64 58 C68 72 70 84 72 94 L28 94 C30 84 32 72 36 58 Z" fill="${oscuro}" ${borde()}/>
+        <path d="M44 62 L42 92 M56 62 L58 92 M50 60 L50 94" stroke="${LINEA}" stroke-width=".9"/>
+        <path d="M34 32 L66 32 L62 60 Q50 66 38 60 Z" fill="${armadura}" ${borde()}/>
+        <path d="M50 34 L50 60 M39 44 Q50 50 61 44" fill="none" stroke="${LINEA}" stroke-width="1"/>
+        <circle cx="50" cy="45" r="4" fill="${brillo}" ${borde(0.9)}/>
+        <!-- brazo de atrás -->
+        <path d="${capsula(32, 38, 5, 26, 56, 4.4)}" fill="${armadura}" ${borde()}/>
+        <path d="${capsula(26, 56, 4.4, 30, 70, 4)}" fill="${armadura}" ${borde()}/>
+        <circle cx="30.6" cy="72" r="3.8" fill="${oscuro}" ${borde(0.9)}/>
+        <!-- brazo de adelante, con lo que lleva -->
+        <path d="${capsula(68, 38, 5, 76, 50, 4.4)}" fill="${armadura}" ${borde()}/>
+        <path d="${capsula(76, 50, 4.4, 84, 50, 4)}" fill="${armadura}" ${borde()}/>
+        ${objetos[c.objeto] || ""}
+        <circle cx="85" cy="50" r="3.8" fill="${oscuro}" ${borde(0.9)}/>
+        <!-- hombreras con púas -->
+        ${espejo(`<path d="M20 36 C20 27 27 23 34 24 C39 25 42 29 42 34 C36 37 28 40 20 36 Z" fill="${armadura}" ${borde()}/>
+                  <path d="M24 28 L18 18 L30 25 Z M32 25 L30 14 L38 24 Z" fill="${oscuro}" ${borde(0.9)}/>`)}
+        <!-- la corona de púas que brilla y la máscara lisa -->
+        <path d="M34 16 L38 4 L42 12 L46 0 L50 10 L54 0 L58 12 L62 4 L66 16 Q50 8 34 16 Z" fill="${c.brillo}" ${borde(0.9)}/>
+        <path d="M40 18 C40 10 44 7 50 7 C56 7 60 10 60 18 L60 26 C60 32 56 36 50 36 C44 36 40 32 40 26 Z" fill="${armadura}" ${borde()}/>
+        <path d="M42 21 L48 23 L48 25 L42 24 Z M58 21 L52 23 L52 25 L58 24 Z" fill="#05030a"/>
+        <path d="M43 22.4 L47 23.6 M57 22.4 L53 23.6" stroke="${c.ojo}" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M50 27 L50 33" stroke="${LINEA}" stroke-width="1"/>`);
+}
+
+// Rey Hueco: un rey enorme sin cara. Su corona flota, en el pecho tiene un hueco con estrellas
+// y a su alrededor arden las llamas de las Cuatro Sombras.
+function rey(c) {
+    const L = lienzo();
+    const manto = L.mate("manto", c.manto, 0.3, 0.62);
+    const oro = L.metal("oro", c.oro);
+    const forro = L.mate("forro", c.forro, 0.2, 0.4);
+    const llama = (x, y, color) => `<path d="M${x} ${y - 9} C${x + 5} ${y - 3} ${x + 5} ${y + 3} ${x} ${y + 5} C${x - 5} ${y + 3} ${x - 5} ${y - 3} ${x} ${y - 9} Z" fill="${color}" ${borde(0.8)}/>
+                                    <path d="M${x} ${y - 3} C${x + 2} ${y} ${x + 2} ${y + 2.4} ${x} ${y + 3.4} C${x - 2} ${y + 2.4} ${x - 2} ${y} ${x} ${y - 3} Z" fill="#fff"/>`;
+    const dedos = (x, y, lado) => `<path d="M${x} ${y} l${2 * lado} 5 M${x + 2 * lado} ${y - 1} l${3 * lado} 4.4 M${x + 3 * lado} ${y - 3} l${3.6 * lado} 3" stroke="${LINEA}" stroke-width="2.6" stroke-linecap="round"/>
+                                   <path d="M${x} ${y} l${2 * lado} 5 M${x + 2 * lado} ${y - 1} l${3 * lado} 4.4 M${x + 3 * lado} ${y - 3} l${3.6 * lado} 3" stroke="${HUESO}" stroke-width="1.3" stroke-linecap="round"/>`;
+    let estrellas = "";
+    for (const [x, y] of [[46, 54], [53, 50], [50, 60], [55, 57], [45, 62], [51, 66]]) estrellas += `<rect x="${x}" y="${y}" width="1.2" height="1.2" fill="#fff"/>`;
+    return L.armar(`
+        <!-- el manto real, enorme -->
+        <path d="M50 20 C34 22 26 34 24 48 C22 64 16 80 8 95 L92 95 C84 80 78 64 76 48 C74 34 66 22 50 20 Z" fill="${manto}" ${borde()}/>
+        <path d="M36 50 C34 66 28 82 22 93 M64 50 C66 66 72 82 78 93 M50 74 L50 95" fill="none" stroke="${oscurecer(c.manto, 0.5)}" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M14 90 L86 90" stroke="${c.oro}" stroke-width="2"/>
+        <!-- el hueco del pecho, con estrellas adentro -->
+        <path d="M42 50 C42 44 58 44 58 50 C60 58 58 66 50 70 C42 66 40 58 42 50 Z" fill="${c.vacio}" ${borde()}/>
+        ${estrellas}
+        <!-- el cuello de piel -->
+        <path d="M30 36 C36 30 64 30 70 36 C66 44 58 44 50 42 C42 44 34 44 30 36 Z" fill="${forro}" ${borde()}/>
+        <path d="M38 37 l0 2.4 M46 39 l0 2.4 M54 39 l0 2.4 M62 37 l0 2.4" stroke="${LINEA}" stroke-width="1.6" stroke-linecap="round"/>
+        <!-- los brazos: mangas anchas y manos de hueso; el cetro hacia ti -->
+        <path d="M28 40 C22 50 20 60 20 70 L30 72 C30 62 32 52 34 46 Z" fill="${manto}" ${borde()}/>
+        ${dedos(22, 72, -1)}
+        <path d="M72 40 C78 48 82 56 84 64 L74 68 C72 60 70 52 66 46 Z" fill="${manto}" ${borde()}/>
+        ${tubo("M84 14 L84 92", c.oro, 2.2)}
+        <circle cx="84" cy="11" r="5.4" fill="none" stroke="${LINEA}" stroke-width="3.6"/><circle cx="84" cy="11" r="5.4" fill="none" stroke="${c.oro}" stroke-width="2"/>
+        ${dedos(78, 66, 1)}
+        <!-- la cabeza: una capucha con nada adentro (solo dos luces) -->
+        <path d="M38 36 C34 22 40 14 50 14 C60 14 66 22 62 36 C58 32 42 32 38 36 Z" fill="${manto}" ${borde()}/>
+        <ellipse cx="50" cy="26" rx="8.4" ry="9" fill="${c.vacio}" ${borde(0.9)}/>
+        <circle cx="46.6" cy="25" r="1.1" fill="${c.ojo}"/><circle cx="53.4" cy="25" r="1.1" fill="${c.ojo}"/>
+        <!-- la corona, flotando sobre la nada -->
+        <path d="M38 8 L40 1 L44 5 L50 0.6 L56 5 L60 1 L62 8 Z" fill="${oro}" ${borde(0.9)}/>
+        <path d="M38 8 L62 8 L61 11 L39 11 Z" fill="${oro}" ${borde(0.8)}/>
+        <!-- las llamas de las Cuatro Sombras -->
+        ${llama(12, 40, c.cuerpo)}${llama(90, 38, c.mente)}${llama(10, 66, c.voz)}${llama(94, 66, c.tesoro)}`);
+}
+
 // ===== La tabla: qué figura y qué colores usa cada criatura =====
 
 const FIGURAS = {
@@ -603,6 +1116,31 @@ const FIGURAS = {
     sierpe: [sierpe, { escama: "#1d7a8c", vientre: "#e1d7a8", marca: "#ffd23c", ojo: "#ffd23c" }],
     centinela: [caballero, { armadura: "#cfd7e8", adorno: "#e6bc48", capa: "#27408b", hoja: "#f2f6ff", cuerno: "#e6bc48", ojo: "#ffe680" }],
     dragon: [dragon, { escama: "#2f5390", ala: "#5a7ad0", vientre: "#ddd5b6", cresta: "#8fb0ff", ojo: "#ffe45a", aliento: "#fff7a0" }],
+
+    // --- Mazmorra del Abismo (v29). El Reflejo sombrío no está: su dibujo es tu héroe (ver sprites.js). ---
+    sanguijuela: [sanguijuela, { piel: "#4a3a2c", raya: "#c8803a", boca: "#3a0b12", agua: "#1c3640" }],
+    ahogado: [ahogado, { piel: "#9ab8b0", ropa: "#3a4a5a", alga: "#3a7a4a", pelo: "#1a2420", ojo: "#d8fff4", gota: "#7ad0e8" }],
+    aguaviva: [aguaviva, { campana: "#c8b4ec", brazo: "#a88ad8", tentaculo: "#e8dcff", nucleo: "#ff7ac8" }],
+    cangrejo: [cangrejo, { caparazon: "#8a3a26", placa: "#8e96a8", pata: "#6a2a1c", ojo: "#ffd23c" }],
+    kraken: [kraken, { piel: "#5c2a64", ventosa: "#e8c4d8", ojo: "#ffd23c", agua: "#123040" }],
+
+    hongo: [hongo, { sombrero: "#6a2848", tallo: "#d8cdb0", brillo: "#a8ff6a", ojo: "#c8ff6a" }],
+    escorpion: [escorpion, { coraza: "#2e2a40", aguijon: "#c8ff3a", ojo: "#ff4a3a" }],
+    gusano: [gusano, { piel: "#b88c70", anillo: "#8a6050", boca: "#5a0f1c", tierra: "#3e2c1e" }],
+    raiz: [raiz, { corteza: "#5a4030", musgo: "#4a6a3a", ojo: "#ffb03a", espina: "#d8c8a0" }],
+    arbol: [arbol, { corteza: "#4a3a30", hueco: "#0a0610", ojo: "#8aff6a", hongo: "#c8ff6a" }],
+
+    acolito: [acolito, { tunica: "#2a2038", adorno: "#a8283a", cordon: "#8a6a3a", mano: "#c8b8a8", ojo: "#ff5a3a" }],
+    can: [can, { pelo: "#2c2438", ojo: "#ff4a3a" }],
+    sacerdotisa: [acolito, { tunica: "#3a1840", adorno: "#d8a838", cordon: "#d8a838", mano: "#d8c8c0", ojo: "#c8a8ff", velo: "#6a4a7a", baston: true, orbe: "#b05aff" }],
+    sabueso: [can, { pelo: "#5a5450", ojo: "#ffb030", grietas: "#ff7a1a", fuego: true }],
+
+    "heraldo-cuerpo": [heraldo, { armadura: "#6a4040", manto: "#5a1018", brillo: "#ff5a3a", ojo: "#ffb0a0", objeto: "maza" }],
+    "heraldo-mente": [heraldo, { armadura: "#46587a", manto: "#142a5a", brillo: "#6ab4ff", ojo: "#c8e8ff", objeto: "libro" }],
+    "heraldo-voz": [heraldo, { armadura: "#7a6a40", manto: "#4a3a10", brillo: "#ffd23c", ojo: "#fff3b0", objeto: "cuerno" }],
+    "heraldo-tesoro": [heraldo, { armadura: "#406a50", manto: "#0f3a24", brillo: "#5aff9a", ojo: "#c8ffd8", objeto: "balanza" }],
+    "rey-hueco": [rey, { manto: "#3a0f2e", forro: "#e8dcc0", oro: "#d8a838", vacio: "#05030a", ojo: "#dfe6ff",
+                         cuerpo: "#ff5a3a", mente: "#5aa8ff", voz: "#ffd23c", tesoro: "#5aff9a" }],
 };
 
 // El dibujo de una criatura (texto SVG). Si no existe, un cuadro vacío.
@@ -620,12 +1158,18 @@ export function dibujarMonstruo(id) {
 export const SALA = { ancho: 192, alto: 128 };
 const HORIZONTE = 56;     // dónde termina la pared y empieza el piso
 
+// suelo: "baldosas" (si no se dice), "agua" o "tierra".
 const COLORES_SALA = {
     //            pared: [arriba, abajo]      piso: [lejos, cerca]        líneas del piso    luz del lugar
     cripta:     { pared: ["#141a36", "#2a3660"], piso: ["#1a2240", "#46557f"], junta: "#10152c", luz: "#8fdcff" },
     biblioteca: { pared: ["#170f1c", "#33202c"], piso: ["#20151a", "#5c4232"], junta: "#140b10", luz: "#ffc670" },
     fragua:     { pared: ["#150a0c", "#381a15"], piso: ["#190e10", "#4c2b25"], junta: "#0c0506", luz: "#ff8a30" },
     cima:       { pared: ["#090d2a", "#3d3880"], piso: ["#20274a", "#5b648c"], junta: "#131931", luz: "#cdd8ff" },
+    // Mazmorra del Abismo (v29)
+    cisterna:   { pared: ["#071014", "#16303a"], piso: ["#06141a", "#1d4250"], junta: "#3a7a86", luz: "#5ae0c8", suelo: "agua" },
+    raices:     { pared: ["#0a0806", "#2a2016"], piso: ["#100c08", "#3a2c1e"], junta: "#0a0704", luz: "#a8ff6a", suelo: "tierra" },
+    santuario:  { pared: ["#0c0610", "#2a1230"], piso: ["#120816", "#3a1c36"], junta: "#08040a", luz: "#ff4a6a" },
+    abismo:     { pared: ["#020106", "#160822"], piso: ["#08040e", "#26122e"], junta: "#05020a", luz: "#c05aff", suelo: "tierra" },
 };
 
 // Números "al azar" que siempre salen iguales (para repartir libros y estrellas sin
@@ -640,14 +1184,35 @@ function sorteo(semilla) {
 
 // El piso: baldosas en perspectiva. Las líneas que se alejan apuntan todas al mismo punto
 // lejano (el "punto de fuga") y las que cruzan están cada vez más juntas hacia el fondo.
+// En el agua no hay baldosas: solo ondas, cada vez más juntas hacia el fondo. En la tierra,
+// piedras sueltas.
 function pisoDeSala(s, id) {
     const { ancho, alto } = SALA;
     let lineas = "";
-    for (let k = 1; k <= 5; k++) {
-        const y = (HORIZONTE + (alto - HORIZONTE) * (k / 6) ** 2).toFixed(1);
-        lineas += `M0 ${y} L${ancho} ${y} `;
+    if (s.suelo === "agua") {
+        const azar = sorteo(5);
+        for (let k = 1; k <= 7; k++) {
+            const y = HORIZONTE + (alto - HORIZONTE) * (k / 8) ** 1.6;
+            for (let x = azar() * 30; x < ancho; x += 26 + azar() * 22) {
+                const largo = 6 + k * 2 + azar() * 8;
+                lineas += `M${x.toFixed(1)} ${y.toFixed(1)} q${(largo / 2).toFixed(1)} -1.6 ${largo.toFixed(1)} 0 `;
+            }
+        }
+    } else if (s.suelo === "tierra") {
+        const azar = sorteo(9);
+        for (let k = 0; k < 22; k++) {
+            const y = HORIZONTE + 4 + azar() * (alto - HORIZONTE - 6);
+            const x = azar() * ancho;
+            const r = 1 + ((y - HORIZONTE) / (alto - HORIZONTE)) * 3.4;
+            lineas += `M${(x - r).toFixed(1)} ${y.toFixed(1)} q${r.toFixed(1)} ${(-r).toFixed(1)} ${(r * 2).toFixed(1)} 0 `;
+        }
+    } else {
+        for (let k = 1; k <= 5; k++) {
+            const y = (HORIZONTE + (alto - HORIZONTE) * (k / 6) ** 2).toFixed(1);
+            lineas += `M0 ${y} L${ancho} ${y} `;
+        }
+        for (let x = -264; x <= ancho + 264; x += 40) lineas += `M96 18 L${x} ${alto} `;
     }
-    for (let x = -264; x <= ancho + 264; x += 40) lineas += `M96 18 L${x} ${alto} `;
     return `<rect y="${HORIZONTE}" width="${ancho}" height="${alto - HORIZONTE}" fill="url(#${id}-piso)"/>
             <g clip-path="url(#${id}-recorte)">
                 <path d="${lineas}" fill="none" stroke="${s.junta}" stroke-width="1"/>
@@ -755,6 +1320,74 @@ const PAREDES = {
     },
 };
 
+// Las paredes de la Mazmorra del Abismo (v29).
+Object.assign(PAREDES, {
+    // Cisternas: bóvedas de piedra medio hundidas, cadenas y agua que gotea.
+    cisterna(s) {
+        const boveda = (x, ancho) => `<path d="M${x} ${HORIZONTE} L${x} 26 Q${x + ancho / 2} 2 ${x + ancho} 26 L${x + ancho} ${HORIZONTE} Z" fill="#03080a"/>
+                                       <path d="M${x - 3} 27 Q${x + ancho / 2} -2 ${x + ancho + 3} 27" fill="none" stroke="#2a4a52" stroke-width="3"/>`;
+        const gota = (x, y) => `<rect x="${x}" y="${y}" width="1" height="5" fill="${s.luz}" opacity=".5"/>`;
+        return `${ladrillos(oscurecer(s.pared[1], 0.55), 12, 22)}
+                ${boveda(18, 40)}${boveda(76, 40)}${boveda(134, 40)}
+                ${columna(4, 10, "#1e343c")}${columna(62, 10, "#1e343c")}${columna(120, 10, "#1e343c")}${columna(178, 10, "#1e343c")}
+                <ellipse cx="96" cy="${HORIZONTE - 4}" rx="70" ry="6" fill="${s.luz}" opacity=".08"/>
+                <path d="M38 0 L38 18 M154 0 L154 22" stroke="#4a5a5e" stroke-width="1.6" stroke-dasharray="2 1.4"/>
+                ${gota(40, 30)}${gota(98, 22)}${gota(150, 36)}${gota(70, 44)}
+                <path d="M0 ${HORIZONTE - 6} L${SALA.ancho} ${HORIZONTE - 6}" stroke="#2a5058" stroke-width="1.2"/>`;
+    },
+
+    // Bosque de raíces: tierra, raíces que cuelgan del techo y hongos que brillan.
+    raices(s) {
+        const azar = sorteo(13);
+        let raices = "";
+        for (let i = 0; i < 14; i++) {
+            const x = 6 + i * 13.4 + azar() * 6;
+            const largo = 12 + azar() * 30;
+            raices += `<path d="M${x.toFixed(1)} 0 C${(x - 4).toFixed(1)} ${(largo * 0.4).toFixed(1)} ${(x + 5).toFixed(1)} ${(largo * 0.7).toFixed(1)} ${(x + 1).toFixed(1)} ${largo.toFixed(1)}"
+                        fill="none" stroke="${i % 2 ? "#4a3624" : "#3a2a1a"}" stroke-width="${(1.2 + azar() * 2).toFixed(1)}" stroke-linecap="round"/>`;
+        }
+        let hongos = "";
+        for (const [x, y, r] of [[22, 50, 3], [30, 52, 2], [70, 48, 2.6], [128, 50, 3.4], [138, 53, 2], [176, 49, 2.6]]) {
+            hongos += `<circle cx="${x}" cy="${y}" r="${r * 3}" fill="${s.luz}" opacity=".12"/>
+                       <path d="M${x - r} ${y} Q${x} ${y - r * 1.4} ${x + r} ${y} Z" fill="${s.luz}"/><rect x="${x - 0.5}" y="${y}" width="1" height="${r}" fill="#d8cdb0"/>`;
+        }
+        return `<path d="M0 30 C20 26 40 34 60 28 C80 22 100 32 120 26 C140 20 160 30 192 24 L192 ${HORIZONTE} L0 ${HORIZONTE} Z" fill="#1a140c"/>
+                <path d="M0 42 C30 38 50 46 80 40 C110 34 140 44 192 38 L192 ${HORIZONTE} L0 ${HORIZONTE} Z" fill="#241a10"/>
+                ${raices}${hongos}`;
+    },
+
+    // Santuario: columnas negras, velas, estandartes y un altar con el símbolo de las Sombras.
+    santuario(s) {
+        const vela = (x, alto) => `<rect x="${x - 1.4}" y="${HORIZONTE - alto}" width="2.8" height="${alto}" fill="#1a1418"/>${llamita(x, HORIZONTE - alto - 3, s.luz, 0.6)}`;
+        const estandarte = (x) => `<path d="M${x} 6 L${x + 14} 6 L${x + 14} 36 L${x + 7} 30 L${x} 36 Z" fill="#4a0f20"/>
+                                   <circle cx="${x + 7}" cy="18" r="3.6" fill="none" stroke="#c8283a" stroke-width="1.2"/>`;
+        return `${ladrillos(oscurecer(s.pared[1], 0.6), 14, 28)}
+                ${columna(10, 12, "#1c1020")}${columna(170, 12, "#1c1020")}
+                ${estandarte(36)}${estandarte(142)}
+                <circle cx="96" cy="22" r="20" fill="${s.luz}" opacity=".1"/>
+                <circle cx="96" cy="22" r="12" fill="none" stroke="#c8283a" stroke-width="2"/>
+                <path d="M96 12 L104 28 L88 28 Z" fill="none" stroke="#c8283a" stroke-width="1.4"/>
+                <circle cx="96" cy="23" r="2.4" fill="${s.luz}"/>
+                <path d="M74 ${HORIZONTE} L76 44 L116 44 L118 ${HORIZONTE} Z" fill="#160a18"/><rect x="74" y="42" width="44" height="3" fill="#3a1c36"/>
+                ${vela(80, 8)}${vela(112, 8)}${vela(60, 12)}${vela(132, 12)}${vela(28, 6)}${vela(164, 6)}`;
+    },
+
+    // Abismo: sin paredes. Oscuridad, rocas que flotan y, al fondo, un remolino que mira.
+    abismo(s) {
+        const azar = sorteo(17);
+        let motas = "";
+        for (let i = 0; i < 30; i++) motas += `<rect x="${Math.floor(azar() * 190)}" y="${Math.floor(azar() * 52)}" width="1" height="1" fill="${s.luz}" opacity="${(0.3 + azar() * 0.6).toFixed(2)}"/>`;
+        const roca = (x, y, ancho) => `<path d="M${x} ${y} L${x + ancho} ${y - 2} L${x + ancho * 0.8} ${y + ancho * 0.5} L${x + ancho * 0.3} ${y + ancho * 0.6} Z" fill="#1c1024"/>
+                                       <path d="M${x} ${y} L${x + ancho} ${y - 2}" stroke="#4a2a5a" stroke-width="1"/>`;
+        return `${motas}
+                <ellipse cx="96" cy="26" rx="46" ry="20" fill="${s.luz}" opacity=".08"/>
+                <ellipse cx="96" cy="26" rx="30" ry="12" fill="none" stroke="#3a1a4a" stroke-width="3"/>
+                <ellipse cx="96" cy="26" rx="18" ry="7" fill="none" stroke="#5a2a6a" stroke-width="2"/>
+                <ellipse cx="96" cy="26" rx="7" ry="4" fill="#0a0410"/><ellipse cx="96" cy="26" rx="2" ry="3.4" fill="${s.luz}"/>
+                ${roca(18, 14, 14)}${roca(150, 10, 18)}${roca(40, 40, 10)}${roca(160, 42, 12)}`;
+    },
+});
+
 // Detalles que van sobre el piso de cada sala.
 const SUELOS = {
     cripta: () => "",
@@ -763,6 +1396,15 @@ const SUELOS = {
     fragua: (s) => `<path d="M10 120 l16 -9 l-5 -10 l18 -8 l-3 -9 M182 116 l-14 -8 l6 -10 l-16 -9 l2 -8 M70 126 l8 -8 l-3 -6" fill="none" stroke="${s.luz}" stroke-width="1.6" stroke-linejoin="round"/>
                     <path d="M10 120 l16 -9 l-5 -10 l18 -8 M182 116 l-14 -8 l6 -10 l-16 -9" fill="none" stroke="#ffe45a" stroke-width=".6" stroke-linejoin="round"/>`,
     cima: () => `<path d="M30 76 l20 0 M120 90 l30 0 M60 112 l34 0 M150 68 l16 0" stroke="#cdd8ff" stroke-width="1" opacity=".35"/>`,
+    cisterna: (s) => `<ellipse cx="62" cy="96" rx="12" ry="2.4" fill="none" stroke="${s.luz}" stroke-width=".8" opacity=".5"/>
+                      <ellipse cx="160" cy="106" rx="16" ry="3" fill="none" stroke="${s.luz}" stroke-width=".8" opacity=".4"/>
+                      <path d="M96 ${HORIZONTE} L84 128 L108 128 Z" fill="${s.luz}" opacity=".07"/>`,
+    raices: (s) => `<path d="M0 70 C30 66 40 74 70 72 M120 80 C140 76 160 82 192 78" fill="none" stroke="#4a3624" stroke-width="2.4" stroke-linecap="round"/>
+                    <circle cx="24" cy="104" r="2" fill="${s.luz}"/><circle cx="168" cy="96" r="2.4" fill="${s.luz}"/>`,
+    santuario: () => `<path d="M80 ${HORIZONTE} L112 ${HORIZONTE} L150 ${SALA.alto} L42 ${SALA.alto} Z" fill="#4a0f20" opacity=".85"/>
+                      <path d="M84 ${HORIZONTE} L56 ${SALA.alto} M108 ${HORIZONTE} L136 ${SALA.alto}" stroke="#c8283a" stroke-width="1.2"/>`,
+    abismo: (s) => `<path d="M0 ${HORIZONTE + 2} L${SALA.ancho} ${HORIZONTE + 2}" stroke="${s.luz}" stroke-width="1" opacity=".4"/>
+                    <path d="M20 128 l14 -20 l-6 -10 l12 -12 M172 128 l-10 -18 l8 -10 l-12 -14 M96 128 l4 -16 l-6 -8" fill="none" stroke="${s.luz}" stroke-width="1.4" stroke-linejoin="round" opacity=".75"/>`,
 };
 
 export function dibujarSala(zona) {

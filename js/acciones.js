@@ -13,6 +13,7 @@ import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as bestiario from "./bestiario.js";
+import * as leyendas from "./leyendas.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -1021,34 +1022,51 @@ export function cerrarResumenSemanal(estado) {
 }
 
 
-// ===== Torre del héroe (el minijuego grande) =====
-// La partida se guarda en estado.arcade.torre: puedes salir y seguirla después.
+// ===== Torre del héroe y Mazmorra del Abismo (los minijuegos grandes) =====
+// La partida se guarda en estado.arcade.torre (o estado.arcade.mazmorra): puedes salir y
+// seguirla después. lugar = "torre" o "mazmorra"; si no se dice, la Torre.
+// La Mazmorra se abre al superar el piso 20 de la Torre (ver torre.mazmorraAbierta).
 
-export function empezarTorre(estado, semilla) {
+// La partida en curso de ese lugar (o un error si no hay).
+function partidaDe(estado, lugar) {
+    if (!bestiario.LUGARES[lugar]) throw new Error("Ese lugar no existe.");
+    const partida = estado.arcade[lugar];
+    if (!partida) throw new Error(`No hay una partida de la ${bestiario.LUGARES[lugar].nombre} en curso.`);
+    return partida;
+}
+
+// Devuelve { relato }: la historia que se cuenta al entrar por primera vez (o null).
+export function empezarTorre(estado, semilla, lugar = "torre") {
+    if (!bestiario.LUGARES[lugar]) throw new Error("Ese lugar no existe.");
     revisarQueNoEstesCaido(estado, "el arcade");
-    if (estado.arcade.torre) {
+    const enCurso = estado.arcade[lugar];
+    if (enCurso) {
         // Ya hay una partida: se sigue esa (sin gastar otra ficha). Si es de una versión
         // anterior, su monstruo se cambia por la criatura de ese piso.
-        torre.ponerAlDia(estado.arcade.torre);
-        bestiario.anotarEncuentro(estado.arcade.bestiario, estado.arcade.torre.enemigo.id);
-        return;
+        torre.ponerAlDia(enCurso);
+        bestiario.anotarEncuentro(estado.arcade.bestiario, enCurso.enemigo.id);
+        return { relato: null };
+    }
+    if (lugar === "mazmorra" && !torre.mazmorraAbierta(estado.arcade)) {
+        throw new Error(`La Mazmorra del Abismo se abre cuando superes el piso ${torre.ABRIR_MAZMORRA} de la Torre del héroe.`);
     }
     if (arcade.fichasDisponibles(estado) < 1) {
         throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
     }
     estado.arcade.usadas += 1;   // la ficha se gasta al EMPEZAR
-    // Subes con tu vida real: si llegas herido, empiezas con menos vida.
+    // Entras con tu vida real: si llegas herido, empiezas con menos vida.
     const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
-    estado.arcade.torre = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado));
-    bestiario.anotarEncuentro(estado.arcade.bestiario, estado.arcade.torre.enemigo.id);
+    const partida = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado), lugar);
+    estado.arcade[lugar] = partida;
+    bestiario.anotarEncuentro(estado.arcade.bestiario, partida.enemigo.id);
+    return { relato: leyendas.relatoAlEmpezar(lugar, estado.arcade.records[lugar] || 0, estado.personaje.nombre) };
 }
 
 // elemento: con accion "hechizo", cuál lanzas ("fuego", "hielo" o "rayo").
 // Lo que aprendes peleando queda en tu bestiario: qué le hace cada hechizo a esa criatura
 // y cuántas veces la venciste.
-export function accionTorre(estado, accion, elemento = null) {
-    const partida = estado.arcade.torre;
-    if (!partida) throw new Error("No hay una partida de la Torre en curso.");
+export function accionTorre(estado, accion, elemento = null, lugar = "torre") {
+    const partida = partidaDe(estado, lugar);
     const id = partida.enemigo.id;
     const turno = torre.actuar(partida, accion, elemento);   // lo que pasó: [{ quien, tipo, dano… }]
     if (accion === "hechizo") bestiario.anotarElemento(estado.arcade.bestiario, id, elemento);
@@ -1058,11 +1076,14 @@ export function accionTorre(estado, accion, elemento = null) {
     return { eventos: turno };
 }
 
-export function mejoraTorre(estado, clave) {
-    const partida = estado.arcade.torre;
-    if (!partida) throw new Error("No hay una partida de la Torre en curso.");
+// Devuelve { relato }: si el piso que acabas de superar era el de un guardián y es la primera
+// vez que lo vences, la historia sigue (o null).
+export function mejoraTorre(estado, clave, lugar = "torre") {
+    const partida = partidaDe(estado, lugar);
+    const vencido = partida.piso;
     torre.elegirMejora(partida, clave);
     bestiario.anotarEncuentro(estado.arcade.bestiario, partida.enemigo.id);   // la criatura del piso nuevo
+    return { relato: leyendas.relatoTrasGuardian(lugar, vencido, estado.arcade.records[lugar] || 0, estado.personaje.nombre) };
 }
 
 // Apunta cuánta armadura máxima tienes hoy, si cambió (te pusiste o quitaste algo, o cambiaste
@@ -1093,28 +1114,33 @@ export function equipoDeBatalla(estado) {
     };
 }
 
-// Cobrar al terminar (o al rendirte): monedas y XP de Carisma según los pisos superados.
-export function terminarTorre(estado) {
-    const partida = estado.arcade.torre;
-    if (!partida) throw new Error("No hay una partida de la Torre en curso.");
+// Cobrar al terminar (o al rendirte): monedas y XP según los pisos superados (en la Torre,
+// de Carisma; en la Mazmorra, más, y de Fuerza).
+export function terminarTorre(estado, lugar = "torre") {
+    const partida = partidaDe(estado, lugar);
+    const sitio = bestiario.LUGARES[lugar];
     const pisos = torre.pisosSuperados(partida);
-    const factor = eventos.factorTorre(eventos.eventoDelDia(hoy(), estado));   // «Eco de la Torre»: el doble
-    const base = torre.premio(pisos);
+    // «Eco de la Torre»: la Torre paga el doble ese día (la Mazmorra, no).
+    const factor = lugar === "torre" ? eventos.factorTorre(eventos.eventoDelDia(hoy(), estado)) : 1;
+    const base = torre.premio(pisos, lugar);
     const premio = { monedas: base.monedas * factor, xp: base.xp * factor };
-    ganar(estado, { ...premio, atributo: torre.ATRIBUTO });
-    const anterior = estado.arcade.records.torre || 0;
+    const atributo = torre.REGLAS[lugar].atributo;
+    ganar(estado, { ...premio, atributo });
+    const abiertaAntes = torre.mazmorraAbierta({ records: estado.arcade.records });
+    const anterior = estado.arcade.records[lugar] || 0;
     const nuevoRecord = pisos > anterior;
-    if (nuevoRecord) estado.arcade.records.torre = pisos;
-    estado.arcade.torre = null;
-    return {
-        pisos,
-        premio,
-        record: estado.arcade.records.torre || 0,
-        nuevoRecord: nuevoRecord && pisos > 0,
-        celebraciones: nuevoRecord && anterior > 0
-            ? [{ icono: "🗼", etiqueta: "¡Nuevo récord en la Torre!", titulo: `Piso ${pisos + 1}`, detalle: `Superaste ${pisos} pisos.` }]
-            : [],
-    };
+    if (nuevoRecord) estado.arcade.records[lugar] = pisos;
+    estado.arcade[lugar] = null;
+    const celebraciones = [];
+    if (nuevoRecord && anterior > 0) {
+        celebraciones.push({ icono: sitio.icono, etiqueta: `¡Nuevo récord en la ${sitio.nombre}!`,
+                             titulo: `${sitio.piso} ${pisos + 1}`, detalle: `Superaste ${pisos} ${sitio.piso.toLowerCase()}s.` });
+    }
+    if (!abiertaAntes && torre.mazmorraAbierta({ records: estado.arcade.records })) {
+        celebraciones.push({ icono: "⛓️", etiqueta: "¡Se abrió una mazmorra!", titulo: "Mazmorra del Abismo",
+                             detalle: "Bajo la Torre hay una escalera. Más difícil y con criaturas nuevas: búscala en el Arcade." });
+    }
+    return { lugar, pisos, premio, atributo, record: estado.arcade.records[lugar] || 0, nuevoRecord: nuevoRecord && pisos > 0, celebraciones };
 }
 
 

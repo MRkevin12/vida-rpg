@@ -19,11 +19,12 @@ import { calcularResumen, semanaPorMostrar, resumenSemana } from "../js/resumen.
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
 import * as bestiario from "../js/bestiario.js";
+import * as leyendas from "../js/leyendas.js";
 import * as habilidades from "../js/habilidades.js";
 import * as cronica from "../js/cronica.js";
 import { dibujarMapa } from "../js/dibujo-mapa.js";
 import * as sprites from "../js/sprites.js";
-import { retocarPuntos, redondearColor } from "../js/pixel.js";
+import { retocarPuntos, redondearColor, enSombras } from "../js/pixel.js";
 import { dibujarMonstruo, dibujarSala, CON_DIBUJO } from "../js/dibujo-monstruos.js";
 import * as vida from "../js/vida.js";
 import * as diario from "../js/diario.js";
@@ -860,7 +861,7 @@ prueba("Pixel art: bordes duros, menos colores y un contorno oscuro alrededor", 
     igual([redondearColor(0, 0, 0, 14), redondearColor(255, 255, 255, 14)], [[0, 0, 0], [255, 255, 255]]);
 });
 
-prueba("Dibujo: las 20 criaturas y las 4 salas de la Torre son SVG válidos (también como imagen)", () => {
+prueba("Dibujo: las criaturas y las salas de la Torre y la Mazmorra son SVG válidos (también como imagen)", () => {
     // Para convertirlos en pixel art el navegador los lee como IMAGEN, que es más estricto que
     // ponerlos dentro de la página: un atributo repetido o una etiqueta sin cerrar lo rompe.
     const valido = (svg, que) => {
@@ -868,9 +869,11 @@ prueba("Dibujo: las 20 criaturas y las 4 salas de la Torre son SVG válidos (tam
         const leido = new DOMParser().parseFromString(svg, "image/svg+xml");
         cierto(!leido.querySelector("parsererror"), `${que} se puede leer como imagen`);
     };
-    igual([...CON_DIBUJO].sort(), [...bestiario.ORDEN].sort(), "cada criatura tiene su dibujo");
-    for (const id of bestiario.ORDEN) valido(dibujarMonstruo(id), `la criatura ${id}`);
-    for (const zona of bestiario.ZONAS) valido(dibujarSala(zona.id), `la sala ${zona.id}`);
+    // (El Reflejo sombrío no tiene dibujo propio: es tu héroe en sombras.)
+    const conFigura = [...bestiario.ORDEN, ...bestiario.ORDEN_MAZMORRA].filter((id) => !bestiario.CRIATURAS[id].espejo);
+    igual([...CON_DIBUJO].sort(), [...conFigura].sort(), "cada criatura tiene su dibujo");
+    for (const id of conFigura) valido(dibujarMonstruo(id), `la criatura ${id}`);
+    for (const zona of [...bestiario.ZONAS, ...bestiario.ZONAS_MAZMORRA]) valido(dibujarSala(zona.id), `la sala ${zona.id}`);
     igual(dibujarMonstruo("no-existe").includes("<defs>"), false, "una criatura que no existe: dibujo vacío");
     // El avatar de batalla también pasa por ahí.
     valido(dibujarAvatar(avatarDePrueba({ etapa: avatar.ETAPAS[3] }), { batalla: true, sinEfectos: true }), "el avatar de batalla");
@@ -940,6 +943,311 @@ prueba("Torre (pantalla): batalla, menú de magia, botín, final y bestiario se 
     cierto(html.includes("Murciélago de cripta") && html.includes("vencido ×1") && html.includes("⚡ débil"), "lo que conoces");
     cierto(!html.includes("Dragón de la tormenta") && html.includes("???") && html.includes("Piso 20 · Guardián"), "lo que no, en sombras");
     sano(vistas.pantallaArcade(estado, { vida: vida.calcularVida(estado, hoy()), avatar: avatarDePrueba() }), "la tarjeta del Arcade");
+});
+
+
+// ===== La Mazmorra del Abismo y las historias (v29) =====
+
+prueba("Mazmorra: 4 zonas de 5 sótanos con 20 criaturas nuevas, cada una con su ataque especial", () => {
+    const orden = bestiario.ORDEN_MAZMORRA;
+    igual(orden.length, bestiario.ZONAS_MAZMORRA.length * bestiario.PISOS_POR_ZONA, "20 criaturas");
+    const jefes = Object.values(campana.CAMPANAS).flatMap((c) => c.jefes.map((j) => j.id));
+    igual(orden.filter((id) => jefes.includes(id) || bestiario.ORDEN.includes(id)), [], "ids nuevos (ni jefes ni de la Torre)");
+    orden.forEach((id, i) => {
+        const piso = i + 1;
+        const c = bestiario.CRIATURAS[id];
+        igual(c.zona, bestiario.zonaDelPiso(piso, "mazmorra").id, `${id} está en la zona de su sótano`);
+        igual(Boolean(c.guardian), torre.esGuardian(piso), `${id}: solo el quinto de cada zona es guardián`);
+        cierto(bestiario.ELEMENTOS[c.debil] && bestiario.ELEMENTOS[c.resiste] && c.resiste !== c.debil, `${id}: tiene punto débil y resiste otro`);
+        cierto(torre.ESPECIALES[c.especial?.tipo] && c.especial.nombre, `${id} tiene su ataque especial`);
+        cierto(c.golpe && c.fuerte && c.texto && ["m", "f"].includes(c.genero) && c.talla > 0, `${id} tiene todos sus datos`);
+        igual(torre.monstruoDelPiso(piso, "mazmorra").id, id);
+        igual(bestiario.lugarDeCriatura(id), "mazmorra");
+    });
+    for (const elemento of Object.keys(bestiario.ELEMENTOS)) {
+        cierto(orden.filter((id) => bestiario.CRIATURAS[id].debil === elemento).length >= 6, `varias criaturas débiles a ${elemento}`);
+    }
+    for (const tipo of Object.keys(torre.ESPECIALES)) {
+        cierto(orden.filter((id) => bestiario.CRIATURAS[id].especial.tipo === tipo).length >= 4, `varias usan ${tipo}`);
+    }
+    // Después del sótano 20 vuelven, «abisales».
+    const vuelta = torre.monstruoDelPiso(21, "mazmorra");
+    igual([vuelta.id, vuelta.nombre], [orden[0], `${bestiario.CRIATURAS[orden[0]].nombre} abisal`]);
+    igual(bestiario.lugarDeCriatura("esqueleto"), "torre");
+    igual(bestiario.progresoBestiario({ sanguijuela: { vencidos: 0, elementos: [] } }, "mazmorra"), { vistas: 1, total: 20 });
+});
+
+prueba("Mazmorra: es más difícil que la Torre (más vida y ataque en cada sótano, sin descanso al bajar) y paga más", () => {
+    for (let piso = 1; piso <= 20; piso++) {
+        const [abajo, arriba] = [torre.monstruoDelPiso(piso, "mazmorra"), torre.monstruoDelPiso(piso)];
+        cierto(abajo.vidaMax > arriba.vidaMax && abajo.ataque > arriba.ataque, `sótano ${piso} contra piso ${piso}`);
+    }
+    const subir = torre.nuevaPartida(NIVELES_1, 4);
+    const bajar = torre.nuevaPartida(NIVELES_1, 4, 1, {}, "mazmorra");
+    igual([subir.lugar, bajar.lugar], ["torre", "mazmorra"]);
+    cierto(bajar.registro.startsWith("Sótano 1.") && bajar.registro.includes("descenso"), bajar.registro);
+    for (const p of [subir, bajar]) {
+        p.heroe.vida = 20;
+        p.enemigo.vida = 1;
+        torre.actuar(p, "atacar");
+        torre.elegirMejora(p, p.opciones.find((c) => c !== "vigor" && c !== "descanso"));
+    }
+    igual(bajar.heroe.vida, 20, "en la Mazmorra no recuperas vida al bajar");
+    cierto(subir.heroe.vida > 20, "en la Torre, sí");
+    cierto(bajar.registro.startsWith("Sótano 2:"), bajar.registro);
+    const [premioAbajo, premioArriba] = [torre.premio(20, "mazmorra"), torre.premio(20)];
+    cierto(premioAbajo.monedas > premioArriba.monedas && premioAbajo.xp > premioArriba.xp, "paga más");
+    igual(torre.premio(100, "mazmorra"), { monedas: torre.REGLAS.mazmorra.premio.maxMonedas, xp: torre.REGLAS.mazmorra.premio.maxXp });
+});
+
+prueba("Mazmorra: no se abre hasta superar el piso 20 de la Torre; se juega aparte y paga en Fuerza", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.empezarTorre(estado, 1, "mazmorra"), "piso 20");
+    debeFallar(() => acciones.empezarTorre(estado, 1, "sotano"), "no existe");
+    estado.arcade.records.torre = 19;
+    cierto(!torre.mazmorraAbierta(estado.arcade), "con 19 pisos, todavía no");
+    // En la subida de ahora ya superaste el 20: se abre aunque no hayas cobrado.
+    acciones.empezarTorre(estado, 1);
+    estado.arcade.torre.piso = 21;
+    cierto(torre.mazmorraAbierta(estado.arcade), "se abre en cuanto lo superas");
+    estado.arcade.torre.piso = 1;
+    estado.arcade.records.torre = 20;
+    cierto(torre.mazmorraAbierta(estado.arcade), "con 20 pisos, sí");
+
+    const fichas = arcade.fichasDisponibles(estado);
+    const r = acciones.empezarTorre(estado, 1, "mazmorra");
+    igual(arcade.fichasDisponibles(estado), fichas - 1, "gasta una ficha");
+    igual([estado.arcade.mazmorra.lugar, estado.arcade.mazmorra.enemigo.id], ["mazmorra", "sanguijuela"]);
+    cierto(estado.arcade.torre && estado.arcade.torre.lugar === "torre", "la subida de la Torre sigue guardada aparte");
+    cierto(r.relato && r.relato.paginas[0].etiqueta.includes("Mazmorra"), "la primera vez se cuenta el prólogo");
+    cierto(estado.arcade.bestiario.sanguijuela, "queda vista en el bestiario");
+
+    const p = estado.arcade.mazmorra;
+    p.piso = 4;
+    const final = acciones.terminarTorre(estado, "mazmorra");
+    const premio = torre.premio(3, "mazmorra");
+    igual([final.lugar, final.pisos, final.premio, final.atributo], ["mazmorra", 3, premio, "fuerza"]);
+    igual([estado.atributos.fuerza, estado.arcade.records.mazmorra, estado.arcade.mazmorra], [premio.xp, 3, null]);
+    cierto(estado.arcade.torre, "cobrar la Mazmorra no toca la Torre");
+});
+
+prueba("Mazmorra: al superar el piso 20 de la Torre se celebra que se abrió", () => {
+    const estado = partidaNueva();
+    estado.arcade.records.torre = 15;
+    acciones.empezarTorre(estado, 2);
+    estado.arcade.torre.piso = 21;
+    const r = acciones.terminarTorre(estado);
+    cierto(r.celebraciones.some((c) => c.titulo === "Mazmorra del Abismo"), "se avisa una vez");
+    acciones.empezarTorre(estado, 2);
+    estado.arcade.torre.piso = 25;
+    cierto(!acciones.terminarTorre(estado).celebraciones.some((c) => c.titulo === "Mazmorra del Abismo"), "y no se repite");
+});
+
+// Una partida de la Mazmorra contra la criatura del sótano indicado, con la intención dada.
+function mazmorraContra(piso, intencion = "especial", semilla = 21) {
+    const p = torre.nuevaPartida(NIVELES_1, semilla, 1, {}, "mazmorra");
+    p.piso = piso;
+    p.enemigo = torre.monstruoDelPiso(piso, "mazmorra");
+    p.enemigo.intencion = intencion;
+    p.heroe.vidaMax = p.heroe.vida = 500;   // para que aguante
+    p.heroe.critico = 0;
+    return p;
+}
+
+prueba("Mazmorra: el veneno quita vida cada turno (3 turnos) y una poción lo cura", () => {
+    const p = mazmorraContra(3);   // la Aguaviva pálida: «Filamentos»
+    igual(torre.textoIntencion(p.enemigo).texto, `Va a usar «Filamentos» (${torre.danoPrevisto(p.enemigo)} + veneno)`);
+    const eventos = torre.actuar(p, "defender");
+    const golpe = eventos.find((e) => e.quien === "enemigo");
+    const veneno = eventos.find((e) => e.quien === "veneno");
+    igual([golpe.tipo, golpe.especial], ["especial", "veneno"]);
+    igual(veneno.dano, Math.round(500 * torre.ESPECIALES.veneno.porTurno), "5 % de la vida máxima");
+    igual(p.heroe.veneno, torre.ESPECIALES.veneno.turnos - 1, "le quedan 2 turnos");
+    cierto(p.registro.includes("¡Te envenena!") && p.registro.includes("El veneno te quita"), p.registro);
+    igual(p.enemigo.intencion === "especial", false, "no repite el especial");
+    const curado = torre.actuar(p, "pocion");
+    igual([p.heroe.veneno, curado[0].antidoto], [0, true], "la poción lo cura");
+    igual(curado.some((e) => e.quien === "veneno"), false, "ya no quita vida");
+});
+
+prueba("Mazmorra: drenar cura a la criatura, el sello quita hechizos y la coraza parte tu golpe a la mitad", () => {
+    // Drenar: la Sanguijuela gigante se cura lo que te quita.
+    const d = mazmorraContra(1);
+    d.enemigo.vida = d.enemigo.vidaMax - 50;
+    const antes = d.enemigo.vida;
+    const drenar = torre.actuar(d, "defender").find((e) => e.quien === "enemigo");
+    igual(drenar.especial, "drenar");
+    cierto(drenar.dano > 0 && drenar.cura === Math.min(drenar.dano, 50), `se cura ${drenar.cura} de ${drenar.dano}`);
+    igual(d.enemigo.vida, antes + drenar.cura);
+
+    // Sello: el Ahogado te quita 2 hechizos de este piso.
+    const s = mazmorraContra(2);
+    s.heroe.mana = 3;
+    const sello = torre.actuar(s, "defender").find((e) => e.quien === "enemigo");
+    igual([sello.especial, sello.sello, s.heroe.mana], ["sellar", 2, 1]);
+
+    // Coraza: el Cangrejo acorazado se cubre y tu próximo golpe le hace la mitad.
+    const c = mazmorraContra(4);
+    igual(torre.textoIntencion(c.enemigo).texto, "Se cubrirá con «Caparazón» (½ de daño)");
+    const cubrirse = torre.actuar(c, "defender").find((e) => e.quien === "enemigo");
+    igual([cubrirse.especial, cubrirse.dano, c.enemigo.coraza], ["coraza", undefined, true], "no pega, se cubre");
+    const [con, sin] = [mazmorraContra(4, "golpe", 9), mazmorraContra(4, "golpe", 9)];
+    con.enemigo.coraza = true;
+    const [golpeCon, golpeSin] = [torre.actuar(con, "atacar")[0], torre.actuar(sin, "atacar")[0]];
+    cierto(Math.abs(golpeCon.dano - golpeSin.dano / 2) <= 1 && golpeCon.coraza, `con coraza ${golpeCon.dano}, sin ${golpeSin.dano}`);
+    igual(con.enemigo.coraza, false, "la coraza dura un turno");
+});
+
+prueba("Mazmorra: sus guardianes se enfurecen una vez al quedar con media vida (los de la Torre, no)", () => {
+    const p = mazmorraContra(5, "golpe");   // la Bestia de la cisterna
+    const ataque = p.enemigo.ataque;
+    p.enemigo.vida = Math.floor(p.enemigo.vidaMax / 2) + 1;
+    const eventos = torre.actuar(p, "atacar");
+    cierto(eventos.some((e) => e.quien === "furia") && p.enemigo.enfurecido, "se enfurece");
+    igual(p.enemigo.ataque, Math.round(ataque * torre.FURIA_GUARDIAN));
+    cierto(p.registro.includes("guardiana") || p.registro.includes("enfurece"), p.registro);
+    p.enemigo.intencion = "golpe";
+    igual(torre.actuar(p, "atacar").some((e) => e.quien === "furia"), false, "solo una vez");
+
+    const t = torre.nuevaPartida(NIVELES_1, 21);
+    t.piso = 5;
+    t.enemigo = torre.monstruoDelPiso(5);
+    t.enemigo.vida = Math.floor(t.enemigo.vidaMax / 2) + 1;
+    t.heroe.vida = t.heroe.vidaMax = 500;
+    igual(torre.actuar(t, "atacar").some((e) => e.quien === "furia"), false, "en la Torre no");
+});
+
+prueba("Mazmorra: el guardián se presenta en femenino si es una guardiana", () => {
+    const p = torre.nuevaPartida(NIVELES_1, 3, 1, {}, "mazmorra");
+    p.piso = 4;
+    p.enemigo = torre.monstruoDelPiso(4, "mazmorra");
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    cierto(p.registro.includes("¡El Cangrejo acorazado cae! Sótano 4 superado."), p.registro);
+    torre.elegirMejora(p, p.opciones[0]);
+    cierto(p.registro.includes("la Bestia de la cisterna, guardiana de las Cisternas anegadas"), p.registro);
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    torre.elegirMejora(p, p.opciones[0]);
+    cierto(p.registro.startsWith("Entras al Bosque de raíces. Sótano 6: aparece el Hongo carroñero."), p.registro);
+});
+
+prueba("Historia: la Torre y la Mazmorra se cuentan por capítulos que se abren al avanzar", () => {
+    const inicio = leyendas.capitulosDeLeyenda("torre", 0, "Ana");
+    igual(inicio.map((c) => c.id), ["prologo", "cripta", "biblioteca", "fragua", "cima", "epilogo"]);
+    igual(inicio.map((c) => c.abierto), [true, true, false, false, false, false]);
+    cierto(inicio[0].parrafos.join(" ").includes("Ana"), "usa el nombre del héroe");
+    igual(inicio[1].parrafos.length, 1, "la Cripta: solo la llegada");
+    cierto(inicio[1].pendiente.includes("piso 5") && inicio[2].bloqueado.includes("piso 6"), "lo que falta");
+    const todo = leyendas.capitulosDeLeyenda("torre", 20, "Ana");
+    cierto(todo.every((c) => c.abierto) && todo.slice(1, 5).every((c) => c.parrafos.length === 2), "con el piso 20, todo");
+    cierto(todo[5].aviso.includes("Mazmorra"), "el epílogo abre la Mazmorra");
+    const abajo = leyendas.capitulosDeLeyenda("mazmorra", 7, "Ana");
+    igual(abajo.map((c) => c.abierto), [true, true, true, false, false, false]);
+    cierto(abajo[2].pendiente.includes("sótano 10") && abajo[3].bloqueado.includes("sótano 11"), "en la Mazmorra son sótanos");
+    // Ningún texto se queda con la marca del nombre sin cambiar.
+    for (const lugar of ["torre", "mazmorra"]) {
+        cierto(!JSON.stringify(leyendas.capitulosDeLeyenda(lugar, 99, "Ana")).includes("{n}"), `${lugar}: sin {n}`);
+    }
+
+    // En la batalla: el prólogo al empezar (solo si nunca superaste un piso) y lo que sigue a cada guardián.
+    igual(leyendas.relatoAlEmpezar("torre", 0, "Ana").paginas.map((p) => p.titulo), ["La Torre sin cima", "Cripta olvidada"]);
+    igual(leyendas.relatoAlEmpezar("torre", 3, "Ana"), null);
+    igual(leyendas.relatoTrasGuardian("torre", 5, 0, "Ana").paginas.map((p) => p.titulo), ["Cripta olvidada", "Biblioteca prohibida"]);
+    igual([leyendas.relatoTrasGuardian("torre", 5, 5, "Ana"), leyendas.relatoTrasGuardian("torre", 4, 0, "Ana"), leyendas.relatoTrasGuardian("torre", 25, 0, "Ana")],
+          [null, null, null], "ya leído, sin guardián, o después del final");
+    const final = leyendas.relatoTrasGuardian("mazmorra", 20, 19, "Ana");
+    igual(final.paginas.map((p) => p.titulo), ["Corazón del Abismo", "Saber bajar"]);
+    cierto(final.paginas[1].aviso.includes("Rey Hueco"), "el epílogo de la Mazmorra");
+});
+
+prueba("Historia en la partida: se cuenta la primera vez que llegas, después ya no", () => {
+    const estado = partidaNueva();
+    cierto(acciones.empezarTorre(estado, 3).relato, "primera subida: el prólogo");
+    igual(acciones.empezarTorre(estado, 3).relato, null, "al continuar, nada");
+    const p = estado.arcade.torre;
+    p.piso = 5;
+    p.enemigo = torre.monstruoDelPiso(5);
+    p.enemigo.vida = 1;
+    acciones.accionTorre(estado, "atacar");
+    const r = acciones.mejoraTorre(estado, p.opciones[0]);
+    igual(r.relato.paginas.map((x) => x.titulo), ["Cripta olvidada", "Biblioteca prohibida"], "cae el Caballero sin Nombre");
+    acciones.terminarTorre(estado);
+    cierto(estado.arcade.records.torre === 5 && acciones.empezarTorre(estado, 4).relato === null, "la segunda vez, ya no");
+});
+
+prueba("Mazmorra: las copias viejas quedan sin partida en la Mazmorra, y una subida sin lugar sigue siendo de la Torre", () => {
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 8);
+    delete estado.arcade.mazmorra;
+    delete estado.arcade.torre.lugar;   // una partida guardada antes de la v29
+    const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
+    igual(copia.arcade.mazmorra, null);
+    acciones.empezarTorre(copia, 8);   // «Continuar»
+    igual(copia.arcade.torre.lugar, "torre");
+    torre.actuar(copia.arcade.torre, "atacar");
+});
+
+prueba("Pixel art: el Reflejo sombrío es tu héroe en sombras", async () => {
+    const [claro, oscuro] = [enSombras(255, 255, 255), enSombras(0, 0, 0)];
+    cierto(claro[2] > claro[1] && oscuro.every((v) => v < 60), `violeta: ${claro} y ${oscuro}`);
+    cierto(claro.reduce((a, b) => a + b) > oscuro.reduce((a, b) => a + b) + 200, "lo claro sigue más claro");
+    igual(await sprites.spriteDeMonstruo("reflejo"), null, "sin tu avatar no hay reflejo");
+    const imagen = await sprites.spriteDeMonstruo("reflejo", avatarDePrueba());
+    cierto(typeof imagen === "string" && imagen.startsWith("data:image/png"), "es una imagen PNG");
+    const todas = await sprites.spritesDeCriaturas(avatarDePrueba());
+    igual(Object.keys(todas).length, 40, "las 40 criaturas para el bestiario");
+});
+
+prueba("Mazmorra (pantalla): tarjeta cerrada y abierta, batalla, historia, bestiario y final sin huecos", () => {
+    const estado = partidaNueva();
+    const ctx = () => ({ vida: vida.calcularVida(estado, hoy()), avatar: avatarDePrueba() });
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    let html = vistas.pantallaArcade(estado, ctx());
+    sano(html, "el arcade (cerrada)");
+    cierto(html.includes("Mazmorra del Abismo") && html.includes("0 de 20 pisos") && !html.includes('data-lugar="mazmorra"'), "cerrada");
+    estado.arcade.records.torre = 20;
+    html = vistas.pantallaArcade(estado, ctx());
+    sano(html, "el arcade (abierta)");
+    cierto(html.includes("Bajar a la mazmorra") && html.includes('data-accion="torre-abrir" data-lugar="mazmorra"') &&
+           html.includes('data-accion="historia-abrir" data-lugar="torre"'), "abierta, con su historia");
+
+    acciones.empezarTorre(estado, 4, "mazmorra");
+    const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
+    const t = (cambios = {}) => ({ partida: estado.arcade.mazmorra, nombre: "Prueba", sprites: imagenes, eventos: [], menu: "principal",
+                                   ultimo: "atacar", bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
+    html = vistas.pantallaTorre(t());
+    sano(html, "la batalla");
+    cierto(html.includes("Sótano 1") && html.includes("Cisternas anegadas") && html.includes("Sanguijuela gigante"), "en la Mazmorra");
+
+    // Un turno con veneno.
+    const p = estado.arcade.mazmorra;
+    p.piso = 3;
+    p.enemigo = torre.monstruoDelPiso(3, "mazmorra");
+    bestiario.anotarEncuentro(estado.arcade.bestiario, p.enemigo.id);
+    p.enemigo.intencion = "especial";
+    p.heroe.vida = p.heroe.vidaMax = 500;
+    html = vistas.pantallaTorre(t({ eventos: acciones.accionTorre(estado, "defender", null, "mazmorra").eventos }));
+    sano(html, "el turno con veneno");
+    cierto(html.includes("ff-numero veneno") && html.includes("Veneno: 2 turnos") && html.includes("envenenado"), "el veneno se ve");
+
+    const relato = leyendas.relatoAlEmpezar("mazmorra", 0, "Prueba");
+    html = vistas.pantallaRelato({ pagina: relato.paginas[0], sala: "data:image/png;base64,CC", numero: 1, total: 2 });
+    sano(html, "una página de la historia");
+    cierto(html.includes("La escalera") && html.includes('data-accion="torre-relato"') && html.includes("Continuar"), "la página");
+    html = vistas.pantallaHistoria({ lugar: "mazmorra", capitulos: leyendas.capitulosDeLeyenda("mazmorra", 0, "Prueba") });
+    sano(html, "la historia");
+    cierto(html.includes("El Rey Hueco") && html.includes("🔒") && html.includes("Cisternas anegadas"), "la historia para releer");
+
+    const todas = Object.fromEntries([...bestiario.ORDEN, ...bestiario.ORDEN_MAZMORRA].map((id) => [id, "data:image/png;base64,AA"]));
+    html = vistas.pantallaBestiario({ bestiario: estado.arcade.bestiario, sprites: todas, mazmorra: true });
+    sano(html, "el bestiario");
+    cierto(html.includes("Aguaviva pálida") && html.includes("«Filamentos» · veneno") && html.includes("Sótano 5 · Guardiana"), "la sección de la Mazmorra");
+
+    const resultado = acciones.terminarTorre(estado, "mazmorra");
+    html = vistas.pantallaTorre(t({ partida: null, resultado }));
+    sano(html, "el final");
+    cierto(html.includes("2 sótanos") && html.includes("Fuerza") && html.includes("Bajar otra vez"), "el premio");
 });
 
 

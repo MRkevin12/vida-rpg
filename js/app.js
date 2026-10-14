@@ -17,6 +17,7 @@ import * as campana from "./campana.js";
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as bestiario from "./bestiario.js";
+import * as leyendas from "./leyendas.js";
 import * as sprites from "./sprites.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
@@ -506,31 +507,50 @@ function terminarMinijuego(tipo, puntos) {
     if (resultado.nuevoRecord) sonar("logro");
 }
 
-// ===== Torre del héroe =====
-// Es por turnos, así que no usa lienzo: se vuelve a dibujar después de cada acción.
+// ===== Torre del héroe y Mazmorra del Abismo =====
+// Son por turnos, así que no usan lienzo: se vuelven a dibujar después de cada acción.
+// Las dos usan la misma capa (#torre); lugarAbierto dice cuál se está jugando.
 
+let lugarAbierto = "torre";     // "torre" o "mazmorra"
 let resultadoTorre = null;      // lo que se cobró al terminar (para mostrar el resumen)
 let menuTorre = "principal";    // qué comandos se ven: "principal" o "magia" (la lista de hechizos)
 let ultimoComando = "atacar";   // el último comando que usaste: ahí queda la manito
 let ultimoHechizo = "fuego";    // y el último hechizo, dentro de «Magia»
+// La historia que se está contando (ver leyendas.js): { relato, pagina, salas } o null.
+let relatoEnCurso = null;
 // Las imágenes en pixel art de la batalla (ver sprites.js). Hacerlas tarda un instante,
 // así que se preparan ANTES de dibujar (con await) y se guardan aquí.
 const spritesTorre = { heroe: null, enemigo: null, sala: null, mascota: null };
 
 async function prepararSprites() {
-    const partida = estado.arcade.torre;
+    const partida = estado.arcade[lugarAbierto];
     spritesTorre.heroe = await sprites.spriteDeHeroe(avatarActual());
     if (!partida) return;   // al cobrar ya no hay partida: quedan la sala y la criatura de antes
     [spritesTorre.enemigo, spritesTorre.sala, spritesTorre.mascota] = await Promise.all([
-        sprites.spriteDeMonstruo(partida.enemigo.id),
-        sprites.spriteDeSala(bestiario.zonaDelPiso(partida.piso).id),
+        sprites.spriteDeMonstruo(partida.enemigo.id, avatarActual()),   // (el Reflejo sombrío es tu héroe)
+        sprites.spriteDeSala(bestiario.zonaDelPiso(partida.piso, partida.lugar).id),
         partida.mascota ? sprites.spriteDeMascota(partida.mascota) : null,
     ]);
 }
 
+// Empieza a contar una historia (relato = { paginas }), con la sala de fondo de cada página.
+async function mostrarRelato(relato) {
+    const salas = await Promise.all(relato.paginas.map((p) => sprites.spriteDeSala(p.sala)));
+    relatoEnCurso = { relato, pagina: 0, salas };
+    pintarTorre();
+    $("#torre-caja").scrollTop = 0;
+}
+
 function pintarTorre(eventos = []) {
+    if (relatoEnCurso) {
+        const { relato, pagina, salas } = relatoEnCurso;
+        $("#torre-caja").innerHTML = vistas.pantallaRelato({
+            pagina: relato.paginas[pagina], sala: salas[pagina], numero: pagina + 1, total: relato.paginas.length,
+        });
+        return;
+    }
     $("#torre-caja").innerHTML = vistas.pantallaTorre({
-        partida: estado.arcade.torre,
+        partida: estado.arcade[lugarAbierto],
         nombre: estado.personaje.nombre,
         sprites: spritesTorre,
         eventos,
@@ -542,21 +562,40 @@ function pintarTorre(eventos = []) {
     });
 }
 
-async function abrirTorre() {
+// lugar: "torre" o "mazmorra".
+async function abrirTorre(lugar = "torre") {
     // Si no hay partida, empezar una (gasta 1 ficha). Si hay, se sigue esa.
+    lugarAbierto = lugar;
     resultadoTorre = null;
+    relatoEnCurso = null;
     menuTorre = "principal";
-    if (!ejecutar(() => acciones.empezarTorre(estado))) return;
+    const resultado = ejecutar(() => acciones.empezarTorre(estado, undefined, lugar));
+    if (!resultado) return;
     await prepararSprites();
     $("#torre").hidden = false;
-    pintarTorre();
-    ponerMusica();   // en la Torre suena la música de batalla
+    // La primera vez, antes de pelear, se cuenta cómo empieza la historia.
+    if (resultado.relato) await mostrarRelato(resultado.relato);
+    else pintarTorre();
+    ponerMusica();   // en la Torre suena la música de batalla; en la Mazmorra, la de misterio
 }
 
-// El bestiario se muestra en la misma capa que la Torre (se cierra con la misma ✕).
+// El bestiario y la historia se muestran en la misma capa que la Torre (se cierran con la misma ✕).
 async function abrirBestiario() {
-    const imagenes = await sprites.spritesDeCriaturas();
-    $("#torre-caja").innerHTML = vistas.pantallaBestiario({ bestiario: estado.arcade.bestiario, sprites: imagenes });
+    const imagenes = await sprites.spritesDeCriaturas(avatarActual());
+    $("#torre-caja").innerHTML = vistas.pantallaBestiario({
+        bestiario: estado.arcade.bestiario, sprites: imagenes, mazmorra: torre.mazmorraAbierta(estado.arcade),
+    });
+    $("#torre").hidden = false;
+    $("#torre-caja").scrollTop = 0;
+}
+
+// Lo que ya se puede leer depende de hasta dónde llegaste: tu récord o la partida de ahora.
+function abrirHistoria(lugar) {
+    const enCurso = estado.arcade[lugar] ? torre.pisosSuperados(estado.arcade[lugar]) : 0;
+    const alcanzado = Math.max(estado.arcade.records[lugar] || 0, enCurso);
+    $("#torre-caja").innerHTML = vistas.pantallaHistoria({
+        lugar, capitulos: leyendas.capitulosDeLeyenda(lugar, alcanzado, estado.personaje.nombre),
+    });
     $("#torre").hidden = false;
     $("#torre-caja").scrollTop = 0;
 }
@@ -564,8 +603,16 @@ async function abrirBestiario() {
 function cerrarTorre() {
     $("#torre").hidden = true;   // la partida queda guardada: se sigue después
     resultadoTorre = null;
+    relatoEnCurso = null;
     dibujarPantalla();
     ponerMusica();
+}
+
+// En el Arcade, la portada de la Mazmorra es su sala más honda, en pixel art (llega un instante después).
+function pintarPortadas() {
+    for (const imagen of document.querySelectorAll("img[data-sala]")) {
+        sprites.spriteDeSala(imagen.dataset.sala).then((direccion) => { if (direccion) imagen.src = direccion; });
+    }
 }
 
 // Sonidos de un turno, al compás de las animaciones (tu acción, la de tu mascota y la de la criatura).
@@ -574,12 +621,16 @@ function sonarTurno(eventos) {
     const mascota = eventos.find((e) => e.quien === "mascota");
     const enemigo = eventos.find((e) => e.quien === "enemigo" && e.tipo !== "derrotado");
     const cayo = eventos.some((e) => e.tipo === "derrotado");
+    const veneno = eventos.find((e) => e.quien === "veneno");
     if (heroe?.tipo === "hechizo") sonar(heroe.elemento);   // "fuego", "hielo" o "rayo"
     if (heroe?.dano) setTimeout(() => sonar(heroe.critico ? "critico" : "impacto"), 300);
     if (heroe?.cura) sonar("moneda");
     if (mascota) setTimeout(() => sonar(mascota.elemento || (mascota.dano ? "impacto" : mascota.tipo === "renacer" ? "nivel" : "moneda")), 450);
     if (cayo) setTimeout(() => sonar("victoria"), enemigo?.reflejo ? 1250 : 750);
-    else if (enemigo?.dano) setTimeout(() => sonar(estado.arcade.torre?.fase === "fin" ? "fallo" : "impacto"), 900);
+    else if (enemigo?.dano) setTimeout(() => sonar(estado.arcade[lugarAbierto]?.fase === "fin" ? "fallo" : "impacto"), 900);
+    else if (enemigo?.especial === "coraza") setTimeout(() => sonar("coraza"), 700);
+    if (veneno) setTimeout(() => sonar("veneno"), 1250);
+    if (eventos.some((e) => e.quien === "furia")) setTimeout(() => sonar("robo"), 450);
     if (eventos.some((e) => e.tipo === "renacer" || e.habilidad === "gracia")) setTimeout(() => sonar("nivel"), 1350);
 }
 
@@ -639,7 +690,8 @@ function ponerMusica() {
         return;
     }
     const volumen = Number.isFinite(a.volumen) ? a.volumen : 0.6;
-    const pista = !$("#torre").hidden ? "batalla" : a.pista;
+    // En la Torre suena la de batalla; en la Mazmorra, la de misterio (el Rey de la montaña).
+    const pista = $("#torre").hidden ? a.pista : lugarAbierto === "mazmorra" ? "misterio" : "batalla";
     musica.reproducir(musica.PISTAS[pista] ? pista : "epica", volumen);
 }
 
@@ -777,6 +829,7 @@ function dibujarPantalla(efectos = {}) {
 
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
     if (pantallaActual === "mapa") pintarMapa();              // la imagen del mapa (pixel art) llega un instante después
+    if (pantallaActual === "arcade") pintarPortadas();        // la portada de la Mazmorra (pixel art)
     if (pantallaActual === "libro") conectarHojear();         // pasar las páginas deslizando
 
     if (pantallaActual === "progreso" && !efectos.mantenerScroll) {
@@ -1091,7 +1144,17 @@ function rellenarOpciones() {
            ${Math.round((bestiario.DEBIL - 1) * 100)} % más) y algunas resisten otro (les hace la mitad). Lo que descubres queda en tu
            <strong>bestiario</strong> (botón en el Arcade): la próxima vez el menú de magia ya te lo dice.
            Premio: ${torre.PREMIO.monedasPorPiso} monedas y ${torre.PREMIO.xpPorPiso} XP de Carisma
-           por piso superado (máx. ${torre.PREMIO.maxMonedas} y ${torre.PREMIO.maxXp}).</p>`;
+           por piso superado (máx. ${torre.PREMIO.maxMonedas} y ${torre.PREMIO.maxXp}).</p>
+        <p><strong>Mazmorra del Abismo:</strong> se abre al superar el piso ${torre.ABRIR_MAZMORRA} de la Torre y se juega igual, pero bajando
+           (${bestiario.ZONAS_MAZMORRA.map((z) => z.nombre).join(", ")}). Es más difícil: sus ${bestiario.ORDEN_MAZMORRA.length} criaturas pegan
+           más fuerte y cada una tiene un ataque especial: ☠️ veneno (${Math.round(torre.ESPECIALES.veneno.porTurno * 100)} % de tu vida por turno
+           durante ${torre.ESPECIALES.veneno.turnos} turnos; una poción lo cura), 🩸 drenar (se cura lo que te quita), 🔒 sello (te quita
+           ${torre.ESPECIALES.sellar.pm} hechizos) o 🐚 coraza (tu próximo golpe le hace la mitad). Sus guardianes se enfurecen al quedar con
+           media vida y al bajar de sótano no recuperas vida. Premio: ${torre.REGLAS.mazmorra.premio.monedasPorPiso} monedas y
+           ${torre.REGLAS.mazmorra.premio.xpPorPiso} XP de Fuerza por sótano (máx. ${torre.REGLAS.mazmorra.premio.maxMonedas} y
+           ${torre.REGLAS.mazmorra.premio.maxXp}).</p>
+        <p><strong>Historia:</strong> la Torre y la Mazmorra cuentan una historia que sigue a la Crónica del reino. Se lee en la batalla
+           la primera vez que llegas a cada zona y se puede releer con «📜 Historia» en el Arcade.</p>`;
 }
 
 // Preparativos al abrir cada ventana. Si reciben un elemento (una misión, un logro…),
@@ -2034,10 +2097,24 @@ const ACCIONES = {
         dibujarPantalla({ mantenerScroll: true });
     },
 
-    // Torre del héroe.
-    "torre-abrir": () => abrirTorre(),
+    // Torre del héroe y Mazmorra del Abismo (data-lugar dice cuál).
+    "torre-abrir": (boton) => abrirTorre(boton.dataset.lugar === "mazmorra" ? "mazmorra" : "torre"),
     "bestiario-abrir": () => abrirBestiario(),
+    "historia-abrir": (boton) => {
+        lugarAbierto = boton.dataset.lugar === "mazmorra" ? "mazmorra" : "torre";
+        abrirHistoria(lugarAbierto);
+        ponerMusica();
+    },
     "torre-salir": () => cerrarTorre(),
+    // «Continuar» en una página de la historia: la siguiente, o volver a la batalla.
+    "torre-relato": () => {
+        if (!relatoEnCurso) return;
+        relatoEnCurso.pagina += 1;
+        if (relatoEnCurso.pagina >= relatoEnCurso.relato.paginas.length) relatoEnCurso = null;
+        sonar("cursor");
+        pintarTorre();
+        $("#torre-caja").scrollTop = 0;
+    },
     // «Magia» abre la lista de hechizos; «Volver» regresa a los comandos.
     "torre-menu": (boton) => {
         menuTorre = boton.dataset.menu === "magia" ? "magia" : "principal";
@@ -2046,7 +2123,7 @@ const ACCIONES = {
     },
     "torre-accion": (boton) => {
         const { torre: comando, elemento = null } = boton.dataset;   // elemento: solo en los hechizos
-        const resultado = ejecutar(() => acciones.accionTorre(estado, comando, elemento));
+        const resultado = ejecutar(() => acciones.accionTorre(estado, comando, elemento, lugarAbierto));
         if (!resultado) return;
         ultimoComando = comando;
         if (elemento) ultimoHechizo = elemento;
@@ -2055,17 +2132,23 @@ const ACCIONES = {
         sonarTurno(resultado.eventos);
     },
     "torre-mejora": async (boton) => {
-        if (!ejecutar(() => acciones.mejoraTorre(estado, boton.dataset.mejora))) return;
+        const resultado = ejecutar(() => acciones.mejoraTorre(estado, boton.dataset.mejora, lugarAbierto));
+        if (!resultado) return;
         sonar("completar");
         await prepararSprites();   // la criatura del piso nuevo (y su sala, si cambia la zona)
-        pintarTorre();
+        // Si acabas de vencer a un guardián por primera vez, la historia sigue.
+        if (resultado.relato) await mostrarRelato(resultado.relato);
+        else pintarTorre();
     },
     "torre-rendirse": () => {
-        if (!confirm("¿Huir de la Torre? Cobras lo que ganaste hasta ahora y la subida termina.")) return;
+        const texto = lugarAbierto === "mazmorra"
+            ? "¿Huir de la Mazmorra? Cobras lo que ganaste hasta ahora y el descenso termina."
+            : "¿Huir de la Torre? Cobras lo que ganaste hasta ahora y la subida termina.";
+        if (!confirm(texto)) return;
         ACCIONES["torre-cobrar"]();
     },
     "torre-cobrar": () => {
-        const resultado = ejecutar(() => acciones.terminarTorre(estado));
+        const resultado = ejecutar(() => acciones.terminarTorre(estado, lugarAbierto));
         if (!resultado) return;
         resultadoTorre = resultado;
         sonar(resultado.nuevoRecord ? "logro" : "moneda");

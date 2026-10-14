@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 14,
+        version: 15,
         personaje: null,      // { nombre, xp, monedas, creadoEn }
         atributos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 }, // XP de cada atributo
         atributosPropios: [], // los tuyos: { id, nombre, icono, color, base (uno de los 4), creadoEn }
@@ -81,9 +81,10 @@ export function estadoInicial() {
             activa: "dragon", // la que te acompaña
             adoptadas: {},    // las que adoptaste en la Tienda: { fenix: { nombre, desde (fecha) } }
         },
-        arcade: { usadas: 0, records: {}, torre: null, extra: 0, bestiario: {} },   // fichas gastadas, mejor puntaje de cada
-                                              //   minijuego, la partida de la Torre en curso (ver torre.js) o null, fichas de cofres
-                                              //   y lo que sabes de cada criatura de la Torre (ver bestiario.js):
+        arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, extra: 0, bestiario: {} },   // fichas gastadas, mejor
+                                              //   puntaje de cada minijuego (records.torre y records.mazmorra = pisos superados),
+                                              //   la partida de la Torre y la de la Mazmorra en curso (ver torre.js) o null,
+                                              //   fichas de cofres y lo que sabes de cada criatura (ver bestiario.js):
                                               //   { esqueleto: { vencidos: 3, elementos: ["fuego"] } }
         campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
         // Cómo se ve tu avatar (las opciones están en avatar.js → APARIENCIA).
@@ -130,6 +131,7 @@ function completar(guardado) {
             usadas: guardado.arcade?.usadas || 0,
             records: { ...guardado.arcade?.records },
             torre: guardado.arcade?.torre || null,
+            mazmorra: guardado.arcade?.mazmorra || null,
             extra: guardado.arcade?.extra || 0,
             bestiario: { ...guardado.arcade?.bestiario },
         },

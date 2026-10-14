@@ -37,6 +37,10 @@ const SONIDOS = {
     fuego:     { onda: "sawtooth", volumen: 0.11, notas: [[110, 0, 0.14], [147, 0.1, 0.14], [196, 0.2, 0.14], [262, 0.3, 0.28]] },
     hielo:     { onda: "triangle", volumen: 0.16, notas: [[1568, 0, 0.08], [2093, 0.07, 0.08], [1760, 0.14, 0.08], [2637, 0.21, 0.3]] },
     rayo:      { onda: "square",   volumen: 0.07, notas: [[1976, 0, 0.04], [247, 0.04, 0.12], [1568, 0.17, 0.04], [123, 0.21, 0.3]] },
+    // La Mazmorra (v29): el veneno burbujea (dos notas que bajan, como un trago amargo) y la
+    // coraza suena a metal que se cierra.
+    veneno:    { onda: "triangle", volumen: 0.16, notas: [[523, 0, 0.07], [494, 0.08, 0.07], [311, 0.18, 0.22]] },
+    coraza:    { onda: "square",   volumen: 0.06, notas: [[196, 0, 0.05], [1175, 0.04, 0.05], [988, 0.1, 0.2]] },
 };
 
 let contexto = null;   // el "motor" de audio; se crea la primera vez que hace falta

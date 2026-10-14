@@ -72,9 +72,18 @@ export function redondearColor(rojo, verde, azul, niveles) {
     return [r2, g2, b2].map((valor) => Math.round((valor + base) * 255));
 }
 
+// En sombras (el Reflejo sombrío de la Mazmorra): cada punto pasa a violeta oscuro, más claro
+// donde el original era claro (así se siguen viendo las formas), con un poco de su color de antes.
+export function enSombras(rojo, verde, azul) {
+    const luz = 0.3 * rojo + 0.59 * verde + 0.11 * azul;
+    const sombra = [30 + luz * 0.44, 16 + luz * 0.22, 52 + luz * 0.56];
+    return sombra.map((valor, i) => Math.round(valor * 0.85 + [rojo, verde, azul][i] * 0.15));
+}
+
 // Retoca los puntos de un lienzo: bordes duros, menos colores y contorno.
 // puntos = lista de números [rojo, verde, azul, opacidad, rojo, verde…] (4 por punto).
-export function retocarPuntos(puntos, ancho, alto, { niveles = 14, contorno = true } = {}) {
+// sombra: true = todo en sombras (ver enSombras).
+export function retocarPuntos(puntos, ancho, alto, { niveles = 14, contorno = true, sombra = false } = {}) {
     const total = ancho * alto;
     const lleno = new Uint8Array(total);   // 1 si el punto es parte del dibujo
     for (let i = 0; i < total; i++) {
@@ -82,7 +91,8 @@ export function retocarPuntos(puntos, ancho, alto, { niveles = 14, contorno = tr
         lleno[i] = opaco ? 1 : 0;
         puntos[i * 4 + 3] = opaco ? 255 : 0;
         if (!opaco) continue;
-        puntos.set(redondearColor(puntos[i * 4], puntos[i * 4 + 1], puntos[i * 4 + 2], niveles), i * 4);
+        const color = sombra ? enSombras(puntos[i * 4], puntos[i * 4 + 1], puntos[i * 4 + 2]) : [puntos[i * 4], puntos[i * 4 + 1], puntos[i * 4 + 2]];
+        puntos.set(redondearColor(...color, niveles), i * 4);
     }
     if (!contorno) return puntos;
 
@@ -101,10 +111,11 @@ export function retocarPuntos(puntos, ancho, alto, { niveles = 14, contorno = tr
 }
 
 // svg: el dibujo (texto). ancho × alto: el tamaño en puntos.
-// opciones: { clave (para guardar el resultado), niveles (colores por canal), contorno }
+// opciones: { clave (para guardar el resultado), niveles (colores por canal), contorno,
+//             sombra (todo en sombras), espejo (dado vuelta, como en un espejo) }
 // Devuelve la dirección de la imagen (se usa en <img src="…">), o null si no se pudo.
 export async function pixelar(svg, ancho, alto, opciones = {}) {
-    const { clave = null, contorno = true } = opciones;
+    const { clave = null, contorno = true, espejo = false } = opciones;
     if (clave && guardados.has(clave)) return guardados.get(clave);
 
     const imagen = await cargarImagen(direccionDeSvg(svg, ancho, alto));
@@ -115,7 +126,12 @@ export async function pixelar(svg, ancho, alto, opciones = {}) {
     const g = lienzo.getContext("2d", { willReadFrequently: true });
     // Con contorno, el dibujo deja un punto libre en cada borde (para que la línea quepa).
     const margen = contorno ? 1 : 0;
+    if (espejo) {
+        g.translate(ancho, 0);   // dar vuelta el lienzo: lo de la izquierda queda a la derecha
+        g.scale(-1, 1);
+    }
     g.drawImage(imagen, margen, margen, ancho - margen * 2, alto - margen * 2);
+    g.setTransform(1, 0, 0, 1, 0, 0);
 
     let direccion;
     try {

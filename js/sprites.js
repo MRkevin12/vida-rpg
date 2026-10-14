@@ -1,4 +1,4 @@
-// sprites.js — Las imágenes en pixel art de la Torre: tu héroe, las criaturas y las salas.
+// sprites.js — Las imágenes en pixel art de la Torre y la Mazmorra: tu héroe, las criaturas y las salas.
 //
 // Un "sprite" es la imagen de un personaje en un videojuego. Aquí se arman a partir de
 // los dibujos de la app (dibujo.js y dibujo-monstruos.js), pasados por pixel.js.
@@ -10,7 +10,7 @@ import { pixelar } from "./pixel.js";
 import { dibujarAvatar, dibujarMascota } from "./dibujo.js";
 import { dibujarMonstruo, dibujarSala, SALA } from "./dibujo-monstruos.js";
 import { dibujarMapa, MEDIDAS } from "./dibujo-mapa.js";
-import { CRIATURAS, ORDEN } from "./bestiario.js";
+import { CRIATURAS, ORDEN, ORDEN_MAZMORRA } from "./bestiario.js";
 
 export const HEROE = { ancho: 54, alto: 72 };   // el tamaño de tu héroe, en puntos
 export const MASCOTA = { ancho: 44, alto: 34 }; // el de tu mascota (su dibujo mide 72 × 56)
@@ -22,9 +22,18 @@ export function spriteDeHeroe(d) {
     return pixelar(svg, HEROE.ancho, HEROE.alto, { clave: `heroe-${JSON.stringify(d)}` });
 }
 
-export function spriteDeMonstruo(id) {
+// d (solo para el Reflejo sombrío) = la descripción de tu avatar: esa criatura es tu héroe en sombras.
+export function spriteDeMonstruo(id, d = null) {
+    if (CRIATURAS[id]?.espejo) return d ? spriteDeReflejo(d) : Promise.resolve(null);
     const talla = CRIATURAS[id]?.talla || 96;
     return pixelar(dibujarMonstruo(id), talla, talla, { clave: `monstruo-${id}` });
+}
+
+// El Reflejo sombrío (guardián de la Mazmorra): tu héroe, más grande, en sombras y como en un espejo.
+export function spriteDeReflejo(d) {
+    const ancho = CRIATURAS.reflejo.talla;
+    const svg = dibujarAvatar(d, { batalla: true, sinEfectos: true });
+    return pixelar(svg, ancho, Math.round((ancho * HEROE.alto) / HEROE.ancho), { clave: `reflejo-${JSON.stringify(d)}`, sombra: true, espejo: true });
 }
 
 // Tu mascota en la Torre. b = la de la partida: { especie, etapa ("huevo" | "cria" | "adulto"), triste }.
@@ -54,7 +63,9 @@ export function spriteDeMascotaEnMapa(m) {
 }
 
 // Todas las criaturas a la vez (para el bestiario): { esqueleto: "data:image/png…", … }
-export async function spritesDeCriaturas() {
-    const imagenes = await Promise.all(ORDEN.map(spriteDeMonstruo));
-    return Object.fromEntries(ORDEN.map((id, i) => [id, imagenes[i]]));
+// d = la descripción de tu avatar (para el Reflejo sombrío).
+export async function spritesDeCriaturas(d = null) {
+    const todas = [...ORDEN, ...ORDEN_MAZMORRA];
+    const imagenes = await Promise.all(todas.map((id) => spriteDeMonstruo(id, d)));
+    return Object.fromEntries(todas.map((id, i) => [id, imagenes[i]]));
 }

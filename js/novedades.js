@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 28;
+export const VERSION_APP = 29;
 
 export const NOVEDADES = [
+    {
+        version: 29,
+        titulo: "La Mazmorra del Abismo",
+        cambios: [
+            "⛓️ Bajo la Torre del héroe hay una mazmorra. Se abre cuando superas el piso 20 de la Torre (vence al Dragón de la tormenta).",
+            "👹 20 criaturas nuevas en 4 zonas: Cisternas anegadas, Bosque de raíces, Santuario de las Sombras y Corazón del Abismo. Uno de sus guardianes es tu propio reflejo.",
+            "💀 Es más difícil: pegan más fuerte y cada una tiene un ataque especial (☠️ veneno, 🩸 beber tu vida, 🔒 sellar tu magia o 🐚 coraza). Los guardianes se enfurecen a media vida y entre sótanos no descansas. Paga más: hasta 80 🪙 y 120 XP de Fuerza.",
+            "📜 La Torre y la Mazmorra ahora cuentan una historia: quiénes eran los Vigías, por qué se apagó la Llama y qué hay debajo. Se lee la primera vez que llegas a cada zona, y lo que ya recorriste está en «📜 Historia», en el Arcade.",
+            "🎵 En la Mazmorra suena la música de misterio, y el bestiario tiene una sección nueva para sus criaturas.",
+        ],
+    },
     {
         version: 28,
         titulo: "Cada mes y pantalla de carga",

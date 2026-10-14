@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v29 — La Mazmorra del Abismo
+- **Una mazmorra nueva bajo la Torre:** se abre al superar el piso 20 de la Torre del héroe (vencer al Dragón de la tormenta); mientras tanto, en el Arcade se ve cerrada con lo que falta. Se juega igual que la Torre pero bajando, con su propia partida guardada (`estado.arcade.mazmorra`) y su récord. Cuesta 1 ficha y paga más: 5 monedas y 8 XP de Fuerza por sótano (máx. 80 y 120).
+- **20 criaturas nuevas en 4 zonas:** Cisternas anegadas (Sanguijuela gigante, Ahogado, Aguaviva pálida, Cangrejo acorazado y la Bestia de la cisterna), Bosque de raíces (Hongo carroñero, Escorpión de raíz, Gusano devorador, Raíz estranguladora y el Árbol hueco), Santuario de las Sombras (Acólito, Can del umbral, Sacerdotisa velada, Sabueso de ceniza y el **Reflejo sombrío**, que es tu propio héroe en sombras) y Corazón del Abismo (los cuatro Heraldos de las Sombras y el Rey Hueco). Dibujos SVG propios convertidos en pixel art, con 4 salas nuevas.
+- **Más difícil:** las criaturas tienen más vida y ataque (un sótano 1 se parece a un piso 9 de la Torre), todas resisten un elemento y cada una tiene un **ataque especial**: ☠️ veneno (5 % de tu vida por turno durante 3 turnos; una poción lo cura), 🩸 drenar (se cura lo que te quita), 🔒 sello (te quita 2 hechizos) o 🐚 coraza (tu próximo golpe le hace la mitad). Los guardianes se **enfurecen** una vez al quedar con media vida y al bajar de sótano no recuperas vida. Balance simulado: quien recién supera la Torre llega al sótano 7–9; vencer al Rey Hueco pide atributos en nivel ~22 con buen equipo.
+- **Historia:** la Torre («La Llama de los Vigías») y la Mazmorra («El Rey Hueco») cuentan una historia que sigue a la Crónica del reino (`js/leyendas.js`): un prólogo, un capítulo por zona y un epílogo. Se lee en la batalla la primera vez que llegas a cada zona o vences a su guardián, y se relee con «📜 Historia» en el Arcade.
+- El bestiario tiene una sección para la Mazmorra (con el ataque especial de cada criatura). En la Mazmorra suena la música de misterio. Sonidos nuevos: veneno y coraza.
+- Datos versión 15.
+
 ## v28 — Cada mes y pantalla de carga
 - **Misiones de cada mes:** la frecuencia nueva «Cada mes» (`mision.diasMes`: uno o varios días del 1 al 31). El 29, el 30 y el 31 caen en el último día si el mes es más corto. Ese día la misión toca como cualquier otra: sale en Hoy y cuenta para la racha, los días perfectos, la vida, el calendario, el resumen y el daño a los jefes. En «Otros días» dice cuándo es la próxima vez. Dos plantillas nuevas: «Revisar mis finanzas del mes» (el 1) y «Pagar las cuentas del mes» (el 5).
 - **Avisos de las mensuales:** el servidor solo entiende días de la semana, así que la app le dice «todos los días» y le pide callar hasta el día antes de la próxima vez (`saltarHasta`). No hubo que cambiar el servidor.
