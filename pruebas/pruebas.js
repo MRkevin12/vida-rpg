@@ -37,6 +37,7 @@ import * as mapa from "../js/mapa.js";
 import * as mascota from "../js/mascota.js";
 import * as maestro from "../js/maestro.js";
 import * as memorias from "../js/memorias.js";
+import * as pergamino from "../js/pergamino.js";
 import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
@@ -2341,6 +2342,39 @@ prueba("El Maestro: su saludo depende de cómo vas, y responde a lo que le dices
     crearMision(raro, { nombre: "<img src=x onerror=alert(1)>" });
     const html = vistas.dialogoMaestro({ maestro: maestro.contexto(raro, hoy(), a(8)) }, { modo: "clave" });
     cierto(html.includes("&lt;img") && !html.includes("<img src=x"), "los nombres van escapados");
+});
+
+
+// ===== La primera piedra (v33) =====
+
+prueba("La primera piedra: un pergamino largo, completo y con tu nombre en la dedicatoria", () => {
+    igual(pergamino.CAPITULOS.length, 10, "diez capítulos");
+    for (const c of pergamino.CAPITULOS) cierto(c.titulo && c.parrafos.length >= 1 && c.parrafos.every((p) => p.length > 20), `«${c.titulo}» tiene texto`);
+    igual(pergamino.ENSENANZAS.length, 10, "diez enseñanzas");
+    cierto(pergamino.palabras() >= 1500, `es largo: ${pergamino.palabras()} palabras`);
+    igual(pergamino.minutosDeLectura(), Math.round(pergamino.palabras() / 200));
+    const p = pergamino.pergaminoPara("Ana");
+    igual(p.capitulos.map((c) => c.numero).slice(0, 3), ["I", "II", "III"]);
+    const texto = JSON.stringify(p);
+    cierto(!texto.includes("{n}") && p.dedicatoria[0].includes("en las tuyas, Ana"), "el nombre en su lugar");
+    cierto(pergamino.ENSENANZAS.includes("Puedes fallar un día. Nunca dos seguidos."), "la ley de tu pacto");
+});
+
+prueba("La primera piedra (pantalla): se lee como un rollo, sin huecos, y se llega desde Héroe y desde Aurelio", () => {
+    const estado = partidaNueva();
+    estado.personaje.nombre = "Ana <b>";
+    const html = vistas.pantallaPergamino(estado);
+    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(html.includes("rollo-vara") && html.includes("rollo-papel") && html.includes("La primera piedra"), "el rollo");
+    igual(html.split('class="rollo-capitulo"').length - 1, 10, "los diez capítulos");
+    cierto(html.includes("Ana &lt;b&gt;") && !html.includes("Ana <b>"), "el nombre va escapado");
+    cierto(html.includes("Las enseñanzas de la primera piedra") && html.includes("— Lía, la de la primera piedra"), "enseñanzas y firma");
+
+    const c = maestro.contexto(estado, hoy(), Date.now());
+    const dialogo = (opcion) => vistas.dialogoMaestro({ maestro: c }, { modo: "respuesta", respuesta: "…", opcion });
+    cierto(dialogo("sinGanas").includes('data-accion="pergamino-abrir"') && dialogo("abrumado").includes('data-accion="pergamino-abrir"'),
+           "Aurelio lo ofrece si no tienes ganas o estás abrumado");
+    igual(dialogo("consejo").includes("pergamino-abrir"), false, "y no en cualquier respuesta");
 });
 
 

@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 32;
+export const VERSION_APP = 33;
 
 export const NOVEDADES = [
+    {
+        version: 33,
+        titulo: "La primera piedra",
+        cambios: [
+            "📜 Un pergamino nuevo para los días difíciles: «La primera piedra», la historia de quien empezó la Torre poniendo una piedra cada día. Diez capítulos, sus enseñanzas y una dedicatoria para ti (unos 9 minutos de lectura).",
+            "Está en Héroe › Historia, y Aurelio te lo ofrece cuando le dices que no tienes ganas o que estás abrumado.",
+        ],
+    },
     {
         version: 32,
         titulo: "El equipo, con gemas",

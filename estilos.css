@@ -7483,3 +7483,193 @@ body:has(#deshacer:not([hidden])) .aviso {
     display: block;
     color: var(--texto-suave);
 }
+
+
+/* =====================================================================
+   «La primera piedra»: el pergamino que se desenrolla (v33)
+   ===================================================================== */
+
+.rollo {
+    color-scheme: light;
+    --tinta: #2b1d14;
+    --tinta-suave: #5f4a38;
+    --sangre: #7a1414;
+    margin: 12px 0 18px;
+}
+
+/* Las varas de madera de arriba y de abajo, con sus perillas. */
+.rollo-vara {
+    position: relative;
+    z-index: 1;
+    height: 18px;
+    margin: 0 -6px;
+    background: linear-gradient(180deg, #a06a35 0%, #6b3f1c 45%, #3d220c 100%);
+    border-radius: 9px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.55);
+}
+
+.rollo-vara::before,
+.rollo-vara::after {
+    content: "";
+    position: absolute;
+    top: -4px;
+    width: 26px;
+    height: 26px;
+    background: radial-gradient(circle at 35% 30%, #d9a45c, #7a4a1f 60%, #3d220c);
+    border-radius: 50%;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+.rollo-vara::before {
+    left: -10px;
+}
+
+.rollo-vara::after {
+    right: -10px;
+}
+
+/* El papel: viejo, con las orillas más oscuras y letra de libro. */
+.rollo-papel {
+    margin: -6px 6px;
+    padding: 30px 22px 28px;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.04rem;
+    line-height: 1.7;
+    color: var(--tinta);
+    background:
+        linear-gradient(90deg, rgba(110, 72, 28, 0.28), transparent 8%, transparent 92%, rgba(110, 72, 28, 0.28)),
+        radial-gradient(ellipse at 50% 10%, rgba(255, 252, 240, 0.6), transparent 55%),
+        linear-gradient(180deg, #efe2c4, #e6d3ab 50%, #e9d8b4);
+    box-shadow: inset 0 0 40px rgba(110, 72, 28, 0.3), 0 10px 30px rgba(0, 0, 0, 0.45);
+    animation: desenrollar 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes desenrollar {
+    from { clip-path: inset(0 0 100% 0); }
+    to { clip-path: inset(0 0 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rollo-papel {
+        animation: none;
+    }
+}
+
+.rollo-papel p {
+    margin: 0 0 14px;
+    text-align: justify;
+    hyphens: auto;
+}
+
+.rollo-cabecera {
+    text-align: center;
+}
+
+.rollo-cabecera h2 {
+    margin: 6px 0;
+    font-family: inherit;
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tinta);
+}
+
+.rollo-papel .rollo-sobre {
+    margin: 0;
+    font-size: 0.74rem;
+    letter-spacing: 0.24em;
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--sangre);
+}
+
+.rollo-papel .rollo-subtitulo {
+    font-size: 0.88rem;
+    font-style: italic;
+    text-align: center;
+    color: var(--tinta-suave);
+}
+
+.rollo-prologo p {
+    font-style: italic;
+    color: var(--tinta-suave);
+}
+
+.rollo-papel .rollo-adorno {
+    margin: 10px 0 16px;
+    font-size: 1.4rem;
+    text-align: center;
+    color: var(--sangre);
+}
+
+.rollo-papel .rollo-numero {
+    margin: 0;
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    text-align: center;
+    color: var(--sangre);
+}
+
+.rollo-titulo-capitulo {
+    margin: 2px 0 12px;
+    font-family: inherit;
+    font-size: 1.2rem;
+    text-align: center;
+    color: var(--tinta);
+}
+
+/* La primera letra de cada capítulo, grande y roja. */
+.rollo-capitulo > h3 + p::first-letter {
+    float: left;
+    margin: 6px 8px 0 0;
+    font-size: 3.2em;
+    line-height: 0.8;
+    font-weight: 700;
+    color: var(--sangre);
+}
+
+.rollo-ensenanzas {
+    margin: 8px 0;
+    padding: 14px 12px 6px;
+    border-top: 1px solid rgba(107, 79, 46, 0.4);
+    border-bottom: 1px solid rgba(107, 79, 46, 0.4);
+}
+
+.rollo-ensenanzas h3 {
+    margin: 0 0 10px;
+    font-family: inherit;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--sangre);
+}
+
+.rollo-ensenanzas ol {
+    margin: 0;
+    padding-left: 1.6em;
+}
+
+.rollo-ensenanzas li {
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.rollo-ensenanzas li::marker {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--sangre);
+}
+
+.rollo-dedicatoria p {
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.rollo-papel .rollo-firma {
+    margin-top: 8px;
+    font-style: italic;
+    text-align: right;
+    color: var(--tinta-suave);
+}

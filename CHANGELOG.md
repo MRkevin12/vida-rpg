@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v33 — La primera piedra
+- **Pergamino motivacional** (`js/pergamino.js`): «La primera piedra», la historia de Lía, la hija del cantero, que levantó la Torre poniendo una piedra cada día para ver más allá de la niebla del valle. Prólogo, 10 capítulos (los días sin ganas, las opiniones de los demás, el día que no subió, la Sombra de la mañana, la tormenta, los que llegaron…), las diez «enseñanzas de la primera piedra» y una dedicatoria con el nombre de tu héroe. Unas 1.860 palabras.
+- Se lee en una pantalla nueva con forma de rollo (varas de madera arriba y abajo) que se desenrolla al abrirla. Está en Héroe › Historia, y el Maestro Aurelio lo ofrece cuando le dices que no tienes ganas o que estás abrumado.
+
 ## v32 — El equipo, con gemas
 - El equipo del avatar (Tienda › Equipo) se compra con gemas 💎, con los mismos precios. Las monedas 🪙 quedan para los premios reales y las pociones de vida. El descuento del «Mercader ambulante» sigue valiendo para el equipo.
 

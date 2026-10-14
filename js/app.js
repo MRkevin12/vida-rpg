@@ -67,7 +67,7 @@ let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
 
 // Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
-const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje" };
+const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje" };
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -86,6 +86,7 @@ const DIBUJAR = {
     libro: vistas.pantallaLibro,
     mapa: vistas.pantallaMapa,
     memorias: vistas.pantallaMemorias,
+    pergamino: vistas.pantallaPergamino,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -2287,6 +2288,11 @@ const ACCIONES = {
 
     // El Maestro.
     "maestro-abrir": (boton) => abrirMaestro(boton.dataset.modo || "inicio"),
+    // «La primera piedra»: el pergamino motivacional (desde Héroe › Historia o desde la conversación con Aurelio).
+    "pergamino-abrir": () => {
+        if (!$("#maestro").hidden) cerrarMaestro();
+        cambiarPantalla("pergamino");
+    },
     // Sus memorias: al abrirlas quedan leídas (las que eran nuevas se marcan «Nuevo» esta vez).
     "memorias-abrir": () => {
         memoriasDesde = estado.maestro.leidas || 0;

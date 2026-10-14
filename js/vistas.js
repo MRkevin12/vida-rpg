@@ -22,6 +22,7 @@ import * as pacto from "./pacto.js";
 import * as libro from "./libro.js";
 import * as maestro from "./maestro.js";
 import * as memorias from "./memorias.js";
+import * as pergamino from "./pergamino.js";
 import * as rituales from "./rituales.js";
 import * as mapa from "./mapa.js";
 import * as cronica from "./cronica.js";
@@ -628,6 +629,8 @@ export function dialogoMaestro(ctx, m) {
     } else if (m.modo === "respuesta") {
         texto = m.respuesta;
         if (m.opcion === "historia" && c.memorias.abiertas) opciones += opcion("memorias-abrir", "📜 Leer sus memorias");
+        // Si no tienes ganas o estás abrumado, te ofrece leer «La primera piedra».
+        if (m.opcion === "sinGanas" || m.opcion === "abrumado") opciones += opcion("pergamino-abrir", `📜 Leer «${pergamino.TITULO}»`);
         if (puedeClave) opciones += opcion("maestro-modo", "🔑 Elegir mi misión clave", 'data-modo="clave"');
         opciones += opcion("maestro-modo", "‹ Seguir hablando", 'data-modo="inicio"');
         opciones += opcion("maestro-cerrar", "Gracias, maestro");
@@ -3066,6 +3069,8 @@ function seccionHistoria(estado, ctx) {
                              'data-accion="ir" data-pantalla="libro"')}
                 ${filaEnlace("🗺️", "Crónica del reino", `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
                              'data-accion="ir" data-pantalla="mapa"')}
+                ${filaEnlace("📜", pergamino.TITULO, `Una historia para los días difíciles · ${pergamino.minutosDeLectura()} min de lectura`,
+                             'data-accion="pergamino-abrir"')}
                 ${filaEnlace("🧙", "Memorias de Aurelio", `${ctx.maestro.memorias.abiertas} de ${ctx.maestro.memorias.total} capítulos` +
                              `${ctx.maestro.memorias.sinLeer ? ` · ${plural(ctx.maestro.memorias.sinLeer, "nuevo", "nuevos")}` : ""}`,
                              'data-accion="memorias-abrir"')}
@@ -3112,6 +3117,45 @@ export function pantallaMemorias(estado, ctx) {
                 : "Lo que tu maestro no le cuenta a cualquiera. Te lo irá contando a medida que avances."}</p>
             ${html}
         </section>`;
+}
+
+
+// ===== Pantalla: «La primera piedra» (v33) =====
+// Una historia motivacional larga, como un pergamino que se desenrolla (el texto está en pergamino.js).
+export function pantallaPergamino(estado) {
+    const p = pergamino.pergaminoPara(estado.personaje.nombre);
+    const parrafos = (lista) => lista.map((texto) => `<p>${esc(texto)}</p>`).join("");
+    const adorno = '<p class="rollo-adorno" aria-hidden="true">❦</p>';
+    const capitulos = p.capitulos.map((c) => `
+        <section class="rollo-capitulo">
+            <p class="rollo-numero">${c.numero}</p>
+            <h3 class="rollo-titulo-capitulo">${esc(c.titulo)}</h3>
+            ${parrafos(c.parrafos)}
+        </section>`).join(adorno);
+    return `
+        ${encabezado("📜 Pergamino", "personaje", "Héroe")}
+        <article class="rollo">
+            <div class="rollo-vara" aria-hidden="true"></div>
+            <div class="rollo-papel">
+                <header class="rollo-cabecera">
+                    <p class="rollo-sobre">Para los días difíciles · ${p.minutos} min de lectura</p>
+                    <h2>${esc(p.titulo)}</h2>
+                    <p class="rollo-subtitulo">${esc(p.subtitulo)}</p>
+                </header>
+                <div class="rollo-prologo">${parrafos(p.prologo)}</div>
+                ${adorno}
+                ${capitulos}
+                <section class="rollo-ensenanzas">
+                    <h3>Las enseñanzas de la primera piedra</h3>
+                    <ol>${p.ensenanzas.map((texto) => `<li>${esc(texto)}</li>`).join("")}</ol>
+                </section>
+                ${adorno}
+                <div class="rollo-dedicatoria">${parrafos(p.dedicatoria)}</div>
+                <p class="rollo-firma">— ${esc(p.firma)}</p>
+            </div>
+            <div class="rollo-vara" aria-hidden="true"></div>
+        </article>
+        <button type="button" class="boton boton-secundario boton-ancho" data-accion="ir" data-pantalla="personaje">‹ Volver a tu Héroe</button>`;
 }
 
 
