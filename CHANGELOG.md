@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v47 — Siempre en modo esencial
+- **«🚪 Abrir siempre en modo esencial»** (`ajustes.esencialAlAbrir`, encendido por defecto): al abrir la app (`entrarAlJuego`, también tras el PIN) se pone `ajustes.esencial = true`. Dentro de la sesión, el botón 🎯 de Hoy sigue sacándote del modo; al volver a abrir, arranca otra vez en él. Se apaga en Ajustes (junto al interruptor del modo esencial). Datos versión 26.
+
 ## v46 — Modo esencial
 - **🎯 Modo esencial** (`ajustes.esencial`): un botón «🎯 Esencial» en la pantalla Hoy (junto al selector Ayer/Hoy) y un interruptor en Ajustes. Encendido, **Hoy** muestra solo lo importante: tus misiones del día con «+ Nueva misión» y «Ordenar», las tareas, las **misiones principales** (que antes estaban solo en Aventuras) y el diario. Se esconden el héroe, «Tu día» (Aurelio, cofre, relámpago, pacto, desafío), los avisos, la tarjeta de la semana y el foco semanal; el aviso de la copia de seguridad se queda.
 - **Pestañas:** quedan **Hoy, Progreso y Tienda**. Aventuras (campaña, Torre, Voces, Arcade, mapa) y Héroe se esconden, pero siguen guardados; la partida no cambia al encenderlo ni al apagarlo. Si lo enciendes estando en otra pantalla, te lleva a Hoy.

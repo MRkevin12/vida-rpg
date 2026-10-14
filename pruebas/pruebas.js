@@ -4265,7 +4265,7 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     const vieja = JSON.stringify({ version: 1, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] });
     const estado = datos.desdeRespaldo(vieja);
     igual(estado.version, datos.estadoInicial().version, "la versión de los datos");
-    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true, esencial: false });
+    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true, esencial: false, esencialAlAbrir: true });
     igual([estado.claves, estado.cofres, estado.noches, estado.mapa, estado.arcade.extra], [{}, {}, [], { reclamados: [] }, 0], "lo de la v22");
     igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
     igual(estado.campana, { recompensados: {} });
@@ -4406,6 +4406,8 @@ prueba("Modo esencial: Hoy muestra solo lo importante, y Aventuras sigue teniend
     });
     const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
     igual(datos.estadoInicial().ajustes.esencial, false, "viene apagado");
+    igual(datos.estadoInicial().ajustes.esencialAlAbrir, true, "pero al abrir la app arranca en él (v47)");
+    debeFallar(() => acciones.cambiarAjuste(partidaNueva(), "inventado", true), "no existe");
 
     // Completo: el héroe, «Tu día» y las misiones; las principales NO están en Hoy (viven en Aventuras).
     const completo = vistas.pantallaHoy(estado, ctx());

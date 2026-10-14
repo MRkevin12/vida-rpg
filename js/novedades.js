@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 46;
+export const VERSION_APP = 47;
 
 export const NOVEDADES = [
+    {
+        version: 47,
+        titulo: "Siempre en modo esencial",
+        cambios: [
+            "🚪 Ahora la app siempre abre en modo esencial: solo tus misiones, tareas, misiones principales y diario. Puedes salir con el botón 🎯 de Hoy para jugar completo; al volver a abrir la app, arranca otra vez en modo esencial.",
+            "Si prefieres que abra como antes, apaga «Abrir siempre en modo esencial» en Ajustes.",
+        ],
+    },
     {
         version: 46,
         titulo: "Modo esencial",

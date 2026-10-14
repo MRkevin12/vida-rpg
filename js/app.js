@@ -143,6 +143,8 @@ function ocultarCarga() {
 function entrarAlJuego({ nuevo = false } = {}) {
     $("#crear-personaje").hidden = true;
     $("#juego").hidden = false;
+    // (v47) Cada vez que abres la app arranca en modo esencial (si no lo quieres, se apaga en Ajustes).
+    if (estado.ajustes.esencialAlAbrir) estado.ajustes.esencial = true;
     refrescar();
     revisarAlAbrir();
     if (nuevo) {
@@ -1394,6 +1396,7 @@ const PREPARAR = {
         $("#ajustes-eventos").checked = estado.ajustes.eventos;
         $("#ajustes-cinematicas").checked = estado.ajustes.cinematicas !== false;
         $("#ajustes-esencial").checked = Boolean(estado.ajustes.esencial);
+        $("#ajustes-esencial-al-abrir").checked = Boolean(estado.ajustes.esencialAlAbrir);
         $("#ajustes-musica").checked = estado.ajustes.musica;
         $("#ajustes-volumen").value = Math.round((Number.isFinite(estado.ajustes.volumen) ? estado.ajustes.volumen : 0.6) * 100);
         for (const radio of document.querySelectorAll('input[name="pista"]')) radio.checked = radio.value === estado.ajustes.pista;
@@ -2934,6 +2937,7 @@ function conectarEventos() {
     $("#ajustes-golpe").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "golpe", evento.target.checked)));
     $("#ajustes-eventos").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "eventos", evento.target.checked)));
     $("#ajustes-esencial").addEventListener("change", (evento) => cambiarModoEsencial(evento.target.checked));
+    $("#ajustes-esencial-al-abrir").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "esencialAlAbrir", evento.target.checked)));
     $("#ajustes-cinematicas").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "cinematicas", evento.target.checked)));
     // Tocar el fondo del golpe con timing = golpear.
     $("#golpe").addEventListener("pointerdown", () => golpear());
