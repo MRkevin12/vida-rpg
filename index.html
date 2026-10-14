@@ -517,6 +517,10 @@
                     <input type="checkbox" id="ajustes-golpe">
                 </label>
                 <label class="interruptor">
+                    <span><b>🎬 Cinemáticas</b><br><span class="nota">Escenas animadas en la Torre: guardianes, zonas nuevas y el final. Se pueden saltar.</span></span>
+                    <input type="checkbox" id="ajustes-cinematicas">
+                </label>
+                <label class="interruptor">
                     <span><b>🎲 Eventos del día</b><br><span class="nota">Mercader ambulante, Luna de sangre, Aguas termales…</span></span>
                     <input type="checkbox" id="ajustes-eventos">
                 </label>
@@ -677,6 +681,14 @@
     <!-- ========== Torre del héroe en pantalla completa (app.js la dibuja en torre-caja) ========== -->
     <div id="torre" class="minijuego torre" hidden>
         <div class="minijuego-caja torre-caja" id="torre-caja"></div>
+    </div>
+
+
+    <!-- ========== Cinemáticas de la Torre (v43; cine.js las reproduce, cinematicas.js dice qué se ve) ========== -->
+    <div id="cine" class="cine" hidden role="dialog" aria-label="Escena de la Torre">
+        <div class="cine-escena" id="cine-escena"></div>
+        <div class="cine-barra"><p class="cine-texto" id="cine-texto" aria-live="polite"></p></div>
+        <button type="button" class="cine-saltar" id="cine-saltar">Saltar ⏭</button>
     </div>
 
 

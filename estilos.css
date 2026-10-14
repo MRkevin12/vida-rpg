@@ -7911,3 +7911,290 @@ body:has(#deshacer:not([hidden])) .aviso {
         animation: none;
     }
 }
+
+
+/* ===== Cinemáticas de la Torre (v43) =====
+   cine.js arma cada toma dentro de #cine-escena. Las cámaras (camara-…) mueven .cine-mundo (el fondo y los actores
+   juntos); los efectos (efecto-…) y los destellos van por encima. --px es cuánto mide en pantalla un punto del pixel art. */
+.cine {
+    position: fixed;
+    inset: 0;
+    z-index: 18;   /* encima de la Torre (12), debajo de las celebraciones (20) y del PIN (30) */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #000;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cine[hidden] {
+    display: none;
+}
+
+/* La escena es cuadrada (en el iPhone ocupa todo el ancho): el fondo se recorta por los lados con object-fit: cover. */
+.cine-escena,
+.cine-barra {
+    width: min(100vw, calc(100dvh - 9rem));
+}
+
+.cine-escena {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    container-type: inline-size;
+    background: #0b0816;
+}
+
+.cine-barra {
+    min-height: 6.5rem;
+    padding: 16px 20px 0;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.cine-texto {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: #f1f3ff;
+    text-shadow: 0 1px 0 #000;
+}
+
+.cine-saltar {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: 14px;
+    min-height: 44px;
+    padding: 0 16px;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.cine-toma {
+    --px: calc(100cqw / 160);   /* los sprites, un poco más chicos que el fondo para que quepan los dos */
+    position: absolute;
+    inset: 0;
+    animation: cine-aparece 0.45s ease-out;
+}
+
+@keyframes cine-aparece {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.cine-mundo {
+    position: absolute;
+    inset: 0;
+    transform-origin: var(--foco, 50% 60%);
+}
+
+.cine-fondo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.cine-actor {
+    position: absolute;
+    left: var(--x);
+    bottom: 12%;
+    transform: translateX(-50%);
+}
+
+.cine-sprite {
+    display: block;
+    width: calc(var(--px) * var(--talla));
+    height: auto;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.cine-sombra {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: calc(var(--px) * -2);
+    height: calc(var(--px) * 5);
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+}
+
+/* --- Las cámaras --- */
+/* Sube desde el suelo hasta lo más alto de la sala. */
+.camara-arriba .cine-mundo {
+    transform-origin: 50% 100%;
+    animation: cine-sube var(--ms) ease-in-out forwards;
+}
+
+@keyframes cine-sube {
+    from { transform: translateY(0) scale(1.5); }
+    to { transform: translateY(50%) scale(1.5); }
+}
+
+/* Se acerca despacio hacia --foco. */
+.camara-zoom .cine-mundo {
+    animation: cine-acerca var(--ms) ease-in forwards;
+}
+
+@keyframes cine-acerca {
+    from { transform: scale(1); }
+    to { transform: scale(1.7); }
+}
+
+.camara-izquierda .cine-mundo {
+    transform-origin: 70% 70%;
+    animation: cine-izquierda var(--ms) ease-in-out forwards;
+}
+
+@keyframes cine-izquierda {
+    from { transform: scale(1.35) translateX(5%); }
+    to { transform: scale(1.35) translateX(-5%); }
+}
+
+.camara-derecha .cine-mundo {
+    transform-origin: 70% 70%;
+    animation: cine-derecha var(--ms) ease-in-out forwards;
+}
+
+@keyframes cine-derecha {
+    from { transform: scale(1.35) translateX(-5%); }
+    to { transform: scale(1.35) translateX(5%); }
+}
+
+/* Casi quieta: respira un poco. */
+.camara-quieto .cine-mundo {
+    animation: cine-respira var(--ms) ease-in-out forwards;
+}
+
+@keyframes cine-respira {
+    from { transform: scale(1); }
+    to { transform: scale(1.06); }
+}
+
+/* --- Los efectos --- */
+.cine-destello {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.efecto-destello .cine-destello {
+    animation: cine-flash 1s ease-out;
+}
+
+@keyframes cine-flash {
+    0% { opacity: 0; }
+    10% { opacity: 0.95; }
+    100% { opacity: 0; }
+}
+
+.efecto-oscuro .cine-mundo {
+    filter: brightness(0.62) saturate(0.85);
+}
+
+.efecto-oscuro::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 55%, transparent 32%, rgba(0, 0, 0, 0.78));
+    pointer-events: none;
+}
+
+.cine-toma.efecto-temblor {
+    animation: cine-aparece 0.45s ease-out, cine-tiembla 0.4s steps(8) 0.5s 4;
+}
+
+@keyframes cine-tiembla {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(calc(var(--px) * -2), calc(var(--px) * 1)); }
+    50% { transform: translate(calc(var(--px) * 2), calc(var(--px) * -1)); }
+    75% { transform: translate(calc(var(--px) * -1), calc(var(--px) * 2)); }
+}
+
+/* --- Los actores --- */
+.cine-late .cine-sprite {
+    transform-origin: 50% 100%;
+    animation: cine-late 1.5s ease-in-out infinite;
+}
+
+@keyframes cine-late {
+    0%, 100% { transform: scale(1); filter: none; }
+    50% { transform: scale(1.04); filter: brightness(1.25); }
+}
+
+/* Cae: parpadea por el golpe y se deshace (los mismos pasos que en la batalla). */
+.cine-cae .cine-sprite {
+    animation: ff-parpadeo 0.42s steps(1) 0.5s, ff-deshacer 1.1s steps(11) 1.1s forwards;
+}
+
+.cine-cae .cine-sombra {
+    animation: ff-desaparecer 0.3s steps(3) 2.1s forwards;
+}
+
+/* Tu héroe entra caminando por la izquierda. */
+.cine-camina .cine-sprite {
+    animation: cine-camina 1.8s steps(9) both;
+}
+
+@keyframes cine-camina {
+    from { transform: translateX(calc(var(--px) * -40)); opacity: 0; }
+    15% { opacity: 1; }
+    to { transform: translateX(0); }
+}
+
+/* --- El cartel (nombre del guardián o de la zona) --- */
+.cine-titulo {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 8%;
+    margin: 0;
+    padding: 0 6%;
+    font-family: "Orbitron", sans-serif;
+    font-size: clamp(1rem, 5.2cqw, 1.9rem);
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: center;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 14px rgba(251, 191, 36, 0.75), 0 2px 0 #000;
+    animation: cine-titulo var(--ms) ease-out both;
+}
+
+@keyframes cine-titulo {
+    0% { opacity: 0; letter-spacing: 0.3em; }
+    18% { opacity: 1; letter-spacing: 0.08em; }
+    86% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Quien prefiere menos movimiento: sin cámara, sin temblor y sin destellos (el texto y el cambio de toma siguen). */
+@media (prefers-reduced-motion: reduce) {
+    .cine-mundo,
+    .cine-toma.efecto-temblor,
+    .cine-late .cine-sprite,
+    .cine-camina .cine-sprite {
+        animation: none;
+    }
+
+    .cine-destello {
+        display: none;
+    }
+}

@@ -467,6 +467,7 @@ export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporc
         lugar: mazmorra ? "mazmorra" : "torre",
         semilla,
         marca,                    // la marca elegida (o null)
+        cine: null,               // la cinemática que toca ver ("zona", "entrada", "derrota", "final") o null (v43)
         piso: 1,
         fase: "batalla",          // "batalla" | "mejora" (elegir premio) | "fin"
         heroe,
@@ -835,6 +836,7 @@ function vencer(partida, eventos, frases) {
         if (cura) frases.push(`Del botín de guerra recuperas ${cura}.`);
     }
     partida.fase = "mejora";
+    partida.cine = cineAlVencer(partida);
     partida.opciones = mejorasAlAzar(partida);
     partida.registro = frases.join(" ");
     eventos.push({ quien: "enemigo", tipo: "derrotado" });
@@ -977,6 +979,7 @@ export function elegirMejora(partida, clave) {
     partida.registro = esGuardian(partida.piso)
         ? `${nombreDelPiso(partida)}: ¡${elMonstruo(m)}, ${m.genero === "f" ? "guardiana" : "guardián"} ${deLaZona(zona)}, te cierra el paso!`
         : `${entras}${nombreDelPiso(partida)}: aparece ${elMonstruo(m)}.`;
+    partida.cine = cineAlLlegar(partida);
     // v42: en algunos pisos, antes de pelear, hay una sala (la criatura espera al otro lado).
     const tipo = salaDelPiso(partida);
     if (tipo) {
@@ -984,6 +987,23 @@ export function elegirMejora(partida, clave) {
         partida.fase = "sala";
         partida.registro = `${nombreDelPiso(partida)}: ${SALAS[tipo].texto}`;
     }
+}
+
+
+// ===== Cinemáticas (v43) =====
+// Aquí solo se ANOTA cuál toca (en `partida.cine`); qué se ve lo dice cinematicas.js y la reproduce app.js, que
+// después la borra con acciones.tomarCinematica. Una partida guardada con una cinemática sin ver la mostrará al abrirse.
+//   al llegar a un piso: "entrada" (es el de un guardián) o "zona" (empieza una zona nueva; el piso 1 ya tiene su historia)
+//   al vencer: "derrota" (cayó un guardián) o "final" (cayó el último del lugar: el Apagador o el Rey Hueco)
+function cineAlLlegar(partida) {
+    if (esGuardian(partida.piso)) return "entrada";
+    if (partida.piso % PISOS_POR_ZONA === 1 && partida.piso > 1) return "zona";
+    return null;
+}
+
+function cineAlVencer(partida) {
+    if (!esGuardian(partida.piso)) return null;
+    return partida.piso === lugarDe(partida.lugar).zonas.length * PISOS_POR_ZONA ? "final" : "derrota";
 }
 
 

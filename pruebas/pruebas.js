@@ -16,6 +16,8 @@ import * as juego from "../js/juego.js";
 import * as campana from "../js/campana.js";
 import * as desafios from "../js/desafios.js";
 import * as retos from "../js/retos.js";
+import * as cinematicas from "../js/cinematicas.js";
+import { existeSonido } from "../js/sonido.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO } from "../js/resumen.js";
 import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
@@ -1381,6 +1383,98 @@ prueba("Salas: se guardan con la partida y se puede huir desde ellas", () => {
     Object.assign(e2.arcade.torre, { piso: 5, fase: "sala", sala: { tipo: "fuente", antes: "" } });
     const r = acciones.terminarTorre(e2);
     igual(r.pisos, 4);
+});
+
+
+// ===== Cinemáticas (v43) =====
+
+// Qué cinemática anota la partida al llegar a ese piso (venciendo al anterior) y al vencer a su criatura.
+const cineAlLlegar = (piso, lugar = "torre") => llegarAlPiso(piso, lugar).cine;
+function cineAlVencer(piso, lugar = "torre") {
+    const p = torre.nuevaPartida(NIVELES_1, 5, 1, {}, lugar);
+    p.piso = piso;
+    p.enemigo = torre.monstruoDelPiso(piso, lugar);
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    return p.cine;
+}
+
+prueba("Cinemáticas: la partida anota cuál toca (zona nueva, guardián, derrota y final)", () => {
+    igual(torre.nuevaPartida(NIVELES_1, 5).cine, null, "al empezar no hay ninguna (el piso 1 ya tiene su historia)");
+    igual([cineAlLlegar(2), cineAlLlegar(3), cineAlLlegar(4)], [null, null, null]);
+    igual(cineAlLlegar(5), "entrada", "el piso de un guardián");
+    igual(cineAlLlegar(6), "zona", "empieza una zona nueva");
+    igual([cineAlLlegar(10), cineAlLlegar(11), cineAlLlegar(30), cineAlLlegar(31)], ["entrada", "zona", "entrada", "zona"], "también después de dar la vuelta");
+    igual(cineAlLlegar(6, "mazmorra"), "zona");
+    igual(cineAlLlegar(5, "mazmorra"), "entrada");
+
+    igual([cineAlVencer(3), cineAlVencer(4)], [null, null], "una criatura común no tiene");
+    igual([cineAlVencer(5), cineAlVencer(20), cineAlVencer(25)], ["derrota", "derrota", "derrota"]);
+    igual(cineAlVencer(30), "final", "cae el Apagador");
+    igual(cineAlVencer(60), "derrota", "el final solo es una vez, en la primera vuelta");
+    igual([cineAlVencer(5, "mazmorra"), cineAlVencer(20, "mazmorra")], ["derrota", "final"], "cae el Rey Hueco");
+});
+
+prueba("Cinemáticas: tomarla la borra (se ve una sola vez) y respeta Ajustes", () => {
+    const estado = partidaNueva();
+    igual(acciones.tomarCinematica(estado), null, "sin partida no hay nada");
+    acciones.empezarTorre(estado, 5);
+    const p = estado.arcade.torre;
+    p.cine = "entrada";
+    igual(acciones.tomarCinematica(estado), { tipo: "entrada" });
+    igual([p.cine, acciones.tomarCinematica(estado)], [null, null], "ya no sale otra vez");
+
+    estado.ajustes.cinematicas = false;
+    p.cine = "zona";
+    igual(acciones.tomarCinematica(estado), null, "apagadas en Ajustes: no se ven");
+    igual(p.cine, null, "pero se borra, para que no salga al encenderlas");
+    estado.ajustes.cinematicas = true;
+    p.cine = "derrota";
+    igual(acciones.tomarCinematica(estado, "torre", false), null, "descartarla también la borra");
+    igual(p.cine, null);
+    igual(datos.estadoInicial().ajustes.cinematicas, true, "vienen encendidas");
+});
+
+prueba("Cinemáticas: cada zona de la Torre y la Mazmorra tiene las suyas, completas y no muy largas", () => {
+    const LIMITE = { zona: 5000, entrada: 10000, derrota: 7000, final: 25000 };
+    const CAMARAS = ["arriba", "zoom", "izquierda", "derecha", "quieto"];
+    const EFECTOS = [null, "destello", "oscuro", "temblor"];
+    let vistas = 0;
+    for (const lugar of ["torre", "mazmorra"]) {
+        const zonas = bestiario.lugarDe(lugar).zonas;
+        zonas.forEach((zona, i) => {
+            const piso = (i + 1) * 5;   // el guardián de la zona
+            const p = torre.nuevaPartida(NIVELES_1, 5, 1, {}, lugar);
+            p.piso = piso;
+            p.enemigo = torre.monstruoDelPiso(piso, lugar);
+            const tipos = i === zonas.length - 1 ? ["zona", "entrada", "final"] : ["zona", "entrada", "derrota"];
+            for (const tipo of tipos) {
+                const c = cinematicas.cinematicaDe(tipo, p, "Aria");
+                const donde = `${lugar}/${zona.id}/${tipo}`;
+                cierto(c && c.tomas.length >= 1, `${donde}: tiene tomas`);
+                cierto(cinematicas.duracion(c) <= LIMITE[tipo], `${donde}: dura ${cinematicas.duracion(c)} ms`);
+                for (const t of c.tomas) {
+                    cierto(t.fondo === zona.id, `${donde}: el fondo es la zona`);
+                    cierto(t.ms >= 1500 && t.ms <= 4500, `${donde}: una toma de ${t.ms} ms`);
+                    cierto(t.texto || t.titulo, `${donde}: dice algo`);
+                    cierto(CAMARAS.includes(t.camara) && EFECTOS.includes(t.efecto), `${donde}: cámara y efecto`);
+                    cierto(!t.sonido || existeSonido(t.sonido), `${donde}: el sonido «${t.sonido}» existe`);
+                    cierto(!/\{n\}/.test(t.texto + t.titulo), `${donde}: el nombre se pone`);
+                    cierto(t.actores.every((a) => ["criatura", "heroe"].includes(a.quien) && a.x >= 0 && a.x <= 100), `${donde}: actores`);
+                    // La Llama solo arde al final de la saga: ninguna cinemática puede decir que ya arde.
+                    cierto(!/vuelve a arder|hasta la Llama|luz de la Llama|Llama (ya )?(arde|brilla|se enciende)/i.test(t.texto + t.titulo), `${donde}: no dice que la Llama arde`);
+                    vistas += 1;
+                }
+                igual(cinematicas.fondosDe(c), [zona.id], `${donde}: un solo fondo`);
+            }
+        });
+    }
+    cierto(vistas > 60, "se revisaron muchas tomas");
+    igual(cinematicas.cinematicaDe("inventada", torre.nuevaPartida(NIVELES_1, 1), "Aria"), null);
+    const unaZona = torre.nuevaPartida(NIVELES_1, 1);
+    cierto(cinematicas.cinematicaDe("entrada", unaZona, "Aria").tomas.some((t) => t.titulo.includes("Murciélago") || t.titulo.includes("guardián")), "el nombre del guardián sale en el cartel");
+    cierto(cinematicas.cinematicaDe("derrota", unaZona, "Ana").tomas.some((t) => t.texto.includes("Ana")), "el nombre de tu héroe aparece");
+    igual(["retumbo", "campana"].every(existeSonido), true, "los dos sonidos nuevos");
 });
 
 // Una partida de la Mazmorra contra la criatura del sótano indicado, con la intención dada.
@@ -3783,7 +3877,7 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     const vieja = JSON.stringify({ version: 1, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] });
     const estado = datos.desdeRespaldo(vieja);
     igual(estado.version, datos.estadoInicial().version, "la versión de los datos");
-    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6 });
+    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true });
     igual([estado.claves, estado.cofres, estado.noches, estado.mapa, estado.arcade.extra], [{}, {}, [], { reclamados: [] }, 0], "lo de la v22");
     igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
     igual(estado.campana, { recompensados: {} });

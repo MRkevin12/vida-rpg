@@ -19,6 +19,8 @@ import * as torre from "./torre.js";
 import * as bestiario from "./bestiario.js";
 import * as leyendas from "./leyendas.js";
 import * as sprites from "./sprites.js";
+import * as cinematicas from "./cinematicas.js";
+import * as cine from "./cine.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -587,6 +589,38 @@ async function abrirTorre(lugar = "torre", marca = null) {
     if (resultado.relato) await mostrarRelato(resultado.relato);
     else pintarTorre();
     ponerMusica();   // en la Torre suena la música de batalla; en la Mazmorra, la de misterio
+    // Si quedó una cinemática sin ver (saliste justo antes), se ve ahora; si empieza el relato, ese ya cuenta la historia.
+    if (resultado.relato) descartarCinematica(lugar);
+    else await reproducirCinematica(lugar);
+}
+
+// ===== Cinemáticas (v43) =====
+// Cuál toca lo anota torre.js en la partida (`partida.cine`); qué se ve, cinematicas.js; cómo se reproduce, cine.js.
+// Se borra al tomarla, así que se ve una sola vez. Siempre se puede saltar, y se apagan en Ajustes.
+function descartarCinematica(lugar) {
+    acciones.tomarCinematica(estado, lugar, false);
+    datos.guardar(estado);
+}
+
+async function reproducirCinematica(lugar = lugarAbierto) {
+    if ($("#torre").hidden) return;   // saliste de la Torre: se verá al volver
+    const toca = acciones.tomarCinematica(estado, lugar);
+    datos.guardar(estado);
+    if (!toca) return;
+    const partida = estado.arcade[lugar];
+    const cinematica = cinematicas.cinematicaDe(toca.tipo, partida, estado.personaje.nombre);
+    if (!cinematica) return;
+    const zonas = cinematicas.fondosDe(cinematica);
+    const [heroe, criatura, ...salas] = await Promise.all([
+        sprites.spriteDeHeroe(avatarActual()),
+        sprites.spriteDeMonstruo(partida.enemigo.id, avatarActual()),
+        ...zonas.map((zona) => sprites.spriteDeSala(zona)),
+    ]);
+    const imagenes = {
+        heroe, criatura, tallaCriatura: bestiario.CRIATURAS[partida.enemigo.id]?.talla || 96,
+        salas: Object.fromEntries(zonas.map((zona, i) => [zona, salas[i]])),
+    };
+    await cine.reproducir(cinematica, imagenes, { sonar });
 }
 
 // El bestiario y la historia se muestran en la misma capa que la Torre (se cierran con la misma ✕).
@@ -1304,6 +1338,7 @@ const PREPARAR = {
         $("#ajustes-sonido").checked = estado.ajustes.sonido;
         $("#ajustes-golpe").checked = estado.ajustes.golpe;
         $("#ajustes-eventos").checked = estado.ajustes.eventos;
+        $("#ajustes-cinematicas").checked = estado.ajustes.cinematicas !== false;
         $("#ajustes-musica").checked = estado.ajustes.musica;
         $("#ajustes-volumen").value = Math.round((Number.isFinite(estado.ajustes.volumen) ? estado.ajustes.volumen : 0.6) * 100);
         for (const radio of document.querySelectorAll('input[name="pista"]')) radio.checked = radio.value === estado.ajustes.pista;
@@ -2193,6 +2228,10 @@ const ACCIONES = {
         menuTorre = "principal";
         pintarTorre(resultado.eventos);
         sonarTurno(resultado.eventos);
+        // Cayó un guardián: después de verlo deshacerse, su cinemática.
+        if (resultado.eventos.some((e) => e.tipo === "derrotado") && estado.arcade[lugarAbierto]?.cine) {
+            setTimeout(() => reproducirCinematica(lugarAbierto), 1700);
+        }
     },
     "torre-mejora": async (boton) => {
         const resultado = ejecutar(() => acciones.mejoraTorre(estado, boton.dataset.mejora, lugarAbierto));
@@ -2200,8 +2239,13 @@ const ACCIONES = {
         sonar("completar");
         await prepararSprites();   // la criatura del piso nuevo (y su sala, si cambia la zona)
         // Si acabas de vencer a un guardián por primera vez, la historia sigue.
-        if (resultado.relato) await mostrarRelato(resultado.relato);
-        else pintarTorre();
+        if (resultado.relato) {
+            await mostrarRelato(resultado.relato);   // la historia ya cuenta la llegada a la zona nueva
+            descartarCinematica(lugarAbierto);
+        } else {
+            pintarTorre();
+            await reproducirCinematica(lugarAbierto);   // llegaste a una zona nueva o al piso de un guardián
+        }
     },
     // Una sala entre pisos (v42): la opción elegida cambia a tu héroe y sigue la batalla.
     "torre-sala": (boton) => {
@@ -2804,6 +2848,7 @@ function conectarEventos() {
     // Interruptor de sonido (Ajustes): al encenderlo suena una muestra.
     $("#ajustes-golpe").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "golpe", evento.target.checked)));
     $("#ajustes-eventos").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "eventos", evento.target.checked)));
+    $("#ajustes-cinematicas").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "cinematicas", evento.target.checked)));
     // Tocar el fondo del golpe con timing = golpear.
     $("#golpe").addEventListener("pointerdown", () => golpear());
     // Tocar fuera de la escena del robo la cierra (pero no con el mismo toque que la abrió).

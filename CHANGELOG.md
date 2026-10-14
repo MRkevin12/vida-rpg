@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v43 — Cinemáticas en la Torre
+- **Cuatro momentos** (los anota `torre.js` en `partida.cine`: `cineAlLlegar` y `cineAlVencer`): 🏞️ **zona** (al entrar a una zona nueva: cartel con su nombre), ⚔️ **entrada** (al llegar al piso de un guardián, 3 tomas: la sala, su nombre y tu héroe frente a él), 💥 **derrota** (cae el guardián: se deshace, y tu héroe baja el arma) y 🔥 **final** (cae el último del lugar: el Apagador en la Torre, con 6 tomas, y el Rey Hueco en la Mazmorra, con 4). El final solo en la primera vuelta; después de dar la vuelta, los guardianes vuelven a tener entrada y derrota.
+- **Cómo se hacen** (`js/cinematicas.js`, datos; `js/cine.js`, reproductor): son tomas de 2 a 4 s con la sala de fondo, los sprites en pixel art de las criaturas y de tu héroe, cámara (sube, se acerca, se desliza), destellos, temblor, viñeta, un cartel y una línea de texto que se escribe sola. Sin videos: funcionan sin internet y no pesan. Los sonidos son los de siempre más dos nuevos, `retumbo` y `campana`.
+- **Siempre se pueden saltar:** botón «Saltar», o tocar la pantalla para pasar de toma. Se apagan en Ajustes → 🎬 Cinemáticas (`ajustes.cinematicas`). Con «reducir movimiento» del iPhone se quitan la cámara, el temblor y los destellos. Si empieza una página de historia, esa cuenta la llegada y la cinemática de zona se descarta.
+- **Cuidado con la historia:** ninguna cinemática dice que la Llama ya arde (la saga la enciende al final del camino): en el final de la Torre «La Llama no prende». Hay una prueba con el mismo filtro de palabras que las leyendas.
+- Datos versión 22 (`partida.cine`, `ajustes.cinematicas`). 209 pruebas (3 nuevas).
+
 ## v42 — Salas especiales en la Torre
 - **Salas** (`SALAS`, `salaDelPiso`, `resolverSala` y `motivoSala` en `torre.js`): al entrar a un piso de la Torre cuyo número es 3 (mod 5) hay una sala al azar entre altar, mercader y cofre; al entrar a uno múltiplo de 5 (el del guardián), una fuente. La Mazmorra no tiene. La partida queda en fase `"sala"` (con `partida.sala`) hasta que eliges; la criatura del piso ya está esperando y la batalla sigue después.
 - ⛲ **Fuente:** beber (+40 % de vida) o llenar un frasco (+1 poción). 🕯️ **Altar:** ofrecer sangre (−25 % de la vida actual, +4 ataque y +8 hechizo) o rezar (+35 de Voluntad). 🛒 **Mercader:** poción por +14 de vida máxima, −20 % de vida por 2 pociones, o un hechizo por +5 de ataque. 📦 **Cofre:** 70 % un don o una mejora (`darMejora`, sacada de `elegirMejora`), 30 % trampa (−15 % de la vida máxima). Todas dejan «seguir» sin hacer nada.

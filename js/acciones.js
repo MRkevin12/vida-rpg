@@ -1153,6 +1153,16 @@ export function mejoraTorre(estado, clave, lugar = "torre") {
     return { relato: leyendas.relatoTrasGuardian(lugar, vencido, estado.arcade.records[lugar] || 0, estado.personaje.nombre) };
 }
 
+// v43: la cinemática que toca ver ahora en esa partida ({ tipo }) o null. La borra de la partida, así que se ve una
+// sola vez. Con reproducir = false (o con las cinemáticas apagadas en Ajustes) también la borra pero devuelve null.
+export function tomarCinematica(estado, lugar = "torre", reproducir = true) {
+    const partida = estado.arcade[lugar];
+    const tipo = partida?.cine || null;
+    if (!tipo) return null;
+    partida.cine = null;
+    return reproducir && estado.ajustes.cinematicas !== false ? { tipo } : null;
+}
+
 // v42: lo que haces en una sala especial entre pisos (ver torre.SALAS). Devuelve { texto }.
 export function salaTorre(estado, opcion, lugar = "torre") {
     return torre.resolverSala(partidaDe(estado, lugar), opcion);

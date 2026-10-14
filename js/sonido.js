@@ -41,7 +41,13 @@ const SONIDOS = {
     // coraza suena a metal que se cierra.
     veneno:    { onda: "triangle", volumen: 0.16, notas: [[523, 0, 0.07], [494, 0.08, 0.07], [311, 0.18, 0.22]] },
     coraza:    { onda: "square",   volumen: 0.06, notas: [[196, 0, 0.05], [1175, 0.04, 0.05], [988, 0.1, 0.2]] },
+    // Las cinemáticas (v43): un retumbo grave que sube del suelo y una campana que resuena.
+    retumbo:   { onda: "sawtooth", volumen: 0.13, notas: [[55, 0, 0.5], [49, 0.15, 0.6], [41, 0.4, 0.9]] },
+    campana:   { onda: "triangle", volumen: 0.16, notas: [[392, 0, 1.0], [784, 0, 0.7], [1175, 0.02, 0.45]] },
 };
+
+// ¿Existe un sonido con ese nombre? (las cinemáticas piden los suyos por nombre y hay una prueba que lo comprueba)
+export const existeSonido = (nombre) => Object.hasOwn(SONIDOS, nombre);
 
 let contexto = null;   // el "motor" de audio; se crea la primera vez que hace falta
 

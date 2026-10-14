@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 21,
+        version: 22,
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -97,7 +97,7 @@ export function estadoInicial() {
         apariencia: { cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
                       pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase" },
         // Sonido, golpe con timing, eventos del día y música de fondo (pista elegida y volumen de 0 a 1).
-        ajustes: { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6 },
+        ajustes: { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true },
         avisos: {                             // notificaciones (ver avisos.js)
             horarios: [],                     // recordatorios: { id, hora: "20:00", dias (como en misiones) }
             enfoque: true,                    // avisar cuando termine una sesión de enfoque

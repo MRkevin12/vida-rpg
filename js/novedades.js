@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 42;
+export const VERSION_APP = 43;
 
 export const NOVEDADES = [
+    {
+        version: 43,
+        titulo: "Cinemáticas en la Torre",
+        cambios: [
+            "🎬 La Torre ahora tiene cinemáticas: escenas animadas con la sala, la criatura y tu héroe, con cámara que se mueve, destellos y una línea de texto.",
+            "Salen cuando llegas a una zona nueva, al encontrarte con un guardián, cuando el guardián cae y, la más larga, al derrotar al último: el Apagador en la Torre y el Rey Hueco en la Mazmorra.",
+            "Se pueden saltar siempre (el botón «Saltar», o tocando la pantalla para pasar a la siguiente toma) y se apagan en Ajustes → 🎬 Cinemáticas. Si prefieres menos movimiento, el modo de «reducir movimiento» de tu iPhone también las calma.",
+        ],
+    },
     {
         version: 42,
         titulo: "Salas especiales en la Torre",
