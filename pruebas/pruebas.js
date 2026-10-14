@@ -838,6 +838,7 @@ prueba("Torre: las frases nombran a la criatura y a su ataque; la intención dic
     torre.actuar(p, "atacar");
     cierto(p.registro.includes("¡La Araña tejedora cae!"), p.registro);
     torre.elegirMejora(p, p.opciones[0]);
+    torre.resolverSala(p, "seguir");   // (v42) antes del guardián hay una fuente
     cierto(p.registro.includes("el Caballero sin Nombre, guardián de la Cripta olvidada"), p.registro);
     p.enemigo.vida = 1;
     torre.actuar(p, "atacar");
@@ -1241,6 +1242,145 @@ prueba("Dones: cada uno hace lo que dice", () => {
     p.enemigo.vida = 1;
     torre.actuar(p, "atacar");
     igual([p.fase, p.heroe.vida], ["mejora", 60]);
+});
+
+
+// ===== Salas especiales (v42) =====
+
+// Una partida que acaba de entrar a ese piso (venciendo al anterior y eligiendo la primera mejora).
+function llegarAlPiso(piso, lugar = "torre", semilla = 5) {
+    const p = torre.nuevaPartida(NIVELES_1, semilla, 1, {}, lugar);
+    p.piso = piso - 1;
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    torre.elegirMejora(p, p.opciones[0]);
+    return p;
+}
+
+// Una partida ya dentro de una sala de ese tipo.
+function enSala(tipo, cambios = {}) {
+    const p = torre.nuevaPartida(NIVELES_1, 8);
+    p.fase = "sala";
+    p.sala = { tipo, antes: "Piso 3: aparece algo." };
+    p.piso = 3;
+    Object.assign(p.heroe, { vidaMax: 100, vida: 50, pociones: 2, mana: 2, manaMax: 2, ataque: 10, hechizo: 20, voluntad: 0 }, cambios);
+    return p;
+}
+
+prueba("Salas: hay una en el 3.º piso de cada zona y antes de cada guardián; la Mazmorra no tiene", () => {
+    for (let piso = 2; piso <= 30; piso++) {
+        const p = llegarAlPiso(piso);
+        const esperada = piso % 5 === 0 ? "fuente" : piso % 5 === 3 ? ["altar", "mercader", "cofre"] : null;
+        if (!esperada) {
+            igual(p.fase, "batalla", `piso ${piso}: sin sala`);
+            continue;
+        }
+        igual(p.fase, "sala", `piso ${piso}: sala`);
+        cierto(Array.isArray(esperada) ? esperada.includes(p.sala.tipo) : p.sala.tipo === esperada, `piso ${piso}: ${p.sala.tipo}`);
+        cierto(p.registro.includes(torre.SALAS[p.sala.tipo].texto), "el registro cuenta qué sala es");
+        debeFallar(() => torre.actuar(p, "atacar"), "Ahora no estás en una batalla");
+        debeFallar(() => torre.elegirMejora(p, "afilar"), "Elige una de las mejoras");
+    }
+    for (let sotano = 2; sotano <= 12; sotano++) igual(llegarAlPiso(sotano, "mazmorra").fase, "batalla", `sótano ${sotano}`);
+    cierto(Object.keys(torre.SALAS).length === 4, "cuatro salas");
+    cierto(Object.values(torre.SALAS).every((s) => s.opciones.seguir), "todas dejan seguir sin hacer nada");
+});
+
+prueba("Salas: la fuente y el altar", () => {
+    let p = enSala("fuente");
+    const r = torre.resolverSala(p, "beber");
+    igual([p.heroe.vida, p.fase, p.sala], [90, "batalla", null]);
+    cierto(p.registro.startsWith(r.texto) && p.registro.includes("Piso 3: aparece algo."), "cuenta lo que pasó y sigue con el piso");
+    p = enSala("fuente");
+    torre.resolverSala(p, "frasco");
+    igual(p.heroe.pociones, 3);
+
+    p = enSala("altar");
+    torre.resolverSala(p, "sangre");
+    igual([p.heroe.vida, p.heroe.ataque, p.heroe.hechizo], [37, 14, 28], "−25 % de la vida actual (12,5 → 13), +4 y +8");
+    p = enSala("altar", { vida: 3 });
+    debeFallar(() => torre.resolverSala(p, "sangre"), "demasiado herido");
+    igual(p.fase, "sala", "si no se puede, sigues en la sala");
+    p = enSala("altar");
+    torre.resolverSala(p, "rezar");
+    igual(p.heroe.voluntad, 35);
+    p = enSala("altar");
+    torre.resolverSala(p, "seguir");
+    igual([p.heroe.vida, p.heroe.ataque, p.fase], [50, 10, "batalla"]);
+});
+
+prueba("Salas: el mercader hace trueques con lo que llevas (y no acepta lo que no tienes)", () => {
+    let p = enSala("mercader");
+    torre.resolverSala(p, "vigor");
+    igual([p.heroe.pociones, p.heroe.vidaMax, p.heroe.vida], [1, 114, 64]);
+    p = enSala("mercader", { pociones: 0 });
+    debeFallar(() => torre.resolverSala(p, "vigor"), "No tienes pociones");
+
+    p = enSala("mercader");
+    torre.resolverSala(p, "frascos");
+    igual([p.heroe.vida, p.heroe.pociones], [40, 4], "−20 % de la vida actual (10), +2 pociones");
+    p = enSala("mercader", { vida: 4 });
+    debeFallar(() => torre.resolverSala(p, "frascos"), "demasiado herido");
+
+    p = enSala("mercader");
+    torre.resolverSala(p, "filo");
+    igual([p.heroe.manaMax, p.heroe.mana, p.heroe.ataque], [1, 1, 15]);
+    p = enSala("mercader", { manaMax: 0, mana: 0 });
+    debeFallar(() => torre.resolverSala(p, "filo"), "No tienes hechizos");
+    debeFallar(() => torre.resolverSala(p, "inventada"), "no existe");
+    debeFallar(() => torre.resolverSala(enSala("fuente"), "vigor"), "no existe", "una opción de otra sala");
+});
+
+prueba("Salas: el cofre da un don o una mejora, o una trampa que nunca te mata", () => {
+    const resultados = new Set();
+    for (let semilla = 1; semilla <= 120; semilla++) {
+        const p = enSala("cofre");
+        p.semilla = semilla;
+        const antes = { ...p.heroe, dones: [] };
+        const { texto } = torre.resolverSala(p, "abrir");
+        cierto(p.heroe.vida >= 1, "nunca te mata");
+        if (texto.startsWith("¡Una trampa!")) {
+            resultados.add("trampa");
+            igual(antes.vida - p.heroe.vida, 15, "el 15 % de la vida máxima (100)");
+        } else {
+            resultados.add((p.heroe.dones || []).length ? "don" : "mejora");
+            cierto(texto.startsWith("Dentro hay"), texto);
+        }
+        igual(p.fase, "batalla");
+    }
+    igual([...resultados].sort(), ["don", "mejora", "trampa"], "en 120 cofres salió de todo");
+    // Una trampa con poca vida te deja al menos en 1.
+    const p = enSala("cofre", { vida: 5 });
+    for (let semilla = 1; semilla <= 60; semilla++) {
+        const q = enSala("cofre", { vida: 5 });
+        q.semilla = semilla;
+        torre.resolverSala(q, "abrir");
+        cierto(q.heroe.vida >= 1, "con 5 de vida tampoco");
+    }
+    debeFallar(() => torre.resolverSala(p, "beber"), "no existe");
+});
+
+prueba("Salas: se guardan con la partida y se puede huir desde ellas", () => {
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 5);
+    const p = estado.arcade.torre;
+    p.piso = 2;
+    p.enemigo.vida = 1;
+    acciones.accionTorre(estado, "atacar");
+    acciones.mejoraTorre(estado, p.opciones[0]);
+    igual([p.piso, p.fase], [3, "sala"], "el piso 3 empieza con una sala");
+    const guardada = JSON.parse(JSON.stringify(estado.arcade.torre));
+    igual([guardada.fase, guardada.sala.tipo], ["sala", p.sala.tipo], "sobrevive a guardar y cargar");
+    debeFallar(() => acciones.salaTorre(estado, "inventada"), "no existe");
+    acciones.salaTorre(estado, "seguir");
+    igual(estado.arcade.torre.fase, "batalla");
+
+    // Huir desde la sala: cuentan los pisos superados, no el de la sala.
+    const e2 = partidaNueva();
+    acciones.empezarTorre(e2, 5);
+    Object.assign(e2.arcade.torre, { piso: 5, fase: "sala", sala: { tipo: "fuente", antes: "" } });
+    const r = acciones.terminarTorre(e2);
+    igual(r.pisos, 4);
 });
 
 // Una partida de la Mazmorra contra la criatura del sótano indicado, con la intención dada.
@@ -2708,6 +2848,7 @@ prueba("Técnicas (v38): una por atributo, desde su nivel 3, y una vez por piso"
     p.enemigo.vida = 1;
     torre.actuar(p, "atacar");
     torre.elegirMejora(p, p.opciones[0]);
+    torre.resolverSala(p, "seguir");   // (v42) el piso 3 empieza con una sala
     igual(torre.motivoTecnica(p.heroe, "certero"), null, "en el piso siguiente se puede otra vez");
     p.heroe.maestria = 1;
     p.enemigo.intencion = "golpe";

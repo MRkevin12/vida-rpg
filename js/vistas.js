@@ -2693,6 +2693,21 @@ export function pantallaTorre(t) {
                                 <span class="ff-comando-nombre">${mejora.icono} ${mejora.nombre}</span><small>${mejora.don ? "✦ Don raro · " : ""}${mejora.texto}</small></button>`;
                 }).join("")}
             </div>`;
+    } else if (p.fase === "sala") {
+        // v42: una sala entre pisos. Cada opción dice lo que cuesta y lo que da; la que no puedes hacer se apaga.
+        const sala = torre.SALAS[p.sala.tipo];
+        abajo = `
+            <div class="ff-ventana ff-botin ${espera}">
+                <p class="ff-titulo">${sala.icono} ${sala.nombre} <small>antes del ${sitio.piso.toLowerCase()} ${p.piso}</small></p>
+                <p class="ff-renglon">${esc(sala.texto)}</p>
+                ${Object.entries(sala.opciones).map(([clave, o]) => {
+                    const motivo = torre.motivoSala(p, clave);
+                    return `<button type="button" class="ff-comando" data-accion="torre-sala" data-opcion="${clave}" ${motivo ? `disabled title="${esc(motivo)}"` : ""}>
+                                <span class="ff-cursor" aria-hidden="true"></span>
+                                <span class="ff-comando-nombre">${o.nombre}</span><small>${motivo ? esc(motivo) : o.texto}</small></button>`;
+                }).join("")}
+            </div>
+            <button type="button" class="enlace torre-rendirse" data-accion="torre-rendirse">Huir y cobrar lo ganado</button>`;
     } else if (p.fase === "fin") {
         const pisos = torre.pisosSuperados(p);
         const premio = torre.premio(pisos, p.lugar, p.marca);

@@ -1153,6 +1153,11 @@ export function mejoraTorre(estado, clave, lugar = "torre") {
     return { relato: leyendas.relatoTrasGuardian(lugar, vencido, estado.arcade.records[lugar] || 0, estado.personaje.nombre) };
 }
 
+// v42: lo que haces en una sala especial entre pisos (ver torre.SALAS). Devuelve { texto }.
+export function salaTorre(estado, opcion, lugar = "torre") {
+    return torre.resolverSala(partidaDe(estado, lugar), opcion);
+}
+
 // Apunta cuánta armadura máxima tienes hoy, si cambió (te pusiste o quitaste algo, o cambiaste
 // de etapa). Así vida.js sabe cuál tenías cada día, y lo que te pongas hoy no cambia el pasado.
 // El primer apunte (fecha "") es «la de siempre»: vale para todos los días anteriores.

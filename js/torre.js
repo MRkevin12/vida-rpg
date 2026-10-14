@@ -932,9 +932,8 @@ function mejorasAlAzar(partida) {
 }
 
 // Aplicar la mejora elegida y pasar al piso siguiente (en la Mazmorra, bajar).
-export function elegirMejora(partida, clave) {
-    if (partida.fase !== "mejora" || !partida.opciones.includes(clave)) throw new Error("Elige una de las mejoras.");
-    const h = partida.heroe;
+// Le da una mejora al héroe (sin pasar de piso). La usan elegirMejora y el cofre de las salas (v42).
+function darMejora(h, clave) {
     if (MEJORAS[clave].don) h.dones = [...(h.dones || []), clave];   // un don no hace nada aquí: lo leen las batallas
     switch (clave) {
         case "afilar":   h.ataque += 3; break;
@@ -948,6 +947,12 @@ export function elegirMejora(partida, clave) {
         case "impulso":  sumarVoluntad(h, 35); break;
         case "maestria": h.maestria = (h.maestria || 0) + 1; break;
     }
+}
+
+export function elegirMejora(partida, clave) {
+    if (partida.fase !== "mejora" || !partida.opciones.includes(clave)) throw new Error("Elige una de las mejoras.");
+    const h = partida.heroe;
+    darMejora(h, clave);
     if (tiene(h, "constancia")) {
         h.ataque += HABILIDADES.constancia.ataque;
         h.hechizo += HABILIDADES.constancia.hechizo;
@@ -972,6 +977,144 @@ export function elegirMejora(partida, clave) {
     partida.registro = esGuardian(partida.piso)
         ? `${nombreDelPiso(partida)}: ¡${elMonstruo(m)}, ${m.genero === "f" ? "guardiana" : "guardián"} ${deLaZona(zona)}, te cierra el paso!`
         : `${entras}${nombreDelPiso(partida)}: aparece ${elMonstruo(m)}.`;
+    // v42: en algunos pisos, antes de pelear, hay una sala (la criatura espera al otro lado).
+    const tipo = salaDelPiso(partida);
+    if (tipo) {
+        partida.sala = { tipo, antes: partida.registro };
+        partida.fase = "sala";
+        partida.registro = `${nombreDelPiso(partida)}: ${SALAS[tipo].texto}`;
+    }
+}
+
+
+// ===== Salas especiales (v42) =====
+// Entre algunos pisos de la Torre (el 3.º de cada zona y el último, el del guardián) aparece una sala: un respiro
+// donde eliges qué hacer, sin pelear. La Mazmorra no tiene: ahí no hay descanso. Todo sale de tu partida (vida,
+// pociones, hechizos…), no se gasta ninguna gema. La partida queda en fase "sala" hasta que eliges (o sales).
+//   partida.sala = { tipo, antes (lo que decía el registro del piso, para devolverlo al elegir) }
+// Cada opción: nombre y texto (lo que cuesta y lo que da). `seguir` no hace nada.
+export const SALAS = {
+    fuente: {
+        icono: "⛲", nombre: "Fuente clara",
+        texto: "Una fuente de agua clara brota entre las piedras, justo antes de lo que viene.",
+        opciones: {
+            beber:   { nombre: "Beber",            texto: "Recuperas 40 % de tu vida" },
+            frasco:  { nombre: "Llenar un frasco", texto: "+1 poción" },
+            seguir:  { nombre: "Seguir",           texto: "No tocas nada" },
+        },
+    },
+    altar: {
+        icono: "🕯️", nombre: "Altar antiguo",
+        texto: "Un altar de los Vigías con velas encendidas. Pide una ofrenda, o un rezo.",
+        opciones: {
+            sangre:  { nombre: "Ofrecer sangre",   texto: "Pierdes 25 % de tu vida actual: +4 de ataque y +8 de hechizo" },
+            rezar:   { nombre: "Rezar",            texto: "+35 de Voluntad" },
+            seguir:  { nombre: "Seguir",           texto: "No tocas nada" },
+        },
+    },
+    mercader: {
+        icono: "🛒", nombre: "Mercader errante",
+        texto: "Un mercader encapuchado vende en la escalera. No acepta gemas: solo trueques.",
+        opciones: {
+            vigor:   { nombre: "Poción por vigor",  texto: "−1 poción: +14 de vida máxima" },
+            frascos: { nombre: "Vida por frascos",  texto: "−20 % de tu vida actual: +2 pociones" },
+            filo:    { nombre: "Magia por filo",    texto: "−1 hechizo por piso: +5 de ataque" },
+            seguir:  { nombre: "Seguir",            texto: "No compras nada" },
+        },
+    },
+    cofre: {
+        icono: "📦", nombre: "Cofre sin dueño",
+        texto: "Un cofre cerrado entre los escombros. Puede guardar un tesoro… o una trampa.",
+        opciones: {
+            abrir:   { nombre: "Abrirlo",          texto: "70 %: un don o una mejora · 30 %: una trampa (−15 % de vida máxima de golpe)" },
+            seguir:  { nombre: "Dejarlo",          texto: "No te arriesgas" },
+        },
+    },
+};
+const TRAMPA = { probabilidad: 0.3, vida: 0.15 };
+
+// Un número entre 0 y 1 que sale de la partida y del piso (NO gasta el azar de las batallas, así que las salas
+// no mueven las semillas del resto de la partida).
+function azarDeSala(partida, etiqueta) {
+    return (hashDeTexto(`${partida.semilla}|${partida.piso}|${etiqueta}`) % 1000) / 1000;
+}
+
+// ¿Qué sala hay antes de este piso? (o null). Solo en la Torre: el 3.º de cada zona (al azar entre altar, mercader
+// y cofre) y el del guardián (una fuente para prepararte).
+function salaDelPiso(partida) {
+    if (partida.lugar !== "torre") return null;
+    const lugarEnZona = partida.piso % PISOS_POR_ZONA;
+    if (lugarEnZona === 0) return "fuente";
+    if (lugarEnZona === 3) return ["altar", "mercader", "cofre"][Math.floor(azarDeSala(partida, "sala") * 3)];
+    return null;
+}
+
+// ¿Puedes hacer esta opción ahora? Devuelve null si sí, o el motivo si no (para el botón y para las reglas).
+export function motivoSala(partida, opcion) {
+    const h = partida.heroe;
+    const sala = SALAS[partida.sala?.tipo];
+    if (!sala?.opciones[opcion]) return "Esa opción no existe.";
+    if (opcion === "sangre" && h.vida < 4) return "Estás demasiado herido para ofrecer sangre.";
+    if (opcion === "vigor" && h.pociones < 1) return "No tienes pociones para cambiar.";
+    if (opcion === "frascos" && h.vida < 6) return "Estás demasiado herido para este trato.";
+    if (opcion === "filo" && h.manaMax < 1) return "No tienes hechizos que cambiar.";
+    return null;
+}
+
+// Haz lo que elijas en la sala y sigue al piso. Devuelve { texto }: lo que pasó.
+export function resolverSala(partida, opcion) {
+    if (partida.fase !== "sala" || !partida.sala) throw new Error("Ahora no estás en una sala.");
+    const motivo = motivoSala(partida, opcion);
+    if (motivo) throw new Error(motivo);
+    const h = partida.heroe;
+    const pierde = (cantidad) => Math.max(0, Math.min(h.vida - 1, Math.max(1, Math.round(cantidad))));   // nunca te mata
+    let texto = "Sigues tu camino.";
+    switch (opcion) {
+        case "beber": {
+            const cura = Math.min(Math.round(h.vidaMax * 0.4), h.vidaMax - h.vida);
+            h.vida += cura;
+            texto = cura ? `Bebes y recuperas ${cura} de vida.` : "Bebes: ya estabas entero.";
+            break;
+        }
+        case "frasco":  h.pociones += 1; texto = "Llenas un frasco: +1 poción."; break;
+        case "sangre": {
+            const perdida = pierde(h.vida * 0.25);
+            h.vida -= perdida;
+            h.ataque += 4;
+            h.hechizo += 8;
+            texto = `Ofreces ${perdida} de vida al altar: +4 de ataque y +8 de hechizo.`;
+            break;
+        }
+        case "rezar":   sumarVoluntad(h, 35); texto = "Rezas ante el altar: +35 de Voluntad."; break;
+        case "vigor":   h.pociones -= 1; h.vidaMax += 14; h.vida += 14; texto = "Entregas una poción: +14 de vida máxima."; break;
+        case "frascos": {
+            const perdida = pierde(h.vida * 0.2);
+            h.vida -= perdida;
+            h.pociones += 2;
+            texto = `Pagas ${perdida} de vida: +2 pociones.`;
+            break;
+        }
+        case "filo":    h.manaMax -= 1; h.mana = Math.min(h.mana, h.manaMax); h.ataque += 5; texto = "Cambias un hechizo por filo: +5 de ataque."; break;
+        case "abrir": {
+            if (azarDeSala(partida, "cofre") < TRAMPA.probabilidad) {
+                const dano = pierde(h.vidaMax * TRAMPA.vida);   // el 15 % de la máxima, sin matarte
+                h.vida -= dano;
+                texto = `¡Una trampa! Pierdes ${dano} de vida.`;
+            } else {
+                const dones = Object.keys(MEJORAS).filter((c) => MEJORAS[c].don && !tieneDon(h, c));
+                const comunes = Object.keys(MEJORAS).filter((c) => !MEJORAS[c].don && c !== "maestria" && c !== "descanso");
+                const lista = dones.length && azarDeSala(partida, "tipo") < 0.5 ? dones : comunes;
+                const clave = lista[Math.floor(azarDeSala(partida, "premio") * lista.length)];
+                darMejora(h, clave);
+                texto = `Dentro hay ${MEJORAS[clave].icono} ${MEJORAS[clave].nombre}: ${MEJORAS[clave].texto}.`;
+            }
+            break;
+        }
+    }
+    partida.registro = `${texto} ${partida.sala.antes}`;
+    partida.sala = null;
+    partida.fase = "batalla";
+    return { texto };
 }
 
 // Lo que ganas al terminar, según los pisos que superaste (y el lugar: la Mazmorra paga más).

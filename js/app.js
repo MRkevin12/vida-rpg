@@ -2203,6 +2203,13 @@ const ACCIONES = {
         if (resultado.relato) await mostrarRelato(resultado.relato);
         else pintarTorre();
     },
+    // Una sala entre pisos (v42): la opción elegida cambia a tu héroe y sigue la batalla.
+    "torre-sala": (boton) => {
+        const resultado = ejecutar(() => acciones.salaTorre(estado, boton.dataset.opcion, lugarAbierto));
+        if (!resultado) return;
+        sonar(boton.dataset.opcion === "seguir" ? "cursor" : "completar");
+        pintarTorre();
+    },
     "torre-rendirse": () => {
         const texto = lugarAbierto === "mazmorra"
             ? "¿Huir de la Mazmorra? Cobras lo que ganaste hasta ahora y el descenso termina."

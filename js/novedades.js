@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 41;
+export const VERSION_APP = 42;
 
 export const NOVEDADES = [
+    {
+        version: 42,
+        titulo: "Salas especiales en la Torre",
+        cambios: [
+            "🚪 Entre algunos pisos de la Torre ahora hay una sala: el tercer piso de cada zona y el de cada guardián. Es un respiro: eliges qué hacer, sin pelear.",
+            "⛲ Fuente (antes de cada guardián): bebes y recuperas 40 % de vida, o llenas un frasco. 🕯️ Altar: ofreces sangre por ataque y hechizo, o rezas por Voluntad. 🛒 Mercader: trueques con lo que llevas (una poción por vida máxima, vida por pociones, un hechizo por filo). 📦 Cofre: un don o una mejora… o una trampa.",
+            "Todo se paga con lo que llevas en la partida, no con gemas, y una sala nunca te mata. Si prefieres no arriesgar nada, siempre puedes seguir de largo. La Mazmorra no tiene salas: ahí no hay descanso.",
+        ],
+    },
     {
         version: 41,
         titulo: "Marcas y dones en la Torre",

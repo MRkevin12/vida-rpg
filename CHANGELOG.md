@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v42 — Salas especiales en la Torre
+- **Salas** (`SALAS`, `salaDelPiso`, `resolverSala` y `motivoSala` en `torre.js`): al entrar a un piso de la Torre cuyo número es 3 (mod 5) hay una sala al azar entre altar, mercader y cofre; al entrar a uno múltiplo de 5 (el del guardián), una fuente. La Mazmorra no tiene. La partida queda en fase `"sala"` (con `partida.sala`) hasta que eliges; la criatura del piso ya está esperando y la batalla sigue después.
+- ⛲ **Fuente:** beber (+40 % de vida) o llenar un frasco (+1 poción). 🕯️ **Altar:** ofrecer sangre (−25 % de la vida actual, +4 ataque y +8 hechizo) o rezar (+35 de Voluntad). 🛒 **Mercader:** poción por +14 de vida máxima, −20 % de vida por 2 pociones, o un hechizo por +5 de ataque. 📦 **Cofre:** 70 % un don o una mejora (`darMejora`, sacada de `elegirMejora`), 30 % trampa (−15 % de la vida máxima). Todas dejan «seguir» sin hacer nada.
+- Se paga con la partida (no con gemas) y nada te mata: `pierde()` siempre deja al menos 1 de vida. Las opciones imposibles (sin pociones, sin hechizos, muy herido) se apagan con su motivo.
+- El azar de las salas sale de la semilla de la partida y del piso, no gasta el azar de las batallas.
+- Pantalla: ventana de sala con sus opciones (`torre-sala`) y «Huir y cobrar lo ganado»; `acciones.salaTorre`. 206 pruebas (5 nuevas; 2 viejas ajustadas para pasar la sala).
+
 ## v41 — Marcas y dones en la Torre
 - **Marcas de partida** (`MARCAS` y `marcasDelDia` en `torre.js`): al empezar una subida o un descenso se puede elegir una de las 3 marcas del día (según la fecha y el lugar), o ninguna. 💎 Cristal (−25 % de vida), 🚫 Sin frascos (sin pociones), 🐗 Criaturas salvajes (+25 % de ataque), 🪨 Pieles duras (+30 % de vida), 🤐 Magia muda (sin hechizos) y 🍂 Ayuno (sin cura al subir de piso; solo en la Torre). El premio final se multiplica entre ×1,2 y ×1,3 (después del tope de gemas/XP). `empezarTorre(estado, semilla, lugar, marca)` solo acepta las del día.
 - **Dones** (6 mejoras raras en `MEJORAS`, con `don: true`): 🩸 Sed de sangre, 🔔 Eco arcano, 🌵 Piel de espinas, 🏹 Ojo de cazador, 🔥 Fervor y 🎒 Botín de guerra. Desde el piso 3 puede salir uno (50 %) entre las opciones de mejora, nunca repetido; se guardan en `heroe.dones`.
