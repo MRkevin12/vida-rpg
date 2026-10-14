@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 37;
+export const VERSION_APP = 38;
 
 export const NOVEDADES = [
+    {
+        version: 38,
+        titulo: "La Torre despierta",
+        cambios: [
+            "🗼 La Torre despertó: la tormenta escondía la mitad. Ahora tiene 30 pisos: sobre la cima siguen los Puentes de nubes y la Corona de la Llama, con 10 criaturas nuevas. En lo más alto espera el Apagador, el que apagó la Llama hace cien años.",
+            "👹 Las Sombras les enseñaron trucos a sus criaturas: 💠 barreras que se tragan tus golpes, 🌀 golpes cargados que sueltan al turno siguiente, 🪞 espejos que te devuelven los hechizos, criaturas que se regeneran y un jefe que cambia de punto débil a media vida.",
+            "🎯 Técnicas de los Vigías, una por atributo real (desde su nivel 3, una vez por piso): 🔨 Quebrar (Fuerza), 🔍 Analizar (Intelecto), 😤 Intimidar (Carisma) y 🎯 Golpe certero (Riqueza).",
+            "✨ Voluntad: una barra que se llena peleando y aguantando golpes (tu racha la empieza con algo). Llena, suelta un golpe enorme que rompe barreras y cargas.",
+            "📜 La historia de la Torre cuenta por qué cambió todo, y el premio sube a 60 💎 y 45 XP.",
+        ],
+    },
     {
         version: 37,
         titulo: "La Torre, en el valle",

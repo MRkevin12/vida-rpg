@@ -1,10 +1,15 @@
 // bestiario.js — Las criaturas de la Torre del héroe (v25) y de la Mazmorra del Abismo (v29).
 //
 // Hay dos LUGARES para pelear: la Torre (se sube) y, debajo de ella, la Mazmorra (se baja;
-// se abre al superar el piso 20 de la Torre). Cada uno tiene 4 ZONAS de 5 pisos. En cada
-// zona hay 4 criaturas y, en el último piso, un GUARDIÁN. Después del piso 20 se vuelve a
-// empezar con las mismas criaturas, más fuertes y de otro color («ancestrales» en la Torre,
-// «abisales» en la Mazmorra).
+// se abre al superar el piso 20 de la Torre). La Torre tiene 6 ZONAS de 5 pisos (30 pisos,
+// desde la v38: la tormenta escondía las dos de arriba) y la Mazmorra, 4. En cada zona hay
+// 4 criaturas y, en el último piso, un GUARDIÁN. Al terminar se vuelve a empezar con las
+// mismas criaturas, más fuertes y de otro color («ancestrales» en la Torre, «abisales» en la
+// Mazmorra).
+//
+// v38: muchas criaturas de la Torre aprendieron un TRUCO (especial: barrera, carga o reflejo;
+// ver ESPECIALES en torre.js), algunas se REGENERAN (regenera: parte de su vida por turno) y el
+// último guardián cambia de forma a media vida (fase: { debil, resiste, nombre }).
 //
 // Las criaturas de la Mazmorra tienen además un ATAQUE ESPECIAL (veneno, beber tu vida,
 // sellar tu magia o cubrirse con una coraza): ver ESPECIALES en torre.js.
@@ -33,6 +38,9 @@ export const ZONAS = [
     { id: "biblioteca", nombre: "Biblioteca prohibida", articulo: "la", texto: "Estantes hasta donde alcanza la vista, con libros que es mejor no abrir." },
     { id: "fragua",     nombre: "Fragua del abismo",    articulo: "la", texto: "El calor sube desde abajo. Aquí se forjó algo que nunca debió existir." },
     { id: "cima",       nombre: "Cima de la tormenta",  articulo: "la", texto: "Sin techo, sin muros: solo el viento, los rayos y lo que vive entre ellos." },
+    // v38: las dos zonas que escondía la tormenta.
+    { id: "nubes",      nombre: "Puentes de nubes",     articulo: "los", texto: "Pasarelas de piedra blanca que saltan de nube en nube. El viento empuja hacia el vacío a quien duda." },
+    { id: "corona",     nombre: "Corona de la Llama",   articulo: "la", texto: "El último piso que levantaron los Vigías: columnas de oro alrededor de un pedestal apagado." },
 ];
 
 // Las zonas de la Mazmorra del Abismo (de arriba hacia abajo).
@@ -76,7 +84,7 @@ export const CRIATURAS = {
     },
     caballero: {
         nombre: "Caballero sin Nombre", genero: "m", zona: "cripta", guardian: true, debil: "rayo", resiste: "hielo",
-        golpe: "Mandoble", fuerte: "Tajo sepulcral", talla: 104,
+        golpe: "Mandoble", fuerte: "Tajo sepulcral", especial: { tipo: "barrera", nombre: "Escudo del juramento" }, talla: 104,
         texto: "Guardián de la cripta. Bajo la armadura ya no queda nadie: solo el juramento.",
     },
 
@@ -88,7 +96,7 @@ export const CRIATURAS = {
     },
     grimorio: {
         nombre: "Grimorio voraz", genero: "m", zona: "biblioteca", debil: "fuego", resiste: null,
-        golpe: "Dentellada", fuerte: "Maldición escrita", talla: 84, vuela: true,
+        golpe: "Dentellada", fuerte: "Maldición escrita", especial: { tipo: "reflejo", nombre: "Página espejo" }, talla: 84, vuela: true,
         texto: "Un libro que aprendió a leer a sus lectores. Y después, a comérselos.",
     },
     espectro: {
@@ -103,7 +111,7 @@ export const CRIATURAS = {
     },
     liche: {
         nombre: "Archivista", genero: "m", zona: "biblioteca", guardian: true, debil: "fuego", resiste: "hielo",
-        golpe: "Rayo sombrío", fuerte: "Palabra prohibida", talla: 104, vuela: true,
+        golpe: "Rayo sombrío", fuerte: "Palabra prohibida", especial: { tipo: "carga", nombre: "Conjuro prohibido" }, talla: 104, vuela: true,
         texto: "Guardián de la biblioteca. Cambió su vida por tiempo para leerlo todo.",
     },
 
@@ -115,12 +123,12 @@ export const CRIATURAS = {
     },
     "cieno-magma": {
         nombre: "Cieno de magma", genero: "m", zona: "fragua", debil: "hielo", resiste: "fuego",
-        golpe: "Salpicadura ardiente", fuerte: "Marea de lava", talla: 84,
+        golpe: "Salpicadura ardiente", fuerte: "Marea de lava", regenera: 0.05, talla: 84,
         texto: "Un cieno que bajó demasiado y aprendió a quemar.",
     },
     golem: {
         nombre: "Gólem de hierro", genero: "m", zona: "fragua", debil: "rayo", resiste: "fuego",
-        golpe: "Puñetazo", fuerte: "Martillo doble", talla: 100,
+        golpe: "Puñetazo", fuerte: "Martillo doble", especial: { tipo: "barrera", nombre: "Placas de hierro" }, talla: 100,
         texto: "Forjado para trabajar sin descanso. Nadie le dijo que el trabajo había terminado.",
     },
     mimico: {
@@ -130,14 +138,14 @@ export const CRIATURAS = {
     },
     demonio: {
         nombre: "Señor de la Fragua", genero: "m", zona: "fragua", guardian: true, debil: "hielo", resiste: "fuego",
-        golpe: "Garra ardiente", fuerte: "Infierno", talla: 108,
+        golpe: "Garra ardiente", fuerte: "Infierno", especial: { tipo: "carga", nombre: "Fundición" }, talla: 108,
         texto: "Guardián de la fragua. Todo lo que arde aquí arde porque él lo quiere.",
     },
 
     // --- Cima de la tormenta ---
     cristal: {
         nombre: "Cristal gélido", genero: "m", zona: "cima", debil: "fuego", resiste: "hielo",
-        golpe: "Esquirla", fuerte: "Ventisca", talla: 92, vuela: true,
+        golpe: "Esquirla", fuerte: "Ventisca", especial: { tipo: "reflejo", nombre: "Prisma" }, talla: 92, vuela: true,
         texto: "Hielo que nunca se derritió. Dentro, algo te mira.",
     },
     "ala-trueno": {
@@ -157,8 +165,63 @@ export const CRIATURAS = {
     },
     dragon: {
         nombre: "Dragón de la tormenta", genero: "m", zona: "cima", guardian: true, debil: "hielo", resiste: "rayo",
-        golpe: "Zarpazo", fuerte: "Aliento de rayos", talla: 116,
+        golpe: "Zarpazo", fuerte: "Aliento de rayos", especial: { tipo: "carga", nombre: "Ojo de la tormenta" }, talla: 116,
         texto: "Guardián de la cima. La tormenta no lo rodea: sale de él.",
+    },
+
+    // --- Puentes de nubes (v38) ---
+    arpia: {
+        nombre: "Arpía de los vientos", genero: "f", zona: "nubes", debil: "hielo", resiste: null,
+        golpe: "Garra", fuerte: "Grito", especial: { tipo: "carga", nombre: "Picado" }, talla: 96, vuela: true,
+        texto: "Anida bajo los puentes. Su grito se oye antes que sus alas, y sus alas antes que sus garras.",
+    },
+    nubarron: {
+        nombre: "Nubarrón", genero: "m", zona: "nubes", debil: "fuego", resiste: "rayo",
+        golpe: "Granizo", fuerte: "Chubasco", especial: { tipo: "barrera", nombre: "Niebla densa" }, regenera: 0.05, talla: 92, vuela: true,
+        texto: "Una nube que aprendió a guardar rencor. Lo que le quitas, lo vuelve a juntar del viento.",
+    },
+    esfinge: {
+        nombre: "Esfinge alada", genero: "f", zona: "nubes", debil: "rayo", resiste: "fuego",
+        golpe: "Zarpazo", fuerte: "Embestida alada", especial: { tipo: "reflejo", nombre: "Enigma" }, talla: 100,
+        texto: "Cuida el paso con una pregunta. Si le respondes con magia, te devuelve la pregunta.",
+    },
+    "espiritu-viento": {
+        nombre: "Espíritu del viento", genero: "m", zona: "nubes", debil: "fuego", resiste: "hielo",
+        golpe: "Ráfaga", fuerte: "Torbellino", especial: { tipo: "carga", nombre: "Huracán" }, talla: 92, vuela: true,
+        texto: "El viento que empujaba a los Vigías hacia el vacío. Antes lo hacía sin querer.",
+    },
+    "coloso-nubes": {
+        nombre: "Coloso de las nubes", genero: "m", zona: "nubes", guardian: true, debil: "rayo", resiste: "hielo",
+        golpe: "Puño de mármol", fuerte: "Derrumbe", especial: { tipo: "barrera", nombre: "Muralla de nubes" }, talla: 112,
+        texto: "Guardián de los puentes. Los Vigías lo tallaron para sostener el cielo; las Sombras lo convencieron de soltarlo.",
+    },
+
+    // --- Corona de la Llama (v38) ---
+    "vigia-caido": {
+        nombre: "Vigía caído", genero: "m", zona: "corona", debil: "rayo", resiste: "fuego",
+        golpe: "Lanza", fuerte: "Embate", especial: { tipo: "carga", nombre: "Juicio" }, talla: 100,
+        texto: "Llegó hasta aquí y se cansó a un paso de la cima. Las Sombras le prometieron descanso, y se lo cobraron.",
+    },
+    "llama-negra": {
+        nombre: "Llama negra", genero: "f", zona: "corona", debil: "hielo", resiste: "fuego",
+        golpe: "Lengua de humo", fuerte: "Hoguera fría", especial: { tipo: "barrera", nombre: "Humo negro" }, regenera: 0.05, talla: 88, vuela: true,
+        texto: "Un fuego que no alumbra: se alimenta de la luz de los demás para seguir ardiendo.",
+    },
+    espejo: {
+        nombre: "Espejo de la Corona", genero: "m", zona: "corona", debil: "rayo", resiste: "hielo",
+        golpe: "Esquirla dorada", fuerte: "Destello", especial: { tipo: "reflejo", nombre: "Reflejo dorado" }, talla: 92, vuela: true,
+        texto: "Lo pulió cien años la vanidad de los que no subieron. Te muestra lo que quieres ver, y te lo cobra.",
+    },
+    "ojo-corona": {
+        nombre: "Ojo de la Corona", genero: "m", zona: "corona", debil: "hielo", resiste: "rayo",
+        golpe: "Mirada", fuerte: "Rayo de oro", especial: { tipo: "carga", nombre: "Mirada final" }, talla: 88, vuela: true,
+        texto: "Vigilaba que nadie apagara la Llama. Ahora vigila que nadie la encienda.",
+    },
+    apagador: {
+        nombre: "Apagador", genero: "m", zona: "corona", guardian: true, debil: "rayo", resiste: "fuego",
+        fase: { debil: "fuego", resiste: "rayo", nombre: "A oscuras" },
+        golpe: "Capa de humo", fuerte: "Silencio", especial: { tipo: "carga", nombre: "Apagar" }, talla: 120,
+        texto: "Guardián de la Corona. Hace cien años subió en silencio y apagó la Llama con la mano. A media vida se le rompe la capa, y lo de adentro le teme al fuego.",
     },
 
     // ===== Mazmorra del Abismo (v29) =====
@@ -273,7 +336,7 @@ export const CRIATURAS = {
 };
 
 // Los dos lugares. piso: cómo se llama cada nivel. vuelta: cómo se llaman las criaturas que
-// vuelven después del piso 20.
+// vuelven al terminar (después del piso 30 en la Torre y del sótano 20 en la Mazmorra).
 export const LUGARES = {
     torre:    { id: "torre",    nombre: "Torre del héroe",     icono: "🗼", piso: "Piso",   vuelta: "ancestral", zonas: ZONAS },
     mazmorra: { id: "mazmorra", nombre: "Mazmorra del Abismo", icono: "⛓️", piso: "Sótano", vuelta: "abisal",    zonas: ZONAS_MAZMORRA },
@@ -300,7 +363,7 @@ export function zonaDelPiso(piso, lugar = "torre") {
     return zonas[Math.floor((piso - 1) / PISOS_POR_ZONA) % zonas.length];
 }
 
-// Cuántas veces ya diste la vuelta (0 en los pisos 1 a 20, 1 en los 21 a 40…).
+// Cuántas veces ya diste la vuelta (en la Torre: 0 en los pisos 1 a 30, 1 en los 31 a 60…).
 export function vueltaDelPiso(piso, lugar = "torre") {
     return Math.floor((piso - 1) / lugarDe(lugar).orden.length);
 }

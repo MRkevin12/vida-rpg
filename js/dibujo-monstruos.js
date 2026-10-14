@@ -1090,6 +1090,81 @@ function rey(c) {
         ${llama(12, 40, c.cuerpo)}${llama(90, 38, c.mente)}${llama(10, 66, c.voz)}${llama(94, 66, c.tesoro)}`);
 }
 
+// ===== Puentes de nubes y Corona de la Llama (v38) =====
+
+// Arpía de los vientos: medio mujer, medio ave, con las alas abiertas y gritando.
+function arpia(c) {
+    const L = lienzo();
+    const pluma = L.mate("pluma", c.pluma, 0.35, 0.6);
+    const ala = L.mate("ala", c.ala, 0.3, 0.62);
+    const piel = L.bola("piel", c.piel, 0.45, 0.55);
+    const pecho = L.bola("pecho", c.pluma, 0.5, 0.6);
+    const alaIzquierda = `
+        <path d="M42 38 C30 26 16 14 3 9 C6 18 4 24 2 30 C8 30 10 34 8 40 C14 39 16 44 14 50 C20 48 24 52 23 58 C29 55 34 56 36 60 L44 48 Z" fill="${ala}" ${borde()}/>
+        <path d="M40 40 C30 30 18 20 6 13 M38 44 C28 38 18 32 6 30 M38 48 C30 46 22 44 10 42 M40 52 C34 52 28 52 18 52" fill="none" stroke="${oscurecer(c.ala, 0.5)}" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M30 24 C22 18 14 14 6 11" fill="none" stroke="${aclarar(c.ala, 0.4)}" stroke-width="1.2" stroke-linecap="round"/>`;
+    const pata = `
+        ${tubo("M44 70 L41 82 L42 88", c.pata, 2.6)}
+        <path d="M42 88 l-5 5 M42 88 l0 6.4 M42 88 l4.4 5" stroke="${LINEA}" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M42 88 l-5 5 M42 88 l0 6.4 M42 88 l4.4 5" stroke="${MARFIL}" stroke-width="1.2" stroke-linecap="round"/>`;
+    return L.armar(`
+        ${espejo(alaIzquierda)}
+        ${espejo(pata)}
+        <!-- la cola -->
+        <path d="M44 72 L38 86 L46 80 L50 90 L54 80 L62 86 L56 72 Z" fill="${pluma}" ${borde()}/>
+        <!-- el cuerpo de plumas -->
+        <path d="M38 40 C36 54 38 66 44 74 L56 74 C62 66 64 54 62 40 C56 35 44 35 38 40 Z" fill="${pecho}" ${borde()}/>
+        <path d="M42 50 q4 4 8 0 q4 4 8 0 M40 58 q5 4 10 0 q5 4 10 0 M43 66 q3.5 3.4 7 0 q3.5 3.4 7 0" fill="none" stroke="${oscurecer(c.pluma, 0.45)}" stroke-width="1.1"/>
+        <!-- el pelo salvaje, detrás de la cara -->
+        <path d="M38 22 C30 26 28 34 26 40 C32 36 34 38 36 42 C38 36 40 34 42 32 Z M62 22 C70 26 72 34 74 40 C68 36 66 38 64 42 C62 36 60 34 58 32 Z" fill="${c.pelo}" ${borde(1)}/>
+        <path d="M37 24 C37 12 43 8 50 8 C57 8 63 12 63 24 C60 18 40 18 37 24 Z" fill="${c.pelo}" ${borde(1)}/>
+        <!-- la cara, con el ceño fruncido y la boca abierta: el grito -->
+        <path d="M41 24 C41 17 45 14 50 14 C55 14 59 17 59 24 C59 31 55 36 50 37 C45 36 41 31 41 24 Z" fill="${piel}" ${borde()}/>
+        <path d="M42 21 L48 23.6 M58 21 L52 23.6" stroke="${LINEA}" stroke-width="1.4" stroke-linecap="round"/>
+        ${ojoDeLuz(45.6, 25, 2, c.ojo, 18)}${ojoDeLuz(54.4, 25, 2, c.ojo, -18)}
+        <path d="M45 30 Q50 28.6 55 30 Q54 35.6 50 36.4 Q46 35.6 45 30 Z" fill="#1a0a12" ${borde(0.8)}/>
+        <path d="M46.4 30.4 l1 2.4 l1 -2.2 Z M51.6 30.2 l1 2.2 l1 -2.4 Z" fill="#fff"/>
+        <!-- mechones al viento -->
+        <path d="M40 16 C34 10 28 10 22 12 M60 16 C66 10 72 10 78 12" fill="none" stroke="${c.pelo}" stroke-width="2.4" stroke-linecap="round"/>`);
+}
+
+// El Apagador: alto, encapuchado y hecho de humo, con la vara de apagar velas. En el pecho
+// le queda una brasa: lo último de la Llama que apagó.
+function apagador(c) {
+    const L = lienzo();
+    const capa = L.mate("capa", c.capa, 0.28, 0.6);
+    const humo = L.mate("humo", c.humo, 0.4, 0.5);
+    const campana = L.metal("campana", c.campana);
+    const dedos = "M18 60 l-5 2 M19 62 l-4 5 M21.6 63.4 l-2 5.6 M24.6 64 l0 5";
+    return L.armar(`
+        <!-- humo que sube por detrás -->
+        <path d="M22 70 C14 60 20 50 14 40 C22 44 26 38 24 30 C32 38 30 48 34 54 Z" fill="${humo}"/>
+        <path d="M70 66 C78 56 72 46 80 36 C72 40 70 34 74 26 C64 34 66 46 62 52 Z" fill="${humo}"/>
+        <!-- la capa larga, que abajo se deshace en humo -->
+        <path d="M50 14 C36 16 30 28 29 42 C28 58 24 76 16 94 C24 90 28 95 34 90 C38 95 44 92 50 96 C56 92 62 95 66 90 C72 95 76 90 84 94 C76 76 72 58 71 42 C70 28 64 16 50 14 Z" fill="${capa}" ${borde()}/>
+        <path d="M40 40 C38 58 34 76 28 90 M60 40 C62 58 66 76 72 90 M50 44 L50 92" fill="none" stroke="${oscurecer(c.capa, 0.5)}" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M42 18 C36 24 33 32 32 42" fill="none" stroke="${aclarar(c.capa, 0.4)}" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- la mano abierta: la que apagó la Llama -->
+        <path d="M34 36 C26 44 20 52 18 60 L26 64 C28 56 32 50 38 46 Z" fill="${capa}" ${borde()}/>
+        <path d="${dedos}" stroke="${LINEA}" stroke-width="2.8" stroke-linecap="round"/>
+        <path d="${dedos}" stroke="${c.mano}" stroke-width="1.3" stroke-linecap="round"/>
+        <!-- el apagador de velas: una vara larga con una campana de hierro, que todavía humea -->
+        ${tubo("M80 22 L74 94", c.metal, 2.4)}
+        <path d="M70 22 C70 12 75 8 80 8 C85 8 90 12 90 22 L92 26 L68 26 Z" fill="${campana}" ${borde()}/>
+        <path d="M72 14 C74 11 77 10 80 10" fill="none" stroke="#fff" stroke-width="1"/>
+        <path d="M80 26 C78 30 82 32 80 36 C78 38 81 40 80 42" fill="none" stroke="${c.humo}" stroke-width="2" stroke-linecap="round"/>
+        <!-- el otro brazo sostiene la vara -->
+        <path d="M64 36 C70 42 74 48 76 54 L70 58 C68 52 64 48 60 46 Z" fill="${capa}" ${borde()}/>
+        <circle cx="75" cy="56" r="3.6" fill="${c.mano}" ${borde(0.9)}/>
+        <!-- la capucha: adentro, oscuridad y dos luces frías -->
+        <path d="M36 36 C30 20 38 6 50 6 C62 6 70 20 64 36 C60 30 40 30 36 36 Z" fill="${capa}" ${borde()}/>
+        <ellipse cx="50" cy="24" rx="9" ry="10" fill="#05030a" ${borde(0.9)}/>
+        ${ojoDeLuz(46.4, 23, 1.6, c.ojo)}${ojoDeLuz(53.6, 23, 1.6, c.ojo)}
+        <!-- la brasa del pecho -->
+        <circle cx="50" cy="52" r="5" fill="${aclarar(c.brasa, 0.2)}" ${borde(0.8)}/>
+        <circle cx="50" cy="52" r="2.2" fill="#fff3c0"/>`);
+}
+
 // ===== La tabla: qué figura y qué colores usa cada criatura =====
 
 const FIGURAS = {
@@ -1116,6 +1191,18 @@ const FIGURAS = {
     sierpe: [sierpe, { escama: "#1d7a8c", vientre: "#e1d7a8", marca: "#ffd23c", ojo: "#ffd23c" }],
     centinela: [caballero, { armadura: "#cfd7e8", adorno: "#e6bc48", capa: "#27408b", hoja: "#f2f6ff", cuerno: "#e6bc48", ojo: "#ffe680" }],
     dragon: [dragon, { escama: "#2f5390", ala: "#5a7ad0", vientre: "#ddd5b6", cresta: "#8fb0ff", ojo: "#ffe45a", aliento: "#fff7a0" }],
+    // Puentes de nubes (v38)
+    arpia: [arpia, { pluma: "#6a5a8a", ala: "#4a3a6a", piel: "#d8c8b4", pelo: "#2a1a30", pata: "#c8a040", ojo: "#ffe45a" }],
+    nubarron: [cieno, { masa: "#c4ccdc", restos: "#8a98b4", ojo: "#5ac8ff", boca: "#26304c" }],
+    esfinge: [gargola, { piel: "#b08a4a", ala: "#8a6a3a", cuerno: "#5a4020", ojo: "#7affd8" }],
+    "espiritu-viento": [espectro, { tunica: "#7ab4c8", ojo: "#ffffff" }],
+    "coloso-nubes": [golem, { hierro: "#c8c4bc", oxido: "#9ab0d0", fuego: "#7ad8ff" }],
+    // Corona de la Llama (v38)
+    "vigia-caido": [caballero, { armadura: "#3a3448", adorno: "#c8a040", capa: "#1a1424", hoja: "#d8d0b0", cuerno: "#c8a040", ojo: "#ff5a3a" }],
+    "llama-negra": [ascua, { llama: "#3a1a5a", medio: "#6a3a9a", centro: "#c8a8ff", hueso: "#8a80a0" }],
+    espejo: [cristal, { claro: "#fff4c8", medio: "#e6c060", oscuro: "#8a6a20", ojo: "#ffffff" }],
+    "ojo-corona": [ojo, { carne: "#b08a2a", iris: "#ff4a3a" }],
+    apagador: [apagador, { capa: "#1c1828", humo: "#5a5468", metal: "#7a7488", campana: "#3a3644", mano: "#b8b0c8", ojo: "#e8f0ff", brasa: "#ff8a3a" }],
 
     // --- Mazmorra del Abismo (v29). El Reflejo sombrío no está: su dibujo es tu héroe (ver sprites.js). ---
     sanguijuela: [sanguijuela, { piel: "#4a3a2c", raya: "#c8803a", boca: "#3a0b12", agua: "#1c3640" }],
@@ -1165,6 +1252,9 @@ const COLORES_SALA = {
     biblioteca: { pared: ["#170f1c", "#33202c"], piso: ["#20151a", "#5c4232"], junta: "#140b10", luz: "#ffc670" },
     fragua:     { pared: ["#150a0c", "#381a15"], piso: ["#190e10", "#4c2b25"], junta: "#0c0506", luz: "#ff8a30" },
     cima:       { pared: ["#090d2a", "#3d3880"], piso: ["#20274a", "#5b648c"], junta: "#131931", luz: "#cdd8ff" },
+    // v38: sobre la tormenta
+    nubes:      { pared: ["#2a4a8a", "#9ab8e4"], piso: ["#b8c4dc", "#eef2fc"], junta: "#8a98b8", luz: "#ffffff" },
+    corona:     { pared: ["#0e0814", "#3a2a1a"], piso: ["#241a0c", "#6a5020"], junta: "#160e06", luz: "#ffd27a" },
     // Mazmorra del Abismo (v29)
     cisterna:   { pared: ["#071014", "#16303a"], piso: ["#06141a", "#1d4250"], junta: "#3a7a86", luz: "#5ae0c8", suelo: "agua" },
     raices:     { pared: ["#0a0806", "#2a2016"], piso: ["#100c08", "#3a2c1e"], junta: "#0a0704", luz: "#a8ff6a", suelo: "tierra" },
@@ -1388,6 +1478,37 @@ Object.assign(PAREDES, {
     },
 });
 
+// Las paredes de la Torre sobre la tormenta (v38).
+Object.assign(PAREDES, {
+    // Puentes de nubes: cielo de día, el sol, nubes, un puente lejano con arcos y el mar de nubes.
+    nubes() {
+        const nube = (x, y, ancho, color) => `<ellipse cx="${x}" cy="${y}" rx="${ancho}" ry="${(ancho * 0.32).toFixed(1)}" fill="${color}"/>
+            <ellipse cx="${(x - ancho * 0.35).toFixed(1)}" cy="${(y - ancho * 0.15).toFixed(1)}" rx="${(ancho * 0.45).toFixed(1)}" ry="${(ancho * 0.28).toFixed(1)}" fill="${color}"/>
+            <ellipse cx="${(x + ancho * 0.3).toFixed(1)}" cy="${(y - ancho * 0.18).toFixed(1)}" rx="${(ancho * 0.4).toFixed(1)}" ry="${(ancho * 0.3).toFixed(1)}" fill="${color}"/>`;
+        return `<circle cx="38" cy="16" r="16" fill="#fff8d0" opacity=".25"/><circle cx="38" cy="16" r="8" fill="#fff8e0"/>
+                ${nube(150, 18, 26, "#e8eefc")}${nube(84, 30, 20, "#dce6f8")}${nube(20, 40, 18, "#f4f7ff")}
+                <path d="M100 40 L192 34 L192 38 L100 44 Z" fill="#c8d0e4"/>
+                <path d="M112 43.4 q6 -6 12 -0.8 M136 41.8 q6 -6 12 -0.8 M160 40.2 q6 -6 12 -0.8" fill="none" stroke="#8a96b4" stroke-width="1.2"/>
+                <path d="M0 ${HORIZONTE} L0 46 C20 42 34 50 56 46 C78 42 92 50 116 47 C140 44 160 50 192 46 L192 ${HORIZONTE} Z" fill="#f0f4ff"/>
+                <path d="M0 48 C20 44 34 52 56 48 M120 49 C140 46 160 51 192 48" fill="none" stroke="#c8d4ec" stroke-width="1.2"/>`;
+    },
+
+    // Corona de la Llama: noche estrellada entre columnas de oro y, al centro, el pedestal apagado.
+    corona(s) {
+        const azar = sorteo(23);
+        let estrellas = "";
+        for (let i = 0; i < 28; i++) estrellas += `<rect x="${Math.floor(azar() * 190)}" y="${Math.floor(azar() * 40)}" width="1" height="1" fill="#fff" opacity="${(0.4 + azar() * 0.6).toFixed(2)}"/>`;
+        return `${estrellas}
+                <path d="M6 10 Q96 -12 186 10" fill="none" stroke="#c8a040" stroke-width="3"/>
+                ${columna(10, 12, "#8a6a20")}${columna(54, 10, "#8a6a20")}${columna(128, 10, "#8a6a20")}${columna(170, 12, "#8a6a20")}
+                <circle cx="96" cy="34" r="22" fill="${s.luz}" opacity=".06"/>
+                <path d="M84 ${HORIZONTE} L86 40 L106 40 L108 ${HORIZONTE} Z" fill="#3a2c18"/>
+                <rect x="82" y="36" width="28" height="5" fill="#c8a040"/>
+                <path d="M88 36 Q96 30 104 36 Z" fill="#2a2016"/>
+                <path d="M96 30 q-2.4 -5 0.6 -9 q2 4 -0.6 9" fill="none" stroke="#6a6478" stroke-width="1.2"/>`;
+    },
+});
+
 // Detalles que van sobre el piso de cada sala.
 const SUELOS = {
     cripta: () => "",
@@ -1396,6 +1517,11 @@ const SUELOS = {
     fragua: (s) => `<path d="M10 120 l16 -9 l-5 -10 l18 -8 l-3 -9 M182 116 l-14 -8 l6 -10 l-16 -9 l2 -8 M70 126 l8 -8 l-3 -6" fill="none" stroke="${s.luz}" stroke-width="1.6" stroke-linejoin="round"/>
                     <path d="M10 120 l16 -9 l-5 -10 l18 -8 M182 116 l-14 -8 l6 -10 l-16 -9" fill="none" stroke="#ffe45a" stroke-width=".6" stroke-linejoin="round"/>`,
     cima: () => `<path d="M30 76 l20 0 M120 90 l30 0 M60 112 l34 0 M150 68 l16 0" stroke="#cdd8ff" stroke-width="1" opacity=".35"/>`,
+    nubes: () => `<ellipse cx="20" cy="${HORIZONTE + 6}" rx="26" ry="5" fill="#ffffff" opacity=".75"/>
+                  <ellipse cx="176" cy="${HORIZONTE + 8}" rx="24" ry="5" fill="#ffffff" opacity=".75"/>
+                  <ellipse cx="96" cy="124" rx="70" ry="6" fill="#ffffff" opacity=".35"/>`,
+    corona: () => `<ellipse cx="96" cy="96" rx="58" ry="16" fill="none" stroke="#c8a040" stroke-width="1.4" opacity=".7"/>
+                   <ellipse cx="96" cy="96" rx="36" ry="10" fill="none" stroke="#c8a040" stroke-width="1" opacity=".5"/>`,
     cisterna: (s) => `<ellipse cx="62" cy="96" rx="12" ry="2.4" fill="none" stroke="${s.luz}" stroke-width=".8" opacity=".5"/>
                       <ellipse cx="160" cy="106" rx="16" ry="3" fill="none" stroke="${s.luz}" stroke-width=".8" opacity=".4"/>
                       <path d="M96 ${HORIZONTE} L84 128 L108 128 Z" fill="${s.luz}" opacity=".07"/>`,

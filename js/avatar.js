@@ -88,7 +88,7 @@ export const OBJETOS = {
     "tunica-arcana": { nombre: "Túnica arcana",       icono: "🔯", espacio: "pecho",   precio: 170, rareza: "raro", poder: { armadura: 3, magia: 5 } },
     "coraza":        { nombre: "Coraza de acero",     icono: "🛡️", espacio: "pecho",   precio: 420, rareza: "epico", poder: { armadura: 16 }, habilidad: "muralla" },
     "coraza-vigia":  { nombre: "Coraza del Vigía",    icono: "🕯️", espacio: "pecho",   rareza: "legendario", poder: { armadura: 20, ataque: 2, magia: 2 }, habilidad: "llama",
-                       logro: { tipo: "torre", meta: 20, texto: "Llegar a la cima: superar 20 pisos de la Torre" } },
+                       logro: { tipo: "torre", meta: 20, texto: "Despejar la tormenta: superar 20 pisos de la Torre" } },
     "espada-madera": { nombre: "Espada de madera",    icono: "🗡️", espacio: "mano",    precio: 60,  rareza: "comun", poder: { ataque: 2 } },
     "baston":        { nombre: "Bastón mágico",       icono: "🪄", espacio: "mano",    precio: 120, rareza: "raro", poder: { magia: 5, ataque: 1 } },
     "laud":          { nombre: "Laúd del bardo",      icono: "🪕", espacio: "mano",    precio: 120, rareza: "raro", poder: { suerte: 6, magia: 2 } },

@@ -130,7 +130,7 @@ export function pista(memoria, datos) {
         jefes: valor === 1 ? "cuando venzas a tu primer jefe" : `cuando hayas vencido a ${valor} jefes (llevas ${tienes})`,
         nivel: `cuando llegues al nivel ${valor} (vas en el ${tienes})`,
         torre: valor >= 20
-            ? `cuando llegues a la cima: supera el piso ${valor} de la Torre del héroe (tu récord: ${tienes})`
+            ? `cuando despejes la tormenta: supera el piso ${valor} de la Torre del héroe (tu récord: ${tienes})`
             : `cuando superes el piso ${valor} de la Torre del héroe (tu récord: ${tienes})`,
         mazmorra: `cuando vuelvas del fondo de la Mazmorra: supera el sótano ${valor} (tu récord: ${tienes})`,
     }[tipo];

@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 18,
+        version: 19,
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -83,11 +83,12 @@ export function estadoInicial() {
             activa: "dragon", // la que te acompaña
             adoptadas: {},    // las que adoptaste en la Tienda: { fenix: { nombre, desde (fecha) } }
         },
-        arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, extra: 0, bestiario: {}, bazar: [] },   // fichas gastadas, mejor
+        arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, extra: 0, bestiario: {}, bazar: [], despertar: false },   // fichas gastadas, mejor
                                               //   puntaje de cada minijuego (records.torre y records.mazmorra = pisos superados),
                                               //   la partida de la Torre y la de la Mazmorra en curso (ver torre.js) o null,
                                               //   fichas de cofres y lo que sabes de cada criatura (ver bestiario.js):
                                               //   { esqueleto: { vencidos: 3, elementos: ["fuego"] } }
+                                              //   despertar (v38): si ya se te contó que la Torre despertó
                                               //   bazar: las provisiones compradas para la próxima partida ("pocion"…)
         campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
         maestro: { leidas: 0 },               // cuántos capítulos de las memorias de Aurelio ya leíste (ver memorias.js)
@@ -141,6 +142,7 @@ function completar(guardado) {
             extra: guardado.arcade?.extra || 0,
             bestiario: { ...guardado.arcade?.bestiario },
             bazar: guardado.arcade?.bazar || [],
+            despertar: guardado.arcade?.despertar || false,
         },
         campana: { recompensados: { ...guardado.campana?.recompensados } },
         maestro: { leidas: guardado.maestro?.leidas || 0 },

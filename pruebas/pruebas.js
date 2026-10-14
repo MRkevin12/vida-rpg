@@ -674,7 +674,7 @@ prueba("Torre: tu poder sale de tus atributos, y cada 5 pisos hay un guardián m
     const [p4, p5, p6] = [4, 5, 6].map(torre.monstruoDelPiso);
     igual([p4.guardian, p5.guardian, p6.guardian], [false, true, false]);
     cierto(p5.vidaMax > p6.vidaMax, "el guardián del piso 5 aguanta más que el monstruo del 6");
-    igual(torre.MONSTRUOS.length, 20, "las 20 criaturas");
+    igual(torre.MONSTRUOS.length, 30, "las 30 criaturas (desde la v38)");
 });
 
 prueba("Torre: atacar daña; defenderse reduce el golpe del monstruo", () => {
@@ -739,8 +739,8 @@ prueba("Torre: gasta una ficha al empezar, se puede seguir después y al caer se
 
 // ===== La Torre al estilo de los clásicos (v25) =====
 
-prueba("Torre: 4 zonas de 5 pisos con criaturas propias (ninguna es un jefe de tus campañas) y un guardián al final", () => {
-    igual(bestiario.ORDEN.length, bestiario.ZONAS.length * bestiario.PISOS_POR_ZONA, "20 criaturas");
+prueba("Torre: 6 zonas de 5 pisos con criaturas propias (ninguna es un jefe de tus campañas) y un guardián al final", () => {
+    igual([bestiario.ZONAS.length, bestiario.ORDEN.length], [6, bestiario.ZONAS.length * bestiario.PISOS_POR_ZONA], "30 criaturas");
     const jefes = Object.values(campana.CAMPANAS).flatMap((c) => c.jefes.map((j) => j.id));
     igual(bestiario.ORDEN.filter((id) => jefes.includes(id)), [], "ids repetidos con los jefes");
     bestiario.ORDEN.forEach((id, i) => {
@@ -757,10 +757,10 @@ prueba("Torre: 4 zonas de 5 pisos con criaturas propias (ninguna es un jefe de t
     for (const elemento of Object.keys(bestiario.ELEMENTOS)) {
         cierto(bestiario.ORDEN.filter((id) => bestiario.CRIATURAS[id].debil === elemento).length >= 6, `varias criaturas débiles a ${elemento}`);
     }
-    // Después del piso 20 vuelven las mismas, «ancestrales» y más fuertes.
-    const [primero, vuelta] = [torre.monstruoDelPiso(1), torre.monstruoDelPiso(21)];
+    // Después del piso 30 vuelven las mismas, «ancestrales» y más fuertes.
+    const [primero, vuelta] = [torre.monstruoDelPiso(1), torre.monstruoDelPiso(31)];
     igual([vuelta.id, vuelta.vuelta, vuelta.nombre], [primero.id, 1, `${primero.nombre} ancestral`]);
-    cierto(vuelta.vidaMax > primero.vidaMax && torre.esGuardian(25) && bestiario.zonaDelPiso(21).id === "cripta", "la segunda vuelta");
+    cierto(vuelta.vidaMax > primero.vidaMax && torre.esGuardian(35) && bestiario.zonaDelPiso(31).id === "cripta", "la segunda vuelta");
 });
 
 prueba("Torre: el hechizo del punto débil hace 50 % más, el que resiste la mitad, y hay que elegir cuál lanzar", () => {
@@ -822,7 +822,7 @@ prueba("Bestiario: recuerda las criaturas que viste, las que venciste y lo que l
     igual(b.murcielago.vencidos, 1);
     acciones.mejoraTorre(estado, estado.arcade.torre.opciones[0]);
     cierto(b.esqueleto, "al subir ves a la del piso nuevo");
-    igual(bestiario.progresoBestiario(b), { vistas: 2, total: 20 });
+    igual(bestiario.progresoBestiario(b), { vistas: 2, total: 30 });
     // Al terminar la subida, lo aprendido se queda.
     acciones.terminarTorre(estado);
     igual(estado.arcade.bestiario.murcielago.vencidos, 1, "el bestiario sobrevive a la partida");
@@ -973,7 +973,7 @@ prueba("Mazmorra: 4 zonas de 5 sótanos con 20 criaturas nuevas, cada una con su
     for (const elemento of Object.keys(bestiario.ELEMENTOS)) {
         cierto(orden.filter((id) => bestiario.CRIATURAS[id].debil === elemento).length >= 6, `varias criaturas débiles a ${elemento}`);
     }
-    for (const tipo of Object.keys(torre.ESPECIALES)) {
+    for (const tipo of ["veneno", "drenar", "sellar", "coraza"]) {
         cierto(orden.filter((id) => bestiario.CRIATURAS[id].especial.tipo === tipo).length >= 4, `varias usan ${tipo}`);
     }
     // Después del sótano 20 vuelven, «abisales».
@@ -1140,14 +1140,15 @@ prueba("Mazmorra: el guardián se presenta en femenino si es una guardiana", () 
 
 prueba("Historia: la Torre y la Mazmorra se cuentan por capítulos que se abren al avanzar", () => {
     const inicio = leyendas.capitulosDeLeyenda("torre", 0, "Ana");
-    igual(inicio.map((c) => c.id), ["prologo", "cripta", "biblioteca", "fragua", "cima", "epilogo"]);
-    igual(inicio.map((c) => c.abierto), [true, true, false, false, false, false]);
-    cierto(inicio[0].parrafos.join(" ").includes("Ana"), "usa el nombre del héroe");
-    igual(inicio[1].parrafos.length, 1, "la Cripta: solo la llegada");
-    cierto(inicio[1].pendiente.includes("piso 5") && inicio[2].bloqueado.includes("piso 6"), "lo que falta");
-    const todo = leyendas.capitulosDeLeyenda("torre", 20, "Ana");
-    cierto(todo.every((c) => c.abierto) && todo.slice(1, 5).every((c) => c.parrafos.length === 2), "con el piso 20, todo");
-    cierto(todo[5].aviso.includes("Mazmorra"), "el epílogo abre la Mazmorra");
+    igual(inicio.map((c) => c.id), ["prologo", "despertar", "cripta", "biblioteca", "fragua", "cima", "nubes", "corona", "epilogo"]);
+    igual(inicio.map((c) => c.abierto), [true, true, true, false, false, false, false, false, false]);
+    cierto(inicio[0].parrafos.join(" ").includes("Ana") && inicio[1].parrafos.join(" ").includes("Ana"), "usa el nombre del héroe");
+    igual(inicio[2].parrafos.length, 1, "la Cripta: solo la llegada");
+    cierto(inicio[2].pendiente.includes("piso 5") && inicio[3].bloqueado.includes("piso 6"), "lo que falta");
+    const todo = leyendas.capitulosDeLeyenda("torre", 30, "Ana");
+    cierto(todo.every((c) => c.abierto) && todo.slice(2, 8).every((c) => c.parrafos.length === 2), "con el piso 30, todo");
+    cierto(todo[5].aviso.includes("Mazmorra"), "la cima de la tormenta abre la Mazmorra");
+    cierto(todo[8].aviso.includes("Corona"), "el epílogo es la Corona");
     const abajo = leyendas.capitulosDeLeyenda("mazmorra", 7, "Ana");
     igual(abajo.map((c) => c.abierto), [true, true, true, false, false, false]);
     cierto(abajo[2].pendiente.includes("sótano 10") && abajo[3].bloqueado.includes("sótano 11"), "en la Mazmorra son sótanos");
@@ -1157,11 +1158,15 @@ prueba("Historia: la Torre y la Mazmorra se cuentan por capítulos que se abren 
     }
 
     // En la batalla: el prólogo al empezar (solo si nunca superaste un piso) y lo que sigue a cada guardián.
-    igual(leyendas.relatoAlEmpezar("torre", 0, "Ana").paginas.map((p) => p.titulo), ["La Torre sin cima", "Cripta olvidada"]);
+    igual(leyendas.relatoAlEmpezar("torre", 0, "Ana").paginas.map((p) => p.titulo), ["La Torre sin cima", "La Torre despierta", "Cripta olvidada"]);
     igual(leyendas.relatoAlEmpezar("torre", 3, "Ana"), null);
     igual(leyendas.relatoTrasGuardian("torre", 5, 0, "Ana").paginas.map((p) => p.titulo), ["Cripta olvidada", "Biblioteca prohibida"]);
-    igual([leyendas.relatoTrasGuardian("torre", 5, 5, "Ana"), leyendas.relatoTrasGuardian("torre", 4, 0, "Ana"), leyendas.relatoTrasGuardian("torre", 25, 0, "Ana")],
+    igual([leyendas.relatoTrasGuardian("torre", 5, 5, "Ana"), leyendas.relatoTrasGuardian("torre", 4, 0, "Ana"), leyendas.relatoTrasGuardian("torre", 35, 0, "Ana")],
           [null, null, null], "ya leído, sin guardián, o después del final");
+    const tormenta = leyendas.relatoTrasGuardian("torre", 20, 19, "Ana");
+    igual(tormenta.paginas.map((p) => p.titulo), ["Cima de la tormenta", "Puentes de nubes"], "la tormenta escondía más pisos");
+    cierto(tormenta.paginas[0].aviso.includes("Mazmorra"), "al caer el Dragón se abre la Mazmorra");
+    igual(leyendas.relatoTrasGuardian("torre", 30, 29, "Ana").paginas.map((p) => p.titulo), ["Corona de la Llama", "La Corona"]);
     const final = leyendas.relatoTrasGuardian("mazmorra", 20, 19, "Ana");
     igual(final.paginas.map((p) => p.titulo), ["Corazón del Abismo", "Saber bajar"]);
     cierto(final.paginas[1].aviso.includes("Rey Hueco"), "el epílogo de la Mazmorra");
@@ -1202,7 +1207,7 @@ prueba("Pixel art: el Reflejo sombrío es tu héroe en sombras", async () => {
     const imagen = await sprites.spriteDeMonstruo("reflejo", avatarDePrueba());
     cierto(typeof imagen === "string" && imagen.startsWith("data:image/png"), "es una imagen PNG");
     const todas = await sprites.spritesDeCriaturas(avatarDePrueba());
-    igual(Object.keys(todas).length, 40, "las 40 criaturas para el bestiario");
+    igual(Object.keys(todas).length, 50, "las 50 criaturas para el bestiario");
 });
 
 prueba("Mazmorra (pantalla): tarjeta cerrada y abierta, batalla, historia, bestiario y final sin huecos", () => {
@@ -2402,12 +2407,13 @@ prueba("Saga: 7 actos en orden con un objetivo final; el primero que falta es el
     let s = ir({ completadas: 10, pacto: true, campanas: campanas(2, 1, 1, 0) });
     igual([s.indice, s.avance, s.meta], [3, 3, 4], "faltan los primeros señores de una Sombra");
     igual(ir({ completadas: 10, pacto: true, campanas: campanas(1, 1, 1, 1) }).indice, 4, "la cima de la Torre");
-    igual(ir({ completadas: 10, pacto: true, campanas: campanas(1, 1, 1, 1), torreEnCurso: 20 }).indice, 5, "la subida de ahora también cuenta");
-    s = ir({ completadas: 10, pacto: true, campanas: campanas(5, 7, 5, 4), records: { torre: 22, mazmorra: 20 } });
+    igual(ir({ completadas: 10, pacto: true, campanas: campanas(1, 1, 1, 1), torreEnCurso: 20 }).indice, 4, "con 20 pisos no basta: la Corona está en el 30");
+    igual(ir({ completadas: 10, pacto: true, campanas: campanas(1, 1, 1, 1), torreEnCurso: 30 }).indice, 5, "la subida de ahora también cuenta");
+    s = ir({ completadas: 10, pacto: true, campanas: campanas(5, 7, 5, 4), records: { torre: 32, mazmorra: 20 } });
     igual([s.indice, s.avance], [6, 19], "los 20 señores (cada Sombra cuenta hasta 5)");
-    s = ir({ completadas: 10, pacto: true, campanas: campanas(5, 5, 5, 5), records: { torre: 22, mazmorra: 20 } });
+    s = ir({ completadas: 10, pacto: true, campanas: campanas(5, 5, 5, 5), records: { torre: 32, mazmorra: 20 } });
     igual([s.indice, s.completada, s.objetivo], [7, true, saga.VIGIA.objetivo], "eres Vigía");
-    igual(ir({ completadas: 10, campanas: campanas(5, 5, 5, 5), records: { torre: 22, mazmorra: 20 } }).indice, 1, "en orden: sin el juramento no se avanza");
+    igual(ir({ completadas: 10, campanas: campanas(5, 5, 5, 5), records: { torre: 32, mazmorra: 20 } }).indice, 1, "en orden: sin el juramento no se avanza");
     igual(saga.conNombres("{n} y {m}", { heroe: "Ana", dragon: "Chispa" }), "Ana y Chispa");
 });
 
@@ -2428,14 +2434,14 @@ prueba("Saga (v36): el arcade no termina la historia; la Llama se enciende al fi
     s = ir({ campanas: campanas(5, 5, 5, 5) });
     igual([s.actos[s.indice].id, s.completada], ["cima", false]);
     // Las dos cosas: Vigía.
-    cierto(ir({ campanas: campanas(5, 5, 5, 5), records: { torre: 20, mazmorra: 20 } }).completada, "las dos: eres Vigía");
+    cierto(ir({ campanas: campanas(5, 5, 5, 5), records: { torre: 30, mazmorra: 20 } }).completada, "las dos: eres Vigía");
 
     // Los textos: ni la Torre ni la Mazmorra dicen que la Llama ya arde.
     const textoDe = (lugar) => JSON.stringify(leyendas.capitulosDeLeyenda(lugar, 99, "Ana"));
-    cierto(leyendas.LEYENDAS.torre.zonas.cima.caida.includes("la Llama no prende"), "en la cima la Llama sigue fría");
+    cierto(leyendas.LEYENDAS.torre.zonas.corona.caida.includes("la Llama no prende"), "en la Corona la Llama sigue fría");
     cierto(!/vuelve a arder|hasta la Llama|luz de la Llama/.test(textoDe("torre") + textoDe("mazmorra")), "nadie la enciende en el arcade");
     cierto(textoDe("mazmorra").includes("fuego de los cuatro memoriales"), "la Mazmorra manda de vuelta al reino");
-    cierto(avatar.OBJETOS["coraza-vigia"].logro.texto.startsWith("Llegar a la cima"), "la Coraza del Vigía, al llegar a la cima");
+    cierto(avatar.OBJETOS["coraza-vigia"].logro.texto.startsWith("Despejar la tormenta"), "la Coraza del Vigía, al despejar la tormenta");
     cierto(saga.conNombres(saga.VIGIA.relato, { heroe: "Ana", dragon: "Chispa" }).includes("fuego de los cuatro memoriales"), "el final: el fuego del reino");
 });
 
@@ -2483,26 +2489,205 @@ prueba("Historias conectadas: Aurelio no está en la cima antes de tiempo y cada
 });
 
 
+// ===== La Torre despierta (v38) =====
+
+const NIVELES_3 = { fuerza: 3, intelecto: 3, carisma: 3, riqueza: 3 };
+function torreDespierta(piso = 1, niveles = NIVELES_3, semilla = 11) {
+    const p = torre.nuevaPartida(niveles, semilla);
+    p.piso = piso;
+    p.enemigo = torre.monstruoDelPiso(piso);
+    p.enemigo.intencion = "golpe";
+    return p;
+}
+
+prueba("Técnicas (v38): una por atributo, desde su nivel 3, y una vez por piso", () => {
+    igual(torre.heroeDeLaTorre({ fuerza: 3, intelecto: 2, carisma: 4, riqueza: 1 }).tecnicas, ["quebrar", "intimidar"], "según tus niveles reales");
+    igual(torre.heroeDeLaTorre(NIVELES_1).tecnicas, [], "un héroe nuevo todavía no sabe ninguna");
+    cierto(torre.motivoTecnica(torre.heroeDeLaTorre(NIVELES_1), "analizar").includes("nivel 3"), "se dice cómo se aprende");
+    igual(new Set(Object.values(torre.TECNICAS).map((t) => t.atributo)).size, 4, "una por cada atributo");
+
+    const p = torreDespierta(2);
+    const eventos = torre.actuar(p, "tecnica", "certero");
+    cierto(eventos[0].tecnica === "certero" && eventos[0].critico, "el Golpe certero siempre es crítico");
+    debeFallar(() => torre.actuar(p, "tecnica", "certero"), "Ya la usaste");
+    debeFallar(() => torre.actuar(p, "tecnica", "volar"), "no existe");
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    torre.elegirMejora(p, p.opciones[0]);
+    igual(torre.motivoTecnica(p.heroe, "certero"), null, "en el piso siguiente se puede otra vez");
+    p.heroe.maestria = 1;
+    p.enemigo.intencion = "golpe";
+    torre.actuar(p, "tecnica", "certero");
+    igual(torre.motivoTecnica(p.heroe, "certero"), null, "con «Maestría», una vez más por piso");
+});
+
+prueba("Barrera y Quebrar (v38): la barrera se traga tus golpes; Quebrar la rompe de una vez", () => {
+    const p = torreDespierta(5);   // el Caballero sin Nombre levanta «Escudo del juramento»
+    igual(bestiario.CRIATURAS.caballero.especial.tipo, "barrera");
+    p.enemigo.intencion = "especial";
+    let eventos = torre.actuar(p, "defender");
+    const barrera = Math.round(p.enemigo.vidaMax * torre.ESPECIALES.barrera.parte);
+    cierto(eventos.some((e) => e.especial === "barrera") && p.enemigo.barrera === barrera, `levanta una barrera de ${barrera}`);
+    cierto(torre.textoIntencion({ ...p.enemigo, intencion: "especial", barrera: 0 }).texto.includes(`absorbe ${barrera}`), "se avisa antes");
+    const vida = p.enemigo.vida;
+    eventos = torre.actuar(p, "atacar");
+    const golpe = eventos.find((e) => e.quien === "heroe");
+    cierto(golpe.absorbido > 0 && p.enemigo.vida === vida - (golpe.dano - golpe.absorbido), "lo que absorbe no llega a su vida");
+    p.enemigo.barrera = 999;
+    p.enemigo.intencion = "golpe";
+    eventos = torre.actuar(p, "tecnica", "quebrar");
+    cierto(eventos[0].rompio && p.enemigo.barrera === 0 && eventos[0].absorbido === 0, "Quebrar la rompe y pega entero");
+});
+
+prueba("Carga e Intimidar (v38): un golpe cargado se suelta al turno siguiente, salvo que lo intimides", () => {
+    const p = torreDespierta(10);   // el Archivista carga «Conjuro prohibido»
+    p.heroe.vidaMax = p.heroe.vida = 999;
+    p.enemigo.intencion = "especial";
+    let eventos = torre.actuar(p, "defender");
+    cierto(eventos.some((e) => e.especial === "carga") && p.enemigo.cargando && p.enemigo.intencion === "descarga", "carga, y el próximo turno descarga");
+    cierto(torre.textoIntencion(p.enemigo, p.heroe).texto.startsWith("¡Descarga «Conjuro prohibido»!"), torre.textoIntencion(p.enemigo, p.heroe).texto);
+    igual(torre.danoPrevisto(p.enemigo), Math.round(p.enemigo.ataque * torre.ESPECIALES.carga.golpe), "pega mucho más");
+    eventos = torre.actuar(p, "tecnica", "intimidar");
+    cierto(eventos.some((e) => e.tipo === "intimidada") && !p.enemigo.cargando && p.heroe.vida === 999, "intimidado: pierde la carga y no pega");
+
+    // Sin intimidar, la descarga pega; defenderse la aguanta mejor.
+    const q = torreDespierta(10);
+    q.heroe.vidaMax = q.heroe.vida = 999;
+    q.enemigo.cargando = true;
+    q.enemigo.intencion = "descarga";
+    const previsto = torre.danoRecibido({ ...q.heroe, defendiendo: true }, torre.danoPrevisto(q.enemigo));
+    torre.actuar(q, "defender");
+    igual([999 - q.heroe.vida, q.enemigo.cargando], [previsto, false], "descarga contra tu escudo (con la vida llena, defender no cura)");
+});
+
+prueba("Espejo, regeneración y cambio de forma (v38)", () => {
+    // El Grimorio voraz se cubre con «Página espejo»: tu próximo hechizo rebota.
+    const p = torreDespierta(7);
+    p.enemigo.espejo = true;
+    const vida = p.enemigo.vida;
+    const eventos = torre.actuar(p, "hechizo", "fuego");
+    const tuyo = eventos.find((e) => e.quien === "heroe");
+    cierto(tuyo.reflejado > 0 && p.enemigo.vida === vida && !p.enemigo.espejo, "no le hace nada, te devuelve la mitad y el espejo se va");
+    // El Cieno de magma se regenera al final de cada turno.
+    const q = torreDespierta(12);
+    q.enemigo.vida = 10;
+    const r = torre.actuar(q, "defender");
+    cierto(r.some((e) => e.quien === "regenera" && e.cura > 0), "se regenera");
+    // El Apagador cambia de punto débil a media vida.
+    const a = torreDespierta(30, { fuerza: 30, intelecto: 30, carisma: 30, riqueza: 30 });
+    igual([torre.formaActual(a.enemigo).debil, torre.formaActual(a.enemigo).resiste], ["rayo", "fuego"]);
+    a.enemigo.vida = Math.round(a.enemigo.vidaMax / 2) + 5;
+    const f = torre.actuar(a, "atacar");
+    cierto(f.some((e) => e.quien === "fase") && a.enemigo.cambio, "¡cambia de forma!");
+    igual([torre.formaActual(a.enemigo).debil, torre.formaActual(a.enemigo).resiste], ["fuego", "rayo"], "a oscuras le teme al fuego");
+});
+
+prueba("Voluntad (v38): tu racha la empieza, pelear la llena y su golpe rompe todo", () => {
+    igual(torre.heroeDeLaTorre(NIVELES_1, { racha: 4 }).voluntad, 4 * torre.VOLUNTAD.porDia, "tu racha de días");
+    igual(torre.heroeDeLaTorre(NIVELES_1, { racha: 90 }).voluntad, torre.VOLUNTAD.inicialMax, "con tope");
+    const p = torreDespierta(4);
+    p.heroe.vidaMax = p.heroe.vida = 999;
+    p.heroe.voluntad = 0;
+    torre.actuar(p, "atacar");
+    igual(p.heroe.voluntad, torre.VOLUNTAD.alGolpear + torre.VOLUNTAD.alRecibir, "golpear y aguantar llenan la barra");
+    debeFallar(() => torre.actuar(p, "voluntad"), "todavía no está llena");
+
+    p.heroe.voluntad = torre.VOLUNTAD.max;
+    Object.assign(p.enemigo, { vida: 9999, vidaMax: 9999, barrera: 80, cargando: true, intencion: "descarga" });
+    const eventos = torre.actuar(p, "voluntad");
+    const golpe = eventos.find((e) => e.tipo === "voluntad");
+    cierto(golpe.dano >= Math.max(p.heroe.ataque, p.heroe.hechizo) * 2 && golpe.rompio, `un golpe enorme (${golpe.dano}) que rompe lo que lo cubre`);
+    cierto(p.enemigo.barrera === 0 && !p.enemigo.cargando && p.enemigo.vida === 9999 - golpe.dano, "sin barrera y sin carga");
+    cierto(p.heroe.voluntad <= torre.VOLUNTAD.alRecibir, "la barra se vacía");
+});
+
+prueba("La Torre despierta (v38): 30 pisos, criaturas más duras sobre las nubes y su historia", () => {
+    igual(bestiario.ZONAS.slice(4).map((z) => z.id), ["nubes", "corona"]);
+    igual([torre.monstruoDelPiso(25).id, torre.monstruoDelPiso(30).id], ["coloso-nubes", "apagador"], "dos guardianes nuevos");
+    // Sobre la tormenta son más duros que lo que daría la cuenta de siempre.
+    const piso = 26;
+    const deSiempre = Math.round(22 + 9 * piso + 0.6 * piso * piso);
+    cierto(torre.monstruoDelPiso(piso).vidaMax > deSiempre, "más vida sobre las nubes");
+    // Casi todas las criaturas de arriba tienen un truco.
+    const arriba = bestiario.ORDEN.slice(20);
+    cierto(arriba.every((id) => bestiario.CRIATURAS[id].especial || bestiario.CRIATURAS[id].regenera), "todas las de arriba tienen truco");
+    for (const tipo of ["barrera", "carga", "reflejo"]) cierto(bestiario.ORDEN.filter((id) => bestiario.CRIATURAS[id].especial?.tipo === tipo).length >= 4, `varias usan ${tipo}`);
+    cierto(maestro.consejoDeGuardian("apagador").includes("fuego"), "Aurelio avisa del cambio de forma");
+    // El premio llega a su tope en el piso 20.
+    igual(torre.premio(20), { gemas: 60, xp: 45 });
+    igual(torre.premio(30), { gemas: 60, xp: 45 });
+    // La saga pide la Corona (piso 30), no la cima de la tormenta.
+    igual(saga.ACTOS.find((a) => a.id === "cima").condicion.meta, bestiario.ORDEN.length);
+    igual(avatar.OBJETOS["coraza-vigia"].logro.meta, 20, "la Coraza del Vigía sigue al despejar la tormenta (piso 20)");
+});
+
+prueba("El despertar se cuenta una vez (v38): en el prólogo a quien empieza, y aparte a quien ya había subido", () => {
+    const veterano = partidaNueva();
+    veterano.arcade.records.torre = 6;
+    const primera = acciones.empezarTorre(veterano, 3);
+    igual(primera.relato.paginas.map((p) => p.titulo), ["La Torre despierta"]);
+    cierto(veterano.arcade.despertar && primera.relato.paginas[0].parrafos.join(" ").includes("Prueba"), "con tu nombre, y queda anotado");
+    igual(acciones.empezarTorre(veterano, 3).relato, null, "la segunda vez, ya no");
+
+    const nuevo = partidaNueva();
+    igual(acciones.empezarTorre(nuevo, 3).relato.paginas.map((p) => p.titulo), ["La Torre sin cima", "La Torre despierta", "Cripta olvidada"]);
+    cierto(nuevo.arcade.despertar, "a quien empieza, se le cuenta en el prólogo");
+    igual(datos.estadoInicial().arcade.despertar, false);
+    igual(datos.desdeRespaldo(datos.textoRespaldo(veterano)).arcade.despertar, true, "va en la copia de seguridad");
+});
+
+prueba("Analizar en la partida (v38): te enseña su punto débil y queda en el bestiario", () => {
+    const estado = partidaNueva();
+    estado.atributos.intelecto = 150;   // nivel 3 de Intelecto
+    acciones.empezarTorre(estado, 3);
+    const id = estado.arcade.torre.enemigo.id;
+    estado.arcade.torre.heroe.vidaMax = estado.arcade.torre.heroe.vida = 999;
+    acciones.accionTorre(estado, "tecnica", "analizar");
+    igual(estado.arcade.bestiario[id].elementos.length, 3, "los tres hechizos, de una vez");
+    cierto(estado.arcade.torre.enemigo.analizado, "y en la batalla ya lo sabes");
+});
+
+prueba("Pantalla de la Torre (v38): técnicas, Voluntad y los trucos de la criatura, sin huecos", () => {
+    const estado = partidaNueva();
+    estado.atributos.fuerza = 150;   // nivel 3 de Fuerza: Quebrar
+    acciones.empezarTorre(estado, 3);
+    const p = estado.arcade.torre;
+    const t = (cambios = {}) => ({ partida: p, nombre: "Prueba", sprites: {}, eventos: [], menu: "principal", ultimo: "atacar",
+                                   bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
+    let html = vistas.pantallaTorre(t());
+    cierto(html.includes("Técnicas") && html.includes("1 lista") && html.includes("ff-voluntad-barra") && !html.includes('data-torre="voluntad"'), "el menú y la barra");
+    html = vistas.pantallaTorre(t({ menu: "tecnicas" }));
+    cierto(html.includes("🔨 Quebrar") && html.includes("🔒 Intelecto 3") && !/undefined|NaN/.test(html), "las técnicas, con las que faltan");
+    p.heroe.voluntad = torre.VOLUNTAD.max;
+    Object.assign(p.enemigo, { barrera: 12, espejo: true, cargando: true });
+    html = vistas.pantallaTorre(t());
+    cierto(html.includes('data-torre="voluntad"') && html.includes("Barrera: 12") && html.includes("Espejo") && html.includes("Cargando"), "Voluntad lista y los trucos a la vista");
+    const eventos = acciones.accionTorre(estado, "voluntad").eventos;
+    html = vistas.pantallaTorre(t({ eventos }));
+    cierto(html.includes("Golpe de Voluntad") && html.includes("ff-voluntad") && !/undefined|NaN/.test(html), "el golpe se anuncia");
+});
+
+
 // ===== La Torre, en el valle (v37) =====
 
 prueba("La Torre en el valle (v37): el mapa la dibuja al principio del camino y la Ciudadela tiene el brasero", () => {
     const estado = partidaNueva();
     const campanas = campana.estadoCampanas(estado);
-    // Las ventanas de la Torre que están encendidas (6 para 20 pisos).
+    // Las ventanas de la Torre que están encendidas (6 para 30 pisos).
     const ventanas = (svg) => {
         const torre = svg.slice(svg.indexOf('<g class="torre-valle">'), svg.indexOf("</g>", svg.indexOf('<g class="torre-valle">')));
         return torre.split('height="3" fill="#ffd27a"').length - 1;
     };
     let valle = mapa.datosParaDibujar(estado, 0, campanas);
-    igual(valle.torre, { pisos: 0, encendida: false });
+    igual(valle.torre, { pisos: 0, tope: 30, encendida: false });
     cierto(dibujarMapa(valle).includes('<g class="torre-valle">'), "la Torre está en el valle, junto a la partida");
     igual(ventanas(dibujarMapa(valle)), 0, "sin pisos, ventanas apagadas");
 
     estado.arcade.records.torre = 10;
     valle = mapa.datosParaDibujar(estado, 0, campanas);
-    igual([valle.torre.pisos, ventanas(dibujarMapa(valle))], [10, 3], "10 pisos: 3 de 6 ventanas");
-    estado.arcade.records.torre = 27;
-    igual(mapa.datosParaDibujar(estado, 0, campanas).torre.pisos, 20, "más de 20 pisos cuenta como la cima");
+    igual([valle.torre.pisos, ventanas(dibujarMapa(valle))], [10, 2], "10 pisos: 2 de 6 ventanas");
+    estado.arcade.records.torre = 37;
+    igual(mapa.datosParaDibujar(estado, 0, campanas).torre.pisos, 30, "más de 30 pisos cuenta como la Corona");
 
     const ciudadela = dibujarMapa(mapa.datosParaDibujar(estado, mapa.CIUDADELA, campanas));
     cierto(ciudadela.includes('<g class="brasero">') && !ciudadela.includes("torre-valle"), "en la Ciudadela, el brasero (la Torre no)");
@@ -2636,7 +2821,7 @@ prueba("Habilidades (v34): Muralla, Rugido, Aturdir, Presagio, Aurora y Llama de
 prueba("Monedas y gemas: el arcade paga en gemas (y la mitad de XP); las monedas solo salen de la vida real", () => {
     igual(arcade.premio("carrera", 100000), { gemas: arcade.MAX_GEMAS, xp: arcade.MAX_XP });
     igual([arcade.MAX_GEMAS, arcade.MAX_XP], [15, 10], "minijuegos: máx. 15 💎 y 10 XP (antes 20)");
-    igual([torre.PREMIO.maxXp, torre.REGLAS.mazmorra.premio.maxXp], [30, 60], "la Torre y la Mazmorra, la mitad de XP");
+    igual([torre.PREMIO.maxXp, torre.REGLAS.mazmorra.premio.maxXp], [45, 60], "la Torre (con 30 pisos desde la v38) y la Mazmorra");
     igual(torre.premio(3), { gemas: 9, xp: 7 }, "3 pisos: 9 💎 y 7 XP (2,5 por piso, hacia abajo)");
 
     const estado = partidaNueva();
@@ -2770,7 +2955,7 @@ prueba("Memorias en la partida: Aurelio avisa en Hoy, se celebran al abrirse y q
 
 prueba("Aurelio en la Torre y la Mazmorra: una pista antes de cada guardián y unas palabras si caes", () => {
     const guardianes = [...bestiario.ORDEN, ...bestiario.ORDEN_MAZMORRA].filter((id) => bestiario.CRIATURAS[id].guardian);
-    igual(guardianes.length, 8);
+    igual(guardianes.length, 10);
     for (const id of guardianes) cierto(maestro.CONSEJOS_DE_GUARDIAN[id], `tiene un consejo para ${id}`);
     igual(Object.keys(maestro.CONSEJOS_DE_GUARDIAN).sort(), [...guardianes].sort(), "y ninguno de más");
 

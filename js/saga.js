@@ -38,7 +38,7 @@ export const HISTORIAS = [
       texto: "Sin la Llama, las Cuatro Sombras se reparten el reino entre veinte señores: tus jefes. Aurelio te da el huevo.",
       abrir: { accion: "ir", pantalla: "mapa" } },
     { id: "torre", icono: "🗼", titulo: "La Torre de los Vigías", cuando: "Ahora",
-      texto: "Subes la Torre, piso a piso, hasta la cima, donde la Llama apagada espera el fuego del reino.",
+      texto: "Subes la Torre, piso a piso, hasta la Corona, donde la Llama apagada espera el fuego del reino. Desde que la subes, despertó.",
       abrir: { accion: "historia-abrir", lugar: "torre" } },
     { id: "mazmorra", icono: "⛓️", titulo: "El Rey Hueco", cuando: "Después",
       texto: "Bajo la Torre está el lugar donde nacen las Sombras, y en el fondo, el primer Vigía que dejó de subir.",
@@ -80,11 +80,12 @@ export const ACTOS = [
         cierre: "El valle despierta. Las Sombras ya saben tu nombre.",
     },
     {
+        // (la cima de verdad es la Corona, en el piso 30: la tormenta escondía los de arriba, v38)
         id: "cima", titulo: "La cima de la Torre",
-        relato: "En la cima de la Torre, entre los rayos, alguien monta guardia desde hace cien años junto a la Llama apagada. Llegar arriba no la enciende, pero libera a quien la espera.",
-        objetivo: "Sube la Torre del héroe hasta la cima: supera el piso 20.",
-        condicion: { tipo: "torre", meta: 20 }, lee: "torre",
-        cierre: "Llegaste arriba y Casio, por fin, descansa. La Llama sigue fría: no prende con antorchas, sino con lo que vences allá afuera.",
+        relato: "Sobre la tormenta, donde Casio montó guardia cien años, la Torre sigue: los Puentes de nubes y la Corona de la Llama, con su pedestal apagado. Allá arriba espera el que apagó la Llama.",
+        objetivo: "Sube la Torre del héroe hasta la Corona: supera el piso 30.",
+        condicion: { tipo: "torre", meta: 30 }, lee: "torre",
+        cierre: "Llegaste a la Corona y venciste al que la apagó. La Llama sigue fría: no prende con antorchas, sino con lo que vences allá afuera.",
     },
     {
         id: "abismo", titulo: "El Rey Hueco",

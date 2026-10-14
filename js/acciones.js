@@ -1054,7 +1054,7 @@ export function empezarTorre(estado, semilla, lugar = "torre") {
         // anterior, su monstruo se cambia por la criatura de ese piso.
         torre.ponerAlDia(enCurso);
         bestiario.anotarEncuentro(estado.arcade.bestiario, enCurso.enemigo.id);
-        return { relato: null };
+        return { relato: lugar === "torre" ? contarElDespertar(estado) : null };
     }
     if (lugar === "mazmorra" && !torre.mazmorraAbierta(estado.arcade)) {
         throw new Error(`La Mazmorra del Abismo se abre cuando superes el piso ${torre.ABRIR_MAZMORRA} de la Torre del héroe.`);
@@ -1071,17 +1071,32 @@ export function empezarTorre(estado, semilla, lugar = "torre") {
     estado.arcade.bazar = [];
     estado.arcade[lugar] = partida;
     bestiario.anotarEncuentro(estado.arcade.bestiario, partida.enemigo.id);
-    return { relato: leyendas.relatoAlEmpezar(lugar, estado.arcade.records[lugar] || 0, estado.personaje.nombre) };
+    const relato = leyendas.relatoAlEmpezar(lugar, estado.arcade.records[lugar] || 0, estado.personaje.nombre);
+    if (relato && lugar === "torre") estado.arcade.despertar = true;   // (el prólogo ya cuenta el despertar)
+    return { relato: relato || (lugar === "torre" ? contarElDespertar(estado) : null) };
 }
 
-// elemento: con accion "hechizo", cuál lanzas ("fuego", "hielo" o "rayo").
+// v38: a quien ya había subido antes de que la Torre despertara, se le cuenta una vez lo que cambió.
+function contarElDespertar(estado) {
+    const relato = leyendas.relatoDelDespertar(estado.arcade.records.torre || 0, estado.arcade.despertar, estado.personaje.nombre);
+    if (relato) estado.arcade.despertar = true;
+    return relato;
+}
+
+// opcion: con accion "hechizo", cuál lanzas ("fuego", "hielo" o "rayo"); con "tecnica", cuál usas.
 // Lo que aprendes peleando queda en tu bestiario: qué le hace cada hechizo a esa criatura
-// y cuántas veces la venciste.
-export function accionTorre(estado, accion, elemento = null, lugar = "torre") {
+// y cuántas veces la venciste. («Analizar» te lo enseña todo de una vez.)
+export function accionTorre(estado, accion, opcion = null, lugar = "torre") {
     const partida = partidaDe(estado, lugar);
     const id = partida.enemigo.id;
-    const turno = torre.actuar(partida, accion, elemento);   // lo que pasó: [{ quien, tipo, dano… }]
-    if (accion === "hechizo") bestiario.anotarElemento(estado.arcade.bestiario, id, elemento);
+    // Si ya cambió de forma (el último guardián, a media vida), lo que veas no es lo de su ficha.
+    const cambiada = Boolean(partida.enemigo.cambio);
+    const turno = torre.actuar(partida, accion, opcion);   // lo que pasó: [{ quien, tipo, dano… }]
+    const rebotado = turno.some((e) => e.quien === "heroe" && e.reflejado);
+    if (accion === "hechizo" && !cambiada && !rebotado) bestiario.anotarElemento(estado.arcade.bestiario, id, opcion);
+    if (accion === "tecnica" && opcion === "analizar" && !cambiada) {
+        for (const elemento of Object.keys(bestiario.ELEMENTOS)) bestiario.anotarElemento(estado.arcade.bestiario, id, elemento);
+    }
     // El aliento de tu dragón también enseña: si es de fuego o de hielo, ya sabes qué le hace.
     for (const e of turno.filter((e) => e.quien === "mascota" && e.elemento)) bestiario.anotarElemento(estado.arcade.bestiario, id, e.elemento);
     if (turno.some((e) => e.tipo === "derrotado")) bestiario.anotarVictoria(estado.arcade.bestiario, id);
@@ -1115,14 +1130,17 @@ function anotarArmadura(estado) {
 // Lo que tu equipo aporta en la Torre y en los minijuegos: su ataque, magia y suerte, y la
 // armadura que tienes AHORA (si fallaste misiones y está gastada, protege menos).
 // Desde la v26, también las habilidades de lo épico y legendario y la mascota que te acompaña.
+// v38: también tu racha de días, que te da Voluntad al empezar.
 export function equipoDeBatalla(estado) {
     const fecha = hoy();
-    const a = avatar.describirAvatar(estado, fecha, juego.resumen(estado, fecha));
+    const info = juego.resumen(estado, fecha);
+    const a = avatar.describirAvatar(estado, fecha, info);
     return {
         ...equipo.poderDelEquipo(estado),
         armadura: vida.calcularVida(estado, fecha).armadura.puntos,
         habilidades: equipo.habilidadesDelEquipo(estado),
         mascota: mascota.mascotaDeBatalla(estado, a.mascota, fecha),
+        racha: info.racha.actual,
     };
 }
 

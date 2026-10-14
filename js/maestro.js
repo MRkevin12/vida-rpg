@@ -144,10 +144,12 @@ const una = (lista, numero) => lista[Math.abs(Math.round(numero)) % lista.length
 
 // Antes de cada guardián de la Torre y de la Mazmorra: una pista sobre su punto débil (y lo que resiste).
 export const CONSEJOS_DE_GUARDIAN = {
-    caballero: "Una armadura vacía no siente el frío: ya está muerta. Pero el metal llama al rayo.",
-    liche: "Toda su vida está escrita en papel. Y el papel le tiene miedo al fuego.",
-    demonio: "No le lleves fuego a quien vive en la fragua. Lo que apaga un horno es el frío.",
-    dragon: "El rayo es su aliento: no se lo devuelvas. El hielo, en cambio, le pesa en las alas.",
+    caballero: "Una armadura vacía no siente el frío: ya está muerta. Pero el metal llama al rayo, y su escudo cede ante la fuerza.",
+    liche: "Toda su vida está escrita en papel. Y el papel le tiene miedo al fuego. Cuando empiece a leer en voz alta, cúbrete.",
+    demonio: "No le lleves fuego a quien vive en la fragua. Lo que apaga un horno es el frío. Y si aviva la fundición, defiéndete.",
+    dragon: "El rayo es su aliento: no se lo devuelvas. El hielo, en cambio, le pesa en las alas. Cuando cierre el ojo de la tormenta, protégete.",
+    "coloso-nubes": "Es mármol: el hielo le resbala, pero el rayo lo agrieta. Su muralla de nubes no se rompe con hechizos: quiébrala con fuerza.",
+    apagador: "Su capa se come el fuego: empieza con rayo. A media vida se le rompe, y lo de adentro le teme al fuego. Y cuando levante la campana, no te quedes sin defensa.",
     kraken: "Vive en agua helada: el frío no le hace nada. Pero el agua lleva el rayo hasta el fondo.",
     arbol: "Un árbol muerto por dentro arde como yesca. Y el rayo ya le cayó muchas veces.",
     reflejo: "Tiene tu fuego, porque es tuyo. Lo que no tiene es calma: enfríalo.",

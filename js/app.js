@@ -518,9 +518,10 @@ function terminarMinijuego(tipo, puntos) {
 
 let lugarAbierto = "torre";     // "torre" o "mazmorra"
 let resultadoTorre = null;      // lo que se cobró al terminar (para mostrar el resumen)
-let menuTorre = "principal";    // qué comandos se ven: "principal" o "magia" (la lista de hechizos)
+let menuTorre = "principal";    // qué comandos se ven: "principal", "magia" (los hechizos) o "tecnicas" (v38)
 let ultimoComando = "atacar";   // el último comando que usaste: ahí queda la manito
 let ultimoHechizo = "fuego";    // y el último hechizo, dentro de «Magia»
+let ultimaTecnica = "quebrar";  // y la última técnica, dentro de «Técnicas»
 // La historia que se está contando (ver leyendas.js): { relato, pagina, salas } o null.
 let relatoEnCurso = null;
 // Las imágenes en pixel art de la batalla (ver sprites.js). Hacerlas tarda un instante,
@@ -561,7 +562,7 @@ function pintarTorre(eventos = []) {
         sprites: spritesTorre,
         eventos,
         menu: menuTorre,
-        ultimo: menuTorre === "magia" ? ultimoHechizo : ultimoComando,
+        ultimo: menuTorre === "magia" ? ultimoHechizo : menuTorre === "tecnicas" ? ultimaTecnica : ultimoComando,
         bestiario: estado.arcade.bestiario,
         resultado: resultadoTorre,
         fichas: arcade.fichasDisponibles(estado),
@@ -629,12 +630,17 @@ function sonarTurno(eventos) {
     const cayo = eventos.some((e) => e.tipo === "derrotado");
     const veneno = eventos.find((e) => e.quien === "veneno");
     if (heroe?.tipo === "hechizo") sonar(heroe.elemento);   // "fuego", "hielo" o "rayo"
+    if (heroe?.tipo === "voluntad") sonar("nivel");          // el Golpe de Voluntad
+    if (heroe?.tipo === "tecnica" && !heroe.dano) sonar("cursor");   // Analizar o Intimidar
+    if (heroe?.reflejado) setTimeout(() => sonar("coraza"), 250);    // su espejo te devolvió el hechizo
     if (heroe?.dano) setTimeout(() => sonar(heroe.critico ? "critico" : "impacto"), 300);
     if (heroe?.cura) sonar("moneda");
     if (mascota) setTimeout(() => sonar(mascota.elemento || (mascota.dano ? "impacto" : mascota.tipo === "renacer" ? "nivel" : "moneda")), 450);
     if (cayo) setTimeout(() => sonar("victoria"), enemigo?.reflejo ? 1250 : 750);
     else if (enemigo?.dano) setTimeout(() => sonar(estado.arcade[lugarAbierto]?.fase === "fin" ? "fallo" : "impacto"), 900);
-    else if (enemigo?.especial === "coraza") setTimeout(() => sonar("coraza"), 700);
+    else if (["coraza", "barrera", "reflejo"].includes(enemigo?.especial)) setTimeout(() => sonar("coraza"), 700);
+    else if (enemigo?.especial === "carga") setTimeout(() => sonar("robo"), 700);
+    if (eventos.some((e) => e.quien === "fase")) setTimeout(() => sonar("robo"), 500);
     if (veneno) setTimeout(() => sonar("veneno"), 1250);
     if (eventos.some((e) => e.quien === "furia")) setTimeout(() => sonar("robo"), 450);
     if (eventos.some((e) => e.tipo === "renacer" || e.habilidad === "gracia")) setTimeout(() => sonar("nivel"), 1350);
@@ -1170,6 +1176,15 @@ function rellenarOpciones() {
            Tu vida y tu ataque salen de Fuerza, los hechizos de Intelecto, la defensa de Carisma y las pociones y los críticos de Riqueza.
            Tiene ${bestiario.ZONAS.length} zonas de ${torre.CADA_GUARDIAN} pisos (${bestiario.ZONAS.map((z) => z.nombre).join(", ")}), con
            ${bestiario.ORDEN.length} criaturas propias y un guardián al final de cada zona; después del piso ${bestiario.ORDEN.length} vuelven, más fuertes.
+           <strong>Desde que la Torre despertó (v38)</strong>, muchas criaturas tienen un truco: 💠 barrera (absorbe tus golpes hasta
+           romperse), 🌀 carga (al turno siguiente suelta un golpe de ${String(torre.ESPECIALES.carga.golpe).replace(".", ",")} veces su ataque:
+           defiéndete) o 🪞 espejo (tu próximo hechizo rebota y te quita la mitad). Algunas se regeneran, y el Apagador del piso 30
+           cambia de punto débil a media vida.
+           <strong>Técnicas:</strong> una por atributo, desde su nivel ${torre.NIVEL_TECNICA}, una vez por piso:
+           ${Object.values(torre.TECNICAS).map((t) => `${t.icono} ${t.nombre} (${juego.ATRIBUTOS[t.atributo].nombre}: ${t.texto.toLowerCase()})`).join(", ")}.
+           <strong>Voluntad:</strong> se llena al golpear, al defenderte y, sobre todo, al aguantar golpes; tu racha te da
+           ${torre.VOLUNTAD.porDia} por día al empezar (máx. ${torre.VOLUNTAD.inicialMax}). Llena, el Golpe de Voluntad pega
+           ${String(torre.VOLUNTAD.multiplica).replace(".", ",")} veces tu mejor ataque y rompe barreras, corazas, espejos y cargas.
            <strong>Magia:</strong> los hechizos son de fuego, hielo o rayo. Cada criatura tiene un punto débil (ese hechizo le hace
            ${Math.round((bestiario.DEBIL - 1) * 100)} % más) y algunas resisten otro (les hace la mitad). Lo que descubres queda en tu
            <strong>bestiario</strong> (botón en el Arcade): la próxima vez el menú de magia ya te lo dice.
@@ -2145,18 +2160,20 @@ const ACCIONES = {
         pintarTorre();
         $("#torre-caja").scrollTop = 0;
     },
-    // «Magia» abre la lista de hechizos; «Volver» regresa a los comandos.
+    // «Magia» abre la lista de hechizos, «Técnicas» la de técnicas; «Volver» regresa a los comandos.
     "torre-menu": (boton) => {
-        menuTorre = boton.dataset.menu === "magia" ? "magia" : "principal";
+        menuTorre = ["magia", "tecnicas"].includes(boton.dataset.menu) ? boton.dataset.menu : "principal";
         sonar("cursor");
         pintarTorre();
     },
     "torre-accion": (boton) => {
-        const { torre: comando, elemento = null } = boton.dataset;   // elemento: solo en los hechizos
-        const resultado = ejecutar(() => acciones.accionTorre(estado, comando, elemento, lugarAbierto));
+        // elemento: solo en los hechizos; tecnica: solo en las técnicas (v38).
+        const { torre: comando, elemento = null, tecnica = null } = boton.dataset;
+        const resultado = ejecutar(() => acciones.accionTorre(estado, comando, elemento || tecnica, lugarAbierto));
         if (!resultado) return;
         ultimoComando = comando;
         if (elemento) ultimoHechizo = elemento;
+        if (tecnica) ultimaTecnica = tecnica;
         menuTorre = "principal";
         pintarTorre(resultado.eventos);
         sonarTurno(resultado.eventos);

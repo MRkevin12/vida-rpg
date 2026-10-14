@@ -294,12 +294,12 @@ function fortaleza(p, abierta) {
 }
 
 // La Torre de los Vigías, en el valle, junto a la partida (v37). Sus ventanas se encienden de
-// abajo hacia arriba con los pisos que subiste (6 ventanas para 20 pisos), y arriba arde la
-// Llama cuando terminas la saga.
-function laTorre(p, pisos, encendida) {
+// abajo hacia arriba con los pisos que subiste (6 ventanas para los `tope` pisos: 30 desde la
+// v38), y arriba arde la Llama cuando terminas la saga.
+function laTorre(p, pisos, encendida, tope = 30) {
     const { x } = p;
     const y = p.y + 4;
-    const luces = Math.ceil((Math.min(20, pisos) * 6) / 20);
+    const luces = Math.ceil((Math.min(tope, pisos) * 6) / tope);
     let ventanas = "";
     for (let i = 0; i < 6; i++) ventanas += `<rect x="${x - 1}" y="${y - 10 - i * 9}" width="2" height="3" fill="${i < luces ? "#ffd27a" : "#2a2230"}"/>`;
     const llama = encendida ? `<circle cx="${x}" cy="${y - 84}" r="12" fill="#ffd27a" opacity=".35"/>
@@ -399,7 +399,7 @@ export function dibujarMapa(datos) {
         ${empedrado}${islas}${lago}${oasis}
         ${cielo(tipo, c, tramo, id, torre.encendida)}
         ${paisaje(tipo, puntos, c, datos.region)}
-        ${tramo === 0 ? laTorre(TORRE_VALLE, torre.pisos, torre.encendida) : ""}
+        ${tramo === 0 ? laTorre(TORRE_VALLE, torre.pisos, torre.encendida, torre.tope) : ""}
         <path d="${camino}" fill="none" stroke="${c.borde}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="${camino}" fill="none" stroke="${c.camino}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="${camino}" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2 5" opacity=".25"/>

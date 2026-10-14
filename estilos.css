@@ -7801,3 +7801,76 @@ body:has(#deshacer:not([hidden])) .aviso {
 .saga-linea .barra {
     margin: 4px 0 2px;
 }
+
+
+/* ===== La Torre despierta (v38): Voluntad, técnicas y efectos nuevos ===== */
+
+/* La barra de Voluntad, bajo la vida de tu héroe: dorada; llena, brilla. */
+.ff-voluntad-barra {
+    grid-column: 1 / -1;
+    height: 5px;
+    overflow: hidden;
+    background: #05072a;
+    border: 1px solid #060a3a;
+    border-radius: 3px;
+}
+
+.ff-voluntad-barra i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(180deg, #fff3a0, #e6a800);
+    transition: width 0.3s steps(6) 0.9s;
+}
+
+.ff-voluntad-barra.llena {
+    box-shadow: 0 0 6px #ffd23c;
+    animation: ff-voluntad-lista 1s steps(2) infinite;
+}
+
+@keyframes ff-voluntad-lista {
+    50% { box-shadow: 0 0 2px #ffd23c; }
+}
+
+/* Las técnicas explican qué hacen: ese texto puede ocupar dos renglones. */
+.ff-comando.ff-tecnica small {
+    line-height: 1.25;
+    white-space: normal;
+}
+
+/* El comando de Voluntad, cuando está lista: en dorado. */
+.ff-comando.ff-voluntad {
+    color: #ffe45a;
+    font-weight: 800;
+}
+
+.ff-comando.ff-voluntad small {
+    color: #fff3a0;
+}
+
+/* El Golpe de Voluntad: un destello dorado que cruza a la criatura. */
+.ff-voluntad {
+    inset: -6% 0;
+}
+
+.ff-efecto.ff-voluntad {
+    background: radial-gradient(circle at 50% 55%, #fffbe0 0 9%, #ffd23c 10% 22%, rgba(255, 170, 0, 0.45) 23% 40%, transparent 41%);
+    animation: ff-golpe-voluntad 0.6s steps(5) 0.15s;
+}
+
+@keyframes ff-golpe-voluntad {
+    0% { opacity: 1; transform: scale(0.2); }
+    60% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0; transform: scale(1.3); }
+}
+
+/* Tu héroe al soltar la Voluntad: brilla un instante. */
+.ff-heroe.voluntad .ff-figura {
+    filter: drop-shadow(0 0 4px #ffd23c);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ff-voluntad-barra.llena,
+    .ff-efecto.ff-voluntad {
+        animation: none;
+    }
+}

@@ -201,7 +201,10 @@ export function datosParaDibujar(estado, region, campanas) {
         alcanzado: region < pos.region ? LUGARES_POR_REGION : pos.enRegion,
         lugares,
         regionLibre: senores.every((s) => s.liberada),
-        torre: { pisos: sagaDeAhora.actos.find((a) => a.id === "cima").avance, encendida: sagaDeAhora.completada },
+        torre: (() => {
+            const cima = sagaDeAhora.actos.find((a) => a.id === "cima");
+            return { pisos: cima.avance, tope: cima.condicion.meta, encendida: sagaDeAhora.completada };
+        })(),
     };
 }
 
