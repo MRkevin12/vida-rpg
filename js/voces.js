@@ -20,9 +20,9 @@
 import { calcularNivel, BASE_ATRIBUTO } from "./juego.js";
 import { sumarDias, diaDeSemana, diasEntre } from "./fechas.js";
 import { ETAPAS, CLASES, APARIENCIA_INICIAL } from "./avatar.js";
-import { LUGARES, PERSONAS, INVITADOS, ESCENAS, FINALES } from "./voces-datos.js";
+import { LUGARES, PERSONAS, INVITADOS, ESCENAS, FINALES, EPILOGO } from "./voces-datos.js";
 
-export { LUGARES, PERSONAS, INVITADOS, ESCENAS, FINALES };
+export { LUGARES, PERSONAS, INVITADOS, ESCENAS, FINALES, EPILOGO };
 
 // ===== Tu poder: técnicas y valor =====
 
@@ -141,6 +141,10 @@ export function agendaDelDia(estado, fecha) {
             }),
     }));
 }
+
+// ¿Ya recuperaste todas las voces? (todas las conversaciones hechas, con el final que sea menos «mal»). Cuando pasa por
+// primera vez, se cuenta el epílogo de la aldea (EPILOGO) y se paga una vez (estado.voces.epilogo guarda el día).
+export const aldeaLibre = (estado) => Object.keys(ESCENAS).every((id) => estado.voces.hechas[id]);
 
 // Cuánto llevas del valle: conversaciones hechas, con mejor final y total.
 export function progreso(estado) {

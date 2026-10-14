@@ -1019,7 +1019,8 @@ export function empezarEscena(estado, id) {
 }
 
 // Eliges qué decir. Si con eso termina la conversación, se cobra y se guarda cómo salió.
-// Devuelve { terminada: false } o, al terminar, { terminada: true, id, titulo, persona, fin, texto, leccion, tarea, premio, mejoro }.
+// Devuelve { terminada: false } o, al terminar, { terminada: true, id, titulo, persona, fin, texto, leccion, tarea, premio, mejoro,
+// epilogo (true si con esta recuperaste la última voz), celebraciones }.
 export function elegirEnEscena(estado, indice) {
     const v = estado.voces;
     if (!v.escena) throw new Error("No estás en ninguna conversación.");
@@ -1036,10 +1037,21 @@ export function elegirEnEscena(estado, indice) {
     else v.hechas[en.id] = { fin: voces.mejorFin(previo, final.fin), fecha: hoy() };
     v.ultima[escena.persona] = hoy();
     v.escena = null;
+
+    // Al recuperar la última voz, la aldea habla: se cuenta el epílogo y se paga (una sola vez).
+    const celebraciones = [];
+    let epilogo = false;
+    if (!v.epilogo && voces.aldeaLibre(estado)) {
+        const p = voces.EPILOGO.premio;
+        v.epilogo = hoy();
+        epilogo = true;
+        ganar(estado, { gemas: p.gemas, xp: p.xp, atributo: "carisma" });
+        celebraciones.push({ icono: "🗣️", etiqueta: "¡La aldea recuperó su voz!", titulo: voces.EPILOGO.titulo, detalle: `+${p.gemas} 💎 · +${p.xp} XP de Carisma` });
+    }
     return {
         terminada: true, id: en.id, titulo: escena.titulo, persona: escena.persona, fin: final.fin,
         texto: final.texto, leccion: final.leccion || "", tarea: final.tarea || null,
-        premio, mejoro: Boolean(previo) && final.fin !== previo && final.fin !== "mal",
+        premio, mejoro: Boolean(previo) && final.fin !== previo && final.fin !== "mal", epilogo, celebraciones,
     };
 }
 

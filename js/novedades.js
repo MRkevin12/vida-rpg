@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 44;
+export const VERSION_APP = 45;
 
 export const NOVEDADES = [
+    {
+        version: 45,
+        titulo: "Más voces para el valle",
+        cambios: [
+            "🗣️ La aldea ya tiene las cinco voces completas, con DOS personas por cada una: Orgullo (Maren y el capitán Edmundo), Qué dirán (Tobías y Wren), Envidia (Ilse y el carpintero Gaspar), Miedo (el bardo Cassiel y la panadera Marta) y Ego (don Anselmo y el boticario Valerio). Son 7 personas nuevas y 14 conversaciones más, 20 en total.",
+            "Cada una trata algo de la vida real: hablar en público, reclamar lo tuyo sin pelear, escuchar de verdad, admitir un error, dar el primer paso con alguien con quien discutiste, elegir tu camino frente a tu familia, reconocer a quien te supera…",
+            "📜 Un final para la aldea: cuando recuperes la última voz se cuenta el epílogo (con Aurelio), da 40 💎 y 40 XP de Carisma, aparece en la saga y en tu libro, y se puede releer desde la aldea.",
+            "Ahora la aldea solo muestra los lugares donde hay alguien ese día.",
+        ],
+    },
     {
         version: 44,
         titulo: "Las Voces del Valle",

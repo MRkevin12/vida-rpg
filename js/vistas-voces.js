@@ -9,6 +9,7 @@ import { plural } from "./juego.js";
 import { fichasDisponibles } from "./arcade.js";
 import { esc } from "./vistas.js";
 import { rutaPintura } from "./pinturas.js";
+import { fechaCorta } from "./fechas.js";
 
 // El texto de una conversación: escapa, pone en cursiva los gestos (_así_) y escribe el nombre de tu héroe en {n}.
 export function formato(texto, nombre) {
@@ -44,18 +45,26 @@ export function pantallaVoces(estado, ctx) {
                     ${caido ? "disabled" : ""}>Seguir hablando</button>
         </section>` : "";
 
-    const lugares = agenda.map((sitio) => `
+    // Solo se muestran los lugares donde hay alguien hoy.
+    const conGente = agenda.filter((sitio) => sitio.personas.length);
+    const lugares = conGente.map((sitio) => `
         <section class="panel voces-lugar" style="--pintura: url(${rutaPintura(sitio.lugar.fondo)})">
             <h3 class="voces-lugar-nombre">${sitio.lugar.icono} ${esc(sitio.lugar.nombre)}</h3>
-            ${sitio.personas.length ? sitio.personas.map((p) => tarjetaPersona(estado, p, { caido, fichas })).join("")
-                : `<p class="nota voces-vacio">Hoy no hay nadie aquí.</p>`}
-        </section>`).join("");
+            ${sitio.personas.map((p) => tarjetaPersona(estado, p, { caido, fichas })).join("")}
+        </section>`).join("") + (conGente.length < agenda.length
+        ? `<p class="nota voces-vacio">El resto de la aldea está en calma hoy: ${plural(agenda.length - conGente.length, "lugar sin nadie", "lugares sin nadie")}.</p>` : "");
 
     const hechas = Object.entries(v.hechas).sort((a, b) => b[1].fecha.localeCompare(a[1].fecha));
     const vividas = hechas.length ? `
         <section class="bloque" aria-label="Conversaciones vividas">
             <h2 class="titulo-juego">📖 Lo que ya se dijo</h2>
             <ul class="lista voces-vividas">${hechas.map(([id, h]) => filaVivida(estado, id, h, { hoy: ctx.hoy, caido, fichas })).join("")}</ul>
+        </section>` : "";
+    const epilogo = v.epilogo ? `
+        <section class="panel voces-epilogo-tarjeta">
+            <p class="etiqueta">🗣️ La aldea ya habló</p>
+            <p class="nota">Recuperaste todas las voces del valle (${esc(fechaCorta(v.epilogo))}).</p>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="voces-epilogo">📜 Leer el epílogo</button>
         </section>` : "";
 
     return `
@@ -81,6 +90,7 @@ export function pantallaVoces(estado, ctx) {
                 <small>Misiones o tareas de Carisma de los últimos 7 días. Abren las respuestas más valientes.</small>
             </div>
         </section>
+        ${epilogo}
         ${tarjetaEnCurso}
         ${lugares}
         ${vividas}`;
@@ -131,6 +141,7 @@ function filaVivida(estado, id, hecha, { hoy, caido, fichas }) {
 // ===== La conversación (pantalla completa, como la Torre) =====
 // e = { estado, nombre (el de tu héroe), hoy, resultado (si acaba de terminar: lo que devolvió elegirEnEscena) }
 export function pantallaEscena(e) {
+    if (e.epilogo) return pantallaEpilogo(e);
     if (e.resultado) return pantallaFinal(e);
     const en = e.estado.voces.escena;
     const escena = voces.ESCENAS[en.id];
@@ -217,6 +228,31 @@ function pantallaFinal(e) {
                     <span class="voces-etiqueta">📌 Llévalo a la vida real</span>
                     <span class="voces-opcion-texto">Crear la tarea: «${esc(r.tarea)}»</span></button>` : ""}
                 ${r.tarea && yaTarea ? `<p class="mini texto-suave">📌 Ya creaste la tarea de esta lección.</p>` : ""}
+                ${r.epilogo
+        ? `<button type="button" class="voces-opcion" data-accion="voces-epilogo">
+                    <span class="voces-etiqueta">🗣️ ¡Era la última voz!</span>
+                    <span class="voces-opcion-texto">Continuar: la aldea habla</span></button>`
+        : `<button type="button" class="voces-opcion voces-volver" data-accion="voces-cerrar">
+                    <span class="voces-opcion-texto">Volver a la aldea</span></button>`}
+            </div>
+        </div>`;
+}
+
+// El epílogo de la aldea: se cuenta al recuperar la última voz y se puede releer desde la aldea.
+function pantallaEpilogo(e) {
+    const ep = voces.EPILOGO;
+    return `
+        <div class="voces-escena voces-final" style="--pintura: url(${rutaPintura("aldea")})">
+            <div class="voces-barra">
+                <span class="voces-donde">⛲ <b>${esc(ep.titulo)}</b></span>
+                <button type="button" class="boton-icono" data-accion="voces-cerrar" aria-label="Volver a la aldea">✕</button>
+            </div>
+            <div class="voces-dialogo voces-epilogo">
+                <p class="voces-final-titulo">🗣️ ${esc(ep.titulo)}</p>
+                ${ep.paginas.map((p) => `<p class="voces-texto">${formato(p, e.nombre)}</p>`).join("")}
+                <p class="voces-premio">+${ep.premio.gemas} 💎 · +${ep.premio.xp} XP de 🎶 Carisma (al recuperar la última voz)</p>
+            </div>
+            <div class="voces-opciones">
                 <button type="button" class="voces-opcion voces-volver" data-accion="voces-cerrar">
                     <span class="voces-opcion-texto">Volver a la aldea</span></button>
             </div>

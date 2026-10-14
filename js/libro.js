@@ -11,6 +11,7 @@
 
 import * as juego from "./juego.js";
 import * as campana from "./campana.js";
+import * as voces from "./voces.js";
 import { calcularVida, robosDeJefes } from "./vida.js";
 import { sumarDias, desdeTexto, fechaLegible } from "./fechas.js";
 
@@ -138,6 +139,9 @@ function mayorLadron(estado, fecha, golpes, robos) {
     return c ? { nombre: c.jefe.nombre, cantidad } : null;
 }
 
+// Quién y qué conversación es (para contar en el libro lo que pasó en la aldea).
+const datosDeVoz = (id) => ({ persona: voces.PERSONAS[voces.ESCENAS[id].persona].nombre, titulo: voces.ESCENAS[id].titulo });
+
 // Todo lo que pasó un día, ya ordenado para contarlo.
 function hechosDelDia(estado, fecha, hoy, registroVida, robos) {
     const hechasIds = new Set(estado.completadas.filter((c) => c.fecha === fecha).map((c) => c.misionId));
@@ -160,6 +164,10 @@ function hechosDelDia(estado, fecha, hoy, registroVida, robos) {
         jefes: jefesCaidos(estado, fecha, robos),
         ladron: mayorLadron(estado, fecha, registroVida.get(fecha)?.golpes, robos),
         logros: estado.logros.filter((l) => l.desbloqueadoEn === fecha).map((l) => l.nombre),
+        // Las Voces del Valle (v44): con quién habló ese día y cómo salió; y si fue el día en que la aldea recuperó su voz.
+        voces: Object.entries(estado.voces?.hechas || {}).filter(([, h]) => h.fecha === fecha)
+            .map(([id, h]) => ({ ...datosDeVoz(id), fin: h.fin })),
+        aldeaHablo: estado.voces?.epilogo === fecha,
         cofre: estado.desafios.some((d) => d.cobradoEn === fecha),
         premios: estado.canjes.filter((c) => c.fecha === fecha).map((c) => c.nombre),
         pacto: estado.pacto?.primeraVez === fecha,
@@ -174,6 +182,7 @@ function hechosDelDia(estado, fecha, hoy, registroVida, robos) {
 // El título: lo más importante que pasó; si no pasó nada especial, según el ánimo.
 function tituloDelCapitulo(h, animo, fecha) {
     if (h.pacto) return "El juramento";
+    if (h.aldeaHablo) return "La aldea habla";
     if (h.principales.length) return "La gran misión cumplida";
     if (h.jefes.length) return `La caída de ${h.jefes[0].nombre}`;
     if (h.vida?.cayo) return "El día que cayó";
@@ -214,6 +223,12 @@ function armarCapitulo(estado, fecha, numero, hoy, nombre, registroVida, robos) 
     for (const j of h.jefes) hazanas.push(`Ese día derrotó a ${j.nombre}, ${j.titulo.toLowerCase()}.`);
     if (h.logros.length) hazanas.push(`Ganó ${h.logros.length === 1 ? "el logro" : "los logros"} ${enumerar(h.logros)}.`);
     if (h.cofre) hazanas.push("Abrió el cofre del desafío de la semana.");
+    for (const v of h.voces) {
+        hazanas.push(v.fin === "bien"
+            ? `En la aldea habló con ${v.persona} de «${v.titulo}», y una voz se abrió.`
+            : `En la aldea habló con ${v.persona} de «${v.titulo}»: fue un primer paso.`);
+    }
+    if (h.aldeaHablo) hazanas.push("Ese día la aldea entera recuperó su voz.");
     if (h.premios.length) hazanas.push(`Y se concedió un premio bien ganado: ${enumerar(h.premios)}.`);
     texto(hazanas.length ? hazanas.join(" ") : "No hubo hazañas ese día, pero dejó constancia de su paso, y eso también cuenta.");
 

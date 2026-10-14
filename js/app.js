@@ -658,6 +658,7 @@ function cerrarTorre() {
 // La aventura de diálogos de Carisma (ver voces.js y vistas-voces.js). La aldea es una pantalla (Aventuras → Las Voces del
 // Valle); cada conversación se juega en una capa a pantalla completa (#voces), como la Torre.
 let resultadoVoces = null;   // cómo terminó la conversación que acaba de acabar (para mostrar el final)
+let verEpilogo = false;      // si se está leyendo el epílogo de la aldea
 
 // Los dibujos de las personas (pixel art) llegan un instante después del HTML.
 function pintarRetratosVoces(raiz) {
@@ -671,7 +672,7 @@ function pintarRetratosVoces(raiz) {
 
 function pintarEscenaVoces() {
     const caja = $("#voces-caja");
-    caja.innerHTML = vistasVoces.pantallaEscena({ estado, nombre: estado.personaje.nombre, hoy: hoy(), resultado: resultadoVoces });
+    caja.innerHTML = vistasVoces.pantallaEscena({ estado, nombre: estado.personaje.nombre, hoy: hoy(), resultado: resultadoVoces, epilogo: verEpilogo });
     pintarRetratosVoces(caja);
     caja.scrollTop = 0;
 }
@@ -679,6 +680,7 @@ function pintarEscenaVoces() {
 // Empieza una conversación (gasta una ficha) o sigue la que dejaste a medias.
 function abrirVoces(escenaId) {
     resultadoVoces = null;
+    verEpilogo = false;
     if (!ejecutar(() => acciones.empezarEscena(estado, escenaId))) return;
     $("#voces").hidden = false;
     pintarEscenaVoces();
@@ -688,6 +690,7 @@ function abrirVoces(escenaId) {
 function cerrarVoces() {
     $("#voces").hidden = true;
     resultadoVoces = null;
+    verEpilogo = false;
     dibujarPantalla();
 }
 
@@ -2252,6 +2255,12 @@ const ACCIONES = {
             resultadoVoces = resultado;
             sonar(resultado.fin === "bien" ? "logro" : resultado.fin === "mal" ? "fallo" : "completar");
         }
+        pintarEscenaVoces();
+    },
+    "voces-epilogo": () => {   // el epílogo de la aldea (al recuperar la última voz, o para releerlo)
+        verEpilogo = true;
+        resultadoVoces = null;
+        $("#voces").hidden = false;
         pintarEscenaVoces();
     },
     "voces-salir": () => cerrarVoces(),      // la conversación queda guardada: se sigue después

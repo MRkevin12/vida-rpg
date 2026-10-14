@@ -1738,7 +1738,7 @@ prueba("Voces: un mal final se repite otro día, uno regular se puede mejorar (p
 
 prueba("Voces: la partida nueva trae lo suyo, el texto se escapa y las pantallas se dibujan", () => {
     const estado = partidaNueva();
-    igual(estado.voces, { escena: null, hechas: {}, fallos: {}, ultima: {}, tareas: {} });
+    igual(estado.voces, { escena: null, hechas: {}, fallos: {}, ultima: {}, tareas: {}, epilogo: null });
 
     // Los gestos van en cursiva; el nombre del héroe, escapado (lo escribió el usuario).
     const nombre = '<img src=x onerror="alert(1)">';
@@ -1761,6 +1761,108 @@ prueba("Voces: la partida nueva trae lo suyo, el texto se escapa y las pantallas
         cierto(final.includes("Aurelio anota") && final.includes("Crear la tarea") && final.includes("Volver a la aldea"), "el final trae la lección y la tarea");
     });
 });
+
+
+// ===== Más voces y el final de la aldea (v45) =====
+
+prueba("Voces: cada una de las cinco voces tiene dos personas, y todas las conversaciones se pueden ganar con un héroe nuevo", () => {
+    // Cinco voces, dos personas cada una (Ego, Qué dirán, Envidia, Miedo, Orgullo) y dos conversaciones por persona.
+    const porVoz = {};
+    for (const p of Object.values(voces.PERSONAS)) porVoz[p.voz] = (porVoz[p.voz] || 0) + 1;
+    igual(porVoz, { "El Orgullo": 2, "El Qué dirán": 2, "La Envidia": 2, "El Miedo": 2, "El Ego": 2 });
+    cierto(Object.values(voces.PERSONAS).every((p) => p.escenas.length === 2), "dos conversaciones cada una");
+    igual(Object.keys(voces.ESCENAS).length, 20);
+    cierto(Object.values(voces.PERSONAS).every((p) => voces.LUGARES[p.lugar] && p.dias.length >= 4), "tienen lugar y vienen casi todos los días");
+    cierto(Object.values(voces.LUGARES).every((l) => PINTURAS_DE_FONDO[l.fondo]), "todos los fondos existen en pinturas.js");
+
+    // Con un héroe de Carisma 1, sin misiones de verdad y eligiendo lo que más confianza da, TODAS terminan «bien».
+    conLaAldeaAbierta(() => {
+        const estado = partidaNueva();
+        estado.arcade.extra = 500;
+        for (const id of Object.keys(voces.ESCENAS)) {
+            estado.voces.ultima = {};
+            const r = jugarConversacion(estado, id);
+            igual([id, r.fin], [id, "bien"]);
+        }
+        cierto(voces.aldeaLibre(estado), "con las 20 hechas, la aldea queda libre");
+    });
+});
+
+prueba("Voces: al recuperar la última voz se cuenta el epílogo, se paga una vez y queda en el libro y en la saga", () => {
+    conLaAldeaAbierta(() => {
+        const estado = partidaNueva();
+        estado.arcade.extra = 500;
+        igual(voces.aldeaLibre(estado), false);
+        const ids = Object.keys(voces.ESCENAS);
+        let ultimo = null;
+        const gemasAntes = estado.personaje.gemas;
+        const celebraciones = [];
+        for (const id of ids) {
+            estado.voces.ultima = {};
+            ultimo = jugarConversacion(estado, id);
+            celebraciones.push(...ultimo.celebraciones);
+            if (id !== ids[ids.length - 1]) igual([id, ultimo.epilogo, estado.voces.epilogo], [id, false, null]);
+        }
+        igual([ultimo.epilogo, estado.voces.epilogo], [true, hoy()]);
+        igual(celebraciones.length, 1, "una sola celebración");
+        cierto(celebraciones[0].titulo === voces.EPILOGO.titulo && celebraciones[0].detalle.includes("40"), "la celebración dice lo suyo");
+        const pagoDeLasConversaciones = ids.length * voces.PREMIOS.bien.gemas;
+        igual(estado.personaje.gemas - gemasAntes, pagoDeLasConversaciones + voces.EPILOGO.premio.gemas, "el epílogo paga 40 💎 una sola vez");
+
+        // Mejorar una conversación después no vuelve a pagar el epílogo.
+        estado.voces.hechas[ids[0]] = { fin: "regular", fecha: dia(-3) };
+        estado.voces.ultima = {};
+        const otra = jugarConversacion(estado, ids[0]);
+        igual([otra.epilogo, otra.celebraciones.length], [false, 0]);
+
+        // Las pantallas: la aldea ofrece el epílogo, el epílogo no tiene huecos ni dice que la Llama arde.
+        const ctx = { hoy: hoy(), vida: { caido: false } };
+        const aldea = vistasVoces.pantallaVoces(estado, ctx);
+        cierto(aldea.includes("La aldea ya habló") && aldea.includes('data-accion="voces-epilogo"'), "la aldea ofrece releer el epílogo");
+        const html = vistasVoces.pantallaEscena({ estado, nombre: "Aria", hoy: hoy(), resultado: null, epilogo: true });
+        cierto(html.includes("La aldea habla") && html.includes("Aurelio") && !/undefined|NaN|\[object/.test(html), "el epílogo se dibuja");
+        const textoEpilogo = voces.EPILOGO.paginas.join(" ");
+        cierto(!/vuelve a arder|hasta la Llama|luz de la Llama|Llama (ya )?(arde|brilla|se enciende)/i.test(textoEpilogo), "el epílogo no dice que la Llama arde");
+        cierto(textoEpilogo.includes("no prende"), "y recuerda que la Llama sigue esperando");
+
+        // El último final avisa de que viene el epílogo.
+        const final = vistasVoces.pantallaEscena({ estado, nombre: "Aria", hoy: hoy(), resultado: { ...ultimo, epilogo: true } });
+        cierto(final.includes("la aldea habla") && final.includes('data-accion="voces-epilogo"'), "el último final lleva al epílogo");
+
+        // El libro cuenta lo que pasó en la aldea ese día.
+        estado.diario[hoy()] = { animo: "bien", texto: "Un gran día.", gratitud: "", premio: null };
+        const capitulo = libro.capitulosDelLibro(estado, hoy()).find((c) => c.fecha === hoy());
+        const texto = capitulo.parrafos.map((p) => p.texto).join(" ");
+        cierto(texto.includes("En la aldea habló con"), `el libro cuenta la conversación: ${texto.slice(0, 200)}`);
+        // (el epílogo es del día en que se recuperó la última voz: aquí lo movemos a hoy para ver el título del capítulo)
+        estado.voces.epilogo = hoy();
+        const c2 = libro.capitulosDelLibro(estado, hoy()).find((c) => c.fecha === hoy());
+        igual(c2.titulo, "La aldea habla");
+        cierto(c2.parrafos.map((p) => p.texto).join(" ").includes("la aldea entera recuperó su voz"), "y que la aldea habló");
+    });
+});
+
+prueba("Voces: los datos de la aldea (lugares, fondos y personas) están completos", () => {
+    for (const [id, p] of Object.entries(voces.PERSONAS)) {
+        cierto(p.nombre && p.oficio && p.voz && p.sombra && p.saludo, `${id}: tiene sus textos`);
+        const d = voces.describirPersona(id);
+        const svg = dibujarAvatar(d, { batalla: true, sinEfectos: true });
+        cierto(typeof svg === "string" && svg.startsWith("<svg") && !/undefined|NaN/.test(svg), `${id}: se dibuja`);
+        cierto(Object.keys(avatar.APARIENCIA).every((campo) => avatar.APARIENCIA[campo][p.aspecto[campo]]), `${id}: su aspecto usa opciones que existen`);
+    }
+    for (const [id, p] of Object.entries(voces.INVITADOS)) {
+        cierto(Object.keys(avatar.APARIENCIA).every((campo) => avatar.APARIENCIA[campo][p.aspecto[campo]]), `${id}: su aspecto usa opciones que existen`);
+    }
+    // Todos los textos de las conversaciones: sin dobles espacios ni espacios al final (se ven mal en pantalla).
+    for (const [id, escena] of Object.entries(voces.ESCENAS)) {
+        for (const [nombre, nodo] of Object.entries(escena.nodos)) {
+            for (const texto of [nodo.texto, nodo.leccion, nodo.tarea, ...(nodo.opciones || []).map((o) => o.texto)].filter(Boolean)) {
+                cierto(texto === texto.trim() && !/  /.test(texto), `${id}/${nombre}: espacios raros en «${texto.slice(0, 30)}»`);
+            }
+        }
+    }
+});
+
 
 
 // Una partida de la Mazmorra contra la criatura del sótano indicado, con la intención dada.

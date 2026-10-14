@@ -24,11 +24,16 @@
 //   · cuando narra el narrador, lo que dice alguien va entre «comillas».
 //   · {n} es el nombre de tu héroe (sin género gramatical para él).
 
-// Dónde pasan las cosas. fondo = una pintura de fondos/ (ver pinturas.js).
+import { MAS_LUGARES, MAS_PERSONAS, MAS_INVITADOS, MAS_ESCENAS, EPILOGO } from "./voces-valle-2.js";
+
+export { EPILOGO };
+
+// Dónde pasan las cosas. fondo = una pintura de fondos/ (ver pinturas.js). (Los lugares de más personas están en voces-valle-2.js.)
 export const LUGARES = {
     fragua: { nombre: "La fragua", icono: "🔨", fondo: "torre" },
     posada: { nombre: "La posada del Gallo Dormido", icono: "🍺", fondo: "salon" },
     plaza: { nombre: "La plaza", icono: "⛲", fondo: "aldea" },
+    ...MAS_LUGARES,
 };
 
 // Quién vive en la aldea.
@@ -57,6 +62,7 @@ export const PERSONAS = {
         aspecto: { cuerpo: "femenino", piel: "clara", rostro: "sereno", ojos: "verde", pelo: "negro", peinado: "melena", barba: "ninguna", traje: "violeta" },
         escenas: ["ilse-1", "ilse-2"],
     },
+    ...MAS_PERSONAS,   // Edmundo, Wren, Gaspar, Cassiel, Marta, Don Anselmo y Valerio (voces-valle-2.js)
 };
 
 // Quien habla en alguna escena pero no tiene escenas propias todavía (por ahora, solo Vera).
@@ -65,6 +71,7 @@ export const INVITADOS = {
         nombre: "Vera", oficio: "Bordadora",
         aspecto: { cuerpo: "femenino", piel: "media", rostro: "amable", ojos: "miel", pelo: "rubio", peinado: "recogido", barba: "ninguna", traje: "azul" },
     },
+    ...MAS_INVITADOS,
 };
 
 // Cómo se llama el final de una conversación (para el cartel del resultado).
@@ -519,4 +526,7 @@ export const ESCENAS = {
             },
         },
     },
+
+    // Las de Edmundo, Wren, Gaspar, Cassiel, Marta, Don Anselmo y Valerio están en voces-valle-2.js.
+    ...MAS_ESCENAS,
 };

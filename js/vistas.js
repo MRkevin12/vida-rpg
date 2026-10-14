@@ -3345,7 +3345,7 @@ function seccionHistoria(estado, ctx) {
         cronica: `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
         torre: `Tu récord: ${records.torre || 0} de ${torre.ABRIR_MAZMORRA} pisos`,
         mazmorra: torre.mazmorraAbierta(estado.arcade) ? `Tu récord: ${records.mazmorra || 0} de 20 sótanos` : "🔒 Se abre al llegar a la cima de la Torre",
-        voces: `${voces.progreso(estado).hechas} de ${voces.progreso(estado).total} voces recuperadas`,
+        voces: `${voces.progreso(estado).hechas} de ${voces.progreso(estado).total} voces recuperadas${estado.voces.epilogo ? " · ✅ La aldea habló" : ""}`,
         libro: `${plural(escritos, "día escrito", "días escritos")} en tu diario`,
     };
     const historias = saga.HISTORIAS.map((h) =>

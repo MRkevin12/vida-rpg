@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 23,
+        version: 24,
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -113,6 +113,7 @@ export function estadoInicial() {
             fallos: {},       //   las que salieron mal: { "maren-1": "2026-10-14" } (se puede volver al día siguiente)
             ultima: {},       //   la última vez que hablaste con cada persona: { maren: "2026-10-14" }
             tareas: {},       //   las lecciones que ya convertiste en tarea: { "maren-1": true }
+            epilogo: null,    //   el día en que recuperaste la última voz y se contó el epílogo de la aldea (v45), o null
         },
         revisiones: {},       // revisión semanal (v39), por el lunes de la semana revisada:
                               //   { "2026-10-05": { bien, mejorar, foco (ids de misiones, máx. 3), hechaEn } }
@@ -145,6 +146,7 @@ function completar(guardado) {
             fallos: { ...guardado.voces?.fallos },
             ultima: { ...guardado.voces?.ultima },
             tareas: { ...guardado.voces?.tareas },
+            epilogo: guardado.voces?.epilogo || null,
         },
         avatar: {
             comprados: avatar.comprados || [],
