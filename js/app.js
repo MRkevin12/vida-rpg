@@ -71,7 +71,7 @@ let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
 
 // Modo esencial (v46): las únicas pantallas que quedan a la mano. Si lo enciendes estando en otra, vuelves a Hoy.
-const PANTALLAS_ESENCIALES = new Set(["hoy", "progreso", "tienda", "enfoque", "diario", "libro"]);
+const PANTALLAS_ESENCIALES = new Set(["hoy", "tienda", "enfoque"]);
 
 // Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
 const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje" };
@@ -2181,6 +2181,8 @@ const ACCIONES = {
             .then(() => avisar("🔕 Notificaciones desactivadas"));
     },
     "alternar-esencial": () => cambiarModoEsencial(!estado.ajustes.esencial),
+    // Modo esencial: los tres números de arriba llevan a su grupo (diarias, tareas o importantes).
+    "ir-grupo": (boton) => document.getElementById(boton.dataset.grupo)?.scrollIntoView({ behavior: "smooth", block: "start" }),
     "cerrar-semana": () => {
         ejecutar(() => acciones.cerrarResumenSemanal(estado));
         window.scrollTo(0, 0);

@@ -4396,7 +4396,7 @@ prueba("Partida de ejemplo: su historial respeta las reglas", () => {
 
 // ===== Modo esencial (v46) =====
 
-prueba("Modo esencial: Hoy muestra solo lo importante, y Aventuras sigue teniendo sus misiones principales", () => {
+prueba("Modo esencial: Hoy muestra solo tus misiones en tres grupos, la Tienda solo los premios, y Aventuras sigue teniendo lo suyo", () => {
     const estado = partidaDemo();
     const info = juego.resumen(estado, hoy());
     const ctx = () => ({
@@ -4409,22 +4409,26 @@ prueba("Modo esencial: Hoy muestra solo lo importante, y Aventuras sigue teniend
     igual(datos.estadoInicial().ajustes.esencialAlAbrir, true, "pero al abrir la app arranca en él (v47)");
     debeFallar(() => acciones.cambiarAjuste(partidaNueva(), "inventado", true), "no existe");
 
-    // Completo: el héroe, «Tu día» y las misiones; las principales NO están en Hoy (viven en Aventuras).
+    // Completo: el héroe, «Tu día», el diario y las misiones; sin las «importantes».
     const completo = vistas.pantallaHoy(estado, ctx());
     sano(completo, "Hoy completo");
-    cierto(completo.includes('aria-label="Tu día"') && completo.includes("Misiones de hoy"), "Hoy completo");
-    cierto(!completo.includes('aria-label="Misiones principales"'), "sin las principales");
+    cierto(completo.includes('aria-label="Tu día"') && completo.includes("Misiones de hoy") && completo.includes("Diario"), "Hoy completo");
+    cierto(!completo.includes('aria-label="Misiones principales"') && !completo.includes("esencial-grupo"), "sin los grupos del modo esencial");
     cierto(completo.includes('data-accion="alternar-esencial"') && completo.includes('aria-pressed="false"'), "con su botón apagado");
 
-    // Esencial: misiones, nueva misión, tareas, principales y diario; sin héroe, sin «Tu día», sin semana.
+    // Esencial: tres grupos (diarias, tareas, importantes) con su resumen; sin héroe, «Tu día», semana ni diario.
     acciones.cambiarAjuste(estado, "esencial", true);
     const html = vistas.pantallaHoy(estado, ctx());
     sano(html, "Hoy esencial");
-    cierto(html.includes("Misiones de hoy") && html.includes('data-dialogo="mision"') && html.includes("+ Nueva misión"), "misiones y agregar");
-    cierto(html.includes('aria-label="Tareas"') && html.includes('aria-label="Misiones principales"'), "tareas y principales");
-    cierto(html.includes("Diario"), "el diario se queda");
-    cierto(!html.includes('aria-label="Tu día"') && !html.includes("Rivales") && !html.includes('class="panel semana"'), "sin héroe, sin «Tu día» y sin semana");
+    cierto(html.includes("⚔️ Misiones diarias") && html.includes("📌 Tareas") && html.includes("🎯 Misiones importantes"), "los tres grupos con su nombre");
+    for (const grupo of ["esencial-diarias", "esencial-tareas", "esencial-importantes"]) {
+        cierto(html.includes(`id="${grupo}"`) && html.includes(`data-grupo="${grupo}"`), `${grupo}: existe y tiene su atajo arriba`);
+    }
+    cierto(html.includes('data-dialogo="mision"') && html.includes("+ Nueva misión") && html.includes('data-dialogo="tarea"') && html.includes('data-dialogo="principal"'), "agregar de cada tipo");
+    cierto(!html.includes('aria-label="Tu día"') && !html.includes("Rivales") && !html.includes('class="panel semana"') && !html.includes("📓"), "sin héroe, «Tu día», semana ni diario");
     cierto(html.includes('aria-pressed="true"') && html.length < completo.length, "el botón queda encendido y la pantalla es más corta");
+    cierto(!html.includes("contra los jefes"), "la nota de las importantes no habla de jefes");
+    cierto(!vistas.pantallaHoy(estado, { ...ctx(), fechaVista: sumarDias(hoy(), -1) }).includes("esencial-resumen"), "el resumen de arriba solo se ve en «Hoy»");
 
     // El enfoque (temporizador) solo aparece si tienes una sesión en marcha.
     cierto(!html.includes('data-pantalla="enfoque"'), "sin sesión, sin botón de enfoque");
@@ -4432,12 +4436,20 @@ prueba("Modo esencial: Hoy muestra solo lo importante, y Aventuras sigue teniend
     cierto(vistas.pantallaHoy(estado, ctx()).includes('data-pantalla="enfoque"'), "con una sesión activa, sí");
     acciones.cancelarEnfoque(estado);
 
-    // Las misiones principales siguen en Aventuras.
+    // La Tienda: solo los premios reales y las monedas (sin gemas, poción, equipo ni mascotas).
+    const tiendaEsencial = vistas.pantallaTienda(estado, { ...ctx(), subvista: { tienda: "mascotas" } });
+    sano(tiendaEsencial, "Tienda esencial");
+    cierto(tiendaEsencial.includes("Tus monedas") && tiendaEsencial.includes("Recompensas") && tiendaEsencial.includes('data-dialogo="recompensa"'), "monedas y premios");
+    cierto(!tiendaEsencial.includes("💎") && !tiendaEsencial.includes("Equipo") && !tiendaEsencial.includes("Mascotas") && !tiendaEsencial.includes("gemas"), "sin gemas, equipo ni mascotas");
+
+    // Apagado: todo vuelve (y las principales siguen en Aventuras, una sola vez).
     acciones.cambiarAjuste(estado, "esencial", false);
+    const tiendaCompleta = vistas.pantallaTienda(estado, ctx());
+    cierto(tiendaCompleta.includes("💎") && tiendaCompleta.includes("Mascotas"), "la tienda completa sigue igual");
     const aventuras = vistas.pantallaAventuras(estado, ctx());
     sano(aventuras, "Aventuras");
     igual(aventuras.split('aria-label="Misiones principales"').length - 1, 1, "una sola vez en Aventuras");
-    cierto(aventuras.includes("Campaña de jefes"), "y la campaña de jefes sigue ahí");
+    cierto(aventuras.includes("Campaña de jefes") && !aventuras.includes("esencial-grupo"), "y la campaña de jefes sigue ahí, sin los estilos del modo esencial");
 });
 
 

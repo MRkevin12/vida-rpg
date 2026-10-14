@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 47;
+export const VERSION_APP = 48;
 
 export const NOVEDADES = [
+    {
+        version: 48,
+        titulo: "Modo esencial, más claro",
+        cambios: [
+            "🎯 En el modo esencial, Hoy ahora tiene tres grupos bien separados y de colores distintos, para no confundirlos: ⚔️ Misiones diarias (azul: tus hábitos que se repiten), 📌 Tareas (dorado: lo de una sola vez) y 🎯 Misiones importantes (violeta: tus objetivos grandes con pasos). Arriba hay tres números que te llevan a cada grupo.",
+            "Se quita el diario, el progreso y todo lo demás. Quedan solo dos pestañas: Hoy y Tienda.",
+            "La Tienda, en este modo, muestra solo tus monedas 🪙 y los premios reales que tú definiste (sin gemas, equipo ni mascotas).",
+        ],
+    },
     {
         version: 47,
         titulo: "Siempre en modo esencial",

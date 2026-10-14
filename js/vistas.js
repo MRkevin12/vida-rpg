@@ -175,9 +175,22 @@ export function pantallaHoy(estado, ctx) {
         ? `⏱️ <span data-reloj>${relojTexto(juego.finDelEnfoque(activo) - ctx.ahora)}</span>`
         : "⏱️ Enfoque";
 
-    // Modo esencial (v46): solo lo importante. Se quitan tu héroe, «Tu día», los avisos y la semana; se queda lo que
-    // se usa todos los días (misiones, tareas, misiones principales y diario). El aviso de la copia de seguridad se queda.
+    // Modo esencial (v46, rehecho en la v48): solo tus misiones, en TRES grupos bien separados y de colores distintos para no
+    // confundirlas: ⚔️ misiones diarias (hábitos que se repiten), 📌 tareas (de una sola vez) y 🎯 misiones importantes
+    // (objetivos grandes con pasos). Se quitan tu héroe, «Tu día», los avisos, la semana y el diario. El aviso de la copia
+    // de seguridad se queda.
     const esencial = Boolean(estado.ajustes.esencial);
+    const tareasDeHoy = estado.tareas.filter((t) => !t.hechaEn && (!t.fecha || t.fecha <= ctx.hoy)).length;
+    const importantes = estado.principales.filter((p) => !p.archivada && !p.completadaEn);
+    const resumenEsencial = esencial && !esAyer ? `
+        <nav class="esencial-resumen" aria-label="Tus tres grupos de misiones">
+            <button type="button" class="esencial-dato esencial-diarias" data-accion="ir-grupo" data-grupo="esencial-diarias">
+                <b>⚔️ ${hechas}/${delDia.length}</b><small>Diarias</small></button>
+            <button type="button" class="esencial-dato esencial-tareas" data-accion="ir-grupo" data-grupo="esencial-tareas">
+                <b>📌 ${tareasDeHoy}</b><small>${tareasDeHoy === 1 ? "Tarea" : "Tareas"}</small></button>
+            <button type="button" class="esencial-dato esencial-importantes" data-accion="ir-grupo" data-grupo="esencial-importantes">
+                <b>🎯 ${importantes.length}</b><small>${importantes.length === 1 ? "Importante" : "Importantes"}</small></button>
+        </nav>` : "";
     const chipEsencial = `<button type="button" class="chip chip-esencial ${esencial ? "activo" : ""}" data-accion="alternar-esencial"
                                   aria-pressed="${esencial}" title="Solo lo importante: tus misiones, tareas y objetivos">🎯 Esencial</button>`;
 
@@ -192,11 +205,12 @@ export function pantallaHoy(estado, ctx) {
         ${esencial ? "" : `${tarjetaHeroe(estado, ctx)}
         ${esAyer ? "" : panelDelDia(estado, ctx)}`}
 
-        <section class="bloque" aria-label="Misiones">
+        ${resumenEsencial}
+        <section class="bloque ${esencial ? "esencial-grupo esencial-diarias" : ""}" id="esencial-diarias" aria-label="Misiones">
             <div class="titulo-seccion">
                 <div>
                     <p class="etiqueta">${fechaLegible(fecha)}</p>
-                    <h2 class="titulo-juego">Misiones de ${esAyer ? "ayer" : "hoy"}</h2>
+                    <h2 class="titulo-juego">${esencial ? `⚔️ Misiones diarias${esAyer ? " de ayer" : ""}` : `Misiones de ${esAyer ? "ayer" : "hoy"}`}</h2>
                 </div>
                 <p class="contador ${todoListo ? "completo" : ""}">${todoListo ? "✨" : ""}${hechas}/${delDia.length}</p>
             </div>
@@ -225,9 +239,9 @@ export function pantallaHoy(estado, ctx) {
                 `<ul class="lista">${archivadas.map((m) => filaMision(estado, m, "restaurar")).join("")}</ul>`, archivadas.length)}
         </section>
 
-        ${esAyer ? "" : `<section class="bloque" aria-label="Tareas">${seccionTareas(estado, ctx)}</section>`}
-        ${esencial ? seccionPrincipales(estado) : ""}
-        ${seccionDiario(estado, ctx, fecha, esAyer)}`;
+        ${esAyer ? "" : `<section class="bloque ${esencial ? "esencial-grupo esencial-tareas" : ""}" id="esencial-tareas" aria-label="Tareas">${seccionTareas(estado, ctx)}</section>`}
+        ${esencial ? seccionPrincipales(estado, true) : ""}
+        ${esencial ? "" : seccionDiario(estado, ctx, fecha, esAyer)}`;
 }
 
 // «Tu día»: en un solo panel, el Maestro y todo lo que trae el día (antes eran 6 tarjetas sueltas):
@@ -1974,7 +1988,7 @@ function graficaDias(r, elegida) {
 
 
 // Tus misiones principales (objetivos grandes con pasos). Está en Aventuras y, en el modo esencial, también en Hoy.
-function seccionPrincipales(estado) {
+function seccionPrincipales(estado, esencial = false) {
     const principales = estado.principales.filter((p) => !p.archivada);
     const enCurso = principales.filter((p) => !p.completadaEn);
     const terminadas = principales.filter((p) => p.completadaEn);
@@ -1988,9 +2002,9 @@ function seccionPrincipales(estado) {
             <button type="button" class="boton boton-chico" data-accion="restaurar-principal" data-id="${p.id}">Restaurar</button>
         </li>`).join("");
     return `
-        <section class="bloque" aria-label="Misiones principales">
-            ${cabeceraSeccion("🎯 Misiones principales", "principal", "+ Nueva")}
-            <p class="nota">Tus objetivos grandes, divididos en pasos: tu arma más fuerte contra los jefes.
+        <section class="bloque ${esencial ? "esencial-grupo esencial-importantes" : ""}" ${esencial ? 'id="esencial-importantes"' : ""} aria-label="Misiones principales">
+            ${cabeceraSeccion(esencial ? "🎯 Misiones importantes" : "🎯 Misiones principales", "principal", "+ Nueva")}
+            <p class="nota">${esencial ? "Tus objetivos grandes, divididos en pasos." : "Tus objetivos grandes, divididos en pasos: tu arma más fuerte contra los jefes."}
                Cada paso: +${PREMIOS.submision.xp} XP. Al terminar todos: +${PREMIOS.principal.xp} XP y ${PREMIOS.principal.monedas} monedas.</p>
             ${enCurso.length ? enCurso.map((p) => tarjetaPrincipal(estado, p)).join("") : vacio("Sin misiones principales en curso. Ej: «Aprender inglés B1» o «Terminar CS50».")}
             ${plegable(`Completadas (${terminadas.length})`, terminadas.map((p) => tarjetaPrincipal(estado, p)).join(""), terminadas.length)}
@@ -3749,7 +3763,8 @@ function tiendaDeMascotas(estado, cerrada, ctx) {
 export function pantallaTienda(estado, ctx) {
     const monedas = estado.personaje.monedas;
     const cerrada = ctx.vida.caido;   // caíste en combate: solo se venden pociones
-    const vista = ctx.subvista?.tienda || "recompensas";
+    const esencial = Boolean(estado.ajustes.esencial);   // modo esencial: solo los premios reales (monedas)
+    const vista = esencial ? "recompensas" : ctx.subvista?.tienda || "recompensas";
     const precio = (base) => precioConEvento(base, ctx.evento);   // con el «Mercader ambulante», 30 % menos
     const mostrarPrecio = (base) => (precio(base) < base ? `<s>${base}</s> ${precio(base)}` : `${base}`);
     const recompensas = [...estado.recompensas].sort((a, b) => a.costo - b.costo);
@@ -3785,6 +3800,17 @@ export function pantallaTienda(estado, ctx) {
                <button type="button" class="enlace enlace-en-linea" data-accion="subvista" data-pantalla="personaje" data-vista="equipo">tu Héroe › Equipo</button>.</p>`,
         mascotas: () => tiendaDeMascotas(estado, cerrada, ctx),
     };
+
+    if (esencial) {
+        return `
+        <section class="panel saldo">
+            <span class="etiqueta">Tus monedas</span>
+            <span class="saldo-numero">🪙 ${monedas}</span>
+            <span class="mini texto-suave">Las ganas con cada hábito que cumples.</span>
+        </section>
+        ${cerrada ? avisoCaido(ctx.vida, "Tienda cerrada") : ""}
+        <section class="bloque">${secciones.recompensas()}</section>`;
+    }
 
     return `
         <section class="panel saldo">

@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v48 — Modo esencial, más claro
+- **Hoy esencial en tres grupos de colores** (`pantallaHoy`): ⚔️ **Misiones diarias** (cian: la lista de hoy con sus momentos, metas semanales, «+ Nueva misión» y «Ordenar»), 📌 **Tareas** (oro: las de una sola vez) y 🎯 **Misiones importantes** (violeta: las principales, con otro nombre y sin hablar de jefes). Arriba, un resumen con tres números (`⚔️ 2/7 · 📌 1 · 🎯 1`) que llevan a cada grupo. Sin diario.
+- **Dos pestañas:** Hoy y Tienda (sin Progreso). La **Tienda esencial** muestra solo el saldo de monedas 🪙 y los premios reales con su historial de canjes: sin gemas, poción, equipo ni mascotas.
+- Interno: `seccionPrincipales(estado, esencial)`, `PANTALLAS_ESENCIALES` = hoy, tienda, enfoque, y el manejador `ir-grupo`. 220 pruebas.
+
 ## v47 — Siempre en modo esencial
 - **«🚪 Abrir siempre en modo esencial»** (`ajustes.esencialAlAbrir`, encendido por defecto): al abrir la app (`entrarAlJuego`, también tras el PIN) se pone `ajustes.esencial = true`. Dentro de la sesión, el botón 🎯 de Hoy sigue sacándote del modo; al volver a abrir, arranca otra vez en él. Se apaga en Ajustes (junto al interruptor del modo esencial). Datos versión 26.
 

@@ -8566,16 +8566,72 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 
-/* ===== Modo esencial (v46) =====
-   dibujarPantalla() pone la clase «modo-esencial» en <body>. Quedan 3 pestañas (Hoy, Progreso y Tienda); Hoy se
-   arma sin héroe ni «Tu día» (ver vistas.pantallaHoy). */
+/* ===== Modo esencial (v46, v48) =====
+   dibujarPantalla() pone la clase «modo-esencial» en <body>. Quedan 2 pestañas (Hoy y Tienda); Hoy se arma sin héroe ni
+   «Tu día» y con tres grupos de colores distintos (ver vistas.pantallaHoy): diarias (cian), tareas (oro) e importantes (violeta). */
 .modo-esencial .pestanas {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
 }
 
 .modo-esencial .pestana[data-pantalla="aventuras"],
-.modo-esencial .pestana[data-pantalla="personaje"] {
+.modo-esencial .pestana[data-pantalla="personaje"],
+.modo-esencial .pestana[data-pantalla="progreso"] {
     display: none;
+}
+
+/* Las gemas 💎 son del arcade y del equipo: en el modo esencial solo se ven las monedas 🪙. */
+.modo-esencial .cab-gemas {
+    display: none;
+}
+
+.esencial-diarias { --acento: #22d3ee; }
+.esencial-tareas { --acento: #fbbf24; }
+.esencial-importantes { --acento: #a78bfa; }
+
+/* Los tres números de arriba (y atajos a cada grupo). */
+.esencial-resumen {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.esencial-dato {
+    display: grid;
+    gap: 2px;
+    padding: 10px 6px;
+    font: inherit;
+    color: var(--texto);
+    text-align: center;
+    background: color-mix(in srgb, var(--acento) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--acento) 55%, transparent);
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.esencial-dato b {
+    font-family: "Orbitron", sans-serif;
+    font-size: 1.05rem;
+    color: var(--acento);
+}
+
+.esencial-dato small {
+    font-size: 0.74rem;
+    color: var(--texto-suave);
+}
+
+/* Cada grupo, con su color en el borde y en el título. */
+.esencial-grupo {
+    padding: 14px 14px 16px;
+    scroll-margin-top: calc(var(--alto-cabecera, 72px) + 8px);
+    background: color-mix(in srgb, var(--acento) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--acento) 30%, transparent);
+    border-left: 5px solid var(--acento);
+    border-radius: 14px;
+}
+
+.esencial-grupo .titulo-juego {
+    color: var(--acento);
 }
 
 .chip-esencial {
