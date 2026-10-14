@@ -188,7 +188,8 @@ export function heroeDeLaTorre(niveles, equipo = {}) {
         hechizo: 10 + 3 * niveles.intelecto + Math.round(magia * 1.5),
         mana,                 // hechizos que te quedan en este piso
         manaMax: mana,
-        defensa: Math.min(0.75, 0.5 + niveles.carisma * 0.025),   // parte del daño que bloqueas al defender
+        // parte del daño que bloqueas al defender («Muralla»: 15 % más)
+        defensa: Math.min(0.75, 0.5 + niveles.carisma * 0.025) + (habilidades.includes("muralla") ? HABILIDADES.muralla.defensa : 0),
         curaDefensa: 2 + niveles.carisma,
         pociones,
         critico: Math.min(0.4, Math.min(0.3, 0.08 + niveles.riqueza * 0.02) + suerte / 100),
@@ -200,7 +201,19 @@ export function heroeDeLaTorre(niveles, equipo = {}) {
 }
 
 function pisoNuevo() {
-    return { golpeado: false, atacado: false, gracia: false };
+    return { golpeado: false, atacado: false, gracia: false, aurora: false, aturdio: false };
+}
+
+// «Rugido»: la criatura de cada piso empieza con menos vida.
+function rugir(h, m) {
+    if (tiene(h, "rugido")) m.vida = Math.round(m.vidaMax * (1 - HABILIDADES.rugido.vida));
+    return m;
+}
+
+// Cuánto te hará el golpe que prepara la criatura (con tu armadura y, en los golpes fuertes, «Presagio»).
+function danoContra(h, m) {
+    const dano = danoRecibido(h, danoPrevisto(m));
+    return m.intencion === "fuerte" && tiene(h, "presagio") ? Math.round(dano * HABILIDADES.presagio.fuerte) : dano;
 }
 
 // Cuánto te quita un golpe del monstruo (tu armadura y, si te defiendes, tu escudo lo bajan).
@@ -267,7 +280,7 @@ export function danoPrevisto(m) {
 // Ej: { icono: "💥", texto: "Prepara «Estocada» (12)" } o { icono: "☠️", texto: "Va a usar «Filamentos» (9 + veneno)" }
 export function textoIntencion(m, h = null) {
     const i = INTENCIONES[m.intencion] || INTENCIONES.golpe;
-    const dano = h ? danoRecibido({ ...h, defendiendo: false }, danoPrevisto(m)) : danoPrevisto(m);
+    const dano = h ? danoContra({ ...h, defendiendo: false }, m) : danoPrevisto(m);
     if (m.intencion === "especial") {
         const tipo = especialDe(m)?.tipo;
         const efecto = { veneno: `${dano} + veneno`, drenar: `${dano} y se cura`, sellar: `${dano} y −${ESPECIALES.sellar.pm} PM` }[tipo];
@@ -297,7 +310,7 @@ export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporc
         piso: 1,
         fase: "batalla",          // "batalla" | "mejora" (elegir premio) | "fin"
         heroe,
-        enemigo: monstruoDelPiso(1, lugar),
+        enemigo: rugir(heroe, monstruoDelPiso(1, lugar)),
         mascota: equipo.mascota && MASCOTAS[equipo.mascota.especie] ? { ...equipo.mascota } : null,
         turno: 0,                 // cuántas acciones llevas (la mascota actúa cada tantos turnos)
         renacio: false,           // si el fénix ya te levantó en esta subida
@@ -365,15 +378,25 @@ export function actuar(partida, accion, elemento = null) {
         const azarCritico = azar(partida);
         const critico = (tiene(h, "impetu") && !piso.atacado) || azarCritico < h.critico;
         const multiplicaCritico = tiene(h, "desgarro") ? HABILIDADES.desgarro.critico : 1.8;
-        const extra = factorDeDano(h, m) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1);
+        const extra = factorDeDano(h, m) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1)
+            * (magia && elemento === "fuego" && tiene(h, "llama") ? HABILIDADES.llama.fuego : 1);   // «Llama del Vigía»
         // Si se cubrió con su coraza, tu golpe le hace la mitad.
         const coraza = m.coraza ? ESPECIALES.coraza.factor : 1;
         let dano = Math.max(1, Math.round(base * variacion * (critico ? multiplicaCritico : 1) * factor * extra * coraza));
         // «Embestida»: el golpe va dos veces (el segundo hace la mitad).
         const doble = !magia && tiene(h, "embestida");
         if (doble) dano += Math.max(1, Math.round(dano * HABILIDADES.embestida.segundo));
-        if (magia) h.mana -= 1;
+        // «Aurora»: el primer hechizo de cada piso no gasta PM.
+        const gratis = magia && tiene(h, "aurora") && !piso.aurora;
+        if (gratis) piso.aurora = true;
+        else if (magia) h.mana -= 1;
         piso.atacado = true;
+        // «Aturdir»: el primer golpe crítico de cada piso deja a la criatura sin su turno.
+        const aturde = !magia && critico && tiene(h, "aturdir") && !piso.aturdio;
+        if (aturde) {
+            piso.aturdio = true;
+            m.aturdida = true;
+        }
         m.vida = Math.max(0, m.vida - dano);
         // «Sed del vencedor»: tus golpes y hechizos te curan.
         const cura = tiene(h, "sed") ? Math.min(Math.round(dano * HABILIDADES.sed.robo), h.vidaMax - h.vida) : 0;
@@ -385,6 +408,8 @@ export function actuar(partida, accion, elemento = null) {
         frases.push(`${que} le quita ${dano} ${alMonstruo(m)}${critico ? " (¡crítico!)" : ""}.` +
                     (efecto === "debil" ? " ¡Es su punto débil!" : efecto === "resiste" ? " Lo resiste: casi no le duele." : "") +
                     (m.coraza ? " Su coraza para la mitad." : "") +
+                    (gratis ? " La aurora no te cobra el hechizo." : "") +
+                    (aturde ? ` ¡${conMayuscula(elMonstruo(m))} queda aturdid${m.genero === "f" ? "a" : "o"}!` : "") +
                     (cura ? ` Recuperas ${cura}.` : ""));
     } else if (accion === "defender") {
         h.defendiendo = true;
@@ -426,8 +451,14 @@ export function actuar(partida, accion, elemento = null) {
     const intencion = m.intencion;
     const sujeto = conMayuscula(elMonstruo(m));
     const especial = intencion === "especial" ? especialDe(m) : null;
-    const dePiedra = Boolean(m.petrificada);
-    if (dePiedra) {
+    const dePiedra = Boolean(m.petrificada || m.aturdida);
+    if (m.aturdida && !m.petrificada) {
+        // «Aturdir» (el martillo de guerra): pierde este turno y guarda lo que planeaba.
+        m.aturdida = false;
+        eventos.push({ quien: "enemigo", tipo: "aturdida", nombre: "Aturdid" + (m.genero === "f" ? "a" : "o") });
+        frases.push(`${sujeto} sigue aturdid${m.genero === "f" ? "a" : "o"}: pierde su turno.`);
+    } else if (dePiedra) {
+        m.aturdida = false;
         // La mirada del basilisco: pierde este turno (y guarda lo que planeaba para el próximo).
         m.petrificada = false;
         eventos.push({ quien: "enemigo", tipo: "petrificada", nombre: "De piedra" });
@@ -445,7 +476,7 @@ export function actuar(partida, accion, elemento = null) {
             eventos.push({ quien: "enemigo", tipo: intencion, especial: tipoEspecial, dano: 0, nombre, esquivado: true });
             frases.push(`${sujeto} usa «${nombre}», pero lo esquivas.`);
         } else {
-            let dano = danoRecibido(h, danoPrevisto(m));
+            let dano = danoContra(h, m);
             if (tiene(h, "firme") && !piso.golpeado) dano = 0;   // «Firme»: el primero no duele
             piso.golpeado = true;
             h.vida = Math.max(0, h.vida - dano);
@@ -454,8 +485,8 @@ export function actuar(partida, accion, elemento = null) {
             m.vida = Math.max(0, m.vida - reflejo);
             const evento = { quien: "enemigo", tipo: intencion, especial: tipoEspecial, dano, nombre, reflejo };
             let extra = "";
-            if (tipoEspecial === "veneno" && h.inmuneVeneno) {
-                extra = " Tu raíz amarga para el veneno.";
+            if (tipoEspecial === "veneno" && (h.inmuneVeneno || tiene(h, "llama"))) {
+                extra = h.inmuneVeneno ? " Tu raíz amarga para el veneno." : " La Llama del Vigía quema el veneno.";
             } else if (tipoEspecial === "veneno") {
                 h.veneno = ESPECIALES.veneno.turnos;
                 extra = " ¡Te envenena!";
@@ -611,7 +642,7 @@ export function elegirMejora(partida, clave) {
         case "frasco":   h.pociones += 1; break;
         case "mana":     h.manaMax += 1; break;
         case "suerte":   h.critico = Math.min(0.5, h.critico + 0.06); break;
-        case "escudo":   h.defensa = Math.min(0.85, h.defensa + 0.08); break;
+        case "escudo":   h.defensa = Math.max(h.defensa, Math.min(tiene(h, "muralla") ? 0.95 : 0.85, h.defensa + 0.08)); break;
         case "descanso": h.vida = Math.min(h.vidaMax, h.vida + Math.round(h.vidaMax * 0.4)); break;
     }
     if (tiene(h, "constancia")) {
@@ -627,7 +658,7 @@ export function elegirMejora(partida, clave) {
     h.defendiendo = false;
     h.enEstePiso = pisoNuevo();
     partida.piso += 1;
-    partida.enemigo = monstruoDelPiso(partida.piso, partida.lugar);
+    partida.enemigo = rugir(h, monstruoDelPiso(partida.piso, partida.lugar));
     partida.enemigo.intencion = nuevaIntencion(partida);
     partida.opciones = [];
     partida.fase = "batalla";

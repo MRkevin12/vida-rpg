@@ -19,6 +19,12 @@ export const HABILIDADES = {
     regia:      { icono: "👑", nombre: "Manto regio",    texto: "Al subir de piso recuperas 25 % más de vida.", cura: 0.25 },
     bastion:    { icono: "🏰", nombre: "Bastión",        texto: "Al defenderte te curas el triple.", cura: 3 },
     estrellas:  { icono: "✨", nombre: "Estrellas",      texto: "Dos hechizos más en cada piso.", mana: 2 },
+    // (v34)
+    muralla:    { icono: "🧱", nombre: "Muralla",        texto: "Al defenderte bloqueas 15 % más del golpe.", defensa: 0.15 },
+    rugido:     { icono: "🦁", nombre: "Rugido",         texto: "Cada criatura empieza su piso con 15 % menos de vida.", vida: 0.15 },
+    aturdir:    { icono: "💫", nombre: "Aturdir",        texto: "Tu primer golpe crítico de cada piso aturde a la criatura: pierde su turno." },
+    presagio:   { icono: "🪶", nombre: "Presagio",       texto: "Los golpes fuertes de las criaturas te hacen 35 % menos.", fuerte: 0.65 },
+    aurora:     { icono: "🌠", nombre: "Aurora",         texto: "Tu primer hechizo de cada piso no gasta PM." },
 
     // --- Legendarias ---
     constancia: { icono: "🎁", nombre: "Constancia",     texto: "Eliges entre 4 mejoras al vencer, y cada piso que superas suma +1 de ataque y +1 a tus hechizos.",
@@ -31,6 +37,7 @@ export const HABILIDADES = {
     gracia:     { icono: "🕊️", nombre: "Gracia",         texto: "Una vez por piso, un golpe que te dejaría en 0 te deja con el 40 % de tu vida.", vida: 0.4 },
     escamas:    { icono: "🐲", nombre: "Escamas",        texto: "Le devuelves a la criatura la mitad del daño que te hace.", reflejo: 0.5 },
     gloria:     { icono: "🏛️", nombre: "Gloria",         texto: "Empiezas cada subida con 40 % más de vida máxima y una poción extra.", vida: 0.4 },
+    llama:      { icono: "🕯️", nombre: "Llama del Vigía", texto: "Tus hechizos de fuego hacen 50 % más y el veneno no te hace nada.", fuego: 1.5 },
 };
 
 // Lo máximo que puedes esquivar sumando todo (equipo y mascota): nunca más de 40 %.

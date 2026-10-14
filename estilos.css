@@ -2429,8 +2429,8 @@ textarea:focus {
 
 .espacios {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));   /* cabeza, pecho (v34), mano, espalda y fondo */
+    gap: 6px;
     margin: 12px 0 4px;
 }
 

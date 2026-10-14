@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 17,
+        version: 18,
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -75,7 +75,7 @@ export function estadoInicial() {
 
         avatar: {             // equipamiento del avatar (ver avatar.js)
             comprados: [],    // ids de objetos comprados en la tienda
-            equipado: { cabeza: null, mano: null, espalda: null, fondo: null },
+            equipado: { cabeza: null, pecho: null, mano: null, espalda: null, fondo: null },   // pecho: desde la v34
         },
         mascota: {           // tus mascotas (ver mascota.js)
             nombre: "Chispa", // el nombre del dragón, tu primera mascota

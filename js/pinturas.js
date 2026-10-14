@@ -26,6 +26,10 @@ export const PINTURAS = {
                  archivo: "Van Gogh - Starry Night - Google Art Project.jpg" },
     salon:     { obra: "Interior del Panteón de Roma", artista: "Giovanni Paolo Panini", anio: "c. 1734",
                  archivo: "Giovanni Paolo Panini, Interior of the Pantheon, Rome, c. 1734, NGA 165.jpg" },
+    mar:       { obra: "La novena ola", artista: "Iván Aivazovski", anio: "1850",
+                 archivo: "Hovhannes Aivazovsky - The Ninth Wave - Google Art Project.jpg" },
+    aurora:    { obra: "Aurora boreal", artista: "Frederic Edwin Church", anio: "1865",
+                 archivo: "Frederic Edwin Church - Aurora Borealis - Google Art Project.jpg" },
     // Escenarios de batalla de cada campaña.
     "escena-fuerza":    { obra: "Tormenta de nieve: Aníbal cruzando los Alpes", artista: "J. M. W. Turner", anio: "1812",
                           archivo: "Joseph Mallord William Turner 081.jpg" },

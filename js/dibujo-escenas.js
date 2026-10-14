@@ -46,6 +46,7 @@ export function fondo(d, p) {
 const AMBIENTE = {
     aldea: "luciernagas", camino: "polvo", fortaleza: "brasas", cumbre: "nieve",
     bosque: "luciernagas", castillo: "brasas", galaxia: "estrellas", salon: "polvo",
+    mar: "nieve", aurora: "estrellas",   // (v34) la espuma del mar y las estrellas de la noche polar
 };
 // color, tamaño (radio mínimo y máximo), cuánto dura cada vuelta (segundos) y en qué franja nacen (y).
 const PARTICULAS = {
@@ -57,7 +58,7 @@ const PARTICULAS = {
 };
 const CUANTAS = 12;
 
-// Partículas que flotan (luciérnagas, polvo, brasas, nieve o estrellas) y, salvo en la galaxia,
+// Partículas que flotan (luciérnagas, polvo, brasas, nieve o estrellas) y, salvo de noche (galaxia y aurora),
 // rayos de luz que bajan desde arriba a la izquierda (de donde viene la luz de todo el dibujo).
 // Las posiciones salen de una cuenta fija (no al azar): así el dibujo es igual cada vez.
 // Solo se anima transform y opacity (ver .particula en estilos.css).

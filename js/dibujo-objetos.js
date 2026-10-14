@@ -1,10 +1,12 @@
-// dibujo-objetos.js — El equipamiento: lo que va en la cabeza, en la mano y en la espalda.
+// dibujo-objetos.js — El equipamiento: lo que va en la cabeza, el pecho, la mano y la espalda.
 //
 // Los sombreros se dibujan sobre la cabeza (centro x = 100, coronilla y = 29).
 // Las armas se dibujan "sueltas", alrededor del punto (0, 0), que es donde las agarra
 // la mano, con la punta hacia arriba. Luego dibujo.js las mueve a la mano y las inclina.
+// Las armaduras de pecho (v34) van encima de la ropa de la etapa, con la forma del torso.
 
-import { TRAZO, mate, halo, destello, pivote } from "./dibujo-base.js";
+import { TRAZO, mate, metal, halo, destello, pivote } from "./dibujo-base.js";
+import { formaTorso } from "./dibujo-cuerpo.js";
 
 const borde = (grosor = 0.8) => `stroke="${TRAZO}" stroke-width="${grosor}" stroke-linejoin="round"`;
 
@@ -12,7 +14,7 @@ const borde = (grosor = 0.8) => `stroke="${TRAZO}" stroke-width="${grosor}" stro
 // ===== Cabeza =====
 
 // Hasta qué altura tapa el pelo cada sombrero (dibujo.js recorta el pelo por encima).
-export const TAPA_PELO = { "gorra": 34.5, "sombrero-mago": 34.5, "casco": 38.5, "yelmo-alado": 38.5, "capucha": 36 };
+export const TAPA_PELO = { "gorra": 34.5, "sombrero-mago": 34.5, "casco": 38.5, "yelmo-alado": 38.5, "capucha": 36, "yelmo-astado": 38.5 };
 
 export function sombrero(id, p) {
     switch (id) {
@@ -53,6 +55,30 @@ export function sombrero(id, p) {
                         <circle cx="91.6" cy="38" r=".7"/><circle cx="95.6" cy="36.4" r=".7"/><circle cx="104.4" cy="36.4" r=".7"/><circle cx="108.4" cy="38" r=".7"/>
                         <circle cx="90.6" cy="44.6" r=".65"/><circle cx="109.4" cy="44.6" r=".65"/></g>
                     <path d="M92.4 30.4 Q94.6 26.6 98.4 25.6" fill="none" stroke="#fff" stroke-width="1" opacity=".45" stroke-linecap="round"/>`;
+
+        case "diadema":         // diadema de plata en la frente, con un zafiro en forma de gota
+            return `<defs>${metal(`${p.id}-plata`, "#c9d2e0")}${halo(`${p.id}-zafiro`, "#7cc4ff", 0.7)}</defs>
+                    <path d="M89.4 37.6 Q100 32.4 110.6 37.6 L110.4 39.6 Q100 34.6 89.6 39.6 Z" fill="url(#${p.id}-plata)" ${borde(0.6)}/>
+                    <path d="M92 37 Q100 33.6 108 37" fill="none" stroke="#fff" stroke-width=".45" opacity=".8"/>
+                    <circle class="orbe" cx="100" cy="36.8" r="4.6" fill="url(#${p.id}-zafiro)"/>
+                    <path d="M100 33.4 Q102.2 36 101.6 37.6 Q100.8 39.4 100 39.4 Q99.2 39.4 98.4 37.6 Q97.8 36 100 33.4 Z" fill="#2f6fd6" stroke="#dfe7f5" stroke-width=".6"/>
+                    <path d="M99.4 35.6 L99.8 36.8" stroke="#fff" stroke-width=".55" stroke-linecap="round"/>
+                    <circle cx="93.4" cy="37.2" r=".8" fill="#9fd4ff" stroke="${TRAZO}" stroke-width=".25"/>
+                    <circle cx="106.6" cy="37.2" r=".8" fill="#9fd4ff" stroke="${TRAZO}" stroke-width=".25"/>`;
+
+        case "yelmo-astado": {  // yelmo cerrado de hierro, con protector nasal y dos cuernos de marfil
+            const cuerno = `<path d="M91.6 33.4 C86 32.4 81.6 28.2 80.8 21 C83.6 24.6 87 26.4 91 27 C91.6 29 91.8 31.2 91.6 33.4 Z" fill="url(#${p.id}-cuerno)" ${borde(0.7)}/>
+                            <path d="M90.4 32.6 l1 -2.2 M87.4 31.2 l1.4 -2 M84.6 28.6 l1.6 -1.6 M82.6 25.4 l1.6 -1" stroke="#7a6a48" stroke-width=".5" opacity=".7"/>`;
+            return `<defs>${mate(`${p.id}-cuerno`, "#ece0bf", 0.35, 0.45)}${metal(`${p.id}-hierro`, "#8a93a6")}</defs>
+                    ${cuerno}<g transform="translate(200 0) scale(-1 1)">${cuerno}</g>
+                    <path d="M88.6 43 C87.6 27.6 93 24.2 100 24.2 C107 24.2 112.4 27.6 111.4 43 L111.4 49 Q109.4 50.8 107.5 49 L107.3 41 Q100 38 92.7 41 L92.5 49 Q90.6 50.8 88.6 49 Z"
+                          fill="url(#${p.id}-hierro)" ${borde(0.85)}/>
+                    <path d="M98.6 36.6 L101.4 36.6 L101 46.6 L99 46.6 Z" fill="url(#${p.id}-hierro)" ${borde(0.6)}/>
+                    <path d="M90.4 35.6 Q100 31 109.6 35.6" fill="none" stroke="${p.m("oro")}" stroke-width="1.2"/>
+                    <path d="M100 24.6 L100 34" stroke="${TRAZO}" stroke-width=".8" opacity=".5"/>
+                    <g fill="${p.m("oro")}" stroke="${TRAZO}" stroke-width=".3"><circle cx="93" cy="34.6" r=".7"/><circle cx="107" cy="34.6" r=".7"/><circle cx="90.4" cy="45" r=".65"/><circle cx="109.6" cy="45" r=".65"/></g>
+                    <path d="M92.4 30.4 Q94.6 26.6 98.4 25.6" fill="none" stroke="#fff" stroke-width="1" opacity=".45" stroke-linecap="round"/>`;
+        }
 
         case "corona":          // corona de oro con gemas
             return `<path d="M90.6 34.8 L89.8 25.4 L94.6 30 L97.2 23 L100 28.8 L102.8 23 L105.4 30 L110.2 25.4 L109.4 34.8 Q100 31.4 90.6 34.8 Z"
@@ -131,7 +157,7 @@ export function sombrero(id, p) {
 
 // Cuánto se inclina cada arma en la mano (en grados; positivo = punta hacia afuera).
 export const INCLINACION = { "espada-madera": 13, "espada-jefe": 13, "baston": 3, "laud": 7,
-                             "hacha": 10, "mandoble": 12, "lanza-dragon": 5, "baculo-arcano": 3 };
+                             "hacha": 10, "mandoble": 12, "lanza-dragon": 5, "baculo-arcano": 3, "daga": 18, "martillo": 8 };
 
 export function arma(id, p) {
     switch (id) {
@@ -203,6 +229,30 @@ export function arma(id, p) {
                     <path d="M-1.6 -47.6 L0 -53.6 L1.6 -47.6 Z" fill="${p.m("acero")}" ${borde(0.5)}/>
                     <g fill="${p.m("oro")}" stroke="${TRAZO}" stroke-width=".3"><circle cx="0" cy="-44.4" r=".8"/><circle cx="0" cy="-38" r=".8"/></g>
                     ${destello(17.2, -52, 1.6, "chispa", "#fff")}`;
+
+        case "daga":            // daga corta de hoja curva, con guarda en «S» y un anillo en el pomo
+            return `<path d="M-2 -4 L-2.2 -22 Q-1 -30 2.4 -34 Q2.6 -26 2.2 -22 L2 -4 Z" fill="${p.m("acero")}" ${borde(0.7)}/>
+                    <path d="M0 -6 Q0.4 -22 2 -31" fill="none" stroke="#fff" stroke-width=".55" opacity=".7"/>
+                    <path d="M-6.4 -6.4 Q-4 -3 0 -4.6 Q4 -6.2 6.4 -2.8" fill="none" stroke="${TRAZO}" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M-6.4 -6.4 Q-4 -3 0 -4.6 Q4 -6.2 6.4 -2.8" fill="none" stroke="${p.oroPlano}" stroke-width="1.6" stroke-linecap="round"/>
+                    <rect x="-1.6" y="-3.6" width="3.2" height="8.6" fill="#2a1a12" ${borde(0.5)}/>
+                    <path d="M-1.6 -1.6 L1.6 -0.6 M-1.6 0.8 L1.6 1.8 M-1.6 3.2 L1.6 4.2" stroke="#6b4628" stroke-width=".55"/>
+                    <circle cx="0" cy="7.6" r="2.4" fill="none" stroke="${TRAZO}" stroke-width="2"/>
+                    <circle cx="0" cy="7.6" r="2.4" fill="none" stroke="${p.oroPlano}" stroke-width="1"/>
+                    ${destello(1.6, -30, 1.3, "chispa", "#fff")}`;
+
+        case "martillo":        // martillo de guerra: mango largo, cabeza de acero con bandas de oro y un pico atrás
+            return `<defs>${mate(`${p.id}-mango`, "#5a3a22", 0.28, 0.5)}</defs>
+                    <path d="M-1.8 16 L-1.6 -44 L1.6 -44 L1.8 16 Z" fill="url(#${p.id}-mango)" ${borde(0.7)}/>
+                    <path d="M-1.8 -2 h3.6 M-1.8 1 h3.6 M-1.8 4 h3.6 M-1.8 7 h3.6" stroke="#2a180b" stroke-width=".9"/>
+                    <path d="M-11 -56 L9 -56 L9 -40 L-11 -40 Z" fill="${p.m("acero")}" ${borde(0.85)}/>
+                    <path d="M-11 -56 L-11 -40 L-13 -42 L-13 -54 Z" fill="${p.m("acero")}" ${borde(0.6)}/>
+                    <path d="M9 -53 L17 -48 L9 -43 Z" fill="${p.m("acero")}" ${borde(0.7)}/>
+                    <path d="M-6 -56 L-6 -40 M4 -56 L4 -40" stroke="${p.m("oro")}" stroke-width="1.6"/>
+                    <path d="M-10 -54.4 L8 -54.4" stroke="#fff" stroke-width=".7" opacity=".6"/>
+                    <path d="M-11 -41.4 L9 -41.4" stroke="${TRAZO}" stroke-width=".7" opacity=".5"/>
+                    <circle cx="0" cy="17.4" r="2.2" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".5"/>
+                    ${destello(-8, -53, 1.6, "chispa", "#fff")}`;
 
         case "mandoble":        // espada de dos manos: hoja larga con canal, gavilanes rectos y pomo de bronce
             return `<path d="M-2.7 -6 L-2.7 -68 L0 -77 L2.7 -68 L2.7 -6 Z" fill="${p.m("acero")}" ${borde(0.85)}/>
@@ -282,6 +332,40 @@ export function capa(e, p, color, conOro) {
                                  Q${x(0.14)} 174.2 ${x(0.3)} 168.4 Q${x(0.48)} 173.8 ${x(0.66)} 167.4 Q${x(0.83)} 172.8 ${x(1)} 166.4" fill="none" stroke="${p.m("oro")}" stroke-width="1.5"/>` : ""}`;
 }
 
+// Capa de plumas de cuervo: la capa negra con filas de plumas que brillan en violeta.
+export function capaCuervo(e, p) {
+    const H = e.H;
+    const mitad = (y) => H - 3 + ((y - 61) / (168 - 61)) * 18;   // medio ancho de la capa a esa altura
+    let plumas = "";
+    for (const y of [88, 104, 120, 136, 152, 166]) {
+        const ancho = mitad(y) - 3;
+        for (let x = 100 - ancho; x < 100 + ancho - 4; x += 6) {
+            plumas += `M${x.toFixed(1)} ${y} q3 6 6 0 `;
+        }
+    }
+    return `${capa(e, p, "#2c2640", false)}
+            <path d="${plumas}" fill="none" stroke="#8f7fc6" stroke-width=".85" opacity=".7"/>
+            <path d="M${100 - H + 4} 64 C${100 - H - 2} 96 ${100 - H - 6} 130 ${100 - H - 12} 160" fill="none" stroke="#9a8ad0" stroke-width=".8" opacity=".35"/>
+            <path d="M${100 - H + 1} 62 l-4 6 l3 -1 l-2 5 l4 -6 l-3 1 Z M${100 + H - 1} 62 l4 6 l-3 -1 l2 5 l-4 -6 l3 1 Z" fill="#2a2438" ${borde(0.5)}/>`;
+}
+
+// Escudo redondo: de madera con borde de acero, colgado en la espalda (asoma por la izquierda).
+export function escudo(p, cx = 78, cy = 88) {
+    const r = 21;
+    let tablas = "";
+    for (let x = cx - r + 7; x < cx + r - 3; x += 7) tablas += `M${x} ${cy - r + 2} L${x} ${cy + r - 2} `;
+    return `<defs>${mate(`${p.id}-escudo`, "#7a4f2a", 0.3, 0.55)}</defs>
+            <g transform="rotate(-14 ${cx} ${cy})">
+                <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${p.id}-escudo)" ${borde(0.9)}/>
+                <path d="${tablas}" stroke="#3e2512" stroke-width=".7" opacity=".7"/>
+                <circle cx="${cx}" cy="${cy}" r="${r - 1.4}" fill="none" stroke="${p.m("acero")}" stroke-width="2.6"/>
+                <path d="M${cx - r + 4} ${cy} L${cx + r - 4} ${cy}" stroke="${p.m("acero")}" stroke-width="2.2"/>
+                <circle cx="${cx}" cy="${cy}" r="5" fill="${p.m("acero")}" ${borde(0.6)}/>
+                <circle cx="${cx - 1.4}" cy="${cy - 1.4}" r="1.4" fill="#fff" opacity=".6"/>
+                <path d="M${cx - r + 4} ${cy - 10} Q${cx - 10} ${cy - r + 2} ${cx} ${cy - r + 1.6}" fill="none" stroke="#fff" stroke-width="1" opacity=".3"/>
+            </g>`;
+}
+
 // Alas de luz: plumas blancas que brillan.
 export function alas(p) {
     const ala = `
@@ -330,6 +414,120 @@ export function libro([x, y], p) {
 }
 
 
+// ===== Pecho (v34) =====
+// Las armaduras de pecho, sobre la ropa de la etapa. e = las medidas del cuerpo (esqueleto).
+
+// El peto: la placa del pecho, de los hombros a la cintura.
+function formaPeto(e) {
+    const { H, cintura: C } = e;
+    return `M${100 - H + 3} 65.4 Q100 59 ${100 + H - 3} 65.4 L${100 + C + 2.8} 84 Q${100 + C + 0.6} 92 ${100 + C + 0.8} 99
+            Q100 103.6 ${100 - C - 0.8} 99 Q${100 - C - 0.6} 92 ${100 - C - 2.8} 84 Z`;
+}
+
+// Placas que cuelgan de la cintura y protegen la cadera (las corazas).
+function faldaDePlacas(e, color, ribete) {
+    const { cintura: C, cadera: K } = e;
+    let placas = "";
+    for (const [y, sale] of [[97.6, 0], [104.4, 1.6]]) {
+        placas += `<path d="M${100 - C - 1 - sale} ${y} Q100 ${y + 4} ${100 + C + 1 + sale} ${y} L${100 + K + 1 + sale} ${y + 7} Q100 ${y + 11} ${100 - K - 1 - sale} ${y + 7} Z"
+                         fill="${color}" ${borde(0.75)}/>
+                   <path d="M100 ${y + 2.4} L100 ${y + 10}" stroke="${TRAZO}" stroke-width=".6" opacity=".45"/>
+                   <path d="M${100 - K - 0.6 - sale} ${y + 6.2} Q100 ${y + 10} ${100 + K + 0.6 + sale} ${y + 6.2}" fill="none" stroke="${ribete}" stroke-width=".7"/>`;
+    }
+    return placas;
+}
+
+export function armaduraDePecho(id, e, p) {
+    const { H, cintura: C, cadera: K } = e;
+    const peto = formaPeto(e);
+    const luz = `<path d="M${100 - H + 6} 68.6 Q${100 - 9} 66 ${100 - 4.4} 69.6" fill="none" stroke="#fff" stroke-width="1" opacity=".45" stroke-linecap="round"/>`;
+    const sombraDerecha = `<path d="M100 61.6 L${100 + H - 3} 65.4 L${100 + C + 2.8} 84 Q${100 + C + 0.6} 92 ${100 + C + 0.8} 99 Q106 101.6 101.4 102 Q104.6 82 100 61.6 Z" fill="${TRAZO}" opacity=".22"/>`;
+    switch (id) {
+        case "peto-cuero":      // cuero curtido con costuras, tachas de bronce y cordones al centro
+            return `<defs>${mate(`${p.id}-curtido`, "#7a4e2c", 0.28, 0.55)}</defs>
+                    <path d="${peto}" fill="url(#${p.id}-curtido)" ${borde(0.85)}/>
+                    <path d="${peto}" fill="${p.m("grano")}" opacity=".35"/>
+                    ${sombraDerecha}
+                    <path d="M${100 - H + 6} 67.4 Q100 62 ${100 + H - 6} 67.4 M${100 - C - 0.6} 96.4 Q100 100.4 ${100 + C + 0.6} 96.4" fill="none" stroke="#d9b48a" stroke-width=".6" stroke-dasharray="1.4 1.1"/>
+                    <path d="M97.4 66 L102.6 70 M102.6 66 L97.4 70 M97.4 72 L102.6 76 M102.6 72 L97.4 76 M97.4 78 L102.6 82 M102.6 78 L97.4 82" stroke="#e8d3a8" stroke-width=".7" stroke-linecap="round"/>
+                    <path d="M100 63.4 L100 98" stroke="${TRAZO}" stroke-width=".7" opacity=".5"/>
+                    <g fill="${p.m("oro")}" stroke="${TRAZO}" stroke-width=".3">
+                        <circle cx="${100 - H + 7}" cy="70" r=".9"/><circle cx="${100 + H - 7}" cy="70" r=".9"/>
+                        <circle cx="${100 - C + 1}" cy="86" r=".9"/><circle cx="${100 + C - 1}" cy="86" r=".9"/>
+                        <circle cx="${100 - C + 2}" cy="94" r=".9"/><circle cx="${100 + C - 2}" cy="94" r=".9"/></g>
+                    ${luz}`;
+
+        case "cota-malla": {    // malla de anillos de acero hasta la cadera, con cinturón de cuero
+            const forma = formaTorso(e, 113);
+            return `<defs>${metal(`${p.id}-malla-metal`, "#9aa3b2")}
+                        <pattern id="${p.id}-malla" width="2.4" height="2" patternUnits="userSpaceOnUse">
+                            <circle cx="1.2" cy="1" r=".85" fill="none" stroke="#2b303c" stroke-width=".38"/></pattern></defs>
+                    <path d="${forma}" fill="url(#${p.id}-malla-metal)" ${borde(0.85)}/>
+                    <path d="${forma}" fill="url(#${p.id}-malla)" opacity=".75"/>
+                    <path d="M100 61 L${100 + H} 67 L${100 + C + 2.4} 84 Q${100 + C - 0.4} 93 ${100 + C} 100 L${100 + K} 113 Q104 115 102 114.6 Q105 90 100 61 Z" fill="${TRAZO}" opacity=".2"/>
+                    <path d="M${100 - K} 113 Q100 117.4 ${100 + K} 113" fill="none" stroke="#5a6070" stroke-width="1.4" stroke-dasharray="1.6 1"/>
+                    <path d="M94.4 59.8 Q100 64.4 105.6 59.8 L105.8 63 Q100 67.4 94.2 63 Z" fill="url(#${p.id}-malla-metal)" ${borde(0.6)}/>
+                    <path d="M${100 - C - 0.4} 99 Q100 103.4 ${100 + C + 0.4} 99 L${100 + C + 0.8} 102.6 Q100 107 ${100 - C - 0.8} 102.6 Z" fill="${p.m("cuero")}" ${borde(0.7)}/>
+                    <rect x="97.6" y="100.6" width="4.8" height="4.2" rx=".8" fill="none" stroke="${p.m("oro")}" stroke-width="1"/>
+                    ${luz}`;
+        }
+
+        case "tunica-arcana": { // túnica de arcanista: añil con ribetes de plata, runas que brillan y un fajín
+            const forma = `M${100 - H + 2} 66 Q100 58.6 ${100 + H - 2} 66 L${100 + C + 2.4} 84 Q${100 + C} 93 ${100 + C + 0.6} 100
+                           L${100 + K + 1.4} 124 Q100 126.4 ${100 - K - 1.4} 124 L${100 - C - 0.6} 100 Q${100 - C} 93 ${100 - C - 2.4} 84 Z`;
+            const runas = [70, 77, 84, 91].map((y) => `<path d="M100 ${y - 2.4} L101.8 ${y} L100 ${y + 2.4} L98.2 ${y} Z" fill="#b9e6ff"/>`).join("");
+            return `<defs>${mate(`${p.id}-arcana`, "#2b2a6e", 0.3, 0.55)}${halo(`${p.id}-runas`, "#7cc4ff", 0.6)}</defs>
+                    <path d="${forma}" fill="url(#${p.id}-arcana)" ${borde(0.85)}/>
+                    <path d="${forma}" fill="${p.m("tejido")}" opacity=".2"/>
+                    <path d="M100 61 L${100 + H - 2} 66 L${100 + C + 2.4} 84 Q${100 + C} 93 ${100 + C + 0.6} 100 L${100 + K + 1.4} 124 Q104 125.6 102 125.4 Q105 90 100 61 Z" fill="${TRAZO}" opacity=".2"/>
+                    <path d="${forma}" fill="none" stroke="#c9d2e0" stroke-width=".9" opacity=".8"/>
+                    <path d="M93.6 60 L100 72 L106.4 60" fill="none" stroke="#c9d2e0" stroke-width="1.4"/>
+                    <ellipse class="orbe" cx="100" cy="81" rx="6" ry="15" fill="url(#${p.id}-runas)"/>
+                    ${runas}
+                    <path d="M${100 - H + 5} 67 L${100 + C + 1} 101 L${100 + C - 3} 104 L${100 - H + 2} 70 Z" fill="#c9d2e0" ${borde(0.6)} opacity=".9"/>
+                    <path d="M${100 - C - 1} 101 Q100 105 ${100 + C + 1} 101" fill="none" stroke="#c9d2e0" stroke-width="1.6"/>
+                    ${luz}`;
+        }
+
+        case "coraza":          // coraza de acero pulido: arista al centro, ribete de oro y placas de cadera
+            return `<defs>${metal(`${p.id}-coraza`, "#b9c3d4")}${mate(`${p.id}-placas`, "#6f7a8e", 0.3, 0.5)}</defs>
+                    ${faldaDePlacas(e, `url(#${p.id}-placas)`, p.oroPlano)}
+                    <path d="${peto}" fill="url(#${p.id}-coraza)" ${borde(0.9)}/>
+                    ${sombraDerecha}
+                    <path d="M100 62 L100 100" stroke="#fff" stroke-width="1" opacity=".55"/>
+                    <path d="M100 62 L100 100" stroke="${TRAZO}" stroke-width=".5" opacity=".5" transform="translate(.8 0)"/>
+                    <path d="M${100 - H + 4.6} 66.6 Q100 60.4 ${100 + H - 4.6} 66.6" fill="none" stroke="${p.m("oro")}" stroke-width="1.6"/>
+                    <path d="M${100 - C - 0.4} 97.6 Q100 102.2 ${100 + C + 0.4} 97.6" fill="none" stroke="${p.m("oro")}" stroke-width="1.4"/>
+                    <path d="M${100 - C - 1.6} 80 Q${100 - 7} 85.6 100 84 Q${100 + 7} 85.6 ${100 + C + 1.6} 80" fill="none" stroke="${TRAZO}" stroke-width=".7" opacity=".6"/>
+                    <path d="M100 70.6 L103.4 74.6 L100 79.2 L96.6 74.6 Z" fill="${p.m("oro")}" stroke="${p.oroOscuro}" stroke-width=".6"/>
+                    <path d="M94.6 59.6 Q100 63.8 105.4 59.6 L105.6 62.4 Q100 66.6 94.4 62.4 Z" fill="url(#${p.id}-coraza)" ${borde(0.6)}/>
+                    ${luz}${destello(100 - H + 8, 69, 1.8, "chispa", "#fff")}`;
+
+        case "coraza-vigia":    // legendaria: plata blanca, esmalte de cielo, oro y la Llama del Vigía en el pecho
+            return `<defs>${metal(`${p.id}-vigia`, "#e2e8f2")}${halo(`${p.id}-llama`, "#ffb347", 0.85)}
+                        <linearGradient id="${p.id}-fuego" x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="0" stop-color="#c2410c"/><stop offset=".55" stop-color="#fb923c"/><stop offset="1" stop-color="#fff3c4"/></linearGradient>
+                        ${mate(`${p.id}-placas`, "#8f9bb3", 0.3, 0.5)}</defs>
+                    ${faldaDePlacas(e, `url(#${p.id}-placas)`, p.oroPlano)}
+                    <path d="${peto}" fill="url(#${p.id}-vigia)" ${borde(0.9)}/>
+                    <path d="M${100 - H + 6} 69 Q${100 - 7} 66 97 70 L96 92 Q${100 - C + 2} 92 ${100 - C - 1} 86 Z" fill="#3b6fd8" opacity=".55"/>
+                    <path d="M${100 + H - 6} 69 Q${100 + 7} 66 103 70 L104 92 Q${100 + C - 2} 92 ${100 + C + 1} 86 Z" fill="#2b54b0" opacity=".55"/>
+                    ${sombraDerecha}
+                    <path d="M${100 - H + 4.6} 66.6 Q100 60.4 ${100 + H - 4.6} 66.6 M${100 - C - 0.4} 97.6 Q100 102.2 ${100 + C + 0.4} 97.6" fill="none" stroke="${p.m("oro")}" stroke-width="1.6"/>
+                    <path d="M96 70 L96 92 M104 70 L104 92" stroke="${p.m("oro")}" stroke-width=".9"/>
+                    <circle class="orbe" cx="100" cy="80" r="11" fill="url(#${p.id}-llama)"/>
+                    <path d="M100 71.4 C103.4 75.6 104.6 79.4 102.6 83.4 C102 85.4 100.6 86.6 100 86.6 C99.4 86.6 98 85.4 97.4 83.4 C95.4 79.4 96.6 75.6 100 71.4 Z"
+                          fill="url(#${p.id}-fuego)" stroke="#7c2d12" stroke-width=".6" stroke-linejoin="round"/>
+                    <path d="M100 77 C101.4 79 101.4 81.4 100 83.4 C98.6 81.4 98.6 79 100 77 Z" fill="#fff7d6"/>
+                    <path d="M94.6 59.6 Q100 63.8 105.4 59.6 L105.6 62.4 Q100 66.6 94.4 62.4 Z" fill="url(#${p.id}-vigia)" ${borde(0.6)}/>
+                    ${luz}${destello(100 + H - 8, 70, 2, "chispa", "#fff")}`;
+
+        default:
+            return "";
+    }
+}
+
+
 // ===== Miniaturas (para la tienda y el inventario) =====
 // Cada objeto se dibuja solo, encuadrado. "vista" es el recuadro que se muestra.
 
@@ -340,6 +538,11 @@ const VISTAS = {
     "yelmo-alado": "73 14 54 38", "capucha": "76 19 48 54", "corona-dragon": "83 12 34 27",
     "hacha": "-14 -52 66 68", "mandoble": "-16 -70 64 90", "lanza-dragon": "-36 -84 72 92", "baculo-arcano": "-38 -68 76 88",
     "capa-real": "58 52 84 128", "alas-dragon": "28 22 144 72",
+    // v34
+    "diadema": "86 28 28 16", "yelmo-astado": "76 15 48 38", "daga": "-22 -38 42 50", "martillo": "-20 -62 52 82",
+    "escudo": "50 60 56 56", "capa-cuervo": "58 52 84 128",
+    "peto-cuero": "68 56 64 50", "cota-malla": "68 56 64 64", "tunica-arcana": "66 56 68 72",
+    "coraza": "66 56 68 66", "coraza-vigia": "66 56 68 66",
 };
 
 export function miniatura(id, p, e) {
@@ -348,9 +551,12 @@ export function miniatura(id, p, e) {
     let dibujo;
     if (id === "capa") dibujo = capa(e, p, "#8f1d2c", true);
     else if (id === "capa-real") dibujo = capa(e, p, COLOR_CAPA_REAL, true);
+    else if (id === "capa-cuervo") dibujo = capaCuervo(e, p);
+    else if (id === "escudo") dibujo = escudo(p);
+    else if (armaduraDePecho(id, e, p)) dibujo = armaduraDePecho(id, e, p);
     else if (id === "alas") dibujo = alas(p);
     else if (id === "alas-dragon") dibujo = alasDragon(p);
-    else if (INCLINACION[id] !== undefined) dibujo = `<g transform="rotate(${["baston", "lanza-dragon", "baculo-arcano"].includes(id) ? 20 : 32})">${arma(id, p)}</g>`;
+    else if (INCLINACION[id] !== undefined) dibujo = `<g transform="rotate(${["baston", "lanza-dragon", "baculo-arcano", "martillo"].includes(id) ? 20 : 32})">${arma(id, p)}</g>`;
     else dibujo = sombrero(id, p);
     if (id === "capucha") dibujo = `<path d="M89.8 40.4 C91.4 32.6 95.4 29.2 100 29 C104.6 29.2 108.6 32.6 110.2 40.4 L110.6 54 Q100 63 89.4 54 Z" fill="#0b0816"/>${dibujo}`;
     return { vista, dibujo };

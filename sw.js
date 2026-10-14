@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v33";
+const VERSION = "vida-rpg-v34";
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
 const ARCHIVOS = [
@@ -94,6 +94,8 @@ const ARCHIVOS = [
     "./fondos/escena-carisma.jpg",
     "./fondos/escena-riqueza.jpg",
     "./fondos/torre.jpg",
+    "./fondos/mar.jpg",
+    "./fondos/aurora.jpg",
     // Pinturas de los jefes (dominio público)
     "./jefes/cerbero.jpg",
     "./jefes/ciclope.jpg",

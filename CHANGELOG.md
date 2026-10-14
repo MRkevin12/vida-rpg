@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v34 — Armadura de pecho y equipo nuevo
+- **Espacio nuevo: el pecho** (`avatar.ESPACIOS.pecho`), que va encima de la ropa de tu etapa (`dibujo-objetos.armaduraDePecho`): Peto de cuero (común, 🛡️ +5, 80 💎), Cota de malla (raro, 🛡️ +9, 160), Túnica arcana (raro, 🛡️ +3 🔮 +5, 170), Coraza de acero (épico, 🛡️ +16, 420, «Muralla») y Coraza del Vigía (legendario, 🛡️ +20 ⚔️ +2 🔮 +2, «Llama del Vigía»; se gana encendiendo la Llama: 20 pisos de la Torre).
+- **Más objetos en cada espacio:** Diadema de plata (raro) y Yelmo astado (épico, «Rugido») en la cabeza; Daga del ladrón (raro) y Martillo de guerra (épico, «Aturdir») en la mano; Escudo redondo (raro) y Capa de plumas de cuervo (épico, «Presagio») en la espalda; y dos fondos con pinturas de dominio público: Mar embravecido («La novena ola», Aivazovski, 1850) y Aurora boreal (Church, 1865, épico, «Aurora»).
+- **Seis habilidades nuevas** en la Torre y la Mazmorra: Muralla (defender bloquea 15 % más), Rugido (cada criatura empieza con 15 % menos de vida), Aturdir (el primer crítico de cada piso le quita su turno), Presagio (los golpes fuertes te hacen 35 % menos), Aurora (el primer hechizo de cada piso es gratis) y Llama del Vigía (fuego 50 % más fuerte e inmunidad al veneno).
+- Héroe › Equipo muestra los 5 espacios. Datos versión 18 (las copias viejas reciben el pecho vacío).
+
 ## v33 — La primera piedra
 - **Pergamino motivacional** (`js/pergamino.js`): «La primera piedra», la historia de Lía, la hija del cantero, que levantó la Torre poniendo una piedra cada día para ver más allá de la niebla del valle. Prólogo, 10 capítulos (los días sin ganas, las opiniones de los demás, el día que no subió, la Sombra de la mañana, la tormenta, los que llegaron…), las diez «enseñanzas de la primera piedra» y una dedicatoria con el nombre de tu héroe. Unas 1.860 palabras.
 - Se lee en una pantalla nueva con forma de rollo (varas de madera arriba y abajo) que se desenrolla al abrirla. Está en Héroe › Historia, y el Maestro Aurelio lo ofrece cuando le dices que no tienes ganas o que estás abrumado.

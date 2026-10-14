@@ -6,7 +6,7 @@
 //   dibujo-base.js     colores, materiales y formas que se repiten
 //   dibujo-cuerpo.js   medidas del cuerpo, cara y pelo
 //   dibujo-ropa.js     la ropa y la armadura de cada etapa
-//   dibujo-objetos.js  sombreros, armas, capa y alas
+//   dibujo-objetos.js  sombreros, armaduras de pecho, armas, capas, escudo y alas
 //   dibujo-escenas.js  fondos, efectos de luz y escenarios de batalla
 //   dibujo-mascota.js  el dragón
 //
@@ -17,7 +17,7 @@ import { APARIENCIA, APARIENCIA_INICIAL, CLASES, OBJETOS } from "./avatar.js";
 import { nuevoId, mate, metal, piel as materialPiel, tejido, grano, halo, aclarar, oscurecer, mezclar, pivote, SOMBRA } from "./dibujo-base.js";
 import { esqueleto, cuello, cara, lentes, barba, pelo } from "./dibujo-cuerpo.js";
 import { piernas, torso, bufanda, brazo, hombreras } from "./dibujo-ropa.js";
-import { sombrero, arma, capa, alas, alasDragon, libro, miniatura, INCLINACION, TAPA_PELO, COLOR_CAPA_REAL } from "./dibujo-objetos.js";
+import { sombrero, arma, capa, capaCuervo, escudo, alas, alasDragon, armaduraDePecho, libro, miniatura, INCLINACION, TAPA_PELO, COLOR_CAPA_REAL } from "./dibujo-objetos.js";
 import { fondo, ambiente, aura, llamas, resplandor, noche, escenario } from "./dibujo-escenas.js";
 import { cuerpoMascota, dibujarMascota } from "./dibujo-mascota.js";
 
@@ -108,12 +108,14 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     // aunque el avatar se vea pequeño. Dormido (o caído), además, cae hacia adelante.
     const giro = ` transform="${dormido || caido ? "rotate(9 100 58) " : ""}translate(100 58.5) scale(${ESCALA_CABEZA}) translate(-100 -58.5)"`;
 
-    // --- Espalda: alas, capa comprada o la capa del héroe ---
+    // --- Espalda: alas, capa comprada, escudo o la capa del héroe ---
     let espalda = "";
     if (d.equipado.espalda === "alas") espalda = alas(p);
     else if (d.equipado.espalda === "alas-dragon") espalda = alasDragon(p);
     else if (d.equipado.espalda === "capa") espalda = pivote(100, 62, "capa", capa(e, p, "#8f1d2c", true));
     else if (d.equipado.espalda === "capa-real") espalda = pivote(100, 62, "capa", capa(e, p, COLOR_CAPA_REAL, true));
+    else if (d.equipado.espalda === "capa-cuervo") espalda = pivote(100, 62, "capa", capaCuervo(e, p));
+    else if (d.equipado.espalda === "escudo") espalda = escudo(p);
     else if (p.etapa >= 2) espalda = pivote(100, 62, "capa", capa(e, p, p.capa, p.etapa === 3));
 
     // --- Brazo derecho: sostiene el arma. Va en un pivote en el hombro para poder atacar ---
@@ -156,6 +158,8 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         brazoDerecho,
         cuello(e, p),
         torso(d, e, p),
+        // La armadura de pecho (v34) va encima de la ropa de la etapa.
+        d.equipado.pecho ? armaduraDePecho(d.equipado.pecho, e, p) : "",
         // La cabeza le hace sombra al pecho (la luz viene de arriba).
         `<ellipse cx="101" cy="62.6" rx="${e.fem ? 8 : 9.5}" ry="3.6" fill="${p.m("ao")}"/>`,
         izquierdo.frente,
@@ -186,7 +190,7 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
 const MUESTRA = {
     etapa: { clave: "heroe" }, clave: "aprendiz", clase: CLASES.aprendiz, animo: "normal",
     rasgos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 },
-    equipado: { cabeza: null, mano: null, espalda: null, fondo: null },
+    equipado: { cabeza: null, pecho: null, mano: null, espalda: null, fondo: null },
     apariencia: APARIENCIA_INICIAL,
 };
 

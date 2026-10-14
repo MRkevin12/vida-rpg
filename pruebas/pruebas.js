@@ -48,6 +48,7 @@ import * as avatar from "../js/avatar.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
 import { PISTAS } from "../js/musica.js";
+import { PINTURAS as PINTURAS_DE_FONDO } from "../js/pinturas.js";
 import { partidaDemo } from "./demo.js";
 
 
@@ -2020,7 +2021,7 @@ prueba("Armadura: sale de la ropa de tu etapa + tus objetos de protección, y de
     for (const [id, objeto] of Object.entries(avatar.OBJETOS)) {
         for (const clave of Object.keys(objeto.poder || {})) cierto(clave in equipo.PODERES, `poder «${clave}» de ${id}`);
         if (objeto.espacio === "mano" || objeto.espacio === "fondo") cierto(!objeto.poder?.armadura, `${id} no da armadura`);
-        if (objeto.espacio === "cabeza" || objeto.espacio === "espalda") cierto(objeto.poder?.armadura > 0, `${id} protege`);
+        if (["cabeza", "pecho", "espalda"].includes(objeto.espacio)) cierto(objeto.poder?.armadura > 0, `${id} protege`);
     }
 });
 
@@ -2375,6 +2376,112 @@ prueba("La primera piedra (pantalla): se lee como un rollo, sin huecos, y se lle
     cierto(dialogo("sinGanas").includes('data-accion="pergamino-abrir"') && dialogo("abrumado").includes('data-accion="pergamino-abrir"'),
            "Aurelio lo ofrece si no tienes ganas o estás abrumado");
     igual(dialogo("consejo").includes("pergamino-abrir"), false, "y no en cualquier respuesta");
+});
+
+
+// ===== Armadura de pecho y equipo nuevo (v34) =====
+
+prueba("Equipo (v34): el espacio del pecho y objetos nuevos en todos los espacios", () => {
+    igual(Object.keys(avatar.ESPACIOS), ["cabeza", "pecho", "mano", "espalda", "fondo"]);
+    const por = (espacio) => Object.keys(avatar.OBJETOS).filter((id) => avatar.OBJETOS[id].espacio === espacio);
+    igual(por("pecho"), ["peto-cuero", "cota-malla", "tunica-arcana", "coraza", "coraza-vigia"]);
+    for (const id of ["diadema", "yelmo-astado", "daga", "martillo", "escudo", "capa-cuervo", "mar", "aurora"]) cierto(avatar.OBJETOS[id], `existe ${id}`);
+    // Las pinturas nuevas tienen su crédito.
+    for (const id of ["mar", "aurora"]) cierto(PINTURAS_DE_FONDO[id]?.artista, `crédito de ${id}`);
+
+    const estado = partidaNueva();
+    igual(estado.avatar.equipado.pecho, null, "una partida nueva tiene el pecho vacío");
+    equipar(estado, "coraza", "casco");
+    igual(equipo.armaduraMaxima(estado), 15 + 16 + 12, "la ropa + la coraza + el casco");
+    igual(avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())).equipado.pecho, "coraza");
+    cierto(equipo.habilidadesDelEquipo(estado).includes("muralla"), "la coraza da «Muralla»");
+    // Una copia de antes de la v34 no tenía pecho: se agrega vacío.
+    delete estado.avatar.equipado.pecho;
+    igual(datos.desdeRespaldo(datos.textoRespaldo(estado)).avatar.equipado.pecho, null);
+
+    // La Coraza del Vigía se gana encendiendo la Llama (20 pisos de la Torre).
+    const vigia = avatar.OBJETOS["coraza-vigia"];
+    estado.arcade.records.torre = 19;
+    cierto(!avatar.objetosDeLogroGanados(estado, juego.resumen(estado, hoy())).includes("coraza-vigia"), "con 19 pisos, no");
+    estado.arcade.records.torre = 20;
+    cierto(avatar.objetosDeLogroGanados(estado, juego.resumen(estado, hoy())).includes("coraza-vigia"), "con 20, sí");
+    igual([vigia.rareza, vigia.habilidad], ["legendario", "llama"]);
+
+    // Se dibuja encima del torso, en las cuatro etapas y con los dos cuerpos.
+    for (const etapa of avatar.ETAPAS) {
+        for (const cuerpo of ["masculino", "femenino"]) {
+            for (const id of por("pecho")) {
+                const svg = dibujarAvatar(avatarDePrueba({ etapa, apariencia: { ...avatar.APARIENCIA_INICIAL, cuerpo },
+                                                           equipado: { cabeza: null, pecho: id, mano: null, espalda: null, fondo: null } }));
+                dibujoSano(svg, `${id} en ${etapa.clave} (${cuerpo})`);
+            }
+        }
+    }
+});
+
+prueba("Habilidades (v34): Muralla, Rugido, Aturdir, Presagio, Aurora y Llama del Vigía", () => {
+    // Muralla: al defenderte bloqueas 15 % más.
+    const sin = torre.heroeDeLaTorre(NIVELES_1);
+    const con = torre.heroeDeLaTorre(NIVELES_1, { habilidades: ["muralla"] });
+    igual(Math.round((con.defensa - sin.defensa) * 100), 15);
+
+    // Rugido: la criatura de cada piso empieza con 15 % menos de vida.
+    const rugida = torre.nuevaPartida(NIVELES_1, 3, 1, { habilidades: ["rugido"] });
+    igual(rugida.enemigo.vida, Math.round(rugida.enemigo.vidaMax * 0.85), "desde el piso 1");
+    rugida.enemigo.vida = 1;
+    torre.actuar(rugida, "atacar");
+    torre.elegirMejora(rugida, rugida.opciones[0]);
+    igual(rugida.enemigo.vida, Math.round(rugida.enemigo.vidaMax * 0.85), "y en el piso siguiente");
+
+    // Aturdir: el primer crítico de cada piso deja a la criatura sin su turno (solo una vez por piso).
+    const a = torreCon(["aturdir"], 3);
+    a.heroe.critico = 1;
+    a.enemigo.vida = a.enemigo.vidaMax = 999;
+    a.enemigo.intencion = "fuerte";
+    const vidaAntes = a.heroe.vida;
+    let eventos = torre.actuar(a, "atacar");
+    cierto(eventos.some((e) => e.tipo === "aturdida") && a.heroe.vida >= vidaAntes, "pierde su turno y no te pega");
+    igual(a.enemigo.intencion, "fuerte", "guarda lo que planeaba");
+    eventos = torre.actuar(a, "atacar");
+    igual(eventos.some((e) => e.tipo === "aturdida"), false, "el segundo crítico del piso ya no aturde");
+
+    // Presagio: los golpes fuertes te hacen 35 % menos (y la intención ya lo descuenta).
+    const golpeFuerte = (habilidades) => {
+        const p = torreCon(habilidades, 4);
+        p.enemigo.intencion = "fuerte";
+        p.enemigo.vida = 999;
+        return torre.actuar(p, "pocion").find((e) => e.quien === "enemigo").dano;
+    };
+    const [normal, presagio] = [golpeFuerte([]), golpeFuerte(["presagio"])];
+    igual(presagio, Math.round(normal * 0.65));
+    const vista = torreCon(["presagio"], 4);
+    vista.enemigo.intencion = "fuerte";
+    cierto(torre.textoIntencion(vista.enemigo, vista.heroe).texto.includes(`(${presagio})`), "la intención muestra el golpe ya rebajado");
+
+    // Aurora: el primer hechizo de cada piso no gasta PM.
+    const au = torreCon(["aurora"]);
+    au.enemigo.vida = 999;
+    const pm = au.heroe.mana;
+    torre.actuar(au, "hechizo", "fuego");
+    igual(au.heroe.mana, pm, "gratis");
+    torre.actuar(au, "hechizo", "fuego");
+    igual(au.heroe.mana, pm - 1, "el segundo, no");
+
+    // Llama del Vigía: fuego 50 % más fuerte y el veneno no te hace nada.
+    const fuego = (habilidades) => {
+        const p = torreCon(habilidades, 2, null, 77);
+        p.heroe.critico = 0;
+        p.enemigo.vida = 999;
+        return torre.actuar(p, "hechizo", "fuego")[0].dano;
+    };
+    cierto(Math.abs(fuego(["llama"]) - fuego([]) * 1.5) <= 1, "el fuego hace 50 % más");
+    const m = torre.nuevaPartida(NIVELES_1, 5, 1, { habilidades: ["llama"] }, "mazmorra");
+    m.piso = 3;
+    m.enemigo = torre.monstruoDelPiso(3, "mazmorra");   // la Aguaviva pálida: veneno
+    m.enemigo.intencion = "especial";
+    m.heroe.vida = m.heroe.vidaMax = 500;
+    torre.actuar(m, "defender");
+    cierto(!m.heroe.veneno && m.registro.includes("Llama del Vigía"), m.registro);
 });
 
 
@@ -3018,7 +3125,7 @@ prueba("Dibujo (v23): el aire del fondo (partículas y rayos) solo va en el dibu
     for (const [id, objeto] of Object.entries(avatar.OBJETOS).filter(([, o]) => o.espacio === "fondo")) {
         const svg = dibujarAvatar(avatarDePrueba({ equipado: { cabeza: null, mano: null, espalda: null, fondo: id } }));
         dibujoSano(svg, `fondo ${id}`);
-        igual(svg.includes("rayos-luz"), id !== "galaxia", `rayos de luz en ${objeto.nombre}`);
+        igual(svg.includes("rayos-luz"), !["galaxia", "aurora"].includes(id), `rayos de luz en ${objeto.nombre} (no de noche)`);
     }
 });
 

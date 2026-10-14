@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 33;
+export const VERSION_APP = 34;
 
 export const NOVEDADES = [
+    {
+        version: 34,
+        titulo: "Armadura de pecho y equipo nuevo",
+        cambios: [
+            "🛡️ Nuevo espacio de equipo: el pecho. Peto de cuero, Cota de malla, Túnica arcana, Coraza de acero (épica) y la Coraza del Vigía (legendaria: se gana al encender la Llama, superando el piso 20 de la Torre).",
+            "⚔️ Más equipo en la Tienda: Diadema de plata y Yelmo astado (cabeza), Daga del ladrón y Martillo de guerra (mano), Escudo redondo y Capa de plumas de cuervo (espalda), y dos fondos pintados: Mar embravecido (Aivazovski) y Aurora boreal (Church).",
+            "✨ Seis habilidades nuevas en la Torre: Muralla, Rugido, Aturdir, Presagio, Aurora y Llama del Vigía.",
+        ],
+    },
     {
         version: 33,
         titulo: "La primera piedra",

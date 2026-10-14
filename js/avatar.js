@@ -55,7 +55,8 @@ export const ANIMOS = {
 };
 
 // 5 y 6. Equipamiento: unos se compran con monedas, otros solo se ganan con logros.
-export const ESPACIOS = { cabeza: "Cabeza", mano: "Mano", espalda: "Espalda", fondo: "Fondo" };
+// v34: el PECHO (armaduras que se ponen sobre la ropa de tu etapa).
+export const ESPACIOS = { cabeza: "Cabeza", pecho: "Pecho", mano: "Mano", espalda: "Espalda", fondo: "Fondo" };
 
 // "poder" (v24): lo que da cada objeto. armadura = protege cuando fallas una misión;
 // ataque, magia y suerte = más fuerza en la Torre y en los minijuegos (ver equipo.js).
@@ -79,6 +80,15 @@ export const OBJETOS = {
     "corona":        { nombre: "Corona de 30 días",   icono: "👑", espacio: "cabeza",  rareza: "legendario", poder: { armadura: 8, suerte: 6 }, habilidad: "constancia",
                        logro: { tipo: "racha", meta: 30, texto: "Lograr una racha de 30 días" } },
     "corona-dragon": { nombre: "Corona del Dragón",   icono: "🐉", espacio: "cabeza",  precio: 1500, rareza: "legendario", poder: { armadura: 18, magia: 4, suerte: 4 }, habilidad: "ojo-dragon" },
+    "diadema":       { nombre: "Diadema de plata",    icono: "💠", espacio: "cabeza",  precio: 140, rareza: "raro", poder: { armadura: 2, magia: 3, suerte: 3 } },
+    "yelmo-astado":  { nombre: "Yelmo astado",        icono: "🐂", espacio: "cabeza",  precio: 400, rareza: "epico", poder: { armadura: 13, ataque: 2 }, habilidad: "rugido" },
+    // --- Pecho (v34) ---
+    "peto-cuero":    { nombre: "Peto de cuero",       icono: "🦺", espacio: "pecho",   precio: 80,  rareza: "comun", poder: { armadura: 5 } },
+    "cota-malla":    { nombre: "Cota de malla",       icono: "⛓️", espacio: "pecho",   precio: 160, rareza: "raro", poder: { armadura: 9 } },
+    "tunica-arcana": { nombre: "Túnica arcana",       icono: "🔯", espacio: "pecho",   precio: 170, rareza: "raro", poder: { armadura: 3, magia: 5 } },
+    "coraza":        { nombre: "Coraza de acero",     icono: "🛡️", espacio: "pecho",   precio: 420, rareza: "epico", poder: { armadura: 16 }, habilidad: "muralla" },
+    "coraza-vigia":  { nombre: "Coraza del Vigía",    icono: "🕯️", espacio: "pecho",   rareza: "legendario", poder: { armadura: 20, ataque: 2, magia: 2 }, habilidad: "llama",
+                       logro: { tipo: "torre", meta: 20, texto: "Encender la Llama: superar 20 pisos de la Torre" } },
     "espada-madera": { nombre: "Espada de madera",    icono: "🗡️", espacio: "mano",    precio: 60,  rareza: "comun", poder: { ataque: 2 } },
     "baston":        { nombre: "Bastón mágico",       icono: "🪄", espacio: "mano",    precio: 120, rareza: "raro", poder: { magia: 5, ataque: 1 } },
     "laud":          { nombre: "Laúd del bardo",      icono: "🪕", espacio: "mano",    precio: 120, rareza: "raro", poder: { suerte: 6, magia: 2 } },
@@ -90,17 +100,23 @@ export const OBJETOS = {
                        logro: { tipo: "jefes", meta: 8, texto: "Derrotar 8 jefes" } },
     "baculo-arcano": { nombre: "Báculo arcano",       icono: "🔮", espacio: "mano",    rareza: "legendario", poder: { magia: 10, ataque: 2 }, habilidad: "arcano",
                        logro: { tipo: "torre", meta: 12, texto: "Superar 12 pisos de la Torre" } },
+    "daga":          { nombre: "Daga del ladrón",     icono: "🔪", espacio: "mano",    precio: 130, rareza: "raro", poder: { ataque: 3, suerte: 4 } },
+    "martillo":      { nombre: "Martillo de guerra",  icono: "🔨", espacio: "mano",    precio: 440, rareza: "epico", poder: { ataque: 8 }, habilidad: "aturdir" },
     "capa":          { nombre: "Capa carmesí",        icono: "🧣", espacio: "espalda", precio: 150, rareza: "epico", poder: { armadura: 8 }, habilidad: "valor" },
     "capa-real":     { nombre: "Capa real",           icono: "🟣", espacio: "espalda", precio: 450, rareza: "epico", poder: { armadura: 12, magia: 2 }, habilidad: "regia" },
     "alas":          { nombre: "Alas de luz",         icono: "🪽", espacio: "espalda", rareza: "legendario", poder: { armadura: 10, suerte: 5 }, habilidad: "gracia",
                        logro: { tipo: "perfectos", meta: 10, texto: "Tener 10 días perfectos" } },
     "alas-dragon":   { nombre: "Alas del Dragón",     icono: "🐲", espacio: "espalda", rareza: "legendario", poder: { armadura: 18, ataque: 3 }, habilidad: "escamas",
                        logro: { tipo: "nivel", meta: 25, texto: "Llegar al nivel 25" } },
+    "escudo":        { nombre: "Escudo redondo",      icono: "🛡️", espacio: "espalda", precio: 160, rareza: "raro", poder: { armadura: 9 } },
+    "capa-cuervo":   { nombre: "Capa de plumas de cuervo", icono: "🪶", espacio: "espalda", precio: 430, rareza: "epico", poder: { armadura: 9, suerte: 4 }, habilidad: "presagio" },
     "bosque":        { nombre: "Fondo: Bosque",       icono: "🌲", espacio: "fondo",   precio: 100, rareza: "raro" },
     "castillo":      { nombre: "Fondo: Castillo",     icono: "🏰", espacio: "fondo",   precio: 150, rareza: "epico", habilidad: "bastion" },
     "galaxia":       { nombre: "Fondo: Galaxia",      icono: "🌌", espacio: "fondo",   precio: 250, rareza: "epico", habilidad: "estrellas" },
     "salon":         { nombre: "Fondo: Salón de la fama", icono: "🏛️", espacio: "fondo", rareza: "legendario", habilidad: "gloria",
                        logro: { tipo: "logros", meta: 10, texto: "Conseguir 10 logros" } },
+    "mar":           { nombre: "Fondo: Mar embravecido", icono: "🌊", espacio: "fondo", precio: 120, rareza: "raro" },
+    "aurora":        { nombre: "Fondo: Aurora boreal", icono: "🌠", espacio: "fondo",  precio: 300, rareza: "epico", habilidad: "aurora" },
 };
 
 // Apariencia: para que el avatar se parezca a ti (se elige en la pantalla Personaje).
