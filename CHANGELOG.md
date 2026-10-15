@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v65 — Modos de juego
+- `torre.MODOS` (normal, asalto, diaria) y `partida.modo` (si falta, es normal). **Asalto:** `nuevaPartida(…, modo)` empieza en el piso 5; `elegirMejora` salta 5 pisos y cura 30 %; sin salas ni rutas; `pisosSuperados` = `piso − 5`; premio ×0,8; récord propio `arcade.records["asalto-<lugar>"]` (guardianes) y no abre mazmorras. Pide `records[lugar] ≥ 5`. **Reto diario:** `marcaDeLaDiaria` y `semillaDeLaDiaria` (salen de la fecha y el lugar); con 8 pisos paga `bonus` una vez al día (`arcade.diaria = {fecha, mejor, cobrado}`).
+- `acciones.empezarTorre(estado, semilla, lugar, marca, modo)`; `terminarTorre` devuelve `modo` y `bonus`. Vistas: `selectorDeModo` (radios `modo-<lugar>`) y reglas plegadas con `<details class="plegable-reglas">`. 250 pruebas.
+
 ## v64 — Las Minas de la Codicia y el Laberinto de los Ecos
 - **`js/mazmorras.js`** (nuevo, en `sw.js`; solo datos, sin imports): `NUEVOS_LUGARES` (minas y laberinto: zonas, `abre`, `regla` con `escala`, textos), `NUEVAS_CRIATURAS` (30), `LEYENDAS_NUEVAS` y `CINE_NUEVAS`. Los demás archivos los suman: `bestiario.js` (CRIATURAS, `LUGARES`, `lugarDeCriatura` ya busca en todos), `torre.js` (`REGLAS[lugar].escala` reemplaza las fórmulas fijas de `monstruoDelPiso`, que dan lo mismo que antes; `lugarAbierto(arcade, lugar)`), `leyendas.js`, `cinematicas.js` (zonas y un final por lugar), `dibujo-monstruos.js` (las mismas figuras con otros colores; salas nuevas con paredes y suelos reutilizados), `sonido.js` (voces) y `musica.js`.
 - Se abren en cadena: Torre 20 → Mazmorra del Abismo → 10 sótanos → Minas → 10 niveles → Laberinto. `estado.arcade.minas` y `.laberinto` (se migran en `completar`). Plural propio por lugar (`LUGARES[x].pisos`).

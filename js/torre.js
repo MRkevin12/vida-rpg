@@ -66,6 +66,23 @@ export const REGLAS = {
 };
 for (const [id, lugar] of Object.entries(NUEVOS_LUGARES)) REGLAS[id] = lugar.regla;   // (v64) minas y laberinto
 
+// ===== Modos de juego (v65) =====
+// Cada partida de la Torre o de una mazmorra se juega en un modo (`partida.modo`; las de antes no lo traen: «normal»).
+//   normal: lo de siempre, piso a piso hasta que caigas.
+//   asalto: solo los guardianes, uno tras otro (el 5.º piso, el 10.º…). Entre uno y otro recuperas 30 % de vida y eliges una mejora.
+//           No hay salas ni rutas. Paga ×0,8 por piso equivalente y tiene su propio récord (guardianes vencidos). Hay que haber
+//           superado el piso 5 de ese lugar.
+//   diaria: el reto del día: la misma marca y el mismo azar para todo el día (la semilla sale de la fecha). Si superas 8 pisos,
+//           premio extra una sola vez al día (y su récord del día se guarda).
+export const MODOS = {
+    normal: { icono: "⚔️", nombre: "Normal", texto: "Sube piso a piso hasta que caigas." },
+    asalto: { icono: "👑", nombre: "Asalto de guardianes", pisoMinimo: 5, curaEntreCombates: 0.3, premio: 0.8,
+              texto: "Solo guardianes, uno tras otro. Entre uno y otro recuperas 30 % de vida y eliges una mejora. Sin salas ni rutas; premio ×0,8." },
+    diaria: { icono: "📅", nombre: "Reto diario", meta: 8, bonus: { gemas: 30, xp: 20 },
+              texto: "El mismo reto para todo el día: misma marca y mismo azar. Si superas 8 pisos, premio extra (una vez al día)." },
+};
+export const modoDe = (partida) => (MODOS[partida?.modo] ? partida.modo : "normal");
+
 // ===== Marcas de partida (v41) =====
 // Antes de empezar una subida (o un descenso) puedes elegir UNA marca: un trato con la Torre. Te pone una
 // dificultad extra y, a cambio, el premio final sube (`premio` = cuánto se multiplica). Cada día se ofrecen
@@ -92,6 +109,10 @@ export function marcasDelDia(fecha, lugar = "torre") {
     }
     return elegidas;
 }
+
+// La marca fija del reto diario de ese día en ese lugar (la primera de las que se ofrecen) y su semilla (siempre la misma ese día).
+export const marcaDeLaDiaria = (fecha, lugar = "torre") => marcasDelDia(fecha, lugar)[0];
+export const semillaDeLaDiaria = (fecha, lugar = "torre") => hashDeTexto(`diaria-${fecha}-${lugar}`) || 1;
 
 // La criatura que sale en cada piso, ya con lo que cambia la marca («Criaturas salvajes», «Pieles duras»).
 function marcarEnemigo(marca, m) {
@@ -140,7 +161,7 @@ export const ABRIR_MAZMORRA = 20;
 
 // arcade = estado.arcade. Se abre con tu récord de la Torre, o en cuanto lo superas en la subida de ahora.
 export function mazmorraAbierta(arcade) {
-    const enCurso = arcade?.torre ? pisosSuperados(arcade.torre) : 0;
+    const enCurso = arcade?.torre && modoDe(arcade.torre) !== "asalto" ? pisosSuperados(arcade.torre) : 0;
     return Math.max(arcade?.records?.torre || 0, enCurso) >= ABRIR_MAZMORRA;
 }
 
@@ -151,7 +172,7 @@ export function lugarAbierto(arcade, lugar) {
     if (lugar === "mazmorra") return mazmorraAbierta(arcade);
     const abre = LUGARES[lugar]?.abre;
     if (!abre) return false;
-    const enCurso = arcade?.[abre.lugar] ? pisosSuperados(arcade[abre.lugar]) : 0;
+    const enCurso = arcade?.[abre.lugar] && modoDe(arcade[abre.lugar]) !== "asalto" ? pisosSuperados(arcade[abre.lugar]) : 0;
     return Math.max(arcade?.records?.[abre.lugar] || 0, enCurso) >= abre.piso;
 }
 
@@ -517,8 +538,9 @@ export function textoIntencion(m, h = null) {
 // equipo.mascota (opcional): la mascota que te acompaña (ver mascotaDeBatalla en mascota.js).
 // lugar: "torre" (se sube) o "mazmorra" (se baja).
 // marca (v41, opcional): una clave de MARCAS; la partida la recuerda en `partida.marca`.
-export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporcion = 1, equipo = {}, lugar = "torre", marca = null) {
+export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporcion = 1, equipo = {}, lugar = "torre", marca = null, modo = "normal") {
     if (marca && !MARCAS[marca]) throw new Error("Esa marca no existe.");
+    if (!MODOS[modo]) throw new Error("Ese modo no existe.");
     marca = marca || null;
     const heroe = heroeDeLaTorre(niveles, equipo);
     // Lo que la marca le quita al héroe ANTES de calcular con cuánta vida entra.
@@ -527,22 +549,26 @@ export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporc
     if (marca === "silencio") { heroe.mana = 0; heroe.manaMax = 0; }
     heroe.vida = Math.max(1, Math.round(heroe.vidaMax * proporcion));
     const sitio = lugarDe(lugar);
-    const primero = `${sitio.piso} 1`;
+    const asalto = modo === "asalto";
+    const pisoInicial = asalto ? PISOS_POR_ZONA : 1;   // en el asalto, el primer combate es contra el guardián del 5.º piso
+    const primero = `${sitio.piso} ${pisoInicial}`;
     return {
         lugar: LUGARES[lugar] ? lugar : "torre",
+        modo,
         semilla,
         marca,                    // la marca elegida (o null)
         cine: null,               // la cinemática que toca ver ("zona", "entrada", "derrota", "final") o null (v43)
-        piso: 1,
+        piso: pisoInicial,
         fase: "batalla",          // "batalla" | "mejora" (elegir premio) | "fin"
         heroe,
-        enemigo: marcarEnemigo(marca, rugir(heroe, monstruoDelPiso(1, lugar))),
+        enemigo: marcarEnemigo(marca, rugir(heroe, monstruoDelPiso(pisoInicial, lugar))),
         mascota: equipo.mascota && MASCOTAS[equipo.mascota.especie] ? { ...equipo.mascota } : null,
         turno: 0,                 // cuántas acciones llevas (la mascota actúa cada tantos turnos)
         renacio: false,           // si el fénix ya te levantó en esta subida
         opciones: [],             // las mejoras para elegir (3, o 4 con «Constancia»)
         registro: (heroe.vida < heroe.vidaMax
             ? `${primero}. Llegas con el ${Math.round(proporcion * 100)} % de tu vida real. ¡Cuidado!`
+            : asalto ? `${primero}: ¡el primer guardián te espera! Asalto de guardianes.`
             : `${primero}. ¡Que empiece ${sitio.verboBajar || (lugar === "mazmorra" ? "el descenso" : "la subida")}!`) +
             (marca ? ` Marca: ${MARCAS[marca].icono} ${MARCAS[marca].nombre} (${MARCAS[marca].texto}).` : ""),
     };
@@ -566,7 +592,7 @@ export function ponerAlDia(partida) {
 }
 
 export function pisosSuperados(partida) {
-    return partida.piso - 1;
+    return partida.piso - (modoDe(partida) === "asalto" ? PISOS_POR_ZONA : 1);
 }
 
 // Una acción del héroe, la de su mascota y la respuesta del monstruo.
@@ -1067,13 +1093,15 @@ export function elegirMejora(partida, clave) {
     // Al subir: recuperas un poco de vida (más con el «Manto regio») y todos tus hechizos.
     // En la Mazmorra no hay descanso: solo lo del «Manto regio». El veneno se pasa.
     // Con la marca «Ayuno» no recuperas nada.
-    const cura = partida.marca === "ayuno" ? 0 : reglasDe(partida).curaAlSubir + (tiene(h, "regia") ? HABILIDADES.regia.cura : 0);
+    const asalto = modoDe(partida) === "asalto";
+    const curaBase = asalto ? MODOS.asalto.curaEntreCombates : reglasDe(partida).curaAlSubir;   // (v65) en el asalto, 30 % entre guardianes
+    const cura = partida.marca === "ayuno" ? 0 : curaBase + (tiene(h, "regia") ? HABILIDADES.regia.cura : 0);
     h.vida = Math.min(h.vidaMax, h.vida + Math.round(h.vidaMax * cura));
     h.mana = h.manaMax;
     h.veneno = 0;
     h.defendiendo = false;
     h.enEstePiso = pisoNuevo();
-    partida.piso += 1;
+    partida.piso += asalto ? PISOS_POR_ZONA : 1;
     partida.enemigo = marcarEnemigo(partida.marca, rugir(h, monstruoDelPiso(partida.piso, partida.lugar)));
     partida.enemigo.intencion = nuevaIntencion(partida);
     partida.opciones = [];
@@ -1091,7 +1119,7 @@ export function elegirMejora(partida, clave) {
         partida.sala = { tipo, antes: partida.registro };
         partida.fase = "sala";
         partida.registro = `${nombreDelPiso(partida)}: ${SALAS[tipo].texto}`;
-    } else if (hayRuta(partida.piso)) {
+    } else if (hayRuta(partida.piso) && !asalto) {
         // v60: el camino se bifurca (la criatura espera al final de cualquiera de los dos).
         partida.ruta = { antes: partida.registro };
         partida.fase = "ruta";
@@ -1172,7 +1200,7 @@ function azarDeSala(partida, etiqueta) {
 // ¿Qué sala hay antes de este piso? (o null). Solo en la Torre: el 3.º de cada zona (al azar entre altar, mercader
 // y cofre) y el del guardián (una fuente para prepararte).
 function salaDelPiso(partida) {
-    if (partida.lugar !== "torre") return null;
+    if (partida.lugar !== "torre" || modoDe(partida) === "asalto") return null;   // (el asalto no tiene salas)
     const lugarEnZona = partida.piso % PISOS_POR_ZONA;
     if (lugarEnZona === 0) return "fuente";
     if (lugarEnZona === 3) return ["altar", "mercader", "cofre"][Math.floor(azarDeSala(partida, "sala") * 3)];
@@ -1250,9 +1278,9 @@ export function resolverSala(partida, opcion) {
 // Lo que ganas al terminar, según los pisos que superaste (y el lugar: la Mazmorra paga más).
 // En gemas 💎 (no en monedas) y XP.
 // marca (v41, opcional): la que elegiste al empezar; multiplica el premio (ya con el tope puesto).
-export function premio(pisos, lugar = "torre", marca = null) {
+export function premio(pisos, lugar = "torre", marca = null, modo = "normal") {
     const p = (REGLAS[lugar] || REGLAS.torre).premio;
-    const factor = MARCAS[marca]?.premio || 1;
+    const factor = (MARCAS[marca]?.premio || 1) * (modo === "asalto" ? MODOS.asalto.premio : 1);
     return {
         gemas: Math.floor(Math.min(p.maxGemas, pisos * p.gemasPorPiso) * factor),
         xp: Math.floor(Math.min(p.maxXp, Math.floor(pisos * p.xpPorPiso)) * factor),

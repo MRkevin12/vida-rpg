@@ -5264,6 +5264,60 @@ prueba("Mazmorras nuevas (pantallas): tarjetas en el Arcade (cerradas con lo que
     igual([musicaModulo.pistaDeEscena({ pantalla: "arcade", torre: "minas" }), musicaModulo.pistaDeEscena({ pantalla: "arcade", torre: "laberinto" })], ["batalla", "misterio"]);
 });
 
+// ===== Modos de juego (v65) =====
+
+prueba("Modos: el Asalto de guardianes empieza en el 5.º piso, sube de guardián en guardián y paga un 20 % menos", () => {
+    const p = torre.nuevaPartida(NIVELES_1, 4, 1, {}, "torre", null, "asalto");
+    igual([torre.modoDe(p), p.piso, p.enemigo.guardian], ["asalto", 5, true], "el primer combate es contra un guardián");
+    igual(torre.pisosSuperados(p), 0, "todavía no venciste a ninguno");
+    p.enemigo.vida = 1;
+    torre.actuar(p, "atacar");
+    igual(p.fase, "mejora", "al vencerlo eliges una mejora");
+    torre.elegirMejora(p, p.opciones[0]);
+    igual([p.piso, p.enemigo.guardian], [10, true], "salta al siguiente guardián");
+    igual(torre.pisosSuperados(p), 5);
+    cierto(torre.premio(10, "torre", null, "asalto").gemas < torre.premio(10).gemas, "premio ×0,8");
+    igual(torre.modoDe({}), "normal", "sin modo es normal");
+});
+
+prueba("Modos: el Asalto pide haber superado el piso 5 y tiene su propio récord", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.empezarTorre(estado, 5, "torre", null, "asalto"), "Asalto");
+    igual(arcade.fichasDisponibles(estado) >= 1, true, "no se gastó la ficha");
+    estado.arcade.records.torre = 5;
+    acciones.empezarTorre(estado, 5, "torre", null, "asalto");
+    const p = estado.arcade.torre;
+    p.piso = 15; p.heroe.vida = 1; p.enemigo.intencion = "golpe";
+    acciones.accionTorre(estado, "atacar");
+    igual(p.fase, "fin");
+    const r = acciones.terminarTorre(estado);
+    igual(r.modo, "asalto");
+    igual(estado.arcade.records["asalto-torre"], 2, "10 pisos = 2 guardianes");
+    igual(estado.arcade.records.torre, 5, "el récord normal no cambia");
+});
+
+prueba("Modos: el Reto diario usa la misma marca y semilla todo el día y da el extra una sola vez", () => {
+    const f = "2026-10-15";
+    igual(torre.semillaDeLaDiaria(f), torre.semillaDeLaDiaria(f), "misma semilla");
+    cierto(torre.semillaDeLaDiaria(f) !== torre.semillaDeLaDiaria("2026-10-16"), "otro día, otro azar");
+    cierto(torre.MARCAS[torre.marcaDeLaDiaria(f)], "la marca existe");
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 99, "torre", null, "diaria");
+    const p = estado.arcade.torre;
+    igual([torre.modoDe(p), p.marca], ["diaria", torre.marcaDeLaDiaria(hoy())], "la marca es la del día, no la que se pidió");
+    p.piso = 9; p.heroe.vida = 1; p.enemigo.intencion = "golpe";
+    acciones.accionTorre(estado, "atacar");
+    const r = acciones.terminarTorre(estado);
+    igual(r.bonus, torre.MODOS.diaria.bonus, "8 pisos o más: bono");
+    igual(estado.arcade.diaria.cobrado, true);
+    estado.arcade.usadas = 0;
+    acciones.empezarTorre(estado, 99, "torre", null, "diaria");
+    const q = estado.arcade.torre;
+    q.piso = 9; q.heroe.vida = 1; q.enemigo.intencion = "golpe";
+    acciones.accionTorre(estado, "atacar");
+    igual(acciones.terminarTorre(estado).bonus, null, "el segundo intento del día ya no da bono");
+});
+
 // ===== Ejecutar todo y mostrar el resultado =====
 
 const lista = document.querySelector("#lista");

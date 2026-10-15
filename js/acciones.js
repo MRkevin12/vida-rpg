@@ -1174,8 +1174,9 @@ function partidaDe(estado, lugar) {
 // Devuelve { relato }: la historia que se cuenta al entrar por primera vez (o null).
 // marca (v41, opcional): una de las marcas que se ofrecen hoy (ver torre.marcasDelDia). Solo cuenta al EMPEZAR
 // una partida nueva: si ya hay una en curso, esa sigue con la suya.
-export function empezarTorre(estado, semilla, lugar = "torre", marca = null) {
+export function empezarTorre(estado, semilla, lugar = "torre", marca = null, modo = "normal") {
     if (!bestiario.LUGARES[lugar]) throw new Error("Ese lugar no existe.");
+    if (!torre.MODOS[modo]) throw new Error("Ese modo no existe.");
     if (marca && !torre.marcasDelDia(hoy(), lugar).includes(marca)) throw new Error("Esa marca no se ofrece hoy.");
     revisarQueNoEstesCaido(estado, "el arcade");
     const enCurso = estado.arcade[lugar];
@@ -1191,14 +1192,22 @@ export function empezarTorre(estado, semilla, lugar = "torre", marca = null) {
             ? `La Mazmorra del Abismo se abre cuando superes el piso ${torre.ABRIR_MAZMORRA} de la Torre del héroe.`
             : `${bestiario.LUGARES[lugar].nombre}: ${bestiario.LUGARES[lugar].abre.texto}`);
     }
+    if (modo === "asalto" && (estado.arcade.records[lugar] || 0) < torre.MODOS.asalto.pisoMinimo) {
+        throw new Error(`El Asalto de guardianes se abre cuando superes el piso ${torre.MODOS.asalto.pisoMinimo} de ${bestiario.LUGARES[lugar].nombre}.`);
+    }
     if (arcade.fichasDisponibles(estado) < 1) {
         throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
+    }
+    // El reto diario: la marca y el azar son los de hoy (los mismos para todo el día).
+    if (modo === "diaria") {
+        marca = torre.marcaDeLaDiaria(hoy(), lugar);
+        semilla = torre.semillaDeLaDiaria(hoy(), lugar);
     }
     estado.arcade.usadas += 1;   // la ficha se gasta al EMPEZAR
     asegurarRetoDelDia(estado);
     // Entras con tu vida real: si llegas herido, empiezas con menos vida.
     const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
-    const partida = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado), lugar, marca);
+    const partida = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado), lugar, marca, modo);
     // Las provisiones del bazar se usan al empezar (y se gastan).
     torre.usarProvisiones(partida, estado.arcade.bazar);
     estado.arcade.bazar = [];
@@ -1365,20 +1374,42 @@ export function terminarTorre(estado, lugar = "torre") {
     const pisos = torre.pisosSuperados(partida);
     // «Eco de la Torre»: la Torre paga el doble ese día (la Mazmorra, no).
     const factor = lugar === "torre" ? eventos.factorTorre(eventos.eventoDelDia(hoy(), estado)) : 1;
-    const base = torre.premio(pisos, lugar, partida.marca);
+    const modo = torre.modoDe(partida);
+    const base = torre.premio(pisos, lugar, partida.marca, modo);
     const premio = { gemas: base.gemas * factor, xp: base.xp * factor };
     const atributo = torre.REGLAS[lugar].atributo;
     ganar(estado, { ...premio, atributo });
     const abiertasAntes = Object.keys(bestiario.LUGARES).filter((l) => torre.lugarAbierto({ records: estado.arcade.records }, l));
-    const anterior = estado.arcade.records[lugar] || 0;
-    const nuevoRecord = pisos > anterior;
-    if (nuevoRecord) estado.arcade.records[lugar] = pisos;
+    // (v65) El asalto tiene su propio récord (guardianes vencidos) y no abre nada; lo demás cuenta como siempre.
+    const claveRecord = modo === "asalto" ? `asalto-${lugar}` : lugar;
+    const medida = modo === "asalto" ? Math.round(pisos / torre.CADA_GUARDIAN) : pisos;
+    const anterior = estado.arcade.records[claveRecord] || 0;
+    const nuevoRecord = medida > anterior;
+    if (nuevoRecord) estado.arcade.records[claveRecord] = medida;
     estado.arcade[lugar] = null;
-    const reto = cobrarReto(estado, lugar, pisos);
+    // El reto diario: su mejor resultado del día y el premio extra (una sola vez al día).
+    let bonus = null;
+    if (modo === "diaria") {
+        const d = estado.arcade.diaria;
+        if (d.fecha !== hoy()) { d.fecha = hoy(); d.mejor = 0; d.cobrado = false; }
+        d.mejor = Math.max(d.mejor, pisos);
+        if (pisos >= torre.MODOS.diaria.meta && !d.cobrado) {
+            d.cobrado = true;
+            bonus = torre.MODOS.diaria.bonus;
+            ganar(estado, { ...bonus, atributo });
+        }
+    }
+    const reto = cobrarReto(estado, lugar, modo === "asalto" ? 0 : pisos);   // (el asalto cuenta como partida, no como pisos)
     const celebraciones = [];
     if (nuevoRecord && anterior > 0) {
-        celebraciones.push({ icono: sitio.icono, etiqueta: `¡Nuevo récord en la ${sitio.nombre}!`,
-                             titulo: `${sitio.piso} ${pisos + 1}`, detalle: `Superaste ${pisos} ${pisos === 1 ? sitio.piso.toLowerCase() : sitio.pisos}.` });
+        celebraciones.push(modo === "asalto"
+            ? { icono: "👑", etiqueta: `¡Nuevo récord de asalto en ${sitio.nombre}!`, titulo: juego.plural(medida, "guardián vencido", "guardianes vencidos"), detalle: "Cada uno, un guardián de verdad." }
+            : { icono: sitio.icono, etiqueta: `¡Nuevo récord en la ${sitio.nombre}!`,
+                titulo: `${sitio.piso} ${pisos + 1}`, detalle: `Superaste ${pisos} ${pisos === 1 ? sitio.piso.toLowerCase() : sitio.pisos}.` });
+    }
+    if (bonus) {
+        celebraciones.push({ icono: "📅", etiqueta: "¡Reto diario cumplido!", titulo: `${torre.MODOS.diaria.meta} pisos o más`,
+                             detalle: `Premio extra: +${bonus.gemas} 💎 · +${bonus.xp} XP` });
     }
     for (const otro of Object.values(bestiario.LUGARES)) {
         if (abiertasAntes.includes(otro.id) || !torre.lugarAbierto({ records: estado.arcade.records }, otro.id)) continue;
@@ -1388,7 +1419,7 @@ export function terminarTorre(estado, lugar = "torre") {
                 : `${otro.resumen.split(". ")[0]}. Búscala en el Arcade.`,
         });
     }
-    return { lugar, pisos, premio, reto, marca: partida.marca || null, atributo, record: estado.arcade.records[lugar] || 0, nuevoRecord: nuevoRecord && pisos > 0, celebraciones };
+    return { lugar, pisos, modo, premio, bonus, reto, marca: partida.marca || null, atributo, record: estado.arcade.records[claveRecord] || 0, nuevoRecord: nuevoRecord && pisos > 0, celebraciones };
 }
 
 

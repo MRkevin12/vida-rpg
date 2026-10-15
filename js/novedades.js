@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 64;
+export const VERSION_APP = 65;
 
 export const NOVEDADES = [
+    {
+        version: 65,
+        titulo: "Modos de juego",
+        cambios: [
+            "👑 Asalto de guardianes: solo guardianes, uno tras otro (piso 5, 10, 15…). Entre uno y otro recuperas 30 % de vida y eliges una mejora. Se abre al superar el piso 5 y tiene su propio récord (guardianes vencidos). Premio ×0,8.",
+            "📅 Reto diario: el mismo reto para todo el día (misma marca y mismo azar). Si superas 8 pisos, ganas 30 💎 y 20 XP extra, una vez al día.",
+            "📖 En cada tarjeta, las reglas largas están plegadas en «Cómo se juega y qué llevas» y el modo se elige antes de empezar.",
+        ],
+    },
     {
         version: 64,
         titulo: "Dos mazmorras nuevas",

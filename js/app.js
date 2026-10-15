@@ -617,13 +617,13 @@ function pintarTorre(eventos = []) {
 
 // lugar: "torre" o "mazmorra".
 // marca (v41): la que elegiste en la tarjeta del Arcade ("" o null = sin marca). Solo cuenta en una partida nueva.
-async function abrirTorre(lugar = "torre", marca = null) {
+async function abrirTorre(lugar = "torre", marca = null, modo = "normal") {
     // Si no hay partida, empezar una (gasta 1 ficha). Si hay, se sigue esa.
     lugarAbierto = lugar;
     resultadoTorre = null;
     relatoEnCurso = null;
     menuTorre = "principal";
-    const resultado = ejecutar(() => acciones.empezarTorre(estado, undefined, lugar, marca || null));
+    const resultado = ejecutar(() => acciones.empezarTorre(estado, undefined, lugar, marca || null, modo));
     if (!resultado) return;
     await prepararSprites();
     $("#torre").hidden = false;
@@ -2499,7 +2499,8 @@ const ACCIONES = {
         const lugar = bestiario.LUGARES[boton.dataset.lugar] ? boton.dataset.lugar : "torre";
         // La marca de la tarjeta del Arcade (en «Subir otra vez» no hay tarjeta: sin marca).
         const marcada = boton.closest("article")?.querySelector(`input[name="marca-${lugar}"]:checked`);
-        return abrirTorre(lugar, marcada?.value || null);
+        const modo = boton.closest("article")?.querySelector(`input[name="modo-${lugar}"]:checked`)?.value || "normal";   // (v65)
+        return abrirTorre(lugar, marcada?.value || null, modo);
     },
     "bestiario-abrir": () => abrirBestiario(),
     "historia-abrir": (boton) => {

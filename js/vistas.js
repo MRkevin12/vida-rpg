@@ -2500,12 +2500,14 @@ export function pantallaArcade(estado, ctx) {
             <div class="torre-portada" style="background-image: url(${rutaPintura("torre")})">
                 <span class="torre-portada-titulo">🗼 Torre del héroe</span>
             </div>
-            <p class="nota">Batallas por turnos como en los juegos de rol clásicos. Sube por ${bestiario.ZONAS.length} zonas
-               con ${conocidas.total} criaturas propias de la Torre y un guardián cada ${torre.CADA_GUARDIAN} pisos. Antes de cada
-               turno ves qué planea tu rival: ataca, usa magia, defiéndete o toma una poción. Cada criatura tiene un punto
-               débil (🔥 fuego, ❄️ hielo o ⚡ rayo): descúbrelo y queda en tu bestiario. Desde que la Torre despertó, sus
-               criaturas levantan barreras, cargan golpes y devuelven hechizos.
-               <b>Tu poder sale de los niveles de tus atributos reales.</b></p>
+            <p class="nota">Batallas por turnos como en los juegos de rol clásicos: ${bestiario.ZONAS.length} zonas, ${conocidas.total} criaturas y un
+               guardián cada ${torre.CADA_GUARDIAN} pisos. <b>Tu poder sale de los niveles de tus atributos reales.</b></p>
+            <details class="plegable plegable-reglas">
+                <summary>📖 Cómo se juega y qué llevas</summary>
+            <p class="nota">Antes de cada turno ves qué planea tu rival: ataca, usa magia, defiéndete o toma una poción. Cada criatura
+               tiene un punto débil (🔥 fuego, ❄️ hielo o ⚡ rayo): descúbrelo y queda en tu bestiario. Desde que la Torre despertó, sus
+               criaturas levantan barreras, cargan golpes y devuelven hechizos. El orden de cada turno es: tú, tu mascota, la criatura y el
+               fin del turno (veneno, regeneración).</p>
             <p class="mini equipo-ventaja">🎯 Técnicas (una por atributo, desde su nivel ${torre.NIVEL_TECNICA}; una vez por piso): ${tecnicasTorre.join(" · ")}.</p>
             <p class="mini">✨ Voluntad: se llena peleando y aguantando golpes, y tu racha la empieza con algo. Llena, suelta un golpe
                ${String(torre.VOLUNTAD.multiplica).replace(".", ",")} veces más fuerte que rompe barreras y cargas.</p>
@@ -2522,9 +2524,11 @@ export function pantallaArcade(estado, ctx) {
                 : `<p class="mini texto-suave">✨ El equipo épico y legendario da habilidades especiales en la Torre.</p>`}
             <p class="mini equipo-ventaja">${mascota.MASCOTAS[petTorre.especie].icono} ${esc(petTorre.nombre)} te acompaña:
                «${mascota.MASCOTAS[petTorre.especie].habilidad.nombre}» · ${mascota.textoPotencia(petTorre)}.</p>
+            </details>
             <p class="mini">🏅 Récord: ${recordTorre ? `${plural(recordTorre, "piso superado", "pisos superados")}` : "todavía ninguno"}
                · Premio: ${torre.PREMIO.gemasPorPiso} 💎 y ${String(torre.PREMIO.xpPorPiso).replace(".", ",")} XP de Carisma por piso
                (máx. ${torre.PREMIO.maxGemas} 💎 y ${torre.PREMIO.maxXp} XP)</p>
+            ${selectorDeModo(estado, "torre", partida, ctx.hoy)}
             ${selectorDeMarcas("torre", partida, ctx.hoy)}
             <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" data-lugar="torre" ${!caido && (partida || fichas) ? "" : "disabled"}>
                 ${partida ? `Continuar · piso ${partida.piso}` : "Subir a la torre · 🎟️ 1 ficha"}</button>
@@ -2628,6 +2632,31 @@ function panelBazar(estado, caido) {
 // Los botones de radio se llaman "marca-torre" / "marca-mazmorra"; app.js lee el que esté marcado.
 const textoPremioMarca = (m) => `premio ×${String(m.premio).replace(".", ",")}`;
 
+// (v65) Los modos de juego: Normal, Asalto de guardianes y Reto diario. Con una partida en curso, solo se dice cuál es.
+// Los botones de radio se llaman "modo-torre" / "modo-minas"…; app.js lee el que esté marcado.
+function selectorDeModo(estado, lugar, partida, fecha) {
+    const M = torre.MODOS;
+    if (partida) {
+        const m = M[torre.modoDe(partida)];
+        return `<p class="mini equipo-ventaja">${m.icono} Modo: <b>${m.nombre}</b></p>`;
+    }
+    const recordAsalto = estado.arcade.records[`asalto-${lugar}`] || 0;
+    const sitio = bestiario.LUGARES[lugar];
+    const faltaAsalto = (estado.arcade.records[lugar] || 0) < M.asalto.pisoMinimo;
+    const d = estado.arcade.diaria;
+    const hoyD = d.fecha === fecha ? d : { mejor: 0, cobrado: false };
+    const marca = torre.MARCAS[torre.marcaDeLaDiaria(fecha, lugar)];
+    return `
+        <fieldset class="opciones opciones-1 modos">
+            <legend>Modo de juego</legend>
+            <label class="pildora"><input type="radio" name="modo-${lugar}" value="normal" checked><span><b>${M.normal.icono} ${M.normal.nombre}</b><small>${M.normal.texto}</small></span></label>
+            <label class="pildora ${faltaAsalto ? "apagada" : ""}"><input type="radio" name="modo-${lugar}" value="asalto" ${faltaAsalto ? "disabled" : ""}><span><b>${M.asalto.icono} ${M.asalto.nombre}</b>
+                <small>${faltaAsalto ? `🔒 Supera el piso ${M.asalto.pisoMinimo} de ${sitio.nombre}.` : `${M.asalto.texto}${recordAsalto ? ` Tu récord: ${plural(recordAsalto, "guardián", "guardianes")}.` : ""}`}</small></span></label>
+            <label class="pildora"><input type="radio" name="modo-${lugar}" value="diaria"><span><b>${M.diaria.icono} ${M.diaria.nombre}</b>
+                <small>${M.diaria.texto} Hoy: ${marca.icono} ${marca.nombre}. ${hoyD.cobrado ? "✅ Premio de hoy cobrado." : `Mejor de hoy: ${hoyD.mejor} de ${M.diaria.meta} (+${M.diaria.bonus.gemas} 💎).`}</small></span></label>
+        </fieldset>`;
+}
+
 function selectorDeMarcas(lugar, partida, fecha) {
     if (partida) {
         const m = torre.MARCAS[partida.marca];
@@ -2689,6 +2718,7 @@ function tarjetaMazmorra(estado, caido, fichas, fecha, lugar = "mazmorra") {
                · ${sitio.zonas.length} zonas · ${conocidas.total} criaturas
                · Premio: ${reglas.premio.gemasPorPiso} 💎 y ${reglas.premio.xpPorPiso} XP de ${atributo.icono} ${atributo.nombre} por ${pisos}
                (máx. ${reglas.premio.maxGemas} 💎 y ${reglas.premio.maxXp} XP)</p>
+            ${selectorDeModo(estado, lugar, partida, fecha)}
             ${selectorDeMarcas(lugar, partida, fecha)}
             <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" data-lugar="${lugar}" ${!caido && (partida || fichas) ? "" : "disabled"}>
                 ${partida ? `Continuar · ${pisos} ${partida.piso}` : `${sitio.boton || "Bajar a la mazmorra"} · 🎟️ 1 ficha`}</button>
@@ -3126,13 +3156,13 @@ export function pantallaTorre(t) {
             <button type="button" class="enlace torre-rendirse" data-accion="torre-rendirse">Huir y cobrar lo ganado</button>`;
     } else if (p.fase === "fin") {
         const pisos = torre.pisosSuperados(p);
-        const premio = torre.premio(pisos, p.lugar, p.marca);
+        const premio = torre.premio(pisos, p.lugar, p.marca, torre.modoDe(p));
         const atributo = ATRIBUTOS[torre.REGLAS[sitio.id].atributo];
         const piso = sitio.piso.toLowerCase();
         abajo = `
             <div class="ff-ventana ff-botin ${espera}">
                 <p class="ff-titulo">${sitio.verboFin || (sitio.id === "mazmorra" ? "Fin del descenso" : "Fin de la subida")} <small>Caíste en el ${piso} ${p.piso}</small></p>
-                <p class="ff-renglon">Superaste <b>${plural(pisos, piso, sitio.pisos)}</b>.</p>
+                <p class="ff-renglon">Superaste <b>${torre.modoDe(p) === "asalto" ? plural(Math.round(pisos / torre.CADA_GUARDIAN), "guardián", "guardianes") : plural(pisos, piso, sitio.pisos)}</b>.</p>
                 <p class="ff-renglon ff-oro">+${premio.gemas} 💎 · +${premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
                 <button type="button" class="ff-comando elegido" data-accion="torre-cobrar">
                     <span class="ff-cursor" aria-hidden="true"></span><span class="ff-comando-nombre">Cobrar premio</span></button>
@@ -3157,7 +3187,7 @@ export function pantallaTorre(t) {
         </div>` : "";
 
     return `
-        ${barraTorre(`${sitio.icono} ${sitio.piso} ${p.piso}`, `${p.marca ? `${torre.MARCAS[p.marca].icono} ` : ""}${zona.nombre}${m.guardian ? " 👑" : ""}`)}
+        ${barraTorre(`${sitio.icono} ${sitio.piso} ${p.piso}`, `${torre.modoDe(p) !== "normal" ? `${torre.MODOS[torre.modoDe(p)].icono} ` : ""}${p.marca ? `${torre.MARCAS[p.marca].icono} ` : ""}${zona.nombre}${m.guardian ? " 👑" : ""}`)}
         ${escena}
         <p class="ff-ventana ff-mensaje" role="status">${esc(p.registro)}</p>
         ${aurelio}
@@ -3307,9 +3337,11 @@ function finalTorre(t) {
         </div>
         <div class="ff-ventana ff-botin">
             <p class="ff-titulo">Premio cobrado</p>
-            <p class="ff-puntos">${plural(r.pisos, piso, sitio.pisos)}</p>
-            <p class="ff-renglon">${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${plural(r.record, piso, sitio.pisos)}`}</p>
+            <p class="ff-puntos">${r.modo === "asalto" ? plural(Math.round(r.pisos / torre.CADA_GUARDIAN), "guardián vencido", "guardianes vencidos") : plural(r.pisos, piso, sitio.pisos)}</p>
+            <p class="ff-renglon">${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${r.modo === "asalto" ? plural(r.record, "guardián", "guardianes") : plural(r.record, piso, sitio.pisos)}`}</p>
             <p class="ff-renglon ff-oro">+${r.premio.gemas} 💎 · +${r.premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
+            ${r.modo && r.modo !== "normal" ? `<p class="ff-renglon">${torre.MODOS[r.modo].icono} Modo: ${torre.MODOS[r.modo].nombre}</p>` : ""}
+            ${r.bonus ? `<p class="ff-renglon ff-oro">📅 ¡Reto diario cumplido! +${r.bonus.gemas} 💎 · +${r.bonus.xp} XP extra</p>` : ""}
             ${r.marca ? `<p class="ff-renglon">✦ Marca: ${torre.MARCAS[r.marca].icono} ${torre.MARCAS[r.marca].nombre} · ${textoPremioMarca(torre.MARCAS[r.marca])}</p>` : ""}
             ${r.reto ? `<p class="ff-renglon ff-oro">🎯 ¡Reto del día cumplido! ${textoPremioReto(r.reto)}</p>` : ""}
             <button type="button" class="ff-comando elegido" data-accion="torre-abrir" data-lugar="${sitio.id}" ${t.fichas ? "" : "disabled"}>

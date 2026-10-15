@@ -10566,3 +10566,11 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
         display: none;
     }
 }
+
+/* ===== v65: modos de juego ===== */
+.modos .pildora span { text-align: left; align-items: flex-start; }
+.modos .pildora small { display: block; opacity: .8; font-size: .78rem; line-height: 1.35; margin-top: .15rem; }
+.pildora.apagada { opacity: .5; }
+.pildora.apagada input { pointer-events: none; }
+.plegable-reglas { margin: .4rem 0 .8rem; }
+.plegable-reglas > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
