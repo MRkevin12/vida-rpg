@@ -167,6 +167,9 @@ let despuesDeAnimo = null;
 
 function preguntarAnimo(despues = null) {
     despuesDeAnimo = despues;
+    const ahora = new Date();
+    const dia = Math.floor(ahora.getTime() / 86400000);
+    $("#dialogo-animo").innerHTML = vistas.pantallaAnimo(estado.personaje.nombre, ahora.getHours(), dia);
     $("#dialogo-animo").showModal();
 }
 

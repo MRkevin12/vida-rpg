@@ -191,12 +191,18 @@ export function pantallaHoy(estado, ctx) {
             <button type="button" class="esencial-dato esencial-importantes" data-accion="ir-grupo" data-grupo="esencial-importantes">
                 <b>🎯 ${importantes.length}</b><small>${importantes.length === 1 ? "Importante" : "Importantes"}</small></button>
         </nav>` : "";
-    const chipEsencial = `<button type="button" class="chip chip-esencial ${esencial ? "activo" : ""}" data-accion="alternar-esencial"
-                                  aria-pressed="${esencial}" title="¿Cómo te sientes hoy? Cambia cuánto menú ves">🙂 Mi ánimo</button>`;
+    // (v50) Botón grande arriba de Hoy: muestra cómo te sientes y abre la portada para cambiarlo.
+    const animo = { mal: ["😔", "Mal", "solo lo esencial"], normal: ["🙂", "Normal", "sin Aventuras"], bien: ["😄", "Bien", "todo el menú"] }
+        [estado.ajustes.animo] || ["🙂", "Normal", "sin Aventuras"];
+    const botonAnimo = `<button type="button" class="boton-animo animo-${estado.ajustes.animo || "bien"}" data-accion="alternar-esencial">
+            <span class="boton-animo-icono" aria-hidden="true">${animo[0]}</span>
+            <span class="boton-animo-texto"><b>Hoy me siento: ${animo[1]}</b><small>Menú: ${animo[2]}</small></span>
+            <span class="boton-animo-cambiar">Cambiar ›</span></button>`;
 
     // Arriba, lo que pide atención (avisos y tu semana); después tu héroe y tu día;
     // en el centro, las misiones; abajo, las tareas y el diario.
     return `
+        ${botonAnimo}
         ${esencial ? "" : `${esAyer ? "" : tarjetaSemana(estado, ctx)}
         ${esAyer ? "" : tarjetaFoco(estado, ctx)}
         ${avisoNotificaciones(ctx)}
@@ -222,7 +228,6 @@ export function pantallaHoy(estado, ctx) {
                     <button type="button" data-accion="ver-fecha" data-dia="hoy" aria-pressed="${!esAyer}">Hoy</button>
                 </div>
                 ${esencial && !activo ? "" : `<button type="button" class="chip chip-enfoque ${activo ? "activo" : ""}" data-accion="ir" data-pantalla="enfoque">${botonEnfoque}</button>`}
-                ${chipEsencial}
             </div>
             ${esAyer ? '<p class="nota">Estás viendo <b>ayer</b>. Marca lo que hiciste y se te olvidó anotar.</p>' : ""}
             ${lista}
@@ -3263,6 +3268,39 @@ export function contenidoNovedades(lista, titulo = "🆕 Novedades") {
 
 // ===== Bienvenida (al crear el personaje) =====
 // b = { paso (1 a 3), misiones: Set, recompensas: Set }
+
+// (v49) La portada de «¿Cómo te sientes hoy?»: pantalla completa con una pintura de fondo, el Maestro Aurelio y tres opciones.
+// La frase cambia cada día (se elige por la fecha, no al azar, para que no salte al volver a dibujarla).
+export function pantallaAnimo(nombre, hora, dia) {
+    const saludo = hora < 6 ? "Aún es de madrugada" : hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
+    const cita = maestro.CONSEJOS[dia % maestro.CONSEJOS.length];
+    const opciones = [
+        ["mal", "😔", "Mal", "Solo lo esencial. Un paso a la vez."],
+        ["normal", "🙂", "Normal", "Lo justo para avanzar sin distracciones."],
+        ["bien", "😄", "Bien", "Todo el reino a tu disposición."],
+    ];
+    return `
+        <div class="animo-fondo" style="background-image: url('${rutaPintura("camino")}')" aria-hidden="true"></div>
+        <div class="animo-caja">
+            <p class="animo-marca">VIDA RPG</p>
+            <div class="animo-maestro">
+                <div class="animo-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { batalla: true })}</div>
+                <div class="animo-burbuja">
+                    <p class="animo-saludo">${saludo}, ${esc(nombre)}.</p>
+                    <p class="animo-cita">«${esc(cita.texto)}»</p>
+                    <p class="animo-autor">— ${esc(cita.autor)}, según ${esc(maestro.NOMBRE)}</p>
+                </div>
+            </div>
+            <h2 class="animo-pregunta">¿Cómo te sientes hoy?</h2>
+            <div class="animo-opciones">
+                ${opciones.map(([clave, icono, titulo, nota]) => `
+                    <button type="button" class="animo-opcion animo-${clave}" data-accion="elegir-animo" data-animo="${clave}">
+                        <span class="animo-icono" aria-hidden="true">${icono}</span>
+                        <span class="animo-texto"><b>${titulo}</b><small>${nota}</small></span>
+                    </button>`).join("")}
+            </div>
+        </div>`;
+}
 
 export function pantallaBienvenida(b, nombre, plantillas) {
     const puntos = `<div class="pasos" aria-label="Paso ${b.paso} de 3">${[1, 2, 3].map((n) =>

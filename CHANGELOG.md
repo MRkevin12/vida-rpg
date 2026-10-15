@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v50 — Portada para «¿Cómo te sientes hoy?»
+- `#dialogo-animo` ahora es pantalla completa (`.dialogo-animo`): pintura `fondos/camino.jpg` con velo oscuro, el Maestro Aurelio, saludo por hora y una cita de `maestro.CONSEJOS` que cambia por día. La arma `vistas.pantallaAnimo(nombre, hora, dia)`.
+- Botón grande `.boton-animo` arriba de Hoy (reemplaza al chip): muestra el ánimo actual y reabre la portada.
+
 ## v49 — ¿Cómo te sientes hoy?
 - **Pregunta al abrir la app** (`#dialogo-animo`, `preguntarAnimo`/`elegirAnimo` en app.js): 😔 mal → modo esencial (Hoy y Tienda), 🙂 normal → `body.modo-normal` (Hoy, Progreso, Héroe y Tienda; sin Aventuras), 😄 bien → todo el menú. Guarda `ajustes.animo` y pone `ajustes.esencial`. El botón de Hoy («🙂 Mi ánimo») reabre la pregunta. `ajustes.preguntarAnimo` (por defecto sí) se apaga en Ajustes; apagado, vale lo de la v47. Acción: `acciones.elegirAnimo`.
 

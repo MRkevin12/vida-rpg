@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 49;
+export const VERSION_APP = 50;
 
 export const NOVEDADES = [
+    {
+        version: 50,
+        titulo: "Una portada para tu día",
+        cambios: [
+            "🏰 La pregunta «¿Cómo te sientes hoy?» ahora ocupa toda la pantalla, con una pintura de fondo como portada del juego.",
+            "🙂 Arriba de Hoy hay un botón grande que muestra cómo te sientes y te deja cambiarlo con un toque.",
+            "🧙 El Maestro Aurelio te saluda según la hora y te comparte una frase de los clásicos, distinta cada día.",
+        ],
+    },
     {
         version: 49,
         titulo: "¿Cómo te sientes hoy?",

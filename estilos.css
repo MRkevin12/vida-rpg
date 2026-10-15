@@ -8653,3 +8653,155 @@ body:has(#deshacer:not([hidden])) .aviso {
     background: rgba(251, 191, 36, 0.14);
     box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
 }
+
+
+/* ===== (v49) «¿Cómo te sientes hoy?»: portada a pantalla completa ===== */
+.dialogo-animo {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    overflow-y: auto;
+    background: var(--fondo);
+}
+
+.dialogo-animo > * {
+    padding: 0;
+}
+
+.animo-fondo {
+    position: fixed;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: saturate(0.9);
+}
+
+/* Un velo oscuro para que se lea el texto sobre la pintura. */
+.animo-fondo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 30%, rgba(139, 92, 246, 0.25), transparent 55%),
+        linear-gradient(180deg, rgba(8, 5, 18, 0.25), rgba(8, 5, 18, 0.85) 75%);
+}
+
+.animo-caja {
+    position: relative;
+    display: grid;
+    gap: 16px;
+    min-height: 100%;
+    align-content: center;
+    box-sizing: border-box;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 24px);
+}
+
+.animo-marca {
+    margin: 0;
+    text-align: center;
+    font-family: "Orbitron", sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.3em;
+    color: #e9d5ff;
+    text-shadow: 0 0 18px rgba(167, 139, 250, 0.8);
+}
+
+.animo-maestro {
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+}
+
+.animo-retrato {
+    width: 120px;
+}
+
+.animo-burbuja {
+    padding: 14px 16px;
+    text-align: center;
+    background: rgba(15, 10, 30, 0.7);
+    border: 1px solid rgba(192, 132, 252, 0.45);
+    border-radius: 16px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.animo-burbuja p { margin: 0; }
+.animo-saludo { font-weight: 700; color: #f5f3ff; }
+.animo-cita { margin-top: 6px; font-style: italic; line-height: 1.5; }
+.animo-autor { margin-top: 6px; font-size: 0.8rem; color: var(--texto-suave, #a8a3c4); }
+
+.animo-pregunta {
+    margin: 4px 0 0;
+    text-align: center;
+    font-size: 1.35rem;
+}
+
+.animo-opciones {
+    display: grid;
+    gap: 10px;
+}
+
+.animo-opcion {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 64px;
+    padding: 12px 16px;
+    text-align: left;
+    color: var(--texto);
+    font: inherit;
+    background: rgba(15, 10, 30, 0.75);
+    border: 1px solid var(--borde);
+    border-radius: 16px;
+    cursor: pointer;
+}
+
+.animo-opcion:focus { outline: none; }
+.animo-opcion:active { transform: scale(0.98); }
+.animo-opcion .animo-icono { font-size: 2rem; }
+.animo-opcion .animo-texto { display: grid; gap: 2px; }
+.animo-opcion small { color: var(--texto-suave, #a8a3c4); }
+.animo-mal { border-color: rgba(96, 165, 250, 0.6); }
+.animo-normal { border-color: rgba(251, 191, 36, 0.6); }
+.animo-bien { border-color: rgba(74, 222, 128, 0.6); }
+
+
+/* (v50) El botón grande de Hoy para cambiar cómo te sientes (reemplaza al chip pequeño). */
+.boton-animo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 14px;
+    text-align: left;
+    color: var(--texto);
+    font: inherit;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.28), rgba(15, 10, 30, 0.85));
+    border: 1.5px solid rgba(167, 139, 250, 0.7);
+    border-radius: 16px;
+    box-shadow: 0 0 14px rgba(139, 92, 246, 0.3);
+    cursor: pointer;
+}
+
+.boton-animo:active { transform: scale(0.98); }
+.boton-animo-icono { font-size: 1.8rem; }
+.boton-animo-texto { display: grid; flex: 1; gap: 1px; min-width: 0; }
+.boton-animo-texto small { color: var(--texto-suave, #a8a3c4); }
+.boton-animo-cambiar {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e1033;
+    background: #c4b5fd;
+    border-radius: 999px;
+}
