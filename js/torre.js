@@ -214,26 +214,78 @@ export const ACCIONES = {
 };
 
 export const MEJORAS = {
-    afilar:   { icono: "⚔️", nombre: "Hoja afilada",     texto: "+3 de ataque" },
-    tomo:     { icono: "📖", nombre: "Tomo antiguo",     texto: "+5 de daño de hechizo" },
-    vigor:    { icono: "❤️", nombre: "Vigor",            texto: "+12 de vida máxima (y te cura 12)" },
-    frasco:   { icono: "🧪", nombre: "Frasco extra",     texto: "+1 poción" },
-    mana:     { icono: "✨", nombre: "Mente clara",      texto: "+1 hechizo por piso" },
-    suerte:   { icono: "🍀", nombre: "Trébol",           texto: "+6 % de golpe crítico" },
-    escudo:   { icono: "🛡️", nombre: "Escudo reforzado", texto: "Defender bloquea 8 % más" },
-    descanso: { icono: "🔥", nombre: "Fogata",           texto: "Recuperas 40 % de tu vida" },
+    afilar:   { icono: "⚔️", nombre: "Hoja afilada",     texto: "+3 de ataque", tipo: "ofensiva" },
+    tomo:     { icono: "📖", nombre: "Tomo antiguo",     texto: "+5 de daño de hechizo", tipo: "magica" },
+    vigor:    { icono: "❤️", nombre: "Vigor",            texto: "+12 de vida máxima (y te cura 12)", tipo: "defensiva" },
+    frasco:   { icono: "🧪", nombre: "Frasco extra",     texto: "+1 poción", tipo: "defensiva" },
+    mana:     { icono: "✨", nombre: "Mente clara",      texto: "+1 hechizo por piso", tipo: "magica" },
+    suerte:   { icono: "🍀", nombre: "Trébol",           texto: "+6 % de golpe crítico", tipo: "ofensiva" },
+    escudo:   { icono: "🛡️", nombre: "Escudo reforzado", texto: "Defender bloquea 8 % más", tipo: "defensiva" },
+    descanso: { icono: "🔥", nombre: "Fogata",           texto: "Recuperas 40 % de tu vida", tipo: "defensiva" },
     // v38
-    impulso:  { icono: "✨", nombre: "Llama interior",   texto: "+35 de Voluntad" },
-    maestria: { icono: "🎓", nombre: "Maestría",         texto: "Cada técnica, una vez más por piso" },
+    impulso:  { icono: "✨", nombre: "Llama interior",   texto: "+35 de Voluntad", tipo: "tactica" },
+    maestria: { icono: "🎓", nombre: "Maestría",         texto: "Cada técnica, una vez más por piso", tipo: "tactica" },
     // v41: los DONES. Cambian cómo peleas (no solo un número) y son raros: desde el piso 3 a veces sale uno entre
     // las opciones, y cada don se puede tener una sola vez por partida (quedan en `heroe.dones`).
-    sangre:   { icono: "🩸", nombre: "Sed de sangre",    texto: "Cada golpe crítico te cura 10 % de tu vida máxima", don: true },
-    eco:      { icono: "🔔", nombre: "Eco arcano",       texto: "Tu primer hechizo de cada piso pega el doble", don: true },
-    espinas:  { icono: "🌵", nombre: "Piel de espinas",  texto: "Le devuelves 30 % del daño que recibes", don: true },
-    cazador:  { icono: "🏹", nombre: "Ojo de cazador",   texto: "Tus críticos pegan ×2,3 en vez de ×1,8", don: true },
-    fervor:   { icono: "🔥", nombre: "Fervor",           texto: "Ganas 50 % más de Voluntad", don: true },
-    botin:    { icono: "🎒", nombre: "Botín de guerra",  texto: "Al vencer a una criatura recuperas 10 % de tu vida", don: true },
+    sangre:   { icono: "🩸", nombre: "Sed de sangre",    texto: "Cada golpe crítico te cura 10 % de tu vida máxima", don: true, tipo: "ofensiva" },
+    eco:      { icono: "🔔", nombre: "Eco arcano",       texto: "Tu primer hechizo de cada piso pega el doble", don: true, tipo: "magica" },
+    espinas:  { icono: "🌵", nombre: "Piel de espinas",  texto: "Le devuelves 30 % del daño que recibes", don: true, tipo: "defensiva" },
+    cazador:  { icono: "🏹", nombre: "Ojo de cazador",   texto: "Tus críticos pegan ×2,3 en vez de ×1,8", don: true, tipo: "ofensiva" },
+    fervor:   { icono: "🔥", nombre: "Fervor",           texto: "Ganas 50 % más de Voluntad", don: true, tipo: "tactica" },
+    botin:    { icono: "🎒", nombre: "Botín de guerra",  texto: "Al vencer a una criatura recuperas 10 % de tu vida", don: true, tipo: "defensiva" },
 };
+
+// (v60) Qué clase de mejora es cada una (se ve en su tarjeta del botín).
+export const TIPOS_DE_MEJORA = {
+    ofensiva:  { icono: "⚔️", nombre: "Ofensiva" },
+    defensiva: { icono: "🛡️", nombre: "Defensiva" },
+    magica:    { icono: "🔮", nombre: "Mágica" },
+    tactica:   { icono: "✨", nombre: "Táctica" },
+};
+
+// ===== Rutas (v60) =====
+// En el segundo piso de cada zona (y de cada sótano) eliges por dónde seguir. Cambia el riesgo de la partida:
+//   desafio: la criatura que viene es de ÉLITE (más vida y más ataque); si la vences, el botín trae un don seguro y +1 poción.
+//   calma:   un manantial te cura y la criatura llega cansada (menos vida).
+export const RUTAS = {
+    desafio: { icono: "⚔️", nombre: "Camino del desafío", riesgo: "Más difícil",
+               texto: "Te espera una criatura de élite: +40 % de vida y +20 % de ataque. Si la vences: un don raro seguro en el botín y +1 poción." },
+    calma:   { icono: "🌿", nombre: "Sendero tranquilo", riesgo: "Más seguro",
+               texto: "Un manantial en el camino: recuperas 20 % de tu vida, y la criatura llega cansada (−25 % de vida)." },
+};
+export const ELITE = { vida: 1.4, ataque: 1.2 };
+export const CALMA = { cura: 0.2, vida: 0.75 };
+export const PISO_DE_RUTA = 2;   // el lugar dentro de la zona donde se elige (el 2.º piso de cada zona)
+
+// ¿Hay que elegir ruta antes de este piso?
+export const hayRuta = (piso) => piso % PISOS_POR_ZONA === PISO_DE_RUTA;
+
+// Elegir por dónde seguir. Devuelve { texto }.
+export function elegirRuta(partida, clave) {
+    if (partida.fase !== "ruta" || !partida.ruta) throw new Error("Ahora no estás eligiendo camino.");
+    if (!RUTAS[clave]) throw new Error("Ese camino no existe.");
+    const h = partida.heroe;
+    const m = partida.enemigo;
+    let texto;
+    if (clave === "desafio") {
+        const parte = m.vida / m.vidaMax;
+        m.vidaMax = Math.round(m.vidaMax * ELITE.vida);
+        m.vida = Math.max(1, Math.round(m.vidaMax * parte));
+        m.ataque = Math.round(m.ataque * ELITE.ataque);
+        m.elite = true;
+        texto = `Tomas el camino del desafío: ${elMonstruo(m)} es de élite.`;
+    } else {
+        const cura = Math.min(Math.round(h.vidaMax * CALMA.cura), h.vidaMax - h.vida);
+        h.vida += cura;
+        m.vidaMax = Math.max(1, Math.round(m.vidaMax * CALMA.vida));
+        m.vida = Math.min(m.vida, m.vidaMax);
+        texto = `Tomas el sendero tranquilo: ${cura ? `bebes del manantial (+${cura} de vida) y ` : ""}${elMonstruo(m)} llega cansad${m.genero === "f" ? "a" : "o"}.`;
+    }
+    partida.registro = `${conMayuscula(texto)} ${partida.ruta.antes}`;
+    partida.ruta = null;
+    partida.fase = "batalla";
+    return { texto };
+}
 
 // Los números de los dones (para que el texto y las reglas no se separen).
 export const DONES = { sangre: 0.1, espinas: 0.3, cazador: 0.5, fervor: 1.5, botin: 0.1, probabilidad: 0.5, desdePiso: 3 };
@@ -835,6 +887,11 @@ function vencer(partida, eventos, frases) {
         h.vida += cura;
         if (cura) frases.push(`Del botín de guerra recuperas ${cura}.`);
     }
+    // (v60) Vencer a una criatura de élite: +1 poción (y el botín trae un don seguro, ver mejorasAlAzar).
+    if (partida.enemigo.elite) {
+        h.pociones += 1;
+        frases.push("Era de élite: +1 poción.");
+    }
     partida.fase = "mejora";
     partida.cine = cineAlVencer(partida);
     partida.opciones = mejorasAlAzar(partida);
@@ -923,7 +980,8 @@ function mejorasAlAzar(partida) {
         (clave !== "maestria" || ((h.tecnicas || []).length && (h.maestria || 0) < 2)));
     const dones = Object.keys(MEJORAS).filter((clave) => MEJORAS[clave].don && !tieneDon(h, clave));
     const cuantas = tiene(partida.heroe, "constancia") ? 4 : 3;
-    const conDon = dones.length > 0 && partida.piso >= DONES.desdePiso && azar(partida) < DONES.probabilidad;
+    // (la élite deja un don seguro, si te queda alguno por tener)
+    const conDon = dones.length > 0 && (partida.enemigo?.elite || (partida.piso >= DONES.desdePiso && azar(partida) < DONES.probabilidad));
     const elegidas = [];
     while (elegidas.length < cuantas - (conDon ? 1 : 0)) {
         const clave = elegir(partida, claves);
@@ -986,6 +1044,11 @@ export function elegirMejora(partida, clave) {
         partida.sala = { tipo, antes: partida.registro };
         partida.fase = "sala";
         partida.registro = `${nombreDelPiso(partida)}: ${SALAS[tipo].texto}`;
+    } else if (hayRuta(partida.piso)) {
+        // v60: el camino se bifurca (la criatura espera al final de cualquiera de los dos).
+        partida.ruta = { antes: partida.registro };
+        partida.fase = "ruta";
+        partida.registro = `${nombreDelPiso(partida)}: el camino se bifurca. ¿Por dónde sigues?`;
     }
 }
 

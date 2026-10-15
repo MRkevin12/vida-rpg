@@ -9658,3 +9658,499 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
         animation: none;
     }
 }
+
+
+/* ===== (v60) La batalla, más clara: vida a la vista, orden del turno, intención, golpes con impacto y tarjetas ===== */
+
+/* El héroe un poco más al centro, para que los dos se vean bien. */
+.ff-heroe {
+    left: calc(var(--px) * 150);
+}
+
+.ff-mascota {
+    left: calc(var(--px) * 118);
+}
+
+/* --- Las barras de vida en la escena --- */
+.ff-hp {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 12px;
+    overflow: hidden;
+    background: #1a0d22;
+    border: 1px solid #05030c;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.ff-hp i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    display: block;
+}
+
+.ff-hp-relleno {
+    background: linear-gradient(180deg, #7dff9a, #22a34a);
+}
+
+.ff-hp.de-enemigo .ff-hp-relleno {
+    background: linear-gradient(180deg, #ff8a8a, #d0283a);
+}
+
+.ff-hp.grave .ff-hp-relleno {
+    background: linear-gradient(180deg, #ffd27a, #e07a10);
+}
+
+/* Lo que se perdió: un trozo claro que se encoge hasta la vida de ahora. */
+.ff-hp-fantasma {
+    width: var(--ahora);
+    background: #fff6c8;
+    animation: hp-fantasma 0.7s ease-out both;
+}
+
+@keyframes hp-fantasma {
+    from { width: var(--antes); }
+    to { width: var(--ahora); }
+}
+
+.ff-hp b {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #fff;
+    text-shadow: -1px 0 #05030c, 1px 0 #05030c, 0 -1px #05030c, 0 1px #05030c;
+}
+
+/* La de la criatura, arriba a la izquierda, con su nombre y sus estados. */
+.ff-hud {
+    position: absolute;
+    z-index: 5;
+    display: grid;
+    gap: 2px;
+    pointer-events: none;
+}
+
+.ff-hud-enemigo {
+    top: 4%;
+    left: 3%;
+    width: 46%;
+}
+
+.ff-hud b {
+    overflow: hidden;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #fff;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-shadow: -1px 0 #05030c, 1px 0 #05030c, 0 -1px #05030c, 0 1px #05030c;
+}
+
+.ff-estados {
+    min-height: 1em;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 0 2px #05030c;
+}
+
+/* La del héroe, encima de su cabeza. */
+.ff-encima {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    z-index: 5;
+    display: grid;
+    gap: 1px;
+    width: calc(var(--px) * 34);
+    margin-bottom: 2px;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+/* --- El orden del turno: las caras arriba a la derecha --- */
+.ff-orden {
+    position: absolute;
+    top: 3%;
+    right: 2%;
+    z-index: 5;
+    display: flex;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    pointer-events: none;
+}
+
+.ff-orden-cara {
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+}
+
+.ff-orden-marco {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    overflow: hidden;
+    background: #0a1258;
+    border: 2px solid #8fa0ff;
+    border-radius: 6px;
+    transform: rotate(45deg);
+    box-shadow: 0 0 0 1px #05030c;
+}
+
+.ff-orden-marco img {
+    width: 150%;
+    height: auto;
+    image-rendering: pixelated;
+    transform: rotate(-45deg) translateY(8%);
+}
+
+.ff-orden-cara small {
+    margin-top: 2px;
+    font-size: 0.56rem;
+    font-weight: 800;
+    color: #cfd8ff;
+    text-shadow: -1px 0 #05030c, 1px 0 #05030c, 0 -1px #05030c, 0 1px #05030c;
+}
+
+.ff-orden-tuyo .ff-orden-marco { border-color: #7dd3fc; }
+.ff-orden-mascota .ff-orden-marco { border-color: #86efac; }
+.ff-orden-criatura .ff-orden-marco { border-color: #fda4af; }
+
+/* Antes de actuar: tu cara brilla (te toca), las demás esperan apagadas. */
+.ff-orden.plan .ff-orden-cara:not(.ahora) {
+    opacity: 0.6;
+}
+
+.ff-orden.plan .ahora .ff-orden-marco {
+    border-color: #ffe45a;
+    animation: orden-ahora 1.1s ease-in-out infinite;
+}
+
+.ff-orden.plan .ahora small {
+    color: #ffe45a;
+}
+
+@keyframes orden-ahora {
+    50% { box-shadow: 0 0 0 1px #05030c, 0 0 10px #ffe45a; }
+}
+
+/* Después de actuar: cada cara se enciende cuando le toca y queda marcada. */
+.ff-orden.jugado .ff-orden-cara {
+    animation: orden-turno 0.5s steps(4) both;
+}
+
+@keyframes orden-turno {
+    0% { opacity: 0.35; transform: scale(1); }
+    40% { opacity: 1; transform: scale(1.25); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* --- Lo que va a hacer la criatura: un globo bajo su nombre --- */
+.ff-globo {
+    position: absolute;
+    top: 22%;
+    left: 3%;
+    z-index: 5;
+    max-width: 58%;
+    margin: 0;
+    padding: 4px 7px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #fff;
+    background: rgba(10, 18, 88, 0.88);
+    border: 2px solid #f1f3ff;
+    border-radius: 7px;
+    box-shadow: 0 0 0 1px #060a3a;
+}
+
+.ff-globo.aviso {
+    border-color: #ffe45a;
+}
+
+.ff-globo.peligro {
+    border-color: #ff5a5a;
+    background: rgba(70, 8, 16, 0.92);
+    animation: globo-peligro 1s ease-in-out infinite;
+}
+
+@keyframes globo-peligro {
+    50% { box-shadow: 0 0 0 1px #060a3a, 0 0 12px rgba(255, 90, 90, 0.85); }
+}
+
+/* --- Golpes con impacto --- */
+/* El tajo: un arco grande que cruza a la criatura (blanco, dorado si es crítico; enorme con la Voluntad). */
+.ff-arco {
+    position: absolute;
+    top: -18%;
+    left: -22%;
+    z-index: 4;
+    width: 144%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border-right: 10px solid #fff;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    filter: drop-shadow(0 0 4px #dfe8ff);
+    opacity: 0;
+    pointer-events: none;
+    animation: ff-arco 0.38s steps(5) 0.2s;
+}
+
+.ff-arco.critico {
+    border-right-color: #ffe45a;
+    border-right-width: 16px;
+    filter: drop-shadow(0 0 8px #ffb020);
+}
+
+.ff-arco.voluntad {
+    top: -45%;
+    left: -50%;
+    width: 200%;
+    border-right-color: #ffe45a;
+    border-right-width: 24px;
+    filter: drop-shadow(0 0 12px #ffd23c);
+    animation-duration: 0.55s;
+}
+
+@keyframes ff-arco {
+    0% { opacity: 1; transform: rotate(-70deg) scale(0.6); }
+    60% { opacity: 1; transform: rotate(20deg) scale(1); }
+    100% { opacity: 0; transform: rotate(40deg) scale(1.05); }
+}
+
+.ff-aviso.ff-critico {
+    top: 30%;
+    z-index: 6;
+    font-size: 0.85rem;
+    color: #1a1200;
+    background: #ffe45a;
+    animation: ff-anunciar 1.1s steps(1) 0.3s, ff-critico-salta 0.3s steps(3) 0.3s;
+}
+
+@keyframes ff-critico-salta {
+    50% { transform: translateX(-50%) scale(1.3); }
+}
+
+/* El Golpe de Voluntad: toda la escena destella en dorado. */
+.ff-escena.ff-destella::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: radial-gradient(circle at 35% 55%, rgba(255, 228, 90, 0.85), rgba(255, 176, 32, 0.2) 60%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    animation: ff-destella 0.6s steps(4) 0.2s;
+}
+
+@keyframes ff-destella {
+    0%, 100% { opacity: 0; }
+    30% { opacity: 1; }
+}
+
+/* ¡Victoria!: un cartel grande, después de ver caer a la criatura. */
+.ff-victoria {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    z-index: 7;
+    margin: 0;
+    font-family: "Orbitron", sans-serif;
+    font-size: clamp(1.4rem, 9cqw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #ffe45a;
+    text-shadow: -2px 0 #3a1a00, 2px 0 #3a1a00, 0 -2px #3a1a00, 0 2px #3a1a00, 0 0 16px rgba(255, 176, 32, 0.9);
+    white-space: nowrap;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    animation: ff-victoria 1.6s steps(8) 1s both;
+}
+
+@keyframes ff-victoria {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(2.2); }
+    25% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+}
+
+/* La criatura de élite: un aura dorada. */
+.ff-enemigo.elite .ff-sprite {
+    filter: drop-shadow(0 0 3px #ffd23c) drop-shadow(0 0 1px #fff3);
+}
+
+/* El botín espera a que termine la victoria. */
+.ff-botin.tras-victoria {
+    animation: ff-aparecer 0.25s steps(3) 2.2s backwards;
+}
+
+/* --- Las tarjetas: el botín y las rutas --- */
+.ff-cartas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.ff-cartas-dos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ff-carta {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 4px;
+    min-height: 150px;
+    padding: 12px 8px 10px;
+    font: inherit;
+    text-align: center;
+    color: #3a2508;
+    text-shadow: none;
+    background: linear-gradient(180deg, #f6e3b4 0%, #e9c983 100%);
+    border: 3px solid #8b5e14;
+    border-radius: 10px;
+    box-shadow: inset 0 0 0 2px #fff3c8, 0 0 0 2px #2a1a06, 0 6px 14px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    animation: carta-entra 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.ff-carta:active {
+    transform: scale(0.96);
+}
+
+@keyframes carta-entra {
+    from { opacity: 0; transform: translateY(16px) scale(0.9); }
+    to { opacity: 1; transform: none; }
+}
+
+.ff-carta-icono {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    font-size: 1.9rem;
+    background: radial-gradient(circle, #fff8dc, #d8b46a);
+    border: 2px solid #8b5e14;
+    border-radius: 8px;
+}
+
+.ff-carta-nombre {
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: #2a1a06;
+}
+
+.ff-carta-texto {
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.ff-carta-tipo {
+    margin-top: auto;
+    padding: 2px 8px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    color: #fff;
+    background: #6b4a14;
+    border-radius: 999px;
+}
+
+.ff-carta.tipo-ofensiva .ff-carta-tipo { background: #b8323c; }
+.ff-carta.tipo-defensiva .ff-carta-tipo { background: #2f6fb8; }
+.ff-carta.tipo-magica .ff-carta-tipo { background: #7a3cc0; }
+.ff-carta.tipo-tactica .ff-carta-tipo { background: #2f8a5a; }
+
+/* Un don raro: borde dorado brillante y su cinta. */
+.ff-carta.don {
+    border-color: #ffb020;
+    box-shadow: inset 0 0 0 2px #fff3c8, 0 0 0 2px #2a1a06, 0 0 16px rgba(255, 176, 32, 0.7);
+}
+
+.ff-carta-cinta {
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    padding: 1px 8px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: #2a1a06;
+    white-space: nowrap;
+    background: #ffd23c;
+    border: 1px solid #8b5e14;
+    border-radius: 4px;
+    transform: translateX(-50%);
+}
+
+/* Las rutas: el desafío en rojo, el sendero en verde. */
+.ff-ruta.ruta-desafio {
+    background: linear-gradient(180deg, #f8d0c8 0%, #e79a8a 100%);
+    border-color: #8b2a1a;
+}
+
+.ff-ruta.ruta-calma {
+    background: linear-gradient(180deg, #d6f5d0 0%, #9fd79a 100%);
+    border-color: #2a6b2a;
+}
+
+.ff-ruta.ruta-desafio .ff-carta-tipo { background: #b8323c; }
+.ff-ruta.ruta-calma .ff-carta-tipo { background: #2f8a5a; }
+
+/* La secuencia del turno jugado, más compacta (las caras de arriba ya dicen el orden). */
+.ff-turnos.jugado {
+    gap: 6px;
+}
+
+.ff-turnos.jugado .ff-turno {
+    padding: 3px 8px;
+}
+
+.ff-turnos.jugado .ff-turno-texto {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 6px;
+}
+
+.ff-turnos.jugado .ff-turno:not(:last-child)::after {
+    bottom: -9px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ff-hp-fantasma,
+    .ff-orden.jugado .ff-orden-cara,
+    .ff-orden.plan .ahora .ff-orden-marco,
+    .ff-globo.peligro,
+    .ff-carta {
+        animation: none;
+    }
+
+    .ff-arco,
+    .ff-escena.ff-destella::after {
+        display: none;
+    }
+
+    .ff-victoria {
+        opacity: 1;
+        animation: none;
+    }
+}
+
+/* (v60) El nombre de lo que se usa va un poco más abajo, para no tapar la vida de la criatura ni el orden del turno. */
+.ff-escena .ff-anuncio {
+    top: auto;
+    bottom: 5%;
+}

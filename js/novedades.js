@@ -4,9 +4,22 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 59;
+export const VERSION_APP = 60;
 
 export const NOVEDADES = [
+    {
+        version: 60,
+        titulo: "La Torre, más clara y con más impacto",
+        cambios: [
+            "❤️ En la batalla ves la vida de los dos encima de la escena, con un trozo claro que muestra lo que se perdió en el golpe. Los estados (élite ⭐, coraza 🐚, barrera 💠, espejo 🪞, carga 🌀, veneno ☠️) van como iconos junto a la vida.",
+            "🔢 Arriba a la derecha está el orden del turno con las caras de cada uno: tú «Ahora», los demás «Luego». Después de actuar, cada cara se enciende en su momento.",
+            "⚠️ Lo que va a hacer la criatura sale en un globo: amarillo si es raro y rojo si es peligroso (golpe fuerte o ataque especial).",
+            "⚔️ Los golpes tienen impacto: un arco blanco al atacar, dorado y con «¡CRÍTICO!» en los críticos, y uno enorme con destello en el Golpe de Voluntad. Al vencer aparece «¡Victoria!» antes del botín.",
+            "🃏 El botín ahora son tarjetas, con icono, efecto y su tipo (ofensiva, defensiva, mágica o táctica). Los dones raros brillan en dorado.",
+            "🔀 Nuevo: en el 2.º piso de cada zona el camino se bifurca. «Camino del desafío»: una criatura de élite que deja un don seguro y +1 poción. «Sendero tranquilo»: te curas y la criatura llega cansada.",
+            "🔧 Arreglado: en el botín, «Don raro» se encimaba con el nombre de la mejora.",
+        ],
+    },
     {
         version: 59,
         titulo: "La música te sigue",

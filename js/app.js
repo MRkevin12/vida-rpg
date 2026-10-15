@@ -2573,6 +2573,14 @@ const ACCIONES = {
             await reproducirCinematica(lugarAbierto);   // llegaste a una zona nueva o al piso de un guardián
         }
     },
+    // El camino se bifurca (v60): desafío (élite, mejor botín) o sendero tranquilo (te curas, criatura cansada).
+    "torre-ruta": (boton) => {
+        const resultado = ejecutar(() => acciones.rutaTorre(estado, boton.dataset.ruta, lugarAbierto));
+        if (!resultado) return;
+        sonar(boton.dataset.ruta === "desafio" ? "retumbo" : "pocion");
+        pintarTorre();
+        vozDeLlegada();
+    },
     // Una sala entre pisos (v42): la opción elegida cambia a tu héroe y sigue la batalla.
     "torre-sala": (boton) => {
         const resultado = ejecutar(() => acciones.salaTorre(estado, boton.dataset.opcion, lugarAbierto));

@@ -1283,6 +1283,11 @@ export function reiniciarCinematicas(estado) {
     estado.mapa.cines = [];
 }
 
+// v60: elegir camino entre pisos (ver torre.RUTAS). Devuelve { texto }.
+export function rutaTorre(estado, clave, lugar = "torre") {
+    return torre.elegirRuta(partidaDe(estado, lugar), clave);
+}
+
 // v42: lo que haces en una sala especial entre pisos (ver torre.SALAS). Devuelve { texto }.
 export function salaTorre(estado, opcion, lugar = "torre") {
     return torre.resolverSala(partidaDe(estado, lugar), opcion);

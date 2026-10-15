@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v60 — La Torre, más clara y con más impacto
+- **Escena:** `vidaEncima` (barra con «fantasma» de lo perdido: `--antes` → `--ahora`), `.ff-hud-enemigo` (nombre, vida, `iconosDeEstado`) y la barra del héroe sobre su cabeza (`iconosDelHeroe`). `ordenDelTurno` (caras en rombo: Ahora/Luego, o ✓ en orden tras actuar) y `globoDeIntencion` (aviso/peligro). La lista vertical del plan desaparece (solo queda la del turno jugado, más compacta). El héroe va más al centro.
+- **Impacto:** `.ff-arco` (normal, `critico`, `voluntad`), «¡CRÍTICO!», `.ff-destella` con la Voluntad y `.ff-victoria`; el botín espera (`tras-victoria`). El nombre del ataque va abajo y no se repite si es especial (ya está en su banner).
+- **Botín en tarjetas:** `tarjetaMejora` + `MEJORAS[*].tipo` y `TIPOS_DE_MEJORA` (ofensiva, defensiva, mágica, táctica); cinta «✦ Don raro». Arregla el texto encimado del botín viejo.
+- **Rutas:** `torre.RUTAS` (desafío / calma), `hayRuta` (2.º piso de cada zona, Torre y Mazmorra), `elegirRuta` (fase `"ruta"`); élite: `ELITE` (+40 % vida, +20 % ataque), don seguro en `mejorasAlAzar` y +1 poción al vencer; calma: `CALMA` (cura 20 %, criatura −25 % de vida). `acciones.rutaTorre`, acción `torre-ruta`. 237 pruebas.
+
 ## v59 — La música te sigue
 - `musica.precargar` baja en segundo plano las 4 pistas de escena (6 s después de empezar a sonar, solo con «Música según la escena» y sin ahorro de datos) para que el cambio no espere a la descarga. `musica.pistaActual()`. En Ajustes, una línea dice qué pista corresponde a la pantalla actual. Comprobado en el navegador: Hoy → épica, mapa → alba, pergamino → lectura, diario → nocturno, Hoy → épica.
 

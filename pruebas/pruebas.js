@@ -756,7 +756,9 @@ prueba("Torre: al vencer eliges una de tres mejoras y subes de piso con los hech
     igual(new Set(p.opciones).size, 3, "tres mejoras distintas");
     debeFallar(() => torre.elegirMejora(p, "inventada"), "Elige una");
     torre.elegirMejora(p, p.opciones[0]);
-    igual([p.piso, p.fase, p.heroe.mana], [2, "batalla", p.heroe.manaMax]);
+    igual([p.piso, p.fase, p.heroe.mana], [2, "ruta", p.heroe.manaMax], "en el piso 2 el camino se bifurca (v60)");
+    torre.elegirRuta(p, "desafio");
+    igual(p.fase, "batalla");
 });
 
 prueba("Torre: sin hechizos ni pociones no se pueden usar; la misma semilla da la misma partida", () => {
@@ -1284,7 +1286,7 @@ prueba("Salas: hay una en el 3.º piso de cada zona y antes de cada guardián; l
         const p = llegarAlPiso(piso);
         const esperada = piso % 5 === 0 ? "fuente" : piso % 5 === 3 ? ["altar", "mercader", "cofre"] : null;
         if (!esperada) {
-            igual(p.fase, "batalla", `piso ${piso}: sin sala`);
+            igual(p.fase, piso % 5 === 2 ? "ruta" : "batalla", `piso ${piso}: sin sala${piso % 5 === 2 ? " (pero con ruta, v60)" : ""}`);
             continue;
         }
         igual(p.fase, "sala", `piso ${piso}: sala`);
@@ -1293,7 +1295,7 @@ prueba("Salas: hay una en el 3.º piso de cada zona y antes de cada guardián; l
         debeFallar(() => torre.actuar(p, "atacar"), "Ahora no estás en una batalla");
         debeFallar(() => torre.elegirMejora(p, "afilar"), "Elige una de las mejoras");
     }
-    for (let sotano = 2; sotano <= 12; sotano++) igual(llegarAlPiso(sotano, "mazmorra").fase, "batalla", `sótano ${sotano}`);
+    for (let sotano = 2; sotano <= 12; sotano++) igual(llegarAlPiso(sotano, "mazmorra").fase, sotano % 5 === 2 ? "ruta" : "batalla", `sótano ${sotano}`);
     cierto(Object.keys(torre.SALAS).length === 4, "cuatro salas");
     cierto(Object.values(torre.SALAS).every((s) => s.opciones.seguir), "todas dejan seguir sin hacer nada");
 });
@@ -4768,14 +4770,14 @@ prueba("Batalla: la secuencia del turno (plan y resultado, en orden) y un banner
     const t = (cambios = {}) => ({ partida: estado.arcade.torre, nombre: "Ana", sprites: imagenes, eventos: [], menu: "principal",
                                    ultimo: "atacar", bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
     const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
-    // Antes de actuar: el plan del turno.
+    // Antes de actuar (v60): el orden del turno con las caras (tú «Ahora», la criatura «Luego») y su intención en un globo.
     let html = vistas.pantallaTorre(t());
     sano(html, "el plan");
-    cierto(html.includes('class="ff-turnos plan"') && html.includes("Elige un comando"), "antes de actuar, el plan");
+    cierto(html.includes('class="ff-orden plan"') && html.includes("Ahora") && html.includes("Luego") && !html.includes('class="ff-turnos'), "antes de actuar, el orden");
+    cierto(html.includes('class="ff-globo') && html.includes("Mordisco"), "lo que va a hacer la criatura, en su globo");
     const numeros = (texto) => [...texto.matchAll(/ff-turno-numero" aria-hidden="true">(\d)</g)].map((x) => Number(x[1]));
-    igual(numeros(html), [1, 2], "tú y la criatura (sin mascota)");
-    const lista = html.slice(html.indexOf('<ol class="ff-turnos'), html.indexOf("</ol>", html.indexOf('<ol class="ff-turnos')));
-    cierto(lista.indexOf("Tú") < lista.indexOf("Murciélago de cripta"), "primero tú, después la criatura");
+    const orden = html.slice(html.indexOf('<ol class="ff-orden'), html.indexOf("</ol>", html.indexOf('<ol class="ff-orden')));
+    cierto(orden.indexOf("ff-orden-tuyo") < orden.indexOf("ff-orden-criatura") && !orden.includes("ff-orden-mascota"), "primero tú, después la criatura (sin mascota)");
     // Después de actuar: lo que pasó, en orden.
     const evento = (quien, tipo, extra = {}) => ({ quien, tipo, ...extra });
     html = vistas.pantallaTorre(t({ eventos: [evento("heroe", "atacar", { dano: 12 }), evento("enemigo", "golpe", { dano: 5, nombre: "Mordisco" })] }));
@@ -4819,7 +4821,98 @@ prueba("Batalla: la secuencia del turno (plan y resultado, en orden) y un banner
     acciones.empezarTorre(estado, 4, "mazmorra");
     const mazmorra = vistas.pantallaTorre({ ...t(), partida: estado.arcade.mazmorra });
     sano(mazmorra, "la Mazmorra");
-    cierto(mazmorra.includes("ff-turnos plan"), "la Mazmorra también muestra el plan");
+    cierto(mazmorra.includes("ff-orden plan"), "la Mazmorra también muestra el orden del turno");
+});
+
+// ===== La batalla más clara: rutas, élite, tarjetas y barras (v60) =====
+
+prueba("Rutas: en el 2.º piso de cada zona eliges camino; el desafío trae una élite con don seguro, el sendero te cura", () => {
+    igual([1, 2, 7, 12, 3, 5].map(torre.hayRuta), [false, true, true, true, false, false]);
+    // El desafío: la criatura es de élite.
+    let p = llegarAlPiso(2);
+    igual(p.fase, "ruta");
+    cierto(p.registro.includes("bifurca"), "el registro lo cuenta");
+    debeFallar(() => torre.actuar(p, "atacar"), "Ahora no estás en una batalla");
+    debeFallar(() => torre.elegirRuta(p, "inventada"), "Ese camino no existe");
+    const [vida, ataque] = [p.enemigo.vidaMax, p.enemigo.ataque];
+    torre.elegirRuta(p, "desafio");
+    igual([p.fase, p.enemigo.elite, p.enemigo.vidaMax, p.enemigo.ataque], ["batalla", true, Math.round(vida * torre.ELITE.vida), Math.round(ataque * torre.ELITE.ataque)]);
+    debeFallar(() => torre.elegirRuta(p, "calma"), "Ahora no estás eligiendo camino");
+    // Al vencerla: un don seguro entre las opciones y +1 poción.
+    const pociones = p.heroe.pociones;
+    p.enemigo.vida = 1;
+    p.heroe.ataque = 999;
+    torre.actuar(p, "atacar");
+    igual(p.fase, "mejora");
+    cierto(p.opciones.some((c) => torre.MEJORAS[c].don), "un don seguro");
+    igual(p.heroe.pociones, pociones + 1, "+1 poción");
+    // El sendero: te cura y la criatura llega cansada.
+    p = llegarAlPiso(2);
+    p.heroe.vida = 10;
+    const vidaAntes = p.enemigo.vidaMax;
+    torre.elegirRuta(p, "calma");
+    igual([p.heroe.vida, p.enemigo.vidaMax, p.enemigo.elite], [10 + Math.round(p.heroe.vidaMax * torre.CALMA.cura), Math.round(vidaAntes * torre.CALMA.vida), undefined]);
+    // Y en la Mazmorra, también.
+    igual(llegarAlPiso(7, "mazmorra").fase, "ruta");
+});
+
+prueba("Botín en tarjetas: cada mejora tiene su tipo, y la pantalla las muestra con icono, efecto y cinta de don", () => {
+    for (const [clave, mejora] of Object.entries(torre.MEJORAS)) cierto(torre.TIPOS_DE_MEJORA[mejora.tipo], `${clave} tiene tipo`);
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 11);
+    const p = estado.arcade.torre;
+    p.enemigo.vida = 0;
+    p.fase = "mejora";
+    p.opciones = ["afilar", "mana", "vigor", "sangre"];
+    const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
+    const t = (cambios = {}) => ({ partida: p, nombre: "Ana", sprites: imagenes, eventos: [], menu: "principal", ultimo: "atacar",
+                                   bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
+    let html = vistas.pantallaTorre(t({ eventos: [{ quien: "heroe", tipo: "atacar", dano: 40 }, { quien: "enemigo", tipo: "derrotado" }] }));
+    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    igual(html.split('class="ff-carta ').length - 1, 4, "cuatro tarjetas");
+    for (const tipo of ["ofensiva", "magica", "defensiva"]) cierto(html.includes(`tipo-${tipo}`), `una ${tipo}`);
+    cierto(html.includes("✦ Don raro") && html.includes("ff-carta tipo-ofensiva don"), "la cinta del don");
+    cierto(html.includes('data-accion="torre-mejora" data-mejora="afilar"'), "se eligen igual que antes");
+    cierto(html.includes("ff-victoria") && html.includes("tras-victoria"), "primero la victoria, después el botín");
+    // La ruta, en dos tarjetas.
+    p.fase = "ruta";
+    p.ruta = { antes: "Piso 2: aparece algo." };
+    html = vistas.pantallaTorre(t());
+    cierto(html.includes('data-accion="torre-ruta" data-ruta="desafio"') && html.includes('data-accion="torre-ruta" data-ruta="calma"') && html.includes("bifurca"), "las dos rutas");
+});
+
+prueba("Escena de batalla: la vida de los dos a la vista (con lo que se perdió), los estados en iconos, el arco del golpe y el crítico", () => {
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 11);
+    const p = estado.arcade.torre;
+    const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
+    const t = (cambios = {}) => ({ partida: p, nombre: "Ana", sprites: imagenes, eventos: [], menu: "principal", ultimo: "atacar",
+                                   bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
+    let html = vistas.pantallaTorre(t());
+    cierto(html.includes("ff-hud-enemigo") && html.includes(`${p.enemigo.vida}/${p.enemigo.vidaMax}`) && html.includes(`${p.heroe.vida}/${p.heroe.vidaMax}`), "las dos barras con sus números");
+    cierto(!html.includes("ff-hp-fantasma"), "sin golpes, sin fantasma");
+    p.enemigo.vida -= 10;
+    p.heroe.vida -= 4;
+    html = vistas.pantallaTorre(t({ eventos: [{ quien: "heroe", tipo: "atacar", dano: 10, critico: true }, { quien: "enemigo", tipo: "golpe", dano: 4, nombre: "Mordisco" }] }));
+    igual(html.split("ff-hp-fantasma").length - 1, 2, "las dos barras muestran lo que se perdió");
+    cierto(html.includes("ff-arco critico") && html.includes("¡CRÍTICO!"), "el arco dorado y el crítico");
+    cierto(html.includes('class="ff-orden jugado"'), "las caras del orden se encienden");
+    // Los estados en iconos.
+    p.enemigo.coraza = true;
+    p.enemigo.barrera = 12;
+    p.heroe.veneno = 2;
+    p.enemigo.elite = true;
+    html = vistas.pantallaTorre(t());
+    const hud = html.indexOf("ff-hud-enemigo");
+    const estados = html.slice(html.indexOf('class="ff-estados"', hud), html.indexOf("</span>", html.indexOf('class="ff-estados"', hud)));
+    cierto(estados.includes("⭐") && estados.includes("🐚") && estados.includes("💠12"), "élite, coraza y barrera junto a su vida");
+    cierto(html.includes("☠️2"), "tu veneno junto a tu vida");
+    // La Voluntad: un arco enorme y la escena destella.
+    html = vistas.pantallaTorre(t({ eventos: [{ quien: "heroe", tipo: "voluntad", dano: 50, nombre: "Golpe de Voluntad" }] }));
+    cierto(html.includes("ff-arco voluntad") && html.includes("ff-destella"), "el Golpe de Voluntad se siente");
+    // Un ataque fuerte o especial pone el globo en peligro.
+    p.enemigo.intencion = "fuerte";
+    cierto(vistas.pantallaTorre(t()).includes("ff-globo peligro"), "un golpe fuerte se anuncia en rojo");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

@@ -2792,6 +2792,96 @@ function pasosDelTurno(t, ctxTurno) {
     return pasos;
 }
 
+// ===== (v60) La batalla, más clara =====
+
+// Una barra de vida pequeña encima de un personaje. Si el golpe acaba de pasar, un «fantasma» claro muestra lo que
+// perdió y se encoge hasta la vida de ahora (cuando: en qué momento del turno pasa).
+function vidaEncima(actual, maximo, antes, cuando, clase = "") {
+    const pct = (n) => Math.max(0, Math.min(100, Math.round((n / Math.max(1, maximo)) * 100)));
+    const cambio = antes !== actual;
+    return `<span class="ff-hp ${clase} ${actual / maximo < 0.3 ? "grave" : ""}" aria-hidden="true">
+                ${cambio ? `<i class="ff-hp-fantasma" style="--antes: ${pct(antes)}%; --ahora: ${pct(actual)}%; animation-delay: ${cuando}ms"></i>` : ""}
+                <i class="ff-hp-relleno" style="width: ${pct(actual)}%"></i>
+                <b>${Math.max(0, actual)}/${maximo}</b>
+            </span>`;
+}
+
+// Los estados que hay que ver de un vistazo, como iconos junto a la barra.
+function iconosDeEstado(m) {
+    const e = torre.ESPECIALES;
+    return [
+        m.elite ? "⭐" : "",
+        m.coraza ? e.coraza.icono : "",
+        m.barrera > 0 ? `${e.barrera.icono}${m.barrera}` : "",
+        m.espejo ? e.reflejo.icono : "",
+        m.cargando ? e.carga.icono : "",
+        m.enfurecido ? "😡" : "",
+        m.petrificada ? "🪨" : "",
+    ].filter(Boolean).join(" ");
+}
+
+function iconosDelHeroe(h) {
+    return [
+        h.veneno > 0 ? `${torre.ESPECIALES.veneno.icono}${h.veneno}` : "",
+        (h.voluntad || 0) >= torre.VOLUNTAD.max ? "✨" : "",
+    ].filter(Boolean).join(" ");
+}
+
+// El orden del turno, arriba de la escena, con la cara de cada uno (como en los RPG): quién actúa ahora y quién después.
+// Antes de actuar: tú «Ahora», los demás «Luego». Después de actuar: cada cara se enciende en su momento y queda marcada ✓.
+function ordenDelTurno(t, jugado) {
+    const p = t.partida;
+    const pet = p.mascota;
+    const caras = [
+        { img: t.sprites.heroe, nombre: t.nombre, clase: "tuyo", cuando: 0 },
+        ...(pet && pet.potencia > 0 && t.sprites.mascota ? [{ img: t.sprites.mascota, nombre: pet.nombre, clase: "mascota", cuando: TURNO_MASCOTA }] : []),
+        { img: t.sprites.enemigo, nombre: p.enemigo.nombre, clase: "criatura", cuando: TURNO_ENEMIGO },
+    ];
+    return `
+        <ol class="ff-orden ${jugado ? "jugado" : "plan"}" aria-label="Orden del turno">
+            ${caras.map((c, i) => `
+                <li class="ff-orden-cara ff-orden-${c.clase} ${!jugado && i === 0 ? "ahora" : ""}" style="animation-delay: ${c.cuando}ms" title="${esc(c.nombre)}">
+                    <span class="ff-orden-marco">${c.img ? `<img src="${c.img}" alt="" draggable="false">` : ""}</span>
+                    <small>${jugado ? "✓" : i === 0 ? "Ahora" : "Luego"}</small>
+                </li>`).join("")}
+        </ol>`;
+}
+
+// Lo que va a hacer la criatura en su turno, en un globo sobre la escena (lo más importante para decidir).
+function globoDeIntencion(p) {
+    const m = p.enemigo;
+    if (p.fase !== "batalla" || m.vida <= 0) return "";
+    const i = m.petrificada ? { icono: "🪨", texto: "De piedra: pierde su turno" } : torre.textoIntencion(m, p.heroe);
+    const peligro = ["especial", "descarga", "fuerte"].includes(m.intencion) ? "peligro" : m.intencion === "golpe" ? "" : "aviso";
+    return `<p class="ff-globo ${peligro}" role="status"><span aria-hidden="true">⚠️</span> ${i.icono} ${esc(i.texto)}</p>`;
+}
+
+// Una tarjeta del botín: icono grande, nombre, efecto y qué clase de mejora es (ofensiva, defensiva, mágica o táctica).
+function tarjetaMejora(clave, i) {
+    const mejora = torre.MEJORAS[clave];
+    const tipo = torre.TIPOS_DE_MEJORA[mejora.tipo] || torre.TIPOS_DE_MEJORA.tactica;
+    return `
+        <button type="button" class="ff-carta tipo-${mejora.tipo || "tactica"} ${mejora.don ? "don" : ""}" data-accion="torre-mejora" data-mejora="${clave}"
+                style="animation-delay: ${i * 90}ms">
+            ${mejora.don ? '<span class="ff-carta-cinta">✦ Don raro</span>' : ""}
+            <span class="ff-carta-icono" aria-hidden="true">${mejora.icono}</span>
+            <b class="ff-carta-nombre">${mejora.nombre}</b>
+            <span class="ff-carta-texto">${mejora.texto}</span>
+            <span class="ff-carta-tipo">${tipo.icono} ${tipo.nombre}</span>
+        </button>`;
+}
+
+function tarjetaRuta(clave, i) {
+    const r = torre.RUTAS[clave];
+    return `
+        <button type="button" class="ff-carta ff-ruta ruta-${clave}" data-accion="torre-ruta" data-ruta="${clave}" style="animation-delay: ${i * 120}ms">
+            <span class="ff-carta-icono" aria-hidden="true">${r.icono}</span>
+            <b class="ff-carta-nombre">${r.nombre}</b>
+            <span class="ff-carta-texto">${r.texto}</span>
+            <span class="ff-carta-tipo">${r.riesgo}</span>
+        </button>`;
+}
+
 export function pantallaTorre(t) {
     if (t.resultado) return finalTorre(t);
     const p = t.partida;
@@ -2831,7 +2921,7 @@ export function pantallaTorre(t) {
         ? `<span class="ff-sp ff-sp-${especial}" style="animation-delay: ${TURNO_ENEMIGO + 150}ms" aria-hidden="true"></span>` : "";
     const fxHeroe = ["veneno", "sellar", "drenar"].includes(especial)
         ? `<span class="ff-sp ff-sp-${especial}" style="animation-delay: ${TURNO_ENEMIGO + 250}ms" aria-hidden="true"></span>` : "";
-    const secuencia = (eventos.length || p.fase === "batalla") ? (() => {
+    const secuencia = eventos.length ? (() => {
         const pasos = pasosDelTurno(t, { eventos, tuyo, mio, suyo, veneno, regenera, cayo, elemento, pet, criatura, especial: Boolean(especialInfo),
                                          esquivaste, enfurecido, cambioDeForma });
         return `
@@ -2845,6 +2935,17 @@ export function pantallaTorre(t) {
         </ol>`;
     })() : "";
 
+    // (v60) La vida de antes del turno, para que la barra muestre lo que se perdió (lo que te curaste se resta).
+    const antesEnemigo = Math.min(m.vidaMax, Math.max(0, m.vida) + (tuyo?.dano || 0) + (mio?.dano || 0) - (tuyo?.absorbido || 0)
+        - (regenera?.cura || 0) - (suyo?.cura || 0));
+    const antesHeroe = Math.min(h.vidaMax, Math.max(0, h.vida) + (tePego?.dano || 0) + (veneno?.dano || 0) + (tuyo?.reflejado || 0)
+        - (tuyo?.cura || 0) - (mio?.tipo === "cura" ? mio.cura : 0) - ((gracia || renacer)?.cura || 0));
+    // El tajo: un arco grande (dorado si es crítico; enorme si es el Golpe de Voluntad).
+    const golpeFisico = tuyo?.dano && (tuyo.tipo === "atacar" || tuyo.tipo === "tecnica" || tuyo.tipo === "voluntad");
+    const arco = golpeFisico ? `<span class="ff-arco ${tuyo.tipo === "voluntad" ? "voluntad" : tuyo.critico ? "critico" : ""}" aria-hidden="true"></span>` : "";
+    const avisoCritico = tuyo?.critico ? '<span class="ff-aviso ff-critico" aria-hidden="true">¡CRÍTICO!</span>' : "";
+    const victoria = cayo ? `<p class="ff-victoria" aria-hidden="true">¡Victoria!</p>` : "";
+
     // El cartel de arriba dice el nombre de lo que se usa: lo tuyo, lo de tu mascota y lo de la criatura.
     const cartel = (texto, cuando) => `<p class="ff-ventana ff-anuncio" style="animation-delay: ${cuando}ms">${esc(texto)}</p>`;
     const tuCartel = elemento ? `${elemento.icono} ${elemento.nombre}`
@@ -2852,7 +2953,7 @@ export function pantallaTorre(t) {
         : tuyo?.tipo === "voluntad" ? "✨ Golpe de Voluntad"
         : { defender: "Defensa", pocion: "Poción" }[tuyo?.tipo];
     const carteles = `${tuCartel ? cartel(tuCartel, 0) : ""}${mio ? cartel(mio.nombre, TURNO_MASCOTA) : ""}` +
-                     `${suyo?.nombre ? cartel(suyo.nombre, TURNO_ENEMIGO) : ""}`;
+                     `${suyo?.nombre && !especialInfo ? cartel(suyo.nombre, TURNO_ENEMIGO) : ""}`;
 
     // --- La criatura ---
     const clasesEnemigo = [
@@ -2869,10 +2970,10 @@ export function pantallaTorre(t) {
         : `<span class="ff-efecto ff-${tuyo.tipo === "hechizo" ? tuyo.elemento : tuyo.tipo === "voluntad" ? "voluntad" : "tajo"}" aria-hidden="true"></span>`;
     const efectoMascota = !mio?.dano ? "" : `<span class="ff-efecto ff-${mio.elemento || "garra"} ff-de-mascota" aria-hidden="true"></span>`;
     const enemigo = `
-        <div class="ff-bando ff-enemigo ${clasesEnemigo}">
+        <div class="ff-bando ff-enemigo ${clasesEnemigo} ${m.elite ? "elite" : ""}">
             <span class="ff-sombra"></span>
             ${spriteFF(t.sprites.enemigo, m.nombre, criatura.talla || 96, tinteDeVuelta(m.vuelta))}
-            ${efecto}${efectoMascota}${fxEnemigo}
+            ${efecto}${arco}${efectoMascota}${fxEnemigo}${avisoCritico}
             ${tuyo?.dano ? numeroFF(tuyo.dano, tuyo.critico ? "critico" : "", 300) : ""}
             ${mio?.dano ? numeroFF(mio.dano, "de-mascota", TURNO_MASCOTA + 120) : ""}
             ${suyo?.reflejo ? numeroFF(suyo.reflejo, "de-mascota", TURNO_ENEMIGO + 350) : ""}
@@ -2915,6 +3016,7 @@ export function pantallaTorre(t) {
     const curaDeMascota = mio?.tipo === "cura" ? mio.cura : 0;
     const heroe = `
         <div class="ff-bando ff-heroe ${clasesHeroe}">
+            <span class="ff-encima">${vidaEncima(h.vida, h.vidaMax, antesHeroe, TURNO_ENEMIGO + 250, "de-heroe")}<span class="ff-estados">${iconosDelHeroe(h)}</span></span>
             <span class="ff-sombra"></span>
             ${spriteFF(t.sprites.heroe, t.nombre, 54)}
             ${tuyo?.tipo === "defender" ? '<span class="ff-escudo" aria-hidden="true"></span>' : ""}${fxHeroe}
@@ -2931,8 +3033,16 @@ export function pantallaTorre(t) {
         </div>`;
 
     const escena = `
-        <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""} ${especial === "descarga" ? "ff-sacude" : ""}">
+        <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""} ${especial === "descarga" ? "ff-sacude" : ""} ${tuyo?.tipo === "voluntad" ? "ff-destella" : ""}">
             ${salaFF(t.sprites.sala)}${carteles}${enemigo}${heroe}${mascotaHtml}${bannerEspecial}
+            <div class="ff-hud ff-hud-enemigo">
+                <b>${m.guardian ? "👑 " : ""}${esc(m.nombre)}</b>
+                ${vidaEncima(m.vida, m.vidaMax, antesEnemigo, 300, "de-enemigo")}
+                <span class="ff-estados">${iconosDeEstado(m)}</span>
+            </div>
+            ${p.fase === "batalla" || eventos.length ? ordenDelTurno(t, eventos.length > 0) : ""}
+            ${globoDeIntencion(p)}
+            ${victoria}
         </div>
         ${secuencia}`;
 
@@ -2942,16 +3052,20 @@ export function pantallaTorre(t) {
     let abajo;
     if (p.fase === "mejora") {
         abajo = `
-            <div class="ff-ventana ff-botin ${espera}">
-                <p class="ff-titulo">¡Victoria! <small>${sitio.piso} ${p.piso} superado</small></p>
+            <div class="ff-ventana ff-botin ${espera ? "tras-victoria" : ""}">
+                <p class="ff-titulo">¡Victoria! <small>${sitio.piso} ${p.piso} superado${m.elite ? " · ⭐ era de élite" : ""}</small></p>
                 <p class="ff-renglon">Elige tu botín:</p>
-                ${p.opciones.map((clave) => {
-                    const mejora = torre.MEJORAS[clave];
-                    return `<button type="button" class="ff-comando" data-accion="torre-mejora" data-mejora="${clave}">
-                                <span class="ff-cursor" aria-hidden="true"></span>
-                                <span class="ff-comando-nombre">${mejora.icono} ${mejora.nombre}</span><small>${mejora.don ? "✦ Don raro · " : ""}${mejora.texto}</small></button>`;
-                }).join("")}
+                <div class="ff-cartas">${p.opciones.map(tarjetaMejora).join("")}</div>
             </div>`;
+    } else if (p.fase === "ruta") {
+        // v60: el camino se bifurca. Dos tarjetas: más riesgo y mejor botín, o un respiro.
+        abajo = `
+            <div class="ff-ventana ff-botin ${espera}">
+                <p class="ff-titulo">🔀 El camino se bifurca <small>antes del ${sitio.piso.toLowerCase()} ${p.piso}</small></p>
+                <p class="ff-renglon">Elige por dónde sigues: cambia lo que te espera.</p>
+                <div class="ff-cartas ff-cartas-dos">${Object.keys(torre.RUTAS).map(tarjetaRuta).join("")}</div>
+            </div>
+            <button type="button" class="enlace torre-rendirse" data-accion="torre-rendirse">Huir y cobrar lo ganado</button>`;
     } else if (p.fase === "sala") {
         // v42: una sala entre pisos. Cada opción dice lo que cuesta y lo que da; la que no puedes hacer se apaga.
         const sala = torre.SALAS[p.sala.tipo];
