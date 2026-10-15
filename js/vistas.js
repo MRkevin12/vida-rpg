@@ -39,6 +39,7 @@ import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
 import * as voces from "./voces.js";
 import { tarjetaGymHoy } from "./vistas-gym.js";
+import * as ataques from "./ataques.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
          diasEntre, lunesDe, relojTexto, relojLargo, sumarDias, MESES, hoy as fechaDeHoy } from "./fechas.js";
 
@@ -2993,6 +2994,11 @@ export function pantallaTorre(t) {
         ? `<span class="ff-sp ff-sp-${especial}" style="animation-delay: ${TURNO_ENEMIGO + 150}ms" aria-hidden="true"></span>` : "";
     const fxHeroe = ["veneno", "sellar", "drenar"].includes(especial)
         ? `<span class="ff-sp ff-sp-${especial}" style="animation-delay: ${TURNO_ENEMIGO + 250}ms" aria-hidden="true"></span>` : "";
+    // (v67) El ataque de la criatura se VE: garras, tajo, mordida, escupitajo, fuego, rayo… (ver ataques.js). Los especiales que
+    // ya traen su propio efecto (veneno, sellar, drenar) no lo repiten.
+    const golpeFuerte = suyo && ["fuerte", "descarga", "especial"].includes(suyo.tipo);
+    const fxAtaque = pega && !fxHeroe
+        ? ataques.htmlDelAtaque(ataques.estiloDe(m.id), criatura, { fuerte: golpeFuerte, falla: Boolean(esquivaste) }) : "";
     const secuencia = eventos.length ? (() => {
         const pasos = pasosDelTurno(t, { eventos, tuyo, mio, suyo, veneno, regenera, cayo, elemento, pet, criatura, especial: Boolean(especialInfo),
                                          esquivaste, enfurecido, cambioDeForma });
@@ -3108,8 +3114,8 @@ export function pantallaTorre(t) {
         </div>`;
 
     const escena = `
-        <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""} ${especial === "descarga" ? "ff-sacude" : ""} ${tuyo?.tipo === "voluntad" ? "ff-destella" : ""}">
-            ${salaFF(t.sprites.sala)}${carteles}${enemigo}${heroe}${mascotaHtml}${bannerEspecial}
+        <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""} ${especial === "descarga" || (golpeFuerte && pega && !esquivaste && ["golpe", "mordida"].includes(ataques.estiloDe(m.id))) ? "ff-sacude" : ""} ${tuyo?.tipo === "voluntad" ? "ff-destella" : ""}">
+            ${salaFF(t.sprites.sala)}${carteles}${enemigo}${heroe}${mascotaHtml}${fxAtaque}${bannerEspecial}
             <div class="ff-hud ff-hud-enemigo">
                 <b>${m.guardian ? "👑 " : ""}${esc(m.nombre)}</b>
                 ${vidaEncima(m.vida, m.vidaMax, antesEnemigo, 300, "de-enemigo")}

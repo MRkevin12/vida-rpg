@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v67 — Los ataques de las criaturas se ven
+- **`js/ataques.js`** (nuevo, en `sw.js`): `ESTILOS` (garras, tajo, mordida, golpe, escupitajo, aguijón, espectral, fuego, rayo, esquirlas, ráfaga), `estiloDe(id)` (sale de la familia de sonido de `FAMILIA_DE_CRIATURA` y unas excepciones), `recorrido` (de dónde sale y adónde llega, en puntos de la escena de 192×128; `falla` si esquivas, `fuerte` más grande) y `htmlDelAtaque`.
+- `pantallaTorre` mete `fxAtaque` (una capa `.ff-atq-<estilo>` con piezas `<i class="a">` y `<i class="b">`) dentro de `.ff-escena` cuando la criatura te pega y el ataque no trae ya su efecto (veneno, sellar, drenar). Los golpes fuertes de estilo golpe/mordida sacuden la escena. CSS al final de `estilos.css` (sale a los 0,68 s, llega a los 0,9 s; se apaga con `prefers-reduced-motion`). 263 pruebas.
+
 ## v66 — El Gimnasio
 - **`js/gym.js`** (nuevo, reglas puras; en `sw.js`): `RUTINA` (7 entrenamientos, 24 ejercicios con músculo, series y rango de repeticiones), `MUSCULOS`, `RANGOS`, `HITOS`; `crearEntrenamiento` (rellena peso y repeticiones con la última vez), `cerrarEntrenamiento` (XP: 4 por serie + 20 si ≥80 % + 15 por récord, máx. 3; monedas), `mejoresDe` (récord por 1RM estimado de Epley), `sugerencia` (doble progresión), `nivelDeGym` (100×N), `nivelesDeMusculos` (50×N), `bonoDeGym` (+1 % por nivel, máx. +25 %), `fisicoDe` (0–3), `rachaSemanal`, `siguienteRutina`. Todo se calcula desde `estado.gym.sesiones`.
 - `estado.gym = { sesiones, encurso, hitos, metaSemanal, descanso }` (se migra en `completar`). Acciones al final de `acciones.js`: `empezarGym` (hoy o ayer, una vez por rutina y día), `marcarSerieGym`, `anotarSerieGym`, `cambiarSeriesGym`, `terminarGym` (XP a Fuerza, celebraciones, hitos), `cancelarGym`, `borrarSesionGym`, `cambiarAjusteGym`.

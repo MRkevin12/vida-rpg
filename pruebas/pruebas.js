@@ -56,6 +56,7 @@ import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
 import * as gym from "../js/gym.js";
+import * as ataques from "../js/ataques.js";
 import * as vistasGym from "../js/vistas-gym.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -5479,6 +5480,54 @@ prueba("Gym: las pantallas se dibujan (la fila de Hoy, la elección, el entrenam
     html = vistasGym.pantallaGym(estado, ctx);
     cierto(html.includes("Récords personales") && html.includes("Últimas sesiones") && html.includes("Hitos de gym"), "resultados");
     cierto(vistasGym.tarjetaGymHoy(estado, ctx).includes("Hoy entrenaste"));
+});
+
+// ===== Los ataques de las criaturas se ven (v67) =====
+
+prueba("Ataques: las 80 criaturas tienen un estilo de ataque válido y los 11 estilos se usan", () => {
+    const todas = Object.values(bestiario.LUGARES).flatMap((l) => l.orden);
+    igual(todas.length, 80);
+    const usados = new Set();
+    for (const id of todas) {
+        const estilo = ataques.estiloDe(id);
+        cierto(ataques.ESTILOS[estilo], `${id} tiene estilo (${estilo})`);
+        usados.add(estilo);
+    }
+    igual([...usados].sort(), Object.keys(ataques.ESTILOS).sort(), "todos los estilos los usa alguien");
+    igual(ataques.estiloDe("dragon"), "fuego");
+    igual(ataques.estiloDe("esqueleto"), "tajo");
+    igual(ataques.estiloDe("ojo"), "rayo");
+});
+
+prueba("Ataques: el recorrido sale por delante de la criatura y llega al héroe; si esquivas, pasa de largo", () => {
+    const normal = ataques.recorrido({ talla: 96 });
+    const falla = ataques.recorrido({ talla: 96 }, { falla: true });
+    cierto(normal.x0 > 62 && normal.x1 < 150, "va de la criatura al héroe");
+    cierto(falla.x1 > 192, "esquivado: sale de la escena");
+    igual(ataques.recorrido({}, { fuerte: true }).tam > ataques.recorrido({}).tam, true, "el fuerte es más grande");
+    cierto(ataques.recorrido({ vuela: true, talla: 72 }).y0 > ataques.recorrido({ talla: 72 }).y0, "las que vuelan salen más arriba");
+    const html = ataques.htmlDelAtaque("esquirlas", { talla: 80 });
+    igual((html.match(/class="a"/g) || []).length, 3, "tres esquirlas");
+    cierto(!ataques.htmlDelAtaque("escupitajo", {}, { falla: true }).includes('class="b"'), "un proyectil esquivado no tiene impacto");
+    cierto(ataques.htmlDelAtaque("mordida", {}, { falla: true }).includes('class="b"'), "la mordida al aire sí cierra las dos mandíbulas");
+    igual(ataques.htmlDelAtaque("no-existe", {}), "");
+});
+
+prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no cuando solo se cura", () => {
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 11);
+    const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
+    const t = (eventos) => ({ partida: estado.arcade.torre, nombre: "Prueba", sprites: imagenes, eventos, menu: "principal", ultimo: "atacar",
+                              bestiario: estado.arcade.bestiario, resultado: null, fichas: 2 });
+    const golpe = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "golpe", dano: 4, nombre: "Mordisco" }]));
+    cierto(/ff-atq ff-atq-garras\s+"/.test(golpe) || golpe.includes("ff-atq ff-atq-garras"), "el murciélago ataca con garras");
+    const fuerte = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "fuerte", dano: 9, nombre: "Picada" }]));
+    cierto(fuerte.includes("ff-atq ff-atq-garras fuerte"), "el golpe fuerte es más grande");
+    const esquivado = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "golpe", dano: 0, nombre: "Mordisco", esquivado: true }]));
+    cierto(esquivado.includes("falla"), "esquivado: el ataque pasa de largo");
+    const cura = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "curar", cura: 5, nombre: "Regenerar" }]));
+    cierto(!cura.includes("ff-atq "), "curarse no es atacar");
+    cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

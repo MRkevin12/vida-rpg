@@ -10663,3 +10663,299 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-hito-premio { font-size: 0.8rem; color: var(--gym-2); white-space: nowrap; }
 .gym-historial { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .gym-historial > span { display: grid; min-width: 0; }
+
+/* ===== v67: los ataques de las criaturas se ven ===== */
+/* Cada ataque es una capa que cubre la escena; sus piezas (<i class="a"> y <i class="b">) se colocan en «puntos» (--px).
+   Variables: --x0/--y0 (de dónde sale), --x1/--y1 (adónde llega), --largo/--ang (para el rayo), --tam (1,25 normal, 1,8 si es fuerte).
+   Tiempos: sale a los 0,68 s (cuando la criatura embiste) y llega a los 0,9 s (cuando tu héroe parpadea). */
+.ff-atq {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    --salida: 0.68s;
+    --llegada: 0.88s;
+}
+
+.ff-atq i {
+    position: absolute;
+    display: block;
+    opacity: 0;
+}
+
+/* --- Lo que pasa en el héroe (el impacto, la pieza «b») --- */
+.ff-atq .b {
+    left: calc(var(--px) * 150);
+    bottom: calc(var(--px) * 30);
+    width: calc(var(--px) * 24 * var(--tam));
+    height: calc(var(--px) * 24 * var(--tam));
+    margin: calc(var(--px) * -12 * var(--tam)) 0 0 calc(var(--px) * -12 * var(--tam));
+}
+
+/* --- Proyectiles: viajan de la criatura al héroe --- */
+.ff-atq-escupitajo .a,
+.ff-atq-aguijon .a,
+.ff-atq-espectral .a,
+.ff-atq-fuego .a,
+.ff-atq-esquirlas .a,
+.ff-atq-rafaga .a {
+    left: calc(var(--px) * var(--x0));
+    bottom: calc(var(--px) * (var(--y0) + var(--dy, 0)));
+    animation: atq-vuelo 0.22s steps(5) var(--salida) forwards;
+}
+
+.ff-atq.falla .a { animation-duration: 0.34s; }
+
+@keyframes atq-vuelo {
+    0% { opacity: 1; left: calc(var(--px) * var(--x0)); bottom: calc(var(--px) * (var(--y0) + var(--dy, 0))); }
+    99% { opacity: 1; left: calc(var(--px) * var(--x1)); bottom: calc(var(--px) * (var(--y1) + var(--dy, 0) * 0.4)); }
+    100% { opacity: 0; left: calc(var(--px) * var(--x1)); bottom: calc(var(--px) * (var(--y1) + var(--dy, 0) * 0.4)); }
+}
+
+@keyframes atq-impacto {
+    0% { opacity: 1; transform: scale(0.25); }
+    35% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.25); }
+}
+
+/* Escupitajo: una bola verde con su rastro; al llegar, se aplasta. */
+.ff-atq-escupitajo .a {
+    width: calc(var(--px) * 10 * var(--tam));
+    height: calc(var(--px) * 9 * var(--tam));
+    border-radius: 50% 50% 45% 55%;
+    background: radial-gradient(circle at 35% 30%, #e4ff95, #72c41c 55%, #2f7a0a);
+    box-shadow: calc(var(--px) * -6) calc(var(--px) * 1) 0 calc(var(--px) * -2) #5da614, calc(var(--px) * -11) calc(var(--px) * 2) 0 calc(var(--px) * -3) #3f8a10;
+}
+.ff-atq-escupitajo .b {
+    background: radial-gradient(circle, #b6ee4b 0 38%, #5da614 40% 55%, transparent 58%);
+    clip-path: polygon(50% 0, 62% 28%, 96% 18%, 74% 46%, 100% 62%, 66% 66%, 72% 100%, 50% 74%, 28% 100%, 34% 66%, 0 62%, 26% 46%, 4% 18%, 38% 28%);
+    animation: atq-impacto 0.36s steps(5) var(--llegada) forwards;
+}
+
+/* Aguijón: un dardo fino y rápido; al clavarse, un destello venenoso. */
+.ff-atq-aguijon .a {
+    width: calc(var(--px) * 13 * var(--tam));
+    height: calc(var(--px) * 2.6 * var(--tam));
+    background: linear-gradient(90deg, transparent, #b9e63a 45%, #fff);
+    rotate: var(--ang);
+    transform-origin: 100% 50%;
+}
+.ff-atq-aguijon .b {
+    background: radial-gradient(circle, #fff 0 14%, #cdf24a 16% 34%, rgba(150, 90, 220, 0.7) 36% 52%, transparent 55%);
+    clip-path: polygon(50% 0, 58% 36%, 100% 50%, 58% 64%, 50% 100%, 42% 64%, 0 50%, 42% 36%);
+    animation: atq-impacto 0.3s steps(4) var(--llegada) forwards;
+}
+
+/* Espectro: una voluta violeta que ondea; al llegar, un anillo helado. */
+.ff-atq-espectral .a {
+    width: calc(var(--px) * 14 * var(--tam));
+    height: calc(var(--px) * 14 * var(--tam));
+    border-radius: 50% 50% 50% 8%;
+    background: radial-gradient(circle at 40% 40%, rgba(240, 228, 255, 0.95), rgba(160, 100, 255, 0.65) 55%, transparent 72%);
+    filter: drop-shadow(0 0 calc(var(--px) * 3) #a070ff);
+    animation: atq-vuelo 0.22s steps(5) var(--salida) forwards, atq-ondea 0.22s steps(4) var(--salida);
+}
+@keyframes atq-ondea {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(calc(var(--px) * -5)); }
+    75% { transform: translateY(calc(var(--px) * 5)); }
+}
+.ff-atq-espectral .b {
+    border: calc(var(--px) * 2) solid #cdb4ff;
+    border-radius: 50%;
+    box-shadow: 0 0 calc(var(--px) * 4) #a070ff, inset 0 0 calc(var(--px) * 4) #a070ff;
+    animation: atq-impacto 0.5s steps(6) var(--llegada) forwards;
+}
+
+/* Bola de fuego: núcleo amarillo y cola de brasas; al llegar, estalla. */
+.ff-atq-fuego .a {
+    width: calc(var(--px) * 13 * var(--tam));
+    height: calc(var(--px) * 13 * var(--tam));
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 42%, #fff7b0, #ffb020 38%, #f0500f 68%, transparent 72%);
+    box-shadow: calc(var(--px) * -7) 0 0 calc(var(--px) * -1) rgba(240, 80, 15, 0.85), calc(var(--px) * -13) calc(var(--px) * 1) 0 calc(var(--px) * -3) rgba(255, 150, 30, 0.6);
+}
+.ff-atq-fuego .b {
+    width: calc(var(--px) * 40 * var(--tam));
+    height: calc(var(--px) * 40 * var(--tam));
+    margin: calc(var(--px) * -20 * var(--tam)) 0 0 calc(var(--px) * -20 * var(--tam));
+    background: radial-gradient(circle, #fff 0 14%, #ffd23c 16% 38%, #f0500f 40% 62%, transparent 66%);
+    clip-path: polygon(50% 0, 60% 24%, 86% 8%, 76% 36%, 100% 42%, 78% 58%, 96% 86%, 66% 74%, 50% 100%, 36% 76%, 6% 90%, 24% 60%, 0 42%, 26% 34%, 14% 8%, 40% 24%);
+    animation: atq-impacto 0.5s steps(6) var(--llegada) forwards;
+}
+
+/* Rayo del ojo: una línea que va de su ojo a tu héroe, y un destello. */
+.ff-atq-rayo .a {
+    left: calc(var(--px) * var(--x0));
+    bottom: calc(var(--px) * var(--y0));
+    width: calc(var(--px) * var(--largo));
+    height: calc(var(--px) * 3 * var(--tam));
+    background: linear-gradient(90deg, #fff, #ff7af0 35%, #8a6aff);
+    box-shadow: 0 0 calc(var(--px) * 5) #ff4ae0;
+    rotate: var(--ang);
+    transform-origin: 0 50%;
+    animation: atq-rayo 0.34s steps(5) 0.7s forwards;
+}
+@keyframes atq-rayo {
+    0% { opacity: 1; clip-path: inset(0 100% 0 0); }
+    45% { opacity: 1; clip-path: inset(0 0 0 0); }
+    75% { opacity: 1; clip-path: inset(0 0 0 0); transform: scaleY(0.4); }
+    100% { opacity: 0; clip-path: inset(0 0 0 0); }
+}
+.ff-atq-rayo .b {
+    background: radial-gradient(circle, #fff 0 16%, #ff7af0 18% 42%, rgba(138, 106, 255, 0.5) 44% 60%, transparent 64%);
+    animation: atq-impacto 0.34s steps(5) 0.86s forwards;
+}
+
+/* Esquirlas de cristal: tres a la vez, en abanico. */
+.ff-atq-esquirlas .a {
+    width: calc(var(--px) * 13 * var(--tam));
+    height: calc(var(--px) * 5 * var(--tam));
+    background: linear-gradient(180deg, #fff 0 45%, #7ac8ff 45% 100%);
+    clip-path: polygon(100% 50%, 14% 0, 0 50%, 14% 100%);
+    animation-delay: calc(var(--salida) + var(--n, 0) * 0.04s);
+}
+.ff-atq-esquirlas .b {
+    background: radial-gradient(circle, #fff 0 16%, #aee0ff 18% 40%, transparent 44%);
+    clip-path: polygon(50% 0, 58% 38%, 100% 50%, 58% 62%, 50% 100%, 42% 62%, 0 50%, 42% 38%);
+    animation: atq-impacto 0.36s steps(5) calc(var(--llegada) + 0.04s) forwards;
+}
+
+/* Ráfaga: tres medias lunas de viento. */
+.ff-atq-rafaga .a {
+    width: calc(var(--px) * 9 * var(--tam));
+    height: calc(var(--px) * 16 * var(--tam));
+    border-radius: 50%;
+    border-right: calc(var(--px) * 3 * var(--tam)) solid rgba(214, 255, 238, 0.95);
+    filter: drop-shadow(0 0 calc(var(--px) * 2) #9fe8cc);
+    animation-delay: calc(var(--salida) + var(--n, 0) * 0.05s);
+}
+.ff-atq-rafaga .b {
+    border: calc(var(--px) * 2) dashed rgba(214, 255, 238, 0.9);
+    border-radius: 50%;
+    animation: atq-impacto 0.5s steps(6) var(--llegada) forwards, atq-gira 0.5s steps(6) var(--llegada);
+}
+@keyframes atq-gira {
+    to { rotate: 270deg; }
+}
+
+/* --- Cuerpo a cuerpo: el golpe cae sobre tu héroe --- */
+.ff-atq-garras .a,
+.ff-atq-tajo .a,
+.ff-atq-golpe .a {
+    left: calc(var(--px) * 150);
+    translate: -50% 0;
+}
+
+/* Zarpazo: tres arañazos rojos. */
+.ff-atq-garras .a {
+    bottom: calc(var(--px) * 12);
+    width: calc(var(--px) * 36 * var(--tam));
+    height: calc(var(--px) * 40 * var(--tam));
+    background:
+        linear-gradient(120deg, transparent 36%, #ff6464 37% 40%, #fff 40% 42%, transparent 43%),
+        linear-gradient(120deg, transparent 47%, #ff6464 48% 51%, #fff 51% 53%, transparent 54%),
+        linear-gradient(120deg, transparent 58%, #ff6464 59% 62%, #fff 62% 64%, transparent 65%);
+    animation: ff-tajo 0.32s steps(4) 0.82s forwards;
+}
+.ff-atq-garras .b {
+    background: radial-gradient(circle, rgba(255, 70, 70, 0.8), transparent 66%);
+    animation: atq-impacto 0.3s steps(4) 0.9s forwards;
+}
+
+/* Tajo: un arco de acero. */
+.ff-atq-tajo .a {
+    bottom: calc(var(--px) * 4);
+    width: calc(var(--px) * 46 * var(--tam));
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border-left: calc(var(--px) * 5 * var(--tam)) solid #e8f0ff;
+    border-top: calc(var(--px) * 2) solid transparent;
+    border-bottom: calc(var(--px) * 2) solid transparent;
+    filter: drop-shadow(0 0 calc(var(--px) * 2) #9fc0ff);
+    rotate: -18deg;
+    animation: atq-arco 0.34s steps(5) 0.8s forwards;
+}
+@keyframes atq-arco {
+    0% { opacity: 1; clip-path: inset(0 0 100% 0); }
+    60% { opacity: 1; clip-path: inset(0 0 0 0); }
+    100% { opacity: 0; clip-path: inset(0 0 0 0); }
+}
+.ff-atq-tajo .b {
+    background: radial-gradient(circle, #fff 0 18%, #cfe0ff 20% 40%, transparent 44%);
+    clip-path: polygon(50% 0, 58% 38%, 100% 50%, 58% 62%, 50% 100%, 42% 62%, 0 50%, 42% 38%);
+    animation: atq-impacto 0.3s steps(4) 0.9s forwards;
+}
+
+/* Mordida: dos mandíbulas que se cierran sobre tu héroe. */
+.ff-atq-mordida .a,
+.ff-atq-mordida .b {
+    left: calc(var(--px) * 150);
+    translate: -50% 0;
+    width: calc(var(--px) * 32 * var(--tam));
+    height: calc(var(--px) * 14 * var(--tam));
+    margin: 0;
+    background: linear-gradient(180deg, #fff, #d9d9d9);
+}
+.ff-atq-mordida .a {
+    bottom: calc(var(--px) * 34);
+    clip-path: polygon(0 0, 100% 0, 100% 36%, 90% 100%, 80% 36%, 70% 100%, 60% 36%, 50% 100%, 40% 36%, 30% 100%, 20% 36%, 10% 100%, 0 36%);
+    animation: atq-mandibula-arriba 0.34s steps(4) 0.78s forwards;
+}
+.ff-atq-mordida .b {
+    bottom: calc(var(--px) * 18);
+    clip-path: polygon(0 100%, 100% 100%, 100% 64%, 90% 0, 80% 64%, 70% 0, 60% 64%, 50% 0, 40% 64%, 30% 0, 20% 64%, 10% 0, 0 64%);
+    animation: atq-mandibula-abajo 0.34s steps(4) 0.78s forwards;
+}
+@keyframes atq-mandibula-arriba {
+    0% { opacity: 1; transform: translateY(calc(var(--px) * -26)); }
+    55% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(0); }
+}
+@keyframes atq-mandibula-abajo {
+    0% { opacity: 1; transform: translateY(calc(var(--px) * 26)); }
+    55% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(0); }
+}
+
+/* Golpe pesado: un bloque cae sobre tu héroe y la onda de choque corre por el suelo. */
+.ff-atq-golpe .a {
+    bottom: calc(var(--px) * 30);
+    width: calc(var(--px) * 24 * var(--tam));
+    height: calc(var(--px) * 18 * var(--tam));
+    border-radius: calc(var(--px) * 4);
+    background: linear-gradient(180deg, #a3a8bf, #565b73);
+    border: calc(var(--px) * 1.5) solid #1c1e2c;
+    animation: atq-cae 0.34s steps(4) 0.66s forwards;
+}
+@keyframes atq-cae {
+    0% { opacity: 1; transform: translateY(calc(var(--px) * -80)); }
+    70% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(0); }
+}
+.ff-atq-golpe .b {
+    bottom: calc(var(--px) * 10);
+    width: calc(var(--px) * 60 * var(--tam));
+    height: calc(var(--px) * 12 * var(--tam));
+    margin: 0 0 0 calc(var(--px) * -30 * var(--tam));
+    border: calc(var(--px) * 2) solid rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    box-shadow: 0 0 calc(var(--px) * 4) rgba(255, 255, 255, 0.6);
+    animation: atq-onda 0.5s steps(6) 0.98s forwards;
+}
+@keyframes atq-onda {
+    0% { opacity: 1; transform: scale(0.2); }
+    100% { opacity: 0; transform: scale(1.6); }
+}
+
+/* Si esquivas, los golpes cuerpo a cuerpo caen al lado y sin impacto. */
+.ff-atq.falla.ff-atq-garras .a,
+.ff-atq.falla.ff-atq-tajo .a,
+.ff-atq.falla.ff-atq-golpe .a { margin-left: calc(var(--px) * -30); }
+.ff-atq.falla.ff-atq-mordida .a,
+.ff-atq.falla.ff-atq-mordida .b { margin-left: calc(var(--px) * -26); }
+.ff-atq.falla:not(.ff-atq-mordida) .b { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .ff-atq { display: none; }
+}

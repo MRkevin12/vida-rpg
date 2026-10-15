@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 66;
+export const VERSION_APP = 67;
 
 export const NOVEDADES = [
+    {
+        version: 67,
+        titulo: "Ataques que se ven",
+        cambios: [
+            "👾 Las criaturas ya no solo embisten: cada una ataca a su manera. Zarpazos de garras, tajos de acero, mordidas que se cierran, escupitajos que viajan hasta ti, aguijones, volutas de espectro, bolas de fuego que estallan, rayos de sus ojos, esquirlas de cristal, ráfagas de viento y golpes pesados con onda de choque.",
+            "💥 Los golpes fuertes y las descargas se ven más grandes (y a veces sacuden la escena). Si esquivas, el ataque pasa de largo o cae a tu lado.",
+        ],
+    },
     {
         version: 66,
         titulo: "El Gimnasio",
