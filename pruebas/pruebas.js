@@ -45,6 +45,7 @@ import * as maestro from "../js/maestro.js";
 import * as memorias from "../js/memorias.js";
 import * as pergamino from "../js/pergamino.js";
 import * as pergaminos from "../js/pergaminos.js";
+import * as libroCasio from "../js/libro-casio.js";
 import * as saga from "../js/saga.js";
 import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
@@ -3216,8 +3217,8 @@ prueba("Saga: 7 actos en orden con un objetivo final; el primero que falta es el
     igual(saga.ACTOS.length, 7);
     igual(new Set(saga.ACTOS.map((a) => a.id)).size, 7, "ids distintos");
     const historias = saga.HISTORIAS.map((h) => h.id);
-    igual(historias, ["pergamino", "memorias", "cronica", "torre", "mazmorra", "voces", "libro"], "las historias, en el orden en que pasan");
-    for (const h of saga.HISTORIAS) cierto(["pergamino-abrir", "memorias-abrir", "ir", "historia-abrir"].includes(h.abrir.accion), `${h.id} se puede abrir`);
+    igual(historias, ["pergamino", "memorias", "casio", "cronica", "torre", "mazmorra", "voces", "libro"], "las historias, en el orden en que pasan");
+    for (const h of saga.HISTORIAS) cierto(["pergamino-abrir", "memorias-abrir", "novela-abrir", "ir", "historia-abrir"].includes(h.abrir.accion), `${h.id} se puede abrir`);
     for (const a of saga.ACTOS) {
         cierto(a.titulo && a.relato && a.objetivo && a.cierre && a.condicion.meta > 0, `${a.id} tiene todo`);
         cierto(a.lee === "pacto" || historias.includes(a.lee), `${a.id} lleva a una historia`);
@@ -4930,6 +4931,101 @@ prueba("Horizontal: la batalla, las cinemáticas, el mapa y los minijuegos tiene
     cierto(!/\.contenido\s*\{[^}]*max-width:\s*980px/.test(css.slice(0, inicio)), "el resto de la app sigue en su columna angosta");
     const manifiesto = await (await fetch("../manifest.json", { cache: "no-store" })).json();
     igual(manifiesto.orientation, "any", "la app instalada deja girar");
+});
+
+// ===== «El Centinela», el libro largo de Casio (v62) =====
+
+prueba("El Centinela: un libro largo (24 capítulos en 3 libros) con moraleja en cada uno, sin huecos y con el nombre solo al final", () => {
+    igual(libroCasio.CAPITULOS.length, 24, "veinticuatro capítulos");
+    cierto(libroCasio.palabras() >= 11000, `es largo: ${libroCasio.palabras()} palabras`);
+    cierto(libroCasio.minutosDeLectura() >= 55, `se lee en ${libroCasio.minutosDeLectura()} minutos`);
+    igual(libroCasio.LIBROS.map((l) => l.nombre), ["La orilla", "La Torre", "La guardia"], "tres libros");
+    igual(libroCasio.LIBROS.map((l) => l.desde), [0, 5, 18]);
+    igual(libroCasio.CAPITULOS_LIBRES, 18, "los dos primeros libros están libres");
+    for (const [i, c] of libroCasio.CAPITULOS.entries()) {
+        cierto(c.titulo && c.parrafos.length >= 4 && c.parrafos.every((p) => p.length > 40), `capítulo ${i + 1}: «${c.titulo}» tiene texto`);
+        cierto(c.moraleja.length > 25, `capítulo ${i + 1}: tiene moraleja`);
+        cierto(c.parrafos.join(" ").split(/\s+/).length >= 330, `capítulo ${i + 1}: no es corto`);
+    }
+    cierto(libroCasio.ENSENANZAS.length >= 16 && libroCasio.PROLOGO.length >= 3 && libroCasio.EPILOGO.length >= 4, "enseñanzas, prólogo y epílogo");
+    const libro = libroCasio.libroDeCasio("Ana", 30);
+    const texto = JSON.stringify(libro);
+    cierto(!/\{n\}|undefined|NaN|\[object/.test(texto), "sin huecos");
+    cierto(libro.capitulos.slice(18).some((c) => c.parrafos.join(" ").includes("Ana")), "tu nombre aparece en el libro tercero");
+    cierto(!libroCasio.CAPITULOS.slice(0, 18).some((c) => c.parrafos.join(" ").includes("{n}")), "pero no antes de que liberes a Casio");
+    // Lo que ya cuentan las otras historias no se contradice.
+    const todo = libroCasio.CAPITULOS.map((c) => c.parrafos.join(" ")).join(" ") + libroCasio.EPILOGO.join(" ");
+    cierto(!/Archivista[^.]*(murió|se convirtió en polvo|se deshizo)/i.test(todo.replace("antes de volver a su mesa", "")), "el Archivista sigue en su biblioteca");
+    cierto(!/(la Llama|el fuego)[^.]*\b(ya arde|arde otra vez|volvió a arder)\b/i.test(todo), "no dice que la Llama ya arde");
+    cierto(todo.includes("Ayer subí") || todo.includes("ayer subí"), "tiene la frase de Casio");
+    cierto(todo.includes("piso diecinueve") && todo.includes("Ceniza") && todo.includes("Orrin"), "enlaza con la Torre, el dragón y el nombre raspado");
+    cierto(todo.includes("armadura celeste") || todo.includes("celeste"), "la armadura celeste");
+});
+
+prueba("El Centinela: los capítulos finales se abren al liberar a Casio (piso 20) y se puede leer, continuar y terminar una vez", () => {
+    const cerrado = libroCasio.libroDeCasio("Ana", 0);
+    igual(cerrado.capitulos.filter((c) => c.abierto).length, 18, "hasta el capítulo 18");
+    cierto(cerrado.capitulos[18].bloqueado.includes("piso 20") && cerrado.capitulos[18].parrafos.length === 0 && cerrado.epilogo.length === 0, "lo demás, cerrado y sin texto");
+    igual(libroCasio.libroDeCasio("Ana", 20).capitulos.filter((c) => c.abierto).length, 24, "con el piso 20, todos");
+    const estado = partidaNueva();
+    igual(estado.libros.casio, { marca: 0, leidos: 0, fin: null }, "empieza sin leer");
+    acciones.marcarLibro(estado, "casio", 0);
+    acciones.marcarLibro(estado, "casio", 5);
+    acciones.marcarLibro(estado, "casio", 2);
+    igual([estado.libros.casio.marca, estado.libros.casio.leidos], [2, 6], "recuerda dónde vas y lo más lejos que llegaste");
+    debeFallar(() => acciones.marcarLibro(estado, "casio", 18), "Aurelio te lo entregará cuando liberes a Casio: supera el piso 20 de la Torre.");
+    debeFallar(() => acciones.marcarLibro(estado, "casio", 99), "Ese capítulo no existe.");
+    debeFallar(() => acciones.marcarLibro(estado, "otro", 0), "Ese libro no existe.");
+    debeFallar(() => acciones.terminarLibro(estado, "casio"), "Todavía te faltan capítulos por abrir.");
+    estado.arcade.records.torre = 20;
+    debeFallar(() => acciones.terminarLibro(estado, "casio"), "Léelo hasta el último capítulo.");
+    acciones.marcarLibro(estado, "casio", 23);
+    const antes = [estado.personaje.xp, estado.personaje.gemas];
+    const r = acciones.terminarLibro(estado, "casio");
+    igual([r.primera, estado.personaje.xp - antes[0], estado.personaje.gemas - antes[1]], [true, libroCasio.PREMIO.xp, libroCasio.PREMIO.gemas], "el premio");
+    igual(acciones.terminarLibro(estado, "casio").primera, false, "una sola vez");
+    igual(estado.personaje.xp - antes[0], libroCasio.PREMIO.xp, "no se cobra dos veces");
+    // Sobrevive a una copia de seguridad y una copia vieja lo trae vacío.
+    const copia = datos.desdeRespaldo(JSON.stringify(estado));
+    igual([copia.libros.casio.leidos, Boolean(copia.libros.casio.fin)], [24, true], "queda guardado");
+    igual(datos.desdeRespaldo(JSON.stringify({ version: 1, personaje: { nombre: "Vieja", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] })).libros.casio, { marca: 0, leidos: 0, fin: null }, "una copia vieja");
+    // La escena final.
+    const c = cinesReino.cinematicaDeCasio("Ana");
+    cierto(c.tomas.length === 4 && c.tomas.every((t) => t.ms >= 4000 && !/\{n\}|undefined/.test(t.texto)) && c.tomas[0].actores[0].quien === "criatura", "la escena de Casio (la criatura «centinela»)");
+});
+
+prueba("El Centinela (pantallas): portada con prólogo e índice, capítulo con moraleja, navegación y final; está en Historia y suena Lectura", () => {
+    const estado = partidaNueva();
+    estado.personaje.nombre = "Ana <b>";
+    let html = vistas.pantallaNovela(estado, { capituloNovela: null });
+    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(html.includes("El Centinela") && html.includes("Prólogo") && html.includes("Empezar a leer") && html.includes("Libro primero · La orilla") && html.includes("Libro tercero · La guardia"), "portada: título, prólogo, empezar e índice por libros");
+    igual(html.split('data-accion="novela-capitulo"').length - 1, 18 + 1, "18 capítulos abiertos en el índice + el botón de empezar");
+    cierto(html.includes("disabled") && html.includes("liberes a Casio"), "los últimos, cerrados con su motivo");
+    html = vistas.pantallaNovela(estado, { capituloNovela: 0 });
+    cierto(html.includes("Capítulo I de 24") && html.includes("El hijo del barquero") && html.includes("Lo que aprendió Casio") && html.includes("novela-texto"), "un capítulo con su moraleja");
+    cierto(html.includes('data-accion="novela-indice"') && /data-i="1"[^>]*>Siguiente/.test(html) && /data-i="-1"[^>]*disabled/.test(html), "navegación: sin «anterior» en el primero");
+    html = vistas.pantallaNovela(estado, { capituloNovela: 18 });
+    cierto(!html.includes("Capítulo XIX de"), "un capítulo cerrado no se puede abrir: vuelve a la portada");
+    estado.arcade.records.torre = 20;
+    html = vistas.pantallaNovela(estado, { capituloNovela: 23 });
+    cierto(html.includes("Epílogo") && html.includes("Lo que enseña este libro") && html.includes("Aurelio, que fue su aprendiz") && html.includes("Ana &lt;b&gt;") && html.includes('data-accion="novela-terminar"'), "el último: epílogo, enseñanzas, nombre escapado y «Terminé el libro»");
+    cierto(/data-i="24"[^>]*disabled/.test(html) && html.includes(">Fin</button>"), "no hay capítulo siguiente");
+    estado.libros.casio.leidos = 24;
+    estado.libros.casio.fin = hoy();
+    html = vistas.pantallaNovela(estado, { capituloNovela: 23 });
+    cierto(html.includes('data-accion="novela-escena"') && !html.includes('data-accion="novela-terminar"') && html.includes("Terminaste este libro"), "ya terminado: ver la escena otra vez");
+    html = vistas.pantallaNovela(estado, { capituloNovela: null });
+    cierto(html.includes("24 de 24") && html.includes("Continuar: capítulo"), "la portada dice dónde seguir");
+    // En Héroe › Historia.
+    const info = juego.resumen(estado, hoy());
+    const historia = vistas.pantallaPersonaje(estado, {
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+        vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
+        rangoResumen: 7, subvista: { personaje: "historia" }, campanaVista: null, diarioVista: {},
+    });
+    cierto(historia.includes('data-accion="novela-abrir"') && historia.includes("El Centinela") && historia.includes("24 de 24 capítulos"), "aparece en Historia");
+    igual(musicaModulo.pistaDeEscena({ pantalla: "novela", elegida: "epica", auto: true }), "lectura", "suena la música de lectura");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

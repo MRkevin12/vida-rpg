@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 61;
+export const VERSION_APP = 62;
 
 export const NOVEDADES = [
+    {
+        version: 62,
+        titulo: "Un libro nuevo: El Centinela",
+        cambios: [
+            "📖 En Héroe › Historia hay un libro largo: «El Centinela», la vida de Casio, el último Vigía, contada por Aurelio. Son 3 libros y 24 capítulos (unas 12 000 palabras, más de una hora de lectura): su infancia junto al río, su hermana Isa, la Biblioteca y la Fragua, el muchacho de la plaza, el huevo de Ceniza, la noche de la tormenta y los cien años que pasó de guardia en el piso 19.",
+            "Cada capítulo termina con lo que Casio aprendió. El libro se abre en la portada, recuerda por dónde vas («Continuar») y tiene un índice. Mientras lees suena la música de Lectura.",
+            "Los dos primeros libros se pueden leer desde ya. El tercero (la guardia y el final) se abre cuando liberes a Casio en la Torre (supera el piso 20). Al terminarlo hay una escena y un premio: +40 XP y +20 💎.",
+        ],
+    },
     {
         version: 61,
         titulo: "Gira el teléfono",

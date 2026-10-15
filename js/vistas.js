@@ -24,6 +24,7 @@ import * as maestro from "./maestro.js";
 import * as memorias from "./memorias.js";
 import * as pergamino from "./pergamino.js";
 import * as pergaminos from "./pergaminos.js";
+import * as libroCasio from "./libro-casio.js";
 import * as saga from "./saga.js";
 import * as rituales from "./rituales.js";
 import * as mapa from "./mapa.js";
@@ -3747,6 +3748,7 @@ function seccionHistoria(estado, ctx) {
     // Lo que se ve debajo del título de cada historia: cuándo pasa y cuánto llevas.
     const detalle = {
         pergamino: `${pergamino.minutosDeLectura()} min de lectura`,
+        casio: `${Math.min(estado.libros.casio.leidos, libroCasio.CAPITULOS.length)} de ${libroCasio.CAPITULOS.length} capítulos · ${libroCasio.minutosDeLectura()} min${estado.libros.casio.fin ? " · ✅ terminado" : ""}`,
         memorias: m ? `${m.abiertas} de ${m.total} capítulos${m.sinLeer ? ` · ${plural(m.sinLeer, "nuevo", "nuevos")}` : ""}` : "",
         cronica: `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
         torre: `Tu récord: ${records.torre || 0} de ${torre.ABRIR_MAZMORRA} pisos`,
@@ -3875,6 +3877,93 @@ export function pantallaPergamino(estado, ctx = {}) {
                <button type="button" class="boton boton-secundario boton-ancho" data-accion="pergamino-escena" data-id="${esc(p.id)}">🎬 Ver la escena otra vez</button>`
             : `<button type="button" class="boton boton-principal boton-ancho" data-accion="pergamino-terminar" data-id="${esc(p.id)}">✅ Terminé de leerlo (+${pergaminos.PREMIO_LECTURA.xp} XP · +${pergaminos.PREMIO_LECTURA.gemas} 💎)</button>`}
         ${volver}`;
+}
+
+// ===== «El Centinela»: el libro largo de Casio (v62) =====
+// ctx.capituloNovela = null (la portada, con el prólogo y el índice) o el número del capítulo que se lee (desde 0).
+export function pantallaNovela(estado, ctx = {}) {
+    const libro = libroCasio.libroDeCasio(estado.personaje.nombre, estado.arcade.records?.torre || 0);
+    const marca = estado.libros.casio;
+    const total = libro.capitulos.length;
+    const parrafos = (lista) => lista.map((texto) => `<p>${esc(texto)}</p>`).join("");
+    const adorno = '<p class="rollo-adorno" aria-hidden="true">❦</p>';
+    const i = ctx.capituloNovela;
+
+    // --- Un capítulo ---
+    if (Number.isInteger(i) && libro.capitulos[i]?.abierto) {
+        const c = libro.capitulos[i];
+        const ultimo = i === total - 1;
+        const siguiente = libro.capitulos[i + 1];
+        const terminado = Boolean(marca.fin);
+        return `
+            ${encabezado("📖 El Centinela", "personaje", "Héroe")}
+            <article class="rollo novela">
+                <div class="rollo-vara" aria-hidden="true"></div>
+                <div class="rollo-papel">
+                    <header class="rollo-cabecera">
+                        <p class="rollo-sobre">${esc(c.libro.titulo)} · ${esc(c.libro.nombre)}</p>
+                        <p class="rollo-numero">Capítulo ${c.numero} de ${total}</p>
+                        <h2>${esc(c.titulo)}</h2>
+                    </header>
+                    <section class="rollo-capitulo novela-texto">${parrafos(c.parrafos)}</section>
+                    <blockquote class="rollo-moraleja"><span>Lo que aprendió Casio</span>«${esc(c.moraleja)}»</blockquote>
+                    ${ultimo ? `
+                        ${adorno}
+                        <section class="rollo-capitulo novela-epilogo"><h3 class="rollo-titulo-capitulo">Epílogo</h3>${parrafos(libro.epilogo)}</section>
+                        <section class="rollo-ensenanzas"><h3>Lo que enseña este libro</h3>
+                            <ol>${libro.ensenanzas.map((texto) => `<li>${esc(texto)}</li>`).join("")}</ol></section>
+                        <p class="rollo-firma">— ${esc(libro.firma)}</p>` : ""}
+                </div>
+                <div class="rollo-vara" aria-hidden="true"></div>
+            </article>
+            ${ultimo
+                ? (terminado
+                    ? `<p class="nota">✅ Terminaste este libro el ${fechaCorta(marca.fin)}.</p>
+                       <button type="button" class="boton boton-secundario boton-ancho" data-accion="novela-escena">🎬 Ver la escena otra vez</button>`
+                    : `<button type="button" class="boton boton-principal boton-ancho" data-accion="novela-terminar">📖 Terminé el libro (+${libroCasio.PREMIO.xp} XP · +${libroCasio.PREMIO.gemas} 💎)</button>`)
+                : ""}
+            <nav class="novela-nav" aria-label="Capítulos">
+                <button type="button" class="boton boton-secundario" data-accion="novela-capitulo" data-i="${i - 1}" ${i > 0 ? "" : "disabled"}>‹ Anterior</button>
+                <button type="button" class="boton boton-secundario" data-accion="novela-indice">☰ Índice</button>
+                <button type="button" class="boton boton-principal" data-accion="novela-capitulo" data-i="${i + 1}" ${siguiente?.abierto ? "" : "disabled"}>${siguiente ? (siguiente.abierto ? "Siguiente ›" : "🔒 Cerrado") : "Fin"}</button>
+            </nav>`;
+    }
+
+    // --- La portada: el prólogo y el índice ---
+    const leidos = Math.min(marca.leidos, total);
+    const abiertos = libro.capitulos.filter((c) => c.abierto).length;
+    const indice = libro.capitulos.map((c, n) => `
+        ${c.empiezaLibro ? `<h3 class="novela-libro">${esc(c.empiezaLibro.titulo)} · ${esc(c.empiezaLibro.nombre)}</h3>` : ""}
+        <button type="button" class="fila-enlace novela-fila ${n < leidos ? "leido" : ""} ${c.abierto ? "" : "cerrado"} ${n === marca.marca && leidos ? "aqui" : ""}"
+                ${c.abierto ? `data-accion="novela-capitulo" data-i="${n}"` : "disabled"}>
+            <span class="fila-enlace-icono" aria-hidden="true">${c.abierto ? (n < leidos ? "✅" : "📖") : "🔒"}</span>
+            <span><b>${c.numero} · ${esc(c.titulo)}</b>${c.abierto ? "" : `<small>${esc(c.bloqueado)}</small>`}</span>
+            <span class="fila-enlace-flecha" aria-hidden="true">›</span>
+        </button>`).join("");
+    return `
+        ${encabezado("📖 El Centinela", "personaje", "Héroe")}
+        <article class="rollo novela">
+            <div class="rollo-vara" aria-hidden="true"></div>
+            <div class="rollo-papel">
+                <header class="rollo-cabecera">
+                    <p class="rollo-sobre">Por ${esc(libro.autor)} · ${libro.capitulos.length} capítulos · ${libro.minutos} min de lectura</p>
+                    <h2>${esc(libro.titulo)}</h2>
+                    <p class="rollo-subtitulo">${esc(libro.subtitulo)}</p>
+                </header>
+                <section class="rollo-prologo"><h3 class="rollo-titulo-capitulo">Prólogo</h3>${parrafos(libro.prologo)}</section>
+            </div>
+            <div class="rollo-vara" aria-hidden="true"></div>
+        </article>
+        <section class="panel">
+            <p class="mini">Llevas <b>${leidos} de ${total}</b> capítulos${abiertos < total ? ` (hay ${total - abiertos} cerrados hasta que liberes a Casio)` : ""}.</p>
+            ${barra(Math.round((leidos / total) * 100), "barra-mini")}
+            <button type="button" class="boton boton-principal boton-ancho" data-accion="novela-capitulo" data-i="${leidos ? Math.min(marca.marca, abiertos - 1) : 0}">
+                ${leidos ? `Continuar: capítulo ${libro.capitulos[Math.min(marca.marca, abiertos - 1)].numero}` : "Empezar a leer"}</button>
+        </section>
+        <section class="panel novela-indice">
+            <h2 class="titulo-juego">Índice</h2>
+            ${indice}
+        </section>`;
 }
 
 // La Biblioteca prohibida: todos los pergaminos en orden (los que aún no se abren dicen qué falta) y las sagas que se insinúan.

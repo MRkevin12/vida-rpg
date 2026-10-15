@@ -186,6 +186,25 @@ export function cinematicaDePergamino(p, nombre) {
 }
 
 
+// ===== «El Centinela», el libro de Casio (v62) =====
+
+// Al terminar el libro: Casio de pie en el piso 19 (la criatura «centinela»), tú y Aurelio.
+export function cinematicaDeCasio(nombre) {
+    const fondo = "pintura:cumbre";
+    const casio = { quien: "criatura", x: 30 };
+    return armar("libro", [
+        { fondo, actores: [{ ...casio, anim: "cine-late" }], camara: "arriba", ambiente: "niebla", efecto: "oscuro", titulo: "El Centinela",
+          texto: "Cien años de guardia en el piso diecinueve. Casio subía cada mañana una escalera que nadie veía.", ms: 5600, sonido: "retumbo" },
+        { fondo, actores: [{ ...casio, anim: "cine-late" }, tu(74)], camara: "zoom", foco: "30% 60%", ambiente: "chispas",
+          texto: "Un día alguien llegó con un dragón de escamas moradas. Casio lo reconoció por el olor: Ceniza.", ms: 5200, sonido: "campana" },
+        { fondo, actores: [casio, tu(74)], camara: "quieto", efecto: "destello", ambiente: "chispas",
+          texto: "Bajó la espada. Y por primera vez en cien años, el cielo se abrió sobre la Torre.", ms: 5200, sonido: "victoria" },
+        { fondo, actores: [aurelio(28, { anim: "cine-flota" }), tu(72)], camara: "derecha", ambiente: "chispas",
+          titulo: "Bajó un piso", texto: "Aurelio: «Ayer subió. Hoy, también. Eso fue todo lo que Casio supo enseñar, {n}. Y alcanzó.»", ms: 6000, sonido: "logro" },
+    ], nombre);
+}
+
+
 // ===== La historia: «▶ Ver escena» de cada capítulo (Torre y Mazmorra) =====
 
 // El guardián de una zona (para que aparezca en la escena de su capítulo). Si no hay, null.

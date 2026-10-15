@@ -23,6 +23,7 @@ import * as cinematicas from "./cinematicas.js";
 import * as cine from "./cine.js";
 import * as cinesReino from "./cinematicas-reino.js";
 import * as pergaminos from "./pergaminos.js";
+import * as libroCasio from "./libro-casio.js";
 import * as vistasVoces from "./vistas-voces.js";
 import * as vocesModulo from "./voces.js";
 import * as vida from "./vida.js";
@@ -78,7 +79,7 @@ let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el m
 const PANTALLAS_ESENCIALES = new Set(["hoy", "tienda", "enfoque"]);
 
 // Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
-const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje", biblioteca: "personaje" };
+const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje", biblioteca: "personaje", novela: "personaje" };
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -100,6 +101,7 @@ const DIBUJAR = {
     memorias: vistas.pantallaMemorias,
     pergamino: vistas.pantallaPergamino,
     biblioteca: vistas.pantallaBiblioteca,
+    novela: vistas.pantallaNovela,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -756,6 +758,13 @@ async function abrirBestiario() {
     $("#torre-caja").scrollTop = 0;
 }
 
+// (v62) «El Centinela», el libro largo de Casio: qué capítulo se lee (null = la portada con el índice).
+let capituloNovela = null;
+
+async function verEscenaDeCasio() {
+    await reproducirEscena(cinesReino.cinematicaDeCasio(estado.personaje.nombre), { criatura: "centinela" });
+}
+
 // (v57) La escena con que termina cada pergamino: dos tomas de su historia, la moraleja de Aurelio y el presagio.
 let pergaminoActual = "piedra";   // cuál pergamino se está leyendo
 
@@ -1112,6 +1121,7 @@ function contextoActual(efectos = {}) {
         subvista,                                           // la sección elegida en Progreso, Tienda y Héroe
         agruparHoy,
         pergaminoId: pergaminoActual,
+        capituloNovela,
         campanaVista,
         maestro: maestro.contexto(estado, fecha, ahora, info),   // lo que el Maestro sabe de tu día
         memoriasDesde,
@@ -2719,6 +2729,33 @@ const ACCIONES = {
         pergaminoActual = boton?.dataset?.id || "piedra";
         cambiarPantalla("pergamino");
     },
+    // (v62) El libro largo de Historia: la portada, un capítulo, el índice y el final.
+    "novela-abrir": () => {
+        capituloNovela = null;
+        cambiarPantalla("novela");
+    },
+    "novela-capitulo": (boton) => {
+        const n = Number(boton.dataset.i);
+        if (!ejecutar(() => acciones.marcarLibro(estado, libroCasio.ID, n))) return;
+        capituloNovela = n;
+        dibujarPantalla();
+        window.scrollTo(0, 0);
+        animarEntrada("novela");
+    },
+    "novela-indice": () => {
+        capituloNovela = null;
+        dibujarPantalla();
+        window.scrollTo(0, 0);
+    },
+    "novela-terminar": async () => {
+        const resultado = ejecutar(() => acciones.terminarLibro(estado, libroCasio.ID));
+        if (!resultado) return;
+        sonar("logro");
+        dibujarPantalla();
+        window.scrollTo(0, document.body.scrollHeight);
+        if (resultado.primera) await verEscenaDeCasio();
+    },
+    "novela-escena": () => verEscenaDeCasio(),
     // (v57) La Biblioteca prohibida: todos los pergaminos en orden.
     "biblioteca-abrir": () => cambiarPantalla("biblioteca"),
     // Terminar de leer: premio (una sola vez) y la cinemática del pergamino.

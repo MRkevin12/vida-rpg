@@ -78,7 +78,7 @@ export const PISTAS = {
 //   torre: null si la Torre está cerrada, o "torre" / "mazmorra" si hay una batalla
 //   elegida: la pista que tú elegiste en Ajustes; auto: si la música cambia según la escena (Ajustes)
 // Sin «auto», suena la que elegiste (y en la Torre y la Mazmorra, las de siempre).
-export const PANTALLAS_DE_LECTURA = ["pergamino", "biblioteca", "memorias", "libro", "pacto", "historia"];
+export const PANTALLAS_DE_LECTURA = ["pergamino", "biblioteca", "memorias", "libro", "pacto", "historia", "novela"];
 export function pistaDeEscena({ pantalla, torre = null, elegida = "epica", auto = true }) {
     if (torre) return torre === "mazmorra" ? (auto ? "abismo" : "misterio") : "batalla";
     if (!auto) return elegida;
