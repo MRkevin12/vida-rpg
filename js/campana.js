@@ -67,6 +67,33 @@ export function regionDelJefe(n) {
     return Math.floor(n / VIDAS.length) * REGIONES.length + (n % VIDAS.length);
 }
 
+// (v53) Cuantos más jefes venzas, más rápido avanza tu héroe: cada jefe vencido suma +10 % a cada paso (máximo ×3).
+// Cuenta a los jefes cuyo daño ya está completo, aunque todavía te esperen en su región (así el viaje más
+// rápido te ayuda a llegar hasta ellos).
+export const BONO_VIAJE_POR_JEFE = 0.1;
+export const FACTOR_VIAJE_MAXIMO = 3;
+
+export function jefesVencidos(estado) {
+    const dano = danoPorCategoria(estado);
+    let total = 0;
+    for (const categoria of Object.keys(CAMPANAS)) {
+        const libres = estado.campana?.libres?.[categoria] || 0;
+        let restante = dano[categoria];
+        let n = 0;
+        while (restante >= vidaDelJefe(n, libres)) {
+            restante -= vidaDelJefe(n, libres);
+            n += 1;
+        }
+        total += n;
+    }
+    return total;
+}
+
+// Por cuánto se multiplican tus pasos en el mapa (1 = sin bono).
+export function factorDeViaje(estado) {
+    return Math.min(FACTOR_VIAJE_MAXIMO, 1 + BONO_VIAJE_POR_JEFE * jefesVencidos(estado));
+}
+
 // En qué región está tu héroe después de dar "pasos" pasos (ver mapa.posicion).
 export function regionDelHeroe(pasos) {
     return Math.floor(Math.floor(pasos / PASOS_POR_LUGAR) / LUGARES_POR_REGION);
@@ -244,11 +271,12 @@ export function danoPorCategoria(estado) {
 export function estadoCampanas(estado, fecha = hoy(), robos = robosDeJefes(estado, fecha)) {
     const golpes = golpesConFecha(estado);
     const pasos = fechasDePasos(estado);
+    const factor = factorDeViaje(estado);   // (v53) los jefes vencidos aceleran el viaje
     const resultado = {};
     for (const [categoria, campana] of Object.entries(CAMPANAS)) {
         const libres = estado.campana?.libres?.[categoria] || 0;
         // ¿Puedes pelear con el jefe n habiendo dado "dados" pasos? (los de antes de la v52, siempre)
-        const puedePelear = (n, dados) => n < libres || regionDelJefe(n) <= regionDelHeroe(dados);
+        const puedePelear = (n, dados) => n < libres || regionDelJefe(n) <= regionDelHeroe(Math.floor(dados * factor));
         const sucesos = [
             ...golpes[categoria].filter((g) => g.fecha <= fecha),
             ...robos.filter((r) => r.atributo === categoria && r.fecha <= fecha).map((r) => ({ fecha: r.fecha, cura: r.cantidad })),
@@ -302,7 +330,7 @@ export function estadoCampanas(estado, fecha = hoy(), robos = robosDeJefes(estad
             esperando,                     // true: aún no llegas a su región; el daño se le guarda
             guardado: esperando ? restante : 0,   // el daño guardado que recibirá al llegar
             region: regionDelJefe(derrotados),    // la región del mapa donde vive (0 = la primera)
-            pasosHeroe: dados,             // los pasos que llevas en el mapa (hasta esa fecha)
+            pasosHeroe: Math.floor(dados * factor),   // los pasos que llevas en el mapa (con el bono de viaje)
             porcentaje: Math.round((vida / vidaMax) * 1000) / 10,
         };
     }

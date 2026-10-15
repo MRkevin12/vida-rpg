@@ -26,7 +26,7 @@
 // lugares ya reclamaste (estado.mapa.reclamados = ["r1-5", "r1-7", …]).
 
 import { ATRIBUTOS } from "./juego.js";
-import { CAMPANAS, VIDAS, estadoCampanas } from "./campana.js";
+import { CAMPANAS, VIDAS, estadoCampanas, factorDeViaje } from "./campana.js";
 import * as saga from "./saga.js";
 
 export const PASOS_POR_LUGAR = 4;
@@ -63,8 +63,14 @@ export const LUGARES = {
 // ===== Dónde estás =====
 
 // Los pasos que llevas: todo lo que cumpliste.
-export function pasosTotales(estado) {
+// Los pasos hechos, sin el bono de los jefes vencidos.
+export function pasosBrutos(estado) {
     return estado.completadas.length + estado.tareas.filter((t) => t.hechaEn).length + estado.enfoque.sesiones.length;
+}
+
+// (v53) Los pasos que cuentan en el mapa: cada jefe vencido acelera el viaje (ver campana.factorDeViaje).
+export function pasosTotales(estado) {
+    return Math.floor(pasosBrutos(estado) * factorDeViaje(estado));
 }
 
 // Dónde estás: lugar alcanzado (0 = el punto de partida), región (0, 1, 2…) y cuánto falta.

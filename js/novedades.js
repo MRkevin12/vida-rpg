@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 52;
+export const VERSION_APP = 53;
 
 export const NOVEDADES = [
+    {
+        version: 53,
+        titulo: "Viajas más rápido",
+        cambios: [
+            "🐎 Cada jefe que vences hace que tu héroe avance más rápido por el mapa: +10 % en cada paso por jefe (hasta ×3). Con 3 jefes vencidos, cada paso vale 1,3.",
+            "En el mapa ves cuánto más rápido viajas. Así llegas antes a los jefes que te esperan en otras regiones.",
+        ],
+    },
     {
         version: 52,
         titulo: "Los jefes te esperan en el mapa",

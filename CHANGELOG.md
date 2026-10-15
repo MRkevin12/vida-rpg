@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v53 — El viaje se acelera con cada jefe
+- `campana.jefesVencidos(estado)` (por daño, aunque el jefe espere en su región) y `factorDeViaje` (`1 + 0,1 × jefes`, tope ×3). `mapa.pasosTotales` = `pasosBrutos × factor`; `estadoCampanas` usa el mismo factor para saber en qué región estás. El mapa muestra «🐎 Viajas ×N más rápido».
+
 ## v52 — Jefes atados al mapa, pestaña Aurelio y arreglos
 - **Jefes y mapa** (`campana.js`): `regionDelJefe(n)` (5 regiones con jefes + la Ciudadela por vuelta) y `regionDelHeroe(pasos)`. En `estadoCampanas`, un jefe solo cae si tu héroe ya llegó a su región ese día (`fechasDePasos`); si no, el daño se guarda (`esperando`, `guardado`, `region`, `pasosHeroe`). Los vencidos antes de la v52 quedan en `estado.campana.libres` (migración en `completar()`, datos versión 27) y usan `VIDAS_ANTES`.
 - **Jefes más duros:** `VIDAS = [150, 300, 500, 750, 1100]` (antes 80, 160, 260, 400, 600). Aventuras, el mapa y Hoy muestran «🔒 Te espera en…» con los pasos que faltan.

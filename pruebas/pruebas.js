@@ -404,10 +404,8 @@ prueba("Partida+: tras los 5 jefes empieza la ronda 2, con más vida y mejores p
     let c = campana.estadoCampanas(estado).fuerza;
     igual([c.derrotados, c.ronda, c.indice], [5, 2, 0]);
     // El primer jefe de la ronda 2 vive en el Valle II (región 7): aún no llegas, así que el daño que sobra se le guarda.
-    igual([c.vidaMax, c.vida, c.esperando, c.guardado, c.region], [225, 225, true, 120, 6], "50 % más de vida y el daño guardado");
-    for (let n = 0; n < 200; n++) estado.tareas.push({ id: 6000 + n, nombre: "x", hechaEn: hoy(), premio: null });
-    c = campana.estadoCampanas(estado).fuerza;
-    igual([c.vida, c.esperando], [105, false], "al llegar a su región recibe el daño guardado");
+    // Con 5 jefes vencidos el viaje va ×1,5: los 400 pasos valen 600 y llegas justo al Valle II (región 7).
+    igual([c.vidaMax, c.vida, c.esperando, c.guardado, c.region], [225, 105, false, 0, 6], "50 % más de vida; al llegar a su región recibe el daño guardado");
     igual(campana.premioJefe(6), { xp: 150, gemas: 75 }, "y da 50 % más de premio (en gemas)");
     igual(estado.campana.recompensados.fuerza, 5, "premios entregados");
     cierto(celebraciones.some((x) => x.etiqueta === "¡Campaña completada!"), "avisa que empieza la Partida+");
@@ -3105,9 +3103,9 @@ prueba("Mapa del reino: cada 4 pasos un lugar; tesoros y santuarios se reclaman 
     const estado = partidaNueva();
     const leer = crearMision(estado);
     envejecer(estado, 29);
-    for (let n = -29; n <= 0; n++) marcarEn(estado, leer, dia(n));           // 30 pasos
+    for (let n = -29; n <= 0; n++) marcarEn(estado, leer, dia(n));           // 30 pasos; 240 de daño vencen a Medusa (+10 % de viaje)
     const pos = mapa.posicion(estado);
-    igual([pos.pasos, pos.lugar, pos.region, pos.enRegion, pos.hastaSiguiente], [30, 7, 0, 7, 2]);
+    igual([mapa.pasosBrutos(estado), pos.pasos, pos.lugar, pos.region, pos.enRegion, pos.hastaSiguiente], [30, 33, 8, 0, 8, 3]);
     igual([5, 10, 25, 7, 8].map((n) => mapa.tipoDeLugar(n)), ["tesoro", "santuario", "fortaleza", "guarida", "camino"]);
     igual(mapa.lugaresPorReclamar(estado).map((l) => l.id), ["r1-5"]);
     const gemas = estado.personaje.gemas;
@@ -3118,14 +3116,14 @@ prueba("Mapa del reino: cada 4 pasos un lugar; tesoros y santuarios se reclaman 
     debeFallar(() => acciones.reclamarLugar(estado, "r1-7"), "sigue en pie");
     igual(mapa.nombreRegion(6), "El Valle del Comienzo II");
 
-    const otra = partidaNueva();                                               // 44 pasos: lugar 11
+    const otra = partidaNueva();                                               // 44 pasos (48 con el viaje más rápido): lugar 12
     const gym = crearMision(otra);
     envejecer(otra, 43);
     for (let n = -43; n <= 0; n++) marcarEn(otra, gym, dia(n));
-    igual(mapa.lugaresPorReclamar(otra).map((l) => l.id), ["r1-5", "r1-10"]);
+    igual(mapa.lugaresPorReclamar(otra).map((l) => l.id), ["r1-5", "r1-10", "r1-12"], "y la guarida de Medusa, ya liberada");
     const [xp, gemasAntes] = [otra.personaje.xp, otra.personaje.gemas];
     acciones.reclamarTodo(otra);
-    igual([otra.personaje.gemas - gemasAntes, otra.personaje.xp - xp, mapa.lugaresPorReclamar(otra).length], [25, 40, 0], "reclamar todo");
+    igual([otra.personaje.gemas - gemasAntes, otra.personaje.xp - xp, mapa.lugaresPorReclamar(otra).length], [45, 60, 0], "reclamar todo (tesoro 25 + santuario 40 XP + guarida 20 y 20)");
 });
 
 prueba("Tu dragón: alimentarlo cuesta 15, una vez al día, y te cura 3; acariciarlo responde", () => {
@@ -4511,6 +4509,20 @@ prueba("Jefes y mapa: los jefes que ya habías vencido antes de la v52 siguen ve
     const c = campana.estadoCampanas(estado).intelecto;
     igual([c.derrotados, c.jefe.id, c.esperando], [2, "hidra", true], "siguen vencidos, aunque tu héroe esté en la región 1");
     igual(c.guardado, 248 - 80 - 160, "lo que sobra se guarda para la Hidra");
+});
+
+
+prueba("Jefes y mapa: cada jefe vencido acelera el viaje del héroe (+10 % por jefe, máximo ×3)", () => {
+    const estado = partidaNueva();
+    igual([campana.jefesVencidos(estado), campana.factorDeViaje(estado)], [0, 1], "sin jefes, sin bono");
+    for (let n = 0; n < 40; n++) estado.tareas.push({ id: 8000 + n, nombre: "x", hechaEn: hoy(), premio: null });
+    igual(mapa.pasosTotales(estado), 40);
+    // 150 de daño de Intelecto = cae el primer jefe (aunque aún no lo "venza" el mapa, cuenta para el viaje).
+    for (let n = 0; n < 10; n++) estado.tareas.push({ id: 8100 + n, nombre: "x", hechaEn: hoy(), premio: { atributo: "intelecto", dificultad: "dificil", xp: 50 } });
+    igual([campana.jefesVencidos(estado), campana.factorDeViaje(estado)], [1, 1.1]);
+    igual([mapa.pasosBrutos(estado), mapa.pasosTotales(estado)], [50, 55], "50 pasos valen 55");
+    estado.campana.libres = { fuerza: 5, intelecto: 5, carisma: 5, riqueza: 5 };
+    cierto(campana.factorDeViaje(estado) <= campana.FACTOR_VIAJE_MAXIMO, "el bono tiene tope");
 });
 
 

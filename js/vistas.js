@@ -964,7 +964,7 @@ export function pantallaMapa(estado, ctx) {
         </section>` : "";
 
     const progreso = region === pos.region
-        ? `Lugar ${pos.enRegion} de ${mapa.LUGARES_POR_REGION} · te ${pos.hastaSiguiente === 1 ? "falta 1 paso" : `faltan ${pos.hastaSiguiente} pasos`} para el siguiente.`
+        ? `${campana.factorDeViaje(estado) > 1 ? `🐎 Viajas ×${String(Math.round(campana.factorDeViaje(estado) * 10) / 10).replace(".", ",")} más rápido por tus jefes vencidos. ` : ""}Lugar ${pos.enRegion} de ${mapa.LUGARES_POR_REGION} · te ${pos.hastaSiguiente === 1 ? "falta 1 paso" : `faltan ${pos.hastaSiguiente} pasos`} para el siguiente.`
         : "Región recorrida.";
     const ciudadela = tramo === mapa.CIUDADELA;
     const finalDeRegion = ciudadela
