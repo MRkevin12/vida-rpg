@@ -36,6 +36,8 @@ export const MUSCULOS = {
     cuadriceps:   { icono: "🦵", nombre: "Cuádriceps" },
     isquios:      { icono: "🦿", nombre: "Isquiosurales" },
     pantorrillas: { icono: "🐄", nombre: "Pantorrillas" },
+    gluteos:      { icono: "🧱", nombre: "Glúteos" },
+    core:         { icono: "🎯", nombre: "Abdomen" },
 };
 
 // ===== Tu rutina =====
@@ -84,7 +86,29 @@ export const RUTINA = [
 ];
 
 export const rutinaPorId = (id) => RUTINA.find((r) => r.id === id) || null;
-export const ejercicioPorId = (id) => RUTINA.flatMap((r) => r.ejercicios).find((x) => x.id === id) || null;
+// Ejercicios extra que puedes sumar a cualquier entrenamiento (cuentan igual: XP, récords y gráficas).
+export const EXTRAS = [
+    e("dominadas", "Dominadas", "espalda", 3, 5, 12),
+    e("remo-barra", "Remo con barra", "espalda", 3, 6, 10),
+    e("jalon-cerrado", "Jalón con agarre cerrado", "espalda", 3, 8, 12),
+    e("peso-muerto", "Peso muerto convencional", "isquios", 3, 4, 8),
+    e("press-mancuernas", "Press de banca con mancuernas", "pecho", 3, 8, 12),
+    e("aperturas-mancuernas", "Aperturas con mancuernas", "pecho", 3, 10, 15),
+    e("fondos", "Fondos en paralelas", "pecho", 3, 6, 12),
+    e("press-militar", "Press militar con mancuernas", "hombros", 3, 8, 12),
+    e("face-pull", "Face pull en polea", "hombros", 3, 12, 15),
+    e("encogimientos", "Encogimientos de hombros", "hombros", 3, 10, 15),
+    e("fondos-banco", "Fondos en banco", "triceps", 3, 8, 15),
+    e("curl-concentrado", "Curl concentrado", "biceps", 3, 10, 15),
+    e("sentadilla", "Sentadilla libre", "cuadriceps", 4, 6, 10),
+    e("zancadas", "Zancadas con mancuernas", "cuadriceps", 3, 10, 12),
+    e("hip-thrust", "Hip thrust", "gluteos", 4, 8, 12),
+    e("abdominales", "Abdominales (crunch)", "core", 3, 12, 20),
+    e("elevacion-piernas", "Elevación de piernas", "core", 3, 10, 15),
+    e("rueda-abdominal", "Rueda abdominal", "core", 3, 8, 12),
+];
+
+export const ejercicioPorId = (id) => [...RUTINA.flatMap((r) => r.ejercicios), ...EXTRAS].find((x) => x.id === id) || null;
 export const seriesPlaneadas = (rutina) => rutina.ejercicios.reduce((suma, x) => suma + x.series, 0);
 
 // ===== Rangos =====
@@ -184,18 +208,21 @@ export function crearEntrenamiento(rutinaId, fecha, sesiones, ahora = Date.now()
         rutina: rutinaId,
         fecha,
         inicio: ahora,
-        ejercicios: rutina.ejercicios.map((ej) => {
-            const antes = ultimaVez(sesiones, ej.id);
-            const kg = antes ? Math.max(...antes.series.map((s) => s.kg)) : 0;
-            return {
-                id: ej.id,
-                series: Array.from({ length: ej.series }, (_, i) => ({
-                    kg: antes?.series[i]?.kg ?? kg,
-                    reps: antes?.series[i]?.reps ?? ej.min,
-                    hecha: false,
-                })),
-            };
-        }),
+        ejercicios: rutina.ejercicios.map((ej) => ejercicioDelEntrenamiento(ej, sesiones)),
+    };
+}
+
+// Un ejercicio listo para anotar: sus series llenas con lo de la última vez (o con el mínimo de repeticiones).
+export function ejercicioDelEntrenamiento(ej, sesiones) {
+    const antes = ultimaVez(sesiones, ej.id);
+    const kg = antes ? Math.max(...antes.series.map((s) => s.kg)) : 0;
+    return {
+        id: ej.id,
+        series: Array.from({ length: ej.series }, (_, i) => ({
+            kg: antes?.series[i]?.kg ?? kg,
+            reps: antes?.series[i]?.reps ?? ej.min,
+            hecha: false,
+        })),
     };
 }
 

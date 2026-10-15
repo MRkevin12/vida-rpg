@@ -40,6 +40,7 @@ import * as retos from "./retos.js";
 import * as voces from "./voces.js";
 import { tarjetaGymHoy } from "./vistas-gym.js";
 import * as ataques from "./ataques.js";
+import * as gymReglas from "./gym.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
          diasEntre, lunesDe, relojTexto, relojLargo, sumarDias, MESES, hoy as fechaDeHoy } from "./fechas.js";
 
@@ -2505,6 +2506,7 @@ export function pantallaArcade(estado, ctx) {
             </div>
             <p class="nota">Batallas por turnos como en los juegos de rol clásicos: ${bestiario.ZONAS.length} zonas, ${conocidas.total} criaturas y un
                guardián cada ${torre.CADA_GUARDIAN} pisos. <b>Tu poder sale de los niveles de tus atributos reales.</b></p>
+            ${notaDeGym(estado)}
             <details class="plegable plegable-reglas">
                 <summary>📖 Cómo se juega y qué llevas</summary>
             <p class="nota">Antes de cada turno ves qué planea tu rival: ataca, usa magia, defiéndete o toma una poción. Cada criatura
@@ -2637,6 +2639,15 @@ const textoPremioMarca = (m) => `premio ×${String(m.premio).replace(".", ",")}`
 
 // (v65) Los modos de juego: Normal, Asalto de guardianes y Reto diario. Con una partida en curso, solo se dice cuál es.
 // Los botones de radio se llaman "modo-torre" / "modo-minas"…; app.js lee el que esté marcado.
+// (v66) Lo que tu entrenamiento real le da al héroe en el combate, o cómo conseguirlo.
+function notaDeGym(estado) {
+    const nivel = gymReglas.nivelDeGym(estado.gym.sesiones).nivel;
+    const bono = Math.round(gymReglas.bonoDeGym(nivel) * 100);
+    return bono
+        ? `<p class="mini equipo-ventaja">🏋️ Tu nivel de gym (${nivel}) te da <b>+${bono} % de vida y de ataque</b>.</p>`
+        : '<p class="mini texto-suave">🏋️ Entrena en el gimnasio y tu héroe ganará vida y ataque aquí.</p>';
+}
+
 function selectorDeModo(estado, lugar, partida, fecha) {
     const M = torre.MODOS;
     if (partida) {

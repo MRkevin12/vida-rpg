@@ -57,6 +57,7 @@ import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js
 import * as avatar from "../js/avatar.js";
 import * as gym from "../js/gym.js";
 import * as ataques from "../js/ataques.js";
+import * as fragua from "../js/fragua.js";
 import * as vistasGym from "../js/vistas-gym.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -5513,6 +5514,43 @@ prueba("Gym: al terminar un entrenamiento se marca sola la misión que elegiste"
     igual(estado.completadas.filter((c) => c.misionId === m.id).length, 1, "no se marca dos veces");
     acciones.cambiarAjusteGym(estado, "mision", "");
     igual(estado.gym.mision, null);
+});
+
+prueba("Gym: se pueden sumar ejercicios extra, que cuentan igual (XP, músculo y récords)", () => {
+    const estado = partidaNueva();
+    igual(gym.EXTRAS.length, 18);
+    for (const x of gym.EXTRAS) cierto(gym.MUSCULOS[x.musculo] && x.min < x.max, `${x.id} es válido`);
+    const ids = [...gym.RUTINA.flatMap((r) => r.ejercicios), ...gym.EXTRAS].map((x) => x.id);
+    igual(new Set(ids).size, ids.length, "ningún id repetido entre la rutina y los extras");
+    acciones.empezarGym(estado, "pecho-triceps");
+    debeFallar(() => acciones.agregarEjercicioGym(estado, "press-banca"), "no existe");
+    acciones.agregarEjercicioGym(estado, "abdominales");
+    debeFallar(() => acciones.agregarEjercicioGym(estado, "abdominales"), "ya está");
+    const en = estado.gym.encurso;
+    igual([en.ejercicios.length, en.ejercicios[6].id, en.ejercicios[6].series.length], [7, "abdominales", 3]);
+    const html = vistasGym.pantallaGym(estado, { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
+    cierto(html.includes('data-accion="gym-extra"') && html.includes("Abdominales (crunch)"), "se muestra");
+    en.ejercicios[6].series.forEach((_, si) => { acciones.anotarSerieGym(estado, 6, si, "reps", 15); acciones.marcarSerieGym(estado, 6, si); });
+    const r = acciones.terminarGym(estado);
+    igual(r.sesion.xp, 3 * gym.XP_POR_SERIE, "3 series de abdomen (no llega al 80 % de la rutina)");
+    cierto(gym.nivelesDeMusculos(estado.gym.sesiones).core.xpEnNivel > 0, "sube el abdomen");
+});
+
+prueba("Gym: las 7 lecturas de la Fragua se abren con el nivel de gym", () => {
+    igual(fragua.LECTURAS.length, 7);
+    igual(fragua.LECTURAS.map((l) => l.nivel), [...fragua.LECTURAS.map((l) => l.nivel)].sort((a, b) => a - b), "van en orden de nivel");
+    for (const l of fragua.LECTURAS) {
+        cierto(l.titulo && l.moraleja && l.parrafos.length >= 3, `${l.titulo} está completa`);
+        cierto(fragua.minutosDeLectura(l) >= 1);
+        cierto(!/undefined|\{n\}/.test(l.parrafos.join(" ")), "sin huecos");
+    }
+    igual(fragua.lecturasAbiertas(1).length, 1);
+    igual(fragua.lecturasAbiertas(6).length, 4);
+    igual(fragua.lecturasAbiertas(30).length, 7);
+    const estado = partidaNueva();
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes("Lecturas de la Fragua") && html.includes("El hierro no pide permiso") && html.includes("Se abre en el nivel 2"), "la primera abierta y la segunda cerrada");
 });
 
 // ===== Los ataques de las criaturas se ven (v67) =====

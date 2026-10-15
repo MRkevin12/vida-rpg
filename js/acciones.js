@@ -1985,6 +1985,15 @@ export function anotarSerieGym(estado, ejercicio, serie, campo, valor) {
     else throw new Error("Ese dato no existe.");
 }
 
+// Suma un ejercicio extra (de gym.EXTRAS) al entrenamiento en curso.
+export function agregarEjercicioGym(estado, ejercicioId) {
+    const en = entrenamientoEnCurso(estado);
+    const ej = gym.EXTRAS.find((x) => x.id === ejercicioId);
+    if (!ej) throw new Error("Ese ejercicio no existe.");
+    if (en.ejercicios.some((x) => x.id === ejercicioId)) throw new Error("Ese ejercicio ya está en tu entrenamiento.");
+    en.ejercicios.push({ ...gym.ejercicioDelEntrenamiento(ej, estado.gym.sesiones), extra: true });
+}
+
 // Una serie extra al final de un ejercicio (copia la anterior) o quitar la última.
 export function cambiarSeriesGym(estado, ejercicio, delta) {
     const ej = entrenamientoEnCurso(estado).ejercicios[ejercicio];

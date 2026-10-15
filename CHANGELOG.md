@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v69 — La Fragua
+- **`js/fragua.js`** (nuevo, en `sw.js`): `LECTURAS` (7 textos de Maren con moraleja; se abren con el nivel de gym: 1, 2, 4, 6, 9, 13 y 18), `lecturasAbiertas`, `minutosDeLectura`. Se leen en `tarjetaLecturas` (vistas-gym.js). Maren es la herrera actual de la aldea (Voces); Brann es el herrero de hace cien años, por eso ninguna lectura la pone con Casio.
+- `gym.EXTRAS` (18 ejercicios extra), `ejercicioDelEntrenamiento`, `acciones.agregarEjercicioGym` y los músculos `gluteos` y `core`. La tarjeta de la Torre dice el bono de gym (`notaDeGym`). 267 pruebas.
+
 ## v68 — Más gimnasio
 - `gym.historialDe(sesiones, ejercicio)` (mejor puntaje por sesión) y `sparkline()` en `vistas-gym.js` (SVG): gráfica en cada récord y en cada ejercicio del entrenamiento.
 - `estado.gym.peso = [{ fecha, kg }]` (uno por día; `acciones.anotarPesoGym`) con su tarjeta y gráfica. `estado.gym.mision`: id de una misión diaria que `terminarGym` marca sola (con `completarMision` en la fecha de la sesión; si ya estaba marcada o no tocaba, no hace nada). 265 pruebas.

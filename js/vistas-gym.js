@@ -5,6 +5,7 @@
 // para que no se te cierre el teclado a medio escribir). Marcar una serie sí redibuja.
 
 import * as gym from "./gym.js";
+import * as fragua from "./fragua.js";
 import { plural } from "./juego.js";
 import { esc } from "./vistas.js";
 import { dibujarAvatar } from "./dibujo.js";
@@ -83,6 +84,7 @@ export function pantallaGym(estado, ctx) {
             ${tarjetaMusculos(estado)}
             ${tarjetaRecords(estado)}
             ${tarjetaHitos(estado)}
+            ${tarjetaLecturas(estado)}
             ${tarjetaPeso(estado, ctx)}
             ${tarjetaHistorial(estado)}
             ${tarjetaAjustes(estado)}`}`;
@@ -241,10 +243,23 @@ function entrenamientoActual(estado, ctx) {
             ${barra(total ? Math.round((hechas / total) * 100) : 0, "barra-gym")}
             ${descanso}
             ${ejercicios}
+            ${ejerciciosExtra(en)}
             <button type="button" class="boton boton-principal boton-ancho" data-accion="gym-terminar" ${hechas ? "" : "disabled"}>Terminar entrenamiento</button>
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="gym-cancelar">Cancelar (no se guarda)</button>
             <p class="nota">Marca ✓ cada serie al terminarla: empieza el descanso (${gym.DESCANSOS.includes(g.descanso) ? duracion(g.descanso) : "1:30"}). El XP llega al terminar.</p>
         </section>`;
+}
+
+// Los ejercicios extra que aún no están en el entrenamiento, agrupados por músculo.
+function ejerciciosExtra(en) {
+    const disponibles = gym.EXTRAS.filter((x) => !en.ejercicios.some((y) => y.id === x.id));
+    if (!disponibles.length) return "";
+    const porMusculo = {};
+    for (const x of disponibles) (porMusculo[x.musculo] ||= []).push(x);
+    const grupos = Object.entries(porMusculo).map(([m, lista]) => `
+        <p class="mini texto-suave">${gym.MUSCULOS[m].icono} ${gym.MUSCULOS[m].nombre}</p>
+        <div class="gym-extras">${lista.map((x) => `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-extra" data-ejercicio="${x.id}">+ ${esc(x.nombre)}</button>`).join("")}</div>`).join("");
+    return `<details class="plegable"><summary>➕ Ejercicio extra</summary>${grupos}</details>`;
 }
 
 // ===== Músculos =====
@@ -303,6 +318,33 @@ function tarjetaHitos(estado) {
         <section class="panel">
             <h2 class="titulo-juego">🎖️ Hitos de gym <span class="texto-suave">${hechos}/${gym.HITOS.length}</span></h2>
             <ul class="gym-hitos">${lista}</ul>
+        </section>`;
+}
+
+// ===== Las lecturas de la Fragua (se abren con el nivel de gym) =====
+function tarjetaLecturas(estado) {
+    const nivel = gym.nivelDeGym(estado.gym.sesiones).nivel;
+    const abiertas = fragua.lecturasAbiertas(nivel).length;
+    const lista = fragua.LECTURAS.map((l) => {
+        if (nivel < l.nivel) {
+            return `<li class="gym-lectura cerrada"><span aria-hidden="true">🔒</span><span><b>${esc(l.titulo)}</b><small>Se abre en el nivel ${l.nivel} de gym.</small></span></li>`;
+        }
+        return `
+            <li class="gym-lectura">
+                <details>
+                    <summary><b>${esc(l.titulo)}</b> <small class="texto-suave">${fragua.minutosDeLectura(l)} min</small></summary>
+                    <div class="gym-lectura-texto">
+                        ${l.parrafos.map((p) => `<p>${esc(p)}</p>`).join("")}
+                        <p class="gym-moraleja">«${esc(l.moraleja)}»</p>
+                    </div>
+                </details>
+            </li>`;
+    }).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">📜 Lecturas de la Fragua <span class="texto-suave">${abiertas}/${fragua.LECTURAS.length}</span></h2>
+            <p class="nota">Maren, la herrera, escribió estos textos para quien entrena. Se abren al subir de nivel de gym.</p>
+            <ul class="gym-lecturas">${lista}</ul>
         </section>`;
 }
 

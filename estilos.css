@@ -10970,3 +10970,16 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 .campo-gym { display: grid; gap: 6px; margin: 10px 0; }
 .campo-gym select { min-height: 44px; font-size: 16px; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); padding: 0 10px; }
+
+.gym-extras { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+
+/* Lecturas de la Fragua */
+.gym-lecturas { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.gym-lectura { border: 1px solid var(--borde); border-radius: 12px; background: var(--hundido); padding: 10px 12px; }
+.gym-lectura.cerrada { display: flex; gap: 10px; align-items: center; opacity: 0.6; }
+.gym-lectura.cerrada span:last-child { display: grid; }
+.gym-lectura small { font-size: 0.76rem; color: var(--texto-suave); }
+.gym-lectura summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gym-lectura-texto { margin-top: 8px; }
+.gym-lectura-texto p { margin: 0 0 10px; line-height: 1.6; }
+.gym-moraleja { color: var(--gym-2); font-style: italic; border-left: 3px solid var(--gym-2); padding-left: 10px; }

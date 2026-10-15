@@ -2936,6 +2936,7 @@ const ACCIONES = {
         }, { mantenerScroll: true });
         if (resultado) sonar(resultado.hecha ? "completar" : "desmarcar");
     },
+    "gym-extra": (boton) => ejecutar(() => acciones.agregarEjercicioGym(estado, boton.dataset.ejercicio), { mantenerScroll: true }),
     "gym-serie-mas": (boton) => ejecutar(() => acciones.cambiarSeriesGym(estado, Number(boton.dataset.ej), 1), { mantenerScroll: true }),
     "gym-serie-menos": (boton) => ejecutar(() => acciones.cambiarSeriesGym(estado, Number(boton.dataset.ej), -1), { mantenerScroll: true }),
     "gym-saltar-descanso": () => { descansoGym = null; dibujarPantalla({ mantenerScroll: true }); },

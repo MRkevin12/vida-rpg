@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 68;
+export const VERSION_APP = 69;
 
 export const NOVEDADES = [
+    {
+        version: 69,
+        titulo: "La Fragua",
+        cambios: [
+            "📜 Lecturas de la Fragua: siete textos de Maren, la herrera, para quien entrena (el primer día, el descanso, subir de a poco, cuando la barra no sube, el dolor, la constancia y para qué sirve la fuerza). Se abren al subir de nivel de gym, en la pantalla del Gimnasio.",
+            "➕ Ejercicios extra: dentro de un entrenamiento puedes sumar dominadas, sentadilla, hip thrust, abdominales y 14 más. Cuentan igual (XP, récords y gráficas). Hay dos músculos nuevos: Glúteos y Abdomen.",
+            "🏋️ En la tarjeta de la Torre ves cuánta vida y ataque extra te da tu nivel de gym.",
+        ],
+    },
     {
         version: 68,
         titulo: "Más gimnasio",
