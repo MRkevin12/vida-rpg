@@ -5619,6 +5619,63 @@ prueba("Orrin: las pantallas (portada cerrada, índice, capítulo y el último) 
     cierto(cine.tomas.every((t) => t.texto && !t.texto.includes("{n}")), "tomas con texto");
 });
 
+// ===== Reacciones elementales (v71) =====
+
+prueba("Reacciones: dos hechizos distintos en turnos seguidos provocan Vapor, Conducción o Explosión", () => {
+    igual(torre.reaccionDe("fuego", "hielo"), "vapor");
+    igual(torre.reaccionDe("rayo", "hielo"), "conduccion");
+    igual(torre.reaccionDe("fuego", "rayo"), "explosion");
+    igual([torre.reaccionDe("fuego", "fuego"), torre.reaccionDe(null, "fuego")], [null, null]);
+    const nueva = () => {
+        const p = torre.nuevaPartida(NIVELES_1, 31);
+        p.heroe.vida = p.heroe.vidaMax = 9999;
+        p.heroe.mana = 5;
+        p.enemigo.vida = p.enemigo.vidaMax = 9999;
+        p.enemigo.intencion = "golpe";
+        return p;
+    };
+    // Vapor: el segundo hechizo lleva la reacción y la criatura queda empañada (su golpe pega menos).
+    let p = nueva();
+    torre.actuar(p, "hechizo", "fuego");
+    igual(torre.reaccionPosible(p, "hielo"), "vapor", "el menú avisa de la reacción");
+    igual(torre.reaccionPosible(p, "fuego"), null, "el mismo elemento no reacciona");
+    let r = torre.actuar(p, "hechizo", "hielo");
+    igual(r.find((e) => e.quien === "heroe").reaccion, "vapor");
+    igual(p.enemigo.empanada, false, "el vapor dura un solo golpe de la criatura");
+    cierto(p.registro.includes("Vapor"), "la frase lo cuenta");
+    // Conducción: pierde su turno.
+    p = nueva();
+    torre.actuar(p, "hechizo", "hielo");
+    r = torre.actuar(p, "hechizo", "rayo");
+    igual(r.find((e) => e.quien === "heroe").reaccion, "conduccion");
+    cierto(r.some((e) => e.quien === "enemigo" && e.tipo === "aturdida"), "la criatura pierde su turno");
+    // Explosión: rompe la coraza y la barrera.
+    p = nueva();
+    torre.actuar(p, "hechizo", "fuego");
+    p.enemigo.coraza = true;
+    p.enemigo.barrera = 50;
+    r = torre.actuar(p, "hechizo", "rayo");
+    igual(r.find((e) => e.quien === "heroe").reaccion, "explosion");
+    igual([p.enemigo.coraza, p.enemigo.barrera], [false, 0], "rompe lo que lo cubría");
+    // Pasar un turno de por medio (atacar) borra la reacción; los guardianes resisten la Conducción.
+    p = nueva();
+    torre.actuar(p, "hechizo", "fuego");
+    torre.actuar(p, "atacar");
+    r = torre.actuar(p, "hechizo", "hielo");
+    igual(r.find((e) => e.quien === "heroe").reaccion, undefined, "no fue en turnos seguidos");
+    p = nueva();
+    p.enemigo.guardian = true;
+    torre.actuar(p, "hechizo", "hielo");
+    r = torre.actuar(p, "hechizo", "rayo");
+    cierto(!r.some((e) => e.quien === "enemigo" && e.tipo === "aturdida"), "un guardián no se aturde");
+    // El golpe con reacción de Vapor pega más que el mismo hechizo sin reacción (misma semilla).
+    const a = nueva(); torre.actuar(a, "hechizo", "fuego");
+    const b = nueva(); torre.actuar(b, "atacar");
+    const conReaccion = torre.actuar(a, "hechizo", "hielo").find((e) => e.quien === "heroe").dano;
+    const sinReaccion = torre.actuar(b, "hechizo", "hielo").find((e) => e.quien === "heroe").dano;
+    cierto(conReaccion > sinReaccion * 1.1, `con reacción ${conReaccion} > sin ella ${sinReaccion}`);
+});
+
 // ===== Los ataques de las criaturas se ven (v67) =====
 
 prueba("Ataques: las 80 criaturas tienen un estilo de ataque válido y los 11 estilos se usan", () => {

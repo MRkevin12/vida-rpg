@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 70;
+export const VERSION_APP = 71;
 
 export const NOVEDADES = [
+    {
+        version: 71,
+        titulo: "Reacciones elementales",
+        cambios: [
+            "🔥❄️⚡ Si lanzas dos hechizos DISTINTOS en turnos seguidos, el segundo provoca una reacción: ♨️ Vapor (fuego + hielo: +30 % de daño y su próximo golpe pega menos), 🌩️ Conducción (hielo + rayo: +15 % y la criatura pierde su turno; los guardianes la resisten) y 💥 Explosión (fuego + rayo: +40 % y rompe su barrera y su coraza).",
+            "El menú de Magia te avisa qué hechizo provocaría una reacción en ese momento, y en la escena aparece el nombre de la reacción sobre la criatura.",
+        ],
+    },
     {
         version: 70,
         titulo: "La linterna de Orrin",

@@ -82,6 +82,28 @@ export const MODOS = {
     diaria: { icono: "📅", nombre: "Reto diario", meta: 8, bonus: { gemas: 30, xp: 20 },
               texto: "El mismo reto para todo el día: misma marca y mismo azar. Si superas 8 pisos, premio extra (una vez al día)." },
 };
+// ===== Reacciones elementales (v71) =====
+// Si lanzas dos hechizos DISTINTOS en turnos seguidos, el segundo provoca una reacción con el primero:
+//   Vapor (fuego + hielo): +30 % de daño y su próximo golpe pega 35 % menos.
+//   Conducción (hielo + rayo): +15 % de daño y la criatura pierde su turno (los guardianes lo resisten).
+//   Explosión (fuego + rayo): +40 % de daño y rompe su barrera y su coraza.
+// La criatura recuerda el último hechizo en `m.afectado = { elemento, turno }` (el número de tu acción).
+export const REACCIONES = {
+    vapor:      { icono: "♨️", nombre: "Vapor",      elementos: ["fuego", "hielo"], factor: 1.3,  texto: "su próximo golpe pega menos" },
+    conduccion: { icono: "🌩️", nombre: "Conducción", elementos: ["hielo", "rayo"],  factor: 1.15, texto: "pierde su turno" },
+    explosion:  { icono: "💥", nombre: "Explosión",  elementos: ["fuego", "rayo"],  factor: 1.4,  texto: "rompe lo que lo cubre" },
+};
+export const GOLPE_VAPOR = 0.65;   // lo que queda de su golpe después del Vapor
+export function reaccionDe(a, b) {
+    if (!a || !b || a === b) return null;
+    return Object.keys(REACCIONES).find((k) => REACCIONES[k].elementos.includes(a) && REACCIONES[k].elementos.includes(b)) || null;
+}
+// ¿Qué reacción provocaría ahora un hechizo de ese elemento? (para avisarlo en el menú de magia)
+export function reaccionPosible(partida, elemento) {
+    const previo = partida.enemigo?.afectado;
+    return previo && previo.turno === partida.turno ? reaccionDe(previo.elemento, elemento) : null;
+}
+
 export const modoDe = (partida) => (MODOS[partida?.modo] ? partida.modo : "normal");
 
 // ===== Marcas de partida (v41) =====
@@ -699,12 +721,21 @@ export function actuar(partida, accion, opcion = null) {
         // «Eco arcano» (don): el primer hechizo de cada piso pega el doble.
         const eco = magia && tieneDon(h, "eco") && !piso.eco;
         if (eco) piso.eco = true;
-        const extra = factorDeDano(h, m) * (eco ? 2 : 1) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1)
+        // (v71) Reacción elemental con el hechizo del turno anterior.
+        const previo = magia && m.afectado && m.afectado.turno === partida.turno - 1 ? m.afectado.elemento : null;
+        const reaccion = reaccionDe(previo, elemento);
+        const extra = factorDeDano(h, m) * (eco ? 2 : 1) * (reaccion ? REACCIONES[reaccion].factor : 1) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1)
             * (magia && elemento === "fuego" && tiene(h, "llama") ? HABILIDADES.llama.fuego : 1)   // «Llama del Vigía»
             * (tecnica === "quebrar" ? TECNICAS.quebrar.fuerza : 1);
         // «Quebrar» rompe su barrera y su coraza antes de pegar.
         const rompio = tecnica === "quebrar" && Boolean(m.barrera || m.coraza);
         if (tecnica === "quebrar") {
+            m.barrera = 0;
+            m.coraza = false;
+        }
+        // La Explosión rompe su barrera y su coraza antes de pegar.
+        const rompioReaccion = reaccion === "explosion" && Boolean(m.barrera || m.coraza);
+        if (reaccion === "explosion") {
             m.barrera = 0;
             m.coraza = false;
         }
@@ -727,6 +758,10 @@ export function actuar(partida, accion, opcion = null) {
         }
         const absorbido = golpearA(m, dano);
         sumarVoluntad(h, VOLUNTAD.alGolpear);
+        // (v71) Lo que deja la reacción, y el hechizo queda anotado para la siguiente.
+        if (reaccion === "conduccion" && !m.guardian && m.vida > 0) m.aturdida = true;
+        if (reaccion === "vapor" && m.vida > 0) m.empanada = true;
+        if (magia) m.afectado = { elemento, turno: partida.turno };
         // «Sed del vencedor»: tus golpes y hechizos te curan.
         let cura = tiene(h, "sed") ? Math.min(Math.round(dano * HABILIDADES.sed.robo), h.vidaMax - h.vida) : 0;
         // «Sed de sangre» (don): cada golpe crítico te cura.
@@ -749,12 +784,13 @@ export function actuar(partida, accion, opcion = null) {
         if (tiene(h, "valor") && h.vida < h.vidaMax * HABILIDADES.valor.umbral) activas.push("valor");
         if (tiene(h, "juramento") && m.guardian) activas.push("juramento");
         eventos.push(magia
-            ? { quien: "heroe", tipo: "hechizo", elemento, efecto, dano, critico, cura, coraza: Boolean(m.coraza), absorbido }
+            ? { quien: "heroe", tipo: "hechizo", elemento, efecto, dano, critico, cura, coraza: Boolean(m.coraza), absorbido, ...(reaccion ? { reaccion } : {}) }
             : { quien: "heroe", tipo: tecnica ? "tecnica" : "atacar", dano, critico, doble, cura, coraza: Boolean(m.coraza), absorbido, ...conTecnica });
         const que = magia ? `Tu hechizo de ${ELEMENTOS[elemento].nombre.toLowerCase()}`
             : tecnica ? `«${TECNICAS[tecnica].nombre}»` : doble ? "Tu doble golpe" : "Tu golpe";
         frases.push(`${rompio ? "¡Rompes lo que lo cubría! " : ""}${que} le quita ${dano} ${alMonstruo(m)}${critico ? " (¡crítico!)" : ""}.` +
                     (efecto === "debil" ? " ¡Es su punto débil!" : efecto === "resiste" ? " Lo resiste: casi no le duele." : "") +
+                    (reaccion ? ` ¡Reacción de ${REACCIONES[reaccion].nombre}: ${rompioReaccion ? "rompe lo que lo cubría" : REACCIONES[reaccion].texto}${reaccion === "conduccion" && m.guardian ? " (pero un guardián lo resiste)" : ""}!` : "") +
                     (absorbido ? ` Su barrera para ${absorbido}${m.barrera ? ` (le queda ${m.barrera})` : " y se rompe"}.` : "") +
                     (m.coraza ? " Su coraza para la mitad." : "") +
                     (gratis ? " La aurora no te cobra el hechizo." : "") +
@@ -824,6 +860,7 @@ export function actuar(partida, accion, opcion = null) {
     const intencion = m.intencion;
     const sujeto = conMayuscula(elMonstruo(m));
     const especial = intencion === "especial" ? especialDe(m) : null;
+    const empanadaAhora = Boolean(m.empanada);   // (v71) el Vapor dura un solo turno de la criatura
     const dePiedra = Boolean(m.petrificada || m.aturdida || m.intimidada);
     if (m.intimidada) {
         // «Intimidar»: pierde esta acción, y si estaba cargando un golpe, también lo pierde.
@@ -874,6 +911,7 @@ export function actuar(partida, accion, opcion = null) {
             const activasE = [];   // (v63) lo que se notó en este golpe de la criatura
             if (m.intencion === "fuerte" && tiene(h, "presagio")) activasE.push("presagio");
             let dano = danoContra(h, m);
+            if (m.empanada) dano = Math.round(dano * GOLPE_VAPOR);   // (v71) el Vapor le quita fuerza a este golpe
             if (tiene(h, "firme") && !piso.golpeado) {   // «Firme»: el primero no duele
                 dano = 0;
                 activasE.push("firme");
@@ -922,6 +960,8 @@ export function actuar(partida, accion, opcion = null) {
         eventos.push({ quien: "enemigo", tipo: "curar", cura, nombre: "Regenerar" });
         frases.push(`${sujeto} se cura ${cura}.`);
     }
+
+    if (empanadaAhora) m.empanada = false;
 
     // --- Las que se regeneran recuperan un poco al final de cada turno (v38) ---
     if (regeneraDe(m) && m.vida > 0 && m.vida < m.vidaMax && h.vida > 0) {

@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v71 — Reacciones elementales
+- `torre.REACCIONES` (vapor, conducción, explosión), `reaccionDe(a, b)` y `reaccionPosible(partida, elemento)`. La criatura recuerda tu último hechizo en `m.afectado = { elemento, turno }` (`partida.turno` = tu número de acción); si el siguiente hechizo, en el turno siguiente, es de otro elemento, `actuar` multiplica el daño (×1,3 / ×1,15 / ×1,4) y aplica el efecto: `m.empanada` (su próximo golpe ×`GOLPE_VAPOR` 0,65), `m.aturdida` (no a guardianes) o rompe `barrera` y `coraza`. El evento del héroe lleva `reaccion`. Menú de Magia y escena (`.ff-reaccion`) lo muestran. 271 pruebas.
+
 ## v70 — «La linterna de Orrin», el segundo libro largo
 - **`js/libro-orrin.js`** (nuevo, en `sw.js`): novela de Marta sobre Orrin, el primer Vigía que dejó de subir (el Rey Hueco). 3 libros y 18 capítulos (~7 000 palabras, ~35 min): «La cantera», «El invierno» y «La linterna». Coherente con el pergamino del nombre raspado, el libro de Casio y la Mazmorra: Marta fue quien raspó el nombre; las Cuatro Sombras nacen de las cuatro pérdidas (cuerpo, mente, voz y tesoro); la puerta de abajo se cierra tras su visita y solo se abre cuando cae el Dragón de la cima. No usa `{n}`. Se abre con `records.mazmorra` (≥5 los libros primero y segundo; ≥10 el tercero).
 - **`js/libros.js`** (nuevo): registro de los libros largos (`REGISTRO`, `libroPorId`, `recordDe`, `libroDeEstado`, `capituloAbierto`); cada libro exporta `PUERTA`, `ETIQUETA_MORALEJA`, `libroDe`, `PREMIO`… `libro-casio.js` los añade. `acciones.marcarLibro/terminarLibro` y `pantallaNovela` ya sirven para cualquiera (`ctx.libroNovela`); `estado.libros.orrin`; `cinesReino.cinematicaDeOrrin`; entrada «orrin» en `saga.HISTORIAS`.

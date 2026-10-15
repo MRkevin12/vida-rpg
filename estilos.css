@@ -10994,3 +10994,14 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .ficha-gym-icono { font-size: 1.6rem; }
 .ficha-gym-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .ficha-gym-texto small { color: var(--texto-suave); font-size: 0.76rem; }
+
+/* v71: reacciones elementales */
+.ff-aviso.ff-reaccion {
+    top: 52%;
+    z-index: 6;
+    font-size: 0.85rem;
+    color: #fff;
+    background: linear-gradient(90deg, #c8283a, #e8741c);
+    box-shadow: 0 0 10px rgba(255, 140, 40, 0.8);
+}
+.ff-hechizo small { display: block; }

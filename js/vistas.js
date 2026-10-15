@@ -2514,6 +2514,7 @@ export function pantallaArcade(estado, ctx) {
             ${notaDeGym(estado)}
             <details class="plegable plegable-reglas">
                 <summary>📖 Cómo se juega y qué llevas</summary>
+            <p class="nota">Combina hechizos distintos en turnos seguidos: ♨️ Vapor (fuego + hielo), 🌩️ Conducción (hielo + rayo) y 💥 Explosión (fuego + rayo).</p>
             <p class="nota">Antes de cada turno ves qué planea tu rival: ataca, usa magia, defiéndete o toma una poción. Cada criatura
                tiene un punto débil (🔥 fuego, ❄️ hielo o ⚡ rayo): descúbrelo y queda en tu bestiario. Desde que la Torre despertó, sus
                criaturas levantan barreras, cargan golpes y devuelven hechizos. El orden de cada turno es: tú, tu mascota, la criatura y el
@@ -3073,6 +3074,7 @@ export function pantallaTorre(t) {
             ${tuyo?.dano ? numeroFF(tuyo.dano, tuyo.critico ? "critico" : "", 300) : ""}
             ${mio?.dano ? numeroFF(mio.dano, "de-mascota", TURNO_MASCOTA + 120) : ""}
             ${suyo?.reflejo ? numeroFF(suyo.reflejo, "de-mascota", TURNO_ENEMIGO + 350) : ""}
+            ${tuyo?.reaccion ? `<span class="ff-aviso ff-reaccion" aria-hidden="true">${torre.REACCIONES[tuyo.reaccion].icono} ${torre.REACCIONES[tuyo.reaccion].nombre}</span>` : ""}
             ${tuyo?.efecto === "debil" ? '<span class="ff-aviso" aria-hidden="true">¡Punto débil!</span>' : ""}
             ${tuyo?.efecto === "resiste" ? '<span class="ff-aviso ff-resiste" aria-hidden="true">Resiste</span>' : ""}
             ${tuyo?.coraza && !tuyo?.efecto ? '<span class="ff-aviso ff-resiste" aria-hidden="true">Coraza</span>' : ""}
@@ -3234,7 +3236,8 @@ function comandosTorre(t) {
             // (y con el «Ojo del dragón» lo sabes de una vez).
             const sabes = loQueSabesEnLaTorre(t, clave);
             const detalle = { debil: "¡punto débil!", resiste: "lo resiste", normal: "daño normal" }[sabes] || "sin probar";
-            return fila(clave, `${e.icono} ${e.nombre}`, detalle,
+            const reaccion = torre.reaccionPosible(t.partida, clave);
+            return fila(clave, `${e.icono} ${e.nombre}`, reaccion ? `${torre.REACCIONES[reaccion].icono} ¡reacción: ${torre.REACCIONES[reaccion].nombre}!` : detalle,
                         `data-accion="torre-accion" data-torre="hechizo" data-elemento="${clave}"`, `ff-hechizo ${sabes ? `ff-${sabes}` : ""}`);
         }).join("");
         return `
