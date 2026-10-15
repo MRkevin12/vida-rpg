@@ -44,6 +44,7 @@ import * as mascota from "../js/mascota.js";
 import * as maestro from "../js/maestro.js";
 import * as memorias from "../js/memorias.js";
 import * as pergamino from "../js/pergamino.js";
+import * as pergaminos from "../js/pergaminos.js";
 import * as saga from "../js/saga.js";
 import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
@@ -4607,6 +4608,110 @@ prueba("Mapa: los señores vencidos se ven en su guarida y cada región tiene su
     igual(html.split('class="mapa-trofeo"').length - 1, 1, "solo Medusa, el único señor vencido, aparece en su guarida");
     cierto(html.includes('data-accion="cine-region"') && html.includes("Ver la escena de esta región"), "con el botón de la escena");
     cierto(html.includes("mapa-guarida libre"), "su guarida queda marcada como libre");
+});
+
+// ===== La Biblioteca prohibida (v57) =====
+
+prueba("Biblioteca: ocho pergaminos con lore, moraleja y presagio, sin huecos y con el nombre en su lugar", () => {
+    const lista = pergaminos.todosLosPergaminos("Ana");
+    igual(lista.length, 8, "ocho pergaminos");
+    igual(lista.map((p) => p.numero), ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"]);
+    igual(lista.map((p) => p.id), pergaminos.IDS);
+    igual(new Set(lista.map((p) => p.id)).size, 8, "sin ids repetidos");
+    for (const p of lista) {
+        cierto(p.titulo && p.subtitulo && p.prologo.length >= 1 && p.capitulos.length >= 3, `«${p.titulo}»: título, prólogo y al menos 3 capítulos`);
+        cierto(p.capitulos.every((c) => c.titulo && c.parrafos.length >= 1 && c.parrafos.every((x) => x.length > 20)), `«${p.titulo}»: capítulos con texto`);
+        cierto(p.ensenanzas.length >= 3 && p.moraleja.length > 15 && p.presagio.length > 30, `«${p.titulo}»: enseñanzas, moraleja y presagio`);
+        cierto(p.escena.lineas.length === 2 && p.escena.fondo && p.escena.ambiente, `«${p.titulo}»: datos de su escena`);
+        cierto(!/\{n\}|undefined|NaN|\[object/.test(JSON.stringify(p)), `«${p.titulo}»: sin huecos`);
+        cierto(p.minutos >= 1, `«${p.titulo}»: se lee en ${p.minutos} min`);
+    }
+    cierto(pergaminos.pergaminoDe("brasas", "Ana").prologo[0].includes("Ana"), "el último habla de ti");
+    igual(pergaminos.pergaminoDe("piedra", "Ana").titulo, "La primera piedra", "el primero es el de siempre");
+    // Lo nuevo no puede decir que la Llama ya arde, salvo el último (que solo se abre al terminar la saga).
+    for (const p of lista.slice(0, 7)) cierto(!/(la Llama|el fuego)[^.]*\b(ya arde|arde otra vez|volvió a arder)\b/i.test(JSON.stringify(p)), `«${p.titulo}» no dice que la Llama ya arde`);
+});
+
+prueba("Biblioteca: se abren en orden (leer el anterior + cumplir su condición)", () => {
+    const base = { leidos: {}, completadas: 0, derrotados: 0, region: 0, torre: 0, mazmorra: 0, voces: 0, saga: false };
+    let b = pergaminos.estadoDeBiblioteca("Ana", base);
+    igual(b.pergaminos.map((p) => p.abierto), [true, false, false, false, false, false, false, false], "al principio, solo el primero");
+    igual(b.siguiente, "piedra");
+    // Cumplir la condición del segundo sin haber leído el primero no basta.
+    b = pergaminos.estadoDeBiblioteca("Ana", { ...base, completadas: 50, derrotados: 5, region: 3, torre: 30, mazmorra: 20, voces: 10, saga: true });
+    igual(b.pergaminos.filter((p) => p.abierto).map((p) => p.id), ["piedra"], "hay que leerlos en orden");
+    cierto(b.pergaminos[1].falta.includes("Lee el pergamino anterior"), "dice qué falta");
+    // Leído el primero, el segundo pide 5 misiones.
+    b = pergaminos.estadoDeBiblioteca("Ana", { ...base, leidos: { piedra: "2026-10-15" } });
+    igual([b.pergaminos[1].abierto, b.pergaminos[1].falta], [false, "Cumple 5 misiones."]);
+    b = pergaminos.estadoDeBiblioteca("Ana", { ...base, leidos: { piedra: "2026-10-15" }, completadas: 5 });
+    igual([b.pergaminos[1].abierto, b.siguiente, b.leidos], [true, "juramento", 1]);
+    // Todo leído y todo cumplido: la biblioteca queda completa.
+    const todos = Object.fromEntries(pergaminos.IDS.map((id) => [id, "2026-10-15"]));
+    b = pergaminos.estadoDeBiblioteca("Ana", { ...base, leidos: todos, completadas: 50, derrotados: 5, region: 3, torre: 30, mazmorra: 20, voces: 10, saga: true });
+    igual([b.leidos, b.total, b.siguiente], [8, 8, null]);
+    // El último solo se abre al terminar la saga.
+    b = pergaminos.estadoDeBiblioteca("Ana", { ...base, leidos: Object.fromEntries(pergaminos.IDS.slice(0, 7).map((id) => [id, "x"])), completadas: 50, derrotados: 5, region: 3, torre: 30, mazmorra: 20, voces: 10, saga: false });
+    igual(b.pergaminos[7].abierto, false, "«Lo que arde después» espera a la Llama");
+    // Las sagas futuras se insinúan según lo leído.
+    igual(pergaminos.sagasFuturas({}).every((x) => !x.insinuada), true);
+    igual(pergaminos.sagasFuturas({ hermanas: "x", casio: "x" }).filter((x) => x.insinuada).map((x) => x.id), ["madre"]);
+});
+
+prueba("Biblioteca: terminar de leer un pergamino da el premio una sola vez y no se salta el orden", () => {
+    const estado = partidaNueva();
+    igual(estado.pergaminos, { leidos: {} }, "empieza vacía");
+    debeFallar(() => acciones.terminarPergamino(estado, "juramento"), "Todavía no puedes leerlo. Lee el pergamino anterior y cumple 5 misiones.");
+    debeFallar(() => acciones.terminarPergamino(estado, "inventado"), "no existe");
+    const antes = [estado.personaje.xp, estado.personaje.gemas, estado.atributos.intelecto];
+    const r = acciones.terminarPergamino(estado, "piedra");
+    igual([r.primera, r.premio], [true, pergaminos.PREMIO_LECTURA]);
+    igual([estado.personaje.xp - antes[0], estado.personaje.gemas - antes[1], estado.atributos.intelecto - antes[2]],
+          [pergaminos.PREMIO_LECTURA.xp, pergaminos.PREMIO_LECTURA.gemas, pergaminos.PREMIO_LECTURA.xp], "XP, gemas y atributo");
+    cierto(r.celebraciones[0].detalle.includes(pergaminos.pergaminoDe("piedra", "Ana").moraleja), "la celebración muestra la moraleja");
+    igual(acciones.terminarPergamino(estado, "piedra").primera, false, "la segunda vez, sin premio");
+    igual(estado.personaje.xp - antes[0], pergaminos.PREMIO_LECTURA.xp, "no se cobra dos veces");
+    debeFallar(() => acciones.terminarPergamino(estado, "juramento"), "Todavía no puedes leerlo. Cumple 5 misiones.");
+    for (let n = 0; n < 5; n++) estado.completadas.push({ misionId: 1, fecha: hoy(), xp: 10, monedas: 5, atributo: "fuerza", dificultad: "facil" });
+    igual(acciones.terminarPergamino(estado, "juramento").primera, true, "con 5 misiones, se abre el segundo");
+    // Se guarda y sobrevive a una copia de seguridad.
+    const copia = datos.desdeRespaldo(datos.paraRespaldo ? datos.paraRespaldo(estado) : JSON.stringify(estado));
+    igual(Object.keys(copia.pergaminos.leidos), ["piedra", "juramento"], "queda guardado");
+    igual(datos.desdeRespaldo(JSON.stringify({ version: 1, personaje: { nombre: "Vieja", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] })).pergaminos, { leidos: {} }, "una copia vieja la trae vacía");
+});
+
+prueba("Biblioteca (pantallas): lista con candados, pergamino con moraleja y botón de terminar, escena al final", () => {
+    const estado = partidaNueva();
+    estado.personaje.nombre = "Ana <b>";
+    let html = vistas.pantallaBiblioteca(estado);
+    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(html.includes("0 de 8") && html.includes('data-accion="pergamino-abrir" data-id="piedra"'), "el primero se puede abrir");
+    cierto(html.includes("???") && html.includes("Lee el pergamino anterior"), "los demás, con su candado y lo que falta");
+    cierto(html.includes("Lo que queda abierto") && html.includes("Una historia todavía sin nombre"), "las sagas que vendrán, todavía ocultas");
+    html = vistas.pantallaPergamino(estado, { pergaminoId: "piedra" });
+    cierto(html.includes("rollo-moraleja") && html.includes('data-accion="pergamino-terminar" data-id="piedra"') && html.includes("Terminé de leerlo"), "moraleja y botón de terminar");
+    cierto(html.includes("Pergamino I de 8") && html.includes("Ana &lt;b&gt;"), "su número y el nombre escapado");
+    html = vistas.pantallaPergamino(estado, { pergaminoId: "juramento" });
+    cierto(html.includes("🔒") && !html.includes("rollo-papel"), "un pergamino cerrado no se puede leer");
+    acciones.terminarPergamino(estado, "piedra");
+    html = vistas.pantallaPergamino(estado, { pergaminoId: "piedra" });
+    cierto(html.includes('data-accion="pergamino-escena"') && !html.includes('data-accion="pergamino-terminar"') && html.includes("Lo leíste el"), "ya leído: ver la escena otra vez");
+    cierto(vistas.pantallaBiblioteca(estado).includes("1 de 8"), "la biblioteca cuenta el que leíste");
+    // Héroe › Historia lleva a la Biblioteca.
+    const info = juego.resumen(estado, hoy());
+    const historia = vistas.pantallaPersonaje(estado, {
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+        vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
+        rangoResumen: 7, subvista: { personaje: "historia" }, campanaVista: null, diarioVista: {},
+    });
+    cierto(historia.includes('data-accion="biblioteca-abrir"') && historia.includes("1 de 8 leídos"), "desde Héroe › Historia");
+    // La cinemática de cada pergamino: cuatro tomas, con la moraleja y el presagio.
+    for (const p of pergaminos.todosLosPergaminos("Ana")) {
+        const c = cinesReino.cinematicaDePergamino(p, "Ana");
+        igual(c.tomas.length, 4, `«${p.titulo}»: cuatro tomas`);
+        cierto(c.tomas[2].texto.includes(p.moraleja) && c.tomas[3].texto === p.presagio, `«${p.titulo}»: moraleja y presagio`);
+        cierto(c.tomas.every((t) => t.fondo && t.ms >= 4000 && !/\{n\}|undefined/.test(t.texto)), `«${p.titulo}»: tomas completas`);
+    }
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

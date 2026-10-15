@@ -9262,3 +9262,82 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
         animation: none;
     }
 }
+
+
+/* ===== (v57) La Biblioteca prohibida: moraleja, lista de pergaminos y sagas que vendrán ===== */
+.rollo-moraleja {
+    position: relative;
+    margin: 18px 0 6px;
+    padding: 16px 18px 14px;
+    font-size: 1.12rem;
+    font-style: italic;
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: center;
+    color: #4a2c0a;
+    background: rgba(212, 163, 64, 0.2);
+    border: 1px solid rgba(139, 94, 20, 0.55);
+    border-radius: 10px;
+}
+
+.rollo-moraleja span {
+    display: block;
+    margin-bottom: 6px;
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.7rem;
+    font-style: normal;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #8b5e14;
+}
+
+.pergamino-fila.siguiente {
+    border-color: rgba(251, 191, 36, 0.8);
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.3);
+}
+
+.pergamino-fila.cerrado {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.pergamino-fila.leido small {
+    color: #86efac;
+}
+
+.sagas-futuras {
+    display: grid;
+    gap: 10px;
+}
+
+.saga-futura {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    list-style: none;
+    background: var(--hundido, rgba(0, 0, 0, 0.25));
+    border: 1px dashed var(--borde);
+    border-radius: 12px;
+    opacity: 0.7;
+}
+
+.saga-futura.insinuada {
+    opacity: 1;
+    border-style: solid;
+    border-color: rgba(167, 139, 250, 0.6);
+}
+
+.saga-futura-icono {
+    font-size: 1.6rem;
+}
+
+.saga-futura span:last-child {
+    display: grid;
+    gap: 2px;
+}
+
+.saga-futura small {
+    color: var(--texto-suave);
+    line-height: 1.4;
+}

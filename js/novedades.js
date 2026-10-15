@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 56;
+export const VERSION_APP = 57;
 
 export const NOVEDADES = [
+    {
+        version: 57,
+        titulo: "La Biblioteca prohibida",
+        cambios: [
+            "📚 Siete pergaminos nuevos, además de «La primera piedra»: el juramento de los Vigías, las hermanas de la niebla, el mapa de Nera, el diario de Casio, el nombre raspado, la carta de Maren y lo que arde después. Cada uno cuenta un trozo más del mundo.",
+            "🔓 Se abren en orden: hace falta leer el anterior y avanzar en el juego (misiones, jefes, el mapa, la Torre, la Mazmorra, la aldea y la Saga). Los encuentras en Héroe › Historia › La Biblioteca prohibida.",
+            "🌟 Cada uno termina con una moraleja para los días difíciles. Al acabar de leerlo, se cuenta en una escena animada y ganas +30 XP y +15 💎 (una sola vez).",
+            "🌫️ Cada pergamino deja una pregunta sin responder: son las pistas de las sagas que vendrán cuando termines la Saga de la Llama. Las ves en «Lo que queda abierto».",
+        ],
+    },
     {
         version: 56,
         titulo: "Animaciones y escenas nuevas",

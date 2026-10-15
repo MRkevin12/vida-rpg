@@ -31,6 +31,7 @@ import * as equipo from "./equipo.js";
 import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
 import * as voces from "./voces.js";
+import * as pergaminos from "./pergaminos.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -1250,6 +1251,23 @@ export function tomarCinematica(estado, lugar = "torre", reproducir = true) {
     if (!tipo) return null;
     partida.cine = null;
     return reproducir && estado.ajustes.cinematicas !== false ? { tipo } : null;
+}
+
+// (v57) Terminas de leer un pergamino de la Biblioteca prohibida. La primera vez da un pequeño premio (y se cuenta en una cinemática).
+// Solo se pueden leer en orden y cuando se cumple su condición (ver pergaminos.js).
+export function terminarPergamino(estado, id) {
+    const biblioteca = pergaminos.estadoDeBiblioteca(estado.personaje.nombre, pergaminos.datosDePartida(estado));
+    const p = biblioteca.pergaminos.find((x) => x.id === id);
+    if (!p) throw new Error("Ese pergamino no existe.");
+    if (!p.abierto) throw new Error(`Todavía no puedes leerlo. ${p.falta}`);
+    if (p.leido) return { primera: false, id };
+    estado.pergaminos.leidos[id] = hoy();
+    ganar(estado, { ...pergaminos.PREMIO_LECTURA, atributo: "intelecto" });
+    const premio = pergaminos.PREMIO_LECTURA;
+    return {
+        primera: true, id, premio,
+        celebraciones: [{ icono: "📜", etiqueta: "¡Pergamino leído!", titulo: p.titulo, detalle: `«${p.moraleja}» · +${premio.xp} XP de Intelecto · +${premio.gemas} 💎` }],
+    };
 }
 
 // (v56) Anota que ya viste una cinemática del reino, el arcade o la aldea (clave: ver cinematicas-reino.js).

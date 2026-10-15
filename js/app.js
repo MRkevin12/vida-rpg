@@ -22,6 +22,7 @@ import * as sprites from "./sprites.js";
 import * as cinematicas from "./cinematicas.js";
 import * as cine from "./cine.js";
 import * as cinesReino from "./cinematicas-reino.js";
+import * as pergaminos from "./pergaminos.js";
 import * as vistasVoces from "./vistas-voces.js";
 import * as vocesModulo from "./voces.js";
 import * as vida from "./vida.js";
@@ -77,7 +78,7 @@ let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el m
 const PANTALLAS_ESENCIALES = new Set(["hoy", "tienda", "enfoque"]);
 
 // Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
-const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje" };
+const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje", biblioteca: "personaje" };
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -98,6 +99,7 @@ const DIBUJAR = {
     mapa: vistas.pantallaMapa,
     memorias: vistas.pantallaMemorias,
     pergamino: vistas.pantallaPergamino,
+    biblioteca: vistas.pantallaBiblioteca,
 };
 
 // Lo que el dibujo del avatar necesita saber en este momento.
@@ -753,6 +755,15 @@ async function abrirBestiario() {
     $("#torre-caja").scrollTop = 0;
 }
 
+// (v57) La escena con que termina cada pergamino: dos tomas de su historia, la moraleja de Aurelio y el presagio.
+let pergaminoActual = "piedra";   // cuál pergamino se está leyendo
+
+async function verEscenaDePergamino(id) {
+    const p = pergaminos.pergaminoDe(id, estado.personaje.nombre);
+    if (!p) return;
+    await reproducirEscena(cinesReino.cinematicaDePergamino(p, estado.personaje.nombre));
+}
+
 // (v56) «▶ Ver escena» de un capítulo de la historia: se cuenta con tomas animadas (Aurelio, el guardián, las salas).
 async function verEscenaDeCapitulo(lugar, id) {
     const enCurso = estado.arcade[lugar] ? torre.pisosSuperados(estado.arcade[lugar]) : 0;
@@ -1042,6 +1053,7 @@ function contextoActual(efectos = {}) {
         regionMapa,
         subvista,                                           // la sección elegida en Progreso, Tienda y Héroe
         agruparHoy,
+        pergaminoId: pergaminoActual,
         campanaVista,
         maestro: maestro.contexto(estado, fecha, ahora, info),   // lo que el Maestro sabe de tu día
         memoriasDesde,
@@ -2628,10 +2640,23 @@ const ACCIONES = {
     // El Maestro.
     "maestro-abrir": (boton) => abrirMaestro(boton.dataset.modo || "inicio"),
     // «La primera piedra»: el pergamino motivacional (desde Héroe › Historia o desde la conversación con Aurelio).
-    "pergamino-abrir": () => {
+    "pergamino-abrir": (boton) => {
         if (!$("#maestro").hidden) cerrarMaestro();
+        pergaminoActual = boton?.dataset?.id || "piedra";
         cambiarPantalla("pergamino");
     },
+    // (v57) La Biblioteca prohibida: todos los pergaminos en orden.
+    "biblioteca-abrir": () => cambiarPantalla("biblioteca"),
+    // Terminar de leer: premio (una sola vez) y la cinemática del pergamino.
+    "pergamino-terminar": async (boton) => {
+        const resultado = ejecutar(() => acciones.terminarPergamino(estado, boton.dataset.id));
+        if (!resultado) return;
+        sonar("logro");
+        dibujarPantalla();
+        window.scrollTo(0, document.body.scrollHeight);
+        await verEscenaDePergamino(boton.dataset.id);
+    },
+    "pergamino-escena": (boton) => verEscenaDePergamino(boton.dataset.id),
     // Sus memorias: al abrirlas quedan leídas (las que eran nuevas se marcan «Nuevo» esta vez).
     "memorias-abrir": () => {
         memoriasDesde = estado.maestro.leidas || 0;

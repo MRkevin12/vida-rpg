@@ -169,6 +169,23 @@ export function cinematicaDelEpilogo(nombre) {
 }
 
 
+// ===== Los pergaminos de la Biblioteca prohibida (v57) =====
+
+// Al terminar de leer un pergamino: dos tomas de su historia, la moraleja (con Aurelio) y el presagio de lo que viene.
+// p = un pergamino de pergaminos.js: { titulo, moraleja, presagio, escena: { fondo, ambiente, lineas: [dos textos] } }.
+export function cinematicaDePergamino(p, nombre) {
+    const { fondo, ambiente, lineas } = p.escena;
+    return armar("pergamino", [
+        { fondo, actores: [tu(50, { anim: "cine-camina" })], camara: "derecha", ambiente, titulo: p.titulo, texto: lineas[0], ms: 5000, sonido: "campana" },
+        { fondo, actores: [tu(62)], camara: "zoom", foco: "60% 60%", ambiente, texto: lineas[1], ms: 5200, sonido: "cursor" },
+        { fondo, actores: [aurelio(26, { anim: "cine-flota" }), tu(72)], camara: "quieto", efecto: "destello", ambiente: "chispas",
+          titulo: "Moraleja", texto: `Aurelio: «${p.moraleja}»`, ms: 5600, sonido: "logro" },
+        { fondo, actores: [tu(60)], camara: "arriba", efecto: "oscuro", ambiente: "niebla",
+          texto: p.presagio, ms: 6200, sonido: "retumbo" },
+    ], nombre);
+}
+
+
 // ===== La historia: «▶ Ver escena» de cada capítulo (Torre y Mazmorra) =====
 
 // El guardián de una zona (para que aparezca en la escena de su capítulo). Si no hay, null.

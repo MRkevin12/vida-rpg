@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v57 — La Biblioteca prohibida
+- **`js/pergaminos.js`** (nuevo, en `sw.js`): 8 pergaminos en orden (el 1.º es «La primera piedra», de `pergamino.js`; los 7 nuevos viven aquí con prólogo, 3 capítulos, enseñanzas, moraleja, presagio y datos de su escena). `estadoDeBiblioteca` los abre EN ORDEN (leer el anterior + `condicion`: misiones, jefes, región, Torre, Mazmorra, voces o saga; `datosDePartida` la saca de la partida). `SAGAS_FUTURAS` (4) se insinúa según los pergaminos leídos: son anuncios, no se juegan.
+- **Leer:** `acciones.terminarPergamino` anota `estado.pergaminos.leidos[id] = fecha` (migra sola en `completar`) y da `PREMIO_LECTURA` (+30 XP de Intelecto, +15 💎) una vez. `cinematicaDePergamino` (en `cinematicas-reino.js`): 2 tomas de la historia, la moraleja con Aurelio y el presagio; se repite con «🎬 Ver la escena otra vez».
+- **Pantallas:** `pantallaBiblioteca` (lista, estado y «Lo que queda abierto») y `pantallaPergamino` ahora sirve a cualquiera (`ctx.pergaminoId`). Entrada desde Héroe › Historia. 
+
 ## v56 — Animaciones y cinemáticas del reino
 - **`js/cinematicas-reino.js`** (nuevo, en `sw.js`): cinemáticas de región, de guarida liberada (`senor`), de fortaleza, del Arcade, de Las Voces (intro, voz recuperada y epílogo) y de cada capítulo de la historia de la Torre. Mismo reproductor (`cine.js`), ahora con fondos `pintura:…` (fondos/), actores nuevos (`maestro`, personas de la aldea, retratos de jefes enmarcados) y `ambiente` (niebla, chispas, lluvia).
 - Se ven una vez (`estado.mapa.cines`, datos v27, `acciones.verCinematica`): máximo 2 por visita al mapa (`revisarCines` en app.js). Se repiten con «🎬 Ver la escena de esta región», «▶ Ver escena» (Crónica e Historia) y «Volver a ver las escenas» en Ajustes. Respetan «Cinemáticas» de Ajustes.

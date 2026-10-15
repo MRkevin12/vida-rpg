@@ -23,6 +23,7 @@ import * as libro from "./libro.js";
 import * as maestro from "./maestro.js";
 import * as memorias from "./memorias.js";
 import * as pergamino from "./pergamino.js";
+import * as pergaminos from "./pergaminos.js";
 import * as saga from "./saga.js";
 import * as rituales from "./rituales.js";
 import * as mapa from "./mapa.js";
@@ -3522,6 +3523,10 @@ function filaEnlace(icono, titulo, detalle, destino) {
             </button>`;
 }
 
+function bibliotecaLeidos(estado) {
+    return pergaminos.IDS.filter((id) => estado.pergaminos.leidos[id]).length;
+}
+
 // «Historia»: todo lo que cuenta tu camino, junto (antes estaba repartido entre Hoy, Personaje y Ajustes).
 function seccionHistoria(estado, ctx) {
     const c = estado.pacto ? pacto.cumplimientoDelPacto(estado, ctx.hoy) : null;
@@ -3550,6 +3555,13 @@ function seccionHistoria(estado, ctx) {
             <h2 class="titulo-juego">📚 Las historias, en orden</h2>
             <p class="nota">Todas cuentan la misma historia en distintos tiempos: de la primera piedra a tus días de hoy.</p>
             <div class="filas-enlace">${historias}</div>
+        </section>
+        <section class="panel">
+            <h2 class="titulo-juego">📚 La Biblioteca prohibida</h2>
+            <p class="nota">Más pergaminos con lore del mundo y moralejas, que se abren en orden mientras avanzas.</p>
+            <div class="filas-enlace">
+                ${filaEnlace("📚", "Los pergaminos", `${bibliotecaLeidos(estado)} de ${pergaminos.IDS.length} leídos`, 'data-accion="biblioteca-abrir"')}
+            </div>
         </section>
         <section class="panel">
             <h2 class="titulo-juego">✍️ Lo tuyo</h2>
@@ -3606,25 +3618,35 @@ export function pantallaMemorias(estado, ctx) {
 }
 
 
-// ===== Pantalla: «La primera piedra» (v33) =====
-// Una historia motivacional larga, como un pergamino que se desenrolla (el texto está en pergamino.js).
-export function pantallaPergamino(estado) {
-    const p = pergamino.pergaminoPara(estado.personaje.nombre);
+// ===== Pantallas: los pergaminos de la Biblioteca prohibida (v33, v57) =====
+// Una historia motivacional larga, como un pergamino que se desenrolla (el texto está en pergamino.js y pergaminos.js).
+// ctx.pergaminoId = cuál se lee (por defecto, el primero: «La primera piedra»).
+export function pantallaPergamino(estado, ctx = {}) {
+    const nombre = estado.personaje.nombre;
+    const biblioteca = pergaminos.estadoDeBiblioteca(nombre, pergaminos.datosDePartida(estado));
+    const p = biblioteca.pergaminos.find((x) => x.id === (ctx.pergaminoId || "piedra")) || biblioteca.pergaminos[0];
+    const volver = `<button type="button" class="boton boton-secundario boton-ancho" data-accion="biblioteca-abrir">‹ Volver a la Biblioteca</button>`;
+    if (!p.abierto) {
+        return `
+            ${encabezado("📜 Pergamino", "personaje", "Héroe")}
+            <section class="panel"><h2 class="titulo-juego">🔒 ${esc(p.titulo)}</h2><p class="nota">${esc(p.falta)}</p></section>
+            ${volver}`;
+    }
     const parrafos = (lista) => lista.map((texto) => `<p>${esc(texto)}</p>`).join("");
     const adorno = '<p class="rollo-adorno" aria-hidden="true">❦</p>';
-    const capitulos = p.capitulos.map((c) => `
+    const capitulos = p.capitulos.map((c, i) => `
         <section class="rollo-capitulo">
-            <p class="rollo-numero">${c.numero}</p>
+            <p class="rollo-numero">${["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][i]}</p>
             <h3 class="rollo-titulo-capitulo">${esc(c.titulo)}</h3>
             ${parrafos(c.parrafos)}
         </section>`).join(adorno);
     return `
-        ${encabezado("📜 Pergamino", "personaje", "Héroe")}
+        ${encabezado(`📜 Pergamino ${p.numero}`, "personaje", "Héroe")}
         <article class="rollo">
             <div class="rollo-vara" aria-hidden="true"></div>
             <div class="rollo-papel">
                 <header class="rollo-cabecera">
-                    <p class="rollo-sobre">Para los días difíciles · ${p.minutos} min de lectura</p>
+                    <p class="rollo-sobre">Pergamino ${p.numero} de ${biblioteca.total} · ${p.minutos} min de lectura</p>
                     <h2>${esc(p.titulo)}</h2>
                     <p class="rollo-subtitulo">${esc(p.subtitulo)}</p>
                 </header>
@@ -3632,16 +3654,54 @@ export function pantallaPergamino(estado) {
                 ${adorno}
                 ${capitulos}
                 <section class="rollo-ensenanzas">
-                    <h3>Las enseñanzas de la primera piedra</h3>
+                    <h3>${p.id === "piedra" ? "Las enseñanzas de la primera piedra" : "Lo que enseña este pergamino"}</h3>
                     <ol>${p.ensenanzas.map((texto) => `<li>${esc(texto)}</li>`).join("")}</ol>
                 </section>
-                ${adorno}
-                <div class="rollo-dedicatoria">${parrafos(p.dedicatoria)}</div>
-                <p class="rollo-firma">— ${esc(p.firma)}</p>
+                <blockquote class="rollo-moraleja"><span>Moraleja</span>«${esc(p.moraleja)}»</blockquote>
+                ${p.cierre?.length ? `${adorno}<div class="rollo-dedicatoria">${parrafos(p.cierre)}</div>` : ""}
+                ${p.firma ? `<p class="rollo-firma">— ${esc(p.firma)}</p>` : ""}
             </div>
             <div class="rollo-vara" aria-hidden="true"></div>
         </article>
-        <button type="button" class="boton boton-secundario boton-ancho" data-accion="ir" data-pantalla="personaje">‹ Volver a tu Héroe</button>`;
+        ${p.leido
+            ? `<p class="nota">✅ Lo leíste el ${fechaCorta(estado.pergaminos.leidos[p.id])}. <i>${esc(p.presagio)}</i></p>
+               <button type="button" class="boton boton-secundario boton-ancho" data-accion="pergamino-escena" data-id="${esc(p.id)}">🎬 Ver la escena otra vez</button>`
+            : `<button type="button" class="boton boton-principal boton-ancho" data-accion="pergamino-terminar" data-id="${esc(p.id)}">✅ Terminé de leerlo (+${pergaminos.PREMIO_LECTURA.xp} XP · +${pergaminos.PREMIO_LECTURA.gemas} 💎)</button>`}
+        ${volver}`;
+}
+
+// La Biblioteca prohibida: todos los pergaminos en orden (los que aún no se abren dicen qué falta) y las sagas que se insinúan.
+export function pantallaBiblioteca(estado) {
+    const b = pergaminos.estadoDeBiblioteca(estado.personaje.nombre, pergaminos.datosDePartida(estado));
+    const filas = b.pergaminos.map((p) => {
+        const estadoTexto = p.leido ? "✅ Leído" : p.abierto ? "📖 Listo para leer" : `🔒 ${esc(p.falta)}`;
+        const destino = p.abierto ? `data-accion="pergamino-abrir" data-id="${esc(p.id)}"` : "disabled";
+        return `<button type="button" class="fila-enlace pergamino-fila ${p.leido ? "leido" : ""} ${p.abierto ? "" : "cerrado"} ${p.id === b.siguiente ? "siguiente" : ""}" ${destino}>
+                    <span class="fila-enlace-icono" aria-hidden="true">${p.abierto ? "📜" : "🔒"}</span>
+                    <span><b>${p.numero} · ${p.abierto ? esc(p.titulo) : "???"}</b><small>${estadoTexto}${p.abierto ? ` · ${p.minutos} min` : ""}</small></span>
+                    <span class="fila-enlace-flecha" aria-hidden="true">›</span>
+                </button>`;
+    }).join("");
+    const sagas = pergaminos.sagasFuturas(estado.pergaminos.leidos).map((s) => `
+        <li class="saga-futura ${s.insinuada ? "insinuada" : ""}">
+            <span class="saga-futura-icono" aria-hidden="true">${s.insinuada ? s.icono : "❔"}</span>
+            <span><b>${s.insinuada ? esc(s.titulo) : "Una historia todavía sin nombre"}</b>
+                <small>${s.insinuada ? esc(s.texto) : `Se insinúa en ${s.requiere.length} pergaminos: llevas ${s.pistas} de ${s.requiere.length}.`}</small></span>
+        </li>`).join("");
+    return `
+        ${encabezado("📚 Biblioteca", "personaje", "Héroe")}
+        <section class="panel">
+            <h2 class="titulo-juego">📚 La Biblioteca prohibida</h2>
+            <p class="nota">Pergaminos que escribieron los Vigías y los vecinos del valle. Se abren en orden, al avanzar en el juego. Cada uno cuenta un trozo más del mundo y deja una moraleja para los días difíciles.</p>
+            <p class="mini">Llevas <b>${b.leidos} de ${b.total}</b> pergaminos leídos.</p>
+            ${barra(Math.round((b.leidos / b.total) * 100), "barra-mini")}
+            <div class="filas-enlace">${filas}</div>
+        </section>
+        <section class="panel">
+            <h2 class="titulo-juego">🌫️ Lo que queda abierto</h2>
+            <p class="nota">Cada pergamino deja una pregunta sin responder. Son las historias que vendrán cuando termines la Saga de la Llama: hoy solo se insinúan, y se irán revelando a medida que leas.</p>
+            <ul class="lista sagas-futuras">${sagas}</ul>
+        </section>`;
 }
 
 
