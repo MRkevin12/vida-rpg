@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 55;
+export const VERSION_APP = 56;
 
 export const NOVEDADES = [
+    {
+        version: 56,
+        titulo: "Animaciones y escenas nuevas",
+        cambios: [
+            "🎬 Cinemáticas nuevas: al llegar a una región del mapa, al liberar la guarida de un señor vencido, al abrir una fortaleza, la primera vez que entras al Arcade y a Las Voces del Valle, y cuando alguien de la aldea recupera su voz. Se pueden saltar y volver a ver (en el mapa y en Ajustes).",
+            "🗺️ En el mapa, los señores que venciste aparecen en su guarida, con su retrato y una marca ✓.",
+            "📜 La historia de la Torre es más interactiva: cada capítulo se abre y se cierra, y tiene su botón «▶ Ver escena» con Aurelio, el guardián y las salas animadas. La Crónica del reino también tiene sus escenas.",
+            "✨ Más animaciones en todo el juego: las pantallas y las tarjetas entran con suavidad, las barras se llenan, los botones rebotan al tocarlos y las ventanas se abren con efecto. Si tu teléfono tiene «Reducir movimiento», todo queda quieto.",
+        ],
+    },
     {
         version: 55,
         titulo: "Tus misiones principales, al frente",

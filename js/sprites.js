@@ -42,6 +42,11 @@ export function spriteDeMaestro(d) {
     return pixelar(dibujarAvatar(d, { mini: true }), 30, 30, { clave: "maestro" });
 }
 
+// Aurelio de cuerpo entero, para las cinemáticas del reino (v56). d = maestro.describirMaestro().
+export function spriteDeMaestroCuerpo(d) {
+    return pixelar(dibujarAvatar(d, { batalla: true, sinEfectos: true }), HEROE.ancho, HEROE.alto, { clave: "maestro-cuerpo" });
+}
+
 // Una persona de la aldea (Las Voces del Valle, v44): de cuerpo entero para la conversación, y solo la cara
 // (como el Maestro) para las listas. id = "maren", "tobias"… (ver voces-datos.js).
 export function spriteDePersona(id) {

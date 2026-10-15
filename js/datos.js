@@ -69,7 +69,8 @@ export function estadoInicial() {
         noches: [],           // días que cerraste con el ritual de la noche
         relampagos: {},       // desafío relámpago de cada día: { inicio, base, meta, minutos, cobradoEn } o { rechazado }
         cofres: {},           // cofre de cada día, con lo que salió: { tipo, cantidad, atributo, objeto, icono, texto }
-        mapa: { reclamados: [] },   // lugares del mapa cuyo premio ya reclamaste ("r1-5"…)
+        mapa: { reclamados: [],     // lugares del mapa cuyo premio ya reclamaste ("r1-5"…)
+                cines: [] },        // (v56) las cinemáticas del reino, el arcade y la aldea que ya viste ("region-1", "senor-r1-7"…)
         pacto: null,          // tu Tratado de la Voluntad (ver pacto.js): { nombre, razon, firma (trazo SVG),
                               //   firmadoEn, primeraVez, renovaciones }
 
@@ -155,7 +156,7 @@ function completar(guardado) {
             equipado: { ...base.avatar.equipado, ...avatar.equipado },
         },
         mascota: { ...base.mascota, ...guardado.mascota, adoptadas: { ...guardado.mascota?.adoptadas } },
-        mapa: { reclamados: guardado.mapa?.reclamados || [] },
+        mapa: { reclamados: guardado.mapa?.reclamados || [], cines: guardado.mapa?.cines || [] },
         arcade: {
             usadas: guardado.arcade?.usadas || 0,
             records: { ...guardado.arcade?.records },

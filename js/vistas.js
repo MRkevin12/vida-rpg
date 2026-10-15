@@ -913,6 +913,7 @@ function seccionCronica(estado, campanas, region) {
         return `<details class="capitulo" ${c.id === abiertoPorDefecto ? "open" : ""}>
                     <summary><span class="capitulo-numero">${c.id === "prologo" ? "Prólogo" : `Capítulo ${c.numero}`}</span> <b>${esc(c.titulo)}</b></summary>
                     ${parrafos}
+                    ${/^r\d+$/.test(c.id) ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="cine-region" data-region="${Number(c.id.slice(1)) - 1}">▶ Ver escena</button>` : ""}
                 </details>`;
     }).join("");
     return `
@@ -940,8 +941,9 @@ export function pantallaMapa(estado, ctx) {
     const encima = `
         ${aqui ? `<img class="mapa-heroe" id="mapa-heroe" alt="${esc(estado.personaje.nombre)}" style="${enElMapa(aqui)}">
                   <img class="mapa-mascota" id="mapa-mascota" alt="" style="${enElMapa({ x: aqui.x + 13, y: aqui.y + 2 })}">` : ""}
-        ${senores.map((s) => `<button type="button" class="mapa-guarida" data-accion="mapa-senor" data-id="senor-${s.id}"
-                                      style="${enElMapa(puntos[s.n])}" aria-label="${esc(s.nombre)}: ${s.liberada ? "liberada" : "en pie"}"></button>`).join("")}
+        ${senores.map((s) => `<button type="button" class="mapa-guarida ${s.liberada ? "libre" : ""}" data-accion="mapa-senor" data-id="senor-${s.id}"
+                                      style="${enElMapa(puntos[s.n])}" aria-label="${esc(s.nombre)}: ${s.liberada ? "liberada" : "en pie"}">
+                                  ${s.liberada && s.jefe ? `<img class="mapa-trofeo" src="${campana.imagenDe(s.jefe.id)}" alt="" loading="lazy" decoding="async">` : ""}</button>`).join("")}
         ${tramo === 0 ? `<button type="button" class="mapa-guarida" data-accion="ir" data-pantalla="arcade"
                                  style="${enElMapa({ x: mapa.TORRE_VALLE.x, y: mapa.TORRE_VALLE.y - 30 })}" aria-label="La Torre de los Vigías: súbela en el Arcade"></button>` : ""}`;
 
@@ -990,6 +992,7 @@ export function pantallaMapa(estado, ctx) {
             <p class="nota">${progreso} ${ciudadela ? "Memoriales encendidos" : "Señores vencidos"}: <b>${caidos} de 4</b>.
                ${finalDeRegion}</p>
             ${notaTorre}
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="cine-region" data-region="${region}">🎬 Ver la escena de esta región</button>
         </section>
         ${listaReclamar}
         <div class="mapa-pixel" data-region="${region}">
@@ -3092,6 +3095,7 @@ export function pantallaRelato(r) {
 export function pantallaHistoria(h) {
     const sitio = bestiario.lugarDe(h.lugar);
     const leyenda = leyendas.LEYENDAS[sitio.id];
+    const ultimoAbierto = [...h.capitulos].reverse().find((c) => c.abierto && c.parrafos.length)?.id;
     const capitulos = h.capitulos.map((c) => {
         if (!c.abierto) {
             return `<article class="ff-ventana ff-capitulo cerrado">
@@ -3099,12 +3103,14 @@ export function pantallaHistoria(h) {
                         <p class="ff-renglon"><small>${esc(c.bloqueado)}</small></p>
                     </article>`;
         }
-        return `<article class="ff-ventana ff-capitulo">
-                    <p class="ff-titulo">${esc(c.numero)} · ${esc(c.titulo)}</p>
+        // (v56) Cada capítulo se abre y se cierra; el último que puedes leer viene abierto, con su botón para verlo animado.
+        return `<details class="ff-ventana ff-capitulo" ${c.id === ultimoAbierto ? "open" : ""}>
+                    <summary class="ff-titulo">${esc(c.numero)} · ${esc(c.titulo)}</summary>
                     ${c.parrafos.map((texto) => `<p>${esc(texto)}</p>`).join("")}
                     ${c.pendiente ? `<p class="ff-renglon"><small>⏳ ${esc(c.pendiente)}</small></p>` : ""}
                     ${c.aviso ? `<p class="ff-oro">${esc(c.aviso)}</p>` : ""}
-                </article>`;
+                    <button type="button" class="boton boton-chico ff-escena" data-accion="cine-capitulo" data-lugar="${esc(h.lugar)}" data-id="${esc(c.id)}">▶ Ver escena</button>
+                </details>`;
     }).join("");
     return `
         ${barraTorre(`📜 ${esc(leyenda.titulo)}`, sitio.nombre)}

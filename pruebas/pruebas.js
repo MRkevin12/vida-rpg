@@ -27,6 +27,7 @@ import * as bestiario from "../js/bestiario.js";
 import * as leyendas from "../js/leyendas.js";
 import * as habilidades from "../js/habilidades.js";
 import * as cronica from "../js/cronica.js";
+import * as cinesReino from "../js/cinematicas-reino.js";
 import { dibujarMapa } from "../js/dibujo-mapa.js";
 import * as sprites from "../js/sprites.js";
 import { retocarPuntos, redondearColor, enSombras } from "../js/pixel.js";
@@ -4271,7 +4272,7 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     igual(estado.version, datos.estadoInicial().version, "la versión de los datos");
     igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true, esencial: false, esencialAlAbrir: true,
                           animo: "bien", preguntarAnimo: true });
-    igual([estado.claves, estado.cofres, estado.noches, estado.mapa, estado.arcade.extra], [{}, {}, [], { reclamados: [] }, 0], "lo de la v22");
+    igual([estado.claves, estado.cofres, estado.noches, estado.mapa, estado.arcade.extra], [{}, {}, [], { reclamados: [], cines: [] }, 0], "lo de la v22");
     igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
     igual(estado.campana, { recompensados: {}, libres: {} });
     igual([estado.tareas, estado.desafios, estado.diario, estado.avances], [[], [], {}, {}], "las listas nuevas");
@@ -4526,6 +4527,87 @@ prueba("Jefes y mapa: cada jefe vencido acelera el viaje del héroe (+10 % por j
     cierto(campana.factorDeViaje(estado) <= campana.FACTOR_VIAJE_MAXIMO, "el bono tiene tope");
 });
 
+
+// ===== Cinemáticas del reino, el arcade, la aldea y la historia (v56) =====
+
+prueba("Cinemáticas del reino: tomas completas, sin huecos, con el nombre del héroe y sin decir que la Llama ya arde", () => {
+    const estado = partidaNueva();
+    const campanas = campana.estadoCampanas(estado);
+    const todas = [];
+    for (let region = 0; region < 12; region++) todas.push(cinesReino.cinematicaDeRegion(region, "Aria"));
+    const senor = mapa.senoresDeRegion(0, campanas)[0];
+    todas.push(cinesReino.cinematicaDeSenor(senor, 0, juego.ATRIBUTOS[senor.categoria], "Aria"));
+    for (const region of [0, 1, 5, 6]) todas.push(cinesReino.cinematicaDeFortaleza(region, "Aria"));
+    todas.push(cinesReino.cinematicaDeArcade("Aria"), cinesReino.cinematicaDeVoces("Aria"), cinesReino.cinematicaDelEpilogo("Aria"));
+    todas.push(cinesReino.cinematicaDeVoz({ id: "maren", nombre: "Maren", voz: "El Orgullo", fondo: "torre" }, "Aria"));
+    for (const c of todas) {
+        cierto(c.tomas.length >= 2, `${c.tipo}: al menos 2 tomas`);
+        for (const t of c.tomas) {
+            cierto(t.fondo && t.ms >= 2000 && t.texto, `${c.tipo}: cada toma tiene fondo, duración y texto`);
+            cierto(!/undefined|NaN|\{n\}|\[object/.test(`${t.texto}${t.titulo}`), `${c.tipo}: sin huecos`);
+            cierto(!/(la llama|el fuego)[^.]*\b(arde ya|ya arde|se enciende)\b/i.test(t.texto) || c.tipo === "fortaleza", "no dice que la Llama de la Torre ya arde");
+        }
+    }
+    cierto(todas[0].tomas[0].titulo === "El Valle del Comienzo" && todas.some((c) => c.tomas.some((t) => t.texto.includes("Aria"))), "con el nombre y el título de la región");
+    igual(cinesReino.cinematicaDeRegion(6, "Aria").tomas[0].titulo, "El Valle del Comienzo II", "las vueltas siguientes llevan su número");
+    igual(cinesReino.cinematicaDeSenor(senor, 0, juego.ATRIBUTOS[senor.categoria], "Aria").tomas[0].actores[0].quien, senor.jefe.id, "el jefe sale como retrato");
+});
+
+prueba("Cinemáticas del reino: cada una se ve una sola vez, se pueden reiniciar y se respetan los ajustes", () => {
+    const estado = partidaNueva();
+    igual(estado.mapa.cines, []);
+    igual(acciones.verCinematica(estado, cinesReino.claveDeRegion(0)), true, "la primera vez, se reproduce");
+    igual(acciones.verCinematica(estado, cinesReino.claveDeRegion(0)), false, "la segunda, no");
+    igual(estado.mapa.cines, ["region-0"]);
+    estado.ajustes.cinematicas = false;
+    igual(acciones.verCinematica(estado, cinesReino.CLAVE_ARCADE), false, "apagadas: no se reproduce, pero se anota");
+    cierto(estado.mapa.cines.includes("arcade-intro"));
+    acciones.reiniciarCinematicas(estado);
+    igual(estado.mapa.cines, []);
+});
+
+prueba("Historia: cada capítulo se parte en tomas cortas, con el guardián en los de zona", () => {
+    const capitulos = leyendas.capitulosDeLeyenda("torre", 20, "Aria");
+    const prologo = capitulos.find((c) => c.id === "prologo");
+    const escena = cinesReino.cinematicaDeCapitulo(prologo, { lugar: "torre", fondo: "cripta", tieneGuardian: false }, "Aria");
+    cierto(escena.tomas.length >= prologo.parrafos.length, "al menos una toma por párrafo");
+    cierto(escena.tomas.every((t) => t.texto.length <= 260 && t.ms >= 2800 && t.ms <= 14000), "tomas cortas y de duración razonable");
+    igual(escena.tomas[0].titulo, `Prólogo · ${prologo.titulo}`, "la primera lleva el título");
+    cierto(escena.tomas.every((t) => !t.actores.some((a) => a.quien === "criatura")), "el prólogo lo cuenta Aurelio, sin guardián");
+    const cripta = capitulos.find((c) => c.id === "cripta");
+    const guardian = cinesReino.guardianDeZona("torre", "cripta");
+    cierto(guardian && bestiario.CRIATURAS[guardian].guardian, "cada zona tiene su guardián");
+    const deZona = cinesReino.cinematicaDeCapitulo(cripta, { lugar: "torre", fondo: "cripta", tieneGuardian: true }, "Aria");
+    cierto(deZona.tomas.some((t) => t.actores.some((a) => a.quien === "criatura" && a.anim === "cine-cae")), "al final del capítulo, el guardián cae");
+    for (const t of deZona.tomas) cierto(!/\{n\}/.test(t.texto), "sin {n} sin reemplazar");
+    // Los textos largos se parten por frases, sin perder nada.
+    const largo = "Una frase corta. Otra frase un poco más larga que la anterior, para llenar espacio. Y una tercera que ya no cabe en el mismo trozo de arriba, seguro.";
+    const trozos = cinesReino.trozosDe(largo, 80);
+    igual(trozos.join(" ").replace(/\s+/g, " "), largo, "no se pierde ni se repite texto");
+    cierto(trozos.length >= 2 && trozos.every((t) => t.length <= 160), "se parte en trozos");
+    // La pantalla de Historia: capítulos desplegables con su botón «Ver escena».
+    const html = vistas.pantallaHistoria({ lugar: "torre", capitulos });
+    cierto(html.includes("<details") && html.includes('data-accion="cine-capitulo"') && !/undefined|NaN|\[object/.test(html), "capítulos que se abren, con su escena");
+    igual(html.split('data-accion="cine-capitulo"').length - 1, capitulos.filter((c) => c.abierto).length, "un botón por capítulo abierto");
+});
+
+prueba("Mapa: los señores vencidos se ven en su guarida y cada región tiene su botón para ver la escena", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    envejecer(estado, 29);
+    for (let n = -29; n <= 0; n++) marcarEn(estado, leer, dia(n));   // 240 de daño de Intelecto: cae Medusa
+    const info = juego.resumen(estado, hoy());
+    const ctx = {
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+        vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
+        rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {},
+    };
+    const html = vistas.pantallaMapa(estado, ctx);
+    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    igual(html.split('class="mapa-trofeo"').length - 1, 1, "solo Medusa, el único señor vencido, aparece en su guarida");
+    cierto(html.includes('data-accion="cine-region"') && html.includes("Ver la escena de esta región"), "con el botón de la escena");
+    cierto(html.includes("mapa-guarida libre"), "su guarida queda marcada como libre");
+});
 
 // ===== Ejecutar todo y mostrar el resultado =====
 

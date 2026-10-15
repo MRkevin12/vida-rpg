@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v56 — Animaciones y cinemáticas del reino
+- **`js/cinematicas-reino.js`** (nuevo, en `sw.js`): cinemáticas de región, de guarida liberada (`senor`), de fortaleza, del Arcade, de Las Voces (intro, voz recuperada y epílogo) y de cada capítulo de la historia de la Torre. Mismo reproductor (`cine.js`), ahora con fondos `pintura:…` (fondos/), actores nuevos (`maestro`, personas de la aldea, retratos de jefes enmarcados) y `ambiente` (niebla, chispas, lluvia).
+- Se ven una vez (`estado.mapa.cines`, datos v27, `acciones.verCinematica`): máximo 2 por visita al mapa (`revisarCines` en app.js). Se repiten con «🎬 Ver la escena de esta región», «▶ Ver escena» (Crónica e Historia) y «Volver a ver las escenas» en Ajustes. Respetan «Cinemáticas» de Ajustes.
+- **Mapa:** `.mapa-trofeo` (retrato del señor vencido en su guarida, con ✓).
+- **Historia:** capítulos como `<details>` con `▶ Ver escena` (`cinematicaDeCapitulo` parte el texto en tomas; el guardián aparece y cae en su capítulo).
+- **Animaciones globales (CSS):** `.entra` al cambiar de pantalla (`animarEntrada`), tarjetas en cascada, barras que se llenan, rebote en botones y pestañas, ventanas con fundido. Todo se apaga con `prefers-reduced-motion`.
+
 ## v55 — Misiones principales al frente
 - `destacadasDeHoy(estado)`: tarjeta fija arriba de Hoy (en todos los ánimos, no viendo ayer ni en la pestaña Principales) con las 3 principales más avanzadas, su barra y el siguiente paso con su check (`alternar-submision`). La pestaña «Principales» pasa al 2.º lugar.
 

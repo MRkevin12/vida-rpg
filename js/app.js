@@ -21,7 +21,9 @@ import * as leyendas from "./leyendas.js";
 import * as sprites from "./sprites.js";
 import * as cinematicas from "./cinematicas.js";
 import * as cine from "./cine.js";
+import * as cinesReino from "./cinematicas-reino.js";
 import * as vistasVoces from "./vistas-voces.js";
+import * as vocesModulo from "./voces.js";
 import * as vida from "./vida.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
@@ -659,6 +661,88 @@ async function reproducirCinematica(lugar = lugarAbierto) {
     await cine.reproducir(cinematica, imagenes, { sonar });
 }
 
+// ===== Más cinemáticas (v56): el reino, el arcade, Las Voces del Valle y la historia =====
+// Los datos están en cinematicas-reino.js. Cada una sale una sola vez (estado.mapa.cines) y se puede volver a ver con un botón.
+
+// Prepara las imágenes que necesita una cinemática (tu héroe, Aurelio, las personas de la aldea, los jefes, las salas…) y la reproduce.
+async function reproducirEscena(cinematica, { criatura = null } = {}) {
+    if (!cinematica || !$("#cine").hidden) return;
+    const quienes = cinesReino.actoresDe(cinematica);
+    const jefes = new Map(Object.values(campana.CAMPANAS).flatMap((c) => c.jefes.map((j) => [j.id, j])));
+    const salas = cinesReino.salasDe(cinematica);
+    const imagenes = { salas: {}, actores: {}, retratos: {}, tallaCriatura: 96 };
+    const tareas = [];
+    for (const quien of quienes) {
+        if (quien === "heroe") tareas.push(sprites.spriteDeHeroe(avatarActual()).then((d) => { imagenes.heroe = d; }));
+        else if (quien === "maestro") tareas.push(sprites.spriteDeMaestroCuerpo(maestro.describirMaestro()).then((d) => { imagenes.actores.maestro = d; }));
+        else if (quien === "criatura" && criatura) {
+            imagenes.tallaCriatura = bestiario.CRIATURAS[criatura]?.talla || 96;
+            tareas.push(sprites.spriteDeMonstruo(criatura, avatarActual()).then((d) => { imagenes.criatura = d; }));
+        } else if (jefes.has(quien)) imagenes.retratos[quien] = campana.imagenDe(quien);
+        else if (vocesModulo.personaDe(quien)) tareas.push(sprites.spriteDePersona(quien).then((d) => { imagenes.actores[quien] = d; }));
+    }
+    for (const sala of salas) tareas.push(sprites.spriteDeSala(sala).then((d) => { imagenes.salas[sala] = d; }));
+    await Promise.all(tareas);
+    await cine.reproducir(cinematica, imagenes, { sonar });
+}
+
+// Las cinemáticas que tocan al abrir una pantalla: el mapa (región nueva, guaridas liberadas, fortalezas abiertas),
+// el arcade y la aldea. Como máximo 2 por visita, para no abrumar; las demás esperan a la próxima.
+async function revisarCines(pantalla) {
+    if (!estado.personaje || !$("#cine").hidden || pantallaActual !== pantalla) return;
+    const nombre = estado.personaje.nombre;
+    const pendientes = [];
+    const nuevo = (clave) => !estado.mapa.cines.includes(clave);
+    if (pantalla === "arcade" && nuevo(cinesReino.CLAVE_ARCADE)) pendientes.push({ clave: cinesReino.CLAVE_ARCADE, cine: cinesReino.cinematicaDeArcade(nombre) });
+    if (pantalla === "voces" && nuevo(cinesReino.CLAVE_VOCES)) pendientes.push({ clave: cinesReino.CLAVE_VOCES, cine: cinesReino.cinematicaDeVoces(nombre) });
+    if (pantalla === "mapa") {
+        const pos = mapa.posicion(estado);
+        const campanas = campana.estadoCampanas(estado);
+        if (nuevo(cinesReino.claveDeRegion(pos.region))) pendientes.push({ clave: cinesReino.claveDeRegion(pos.region), cine: cinesReino.cinematicaDeRegion(pos.region, nombre) });
+        for (let region = pos.region; region >= 0; region--) {
+            for (const s of mapa.senoresDeRegion(region, campanas)) {
+                const clave = cinesReino.claveDeSenor(s.id);
+                if (s.tipo === "guarida" && s.liberada && (region < pos.region || s.n <= pos.enRegion) && nuevo(clave)) {
+                    pendientes.push({ clave, cine: cinesReino.cinematicaDeSenor(s, region, juego.ATRIBUTOS[s.categoria], nombre) });
+                }
+            }
+            const clave = cinesReino.claveDeFortaleza(region);
+            if (region < pos.region && mapa.regionLiberada(region, campanas) && nuevo(clave)) {
+                pendientes.push({ clave, cine: cinesReino.cinematicaDeFortaleza(region, nombre) });
+            }
+        }
+    }
+    for (const { clave, cine: escena } of pendientes.slice(0, 2)) {
+        const toca = acciones.verCinematica(estado, clave);
+        datos.guardar(estado);
+        if (toca) await reproducirEscena(escena);
+    }
+    // Con las cinemáticas apagadas (Ajustes) no se reproduce ninguna: todas se anotan como vistas.
+    if (estado.ajustes.cinematicas === false) {
+        for (const { clave } of pendientes) acciones.verCinematica(estado, clave);
+        datos.guardar(estado);
+    }
+}
+
+// Cuando una persona de la aldea recupera su voz (y cuando toda la aldea habla): una escena corta.
+async function cinematicaDeLaAldea(resultado) {
+    if (!resultado?.terminada) return;
+    if (resultado.fin === "bien") {
+        const persona = vocesModulo.personaDe(resultado.persona);
+        const clave = cinesReino.claveDeVoz(resultado.id);
+        if (persona && acciones.verCinematica(estado, clave)) {
+            datos.guardar(estado);
+            const lugar = vocesModulo.LUGARES?.[persona.lugar];
+            await reproducirEscena(cinesReino.cinematicaDeVoz(
+                { id: resultado.persona, nombre: persona.nombre, voz: persona.voz, fondo: lugar?.fondo }, estado.personaje.nombre));
+        }
+    }
+    if (resultado.epilogo && acciones.verCinematica(estado, cinesReino.CLAVE_EPILOGO)) {
+        datos.guardar(estado);
+        await reproducirEscena(cinesReino.cinematicaDelEpilogo(estado.personaje.nombre));
+    }
+}
+
 // El bestiario y la historia se muestran en la misma capa que la Torre (se cierran con la misma ✕).
 async function abrirBestiario() {
     const imagenes = await sprites.spritesDeCriaturas(avatarActual());
@@ -667,6 +751,21 @@ async function abrirBestiario() {
     });
     $("#torre").hidden = false;
     $("#torre-caja").scrollTop = 0;
+}
+
+// (v56) «▶ Ver escena» de un capítulo de la historia: se cuenta con tomas animadas (Aurelio, el guardián, las salas).
+async function verEscenaDeCapitulo(lugar, id) {
+    const enCurso = estado.arcade[lugar] ? torre.pisosSuperados(estado.arcade[lugar]) : 0;
+    const alcanzado = Math.max(estado.arcade.records[lugar] || 0, enCurso);
+    const capitulo = leyendas.capitulosDeLeyenda(lugar, alcanzado, estado.personaje.nombre).find((c) => c.id === id);
+    if (!capitulo || !capitulo.abierto) return;
+    const sitio = bestiario.lugarDe(lugar);
+    const esZona = sitio.zonas.some((z) => z.id === id);
+    const fondo = esZona ? id : sitio.zonas[0].id;
+    const guardian = esZona ? cinesReino.guardianDeZona(lugar, id) : null;
+    await reproducirEscena(
+        cinesReino.cinematicaDeCapitulo(capitulo, { lugar, fondo, tieneGuardian: Boolean(guardian) }, estado.personaje.nombre),
+        { criatura: guardian });
 }
 
 // Lo que ya se puede leer depende de hasta dónde llegaste: tu récord o la partida de ahora.
@@ -1030,6 +1129,20 @@ function cambiarPantalla(nombre) {
     dibujarPantalla();
     window.scrollTo(0, 0);
     if (nombre === "mapa") $("#mapa-heroe")?.scrollIntoView({ block: "center" });
+    animarEntrada(nombre);
+    if (["mapa", "arcade", "voces"].includes(nombre)) setTimeout(() => revisarCines(nombre), 600);
+}
+
+// (v56) Al cambiar de pantalla, la nueva entra con una animación suave (solo entonces: al marcar una misión no se repite).
+function animarEntrada(nombre) {
+    const pantalla = $(`#pantalla-${nombre}`);
+    if (!pantalla) return;
+    pantalla.classList.remove("entra");
+    void pantalla.offsetWidth;   // reinicia la animación si ya la tenía
+    pantalla.classList.add("entra");
+    pantalla.addEventListener("animationend", (evento) => {
+        if (evento.target === pantalla) pantalla.classList.remove("entra");
+    }, { once: true });
 }
 
 
@@ -2302,6 +2415,13 @@ const ACCIONES = {
     "torre-salir": () => cerrarTorre(),
     // Las Voces del Valle (v44)
     "voces-hablar": (boton) => abrirVoces(boton.dataset.escena),
+    // (v56) Volver a ver una escena: la de una región del mapa o la de un capítulo de la historia de la Torre.
+    "reiniciar-cines": () => {
+        ejecutar(() => acciones.reiniciarCinematicas(estado));
+        avisar("🎬 Las escenas volverán a verse al abrir el mapa, el arcade y la aldea");
+    },
+    "cine-region": (boton) => reproducirEscena(cinesReino.cinematicaDeRegion(Number(boton.dataset.region), estado.personaje.nombre)),
+    "cine-capitulo": (boton) => verEscenaDeCapitulo(boton.dataset.lugar, boton.dataset.id),
     "voces-elegir": (boton) => {
         const resultado = ejecutar(() => acciones.elegirEnEscena(estado, Number(boton.dataset.indice)));
         if (!resultado) return;
@@ -2311,6 +2431,7 @@ const ACCIONES = {
             sonar(resultado.fin === "bien" ? "logro" : resultado.fin === "mal" ? "fallo" : "completar");
         }
         pintarEscenaVoces();
+        if (resultado.terminada) setTimeout(() => cinematicaDeLaAldea(resultado), 700);
     },
     "voces-epilogo": () => {   // el epílogo de la aldea (al recuperar la última voz, o para releerlo)
         verEpilogo = true;

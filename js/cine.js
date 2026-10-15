@@ -21,7 +21,16 @@ function imagen(clase, direccion, estilos = {}) {
     return img;
 }
 
-// Arma el DOM de una toma. imagenes = { salas: { cripta: "data:…" }, criatura: "data:…", heroe: "data:…", tallaCriatura }
+// El fondo de una toma: una sala en pixel art (cripta, biblioteca…) o, desde la v56, una pintura de fondos/
+// escrita como «pintura:camino» (ver pinturas.js). Las pinturas se ven suaves, no pixeladas.
+function fondoDe(toma, imagenes) {
+    if (toma.fondo?.startsWith("pintura:")) return { direccion: `fondos/${toma.fondo.slice(8)}.jpg`, pintura: true };
+    return { direccion: imagenes.salas?.[toma.fondo], pintura: false };
+}
+
+// Arma el DOM de una toma. imagenes = { salas: { cripta: "data:…" }, criatura: "data:…", heroe: "data:…", tallaCriatura,
+//   actores: { maestro: "data:…", maren: "data:…" } (otros personajes en pixel art),
+//   retratos: { lobo: "jefes/lobo.jpg" } (pinturas enmarcadas, como los jefes) }
 function armarToma(toma, imagenes) {
     const raiz = document.createElement("div");
     raiz.className = `cine-toma camara-${toma.camara} ${toma.efecto ? `efecto-${toma.efecto}` : ""}`;
@@ -31,10 +40,20 @@ function armarToma(toma, imagenes) {
     // El «mundo» es lo que mueve la cámara: el fondo y los actores van juntos.
     const mundo = document.createElement("div");
     mundo.className = "cine-mundo";
-    mundo.append(imagen("cine-fondo", imagenes.salas?.[toma.fondo]));
+    const fondo = fondoDe(toma, imagenes);
+    mundo.append(imagen(`cine-fondo ${fondo.pintura ? "cine-pintura" : ""}`, fondo.direccion));
     for (const actor of toma.actores) {
-        const direccion = actor.quien === "heroe" ? imagenes.heroe : imagenes.criatura;
-        const talla = actor.quien === "heroe" ? TALLA_HEROE : imagenes.tallaCriatura || 96;
+        // Un retrato (pintura enmarcada): el jefe de una guarida, por ejemplo.
+        if (actor.quien in (imagenes.retratos || {})) {
+            const marco = document.createElement("div");
+            marco.className = `cine-actor cine-retrato ${actor.anim || ""}`;
+            marco.style.setProperty("--x", `${actor.x}%`);
+            marco.append(imagen("cine-cuadro", imagenes.retratos[actor.quien]));
+            mundo.append(marco);
+            continue;
+        }
+        const direccion = actor.quien === "heroe" ? imagenes.heroe : actor.quien === "criatura" ? imagenes.criatura : imagenes.actores?.[actor.quien];
+        const talla = actor.talla || (actor.quien === "criatura" ? imagenes.tallaCriatura || 96 : TALLA_HEROE);
         const sombra = document.createElement("span");
         sombra.className = "cine-sombra";
         const figura = document.createElement("div");
@@ -49,6 +68,13 @@ function armarToma(toma, imagenes) {
     const destello = document.createElement("span");
     destello.className = "cine-destello";
     raiz.append(destello);
+
+    // Ambiente (v56): niebla que pasa, chispas que suben o lluvia, encima de la escena.
+    if (toma.ambiente) {
+        const ambiente = document.createElement("span");
+        ambiente.className = `cine-ambiente ambiente-${toma.ambiente}`;
+        raiz.append(ambiente);
+    }
 
     if (toma.titulo) {
         const titulo = document.createElement("h2");

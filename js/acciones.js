@@ -1252,6 +1252,19 @@ export function tomarCinematica(estado, lugar = "torre", reproducir = true) {
     return reproducir && estado.ajustes.cinematicas !== false ? { tipo } : null;
 }
 
+// (v56) Anota que ya viste una cinemática del reino, el arcade o la aldea (clave: ver cinematicas-reino.js).
+// Devuelve true si es la primera vez y las cinemáticas están encendidas (entonces toca reproducirla).
+export function verCinematica(estado, clave) {
+    if (estado.mapa.cines.includes(clave)) return false;
+    estado.mapa.cines.push(clave);
+    return estado.ajustes.cinematicas !== false;
+}
+
+// (v56) Volver a ver todas las escenas del reino (Ajustes).
+export function reiniciarCinematicas(estado) {
+    estado.mapa.cines = [];
+}
+
 // v42: lo que haces en una sala especial entre pisos (ver torre.SALAS). Devuelve { texto }.
 export function salaTorre(estado, opcion, lugar = "torre") {
     return torre.resolverSala(partidaDe(estado, lugar), opcion);
