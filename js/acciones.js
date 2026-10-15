@@ -2029,6 +2029,16 @@ export function terminarGym(estado) {
             celebraciones.push({ pequena: true, icono: gym.MUSCULOS[clave].icono, titulo: `${gym.MUSCULOS[clave].nombre} subió a nivel ${m.nivel}` });
         }
     }
+    // Si elegiste una misión (ej: «Ir al gym»), se marca sola ese día: no hace falta anotarlo dos veces.
+    const mision = g.mision && estado.misiones.find((m) => m.id === g.mision && !m.archivadaEn);
+    if (mision) {
+        try {
+            completarMision(estado, mision.id, sesion.fecha);
+            celebraciones.push({ pequena: true, icono: "✅", titulo: `Misión «${mision.nombre}» marcada` });
+        } catch (error) {
+            // ya estaba marcada, o no tocaba ese día: no pasa nada
+        }
+    }
     for (const hito of gym.hitosNuevos(g, hoy())) {
         g.hitos.push(hito.id);
         ganar(estado, { gemas: hito.gemas });
@@ -2045,9 +2055,25 @@ export function borrarSesionGym(estado, indice) {
     ganar(estado, { xp: -sesion.xp, monedas: -sesion.monedas, atributo: "fuerza" });
 }
 
+// Anota tu peso corporal de hoy (si ya lo anotaste, lo cambia).
+export function anotarPesoGym(estado, kg) {
+    const valor = numeroEntre(kg, 20, 400, "El peso corporal");
+    const lista = estado.gym.peso;
+    const hoyTexto = hoy();
+    const existente = lista.find((p) => p.fecha === hoyTexto);
+    if (existente) existente.kg = valor;
+    else lista.push({ fecha: hoyTexto, kg: valor });
+    lista.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+    if (lista.length > 400) lista.splice(0, lista.length - 400);
+}
+
 export function cambiarAjusteGym(estado, clave, valor) {
     if (clave === "meta") estado.gym.metaSemanal = Math.round(numeroEntre(valor, 1, 7, "La meta"));
-    else if (clave === "descanso") {
+    else if (clave === "mision") {
+        const id = valor === "" || valor === null ? null : Number(valor);
+        if (id !== null && !estado.misiones.some((m) => m.id === id && !m.archivadaEn)) throw new Error("Esa misión no existe.");
+        estado.gym.mision = id;
+    } else if (clave === "descanso") {
         const seg = Number(valor);
         if (!gym.DESCANSOS.includes(seg)) throw new Error("Ese descanso no existe.");
         estado.gym.descanso = seg;

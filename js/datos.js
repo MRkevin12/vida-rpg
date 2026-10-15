@@ -163,7 +163,7 @@ function completar(guardado) {
         mascota: { ...base.mascota, ...guardado.mascota, adoptadas: { ...guardado.mascota?.adoptadas } },
         pergaminos: { leidos: { ...guardado.pergaminos?.leidos } },
         libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio } },
-        gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [] },   // (v66)
+        gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null },   // (v66)
         mapa: { reclamados: guardado.mapa?.reclamados || [], cines: guardado.mapa?.cines || [] },
         arcade: {
             usadas: guardado.arcade?.usadas || 0,

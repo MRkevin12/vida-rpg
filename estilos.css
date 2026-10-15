@@ -10959,3 +10959,14 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 @media (prefers-reduced-motion: reduce) {
     .ff-atq { display: none; }
 }
+
+/* v66b: gráficas del gimnasio */
+.gym-spark { flex: 0 0 auto; display: block; }
+.gym-record { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.gym-record > span { display: grid; min-width: 0; }
+.gym-meta-ej { display: flex !important; align-items: center; justify-content: space-between; gap: 8px; }
+.gym-peso-actual { margin: 4px 0; font-size: 1.1rem; }
+.gym-peso-actual b { font-family: "Orbitron", sans-serif; color: var(--verde); font-size: 1.4rem; }
+
+.campo-gym { display: grid; gap: 6px; margin: 10px 0; }
+.campo-gym select { min-height: 44px; font-size: 16px; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); padding: 0 10px; }

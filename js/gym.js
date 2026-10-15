@@ -107,6 +107,8 @@ export function gymInicial() {
         hitos: [],           // ids de los hitos ya cobrados
         metaSemanal: 4,      // cuántos días a la semana quieres entrenar (1–7)
         descanso: 90,        // segundos de descanso entre series
+        peso: [],            // tu peso corporal: [{ fecha, kg }] (uno por día)
+        mision: null,        // la misión diaria que se marca sola al terminar un entrenamiento (id), o null
     };
 }
 
@@ -133,6 +135,18 @@ export function mejoresDe(sesiones) {
         }
     }
     return mejores;
+}
+
+// Cómo ha ido un ejercicio: el mejor puntaje de cada sesión, en orden de fechas (para dibujar la gráfica).
+export function historialDe(sesiones, ejercicioId) {
+    const puntos = [];
+    for (const s of sesiones) {
+        const ej = s.ejercicios.find((x) => x.id === ejercicioId);
+        if (!ej) continue;
+        const mejor = Math.max(0, ...ej.series.map((x) => puntajeDe(x.kg, x.reps)));
+        if (mejor > 0) puntos.push({ fecha: s.fecha, puntaje: mejor });
+    }
+    return puntos;
 }
 
 // Volumen de una sesión: kilos × repeticiones de todas sus series.

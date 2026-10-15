@@ -5482,6 +5482,39 @@ prueba("Gym: las pantallas se dibujan (la fila de Hoy, la elección, el entrenam
     cierto(vistasGym.tarjetaGymHoy(estado, ctx).includes("Hoy entrenaste"));
 });
 
+prueba("Gym: la gráfica de cada ejercicio y el peso corporal", () => {
+    const estado = partidaNueva();
+    entrenar(estado, "biceps", 20, 10, sumarDias(hoy(), -1));
+    entrenar(estado, "biceps", 25, 10);
+    const h = gym.historialDe(estado.gym.sesiones, "curl-barra");
+    igual(h.map((x) => x.puntaje), [gym.unaRepeticion(20, 10), gym.unaRepeticion(25, 10)], "un punto por sesión, con su mejor serie");
+    igual(gym.historialDe(estado.gym.sesiones, "press-banca"), [], "sin datos de lo que no has hecho");
+    debeFallar(() => acciones.anotarPesoGym(estado, 5), "peso");
+    acciones.anotarPesoGym(estado, "78,4");
+    acciones.anotarPesoGym(estado, 78.1);
+    igual(estado.gym.peso, [{ fecha: hoy(), kg: 78.1 }], "uno por día: el segundo cambia el primero");
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes("Peso corporal") && html.includes("78,1 kg") && html.includes("gym-spark"), "se ve el peso y las gráficas");
+});
+
+prueba("Gym: al terminar un entrenamiento se marca sola la misión que elegiste", () => {
+    const estado = partidaNueva();
+    const m = crearMision(estado, { nombre: "Ir al gym" });
+    debeFallar(() => acciones.cambiarAjusteGym(estado, "mision", 9999), "no existe");
+    acciones.cambiarAjusteGym(estado, "mision", String(m.id));
+    igual(estado.gym.mision, m.id);
+    const r = entrenar(estado, "hombros");
+    cierto(estado.completadas.some((c) => c.misionId === m.id && c.fecha === hoy()), "la misión quedó marcada");
+    cierto(r.celebraciones.some((c) => c.titulo?.includes("Ir al gym")), "y se avisa");
+    // Si ya estaba marcada, no pasa nada.
+    estado.gym.sesiones = [];
+    entrenar(estado, "espalda");
+    igual(estado.completadas.filter((c) => c.misionId === m.id).length, 1, "no se marca dos veces");
+    acciones.cambiarAjusteGym(estado, "mision", "");
+    igual(estado.gym.mision, null);
+});
+
 // ===== Los ataques de las criaturas se ven (v67) =====
 
 prueba("Ataques: las 80 criaturas tienen un estilo de ataque válido y los 11 estilos se usan", () => {

@@ -14,6 +14,19 @@ const barra = (porcentaje, clase = "") => `<div class="barra ${clase}"><div clas
 const kilos = (kg) => `${String(kg).replace(".", ",")} kg`;
 const duracion = (segundos) => `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, "0")}`;
 
+// Una gráfica de línea pequeña (SVG) con los valores dados. Con menos de 2 valores no se dibuja.
+function sparkline(valores, { ancho = 84, alto = 24, color = "#fbbf24" } = {}) {
+    if (valores.length < 2) return "";
+    const min = Math.min(...valores);
+    const max = Math.max(...valores);
+    const rango = max - min || 1;
+    const puntos = valores.map((x, i) => `${(i / (valores.length - 1)) * (ancho - 4) + 2},${alto - 3 - ((x - min) / rango) * (alto - 6)}`);
+    const ultimo = puntos[puntos.length - 1].split(",");
+    return `<svg class="gym-spark" viewBox="0 0 ${ancho} ${alto}" width="${ancho}" height="${alto}" aria-hidden="true">
+        <polyline points="${puntos.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="${ultimo[0]}" cy="${ultimo[1]}" r="2.6" fill="${color}"/></svg>`;
+}
+
 // Cuánto hace de la última vez que hiciste una rutina, en palabras.
 function haceCuanto(dias) {
     if (dias === null) return "Aún no la has hecho";
@@ -70,6 +83,7 @@ export function pantallaGym(estado, ctx) {
             ${tarjetaMusculos(estado)}
             ${tarjetaRecords(estado)}
             ${tarjetaHitos(estado)}
+            ${tarjetaPeso(estado, ctx)}
             ${tarjetaHistorial(estado)}
             ${tarjetaAjustes(estado)}`}`;
 }
@@ -193,7 +207,8 @@ function entrenamientoActual(estado, ctx) {
         return `
             <article class="gym-ejercicio ${hechasEj === ej.series.length ? "completo" : ""}">
                 <h3>${musculo.icono} ${esc(info.nombre)}</h3>
-                <p class="mini texto-suave">${info.series} × ${info.min}–${info.max} reps · ${musculo.nombre}</p>
+                <p class="mini texto-suave gym-meta-ej">${info.series} × ${info.min}–${info.max} reps · ${musculo.nombre}
+                    ${sparkline(gym.historialDe(g.sesiones, ej.id).slice(-10).map((x) => x.puntaje), { ancho: 70, alto: 20 })}</p>
                 <p class="mini gym-antes">${antes
                     ? `Última vez (${fechaCorta(antes.fecha)}): ${antes.series.map((s) => (s.kg ? `${kilos(s.kg)}×${s.reps}` : `${s.reps} reps`)).join(" · ")}`
                     : "Primera vez que lo haces."}
@@ -257,8 +272,10 @@ function tarjetaRecords(estado) {
         .sort((a, b) => b[1].puntaje - a[1].puntaje);
     const fila = ([id, m]) => {
         const ej = gym.ejercicioPorId(id);
-        return `<li><span>${gym.MUSCULOS[ej.musculo].icono} ${esc(ej.nombre)}</span>
-                <span class="texto-suave">${m.kg ? `${kilos(m.kg)} × ${m.reps}` : `${m.reps} reps`} · ${fechaCorta(m.fecha)}</span></li>`;
+        const hist = gym.historialDe(estado.gym.sesiones, id).slice(-12).map((x) => x.puntaje);
+        return `<li class="gym-record"><span>${gym.MUSCULOS[ej.musculo].icono} ${esc(ej.nombre)}
+                <small class="texto-suave">${m.kg ? `${kilos(m.kg)} × ${m.reps}` : `${m.reps} reps`} · ${fechaCorta(m.fecha)}</small></span>
+                ${sparkline(hist)}</li>`;
     };
     return `
         <section class="panel">
@@ -286,6 +303,26 @@ function tarjetaHitos(estado) {
         <section class="panel">
             <h2 class="titulo-juego">🎖️ Hitos de gym <span class="texto-suave">${hechos}/${gym.HITOS.length}</span></h2>
             <ul class="gym-hitos">${lista}</ul>
+        </section>`;
+}
+
+// ===== Peso corporal =====
+function tarjetaPeso(estado, ctx) {
+    const lista = estado.gym.peso;
+    const ultimo = lista[lista.length - 1];
+    const primero = lista[0];
+    const cambio = ultimo && primero && lista.length > 1 ? Math.round((ultimo.kg - primero.kg) * 10) / 10 : null;
+    const hoyPuesto = ultimo && ultimo.fecha === ctx.hoy;
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">⚖️ Peso corporal</h2>
+            ${ultimo ? `<p class="gym-peso-actual"><b>${kilos(ultimo.kg)}</b> <span class="texto-suave">· ${fechaCorta(ultimo.fecha)}${cambio !== null ? ` · ${cambio > 0 ? "+" : ""}${String(cambio).replace(".", ",")} kg desde el inicio` : ""}</span></p>
+                       ${sparkline(lista.slice(-30).map((p) => p.kg), { ancho: 300, alto: 48, color: "#34d399" })}`
+                : '<p class="nota">Anota tu peso de vez en cuando para ver tu avance.</p>'}
+            <form data-form="gym-peso" class="form-linea">
+                <input type="number" name="kg" inputmode="decimal" step="0.1" min="20" max="400" required placeholder="${hoyPuesto ? "Cambiar el de hoy" : "Tu peso de hoy (kg)"}" aria-label="Peso corporal en kilos">
+                <button type="submit" class="boton boton-chico">${hoyPuesto ? "Cambiar" : "Anotar"}</button>
+            </form>
         </section>`;
 }
 
@@ -324,6 +361,11 @@ function tarjetaAjustes(estado) {
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-meta" data-delta="-1" ${g.metaSemanal <= 1 ? "disabled" : ""}>− Menos</button>
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-meta" data-delta="1" ${g.metaSemanal >= 7 ? "disabled" : ""}>+ Más</button>
             </div>
+            <label class="campo-gym"><span class="nota">Al terminar un entrenamiento, marcar esta misión diaria:</span>
+                <select data-gym-mision aria-label="Misión que se marca al entrenar">
+                    <option value="">— Ninguna —</option>
+                    ${estado.misiones.filter((m) => !m.archivadaEn).map((m) => `<option value="${m.id}" ${g.mision === m.id ? "selected" : ""}>${esc(m.nombre)}</option>`).join("")}
+                </select></label>
             <p class="nota">Descanso entre series:</p>
             <div class="botones-dialogo">${descansos}</div>
         </details>`;

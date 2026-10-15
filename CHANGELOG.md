@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v68 — Más gimnasio
+- `gym.historialDe(sesiones, ejercicio)` (mejor puntaje por sesión) y `sparkline()` en `vistas-gym.js` (SVG): gráfica en cada récord y en cada ejercicio del entrenamiento.
+- `estado.gym.peso = [{ fecha, kg }]` (uno por día; `acciones.anotarPesoGym`) con su tarjeta y gráfica. `estado.gym.mision`: id de una misión diaria que `terminarGym` marca sola (con `completarMision` en la fecha de la sesión; si ya estaba marcada o no tocaba, no hace nada). 265 pruebas.
+
 ## v67 — Los ataques de las criaturas se ven
 - **`js/ataques.js`** (nuevo, en `sw.js`): `ESTILOS` (garras, tajo, mordida, golpe, escupitajo, aguijón, espectral, fuego, rayo, esquirlas, ráfaga), `estiloDe(id)` (sale de la familia de sonido de `FAMILIA_DE_CRIATURA` y unas excepciones), `recorrido` (de dónde sale y adónde llega, en puntos de la escena de 192×128; `falla` si esquivas, `fuerte` más grande) y `htmlDelAtaque`.
 - `pantallaTorre` mete `fxAtaque` (una capa `.ff-atq-<estilo>` con piezas `<i class="a">` y `<i class="b">`) dentro de `.ff-escena` cuando la criatura te pega y el ataque no trae ya su efecto (veneno, sellar, drenar). Los golpes fuertes de estilo golpe/mordida sacuden la escena. CSS al final de `estilos.css` (sale a los 0,68 s, llega a los 0,9 s; se apaga con `prefers-reduced-motion`). 263 pruebas.

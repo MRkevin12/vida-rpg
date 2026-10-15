@@ -3096,6 +3096,11 @@ const FORMULARIOS = {
     },
     tarea: (valores) => ejecutar(() => (valores.id ? acciones.editarTarea(estado, valores) : acciones.crearTarea(estado, valores))),
     principal: (valores) => ejecutar(() => acciones.crearPrincipal(estado, valores)),
+    "gym-peso"(valores, formulario) {
+        const ok = ejecutar(() => acciones.anotarPesoGym(estado, valores.kg), { mantenerScroll: true });
+        if (ok) formulario.reset();
+        return ok;
+    },
     enfoque(valores) {
         const resultado = ejecutar(() => acciones.empezarEnfoque(estado, valores));
         if (resultado) {
@@ -3296,6 +3301,10 @@ function conectarEventos() {
     // Diario: tocar una carita guarda al instante (junto con la frase que hayas escrito).
     document.addEventListener("change", (evento) => {
         // Gimnasio: el peso y las repeticiones se guardan al cambiarlos, sin redibujar (así no se cierra el teclado).
+        if (evento.target.matches?.("[data-gym-mision]")) {
+            ejecutar(() => acciones.cambiarAjusteGym(estado, "mision", evento.target.value), { mantenerScroll: true });
+            return;
+        }
         const campo = evento.target.dataset?.gym;
         if (campo) {
             try {

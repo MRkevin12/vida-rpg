@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 67;
+export const VERSION_APP = 68;
 
 export const NOVEDADES = [
+    {
+        version: 68,
+        titulo: "Más gimnasio",
+        cambios: [
+            "📈 Cada ejercicio tiene su gráfica de progreso (en tus récords y dentro del entrenamiento), para ver cómo sube tu fuerza sesión a sesión.",
+            "⚖️ Peso corporal: anótalo cuando quieras y mira su gráfica y cuánto has cambiado.",
+            "✅ En Ajustes del gym puedes elegir una misión diaria (por ejemplo «Ir al gym») y se marca sola al terminar un entrenamiento: no la anotas dos veces.",
+        ],
+    },
     {
         version: 67,
         titulo: "Ataques que se ven",
