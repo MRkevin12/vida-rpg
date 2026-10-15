@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v61 — Pantallas en horizontal
+- Un bloque `@media (orientation: landscape) and (max-height: 540px)` al final de `estilos.css` (deja fuera tabletas y compu): **batalla** (`.torre-caja` a dos columnas: escena sticky a la izquierda; con tarjetas, `:has(.ff-cartas)`: escena chica y 4 tarjetas en fila), **cinemáticas** (escena 16:9 con `--alto-escena` y `--px`), **minijuegos** (lienzo alto `100dvh − 8rem`) y **mapa** (`#pantalla-mapa` a dos columnas, `.contenido`/`.cabecera`/`.pestanas` a 980 px solo con el mapa abierto). `manifest.json` → `"orientation": "any"` (iOS no deja bloquearla). El resto de la app no cambia.
+
 ## v60 — La Torre, más clara y con más impacto
 - **Escena:** `vidaEncima` (barra con «fantasma» de lo perdido: `--antes` → `--ahora`), `.ff-hud-enemigo` (nombre, vida, `iconosDeEstado`) y la barra del héroe sobre su cabeza (`iconosDelHeroe`). `ordenDelTurno` (caras en rombo: Ahora/Luego, o ✓ en orden tras actuar) y `globoDeIntencion` (aviso/peligro). La lista vertical del plan desaparece (solo queda la del turno jugado, más compacta). El héroe va más al centro.
 - **Impacto:** `.ff-arco` (normal, `critico`, `voluntad`), «¡CRÍTICO!», `.ff-destella` con la Voluntad y `.ff-victoria`; el botín espera (`tras-victoria`). El nombre del ataque va abajo y no se repite si es especial (ya está en su banner).

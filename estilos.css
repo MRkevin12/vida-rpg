@@ -10154,3 +10154,149 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     top: auto;
     bottom: 5%;
 }
+
+
+/* ===== (v61) En horizontal (el teléfono girado): la batalla, las cinemáticas, el mapa y los minijuegos aprovechan el ancho =====
+   Un iPhone no deja bloquear la orientación a una app instalada: el juego sigue igual en vertical y, si giras el teléfono,
+   estas pantallas se reacomodan. «max-height: 540px» deja fuera a las tabletas y a las ventanas de la compu. */
+@media (orientation: landscape) and (max-height: 540px) {
+
+    /* --- La Torre y la Mazmorra: la escena grande a la izquierda; el orden, el mensaje y los comandos a la derecha --- */
+    .minijuego.torre {
+        padding-left: calc(env(safe-area-inset-left) + 12px);
+        padding-right: calc(env(safe-area-inset-right) + 12px);
+        align-items: start;
+    }
+
+    .torre-caja {
+        width: min(1000px, 100%);
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        column-gap: 10px;
+        align-items: start;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+    }
+
+    .torre-caja > * {
+        grid-column: 2;
+    }
+
+    .torre-caja > .minijuego-barra {
+        grid-column: 1 / -1;
+    }
+
+    .torre-caja > .ff-escena {
+        grid-column: 1;
+        grid-row: 2 / span 10;
+        position: sticky;
+        top: 0;
+    }
+
+    .torre-caja .ff-mensaje {
+        min-height: 0;
+        font-size: 0.78rem;
+    }
+
+    .torre-caja .ff-comando {
+        min-height: 31px;
+    }
+
+    .torre-caja .ff-comandos {
+        gap: 0;
+        padding: 4px 6px 4px 4px;
+    }
+
+    .torre-caja .ff-ficha {
+        padding: 5px 8px;
+    }
+
+    .torre-caja .ff-turnos.jugado .ff-turno {
+        padding: 2px 8px;
+    }
+
+    /* El botín y las rutas: la escena se encoge y las tarjetas ocupan casi todo el ancho, en una fila. */
+    .torre-caja:has(.ff-cartas) {
+        grid-template-columns: minmax(0, 0.75fr) minmax(0, 2.4fr);
+    }
+
+    .torre-caja .ff-cartas {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .torre-caja .ff-cartas.ff-cartas-dos {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .torre-caja .ff-carta {
+        min-height: 0;
+        padding: 8px 6px;
+    }
+
+    .torre-caja .ff-carta-icono {
+        width: 38px;
+        height: 38px;
+        font-size: 1.4rem;
+    }
+
+    .torre-caja .ff-carta-texto {
+        font-size: 0.68rem;
+    }
+
+    /* --- Las cinemáticas: una escena ancha (16:9) que ocupa toda la pantalla, con el texto debajo --- */
+    .cine {
+        --alto-escena: min(calc(100dvh - 4.2rem), 56.25vw);
+    }
+
+    .cine-escena {
+        width: calc(var(--alto-escena) * 16 / 9);
+        height: var(--alto-escena);
+        aspect-ratio: auto;
+    }
+
+    .cine-barra {
+        width: min(100vw, calc(var(--alto-escena) * 16 / 9));
+        min-height: 4.2rem;
+        padding: 8px 16px 0;
+    }
+
+    .cine-texto {
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    .cine-toma {
+        --px: calc(var(--alto-escena) / 160);
+    }
+
+    /* --- Los minijuegos del arcade: el lienzo ancho --- */
+    .minijuego:not(.torre):not(.voces) .minijuego-caja {
+        width: min(900px, 100%);
+    }
+
+    .minijuego-lienzo {
+        height: calc(100dvh - 8rem);
+        min-height: 200px;
+    }
+
+    /* --- El mapa del reino: el mapa a la izquierda y todo lo demás a la derecha --- */
+    body:has(#pantalla-mapa:not([hidden])) .contenido,
+    body:has(#pantalla-mapa:not([hidden])) .cabecera,
+    body:has(#pantalla-mapa:not([hidden])) .pestanas {
+        max-width: 980px;
+    }
+
+    #pantalla-mapa:not([hidden]) {
+        display: grid;
+        grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr);
+        column-gap: 14px;
+        align-items: start;
+    }
+
+    #pantalla-mapa > * {
+        grid-column: 2;
+    }
+
+    #pantalla-mapa > .mapa-pixel {
+        grid-column: 1;
+        grid-row: 1 / span 14;
+    }
+}

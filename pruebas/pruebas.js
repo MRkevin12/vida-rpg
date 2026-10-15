@@ -4915,6 +4915,23 @@ prueba("Escena de batalla: la vida de los dos a la vista (con lo que se perdió)
     cierto(vistas.pantallaTorre(t()).includes("ff-globo peligro"), "un golpe fuerte se anuncia en rojo");
 });
 
+// ===== En horizontal (v61) =====
+
+prueba("Horizontal: la batalla, las cinemáticas, el mapa y los minijuegos tienen su diseño para el teléfono girado", async () => {
+    const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
+    const inicio = css.indexOf("@media (orientation: landscape) and (max-height: 540px)");
+    cierto(inicio > 0, "hay un bloque para pantallas horizontales bajitas (no tabletas ni la compu)");
+    const bloque = css.slice(inicio);
+    for (const [selector, que] of [[".torre-caja", "la batalla"], [".ff-escena", "la escena de batalla"], [".cine-escena", "las cinemáticas"],
+                                   ["#pantalla-mapa", "el mapa"], [".minijuego-lienzo", "los minijuegos"], [".ff-cartas", "las tarjetas del botín"]]) {
+        cierto(bloque.includes(selector), `${que} se reacomoda`);
+    }
+    cierto(bloque.includes("grid-template-columns") && bloque.includes("16 / 9"), "dos columnas y escena 16:9");
+    cierto(!/\.contenido\s*\{[^}]*max-width:\s*980px/.test(css.slice(0, inicio)), "el resto de la app sigue en su columna angosta");
+    const manifiesto = await (await fetch("../manifest.json", { cache: "no-store" })).json();
+    igual(manifiesto.orientation, "any", "la app instalada deja girar");
+});
+
 // ===== Ejecutar todo y mostrar el resultado =====
 
 const lista = document.querySelector("#lista");

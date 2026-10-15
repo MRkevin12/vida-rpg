@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 60;
+export const VERSION_APP = 61;
 
 export const NOVEDADES = [
+    {
+        version: 61,
+        titulo: "Gira el teléfono",
+        cambios: [
+            "📱 Si giras el teléfono, las partes de juego aprovechan el ancho: la batalla de la Torre y la Mazmorra muestra la escena grande a la izquierda y el orden, el mensaje y los comandos a la derecha; el botín y las rutas son una fila de tarjetas.",
+            "🎬 Las cinemáticas se ven en pantalla ancha (16:9), el mapa del reino se parte en dos columnas (el mapa y la información) y los minijuegos del arcade usan todo el lienzo.",
+            "Todo lo demás (Hoy, el diario, la tienda…) sigue en vertical. Un iPhone no deja bloquear la orientación a una app instalada: tú decides cuándo girar.",
+        ],
+    },
     {
         version: 60,
         titulo: "La Torre, más clara y con más impacto",
