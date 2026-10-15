@@ -753,6 +753,7 @@ async function abrirBestiario() {
     const imagenes = await sprites.spritesDeCriaturas(avatarActual());
     $("#torre-caja").innerHTML = vistas.pantallaBestiario({
         bestiario: estado.arcade.bestiario, sprites: imagenes, mazmorra: torre.mazmorraAbierta(estado.arcade),
+        abiertos: Object.keys(bestiario.LUGARES).filter((lugar) => torre.lugarAbierto(estado.arcade, lugar)),
     });
     $("#torre").hidden = false;
     $("#torre-caja").scrollTop = 0;
@@ -1520,7 +1521,10 @@ function rellenarOpciones() {
            media vida y al bajar de sótano no recuperas vida. Premio: ${torre.REGLAS.mazmorra.premio.gemasPorPiso} gemas y
            ${torre.REGLAS.mazmorra.premio.xpPorPiso} XP de Fuerza por sótano (máx. ${torre.REGLAS.mazmorra.premio.maxGemas} y
            ${torre.REGLAS.mazmorra.premio.maxXp}).</p>
-        <p><strong>Historia:</strong> la Torre y la Mazmorra cuentan una historia que sigue a la Crónica del reino. Se lee en la batalla
+        <p><strong>Más mazmorras (v64):</strong> las <b>Minas de la Codicia</b> ⛏️ (15 niveles; se abren al bajar 10 sótanos de la Mazmorra; dan XP de
+           Riqueza) y el <b>Laberinto de los Ecos</b> 🌀 (15 cámaras; se abre al bajar 10 niveles de las Minas; da XP de Intelecto). Tienen criaturas,
+           historia y premios propios, y se juegan con las mismas reglas.</p>
+        <p><strong>Historia:</strong> la Torre y las mazmorras cuentan una historia que sigue a la Crónica del reino. Se lee en la batalla
            la primera vez que llegas a cada zona y se puede releer con «📜 Historia» en el Arcade.</p>`;
 }
 
@@ -2492,14 +2496,14 @@ const ACCIONES = {
 
     // Torre del héroe y Mazmorra del Abismo (data-lugar dice cuál).
     "torre-abrir": (boton) => {
-        const lugar = boton.dataset.lugar === "mazmorra" ? "mazmorra" : "torre";
+        const lugar = bestiario.LUGARES[boton.dataset.lugar] ? boton.dataset.lugar : "torre";
         // La marca de la tarjeta del Arcade (en «Subir otra vez» no hay tarjeta: sin marca).
         const marcada = boton.closest("article")?.querySelector(`input[name="marca-${lugar}"]:checked`);
         return abrirTorre(lugar, marcada?.value || null);
     },
     "bestiario-abrir": () => abrirBestiario(),
     "historia-abrir": (boton) => {
-        lugarAbierto = boton.dataset.lugar === "mazmorra" ? "mazmorra" : "torre";
+        lugarAbierto = bestiario.LUGARES[boton.dataset.lugar] ? boton.dataset.lugar : "torre";
         abrirHistoria(lugarAbierto);
         ponerMusica();
     },
@@ -2603,9 +2607,10 @@ const ACCIONES = {
         pintarTorre();
     },
     "torre-rendirse": () => {
-        const texto = lugarAbierto === "mazmorra"
-            ? "¿Huir de la Mazmorra? Cobras lo que ganaste hasta ahora y el descenso termina."
-            : "¿Huir de la Torre? Cobras lo que ganaste hasta ahora y la subida termina.";
+        const sitio = bestiario.LUGARES[lugarAbierto];
+        const texto = lugarAbierto === "torre"
+            ? "¿Huir de la Torre? Cobras lo que ganaste hasta ahora y la subida termina."
+            : `¿Huir de ${lugarAbierto === "mazmorra" ? "la Mazmorra" : `las ${sitio.nombre.split(" ")[0]}`.replace("las Laberinto", "el Laberinto")}? Cobras lo que ganaste hasta ahora y ${sitio.verboBajar || "el descenso"} termina.`;
         if (!confirm(texto)) return;
         ACCIONES["torre-cobrar"]();
     },

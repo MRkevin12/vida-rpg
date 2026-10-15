@@ -18,6 +18,7 @@
 // puede decir que ya arde (hay una prueba).
 
 import { CRIATURAS, lugarDe, zonaDelPiso } from "./bestiario.js";
+import { CINE_NUEVAS } from "./mazmorras.js";
 
 export const TIPOS = ["zona", "entrada", "derrota", "final"];
 
@@ -67,6 +68,11 @@ const SUBTITULO = {
     abismo: "El fondo",
 };
 
+// (v64) Lo de las mazmorras nuevas se suma a lo de siempre.
+Object.assign(ENTRADA, CINE_NUEVAS.ENTRADA);
+Object.assign(DERROTA, CINE_NUEVAS.DERROTA);
+Object.assign(SUBTITULO, CINE_NUEVAS.SUBTITULO);
+
 const conNombre = (texto, nombre) => texto.replaceAll("{n}", nombre);
 
 // El título de un guardián: «el Caballero sin Nombre, guardián» (con su género).
@@ -102,6 +108,15 @@ export function cinematicaDe(tipo, partida, nombre) {
             { fondo, actores: [{ ...el, anim: "cine-cae" }], camara: "zoom", foco, efecto: "destello", texto: DERROTA[fondo] || "",
               ms: 3000, sonido: "victoria" },
             { fondo, actores: [{ ...tu, x: 56 }], camara: "izquierda", texto: `{n} baja el arma. El camino sigue.`, ms: 2400 },
+        ];
+    } else if (CINE_NUEVAS.FINAL[partida.lugar]) {
+        // (v64) El final de las minas y del laberinto: cuatro tomas con sus textos.
+        const [a, b, c, d] = CINE_NUEVAS.FINAL[partida.lugar];
+        tomas = [
+            { fondo, actores: [{ ...el, anim: "cine-late" }], camara: "arriba", efecto: "oscuro", texto: a, ms: 3600, sonido: "retumbo" },
+            { fondo, actores: [{ ...el, anim: "cine-late" }], camara: "zoom", foco, efecto: "temblor", texto: b, ms: 3600, sonido: "campana" },
+            { fondo, actores: [{ ...el, anim: "cine-cae" }], camara: "zoom", foco, efecto: "destello", texto: c, ms: 3400, sonido: "victoria" },
+            { fondo, actores: [{ ...tu, x: 56 }], camara: "izquierda", titulo: lugarDe(partida.lugar).nombre, texto: d, ms: 3600, sonido: "campana" },
         ];
     } else if (partida.lugar === "mazmorra") {
         // El final de la Mazmorra: el Rey Hueco, el primer Vigía que dejó de subir.

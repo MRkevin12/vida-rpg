@@ -46,6 +46,7 @@ import * as memorias from "../js/memorias.js";
 import * as pergamino from "../js/pergamino.js";
 import * as pergaminos from "../js/pergaminos.js";
 import * as libroCasio from "../js/libro-casio.js";
+import * as cinematicasModulo from "../js/cinematicas.js";
 import * as saga from "../js/saga.js";
 import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
@@ -933,10 +934,10 @@ prueba("Dibujo: las criaturas y las salas de la Torre y la Mazmorra son SVG vál
         cierto(!leido.querySelector("parsererror"), `${que} se puede leer como imagen`);
     };
     // (El Reflejo sombrío no tiene dibujo propio: es tu héroe en sombras.)
-    const conFigura = [...bestiario.ORDEN, ...bestiario.ORDEN_MAZMORRA].filter((id) => !bestiario.CRIATURAS[id].espejo);
+    const conFigura = Object.values(bestiario.LUGARES).flatMap((l) => l.orden).filter((id) => !bestiario.CRIATURAS[id].espejo);
     igual([...CON_DIBUJO].sort(), [...conFigura].sort(), "cada criatura tiene su dibujo");
     for (const id of conFigura) valido(dibujarMonstruo(id), `la criatura ${id}`);
-    for (const zona of [...bestiario.ZONAS, ...bestiario.ZONAS_MAZMORRA]) valido(dibujarSala(zona.id), `la sala ${zona.id}`);
+    for (const zona of Object.values(bestiario.LUGARES).flatMap((l) => l.zonas)) valido(dibujarSala(zona.id), `la sala ${zona.id}`);
     igual(dibujarMonstruo("no-existe").includes("<defs>"), false, "una criatura que no existe: dibujo vacío");
     // El avatar de batalla también pasa por ahí.
     valido(dibujarAvatar(avatarDePrueba({ etapa: avatar.ETAPAS[3] }), { batalla: true, sinEfectos: true }), "el avatar de batalla");
@@ -2034,7 +2035,7 @@ prueba("Pixel art: el Reflejo sombrío es tu héroe en sombras", async () => {
     const imagen = await sprites.spriteDeMonstruo("reflejo", avatarDePrueba());
     cierto(typeof imagen === "string" && imagen.startsWith("data:image/png"), "es una imagen PNG");
     const todas = await sprites.spritesDeCriaturas(avatarDePrueba());
-    igual(Object.keys(todas).length, 50, "las 50 criaturas para el bestiario");
+    igual(Object.keys(todas).length, 80, "las 80 criaturas para el bestiario (Torre, Mazmorra, Minas y Laberinto)");
 });
 
 prueba("Mazmorra (pantalla): tarjeta cerrada y abierta, batalla, historia, bestiario y final sin huecos", () => {
@@ -4741,8 +4742,8 @@ prueba("Música por escena: lectura, diario, mapa, Mazmorra y Torre; sin «auto�
 });
 
 prueba("Voces: cada criatura de la Torre y de la Mazmorra tiene su voz (aparece, ataca, herido y cae)", () => {
-    const todas = [...bestiario.ORDEN, ...bestiario.ORDEN_MAZMORRA];
-    igual(todas.length, 50, "las 50 criaturas");
+    const todas = Object.values(bestiario.LUGARES).flatMap((l) => l.orden);
+    igual(todas.length, 80, "las 80 criaturas de los cuatro lugares");
     for (const id of todas) {
         const familia = sonidoModulo.FAMILIA_DE_CRIATURA[id];
         cierto(familia, `${id} tiene familia`);
@@ -5107,6 +5108,160 @@ prueba("Habilidades visibles (pantalla): etiquetas doradas sobre tu héroe, pane
         cierto(html.includes(`ff-efecto ff-${tecnica}`), `efecto de ${tecnica}`);
     }
     cierto(sonidoModulo.existeSonido("habilidad"), "suena un destello");
+});
+
+// ===== Las Minas de la Codicia y el Laberinto de los Ecos (v64) =====
+
+prueba("Mazmorras nuevas: cuatro lugares, 15 criaturas en cada una (3 zonas de 5 con su guardián), todas con su dibujo y su historia", () => {
+    igual(Object.keys(bestiario.LUGARES), ["torre", "mazmorra", "minas", "laberinto"]);
+    for (const id of ["minas", "laberinto"]) {
+        const lugar = bestiario.LUGARES[id];
+        igual([lugar.zonas.length, lugar.orden.length], [3, 15], `${id}: 3 zonas y 15 criaturas`);
+        lugar.orden.forEach((c, i) => {
+            const criatura = bestiario.CRIATURAS[c];
+            igual(Boolean(criatura.guardian), (i + 1) % 5 === 0, `${c}: el guardián es el quinto de cada zona`);
+            cierto(criatura.nombre && criatura.golpe && criatura.fuerte && criatura.texto.length > 30 && criatura.talla >= 70, `${c}: tiene todo sus datos`);
+            cierto(["fuego", "hielo", "rayo"].includes(criatura.debil) && criatura.debil !== criatura.resiste, `${c}: su punto débil`);
+            if (criatura.especial) cierto(torre.ESPECIALES[criatura.especial.tipo], `${c}: su especial existe`);
+            cierto(CON_DIBUJO.includes(c), `${c}: tiene dibujo`);
+            cierto(sonidoModulo.FAMILIA_DE_CRIATURA[c], `${c}: voz`);
+        });
+        igual(bestiario.lugarDeCriatura(lugar.orden[0]), id, "se sabe en qué lugar vive cada una");
+        const leyenda = leyendas.LEYENDAS[id];
+        cierto(leyenda.prologo.parrafos.length === 3 && leyenda.epilogo.parrafos.length === 2 && leyenda.epilogo.aviso, `${id}: prólogo y epílogo`);
+        for (const zona of lugar.zonas) {
+            cierto(leyenda.zonas[zona.id].entrada.length > 80 && leyenda.zonas[zona.id].caida.length > 80, `${zona.id}: historia`);
+        }
+        cierto(!/undefined|NaN|\[object/.test(JSON.stringify(leyenda)), `${id}: la historia sin huecos`);
+        const capitulos = leyendas.capitulosDeLeyenda(id, 15, "Ana");
+        igual(capitulos.map((c) => c.id), ["prologo", ...lugar.zonas.map((z) => z.id), "epilogo"], `${id}: se lee entera`);
+        cierto(capitulos.every((c) => c.abierto) && !capitulos.some((c) => c.parrafos.some((p) => p.includes("{n}"))), `${id}: abierta y con tu nombre`);
+    }
+    // Las salas y los dibujos se pueden pintar.
+    for (const zona of [...bestiario.LUGARES.minas.zonas, ...bestiario.LUGARES.laberinto.zonas]) {
+        cierto(dibujarSala(zona.id).includes("<svg"), `sala ${zona.id}`);
+    }
+});
+
+prueba("Mazmorras nuevas: se abren en cadena (Torre 20 → Mazmorra, Mazmorra 10 → Minas, Minas 10 → Laberinto) y se pagan en su atributo", () => {
+    const arcadeCon = (records, extra = {}) => ({ records, ...extra });
+    igual(["torre", "mazmorra", "minas", "laberinto"].map((l) => torre.lugarAbierto(arcadeCon({}), l)), [true, false, false, false]);
+    igual(["mazmorra", "minas", "laberinto"].map((l) => torre.lugarAbierto(arcadeCon({ torre: 20 }), l)), [true, false, false]);
+    igual(["minas", "laberinto"].map((l) => torre.lugarAbierto(arcadeCon({ torre: 20, mazmorra: 9 }), l)), [false, false]);
+    igual(["minas", "laberinto"].map((l) => torre.lugarAbierto(arcadeCon({ torre: 20, mazmorra: 10 }), l)), [true, false]);
+    igual(torre.lugarAbierto(arcadeCon({ torre: 20, mazmorra: 10, minas: 10 }), "laberinto"), true);
+    igual(torre.lugarAbierto(arcadeCon({}), "inventada"), false);
+    // La partida de ahora también cuenta.
+    const enCurso = torre.nuevaPartida(NIVELES_1, 3, 1, {}, "mazmorra");
+    enCurso.piso = 11;
+    igual(torre.lugarAbierto(arcadeCon({ torre: 20 }, { mazmorra: enCurso }), "minas"), true, "bajaste 10 sótanos en esta partida");
+    // Atributos y premios.
+    igual([torre.REGLAS.minas.atributo, torre.REGLAS.laberinto.atributo], ["riqueza", "intelecto"]);
+    igual(torre.premio(100, "minas"), { gemas: 90, xp: 70 }, "el tope de las minas");
+    igual(torre.premio(3, "laberinto"), { gemas: 21, xp: 15 }, "tres cámaras en el laberinto");
+    // Las criaturas de cada lugar: el piso 1 es el primero de su lista y el 15 es el guardián de la última zona.
+    for (const id of ["minas", "laberinto"]) {
+        const lugar = bestiario.LUGARES[id];
+        igual(torre.monstruoDelPiso(1, id).id, lugar.orden[0]);
+        const ultimo = torre.monstruoDelPiso(15, id);
+        igual([ultimo.id, ultimo.guardian], [lugar.orden[14], true]);
+        cierto(ultimo.vidaMax > torre.monstruoDelPiso(14, id).vidaMax && ultimo.ataque > torre.monstruoDelPiso(14, id).ataque, `${id}: el guardián final es lo más duro`);
+        const vuelta = torre.monstruoDelPiso(16, id);
+        igual([vuelta.id, vuelta.vuelta, vuelta.nombre.endsWith(lugar.vuelta)], [lugar.orden[0], 1, true], `${id}: al dar la vuelta vuelven más fuertes (${lugar.vuelta})`);
+    }
+    // Lo de siempre no cambió: la fórmula de la Torre y de la Mazmorra sigue igual.
+    igual([torre.monstruoDelPiso(7).vidaMax, torre.monstruoDelPiso(7).ataque], [114, 15], "Torre, piso 7");
+    igual([torre.monstruoDelPiso(3, "mazmorra").vidaMax, torre.monstruoDelPiso(3, "mazmorra").ataque], [188, 23], "Mazmorra, sótano 3");
+});
+
+prueba("Mazmorras nuevas: se pueden jugar enteras (empezar, pelear, subir de piso, cobrar) y guardan su récord", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.empezarTorre(estado, 5, "minas"), "Minas de la Codicia: Baja 10 sótanos en la Mazmorra del Abismo: en el décimo hay una grieta con un brillo dorado.");
+    estado.arcade.records.torre = 20;
+    estado.arcade.records.mazmorra = 10;
+    const antes = arcade.fichasDisponibles(estado);
+    const r = acciones.empezarTorre(estado, 5, "minas");
+    cierto(r.relato && r.relato.lugar === "minas", "al empezar se cuenta la historia");
+    igual(arcade.fichasDisponibles(estado), antes - 1, "gasta una ficha");
+    const p = estado.arcade.minas;
+    igual([p.lugar, p.piso, p.enemigo.id], ["minas", 1, "mi-murcielago"]);
+    cierto(p.registro.startsWith("Nivel 1.") && p.registro.includes("el descenso"), "el registro habla de niveles");
+    // Se pelea y se sube de nivel con las mismas reglas.
+    p.heroe.ataque = 9999;
+    const ev = acciones.accionTorre(estado, "atacar", null, "minas").eventos;
+    cierto(ev.some((e) => e.tipo === "derrotado") && p.fase === "mejora", "cae y toca elegir mejora");
+    acciones.mejoraTorre(estado, p.opciones[0], "minas");
+    igual(p.piso, 2, "sube de nivel (cura 5 % al subir, como dice su regla)");
+    p.fase = "batalla";
+    // Cobrar: premio de Riqueza y récord solo de las minas.
+    const xp = estado.atributos.riqueza;
+    const cobro = acciones.terminarTorre(estado, "minas");
+    igual([cobro.lugar, cobro.pisos, cobro.atributo, estado.arcade.records.minas], ["minas", 1, "riqueza", 1]);
+    cierto(estado.atributos.riqueza > xp, "sube Riqueza");
+    igual(estado.arcade.minas, null, "la partida termina");
+    igual(estado.arcade.records.mazmorra, 10, "el récord de la Mazmorra no cambia");
+    // Al llegar a 10 niveles en las minas se abre el laberinto (con su aviso).
+    estado.arcade.minas = torre.nuevaPartida(NIVELES_1, 7, 1, {}, "minas");
+    estado.arcade.minas.piso = 11;
+    const fin = acciones.terminarTorre(estado, "minas");
+    cierto(fin.celebraciones.some((c) => c.titulo === "Laberinto de los Ecos" && c.etiqueta.includes("mazmorra")), "se abre el laberinto");
+    igual(torre.lugarAbierto({ records: estado.arcade.records }, "laberinto"), true);
+    // Y el laberinto también se juega.
+    acciones.empezarTorre(estado, 9, "laberinto");
+    igual([estado.arcade.laberinto.lugar, estado.arcade.laberinto.enemigo.id], ["laberinto", "la-espejo"]);
+    // La copia de seguridad conserva las partidas de las mazmorras nuevas.
+    const copia = datos.desdeRespaldo(JSON.stringify(estado));
+    igual([copia.arcade.laberinto.lugar, copia.arcade.minas], ["laberinto", null]);
+    igual(datos.desdeRespaldo(JSON.stringify({ version: 1, personaje: { nombre: "Vieja", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] })).arcade.minas, null, "una copia vieja");
+});
+
+prueba("Mazmorras nuevas (pantallas): tarjetas en el Arcade (cerradas con lo que falta, abiertas con récord y botón), bestiario completo y cinemáticas", () => {
+    const estado = partidaNueva();
+    const info = juego.resumen(estado, hoy());
+    const ctx = () => ({
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+        vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
+        rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {},
+    });
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    let html = vistas.pantallaArcade(estado, ctx());
+    sano(html, "el arcade cerrado");
+    igual(html.split("mazmorra-cerrada").length - 1, 3, "las tres mazmorras cerradas");
+    cierto(html.includes("Minas de la Codicia") && html.includes("Laberinto de los Ecos") && html.includes("Baja 10 sótanos") && html.includes("Baja 10 niveles"), "dicen qué falta");
+    estado.arcade.records = { torre: 20, mazmorra: 12, minas: 11 };
+    html = vistas.pantallaArcade(estado, ctx());
+    sano(html, "el arcade abierto");
+    igual(html.split("mazmorra-cerrada").length - 1, 0, "todas abiertas");
+    for (const lugar of ["mazmorra", "minas", "laberinto"]) {
+        cierto(html.includes(`data-accion="torre-abrir" data-lugar="${lugar}"`) && html.includes(`data-accion="historia-abrir" data-lugar="${lugar}"`), `${lugar}: entrar e historia`);
+    }
+    cierto(html.includes("Bajar a las minas") && html.includes("Entrar al laberinto") && html.includes("Récord: 11 niveles superados") && html.includes('data-sala="ecos"'), "textos propios, récord y portada");
+    cierto(html.includes('name="marca-minas"') && html.includes('name="marca-laberinto"') && !html.includes("Ayuno"), "marcas para cada una (sin «Ayuno», que es de la Torre)");
+    // El bestiario muestra los lugares abiertos y los cerrados con su motivo.
+    const imagenes = Object.fromEntries(Object.values(bestiario.LUGARES).flatMap((l) => l.orden).map((id) => [id, "data:image/png;base64,AA"]));
+    html = vistas.pantallaBestiario({ bestiario: {}, sprites: imagenes, abiertos: ["torre", "mazmorra", "minas"] });
+    sano(html, "el bestiario");
+    cierto(html.includes("Minas de la Codicia") && html.includes("Galerías olvidadas") && html.includes("🔒 Laberinto de los Ecos") && html.includes("0 de 80") === false, "minas abiertas y laberinto cerrado");
+    cierto(html.includes("0 de 65"), "65 criaturas visibles");
+    // La batalla se dibuja con el nombre y la sala de cada lugar.
+    acciones.empezarTorre(estado, 4, "laberinto");
+    const imgs = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
+    html = vistas.pantallaTorre({ partida: estado.arcade.laberinto, nombre: "Ana", sprites: imgs, eventos: [], menu: "principal", ultimo: "atacar",
+                                  bestiario: estado.arcade.bestiario, resultado: null, fichas: 2 });
+    sano(html, "la batalla del laberinto");
+    cierto(html.includes("Cámara 1") && html.includes("Pasillos de espejos") && html.includes("Espejo errante"), "su cámara, su zona y su criatura");
+    // Las cinemáticas de cada zona y el final.
+    for (const [lugar, ultimo] of [["minas", "mi-rey"], ["laberinto", "la-silencio"]]) {
+        const partida = { lugar, piso: 15, enemigo: { id: ultimo } };
+        const final = cinematicasModulo.cinematicaDe("final", partida, "Ana");
+        cierto(final && final.tomas.length === 4 && final.tomas.every((t) => t.texto && !/\{n\}|undefined/.test(t.texto + t.titulo)), `${lugar}: el final`);
+        for (const tipo of ["entrada", "derrota", "zona"]) {
+            const c = cinematicasModulo.cinematicaDe(tipo, { lugar, piso: tipo === "zona" ? 6 : 5, enemigo: { id: bestiario.LUGARES[lugar].orden[tipo === "zona" ? 5 : 4] } }, "Ana");
+            cierto(c && c.tomas.every((t) => t.texto || t.titulo) && !/undefined/.test(JSON.stringify(c)), `${lugar}: ${tipo}`);
+        }
+    }
+    // Suena a lo suyo.
+    igual([musicaModulo.pistaDeEscena({ pantalla: "arcade", torre: "minas" }), musicaModulo.pistaDeEscena({ pantalla: "arcade", torre: "laberinto" })], ["batalla", "misterio"]);
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

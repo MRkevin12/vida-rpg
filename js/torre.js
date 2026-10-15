@@ -40,9 +40,10 @@
 // partida (un objeto) y la cambia. La partida se guarda en estado.arcade.torre (o en
 // estado.arcade.mazmorra), así puedes salir y seguir después.
 
-import { CRIATURAS, ELEMENTOS, ORDEN, PISOS_POR_ZONA, idDelPiso, vueltaDelPiso, zonaDelPiso, factorElemento, lugarDe, aLaZona, deLaZona } from "./bestiario.js";
+import { CRIATURAS, ELEMENTOS, ORDEN, PISOS_POR_ZONA, idDelPiso, vueltaDelPiso, zonaDelPiso, factorElemento, lugarDe, aLaZona, deLaZona, LUGARES } from "./bestiario.js";
 import { HABILIDADES, ESQUIVAR_MAXIMO, tiene } from "./habilidades.js";
 import { MASCOTAS } from "./mascota.js";
+import { NUEVOS_LUGARES } from "./mazmorras.js";
 import { semilla as hashDeTexto } from "./desafios.js";
 
 // El premio es en gemas 💎 (la moneda del arcade, v31) y algo de XP (desde la v31, la mitad).
@@ -54,11 +55,16 @@ export const CADA_GUARDIAN = PISOS_POR_ZONA;             // cada 5 pisos, un gua
 // Lo que cambia según el lugar:
 //   atributo y premio: lo que ganas al terminar · curaAlSubir: parte de tu vida que recuperas
 //   al pasar de piso · enfurecer: los guardianes se enfurecen al quedar con media vida.
+//   escala: cómo crecen sus criaturas con el piso: vida = a + b·piso + c·piso², ataque = a + b·piso; los guardianes, además,
+//   × guardianVida / guardianAtaque (v64: ahora es un dato, y las mazmorras nuevas traen el suyo; ver mazmorras.js).
 export const REGLAS = {
-    torre:    { atributo: ATRIBUTO, premio: PREMIO, curaAlSubir: 0.1, enfurecer: false },
+    torre:    { atributo: ATRIBUTO, premio: PREMIO, curaAlSubir: 0.1, enfurecer: false,
+                escala: { vida: [22, 9, 0.6], ataque: [4, 1.6], guardianVida: 1.6, guardianAtaque: 1.25 } },
     mazmorra: { atributo: "fuerza", premio: { gemasPorPiso: 5, xpPorPiso: 4, maxGemas: 80, maxXp: 60 },
-                curaAlSubir: 0, enfurecer: true },
+                curaAlSubir: 0, enfurecer: true,
+                escala: { vida: [120, 20, 0.9], ataque: [16, 2.2], guardianVida: 1.5, guardianAtaque: 1.2 } },
 };
+for (const [id, lugar] of Object.entries(NUEVOS_LUGARES)) REGLAS[id] = lugar.regla;   // (v64) minas y laberinto
 
 // ===== Marcas de partida (v41) =====
 // Antes de empezar una subida (o un descenso) puedes elegir UNA marca: un trato con la Torre. Te pone una
@@ -136,6 +142,17 @@ export const ABRIR_MAZMORRA = 20;
 export function mazmorraAbierta(arcade) {
     const enCurso = arcade?.torre ? pisosSuperados(arcade.torre) : 0;
     return Math.max(arcade?.records?.torre || 0, enCurso) >= ABRIR_MAZMORRA;
+}
+
+// (v64) ¿Está abierto ese lugar? La Torre, siempre; la Mazmorra, al superar el piso 20 de la Torre; las demás, al superar cierto
+// piso del lugar anterior (ver `abre` en mazmorras.js). Cuenta lo que llevas en la partida de ahora.
+export function lugarAbierto(arcade, lugar) {
+    if (lugar === "torre") return true;
+    if (lugar === "mazmorra") return mazmorraAbierta(arcade);
+    const abre = LUGARES[lugar]?.abre;
+    if (!abre) return false;
+    const enCurso = arcade?.[abre.lugar] ? pisosSuperados(arcade[abre.lugar]) : 0;
+    return Math.max(arcade?.records?.[abre.lugar] || 0, enCurso) >= abre.piso;
 }
 
 // Los ataques especiales de las criaturas de la Mazmorra.
@@ -430,14 +447,10 @@ export function monstruoDelPiso(piso, lugar = "torre") {
     const criatura = CRIATURAS[id];
     const guardian = esGuardian(piso);
     const vuelta = vueltaDelPiso(piso, lugar);   // después del piso 20 vuelven los mismos, «ancestrales» (o «abisales»)
-    const mazmorra = lugar === "mazmorra";
-    const nubes = !mazmorra && SOBRE_LAS_NUBES.zonas.includes(criatura.zona);
-    const vidaMax = mazmorra
-        ? Math.round((120 + 20 * piso + 0.9 * piso * piso) * (guardian ? 1.5 : 1))
-        : Math.round((22 + 9 * piso + 0.6 * piso * piso) * (guardian ? 1.6 : 1) * (nubes ? SOBRE_LAS_NUBES.vida : 1));
-    const ataque = mazmorra
-        ? Math.round((16 + 2.2 * piso) * (guardian ? 1.2 : 1))
-        : Math.round((4 + 1.6 * piso) * (guardian ? 1.25 : 1) * (nubes ? SOBRE_LAS_NUBES.ataque : 1));
+    const e = (REGLAS[lugar] || REGLAS.torre).escala;   // (v64) lo que crece cada lugar con el piso
+    const nubes = lugar === "torre" && SOBRE_LAS_NUBES.zonas.includes(criatura.zona);
+    const vidaMax = Math.round((e.vida[0] + e.vida[1] * piso + e.vida[2] * piso * piso) * (guardian ? e.guardianVida : 1) * (nubes ? SOBRE_LAS_NUBES.vida : 1));
+    const ataque = Math.round((e.ataque[0] + e.ataque[1] * piso) * (guardian ? e.guardianAtaque : 1) * (nubes ? SOBRE_LAS_NUBES.ataque : 1));
     return {
         id,
         nombre: vuelta ? `${criatura.nombre} ${lugarDe(lugar).vuelta}` : criatura.nombre,
@@ -513,10 +526,10 @@ export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporc
     if (marca === "sinfrascos") heroe.pociones = 0;
     if (marca === "silencio") { heroe.mana = 0; heroe.manaMax = 0; }
     heroe.vida = Math.max(1, Math.round(heroe.vidaMax * proporcion));
-    const mazmorra = lugar === "mazmorra";
-    const primero = mazmorra ? "Sótano 1" : "Piso 1";
+    const sitio = lugarDe(lugar);
+    const primero = `${sitio.piso} 1`;
     return {
-        lugar: mazmorra ? "mazmorra" : "torre",
+        lugar: LUGARES[lugar] ? lugar : "torre",
         semilla,
         marca,                    // la marca elegida (o null)
         cine: null,               // la cinemática que toca ver ("zona", "entrada", "derrota", "final") o null (v43)
@@ -530,7 +543,7 @@ export function nuevaPartida(niveles, semilla = Date.now() % 4294967296, proporc
         opciones: [],             // las mejoras para elegir (3, o 4 con «Constancia»)
         registro: (heroe.vida < heroe.vidaMax
             ? `${primero}. Llegas con el ${Math.round(proporcion * 100)} % de tu vida real. ¡Cuidado!`
-            : `${primero}. ¡Que empiece ${mazmorra ? "el descenso" : "la subida"}!`) +
+            : `${primero}. ¡Que empiece ${sitio.verboBajar || (lugar === "mazmorra" ? "el descenso" : "la subida")}!`) +
             (marca ? ` Marca: ${MARCAS[marca].icono} ${MARCAS[marca].nombre} (${MARCAS[marca].texto}).` : ""),
     };
 }

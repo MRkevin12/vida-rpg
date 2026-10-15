@@ -80,7 +80,12 @@ export const PISTAS = {
 // Sin «auto», suena la que elegiste (y en la Torre y la Mazmorra, las de siempre).
 export const PANTALLAS_DE_LECTURA = ["pergamino", "biblioteca", "memorias", "libro", "pacto", "historia", "novela"];
 export function pistaDeEscena({ pantalla, torre = null, elegida = "epica", auto = true }) {
-    if (torre) return torre === "mazmorra" ? (auto ? "abismo" : "misterio") : "batalla";
+    if (torre) {
+        // (v64) Cada lugar suena a lo suyo: la Torre y las minas, batalla; la Mazmorra, abismo; el laberinto, misterio.
+        if (torre === "mazmorra") return auto ? "abismo" : "misterio";
+        if (torre === "laberinto") return "misterio";
+        return "batalla";
+    }
     if (!auto) return elegida;
     if (PANTALLAS_DE_LECTURA.includes(pantalla)) return "lectura";
     if (pantalla === "diario") return "nocturno";

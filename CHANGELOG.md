@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v64 — Las Minas de la Codicia y el Laberinto de los Ecos
+- **`js/mazmorras.js`** (nuevo, en `sw.js`; solo datos, sin imports): `NUEVOS_LUGARES` (minas y laberinto: zonas, `abre`, `regla` con `escala`, textos), `NUEVAS_CRIATURAS` (30), `LEYENDAS_NUEVAS` y `CINE_NUEVAS`. Los demás archivos los suman: `bestiario.js` (CRIATURAS, `LUGARES`, `lugarDeCriatura` ya busca en todos), `torre.js` (`REGLAS[lugar].escala` reemplaza las fórmulas fijas de `monstruoDelPiso`, que dan lo mismo que antes; `lugarAbierto(arcade, lugar)`), `leyendas.js`, `cinematicas.js` (zonas y un final por lugar), `dibujo-monstruos.js` (las mismas figuras con otros colores; salas nuevas con paredes y suelos reutilizados), `sonido.js` (voces) y `musica.js`.
+- Se abren en cadena: Torre 20 → Mazmorra del Abismo → 10 sótanos → Minas → 10 niveles → Laberinto. `estado.arcade.minas` y `.laberinto` (se migran en `completar`). Plural propio por lugar (`LUGARES[x].pisos`).
+- Pantallas: `tarjetaMazmorra(…, lugar)` (una tarjeta por mazmorra), bestiario con los 4 lugares, bazar, ayuda de Ajustes. 247 pruebas.
+
 ## v63 — Habilidades a la vista
 - `torre.actuar` anota en `eventos[i].activas` (claves) qué habilidades y dones se notaron en tu golpe (ímpetu, desgarro, cazador, sangre, embestida, aturdir, sed, aurora, eco, arcano, ojo del dragón, llama, valor, juramento, bastión, muralla) y en el golpe de la criatura (sombra, firme, presagio, escamas, espinas, llama). Sin añadir eventos nuevos (no se mueven los índices).
 - Vistas: `etiquetasDeHabilidad` (`.ff-hab` sobre el héroe, una tras otra), `panelDeHabilidades` (`<details class="ff-habilidades">` con pasivas, dones y técnicas) y un efecto por técnica (`.ff-quebrar`, `.ff-analizar`, `.ff-intimidar`, `.ff-certero`). Sonido `habilidad`. 243 pruebas.

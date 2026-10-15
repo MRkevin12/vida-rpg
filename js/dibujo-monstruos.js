@@ -1230,6 +1230,43 @@ const FIGURAS = {
                          cuerpo: "#ff5a3a", mente: "#5aa8ff", voz: "#ffd23c", tesoro: "#5aff9a" }],
 };
 
+// (v64) Las criaturas de las mazmorras nuevas (ver mazmorras.js): los mismos dibujos de siempre, con otros colores.
+Object.assign(FIGURAS, {
+    // --- Minas de la Codicia: galerías, veta y tesorería ---
+    "mi-murcielago": [murcielago, { pelo: "#5a4630", ala: "#7a5a30", hueso: "#2a1c10", oreja: "#c89a5a", ojo: "#ffd23c" }],
+    "mi-minero": [esqueleto, { hueso: "#cdbf9a", acero: "#7a6a58", escudo: "#5a4020", guarda: "#c8902c", trapo: "#6a4a1a", ojo: "#ffb03a" }],
+    "mi-cieno": [cieno, { masa: "#c8b43a", restos: "#e8dca0", ojo: "#3a2a00", boca: "#3a3208" }],
+    "mi-arana": [arana, { cuerpo: "#8a4a28", pata: "#6a3418", marca: "#ffd23c", ojo: "#ffe45a" }],
+    "mi-capataz": [caballero, { armadura: "#8a7a5a", adorno: "#d8a838", capa: "#5a3a12", hoja: "#c8c0a8", cuerno: "#3a2a14", ojo: "#ffb03a" }],
+    "mi-cristal": [cristal, { claro: "#fff2b8", medio: "#f0c030", oscuro: "#a87810", ojo: "#ffffff" }],
+    "mi-golem": [golem, { hierro: "#c8a838", oxido: "#8a6a1a", fuego: "#fff0a0" }],
+    "mi-ascua": [ascua, { llama: "#ff8a1f", medio: "#ffd23c", centro: "#fff8c0", hueso: "#c8a860" }],
+    "mi-mimico": [mimico, { madera: "#6a4a1e", herraje: "#d8b040", boca: "#2a0810", lengua: "#c23a62", ojo: "#ffe45a", oro: "#ffd23c" }],
+    "mi-dragon": [dragon, { escama: "#c89a20", ala: "#e8c050", vientre: "#f2e4b0", cresta: "#fff0a0", ojo: "#ff5a2a", aliento: "#ff9a2a" }],
+    "mi-recaudador": [espectro, { tunica: "#8a7a3a", ojo: "#fff0a0" }],
+    "mi-gargola": [gargola, { piel: "#b8bcc8", ala: "#8a90a0", cuerno: "#5a6070", ojo: "#ffe45a" }],
+    "mi-libro": [grimorio, { cuero: "#3a2a14", hojas: "#f0e4c0", adorno: "#e0b030", boca: "#2a0810", lengua: "#c2283a", ojo: "#ffe45a" }],
+    "mi-centinela": [caballero, { armadura: "#e0c050", adorno: "#fff0a0", capa: "#6a4a10", hoja: "#fff4c0", cuerno: "#e8c860", ojo: "#ff6a2a" }],
+    "mi-rey": [rey, { manto: "#5a3a08", forro: "#f0e6c0", oro: "#ffd23c", vacio: "#05030a", ojo: "#fff4c0",
+                      cuerpo: "#ff5a3a", mente: "#5aa8ff", voz: "#ffd23c", tesoro: "#5aff9a" }],
+    // --- Laberinto de los Ecos: pasillos, ecos y silencio ---
+    "la-espejo": [cristal, { claro: "#f4f8ff", medio: "#aab8d8", oscuro: "#5a6a90", ojo: "#7affff" }],
+    "la-sombra": [espectro, { tunica: "#4a2a6a", ojo: "#d8a8ff" }],
+    "la-murcielago": [murcielago, { pelo: "#4a5a7a", ala: "#7a98c8", hueso: "#1a2a4a", oreja: "#c8e0ff", ojo: "#8affff" }],
+    "la-arana": [arana, { cuerpo: "#aab8d8", pata: "#7a8ab0", marca: "#ffffff", ojo: "#7affff" }],
+    "la-gemelo": [caballero, { armadura: "#d8e0f0", adorno: "#a0b0d0", capa: "#3a4a70", hoja: "#ffffff", cuerno: "#a0b0d0", ojo: "#7affff" }],
+    "la-ojo": [ojo, { carne: "#3a5a8a", iris: "#7affff" }],
+    "la-hongo": [hongo, { sombrero: "#3a4a8a", tallo: "#d0d8e8", brillo: "#8affff", ojo: "#c8ffff" }],
+    "la-aguaviva": [aguaviva, { campana: "#a8e8f8", brazo: "#78c8e8", tentaculo: "#d8f8ff", nucleo: "#ffffff" }],
+    "la-acolito": [acolito, { tunica: "#2a3a6a", adorno: "#a8c8ff", cordon: "#8aa8d8", mano: "#d0d8e8", ojo: "#8affff" }],
+    "la-coro": [acolito, { tunica: "#e8e8f4", adorno: "#a8b8e0", cordon: "#c8d0e8", mano: "#f0f0ff", ojo: "#a8d8ff", velo: "#c8d0e8", baston: true, orbe: "#a8d0ff" }],
+    "la-mudo": [ahogado, { piel: "#c8c8d0", ropa: "#3a3a48", alga: "#5a5a6a", pelo: "#1a1a20", ojo: "#ffffff", gota: "#b8c0d8" }],
+    "la-can": [can, { pelo: "#e8e8f0", ojo: "#7affff" }],
+    "la-sacerdotisa": [acolito, { tunica: "#d8d8e8", adorno: "#8a8aa8", cordon: "#a8a8c0", mano: "#e8e8f0", ojo: "#9a9aff", velo: "#aaaac8", baston: true, orbe: "#c8c8ff" }],
+    "la-gusano": [gusano, { piel: "#6a6a80", anillo: "#4a4a60", boca: "#2a1a3a", tierra: "#1a1a28" }],
+    "la-silencio": [heraldo, { armadura: "#d0d0e0", manto: "#14142a", brillo: "#ffffff", ojo: "#e8e8ff", objeto: "libro" }],
+});
+
 // El dibujo de una criatura (texto SVG). Si no existe, un cuadro vacío.
 export function dibujarMonstruo(id) {
     const [figura, colores] = FIGURAS[id] || [];
@@ -1260,6 +1297,14 @@ const COLORES_SALA = {
     raices:     { pared: ["#0a0806", "#2a2016"], piso: ["#100c08", "#3a2c1e"], junta: "#0a0704", luz: "#a8ff6a", suelo: "tierra" },
     santuario:  { pared: ["#0c0610", "#2a1230"], piso: ["#120816", "#3a1c36"], junta: "#08040a", luz: "#ff4a6a" },
     abismo:     { pared: ["#020106", "#160822"], piso: ["#08040e", "#26122e"], junta: "#05020a", luz: "#c05aff", suelo: "tierra" },
+    // Minas de la Codicia (v64)
+    galerias:   { pared: ["#150f08", "#3a2a14"], piso: ["#1a120a", "#4a3a22"], junta: "#0c0804", luz: "#ffb04a", suelo: "tierra" },
+    veta:       { pared: ["#1a1204", "#5a4010"], piso: ["#201606", "#6a4e14"], junta: "#120c02", luz: "#ffd23c" },
+    tesoreria:  { pared: ["#1a1004", "#6a4a10"], piso: ["#2a1c06", "#8a6a1a"], junta: "#140c02", luz: "#fff0a0" },
+    // Laberinto de los Ecos (v64)
+    pasillos:   { pared: ["#10162a", "#3a4a7a"], piso: ["#161e38", "#4a5a8a"], junta: "#0c1226", luz: "#c8e0ff" },
+    ecos:       { pared: ["#0a1020", "#24406a"], piso: ["#0e1830", "#2a4a7a"], junta: "#080e1c", luz: "#7affff" },
+    silencio:   { pared: ["#06060e", "#1a1a30"], piso: ["#0a0a16", "#26263e"], junta: "#04040a", luz: "#e8e8ff", suelo: "tierra" },
 };
 
 // Números "al azar" que siempre salen iguales (para repartir libros y estrellas sin
@@ -1553,6 +1598,16 @@ export function dibujarSala(zona) {
         <rect width="${ancho}" height="${alto}" fill="url(#${id}-borde)"/>
     </svg>`;
 }
+
+// (v64) Las salas de las mazmorras nuevas reutilizan las paredes y los suelos de otras (con sus propios colores).
+Object.assign(PAREDES, {
+    galerias: PAREDES.fragua, veta: PAREDES.fragua, tesoreria: PAREDES.corona,
+    pasillos: PAREDES.cripta, ecos: PAREDES.biblioteca, silencio: PAREDES.abismo,
+});
+Object.assign(SUELOS, {
+    galerias: SUELOS.fragua, veta: SUELOS.fragua, tesoreria: SUELOS.corona || SUELOS.fragua,
+    pasillos: SUELOS.cripta || SUELOS.abismo, ecos: SUELOS.biblioteca || SUELOS.abismo, silencio: SUELOS.abismo,
+});
 
 // Las criaturas que tienen dibujo (las pruebas revisan que sean todas las del bestiario).
 export const CON_DIBUJO = Object.keys(FIGURAS);

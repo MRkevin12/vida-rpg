@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 63;
+export const VERSION_APP = 64;
 
 export const NOVEDADES = [
+    {
+        version: 64,
+        titulo: "Dos mazmorras nuevas",
+        cambios: [
+            "⛏️ Las Minas de la Codicia: 15 niveles en 3 zonas (Galerías olvidadas, La veta dorada y la Tesorería del Rey Avaro). Se abren al bajar 10 sótanos de la Mazmorra del Abismo. Dan XP de Riqueza y las criaturas casi todas traen un truco (barreras, coraza, venenos, reflejos). El Rey Avaro cambia de punto débil a media vida.",
+            "🌀 El Laberinto de los Ecos: 15 cámaras en 3 zonas (Pasillos de espejos, Cámara de los Ecos y Salón del Silencio). Se abre al bajar 10 niveles de las Minas. Da XP de Intelecto y es lo más difícil del juego. Ahí fueron a parar las voces que la aldea perdió.",
+            "👾 30 criaturas nuevas, con su dibujo, su voz y su ficha en el bestiario (ahora 80); salas con sus propios colores, historia por zona (📜 Historia), cinemáticas y música propias. Tienen su propio récord, marcas y premios.",
+        ],
+    },
     {
         version: 63,
         titulo: "Habilidades a la vista",

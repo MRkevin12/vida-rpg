@@ -102,6 +102,13 @@ export const FAMILIA_DE_CRIATURA = {
     hongo: "baba", escorpion: "bicho", gusano: "baba", raiz: "hueso", arbol: "rugido",
     acolito: "espectral", can: "bestia", sacerdotisa: "espectral", sabueso: "bestia", reflejo: "espectral",
     "heraldo-cuerpo": "rugido", "heraldo-mente": "ojo", "heraldo-voz": "chillido", "heraldo-tesoro": "metal", "rey-hueco": "rugido",
+    // (v64) Las Minas de la Codicia y el Laberinto de los Ecos.
+    "mi-murcielago": "chillido", "mi-minero": "hueso", "mi-cieno": "baba", "mi-arana": "bicho", "mi-capataz": "metal",
+    "mi-cristal": "cristal", "mi-golem": "metal", "mi-ascua": "fuego", "mi-mimico": "bestia", "mi-dragon": "rugido",
+    "mi-recaudador": "espectral", "mi-gargola": "bestia", "mi-libro": "espectral", "mi-centinela": "metal", "mi-rey": "rugido",
+    "la-espejo": "cristal", "la-sombra": "espectral", "la-murcielago": "chillido", "la-arana": "bicho", "la-gemelo": "metal",
+    "la-ojo": "ojo", "la-hongo": "baba", "la-aguaviva": "baba", "la-acolito": "espectral", "la-coro": "espectral",
+    "la-mudo": "espectral", "la-can": "bestia", "la-sacerdotisa": "espectral", "la-gusano": "baba", "la-silencio": "rugido",
 };
 
 export const MOMENTOS_DE_VOZ = ["aparece", "ataque", "herido", "cae"];

@@ -1186,8 +1186,10 @@ export function empezarTorre(estado, semilla, lugar = "torre", marca = null) {
         bestiario.anotarEncuentro(estado.arcade.bestiario, enCurso.enemigo.id);
         return { relato: lugar === "torre" ? contarElDespertar(estado) : null };
     }
-    if (lugar === "mazmorra" && !torre.mazmorraAbierta(estado.arcade)) {
-        throw new Error(`La Mazmorra del Abismo se abre cuando superes el piso ${torre.ABRIR_MAZMORRA} de la Torre del héroe.`);
+    if (!torre.lugarAbierto(estado.arcade, lugar)) {
+        throw new Error(lugar === "mazmorra"
+            ? `La Mazmorra del Abismo se abre cuando superes el piso ${torre.ABRIR_MAZMORRA} de la Torre del héroe.`
+            : `${bestiario.LUGARES[lugar].nombre}: ${bestiario.LUGARES[lugar].abre.texto}`);
     }
     if (arcade.fichasDisponibles(estado) < 1) {
         throw new Error("No tienes fichas. Completa una misión diaria para ganar una 🎟️.");
@@ -1367,7 +1369,7 @@ export function terminarTorre(estado, lugar = "torre") {
     const premio = { gemas: base.gemas * factor, xp: base.xp * factor };
     const atributo = torre.REGLAS[lugar].atributo;
     ganar(estado, { ...premio, atributo });
-    const abiertaAntes = torre.mazmorraAbierta({ records: estado.arcade.records });
+    const abiertasAntes = Object.keys(bestiario.LUGARES).filter((l) => torre.lugarAbierto({ records: estado.arcade.records }, l));
     const anterior = estado.arcade.records[lugar] || 0;
     const nuevoRecord = pisos > anterior;
     if (nuevoRecord) estado.arcade.records[lugar] = pisos;
@@ -1376,11 +1378,15 @@ export function terminarTorre(estado, lugar = "torre") {
     const celebraciones = [];
     if (nuevoRecord && anterior > 0) {
         celebraciones.push({ icono: sitio.icono, etiqueta: `¡Nuevo récord en la ${sitio.nombre}!`,
-                             titulo: `${sitio.piso} ${pisos + 1}`, detalle: `Superaste ${pisos} ${sitio.piso.toLowerCase()}s.` });
+                             titulo: `${sitio.piso} ${pisos + 1}`, detalle: `Superaste ${pisos} ${pisos === 1 ? sitio.piso.toLowerCase() : sitio.pisos}.` });
     }
-    if (!abiertaAntes && torre.mazmorraAbierta({ records: estado.arcade.records })) {
-        celebraciones.push({ icono: "⛓️", etiqueta: "¡Se abrió una mazmorra!", titulo: "Mazmorra del Abismo",
-                             detalle: "Bajo la Torre hay una escalera. Más difícil y con criaturas nuevas: búscala en el Arcade." });
+    for (const otro of Object.values(bestiario.LUGARES)) {
+        if (abiertasAntes.includes(otro.id) || !torre.lugarAbierto({ records: estado.arcade.records }, otro.id)) continue;
+        celebraciones.push({
+            icono: otro.icono, etiqueta: "¡Se abrió una mazmorra!", titulo: otro.nombre,
+            detalle: otro.id === "mazmorra" ? "Bajo la Torre hay una escalera. Más difícil y con criaturas nuevas: búscala en el Arcade."
+                : `${otro.resumen.split(". ")[0]}. Búscala en el Arcade.`,
+        });
     }
     return { lugar, pisos, premio, reto, marca: partida.marca || null, atributo, record: estado.arcade.records[lugar] || 0, nuevoRecord: nuevoRecord && pisos > 0, celebraciones };
 }

@@ -23,6 +23,7 @@
 // {n} es el nombre de tu héroe. Sin género gramatical para el héroe (se usa su nombre).
 
 import { PISOS_POR_ZONA, lugarDe } from "./bestiario.js";
+import { LEYENDAS_NUEVAS } from "./mazmorras.js";
 
 const ROMANOS = ["I", "II", "III", "IV", "V", "VI"];
 
@@ -124,6 +125,8 @@ export const LEYENDAS = {
         },
     },
 };
+
+Object.assign(LEYENDAS, LEYENDAS_NUEVAS);   // (v64) la historia de las minas y del laberinto (ver mazmorras.js)
 
 const leyendaDe = (lugar) => LEYENDAS[lugar] || LEYENDAS.torre;
 const conNombre = (nombre) => (texto) => texto.replaceAll("{n}", nombre);

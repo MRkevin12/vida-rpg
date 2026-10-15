@@ -10,7 +10,7 @@ import { pixelar } from "./pixel.js";
 import { dibujarAvatar, dibujarMascota } from "./dibujo.js";
 import { dibujarMonstruo, dibujarSala, SALA } from "./dibujo-monstruos.js";
 import { dibujarMapa, MEDIDAS } from "./dibujo-mapa.js";
-import { CRIATURAS, ORDEN, ORDEN_MAZMORRA } from "./bestiario.js";
+import { CRIATURAS, LUGARES } from "./bestiario.js";
 import { describirPersona } from "./voces.js";
 
 export const HEROE = { ancho: 54, alto: 72 };   // el tamaño de tu héroe, en puntos
@@ -87,7 +87,7 @@ export function spriteDeMascotaEnMapa(m) {
 // Todas las criaturas a la vez (para el bestiario): { esqueleto: "data:image/png…", … }
 // d = la descripción de tu avatar (para el Reflejo sombrío).
 export async function spritesDeCriaturas(d = null) {
-    const todas = [...ORDEN, ...ORDEN_MAZMORRA];
+    const todas = Object.values(LUGARES).flatMap((lugar) => lugar.orden);
     const imagenes = await Promise.all(todas.map((id) => spriteDeMonstruo(id, d)));
     return Object.fromEntries(todas.map((id, i) => [id, imagenes[i]]));
 }

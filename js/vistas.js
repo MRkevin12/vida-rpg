@@ -2539,7 +2539,7 @@ export function pantallaArcade(estado, ctx) {
         ${caido ? avisoCaido(ctx.vida, "El arcade está cerrado") : ""}
         ${tarjetaReto(estado, ctx)}
         ${tarjetaTorre}
-        ${tarjetaMazmorra(estado, caido, fichas, ctx.hoy)}
+        ${["mazmorra", "minas", "laberinto"].map((lugar) => tarjetaMazmorra(estado, caido, fichas, ctx.hoy, lugar)).join("")}
         ${panelBazar(estado, caido)}
         <section class="panel arcade-cabecera">
             <div class="arcade-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
@@ -2612,7 +2612,7 @@ function panelBazar(estado, caido) {
                 <dl class="estadisticas">
                     <div><dt>Minijuegos</dt><dd>💎 hasta ${arcade.MAX_GEMAS}</dd></div>
                     <div><dt>Torre del héroe</dt><dd>💎 ${torre.PREMIO.gemasPorPiso} por piso (máx. ${torre.PREMIO.maxGemas})</dd></div>
-                    <div><dt>Mazmorra del Abismo</dt><dd>💎 ${torre.REGLAS.mazmorra.premio.gemasPorPiso} por sótano (máx. ${torre.REGLAS.mazmorra.premio.maxGemas})</dd></div>
+                    ${["mazmorra", "minas", "laberinto"].map((l) => `<div><dt>${bestiario.LUGARES[l].nombre}</dt><dd>💎 ${torre.REGLAS[l].premio.gemasPorPiso} por ${bestiario.LUGARES[l].piso.toLowerCase()} (máx. ${torre.REGLAS[l].premio.maxGemas})</dd></div>`).join("")}
                     <div><dt>Jefe derrotado (1.º al 5.º)</dt><dd>💎 ${premioJefe[0]}–${premioJefe[1]}</dd></div>
                     <div><dt>Cofre del día</dt><dd>💎 15–40 (a veces)</dd></div>
                     <div><dt>Desafío de la semana</dt><dd>💎 ${desafios.COFRE.gemas}</dd></div>
@@ -2644,45 +2644,56 @@ function selectorDeMarcas(lugar, partida, fecha) {
         </fieldset>`;
 }
 
-function tarjetaMazmorra(estado, caido, fichas, fecha) {
-    const record = estado.arcade.records.torre || 0;
-    if (!torre.mazmorraAbierta(estado.arcade)) {
+// (v64) Una tarjeta por mazmorra: la del Abismo (v29) y, a partir de ella, las Minas de la Codicia y el Laberinto de los Ecos.
+// Cerrada dice qué falta para abrirla; abierta, lo que hay dentro, tu récord y el botón para entrar.
+function tarjetaMazmorra(estado, caido, fichas, fecha, lugar = "mazmorra") {
+    const sitio = bestiario.LUGARES[lugar];
+    const abre = lugar === "mazmorra" ? { lugar: "torre", piso: torre.ABRIR_MAZMORRA } : sitio.abre;
+    const previo = bestiario.LUGARES[abre.lugar];
+    if (!torre.lugarAbierto(estado.arcade, lugar)) {
+        const record = estado.arcade.records[abre.lugar] || 0;
         return `
             <article class="panel mazmorra-cerrada">
                 <span class="mazmorra-candado" aria-hidden="true">🔒</span>
                 <div>
-                    <h3>Mazmorra del Abismo</h3>
-                    <p class="nota">Algo duerme bajo la Torre. Se abre cuando superes el piso ${torre.ABRIR_MAZMORRA} de la Torre del héroe
-                       (vence al Dragón de la tormenta).</p>
-                    ${barra(Math.min(100, (record / torre.ABRIR_MAZMORRA) * 100))}
-                    <p class="mini">Tu récord en la Torre: ${record} de ${torre.ABRIR_MAZMORRA} pisos.</p>
+                    <h3>${sitio.icono} ${sitio.nombre}</h3>
+                    <p class="nota">${lugar === "mazmorra"
+                        ? `Algo duerme bajo la Torre. Se abre cuando superes el piso ${torre.ABRIR_MAZMORRA} de la Torre del héroe (vence al Dragón de la tormenta).`
+                        : esc(sitio.abre.texto)}</p>
+                    ${barra(Math.min(100, (record / abre.piso) * 100))}
+                    <p class="mini">Tu récord en ${previo.id === "torre" ? "la Torre" : previo.nombre}: ${record} de ${abre.piso} ${previo.pisos}.</p>
                 </div>
             </article>`;
     }
-    const partida = estado.arcade.mazmorra;
-    const recordMazmorra = estado.arcade.records.mazmorra || 0;
-    const conocidas = bestiario.progresoBestiario(estado.arcade.bestiario, "mazmorra");
-    const reglas = torre.REGLAS.mazmorra;
+    const partida = estado.arcade[lugar];
+    const record = estado.arcade.records[lugar] || 0;
+    const conocidas = bestiario.progresoBestiario(estado.arcade.bestiario, lugar);
+    const reglas = torre.REGLAS[lugar];
     const atributo = ATRIBUTOS[reglas.atributo];
     const e = torre.ESPECIALES;
+    const descripcion = lugar === "mazmorra"
+        ? `Bajo la Torre, ${bestiario.ZONAS_MAZMORRA.length} zonas y ${conocidas.total} criaturas nuevas. <b>Más difícil:</b> pegan
+           más fuerte y cada una tiene un ataque especial: ${e.veneno.icono} veneno (una poción lo cura), ${e.drenar.icono} beber tu vida,
+           ${e.sellar.icono} sellar tu magia o ${e.coraza.icono} coraza (tu próximo golpe le hace la mitad). Los guardianes se enfurecen a
+           media vida y entre sótano y sótano no hay descanso.`
+        : esc(sitio.resumen);
+    const pisos = sitio.piso.toLowerCase();
     return `
-        <article class="panel torre-tarjeta mazmorra-tarjeta">
+        <article class="panel torre-tarjeta mazmorra-tarjeta mazmorra-${lugar}">
             <div class="torre-portada mazmorra-portada">
-                <img class="mazmorra-portada-sala" data-sala="abismo" alt="" draggable="false">
-                <span class="torre-portada-titulo">⛓️ Mazmorra del Abismo</span>
+                <img class="mazmorra-portada-sala" data-sala="${sitio.portada || "abismo"}" alt="" draggable="false">
+                <span class="torre-portada-titulo">${sitio.icono} ${sitio.nombre}</span>
             </div>
-            <p class="nota">Bajo la Torre, ${bestiario.ZONAS_MAZMORRA.length} zonas y ${conocidas.total} criaturas nuevas. <b>Más difícil:</b> pegan
-               más fuerte y cada una tiene un ataque especial: ${e.veneno.icono} veneno (una poción lo cura), ${e.drenar.icono} beber tu vida,
-               ${e.sellar.icono} sellar tu magia o ${e.coraza.icono} coraza (tu próximo golpe le hace la mitad). Los guardianes se enfurecen a
-               media vida y entre sótano y sótano no hay descanso.</p>
-            <p class="mini">🏅 Récord: ${recordMazmorra ? plural(recordMazmorra, "sótano superado", "sótanos superados") : "todavía ninguno"}
-               · Premio: ${reglas.premio.gemasPorPiso} 💎 y ${reglas.premio.xpPorPiso} XP de ${atributo.icono} ${atributo.nombre} por sótano
+            <p class="nota">${descripcion}</p>
+            <p class="mini">🏅 Récord: ${record ? plural(record, `${pisos} superado`, `${sitio.pisos} superados`) : "todavía ninguno"}
+               · ${sitio.zonas.length} zonas · ${conocidas.total} criaturas
+               · Premio: ${reglas.premio.gemasPorPiso} 💎 y ${reglas.premio.xpPorPiso} XP de ${atributo.icono} ${atributo.nombre} por ${pisos}
                (máx. ${reglas.premio.maxGemas} 💎 y ${reglas.premio.maxXp} XP)</p>
-            ${selectorDeMarcas("mazmorra", partida, fecha)}
-            <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" data-lugar="mazmorra" ${!caido && (partida || fichas) ? "" : "disabled"}>
-                ${partida ? `Continuar · sótano ${partida.piso}` : "Bajar a la mazmorra · 🎟️ 1 ficha"}</button>
+            ${selectorDeMarcas(lugar, partida, fecha)}
+            <button type="button" class="boton boton-principal boton-ancho" data-accion="torre-abrir" data-lugar="${lugar}" ${!caido && (partida || fichas) ? "" : "disabled"}>
+                ${partida ? `Continuar · ${pisos} ${partida.piso}` : `${sitio.boton || "Bajar a la mazmorra"} · 🎟️ 1 ficha`}</button>
             <div class="torre-botones">
-                <button type="button" class="boton boton-secundario" data-accion="historia-abrir" data-lugar="mazmorra">📜 Historia</button>
+                <button type="button" class="boton boton-secundario" data-accion="historia-abrir" data-lugar="${lugar}">📜 Historia</button>
                 <button type="button" class="boton boton-secundario" data-accion="bestiario-abrir">📖 Bestiario · ${conocidas.vistas}/${conocidas.total}</button>
             </div>
         </article>`;
@@ -3120,8 +3131,8 @@ export function pantallaTorre(t) {
         const piso = sitio.piso.toLowerCase();
         abajo = `
             <div class="ff-ventana ff-botin ${espera}">
-                <p class="ff-titulo">${sitio.id === "mazmorra" ? "Fin del descenso" : "Fin de la subida"} <small>Caíste en el ${piso} ${p.piso}</small></p>
-                <p class="ff-renglon">Superaste <b>${plural(pisos, piso, `${piso}s`)}</b>.</p>
+                <p class="ff-titulo">${sitio.verboFin || (sitio.id === "mazmorra" ? "Fin del descenso" : "Fin de la subida")} <small>Caíste en el ${piso} ${p.piso}</small></p>
+                <p class="ff-renglon">Superaste <b>${plural(pisos, piso, sitio.pisos)}</b>.</p>
                 <p class="ff-renglon ff-oro">+${premio.gemas} 💎 · +${premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
                 <button type="button" class="ff-comando elegido" data-accion="torre-cobrar">
                     <span class="ff-cursor" aria-hidden="true"></span><span class="ff-comando-nombre">Cobrar premio</span></button>
@@ -3296,14 +3307,14 @@ function finalTorre(t) {
         </div>
         <div class="ff-ventana ff-botin">
             <p class="ff-titulo">Premio cobrado</p>
-            <p class="ff-puntos">${plural(r.pisos, piso, `${piso}s`)}</p>
-            <p class="ff-renglon">${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${plural(r.record, piso, `${piso}s`)}`}</p>
+            <p class="ff-puntos">${plural(r.pisos, piso, sitio.pisos)}</p>
+            <p class="ff-renglon">${r.nuevoRecord ? "🏅 ¡Nuevo récord!" : `🏅 Récord: ${plural(r.record, piso, sitio.pisos)}`}</p>
             <p class="ff-renglon ff-oro">+${r.premio.gemas} 💎 · +${r.premio.xp} XP de ${atributo.icono} ${atributo.nombre}</p>
             ${r.marca ? `<p class="ff-renglon">✦ Marca: ${torre.MARCAS[r.marca].icono} ${torre.MARCAS[r.marca].nombre} · ${textoPremioMarca(torre.MARCAS[r.marca])}</p>` : ""}
             ${r.reto ? `<p class="ff-renglon ff-oro">🎯 ¡Reto del día cumplido! ${textoPremioReto(r.reto)}</p>` : ""}
             <button type="button" class="ff-comando elegido" data-accion="torre-abrir" data-lugar="${sitio.id}" ${t.fichas ? "" : "disabled"}>
                 <span class="ff-cursor" aria-hidden="true"></span>
-                <span class="ff-comando-nombre">${t.fichas ? (sitio.id === "mazmorra" ? "Bajar otra vez" : "Subir otra vez") : "Sin fichas"}</span><small>${t.fichas ? `🎟️ ${t.fichas}` : ""}</small></button>
+                <span class="ff-comando-nombre">${t.fichas ? (sitio.otraVez || (sitio.id === "mazmorra" ? "Bajar otra vez" : "Subir otra vez")) : "Sin fichas"}</span><small>${t.fichas ? `🎟️ ${t.fichas}` : ""}</small></button>
             <button type="button" class="ff-comando" data-accion="torre-salir">
                 <span class="ff-cursor" aria-hidden="true"></span><span class="ff-comando-nombre">Salir</span></button>
         </div>`;
@@ -3362,10 +3373,11 @@ export function pantallaHistoria(h) {
 // ===== El bestiario: las criaturas de la Torre (y de la Mazmorra) que ya conoces =====
 // b = { bestiario (estado.arcade.bestiario), sprites: { id: imagen }, mazmorra (true si ya se abrió) }
 export function pantallaBestiario(b) {
-    const torreSabe = bestiario.progresoBestiario(b.bestiario, "torre");
-    const mazmorraSabe = bestiario.progresoBestiario(b.bestiario, "mazmorra");
-    const vistas = torreSabe.vistas + (b.mazmorra ? mazmorraSabe.vistas : 0);
-    const total = torreSabe.total + (b.mazmorra ? mazmorraSabe.total : 0);
+    // (v64) b.abiertos = los lugares que ya se abrieron (si no se dice, la Torre y, con `mazmorra`, la Mazmorra).
+    const abiertos = b.abiertos || ["torre", ...(b.mazmorra ? ["mazmorra"] : [])];
+    const progreso = abiertos.map((lugar) => bestiario.progresoBestiario(b.bestiario, lugar));
+    const vistas = progreso.reduce((suma, x) => suma + x.vistas, 0);
+    const total = progreso.reduce((suma, x) => suma + x.total, 0);
     const seccion = (lugar) => {
         const sitio = bestiario.LUGARES[lugar];
         const zonas = sitio.zonas.map((zona, i) => {
@@ -3402,7 +3414,7 @@ export function pantallaBestiario(b) {
                         </article>`;
             }).join("");
             const desde = i * bestiario.PISOS_POR_ZONA + 1;
-            const plurales = `${sitio.piso.toLowerCase()}s`;
+            const plurales = sitio.pisos;
             return `<h3 class="ff-zona-titulo">${zona.nombre} <small>${plurales} ${desde}–${desde + bestiario.PISOS_POR_ZONA - 1}</small></h3>
                     <p class="ff-zona-texto">${zona.texto}</p>${criaturas}`;
         }).join("");
@@ -3414,10 +3426,9 @@ export function pantallaBestiario(b) {
         <p class="ff-ventana ff-mensaje">Aquí queda lo que aprendes en la Torre y en la Mazmorra. Lanza hechizos (o usa «Analizar»)
            para descubrir el punto débil de cada criatura: la próxima vez ya lo sabrás.</p>
         <div class="ff-bestiario">
-            ${seccion("torre")}
-            ${b.mazmorra ? seccion("mazmorra")
-                         : `<h2 class="ff-lugar-titulo">🔒 Mazmorra del Abismo</h2>
-                            <p class="ff-zona-texto">Se abre al superar el piso ${torre.ABRIR_MAZMORRA} de la Torre. Sus criaturas aparecerán aquí.</p>`}
+            ${Object.keys(bestiario.LUGARES).map((lugar) => abiertos.includes(lugar) ? seccion(lugar)
+                : `<h2 class="ff-lugar-titulo">🔒 ${bestiario.LUGARES[lugar].nombre}</h2>
+                   <p class="ff-zona-texto">${lugar === "mazmorra" ? `Se abre al superar el piso ${torre.ABRIR_MAZMORRA} de la Torre.` : esc(bestiario.LUGARES[lugar].abre.texto)} Sus criaturas aparecerán aquí.</p>`).join("")}
         </div>`;
 }
 

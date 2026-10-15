@@ -20,6 +20,8 @@
 //
 // Este archivo solo tiene los datos (reglas puras). Los dibujos están en dibujo-monstruos.js.
 
+import { NUEVOS_LUGARES, NUEVAS_CRIATURAS } from "./mazmorras.js";
+
 export const ELEMENTOS = {
     fuego: { icono: "🔥", nombre: "Fuego" },
     hielo: { icono: "❄️", nombre: "Hielo" },
@@ -337,9 +339,13 @@ export const CRIATURAS = {
 
 // Los dos lugares. piso: cómo se llama cada nivel. vuelta: cómo se llaman las criaturas que
 // vuelven al terminar (después del piso 30 en la Torre y del sótano 20 en la Mazmorra).
+// (v64) Las mazmorras nuevas (ver mazmorras.js): sus criaturas se suman a las de siempre.
+Object.assign(CRIATURAS, NUEVAS_CRIATURAS);
+
 export const LUGARES = {
-    torre:    { id: "torre",    nombre: "Torre del héroe",     icono: "🗼", piso: "Piso",   vuelta: "ancestral", zonas: ZONAS },
-    mazmorra: { id: "mazmorra", nombre: "Mazmorra del Abismo", icono: "⛓️", piso: "Sótano", vuelta: "abisal",    zonas: ZONAS_MAZMORRA },
+    torre:    { id: "torre",    nombre: "Torre del héroe",     icono: "🗼", piso: "Piso", pisos: "pisos", vuelta: "ancestral", zonas: ZONAS },
+    mazmorra: { id: "mazmorra", nombre: "Mazmorra del Abismo", icono: "⛓️", piso: "Sótano", pisos: "sótanos", vuelta: "abisal",    zonas: ZONAS_MAZMORRA },
+    ...NUEVOS_LUGARES,   // (v64) minas y laberinto
 };
 
 // lugar = "torre" o "mazmorra". Si no se dice (o no existe), la Torre.
@@ -352,10 +358,11 @@ export const ORDEN = enZonas(ZONAS);
 export const ORDEN_MAZMORRA = enZonas(ZONAS_MAZMORRA);
 LUGARES.torre.orden = ORDEN;
 LUGARES.mazmorra.orden = ORDEN_MAZMORRA;
+for (const lugar of Object.values(NUEVOS_LUGARES)) lugar.orden = enZonas(lugar.zonas);   // (v64)
 
 // ¿En qué lugar vive esta criatura? ("torre" o "mazmorra")
 export function lugarDeCriatura(id) {
-    return ORDEN_MAZMORRA.includes(id) ? "mazmorra" : "torre";
+    return Object.values(LUGARES).find((l) => l.orden.includes(id))?.id || "torre";
 }
 
 export function zonaDelPiso(piso, lugar = "torre") {
