@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v76 — Entrenar en el gimnasio (inmersión)
+- **`js/gym-aurelio.js`** (nuevo, en `sw.js`): `FRASES` (inicio, calentado, primera, serie, mitad, ejercicio, ejercicioFinal, record, ultima, fin, marcado), `fraseDeGym(tipo, datos, indice)` y `TECNICAS`/`consejoDeTecnica` por movimiento. `gym.MOVIMIENTO_DE` dice qué movimiento hace cada ejercicio (13 movimientos; de ahí saldrá la animación).
+- `acciones.marcarSerieGym` devuelve `{ hecha, frase }` (según la serie: primera, mitad, récord, ejercicio listo, última); `empezarGym` devuelve la bienvenida; `calentarGym` (+`XP_CALENTAMIENTO` 10 al terminar); la sesión guarda `calentado` y `minutos`; la celebración final lleva `maestro`. Sonidos `pesa` y `descanso`.
+- Pantalla: avatar grande (`viewBox` recortado) con `escenaDeGimnasio` de fondo (`dibujo-gym.js`); durante el entrenamiento la tarjeta es compacta y hay reloj (`data-gym-inicio`, se actualiza en `tictac`), kilos y series, botón de calentamiento, burbuja de Aurelio (`ctx.fraseGym`) y consejo de técnica; al terminar, `tarjetaResumen` (`ctx.resumenGym`). 282 pruebas.
+
 ## v75 — Vista previa del cuerpo en el gimnasio
 - `ctx.gymVista = { fisico, corp }` (estado de pantalla en `app.js`, acción `gym-vista`) deja ver el avatar sin ropa con otro nivel de físico o de peso sin tocar `estado.gym`; botón para volver al cuerpo real. Los físicos 4 y 5 ensanchan más (`FISICO_*` en `dibujo-cuerpo.js`). `capturas/gym-niveles.png`: la hoja con todos los niveles, los pesos y la armadura por constancia. 280 pruebas.
 

@@ -7,13 +7,23 @@
 import * as gym from "./gym.js";
 import * as fragua from "./fragua.js";
 import * as avatar from "./avatar.js";
+import * as gymAurelio from "./gym-aurelio.js";
+import { describirMaestro } from "./maestro.js";
+import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { plural } from "./juego.js";
 import { esc } from "./vistas.js";
-import { dibujarAvatarGym } from "./dibujo.js";
 import { fechaCorta, sumarDias, lunesDe, diaDeSemana, DIAS_LETRAS, hoy as hoyDeHoy } from "./fechas.js";
 
 const barra = (porcentaje, clase = "") => `<div class="barra ${clase}"><div class="barra-relleno" style="width: ${porcentaje}%"></div></div>`;
 const kilos = (kg) => `${String(kg).replace(".", ",")} kg`;
+// El tiempo que llevas entrenando: 12:05 o 1:02:30.
+const duracionLarga = (ms) => {
+    const t = Math.floor(ms / 1000);
+    const h = Math.floor(t / 3600);
+    const m = Math.floor((t % 3600) / 60);
+    const s = t % 60;
+    return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
+};
 const duracion = (segundos) => `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, "0")}`;
 
 // Una gráfica de línea pequeña (SVG) con los valores dados. Con menos de 2 valores no se dibuja.
@@ -82,7 +92,8 @@ export function pantallaGym(estado, ctx) {
             <h2 class="titulo-juego">🏋️ Gimnasio</h2>
             <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="hoy">‹ Hoy</button>
         </div>
-        ${tarjetaNivel(estado, ctx)}
+        ${!g.encurso && ctx.resumenGym ? tarjetaResumen(estado, ctx) : ""}
+        ${tarjetaNivel(estado, ctx, Boolean(g.encurso))}
         ${g.encurso ? entrenamientoActual(estado, ctx) : `${tarjetaSemana(estado, ctx)}${listaDeRutinas(estado, ctx)}${tarjetaConstancia(estado, ctx)}`}
         ${g.encurso ? "" : `
             ${tarjetaMusculos(estado)}
@@ -94,7 +105,7 @@ export function pantallaGym(estado, ctx) {
             ${tarjetaAjustes(estado)}`}`;
 }
 
-function tarjetaNivel(estado, ctx) {
+function tarjetaNivel(estado, ctx, compacta = false) {
     const sesiones = estado.gym.sesiones;
     const n = gym.nivelDeGym(sesiones);
     const rango = gym.rangoDe(n.nivel);
@@ -120,7 +131,7 @@ function tarjetaNivel(estado, ctx) {
             ${vista ? '<button type="button" class="boton boton-chico boton-secundario boton-ancho" data-accion="gym-vista" data-quitar="1">↩ Volver a mi cuerpo real</button>' : ""}
         </details>`;
     return `
-        <section class="panel gym-heroe gym-heroe-grande">
+        <section class="panel gym-heroe ${compacta ? "" : "gym-heroe-grande"}">
             <div class="gym-avatar" role="img" aria-label="Tu cuerpo: ${gym.NOMBRES_DE_FISICO[fisico]}">${cuerpo}</div>
             <div class="gym-nivel">
                 ${vista ? '<p class="gym-vista-aviso">👀 Vista previa (no es tu cuerpo real)</p>' : ""}
@@ -132,7 +143,7 @@ function tarjetaNivel(estado, ctx) {
             </div>
         </section>
         ${controles}
-        <p class="nota gym-bono">${bono ? `💪 Tu entrenamiento le da a tu héroe <b>+${bono} % de vida y de ataque</b> en la Torre y en las mazmorras.`
+<p class="nota gym-bono">${bono ? `💪 Tu entrenamiento le da a tu héroe <b>+${bono} % de vida y de ataque</b> en la Torre y en las mazmorras.`
             : "💪 Desde el nivel 2, cada nivel de gym le da a tu héroe +1 % de vida y de ataque en la Torre y las mazmorras (hasta +25 %)."}
             ${total.sesiones ? ` Llevas ${plural(total.sesiones, "sesión", "sesiones")}, ${plural(total.series, "serie", "series")} y ${total.volumen.toLocaleString("es")} kg movidos.` : ""}</p>`;
 }
@@ -261,9 +272,11 @@ function entrenamientoActual(estado, ctx) {
     const total = en.ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
     const mejores = gym.mejoresDe(g.sesiones);
     const ayer = en.fecha !== ctx.hoy;
+    const kilosMovidos = gym.volumenMarcado(en);
 
     const ejercicios = en.ejercicios.map((ej, ei) => {
         const info = gym.ejercicioPorId(ej.id);
+        const movimiento = gym.movimientoDe(ej.id);
         const antes = gym.ultimaVez(g.sesiones, ej.id);
         const mejor = mejores[ej.id];
         const pista = gym.sugerencia(info, antes);
@@ -289,6 +302,7 @@ function entrenamientoActual(estado, ctx) {
                     : "Primera vez que lo haces."}
                     ${mejor && mejor.kg ? ` 🏆 ${kilos(mejor.kg)} × ${mejor.reps}` : ""}</p>
                 <p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${pista.texto}</p>
+                <p class="mini gym-tecnica">🎯 Técnica: ${esc(gymAurelio.consejoDeTecnica(movimiento, ei))}</p>
                 ${series}
                 <div class="gym-mas">
                     <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-serie-mas" data-ej="${ei}">+ serie</button>
@@ -314,12 +328,51 @@ function entrenamientoActual(estado, ctx) {
                 <p class="contador ${hechas === total ? "completo" : ""}">${hechas}/${total}</p>
             </div>
             ${barra(total ? Math.round((hechas / total) * 100) : 0, "barra-gym")}
+            <ul class="gym-chips" aria-label="Cómo vas">
+                <li>⏱️ <b data-gym-inicio="${en.inicio}">${duracionLarga(Math.max(0, ctx.ahora - en.inicio))}</b></li>
+                <li>🏋️ <b>${kilosMovidos.toLocaleString("es")}</b> kg</li>
+                <li>🔥 <b>${hechas}</b> de ${total} series</li>
+            </ul>
+            <button type="button" class="boton boton-chico ${en.calentado ? "boton-principal" : "boton-secundario"} gym-calentar" data-accion="gym-calentar" aria-pressed="${Boolean(en.calentado)}">
+                ${en.calentado ? "✅ Calentamiento hecho (+" + gym.XP_CALENTAMIENTO + " XP)" : "🔥 Marcar calentamiento (+" + gym.XP_CALENTAMIENTO + " XP)"}</button>
             ${descanso}
+            ${burbujaDeAurelio(ctx)}
             ${ejercicios}
             ${ejerciciosExtra(en)}
             <button type="button" class="boton boton-principal boton-ancho" data-accion="gym-terminar" ${hechas ? "" : "disabled"}>Terminar entrenamiento</button>
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="gym-cancelar">Cancelar (no se guarda)</button>
             <p class="nota">Marca ✓ cada serie al terminarla: empieza el descanso (${gym.DESCANSOS.includes(g.descanso) ? duracion(g.descanso) : "1:30"}). El XP llega al terminar.</p>
+        </section>`;
+}
+
+// Lo que dice Aurelio (entre serie y serie, al empezar, al calentar…). ctx.fraseGym = { tipo, texto } o null.
+function burbujaDeAurelio(ctx) {
+    if (!ctx.fraseGym) return "";
+    return `<div class="gym-aurelio" role="status">
+                <span class="gym-aurelio-retrato" aria-hidden="true">${dibujarAvatar(describirMaestro(), { mini: true })}</span>
+                <p><b>Aurelio</b>${esc(ctx.fraseGym.texto)}</p>
+            </div>`;
+}
+
+// El resumen del entrenamiento que acabas de terminar (hasta que cambies de pantalla).
+function tarjetaResumen(estado, ctx) {
+    const s = ctx.resumenGym;
+    const r = gym.rutinaPorId(s.rutina);
+    if (!r) return "";
+    const series = s.ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
+    const kg = Math.round(gym.volumenDe(s));
+    const musculos = [...new Set(s.ejercicios.map((ej) => gym.ejercicioPorId(ej.id)?.musculo).filter(Boolean))];
+    return `
+        <section class="panel gym-resumen">
+            <p class="etiqueta">🏁 ${s.rapido ? "Meta del día cumplida" : "Entrenamiento terminado"}</p>
+            <h2 class="titulo-juego">${r.icono} ${esc(r.nombre)}</h2>
+            <ul class="gym-chips">
+                ${s.rapido ? "" : `<li>⏱️ <b>${s.minutos || 1}</b> min</li><li>🔥 <b>${series}</b> series</li>${kg ? `<li>🏋️ <b>${kg.toLocaleString("es")}</b> kg</li>` : ""}`}
+                <li>💪 +<b>${s.xp}</b> XP</li>
+                ${s.records.length ? `<li>📈 <b>${s.records.length}</b> ${s.records.length === 1 ? "récord" : "récords"}</li>` : ""}
+            </ul>
+            ${musculos.length ? `<p class="mini texto-suave">Trabajaste: ${musculos.map((m) => `${gym.MUSCULOS[m].icono} ${gym.MUSCULOS[m].nombre}`).join(" · ")}</p>` : ""}
+            ${ctx.fraseGym ? burbujaDeAurelio(ctx) : ""}
         </section>`;
 }
 

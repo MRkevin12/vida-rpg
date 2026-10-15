@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 75;
+export const VERSION_APP = 76;
 
 export const NOVEDADES = [
+    {
+        version: 76,
+        titulo: "Entrenar en el gimnasio",
+        cambios: [
+            "🏋️ Tu avatar es mucho más grande en la pestaña del Gimnasio y está dentro de un gimnasio de verdad: rack con la barra y los discos, espejo grande, pesas rusas y colchoneta. Se ve mejor cómo vas mejorando.",
+            "🧙 Aurelio te acompaña mientras entrenas: te recibe al empezar y entre serie y serie te dice algo según el momento (primera serie, mitad del entrenamiento, ejercicio terminado, última serie, ¡marca nueva!). Al terminar te despide con unas palabras.",
+            "⏱️ Mientras entrenas ves cuánto llevas: el reloj del entrenamiento, los kilos movidos y las series hechas. Cada ejercicio trae un consejo de técnica, el golpe de una pesa suena y vibra al marcar la serie, y al terminar el descanso suena una campana.",
+            "🔥 Puedes marcar el calentamiento (+10 XP) y, al terminar, ves un resumen: minutos, series, kilos, XP, récords y los músculos que trabajaste.",
+        ],
+    },
     {
         version: 75,
         titulo: "Vista previa de tu cuerpo",

@@ -60,6 +60,7 @@ import * as ataques from "../js/ataques.js";
 import * as fragua from "../js/fragua.js";
 import * as libroOrrin from "../js/libro-orrin.js";
 import * as libros from "../js/libros.js";
+import * as gymAurelio from "../js/gym-aurelio.js";
 import { esqueleto } from "../js/dibujo-cuerpo.js";
 import * as vistasGym from "../js/vistas-gym.js";
 import * as equipo from "../js/equipo.js";
@@ -5809,6 +5810,69 @@ prueba("Gym (vista previa): se puede ver el cuerpo con otro nivel o peso sin toc
     cierto(maximo.includes("Vista previa (no es tu cuerpo real)") && maximo.includes("Titán") && maximo.includes("el máximo"), "vista del máximo");
     cierto(maximo !== normal, "se ve distinto");
     igual(estado.gym.sesiones.length, 0, "no cambia los datos");
+});
+
+// ===== El gimnasio inmersivo (v76): Aurelio entre series, calentamiento, reloj y resumen =====
+
+prueba("Gym (Aurelio): hay frases para cada momento, sin huecos, y la técnica de cada movimiento", () => {
+    const tipos = ["inicio", "calentado", "primera", "serie", "mitad", "ejercicio", "ejercicioFinal", "record", "ultima", "fin", "marcado"];
+    for (const t of tipos) {
+        cierto(gymAurelio.FRASES[t]?.length >= 2, `${t}: tiene frases`);
+        for (let i = 0; i < gymAurelio.FRASES[t].length; i++) {
+            const f = gymAurelio.fraseDeGym(t, { nombre: "Aria", ejercicio: "Press de banca", siguiente: "Remo" }, i);
+            cierto(f.length > 20 && !/[{}]/.test(f) && !/undefined/.test(f), `${t} ${i}: «${f.slice(0, 30)}…» sin marcas sueltas`);
+        }
+    }
+    igual(gymAurelio.fraseDeGym("ejercicio", { siguiente: "Remo" }, 0).includes("Remo"), true, "menciona el siguiente ejercicio");
+    cierto(gymAurelio.fraseDeGym("serie", {}, 0) !== gymAurelio.fraseDeGym("serie", {}, 1), "va cambiando de una a otra");
+    // Cada ejercicio de la rutina y de los extras tiene su movimiento y su consejo de técnica.
+    for (const x of [...gym.RUTINA.flatMap((r) => r.ejercicios), ...gym.EXTRAS]) {
+        const mov = gym.movimientoDe(x.id);
+        cierto(gym.MOVIMIENTO_DE[x.id] && gymAurelio.TECNICAS[mov]?.length >= 2, `${x.id}: movimiento «${mov}» con técnica`);
+    }
+});
+
+prueba("Gym (entrenamiento): marcar una serie trae la frase de Aurelio según el momento; el calentamiento da XP; el resumen sale al terminar", () => {
+    const estado = partidaNueva();
+    const inicio = acciones.empezarGym(estado, "pantorrillas");
+    igual(inicio.frase.tipo, "inicio", "Aurelio te recibe");
+    const en = estado.gym.encurso;
+    const total = en.ejercicios.reduce((s, ej) => s + ej.series.length, 0);   // 10 series
+    const tipos = [];
+    for (let ei = 0; ei < en.ejercicios.length; ei++) {
+        for (let si = 0; si < en.ejercicios[ei].series.length; si++) {
+            acciones.anotarSerieGym(estado, ei, si, "kg", 20);
+            acciones.anotarSerieGym(estado, ei, si, "reps", 12);
+            const r = acciones.marcarSerieGym(estado, ei, si);
+            tipos.push(r.frase.tipo);
+            cierto(r.frase.texto.length > 20, "la frase tiene texto");
+        }
+    }
+    igual(tipos.length, total);
+    igual([tipos[0], tipos[tipos.length - 1]], ["primera", "ultima"], "la primera y la última");
+    cierto(tipos.includes("mitad") && tipos.includes("ejercicio"), "la mitad y los ejercicios terminados");
+    igual(acciones.marcarSerieGym(estado, 0, 0), { hecha: false }, "al desmarcar no dice nada");
+    acciones.marcarSerieGym(estado, 0, 0);
+    // El calentamiento: se marca y se desmarca, y da XP al terminar.
+    igual(acciones.calentarGym(estado).calentado, true);
+    igual(acciones.calentarGym(estado).calentado, false);
+    acciones.calentarGym(estado);
+    estado.gym.encurso.inicio = Date.now() - 25 * 60000;
+    const fin = acciones.terminarGym(estado);
+    igual(fin.sesion.calentado, true);
+    igual(fin.sesion.xp, 10 * gym.XP_POR_SERIE + gym.XP_SESION_COMPLETA + gym.XP_CALENTAMIENTO, "series + completa + calentamiento");
+    cierto(fin.sesion.minutos >= 25 && fin.sesion.minutos <= 26, `dura ${fin.sesion.minutos} min`);
+    cierto(fin.celebraciones[0].maestro.length > 20, "la celebración lleva palabras de Aurelio");
+    // La pantalla del entrenamiento y la del resumen.
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const otro = partidaNueva();
+    acciones.empezarGym(otro, "espalda");
+    let html = vistasGym.pantallaGym(otro, { ...ctx, fraseGym: { tipo: "inicio", texto: "Calienta primero, Aria." } });
+    cierto(html.includes("data-gym-inicio") && html.includes("gym-chips") && html.includes('data-accion="gym-calentar"') && html.includes("Calienta primero, Aria.") && html.includes("Técnica:"),
+           "reloj, kilos, calentamiento, Aurelio y técnica");
+    html = vistasGym.pantallaGym(estado, { ...ctx, resumenGym: fin.sesion, fraseGym: { tipo: "fin", texto: "Terminaste." } });
+    cierto(html.includes("Entrenamiento terminado") && html.includes("gym-resumen") && html.includes("Pantorrilla"), "el resumen");
+    cierto(!vistasGym.pantallaGym(estado, ctx).includes("gym-resumen"), "sin resumen no se muestra");
 });
 
 // ===== Reacciones elementales (v71) =====

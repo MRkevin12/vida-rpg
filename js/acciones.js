@@ -35,6 +35,7 @@ import * as pergaminos from "./pergaminos.js";
 import * as libros from "./libros.js";
 import * as gym from "./gym.js";
 import * as fragua from "./fragua.js";
+import * as gymAurelio from "./gym-aurelio.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -1962,6 +1963,9 @@ export function empezarGym(estado, rutinaId, fecha = hoy()) {
         throw new Error("Esa rutina ya la hiciste ese día. ¡El músculo crece descansando!");
     }
     g.encurso = gym.crearEntrenamiento(rutinaId, fecha, g.sesiones);
+    // (v76) Aurelio te recibe en el gimnasio.
+    const primero = gym.ejercicioPorId(g.encurso.ejercicios[0].id);
+    return { frase: { tipo: "inicio", texto: gymAurelio.fraseDeGym("inicio", { nombre: estado.personaje.nombre, ejercicio: primero.nombre }, g.sesiones.length) } };
 }
 
 export function cancelarGym(estado) {
@@ -1971,10 +1975,34 @@ export function cancelarGym(estado) {
 
 // Marca o desmarca una serie como hecha.
 export function marcarSerieGym(estado, ejercicio, serie) {
-    const s = entrenamientoEnCurso(estado).ejercicios[ejercicio]?.series[serie];
+    const en = entrenamientoEnCurso(estado);
+    const s = en.ejercicios[ejercicio]?.series[serie];
     if (!s) throw new Error("Esa serie no existe.");
     s.hecha = !s.hecha;
-    return { hecha: s.hecha };
+    if (!s.hecha) return { hecha: false };
+
+    // (v76) Aurelio te dice algo según el momento: primera serie, récord, ejercicio terminado, mitad, última…
+    const total = en.ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
+    const hechas = gym.seriesMarcadas(en);
+    const ej = en.ejercicios[ejercicio];
+    const info = gym.ejercicioPorId(ej.id);
+    const mejor = gym.mejoresDe(estado.gym.sesiones)[ej.id]?.puntaje || 0;
+    const esRecord = mejor > 0 && gym.puntajeDe(s.kg, s.reps) > mejor;
+    const ejercicioListo = ej.series.every((x) => x.hecha);
+    const pendiente = en.ejercicios.find((x) => x.series.some((y) => !y.hecha));
+    const tipo = hechas >= total ? "ultima" : esRecord ? "record" : ejercicioListo ? (pendiente ? "ejercicio" : "ejercicioFinal")
+        : hechas === 1 ? "primera" : hechas === Math.ceil(total / 2) ? "mitad" : "serie";
+    const frase = gymAurelio.fraseDeGym(tipo, {
+        nombre: estado.personaje.nombre, ejercicio: info.nombre, siguiente: pendiente ? gym.ejercicioPorId(pendiente.id).nombre : "",
+    }, hechas + ejercicio * 3 + serie);
+    return { hecha: true, frase: { tipo, texto: frase } };
+}
+
+// (v76) El calentamiento: marcarlo da un poco de XP al terminar el entrenamiento.
+export function calentarGym(estado) {
+    const en = entrenamientoEnCurso(estado);
+    en.calentado = !en.calentado;
+    return { calentado: en.calentado, frase: en.calentado ? gymAurelio.fraseDeGym("calentado", { nombre: estado.personaje.nombre }, estado.gym.sesiones.length) : null };
 }
 
 // Anota el peso (kg) o las repeticiones de una serie.
@@ -2040,7 +2068,8 @@ function guardarSesionGym(estado, sesion) {
 
     const rutina = gym.rutinaPorId(sesion.rutina);
     const celebraciones = [{ icono: rutina.icono, etiqueta: sesion.rapido ? "¡Meta del día cumplida!" : sesion.completa ? "¡Entrenamiento completo!" : "Entrenamiento guardado",
-                             titulo: rutina.nombre, detalle: `+${sesion.xp} XP de 💪 Fuerza${sesion.monedas ? ` · +${sesion.monedas} 🪙` : ""}` }];
+                             titulo: rutina.nombre, detalle: `+${sesion.xp} XP de 💪 Fuerza${sesion.monedas ? ` · +${sesion.monedas} 🪙` : ""}`,
+                             maestro: gymAurelio.fraseDeGym(sesion.rapido ? "marcado" : "fin", { nombre: estado.personaje.nombre }, g.sesiones.length) }];
     for (const r of sesion.records) {
         const ej = gym.ejercicioPorId(r.id);
         celebraciones.push({ icono: "📈", etiqueta: "¡Récord personal!", titulo: ej.nombre, detalle: "Superaste tu mejor marca. Eso es sobrecarga progresiva." });

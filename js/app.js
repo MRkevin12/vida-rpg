@@ -62,6 +62,8 @@ let rangoResumen = 7;            // en Progreso: el resumen muestra los últimos
 // Pantalla «Tu diario»: el mes que se ve (null = el actual), el día tocado, la búsqueda,
 // el filtro de ánimo y cuántas entradas se muestran.
 const diarioVista = { mes: null, dia: null, busqueda: "", filtro: null, limite: 30 };
+let fraseGym = null;               // (v76) lo último que te dijo Aurelio en el gimnasio: { tipo, texto } o null
+let resumenGym = null;             // (v76) el entrenamiento que acabas de terminar (para mostrar su resumen)
 let gymVista = null;               // (v75) la vista previa del cuerpo en el gimnasio: { fisico, corp } o null
 let descansoGym = null;          // (v66) el descanso entre series del gym: { fin, total } (milisegundos), o null
 let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
@@ -235,13 +237,20 @@ function revisarAlAbrir() {
 // Reloj del modo enfoque: cada segundo cambia solo el texto del tiempo y el anillo
 // (sin redibujar la pantalla). Al llegar a 0, entrega el premio.
 function tictac() {
+    // (v76) El tiempo que llevas entrenando.
+    for (const reloj of document.querySelectorAll("[data-gym-inicio]")) {
+        const t = Math.max(0, Math.floor((Date.now() - Number(reloj.dataset.gymInicio)) / 1000));
+        const h = Math.floor(t / 3600);
+        const m = Math.floor((t % 3600) / 60);
+        reloj.textContent = `${h ? `${h}:${String(m).padStart(2, "0")}` : m}:${String(t % 60).padStart(2, "0")}`;
+    }
     // El descanso entre series del gym: cuenta atrás y, al llegar a 0, suena y vibra.
     const reloj = document.querySelector("[data-descanso-fin]");
     if (reloj) {
         const restante = Number(reloj.dataset.descansoFin) - Date.now();
         if (restante <= 0) {
             descansoGym = null;
-            sonar("habilidad");
+            sonar("descanso");
             navigator.vibrate?.([200, 100, 200]);
             dibujarPantalla({ mantenerScroll: true });
         } else {
@@ -1144,6 +1153,8 @@ function contextoActual(efectos = {}) {
         renovandoPacto,
         descanso: descansoGym,
         gymVista,
+        fraseGym,
+        resumenGym,
         paginaLibro,
         problemaAvisos,
         regionMapa,
@@ -1231,6 +1242,8 @@ function cambiarPantalla(nombre) {
         nombre = "progreso";
     }
     diaVisto = "hoy";   // al cambiar de pantalla siempre se vuelve a "hoy"
+    resumenGym = null;
+    if (!estado.gym.encurso) fraseGym = null;
     if (nombre !== "memorias") memoriasDesde = null;
     renovandoPacto = false;
     if (nombre === "libro") paginaLibro = "portada";   // el libro siempre se abre por la portada
@@ -2931,8 +2944,11 @@ const ACCIONES = {
     // El gimnasio (v66). Ver gym.js, vistas-gym.js y el final de acciones.js.
     "gym-empezar": (boton) => {
         const fecha = boton.dataset.ayer ? sumarDias(hoy(), -1) : hoy();
-        if (!ejecutar(() => acciones.empezarGym(estado, boton.dataset.rutina, fecha))) return;
+        const empezo = ejecutar(() => acciones.empezarGym(estado, boton.dataset.rutina, fecha));
+        if (!empezo) return;
         descansoGym = null;
+        resumenGym = null;
+        if (empezo.frase) { fraseGym = empezo.frase; sonar("campana"); dibujarPantalla(); }
         window.scrollTo(0, 0);
     },
     // (v75) La vista previa del cuerpo: elegir un nivel de físico o un peso, o volver al cuerpo real.
@@ -2951,18 +2967,33 @@ const ACCIONES = {
     "gym-rapido": (boton) => {
         const fecha = boton.dataset.ayer ? sumarDias(hoy(), -1) : hoy();
         const rutina = boton.dataset.rutina === "toca" ? gym.siguienteRutina(estado.gym.sesiones).id : boton.dataset.rutina;
-        if (ejecutar(() => acciones.marcarGymRapido(estado, rutina, fecha), { mantenerScroll: true })) sonar("completar");
+        const marcado = ejecutar(() => acciones.marcarGymRapido(estado, rutina, fecha), { mantenerScroll: true });
+        if (marcado) {
+            sonar("completar");
+            resumenGym = marcado.sesion;
+            fraseGym = { tipo: "marcado", texto: marcado.celebraciones[0]?.maestro || "" };
+            dibujarPantalla({ mantenerScroll: true });
+        }
     },
     "gym-serie": (boton) => {
         const resultado = ejecutar(() => {
             const r = acciones.marcarSerieGym(estado, Number(boton.dataset.ej), Number(boton.dataset.serie));
             // Al terminar una serie empieza el descanso; al desmarcarla, se quita.
             descansoGym = r.hecha ? { fin: Date.now() + estado.gym.descanso * 1000, total: estado.gym.descanso * 1000 } : null;
+            if (r.frase) fraseGym = r.frase;
             return r;
         }, { mantenerScroll: true });
-        if (resultado) sonar(resultado.hecha ? "completar" : "desmarcar");
+        if (resultado) {
+            sonar(resultado.hecha ? "pesa" : "desmarcar");
+            if (resultado.hecha) navigator.vibrate?.(30);
+            if (resultado.frase?.tipo === "record") setTimeout(() => sonar("critico"), 250);
+        }
     },
     "gym-extra": (boton) => ejecutar(() => acciones.agregarEjercicioGym(estado, boton.dataset.ejercicio), { mantenerScroll: true }),
+    "gym-calentar": () => {
+        const r = ejecutar(() => acciones.calentarGym(estado), { mantenerScroll: true });
+        if (r?.frase) { fraseGym = r.frase; sonar("completar"); dibujarPantalla({ mantenerScroll: true }); }
+    },
     "gym-serie-mas": (boton) => ejecutar(() => acciones.cambiarSeriesGym(estado, Number(boton.dataset.ej), 1), { mantenerScroll: true }),
     "gym-serie-menos": (boton) => ejecutar(() => acciones.cambiarSeriesGym(estado, Number(boton.dataset.ej), -1), { mantenerScroll: true }),
     "gym-saltar-descanso": () => { descansoGym = null; dibujarPantalla({ mantenerScroll: true }); },
@@ -2970,15 +3001,20 @@ const ACCIONES = {
         const hechas = gym.seriesMarcadas(estado.gym.encurso);
         const planeadas = gym.seriesPlaneadas(gym.rutinaPorId(estado.gym.encurso.rutina));
         if (hechas * 2 < planeadas && !confirm(`Solo marcaste ${hechas} de ${planeadas} series. ¿Terminar así?`)) return;
-        if (ejecutar(() => acciones.terminarGym(estado))) {
+        const fin = ejecutar(() => acciones.terminarGym(estado));
+        if (fin) {
             descansoGym = null;
+            resumenGym = fin.sesion;
+            fraseGym = { tipo: "fin", texto: fin.celebraciones[0]?.maestro || "" };
             sonar("completar");
+            dibujarPantalla();
             window.scrollTo(0, 0);
         }
     },
     "gym-cancelar": () => {
         if (!confirm("¿Cancelar el entrenamiento? Se pierde lo que anotaste y no da premio.")) return;
         descansoGym = null;
+        fraseGym = null;
         ejecutar(() => acciones.cancelarGym(estado));
     },
     "gym-borrar": (boton) => {

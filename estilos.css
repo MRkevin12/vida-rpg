@@ -11048,3 +11048,32 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-vista { margin: 0 0 10px; }
 .gym-vista-botones { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .gym-vista-aviso { margin: 0 0 4px; font-size: 0.78rem; font-weight: 700; color: var(--gym-2); }
+
+/* v76: el avatar del gimnasio, grande y con el gimnasio de fondo */
+.gym-heroe-grande { display: grid; grid-template-columns: 1fr; gap: 10px; justify-items: center; text-align: center; padding-top: 14px; }
+.gym-heroe-grande .gym-avatar { flex: none; width: min(100%, 340px); border-radius: 16px; border-color: rgba(251, 191, 36, 0.35); box-shadow: 0 0 24px rgba(122, 98, 200, 0.35); }
+.gym-heroe-grande .gym-nivel { width: 100%; }
+.gym-heroe-grande .gym-nivel-numero { font-size: 1.3rem; }
+.gym-heroe-grande .barra { margin-left: auto; margin-right: auto; }
+
+/* v76: el entrenamiento se siente como estar en el gym */
+.gym-chips { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.gym-chips li { padding: 6px 12px; border-radius: 999px; background: var(--hundido); border: 1px solid var(--borde); font-size: 0.9rem; }
+.gym-chips b { font-family: "Orbitron", sans-serif; color: var(--gym-2); }
+.gym-calentar { margin: 2px 0 6px; }
+.gym-tecnica { color: #a5f3fc; }
+.gym-aurelio {
+    display: flex; gap: 10px; align-items: center; margin: 8px 0; padding: 10px 12px; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(34, 211, 238, 0.08)); border: 1px solid rgba(167, 139, 250, 0.5);
+    animation: gym-aurelio-entra 0.4s ease-out;
+}
+.gym-aurelio p { margin: 0; line-height: 1.4; }
+.gym-aurelio p b { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #c4b5fd; }
+.gym-aurelio-retrato { flex: 0 0 54px; width: 54px; border-radius: 50%; overflow: hidden; border: 2px solid #8b5cf6; background: #1c1536; }
+.gym-aurelio-retrato svg { width: 100%; height: auto; display: block; }
+@keyframes gym-aurelio-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.gym-resumen { border-color: var(--gym-2); background: linear-gradient(180deg, rgba(251, 191, 36, 0.1), var(--panel)); }
+.gym-sesion .gym-heroe { margin-bottom: 8px; }
+@media (prefers-reduced-motion: reduce) { .gym-aurelio { animation: none; } }
+
+.gym-heroe:not(.gym-heroe-grande) .gym-avatar { flex: 0 0 96px; width: 96px; }

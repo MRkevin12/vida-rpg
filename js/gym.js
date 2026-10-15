@@ -18,6 +18,7 @@ export const XP_SESION_COMPLETA = 20;   // si hiciste al menos el 80 % de las se
 export const XP_RECORD = 15;            // por cada récord personal nuevo (máximo 3 por sesión)
 export const MAX_RECORDS_PREMIADOS = 3;
 export const XP_RAPIDO = 60;            // marcar «hoy entrené» sin anotar series (la meta que se marca)
+export const XP_CALENTAMIENTO = 10;     // por marcar el calentamiento (si terminas el entrenamiento)
 export const MONEDAS_SESION = 25;       // monedas 🪙 por sesión terminada (si hiciste al menos la mitad)
 export const BASE_GYM = 100;            // pasar del nivel N al N+1 de gym cuesta 100 × N XP de gym
 export const BASE_MUSCULO = 50;         // y 50 × N para cada músculo
@@ -85,6 +86,25 @@ export const RUTINA = [
         e("talones-prensa", "Elevación de talones en prensa", "pantorrillas", 3, 12, 20),
     ] },
 ];
+
+// (v76) Qué movimiento hace cada ejercicio: de ahí salen su animación (dibujo-ejercicios.js) y su consejo de técnica (gym-aurelio.js).
+export const MOVIMIENTO_DE = {
+    "press-banca": "press_horizontal", "press-inclinado": "press_horizontal", "pec-deck": "press_horizontal",
+    "press-frances": "triceps", "triceps-polea": "triceps", "triceps-cuerda": "triceps",
+    "press-hombros": "press_vertical", "elevaciones-laterales": "elevacion_lateral", "pajaros": "elevacion_lateral",
+    "peso-muerto-rumano": "bisagra", "curl-femoral-sentado": "curl_femoral", "curl-femoral-tumbado": "curl_femoral",
+    "jalon-pecho": "jalon", "remo-sentado": "remo", "remo-unilateral": "remo",
+    "curl-barra": "curl", "curl-inclinado": "curl", "curl-martillo": "curl",
+    "prensa-piernas": "sentadilla", "extension-cuadriceps": "sentadilla", "hack-squat": "sentadilla",
+    "talones-de-pie": "talones", "talones-sentado": "talones", "talones-prensa": "talones",
+    // los extras
+    "dominadas": "jalon", "remo-barra": "remo", "jalon-cerrado": "jalon", "peso-muerto": "bisagra",
+    "press-mancuernas": "press_horizontal", "aperturas-mancuernas": "press_horizontal", "fondos": "press_horizontal",
+    "press-militar": "press_vertical", "face-pull": "remo", "encogimientos": "encogimiento", "fondos-banco": "triceps",
+    "curl-concentrado": "curl", "sentadilla": "sentadilla", "zancadas": "sentadilla", "hip-thrust": "abdominales",
+    "abdominales": "abdominales", "elevacion-piernas": "abdominales", "rueda-abdominal": "abdominales",
+};
+export const movimientoDe = (ejercicioId) => MOVIMIENTO_DE[ejercicioId] || "curl";
 
 export const rutinaPorId = (id) => RUTINA.find((r) => r.id === id) || null;
 // Ejercicios extra que puedes sumar a cualquier entrenamiento (cuentan igual: XP, récords y gráficas).
@@ -210,6 +230,7 @@ export function crearEntrenamiento(rutinaId, fecha, sesiones, ahora = Date.now()
         rutina: rutinaId,
         fecha,
         inicio: ahora,
+        calentado: false,   // (v76) ¿marcaste el calentamiento?
         ejercicios: rutina.ejercicios.map((ej) => ejercicioDelEntrenamiento(ej, sesiones)),
     };
 }
@@ -228,11 +249,15 @@ export function ejercicioDelEntrenamiento(ej, sesiones) {
     };
 }
 
+// Los kilos que llevas movidos en este entrenamiento (solo las series ya marcadas).
+export const volumenMarcado = (entrenamiento) =>
+    Math.round(entrenamiento.ejercicios.reduce((suma, ej) => suma + ej.series.filter((s) => s.hecha).reduce((t, s) => t + s.kg * s.reps, 0), 0));
+
 export const seriesMarcadas = (entrenamiento) =>
     entrenamiento.ejercicios.reduce((suma, ej) => suma + ej.series.filter((s) => s.hecha).length, 0);
 
 // Convierte el entrenamiento en una sesión guardada, con su premio y sus récords nuevos.
-export function cerrarEntrenamiento(entrenamiento, sesiones) {
+export function cerrarEntrenamiento(entrenamiento, sesiones, ahora = Date.now()) {
     const rutina = rutinaPorId(entrenamiento.rutina);
     const ejercicios = entrenamiento.ejercicios
         .map((ej) => ({ id: ej.id, series: ej.series.filter((s) => s.hecha).map((s) => ({ kg: s.kg, reps: s.reps })) }))
@@ -249,9 +274,11 @@ export function cerrarEntrenamiento(entrenamiento, sesiones) {
         // El primer registro de un ejercicio no es un récord: no hay con qué compararlo.
         if (antes[id] && m.puntaje > antes[id].puntaje) records.push({ id, puntaje: m.puntaje });
     }
-    const xp = hechas * XP_POR_SERIE + (completa ? XP_SESION_COMPLETA : 0) + Math.min(records.length, MAX_RECORDS_PREMIADOS) * XP_RECORD;
+    const calentado = Boolean(entrenamiento.calentado);
+    const xp = hechas * XP_POR_SERIE + (completa ? XP_SESION_COMPLETA : 0) + Math.min(records.length, MAX_RECORDS_PREMIADOS) * XP_RECORD + (calentado ? XP_CALENTAMIENTO : 0);
+    const minutos = Math.max(1, Math.min(240, Math.round((ahora - (entrenamiento.inicio || ahora)) / 60000)));
     const monedas = hechas * 2 >= planeadas ? MONEDAS_SESION : 0;
-    return { fecha: entrenamiento.fecha, rutina: entrenamiento.rutina, ejercicios, xp, monedas, gemas: 0, completa, records };
+    return { fecha: entrenamiento.fecha, rutina: entrenamiento.rutina, ejercicios, xp, monedas, gemas: 0, completa, records, calentado, minutos };
 }
 
 // Una sesión «marcada»: dices que hoy entrenaste esa rutina, sin anotar series. Da menos XP que una anotada con detalle.

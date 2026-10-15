@@ -170,3 +170,35 @@ export function brazoDesnudo(lado, d, e, p) {
     }
     return { atras: capas, frente: mano(b.mano, p, s) };
 }
+
+
+// ===== El gimnasio de fondo (v76) =====
+// Una sala oscura y sobria para que la figura se luzca: pared con paneles, un espejo grande, el rack con la barra y los discos,
+// pesas rusas y la colchoneta del suelo. Todo en colores apagados (id = la paleta del avatar, para no repetir degradados).
+export function escenaDeGimnasio(id) {
+    const paneles = [28, 56, 84, 112, 140, 168].map((x) => `<path d="M${x} 6 L${x} 182" stroke="#3a2c68" stroke-width=".6" opacity=".5"/>`).join("");
+    const discos = [[34, 100, 8], [34, 100, 5.4]].map(([cx, cy, r]) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#2a2440" stroke="#5a4a8a" stroke-width=".8"/>`).join("");
+    return `<defs>
+                <linearGradient id="${id}-pared" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1f4e"/><stop offset="1" stop-color="#120d26"/></linearGradient>
+                <radialGradient id="${id}-foco" cx=".5" cy=".42" r=".55"><stop offset="0" stop-color="#7a62c8" stop-opacity=".38"/><stop offset="1" stop-color="#7a62c8" stop-opacity="0"/></radialGradient>
+                <linearGradient id="${id}-espejo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fb6ff" stop-opacity=".16"/><stop offset=".5" stop-color="#9fb6ff" stop-opacity=".04"/><stop offset="1" stop-color="#9fb6ff" stop-opacity=".12"/></linearGradient>
+            </defs>
+            <rect x="0" y="0" width="200" height="200" fill="url(#${id}-pared)"/>
+            ${paneles}
+            <rect x="0" y="0" width="200" height="200" fill="url(#${id}-foco)"/>
+            <!-- espejo -->
+            <rect x="124" y="34" width="56" height="116" rx="3" fill="url(#${id}-espejo)" stroke="#6a5aa8" stroke-width="1.2"/>
+            <path d="M132 144 L160 40 M146 146 L172 56" stroke="#fff" stroke-width="1.4" opacity=".08"/>
+            <!-- rack con la barra y los discos -->
+            <path d="M16 78 L16 182 M52 78 L52 182" stroke="#4a3d78" stroke-width="3" stroke-linecap="round"/>
+            <path d="M12 96 L56 96" stroke="#8a7ac8" stroke-width="2.4" stroke-linecap="round"/>
+            <rect x="9" y="89" width="4" height="14" rx="1" fill="#3a3060" stroke="#6a5aa8" stroke-width=".6"/><rect x="55" y="89" width="4" height="14" rx="1" fill="#3a3060" stroke="#6a5aa8" stroke-width=".6"/>
+            <path d="M18 78 L50 78" stroke="#4a3d78" stroke-width="2"/>
+            ${discos}
+            <!-- pesas rusas y colchoneta -->
+            <g fill="#2a2440" stroke="#6a5aa8" stroke-width=".8"><circle cx="160" cy="172" r="6.4"/><path d="M155 168.4 Q160 160 165 168.4" fill="none" stroke-width="1.6"/>
+               <circle cx="176" cy="174" r="5"/><path d="M172 171 Q176 165 180 171" fill="none" stroke-width="1.4"/></g>
+            <rect x="0" y="182" width="200" height="18" fill="#150f2a"/>
+            <path d="M0 182 L200 182" stroke="#3a2c68" stroke-width="1"/>
+            <path d="M20 190 L180 190" stroke="#2a2050" stroke-width=".8" stroke-dasharray="4 5"/>`;
+}

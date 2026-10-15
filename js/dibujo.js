@@ -18,7 +18,7 @@ import { nuevoId, mate, metal, piel as materialPiel, tejido, grano, halo, aclara
 import { esqueleto, cuello, cara, lentes, barba, pelo } from "./dibujo-cuerpo.js";
 import { piernas, torso, bufanda, brazo, hombreras } from "./dibujo-ropa.js";
 import { sombrero, arma, capa, capaCuervo, escudo, alas, alasDragon, armaduraDePecho, libro, miniatura, INCLINACION, TAPA_PELO, COLOR_CAPA_REAL, COLOR_CAPA_FRAGUA } from "./dibujo-objetos.js";
-import { piernasDesnudas, torsoDesnudo, brazoDesnudo, calzoncillos } from "./dibujo-gym.js";
+import { piernasDesnudas, torsoDesnudo, brazoDesnudo, calzoncillos, escenaDeGimnasio } from "./dibujo-gym.js";
 import { fondo, ambiente, aura, llamas, resplandor, noche, escenario } from "./dibujo-escenas.js";
 import { cuerpoMascota, dibujarMascota } from "./dibujo-mascota.js";
 
@@ -202,9 +202,8 @@ export function dibujarAvatarGym(d) {
     const izquierdo = brazoDesnudo("izq", d, e, p);
     const derecho = brazoDesnudo("der", d, e, p);
     const capas = [
-        `<defs>${p.defs}<linearGradient id="${p.id}-sala" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1f4e"/><stop offset="1" stop-color="#0d0a1c"/></linearGradient></defs>`,
-        `<rect x="0" y="0" width="200" height="200" fill="url(#${p.id}-sala)"/>`,
-        '<rect x="0" y="182" width="200" height="18" fill="#150f2a"/><path d="M0 182 L200 182" stroke="#3a2c68" stroke-width="1"/>',
+        `<defs>${p.defs}</defs>`,
+        escenaDeGimnasio(p.id),
         `<ellipse cx="100" cy="183.4" rx="36" ry="6" fill="${p.m("suelo")}"/><ellipse cx="101" cy="181.8" rx="20" ry="2.6" fill="${p.m("ao")}"/>`,
         '<g class="pj">',
         piernasDesnudas(d, e, p),
@@ -222,7 +221,8 @@ export function dibujarAvatarGym(d) {
         "</g>",
         "</g>",
     ];
-    return `<svg class="avatar-svg avatar-gym" viewBox="6 2 188 188" role="img" aria-label="Tu cuerpo: nivel de físico ${d.fisico || 0}"
+    // El encuadre recorta la sala para que el cuerpo se vea grande.
+    return `<svg class="avatar-svg avatar-gym" viewBox="22 10 156 180" role="img" aria-label="Tu cuerpo: nivel de físico ${d.fisico || 0}"
                  xmlns="http://www.w3.org/2000/svg">${capas.join("")}</svg>`;
 }
 
