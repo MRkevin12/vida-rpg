@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 81;
+export const VERSION_APP = 82;
 
 export const NOVEDADES = [
+    {
+        version: 82,
+        titulo: "Tu cuerpo: medidas, objetivo y cambios",
+        cambios: [
+            "🎉 Cada vez que tu físico sube de escalón sale una celebración especial: «Tu cuerpo cambió», con tu cuerpo de antes y el de ahora, uno junto al otro, y unas palabras de Aurelio.",
+            "🎯 Puedes fijar un peso objetivo y ver cuánto te falta (por bajar o por subir) con una barra de avance.",
+            "📏 Nueva tarjeta de medidas: anota con cinta métrica tu pecho, brazo, cintura y muslo, y mira cómo cambia cada una desde el inicio, con su gráfica.",
+        ],
+    },
     {
         version: 81,
         titulo: "Modo foco más completo",

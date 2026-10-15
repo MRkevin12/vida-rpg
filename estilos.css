@@ -11136,3 +11136,18 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 /* v80: contar repeticiones tocando */
 .gym-contar { min-height: 52px; margin: 4px 0; font-size: 1.05rem; }
+
+/* v82: tu cuerpo cambió (antes y ahora), peso objetivo y medidas */
+.cel-cuerpos { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.cel-cuerpos figure { margin: 0; width: 132px; }
+.cel-cuerpos figure svg { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.4); }
+.cel-cuerpos figure:last-child svg { box-shadow: 0 0 16px rgba(251, 191, 36, 0.55); }
+.cel-cuerpos figcaption { font-size: 0.8rem; margin-top: 3px; opacity: 0.85; }
+.cel-cuerpos > span { font-size: 1.6rem; color: var(--gym-2); }
+.gym-metapeso { margin: 8px 0; }
+.gym-medidas { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
+.gym-medida { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--hundido); border: 1px solid var(--borde); }
+.gym-medida > span:nth-child(2) { flex: 1; text-align: right; }
+.gym-campos-medida { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.gym-campo-medida { display: grid; gap: 3px; font-size: 0.8rem; color: var(--texto-suave); }
+.gym-campo-medida input { min-height: 44px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }

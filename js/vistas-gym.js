@@ -681,7 +681,51 @@ function tarjetaPeso(estado, ctx) {
                 <input type="number" name="cm" inputmode="numeric" step="1" min="100" max="230" required placeholder="${g.altura ? `Tu altura: ${g.altura} cm (cambiarla)` : "Tu altura (cm)"}" aria-label="Altura en centímetros">
                 <button type="submit" class="boton boton-chico">${g.altura ? "Cambiar" : "Guardar"}</button>
             </form>
+            ${bloqueMetaDePeso(g)}
             <p class="mini texto-suave">Tu avatar de arriba cambia con tu peso (IMC) y con tu nivel de gym.</p>
+        </section>
+        ${tarjetaMedidas(estado, ctx)}`;
+}
+
+// ===== (v82) Peso objetivo y medidas del cuerpo =====
+function bloqueMetaDePeso(g) {
+    const a = gym.avanceDePeso(g.peso, g.metaPeso);
+    const estado = a
+        ? `<div class="gym-metapeso">
+               <p class="mini">🎯 Tu objetivo: <b>${kilos(g.metaPeso)}</b> · ${a.llego ? "¡lo lograste! 🎉" : `te faltan <b>${kilos(Math.abs(a.falta))}</b> ${a.falta < 0 ? "por bajar" : "por subir"}`}</p>
+               ${barra(a.porcentaje, "barra-gym")}
+           </div>`
+        : g.metaPeso ? `<p class="mini">🎯 Tu objetivo: <b>${kilos(g.metaPeso)}</b>. Anota tu peso para ver el avance.</p>` : "";
+    return `${estado}
+            <form data-form="gym-meta-peso" class="form-linea">
+                <input type="number" name="kg" inputmode="decimal" step="0.1" min="20" max="400" placeholder="${g.metaPeso ? `Objetivo: ${kilos(g.metaPeso)} (cambiarlo; vacío lo quita)` : "Tu peso objetivo (kg)"}" aria-label="Peso objetivo en kilos">
+                <button type="submit" class="boton boton-chico">${g.metaPeso ? "Cambiar" : "Fijar"}</button>
+            </form>`;
+}
+
+function tarjetaMedidas(estado, ctx) {
+    const lista = estado.gym.medidas;
+    const ultima = lista[lista.length - 1];
+    const filas = Object.entries(gym.MEDIDAS).map(([clave, m]) => {
+        const c = gym.cambioDeMedida(lista, clave);
+        if (!c) return "";
+        const dif = Math.round((c.ultimo - c.primero) * 10) / 10;
+        const historia = lista.filter((x) => Number.isFinite(x[clave])).slice(-12).map((x) => x[clave]);
+        return `<li class="gym-medida"><span>${m.icono} ${m.nombre}</span>
+                    <span><b>${String(c.ultimo).replace(".", ",")} cm</b>${c.cuantas > 1 ? ` <small class="texto-suave">(${dif > 0 ? "+" : ""}${String(dif).replace(".", ",")} cm desde el inicio)</small>` : ""}</span>
+                    ${sparkline(historia, { ancho: 70, alto: 20, color: "#38bdf8" })}</li>`;
+    }).join("");
+    const campos = Object.entries(gym.MEDIDAS).map(([clave, m]) => `
+        <label class="gym-campo-medida"><span>${m.icono} ${m.nombre}</span>
+            <input type="number" name="${clave}" inputmode="decimal" step="0.1" min="10" max="250" placeholder="${ultima?.[clave] ? String(ultima[clave]).replace(".", ",") : "cm"}" aria-label="${m.nombre} en centímetros"></label>`).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">📏 Medidas del cuerpo</h2>
+            ${filas ? `<ul class="gym-medidas">${filas}</ul>` : '<p class="nota">Con una cinta métrica, anota de vez en cuando tu pecho, brazo, cintura y muslo: a veces el cuerpo cambia aunque el peso no.</p>'}
+            <form data-form="gym-medidas" class="gym-form-medidas">
+                <div class="gym-campos-medida">${campos}</div>
+                <button type="submit" class="boton boton-chico boton-ancho">Anotar las de hoy</button>
+            </form>
         </section>`;
 }
 

@@ -154,6 +154,8 @@ export function gymInicial() {
         descanso: 90,        // segundos de descanso entre series
         peso: [],            // tu peso corporal: [{ fecha, kg }] (uno por día)
         altura: null,        // tu altura en centímetros (para el IMC)
+        metaPeso: null,      // (v82) tu peso objetivo en kilos, o null
+        medidas: [],         // (v82) [{ fecha, pecho, brazo, cintura, muslo }] en centímetros (una por día; los que no anotes quedan vacíos)
         mision: null,        // la misión diaria que se marca sola al terminar un entrenamiento (id), o null
         retosCobrados: [],   // (v79) los lunes de las semanas cuyo reto ya cobraste
         foco: true,          // (v78) el entrenamiento se ve en «modo foco»: una serie a la vez, con letras grandes
@@ -443,6 +445,29 @@ export function hitosNuevos(gym, hoyTexto) {
     return HITOS.filter((h) => !gym.hitos.includes(h.id) && h.quiere(x));
 }
 
+
+// ===== Medidas del cuerpo y peso objetivo (v82) =====
+export const MEDIDAS = {
+    pecho:   { icono: "🫁", nombre: "Pecho" },
+    brazo:   { icono: "💪", nombre: "Brazo" },
+    cintura: { icono: "📏", nombre: "Cintura" },
+    muslo:   { icono: "🦵", nombre: "Muslo" },
+};
+// Cuánto has avanzado hacia tu peso objetivo: { falta (kg, con signo), porcentaje (0–100) } o null si falta algún dato.
+export function avanceDePeso(pesos, metaPeso) {
+    if (!metaPeso || !pesos.length) return null;
+    const inicio = pesos[0].kg;
+    const actual = pesos[pesos.length - 1].kg;
+    const total = metaPeso - inicio;
+    const hecho = actual - inicio;
+    const porcentaje = total === 0 ? 100 : Math.max(0, Math.min(100, Math.round((hecho / total) * 100)));
+    return { inicio, actual, falta: Math.round((metaPeso - actual) * 10) / 10, porcentaje, llego: Math.abs(metaPeso - actual) < 0.3 || (total < 0 ? actual <= metaPeso : actual >= metaPeso) };
+}
+// El valor más reciente de una medida y el primero (para ver el cambio): { primero, ultimo } o null.
+export function cambioDeMedida(medidas, clave) {
+    const con = medidas.filter((m) => Number.isFinite(m[clave]));
+    return con.length ? { primero: con[0][clave], ultimo: con[con.length - 1][clave], cuantas: con.length } : null;
+}
 
 // ===== Tu evolución (v79): cómo se veía tu cuerpo cada vez que subió tu físico =====
 // Devuelve una lista de fotos en orden: la primera sesión y cada vez que el físico subió de escalón.

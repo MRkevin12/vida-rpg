@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v82 — Medidas, peso objetivo y «tu cuerpo cambió»
+- `estado.gym.metaPeso` y `gym.avanceDePeso` (falta con signo, porcentaje, `llego`); `estado.gym.medidas` (`[{ fecha, pecho, brazo, cintura, muslo }]`, una por día) con `gym.MEDIDAS` y `cambioDeMedida`; `acciones.anotarMetaPesoGym` y `anotarMedidasGym`. Ambos se migran en `completar` (vacíos). `guardarSesionGym` añade la celebración `cuerpo: { antes, despues }` cuando sube el escalón de físico; `siguienteCelebracion` (app.js) la dibuja con `dibujarAvatarGym` (`.cel-cuerpos`). 288 pruebas.
+
 ## v81 — Modo foco: última vez, subir de peso y ajustar el descanso
 - `vistaDeFoco` muestra «Última vez», un botón «Subir a X kg» (si `sugerencia` es de tipo «peso» y aún no lo subiste; usa `gym-ajuste`) y los botones ±15 s (`gym-descanso-mas`, que cambia `descansoGym.fin` y `total`). 287 pruebas.
 

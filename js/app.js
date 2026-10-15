@@ -49,7 +49,7 @@ import * as avisos from "./avisos.js";
 import * as nube from "./nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "./novedades.js";
 import { calcularResumen, semanaPorMostrar } from "./resumen.js";
-import { dibujarAvatar } from "./dibujo.js";
+import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, relojLargo, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
 
 
@@ -1328,7 +1328,12 @@ function siguienteCelebracion() {
     else sonar("logro");
     // Al subir de nivel o evolucionar, se muestra el avatar celebrando;
     // al derrotar a un jefe, su retrato.
-    if (celebracion.avatar) {
+    if (celebracion.cuerpo) {
+        // (v82) Tu cuerpo de antes y el de ahora, uno junto al otro.
+        const cuerpo = (c) => dibujarAvatarGym({ ...avatarActual(), fisico: c.fisico, corpulencia: c.corpulencia });
+        $("#cel-icono").innerHTML = `<div class="cel-cuerpos"><figure>${cuerpo(celebracion.cuerpo.antes)}<figcaption>Antes</figcaption></figure>
+            <span aria-hidden="true">➜</span><figure>${cuerpo(celebracion.cuerpo.despues)}<figcaption>Ahora</figcaption></figure></div>`;
+    } else if (celebracion.avatar) {
         $("#cel-icono").innerHTML = `<div class="cel-avatar celebrando">${dibujarAvatar(avatarActual())}</div>`;
     } else if (celebracion.imagen) {
         $("#cel-icono").innerHTML = `<figure class="retrato derrotado cel-jefe"><img src="${celebracion.imagen}" alt=""></figure>`;
@@ -1344,7 +1349,7 @@ function siguienteCelebracion() {
     capa.hidden = false;
     reproducirAnimacion($(".celebracion-caja"), "entrar");
     // Con las palabras del Maestro se queda un poco más, para que alcance a leerse.
-    temporizadorCelebracion = setTimeout(siguienteCelebracion, celebracion.maestro ? 4600 : 3200);
+    temporizadorCelebracion = setTimeout(siguienteCelebracion, celebracion.cuerpo ? 6500 : celebracion.maestro ? 4600 : 3200);
 }
 
 // Aviso pequeño abajo de la pantalla.
@@ -3184,6 +3189,16 @@ const FORMULARIOS = {
     principal: (valores) => ejecutar(() => acciones.crearPrincipal(estado, valores)),
     "gym-altura"(valores, formulario) {
         const ok = ejecutar(() => acciones.anotarAlturaGym(estado, valores.cm), { mantenerScroll: true });
+        if (ok) formulario.reset();
+        return ok;
+    },
+    "gym-medidas"(valores, formulario) {
+        const ok = ejecutar(() => acciones.anotarMedidasGym(estado, valores), { mantenerScroll: true });
+        if (ok) formulario.reset();
+        return ok;
+    },
+    "gym-meta-peso"(valores, formulario) {
+        const ok = ejecutar(() => acciones.anotarMetaPesoGym(estado, valores.kg), { mantenerScroll: true });
         if (ok) formulario.reset();
         return ok;
     },

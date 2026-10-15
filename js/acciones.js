@@ -2101,6 +2101,13 @@ function guardarSesionGym(estado, sesion) {
         celebraciones.push({ icono: rango.icono, etiqueta: "¡Subiste de nivel de gym!", titulo: `Gym nivel ${nivelAhora} · ${rango.nombre}`,
                              detalle: `Tu héroe gana +${Math.round(gym.bonoDeGym(nivelAhora) * 100)} % de vida y ataque en la Torre.` });
     }
+    // (v82) Tu físico subió de escalón: se muestra tu cuerpo de antes y el de ahora.
+    if (gym.fisicoDe(nivelAhora) > gym.fisicoDe(nivelAntes)) {
+        const corpulencia = gym.corpulenciaDe(gym.imcActual(g));
+        celebraciones.push({ icono: "🏋️", etiqueta: "¡Tu cuerpo cambió!", titulo: `Físico: ${gym.NOMBRES_DE_FISICO[gym.fisicoDe(nivelAhora)]}`,
+                             detalle: "Mira cómo se ve tu cuerpo ahora comparado con antes.", maestro: "Eso no se logra en un día, " + estado.personaje.nombre + ": se logra en muchos.",
+                             cuerpo: { antes: { fisico: gym.fisicoDe(nivelAntes), corpulencia }, despues: { fisico: gym.fisicoDe(nivelAhora), corpulencia } } });
+    }
     // Tu cuerpo abre la Fragua Profunda (nivel 5 de gym).
     if (!fraguaAntes && torre.lugarAbierto(torre.arcadeConGym(estado), "fragua")) {
         celebraciones.push({ icono: "⚒️", etiqueta: "¡Se abrió una mazmorra!", titulo: bestiario.LUGARES.fragua.nombre,
@@ -2168,6 +2175,29 @@ export function anotarPesoGym(estado, kg) {
 // Tu altura en centímetros (para calcular el IMC).
 export function anotarAlturaGym(estado, cm) {
     estado.gym.altura = Math.round(numeroEntre(cm, 100, 230, "La altura"));
+}
+
+// (v82) Tu peso objetivo (vacío = quitarlo).
+export function anotarMetaPesoGym(estado, kg) {
+    estado.gym.metaPeso = kg === "" || kg === null ? null : numeroEntre(kg, 20, 400, "El peso objetivo");
+}
+
+// (v82) Tus medidas del día (en cm). Puedes anotar solo algunas; si ya anotaste hoy, se completan o se cambian.
+export function anotarMedidasGym(estado, valores) {
+    const nuevas = {};
+    for (const clave of Object.keys(gym.MEDIDAS)) {
+        const crudo = valores[clave];
+        if (crudo === undefined || crudo === null || String(crudo).trim() === "") continue;
+        nuevas[clave] = numeroEntre(crudo, 10, 250, `La medida de ${gym.MEDIDAS[clave].nombre.toLowerCase()}`);
+    }
+    if (!Object.keys(nuevas).length) throw new Error("Anota al menos una medida.");
+    const lista = estado.gym.medidas;
+    const hoyTexto = hoy();
+    const existente = lista.find((m) => m.fecha === hoyTexto);
+    if (existente) Object.assign(existente, nuevas);
+    else lista.push({ fecha: hoyTexto, ...nuevas });
+    lista.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+    if (lista.length > 400) lista.splice(0, lista.length - 400);
 }
 
 export function cambiarAjusteGym(estado, clave, valor) {

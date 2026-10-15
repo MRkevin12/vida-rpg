@@ -6054,6 +6054,50 @@ prueba("Gym (v81): en el modo foco se ve la última vez, un botón para subir de
     cierto(html.includes('data-segundos="15"') && html.includes('data-segundos="-15"') && html.includes("Saltar el descanso"), "±15 s y saltar");
 });
 
+prueba("Gym (v82): peso objetivo, medidas del cuerpo y la celebración de «tu cuerpo cambió»", () => {
+    // Peso objetivo.
+    igual(gym.avanceDePeso([], 70), null);
+    igual(gym.avanceDePeso([{ kg: 90 }], null), null);
+    const a = gym.avanceDePeso([{ kg: 90 }, { kg: 84 }, { kg: 80 }], 70);
+    igual([a.inicio, a.actual, a.falta, a.porcentaje, a.llego], [90, 80, -10, 50, false], "de 90 a 70: faltan -10 (por bajar) y vas por la mitad");
+    igual(gym.avanceDePeso([{ kg: 60 }, { kg: 69.9 }], 70).llego, true, "casi igual cuenta como logrado");
+    igual(gym.avanceDePeso([{ kg: 60 }, { kg: 66 }], 72).porcentaje, 50, "también subiendo de peso");
+    const estado = partidaNueva();
+    debeFallar(() => acciones.anotarMetaPesoGym(estado, 5), "peso");
+    acciones.anotarMetaPesoGym(estado, "72,5");
+    igual(estado.gym.metaPeso, 72.5);
+    acciones.anotarMetaPesoGym(estado, "");
+    igual(estado.gym.metaPeso, null, "vacío lo quita");
+    acciones.anotarMetaPesoGym(estado, 70);
+    // Medidas.
+    debeFallar(() => acciones.anotarMedidasGym(estado, {}), "al menos una");
+    debeFallar(() => acciones.anotarMedidasGym(estado, { brazo: 3 }), "medida");
+    acciones.anotarMedidasGym(estado, { pecho: "100,5", cintura: 85, brazo: "" });
+    acciones.anotarMedidasGym(estado, { brazo: 36 });
+    igual(estado.gym.medidas, [{ fecha: hoy(), pecho: 100.5, cintura: 85, brazo: 36 }], "una por día: la segunda completa la primera");
+    estado.gym.medidas.unshift({ fecha: sumarDias(hoy(), -30), cintura: 90, brazo: 34 });
+    igual(gym.cambioDeMedida(estado.gym.medidas, "cintura"), { primero: 90, ultimo: 85, cuantas: 2 });
+    igual(gym.cambioDeMedida(estado.gym.medidas, "muslo"), null);
+    estado.gym.peso = [{ fecha: sumarDias(hoy(), -20), kg: 80 }, { fecha: hoy(), kg: 77 }];
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes("Medidas del cuerpo") && html.includes("-5 cm desde el inicio") && html.includes("Tu objetivo") && html.includes("te faltan") && html.includes('data-form="gym-medidas"') && html.includes('data-form="gym-meta-peso"'), "las tarjetas se ven");
+    cierto(datos.desdeRespaldo(datos.textoRespaldo(estado)).gym.medidas.length === 2 && datos.desdeRespaldo(datos.textoRespaldo(estado)).gym.metaPeso === 70, "viajan en la copia");
+    const viejo = JSON.parse(JSON.stringify(estado)); delete viejo.gym.medidas; delete viejo.gym.metaPeso;
+    const cargado = datos.desdeRespaldo(JSON.stringify(viejo));
+    igual([cargado.gym.medidas, cargado.gym.metaPeso], [[], null], "una partida sin esos datos los recibe vacíos");
+
+    // «Tu cuerpo cambió»: al subir de escalón de físico, la celebración trae el antes y el ahora.
+    const e2 = partidaNueva();
+    e2.gym.sesiones = [{ fecha: "2026-01-01", rutina: "hombros", ejercicios: [], rapido: true, xp: 240, monedas: 0, gemas: 0, completa: true, records: [] }];   // nivel 2: el nivel 3 (físico 1) pide 300 XP en total
+    igual(gym.fisicoDe(gym.nivelDeGym(e2.gym.sesiones).nivel), 0);
+    const r = acciones.marcarGymRapido(e2, "hombros");   // +60 XP: pasa de 240 a 300: nivel 3
+    const cuerpo = r.celebraciones.find((c) => c.cuerpo);
+    cierto(cuerpo && cuerpo.cuerpo.antes.fisico === 0 && cuerpo.cuerpo.despues.fisico === 1 && cuerpo.etiqueta === "¡Tu cuerpo cambió!", "celebración con el antes y el ahora");
+    const r2 = acciones.marcarGymRapido(e2, "espalda");
+    cierto(!r2.celebraciones.some((c) => c.cuerpo), "solo cuando sube de escalón");
+});
+
 // ===== Reacciones elementales (v71) =====
 
 prueba("Reacciones: dos hechizos distintos en turnos seguidos provocan Vapor, Conducción o Explosión", () => {
