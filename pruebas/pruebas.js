@@ -60,9 +60,10 @@ import * as ataques from "../js/ataques.js";
 import * as fragua from "../js/fragua.js";
 import * as libroOrrin from "../js/libro-orrin.js";
 import * as libros from "../js/libros.js";
+import { esqueleto } from "../js/dibujo-cuerpo.js";
 import * as vistasGym from "../js/vistas-gym.js";
 import * as equipo from "../js/equipo.js";
-import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
+import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
 import { PISTAS } from "../js/musica.js";
 import * as musicaModulo from "../js/musica.js";
 import * as sonidoModulo from "../js/sonido.js";
@@ -3549,7 +3550,7 @@ prueba("La Torre en el valle (v37): ninguna historia la pone en la Ciudadela", a
 prueba("Equipo (v34): el espacio del pecho y objetos nuevos en todos los espacios", () => {
     igual(Object.keys(avatar.ESPACIOS), ["cabeza", "pecho", "mano", "espalda", "fondo"]);
     const por = (espacio) => Object.keys(avatar.OBJETOS).filter((id) => avatar.OBJETOS[id].espacio === espacio);
-    igual(por("pecho"), ["peto-cuero", "cota-malla", "tunica-arcana", "coraza", "coraza-vigia"]);
+    igual(por("pecho"), ["peto-cuero", "cota-malla", "tunica-arcana", "coraza", "coraza-vigia", "peto-constante", "coraza-titan"]);
     for (const id of ["diadema", "yelmo-astado", "daga", "martillo", "escudo", "capa-cuervo", "mar", "aurora"]) cierto(avatar.OBJETOS[id], `existe ${id}`);
     // Las pinturas nuevas tienen su crédito.
     for (const id of ["mar", "aurora"]) cierto(PINTURAS_DE_FONDO[id]?.artista, `crédito de ${id}`);
@@ -5443,7 +5444,7 @@ prueba("Gym: el nivel de gym da hasta +25 % de vida y ataque en la Torre, y engo
     igual(gym.bonoDeGym(1), 0);
     igual(gym.bonoDeGym(11), 0.1);
     igual(gym.bonoDeGym(99), gym.MAX_BONO, "tope");
-    igual([gym.fisicoDe(1), gym.fisicoDe(3), gym.fisicoDe(8), gym.fisicoDe(15)], [0, 1, 2, 3]);
+    igual([gym.fisicoDe(1), gym.fisicoDe(3), gym.fisicoDe(8), gym.fisicoDe(15), gym.fisicoDe(30)], [0, 1, 2, 4, 5]);
     const base = { fuerza: 5, intelecto: 1, carisma: 1, riqueza: 1 };
     const sin = torre.heroeDeLaTorre(base);
     const con = torre.heroeDeLaTorre({ ...base, gym: 11 });
@@ -5662,6 +5663,140 @@ prueba("Fragua: el gimnasio avisa cuando tu cuerpo abre la mazmorra", () => {
     otro.gym.sesiones = [{ fecha: "2026-01-01", rutina: "hombros", ejercicios: [], xp: 90, monedas: 0, gemas: 0, completa: true, records: [] }];
     const r2 = entrenar(otro, "hombros");
     cierto(r2.celebraciones.some((c) => c.etiqueta === "Maren te dejó una lectura" && c.titulo === "Calor y descanso"), "Maren deja una lectura nueva");
+});
+
+// ===== El gimnasio como meta que se marca, IMC, avatar sin ropa y armadura por constancia (v74) =====
+
+prueba("Gym (meta): se puede marcar «hoy entrené» sin anotar series: da XP, cuenta en la semana y en la racha", () => {
+    const estado = partidaNueva();
+    const m = crearMision(estado, { nombre: "Ir al gym" });
+    acciones.cambiarAjusteGym(estado, "mision", String(m.id));
+    const r = acciones.marcarGymRapido(estado, "hombros");
+    igual([r.sesion.rapido, r.sesion.xp, r.sesion.ejercicios.length], [true, gym.XP_RAPIDO, 0]);
+    igual(estado.atributos.fuerza, gym.XP_RAPIDO, "da XP de Fuerza");
+    cierto(estado.personaje.monedas >= gym.MONEDAS_SESION, "da monedas (y la misión elegida, un poco más)");
+    cierto(r.celebraciones[0].etiqueta === "¡Meta del día cumplida!", "se celebra como meta");
+    cierto(estado.completadas.some((c) => c.misionId === m.id && c.fecha === hoy()), "y marca la misión elegida");
+    cierto(estado.gym.hitos.includes("primera"), "cuenta para los hitos");
+    igual(gym.diasDeLaSemana(estado.gym.sesiones, lunesDe(hoy())), 1, "cuenta en la semana");
+    // También reparte XP a los músculos de esa rutina (la mitad que una sesión anotada).
+    const hombros = gym.nivelesDeMusculos(estado.gym.sesiones).hombros;
+    igual(hombros.xpEnNivel, 20, "reparte XP a los hombros: la mitad de sus 10 series (8 + 6 + 6)");
+    debeFallar(() => acciones.marcarGymRapido(estado, "hombros"), "ya la marcaste");
+    debeFallar(() => acciones.marcarGymRapido(estado, "no-existe"), "no existe");
+    debeFallar(() => acciones.marcarGymRapido(estado, "espalda", sumarDias(hoy(), -3)), "hoy o de ayer");
+    acciones.marcarGymRapido(estado, "espalda", sumarDias(hoy(), -1));
+    igual(estado.gym.sesiones.length, 2, "se puede marcar ayer");
+    // Se puede borrar como cualquier sesión.
+    const xp = estado.atributos.fuerza;
+    acciones.borrarSesionGym(estado, estado.gym.sesiones.length - 1);
+    igual(estado.atributos.fuerza, xp - gym.XP_RAPIDO);
+    // La pantalla ofrece el botón de marcar y deja intacto lo de Ajustes del gym.
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const html = vistasGym.pantallaGym(partidaNueva(), ctx);
+    cierto(html.includes('data-accion="gym-rapido"') && html.includes("Marcar que hoy entrené"), "botón para marcar");
+    cierto(html.includes('data-accion="gym-meta"') && html.includes('data-accion="gym-descanso"') && html.includes("data-gym-mision"), "los ajustes del gym siguen ahí");
+    cierto(vistasGym.tarjetaGymHoy(partidaNueva(), ctx).includes('data-accion="gym-rapido"'), "y en Hoy también");
+});
+
+prueba("Gym (IMC): altura, peso, categorías y la silueta del avatar", () => {
+    igual(gym.imc(70, 175), 22.9);
+    igual(gym.imc(0, 175), null);
+    igual([gym.categoriaDeImc(17).nombre, gym.categoriaDeImc(22).nombre, gym.categoriaDeImc(27).nombre, gym.categoriaDeImc(33).nombre],
+          ["Bajo peso", "Peso normal", "Sobrepeso", "Obesidad"]);
+    igual(gym.pesoSaludable(170), [53.5, 72]);
+    igual([gym.corpulenciaDe(null), gym.corpulenciaDe(22), gym.corpulenciaDe(30), gym.corpulenciaDe(60), gym.corpulenciaDe(10)], [0, 0, 1, 1.1, -1]);
+    const estado = partidaNueva();
+    debeFallar(() => acciones.anotarAlturaGym(estado, 50), "altura");
+    igual(gym.imcActual(estado.gym), null, "sin datos no hay IMC");
+    acciones.anotarAlturaGym(estado, "175");
+    acciones.anotarPesoGym(estado, 80);
+    igual([estado.gym.altura, gym.imcActual(estado.gym)], [175, 26.1]);
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes("26,1") && html.includes("Sobrepeso") && html.includes("data-form=\"gym-altura\""), "la tarjeta muestra el IMC");
+    const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
+    igual(copia.gym.altura, 175, "la altura viaja en la copia");
+    // El esqueleto cambia con el peso y con el físico.
+    const base = avatarDePrueba({ etapa: avatar.ETAPAS[2] });
+    const medidas = (cambios) => { const e = esqueleto({ ...base, ...cambios }); return [e.cintura, e.cadera, e.muslo, e.brazo, e.H].map((x) => Math.round(x * 100) / 100); };
+    const normal = medidas({});
+    cierto(medidas({ corpulencia: 1 })[0] > normal[0] && medidas({ corpulencia: -1 })[0] < normal[0], "la cintura cambia con el peso");
+    cierto(medidas({ fisico: 5 })[4] > medidas({ fisico: 2 })[4] && medidas({ fisico: 5 })[3] > normal[3], "los hombros y los brazos crecen con el físico");
+});
+
+prueba("Gym (avatar sin ropa): se dibuja en calzoncillos y cambia con el nivel y el peso", () => {
+    const d = avatarDePrueba({ etapa: avatar.ETAPAS[2] });
+    const dib = (fisico, corpulencia) => dibujarAvatarGym({ ...d, fisico, corpulencia });
+    for (const [f, c] of [[0, 0], [3, 0], [5, 0], [2, -1], [4, 1.1]]) {
+        const svg = dib(f, c);
+        cierto(svg.startsWith("<svg") && svg.endsWith("</svg>") && !/undefined|NaN/.test(svg), `avatar de gym (físico ${f}, corpulencia ${c}) sin huecos`);
+    }
+    cierto(dib(0, 0) !== dib(5, 0) && dib(2, -1) !== dib(2, 1), "se nota la diferencia");
+    cierto(dib(5, 0).length > dib(0, 0).length, "con más nivel hay más músculo dibujado");
+    cierto(dib(0, 0).includes("#2d3b63"), "lleva calzoncillos");
+    cierto(!dib(3, 0).includes("armadura"), "no lleva armadura");
+    // También en la mujer.
+    cierto(dibujarAvatarGym({ ...d, apariencia: { ...d.apariencia, cuerpo: "femenino" }, fisico: 3, corpulencia: 0.5 }).startsWith("<svg"), "cuerpo femenino");
+});
+
+prueba("Gym (armadura): la constancia semanal desbloquea piezas legendarias con su habilidad", () => {
+    const estado = partidaNueva();
+    const info = juego.resumen(estado, hoy());
+    const lunes = lunesDe(hoy());
+    const sesion = (fecha) => ({ fecha, rutina: "hombros", ejercicios: [], rapido: true, xp: 0, monedas: 0, gemas: 0, completa: true, records: [] });
+    const semana = (desde, dias) => Array.from({ length: dias }, (_, i) => sesion(sumarDias(desde, i)));
+    estado.gym.metaSemanal = 3;
+    estado.gym.sesiones = [...semana(sumarDias(lunes, -35), 3), ...semana(sumarDias(lunes, -28), 3), ...semana(sumarDias(lunes, -14), 3), ...semana(sumarDias(lunes, -7), 3)];
+    igual(gym.mejorRachaSemanal(estado.gym.sesiones, 3, hoy()), 2, "dos semanas, un hueco y dos semanas más");
+    const ganados = avatar.objetosDeLogroGanados(estado, info);
+    cierto(ganados.includes("cinta-hierro") && !ganados.includes("peto-constante"), "con 2 semanas: la cinta");
+    estado.gym.sesiones.push(...semana(sumarDias(lunes, -21), 3));
+    igual(gym.mejorRachaSemanal(estado.gym.sesiones, 3, hoy()), 5, "ahora son cinco semanas seguidas");
+    const mas = avatar.objetosDeLogroGanados(estado, info);
+    cierto(mas.includes("peto-constante") && !mas.includes("coraza-titan"), "con 5: el peto (y aún no la coraza, que pide 8)");
+    const nuevos = ["cinta-hierro", "peto-constante", "coraza-titan", "capa-fragua"];
+    for (const id of nuevos) {
+        const o = avatar.OBJETOS[id];
+        cierto(o.rareza === "legendario" && o.logro.tipo === "gymsemanas" && habilidades.HABILIDADES[o.habilidad], `${id}: legendario, de constancia y con habilidad`);
+        cierto(dibujarObjeto(id).startsWith("<svg"), `${id}: tiene dibujo`);
+    }
+    // Se ve puesta en el avatar.
+    estado.avatar.equipado.pecho = "peto-constante";
+    estado.avatar.equipado.cabeza = "cinta-hierro";
+    estado.avatar.equipado.espalda = "capa-fragua";
+    const d = avatar.describirAvatar(estado, hoy(), info);
+    igual([d.equipado.pecho, d.equipado.cabeza, d.equipado.espalda], ["peto-constante", "cinta-hierro", null], "solo se ve lo que ya ganaste (la capa pide 12 semanas)");
+    cierto(dibujarAvatar(d).startsWith("<svg"), "el avatar con las piezas se dibuja");
+});
+
+prueba("Gym (habilidades de constancia): Vigor, Ritmo, Titán y Brasa hacen lo que dicen", () => {
+    const base = { fuerza: 5, intelecto: 1, carisma: 1, riqueza: 1 };
+    const sin = torre.heroeDeLaTorre(base, {});
+    const titan = torre.heroeDeLaTorre(base, { habilidades: ["titan"] });
+    cierto(titan.ataque > sin.ataque * 1.15, `Titán: ${titan.ataque} > ${sin.ataque}`);
+    const nueva = (habilidades) => {
+        const p = torre.nuevaPartida(NIVELES_1, 17, 1, { habilidades });
+        p.heroe.vida = Math.round(p.heroe.vidaMax * 0.4);
+        p.enemigo.vida = p.enemigo.vidaMax = 9999;
+        p.enemigo.intencion = "defender";
+        return p;
+    };
+    // Vigor: la poción cura más.
+    let a = nueva([]); let b = nueva(["vigor"]);
+    torre.actuar(a, "pocion"); torre.actuar(b, "pocion");
+    cierto(b.heroe.vida > a.heroe.vida, "Vigor: la poción cura más");
+    // Ritmo: el doble de Voluntad al golpear.
+    a = nueva([]); b = nueva(["ritmo"]);
+    torre.actuar(a, "atacar"); torre.actuar(b, "atacar");
+    cierto(b.heroe.voluntad >= a.heroe.voluntad * 2 - 1 && b.heroe.voluntad > a.heroe.voluntad, "Ritmo: más Voluntad");
+    // Brasa: el primer golpe del piso hace más, y el segundo no.
+    a = nueva([]); b = nueva(["brasa"]);
+    const da = torre.actuar(a, "atacar").find((e) => e.quien === "heroe");
+    const db = torre.actuar(b, "atacar").find((e) => e.quien === "heroe");
+    cierto(db.dano > da.dano * 1.3 && db.activas?.includes("brasa"), `Brasa: ${db.dano} > ${da.dano}`);
+    const db2 = torre.actuar(b, "atacar").find((e) => e.quien === "heroe");
+    cierto(!db2.activas?.includes("brasa"), "solo el primero de cada piso");
 });
 
 // ===== Reacciones elementales (v71) =====

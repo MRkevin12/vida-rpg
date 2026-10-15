@@ -2010,19 +2010,36 @@ export function cambiarSeriesGym(estado, ejercicio, delta) {
 
 // Termina el entrenamiento: lo guarda, da el XP de Fuerza, las monedas y los hitos, y avisa de los récords.
 export function terminarGym(estado) {
-    const g = estado.gym;
     const entrenamiento = entrenamientoEnCurso(estado);
-    const sesion = gym.cerrarEntrenamiento(entrenamiento, g.sesiones);
+    const sesion = gym.cerrarEntrenamiento(entrenamiento, estado.gym.sesiones);
+    const resultado = guardarSesionGym(estado, sesion);
+    estado.gym.encurso = null;
+    return resultado;
+}
+
+// (v74) La meta que se marca: dices que hoy (o ayer) entrenaste esa rutina, sin anotar series.
+export function marcarGymRapido(estado, rutinaId, fecha = hoy()) {
+    const g = estado.gym;
+    if (!gym.rutinaPorId(rutinaId)) throw new Error("Esa rutina no existe.");
+    if (fecha !== hoy() && fecha !== sumarDias(hoy(), -1)) throw new Error("Solo puedes marcar el entrenamiento de hoy o de ayer.");
+    if (g.sesiones.some((s) => s.fecha === fecha && s.rutina === rutinaId)) {
+        throw new Error("Esa rutina ya la marcaste ese día. ¡El músculo crece descansando!");
+    }
+    return guardarSesionGym(estado, gym.sesionRapida(rutinaId, fecha));
+}
+
+// Guarda una sesión ya armada: da el XP de Fuerza y las monedas, y avisa de niveles, músculos, lecturas, mazmorras e hitos.
+function guardarSesionGym(estado, sesion) {
+    const g = estado.gym;
     const nivelAntes = gym.nivelDeGym(g.sesiones).nivel;
     const fraguaAntes = torre.lugarAbierto(torre.arcadeConGym(estado), "fragua");
     const musculosAntes = gym.nivelesDeMusculos(g.sesiones);
     g.sesiones.push(sesion);
     g.sesiones.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
-    g.encurso = null;
     ganar(estado, { xp: sesion.xp, monedas: sesion.monedas, atributo: "fuerza" });
 
     const rutina = gym.rutinaPorId(sesion.rutina);
-    const celebraciones = [{ icono: rutina.icono, etiqueta: sesion.completa ? "¡Entrenamiento completo!" : "Entrenamiento guardado",
+    const celebraciones = [{ icono: rutina.icono, etiqueta: sesion.rapido ? "¡Meta del día cumplida!" : sesion.completa ? "¡Entrenamiento completo!" : "Entrenamiento guardado",
                              titulo: rutina.nombre, detalle: `+${sesion.xp} XP de 💪 Fuerza${sesion.monedas ? ` · +${sesion.monedas} 🪙` : ""}` }];
     for (const r of sesion.records) {
         const ej = gym.ejercicioPorId(r.id);
@@ -2087,6 +2104,11 @@ export function anotarPesoGym(estado, kg) {
     else lista.push({ fecha: hoyTexto, kg: valor });
     lista.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
     if (lista.length > 400) lista.splice(0, lista.length - 400);
+}
+
+// Tu altura en centímetros (para calcular el IMC).
+export function anotarAlturaGym(estado, cm) {
+    estado.gym.altura = Math.round(numeroEntre(cm, 100, 230, "La altura"));
 }
 
 export function cambiarAjusteGym(estado, clave, valor) {

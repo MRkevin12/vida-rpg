@@ -17,6 +17,7 @@ export const XP_POR_SERIE = 4;          // cada serie hecha
 export const XP_SESION_COMPLETA = 20;   // si hiciste al menos el 80 % de las series de la rutina
 export const XP_RECORD = 15;            // por cada récord personal nuevo (máximo 3 por sesión)
 export const MAX_RECORDS_PREMIADOS = 3;
+export const XP_RAPIDO = 60;            // marcar «hoy entrené» sin anotar series (la meta que se marca)
 export const MONEDAS_SESION = 25;       // monedas 🪙 por sesión terminada (si hiciste al menos la mitad)
 export const BASE_GYM = 100;            // pasar del nivel N al N+1 de gym cuesta 100 × N XP de gym
 export const BASE_MUSCULO = 50;         // y 50 × N para cada músculo
@@ -132,6 +133,7 @@ export function gymInicial() {
         metaSemanal: 4,      // cuántos días a la semana quieres entrenar (1–7)
         descanso: 90,        // segundos de descanso entre series
         peso: [],            // tu peso corporal: [{ fecha, kg }] (uno por día)
+        altura: null,        // tu altura en centímetros (para el IMC)
         mision: null,        // la misión diaria que se marca sola al terminar un entrenamiento (id), o null
     };
 }
@@ -252,6 +254,12 @@ export function cerrarEntrenamiento(entrenamiento, sesiones) {
     return { fecha: entrenamiento.fecha, rutina: entrenamiento.rutina, ejercicios, xp, monedas, gemas: 0, completa, records };
 }
 
+// Una sesión «marcada»: dices que hoy entrenaste esa rutina, sin anotar series. Da menos XP que una anotada con detalle.
+export function sesionRapida(rutinaId, fecha) {
+    if (!rutinaPorId(rutinaId)) throw new Error("Esa rutina no existe.");
+    return { fecha, rutina: rutinaId, ejercicios: [], rapido: true, xp: XP_RAPIDO, monedas: MONEDAS_SESION, gemas: 0, completa: true, records: [] };
+}
+
 // ===== Niveles =====
 export const xpDeGym = (sesiones) => sesiones.reduce((suma, s) => suma + s.xp, 0);
 export const nivelDeGym = (sesiones) => calcularNivel(xpDeGym(sesiones), BASE_GYM);
@@ -264,6 +272,10 @@ export function xpPorMusculo(sesiones) {
             const musculo = ejercicioPorId(ej.id)?.musculo;
             if (musculo) xp[musculo] += ej.series.length * XP_POR_SERIE;
         }
+        // Una sesión que solo se marcó («hoy entrené») reparte la mitad por los ejercicios de su rutina.
+        if (s.rapido) {
+            for (const ej of rutinaPorId(s.rutina)?.ejercicios || []) xp[ej.musculo] += Math.round((ej.series * XP_POR_SERIE) / 2);
+        }
     }
     return xp;
 }
@@ -273,8 +285,31 @@ export const nivelesDeMusculos = (sesiones) =>
 // Lo que el nivel de gym le da al héroe en la Torre y las mazmorras: más vida y más ataque (fracción: 0,05 = +5 %).
 export const bonoDeGym = (nivel) => Math.min(MAX_BONO, Math.max(0, nivel - 1) * 0.01);
 
-// Qué tan fornido se ve el avatar: 0 (nada), 1 (nivel 3+), 2 (nivel 8+) o 3 (nivel 15+).
-export const fisicoDe = (nivel) => (nivel >= 15 ? 3 : nivel >= 8 ? 2 : nivel >= 3 ? 1 : 0);
+// Qué tan fornido se ve el avatar: 0 a 5 (con los niveles de gym 1, 3, 6, 10, 15 y 22). Ensancha hombros, brazos y muslos
+// y, en la pestaña del gimnasio (con el avatar sin ropa), marca pecho, abdomen y brazos.
+export const NIVELES_DE_FISICO = [1, 3, 6, 10, 15, 22];
+export const NOMBRES_DE_FISICO = ["Principiante", "En forma", "Atlético", "Definido", "Fornido", "Titán"];
+export const fisicoDe = (nivel) => NIVELES_DE_FISICO.filter((n) => nivel >= n).length - 1;
+
+// ===== Altura, peso e IMC =====
+// IMC = peso (kg) / altura (m)². No distingue músculo de grasa: con mucho músculo puede salir alto.
+export const imc = (kg, cm) => (kg > 0 && cm > 0 ? Math.round((kg / (cm / 100) ** 2) * 10) / 10 : null);
+export const CATEGORIAS_IMC = [
+    { hasta: 18.5, nombre: "Bajo peso",   color: "#38bdf8" },
+    { hasta: 25,   nombre: "Peso normal", color: "#34d399" },
+    { hasta: 30,   nombre: "Sobrepeso",   color: "#fbbf24" },
+    { hasta: Infinity, nombre: "Obesidad", color: "#fb7185" },
+];
+export const categoriaDeImc = (valor) => CATEGORIAS_IMC.find((c) => valor < c.hasta) || CATEGORIAS_IMC[CATEGORIAS_IMC.length - 1];
+// El rango de peso con IMC normal (18,5 a 24,9) para esa altura.
+export function pesoSaludable(cm) {
+    const m2 = (cm / 100) ** 2;
+    return [Math.round(18.5 * m2 * 10) / 10, Math.round(24.9 * m2 * 10) / 10];
+}
+// Qué tan ancho se dibuja el cuerpo del avatar en el gimnasio: -1 (muy delgado) … 0 (IMC 22) … 1 (IMC 30) y un poco más.
+export const corpulenciaDe = (valorImc) => (valorImc === null ? 0 : Math.max(-1, Math.min(1.1, (valorImc - 22) / 8)));
+// Tu IMC de ahora (con tu último peso y tu altura), o null si falta algo.
+export const imcActual = (gymEstado) => imc(gymEstado.peso[gymEstado.peso.length - 1]?.kg || 0, gymEstado.altura || 0);
 
 // ===== Semanas y rachas =====
 
@@ -294,6 +329,19 @@ export function rachaSemanal(sesiones, meta, hoyTexto) {
         lunes = sumarDias(lunes, -7);
     }
     return racha;
+}
+
+// La mejor racha de semanas seguidas cumpliendo tu meta, en toda tu historia (las recompensas de constancia se ganan con ella).
+export function mejorRachaSemanal(sesiones, meta, hoyTexto) {
+    if (!sesiones.length) return 0;
+    const primera = sesiones.reduce((m, s) => (s.fecha < m ? s.fecha : m), sesiones[0].fecha);
+    let mejor = 0;
+    let actual = 0;
+    for (let lunes = lunesDe(primera); lunes <= lunesDe(hoyTexto); lunes = sumarDias(lunes, 7)) {
+        actual = diasDeLaSemana(sesiones, lunes) >= meta ? actual + 1 : 0;
+        if (actual > mejor) mejor = actual;
+    }
+    return mejor;
 }
 
 // Qué entrenamiento toca ahora: el siguiente al último que hiciste (y si no hay ninguno, el primero).

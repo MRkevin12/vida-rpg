@@ -17,7 +17,8 @@ import { APARIENCIA, APARIENCIA_INICIAL, CLASES, OBJETOS } from "./avatar.js";
 import { nuevoId, mate, metal, piel as materialPiel, tejido, grano, halo, aclarar, oscurecer, mezclar, pivote, SOMBRA } from "./dibujo-base.js";
 import { esqueleto, cuello, cara, lentes, barba, pelo } from "./dibujo-cuerpo.js";
 import { piernas, torso, bufanda, brazo, hombreras } from "./dibujo-ropa.js";
-import { sombrero, arma, capa, capaCuervo, escudo, alas, alasDragon, armaduraDePecho, libro, miniatura, INCLINACION, TAPA_PELO, COLOR_CAPA_REAL } from "./dibujo-objetos.js";
+import { sombrero, arma, capa, capaCuervo, escudo, alas, alasDragon, armaduraDePecho, libro, miniatura, INCLINACION, TAPA_PELO, COLOR_CAPA_REAL, COLOR_CAPA_FRAGUA } from "./dibujo-objetos.js";
+import { piernasDesnudas, torsoDesnudo, brazoDesnudo, calzoncillos } from "./dibujo-gym.js";
 import { fondo, ambiente, aura, llamas, resplandor, noche, escenario } from "./dibujo-escenas.js";
 import { cuerpoMascota, dibujarMascota } from "./dibujo-mascota.js";
 
@@ -115,6 +116,7 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     else if (d.equipado.espalda === "capa") espalda = pivote(100, 62, "capa", capa(e, p, "#8f1d2c", true));
     else if (d.equipado.espalda === "capa-real") espalda = pivote(100, 62, "capa", capa(e, p, COLOR_CAPA_REAL, true));
     else if (d.equipado.espalda === "capa-cuervo") espalda = pivote(100, 62, "capa", capaCuervo(e, p));
+    else if (d.equipado.espalda === "capa-fragua") espalda = pivote(100, 62, "capa", capa(e, p, COLOR_CAPA_FRAGUA, true));
     else if (d.equipado.espalda === "escudo") espalda = escudo(p);
     else if (p.etapa >= 2) espalda = pivote(100, 62, "capa", capa(e, p, p.capa, p.etapa === 3));
 
@@ -181,6 +183,47 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     const vista = mini ? "75 11 50 50" : batalla ? "32.5 6 135 180" : "6 2 188 188";
     return `<svg class="avatar-svg animo-${d.animo}${mini ? " avatar-mini" : ""}" viewBox="${vista}" role="img"
                  aria-label="Avatar: ${d.clase.nombre} ${d.etapa.nombre}" xmlns="http://www.w3.org/2000/svg">${capas.join("")}</svg>`;
+}
+
+
+// ===== (v74) El avatar sin ropa de la pestaña del gimnasio =====
+// d = describirAvatar() con `corpulencia` (de tu IMC) añadida. Sale en calzoncillos para ver el avance del cuerpo:
+// el nivel de gym (d.fisico, 0 a 5) marca los músculos y el peso cambia la cintura y las piernas (ver dibujo-gym.js).
+export function dibujarAvatarGym(d) {
+    d = {
+        ...d, animo: "normal", apariencia: { ...APARIENCIA_INICIAL, ...d.apariencia },
+        equipado: { cabeza: null, pecho: null, mano: null, espalda: null, fondo: null },
+        rasgos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 },
+    };
+    const p = crearPaleta(d);
+    const e = esqueleto(d);
+    const cabello = pelo(d, p);
+    const giro = ` transform="translate(100 58.5) scale(${ESCALA_CABEZA}) translate(-100 -58.5)"`;
+    const izquierdo = brazoDesnudo("izq", d, e, p);
+    const derecho = brazoDesnudo("der", d, e, p);
+    const capas = [
+        `<defs>${p.defs}<linearGradient id="${p.id}-sala" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1f4e"/><stop offset="1" stop-color="#0d0a1c"/></linearGradient></defs>`,
+        `<rect x="0" y="0" width="200" height="200" fill="url(#${p.id}-sala)"/>`,
+        '<rect x="0" y="182" width="200" height="18" fill="#150f2a"/><path d="M0 182 L200 182" stroke="#3a2c68" stroke-width="1"/>',
+        `<ellipse cx="100" cy="183.4" rx="36" ry="6" fill="${p.m("suelo")}"/><ellipse cx="101" cy="181.8" rx="20" ry="2.6" fill="${p.m("ao")}"/>`,
+        '<g class="pj">',
+        piernasDesnudas(d, e, p),
+        '<g class="pj-torso">',
+        `<g${giro}>${cabello.atras}</g>`,
+        izquierdo.atras,
+        derecho.atras,
+        cuello(e, p),
+        torsoDesnudo(d, e, p),
+        calzoncillos(e),
+        `<ellipse cx="101" cy="62.6" rx="${e.fem ? 8 : 9.5}" ry="3.6" fill="${p.m("ao")}"/>`,
+        izquierdo.frente,
+        derecho.frente,
+        `<g${giro}>${cara(d, e, p)}${barba(d, p)}${cabello.frente}</g>`,
+        "</g>",
+        "</g>",
+    ];
+    return `<svg class="avatar-svg avatar-gym" viewBox="6 2 188 188" role="img" aria-label="Tu cuerpo: nivel de físico ${d.fisico || 0}"
+                 xmlns="http://www.w3.org/2000/svg">${capas.join("")}</svg>`;
 }
 
 

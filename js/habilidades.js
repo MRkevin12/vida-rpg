@@ -37,6 +37,11 @@ export const HABILIDADES = {
     gracia:     { icono: "🕊️", nombre: "Gracia",         texto: "Una vez por piso, un golpe que te dejaría en 0 te deja con el 40 % de tu vida.", vida: 0.4 },
     escamas:    { icono: "🐲", nombre: "Escamas",        texto: "Le devuelves a la criatura la mitad del daño que te hace.", reflejo: 0.5 },
     gloria:     { icono: "🏛️", nombre: "Gloria",         texto: "Empiezas cada subida con 40 % más de vida máxima y una poción extra.", vida: 0.4 },
+    // (v74) Las piezas de constancia del gimnasio.
+    vigor:      { icono: "🎽", nombre: "Vigor",          texto: "Tus pociones curan 50 % más.", pocion: 1.5 },
+    ritmo:      { icono: "🥁", nombre: "Ritmo",          texto: "Ganas el doble de Voluntad.", voluntad: 2 },
+    titan:      { icono: "🗿", nombre: "Titán",          texto: "Tu ataque base sube 20 %.", ataque: 1.2 },
+    brasa:      { icono: "🔥", nombre: "Brasa",          texto: "Tu primer golpe o hechizo de cada piso hace 50 % más de daño.", primero: 1.5 },
     llama:      { icono: "🕯️", nombre: "Llama del Vigía", texto: "Tus hechizos de fuego hacen 50 % más y el veneno no te hace nada.", fuego: 1.5 },
 };
 

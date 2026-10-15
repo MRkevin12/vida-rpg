@@ -418,7 +418,7 @@ export function heroeDeLaTorre(niveles, equipo = {}) {
     return {
         vida: vidaMax,
         vidaMax,
-        ataque: Math.round((6 + 2 * niveles.fuerza) * fuerzaGym) + ataque,
+        ataque: Math.round((6 + 2 * niveles.fuerza) * fuerzaGym * (habilidades.includes("titan") ? HABILIDADES.titan.ataque : 1)) + ataque,
         hechizo: 10 + 3 * niveles.intelecto + Math.round(magia * 1.5),
         mana,                 // hechizos que te quedan en este piso
         manaMax: mana,
@@ -453,7 +453,7 @@ export function motivoTecnica(h, clave) {
 
 // («Fervor» es un don: sube lo que ganas, no lo que ya tienes.)
 const sumarVoluntad = (h, cuanto) => {
-    const ganado = Math.round(cuanto * (tieneDon(h, "fervor") ? DONES.fervor : 1));
+    const ganado = Math.round(cuanto * (tieneDon(h, "fervor") ? DONES.fervor : 1) * (tiene(h, "ritmo") ? HABILIDADES.ritmo.voluntad : 1));
     h.voluntad = Math.min(VOLUNTAD.max, (h.voluntad || 0) + ganado);
 };
 
@@ -721,6 +721,7 @@ export function actuar(partida, accion, opcion = null) {
         const variacion = magia ? 0.9 + azar(partida) * 0.2 : 0.85 + azar(partida) * 0.3;
         const azarCritico = azar(partida);
         const porImpetu = tiene(h, "impetu") && !piso.atacado;
+        const porBrasa = tiene(h, "brasa") && !piso.atacado;   // (v74) «Brasa»: el primer golpe de cada piso hace 50 % más
         const critico = tecnica === "certero" || porImpetu || azarCritico < h.critico;
         const multiplicaCritico = (tiene(h, "desgarro") ? HABILIDADES.desgarro.critico : 1.8) + (tieneDon(h, "cazador") ? DONES.cazador : 0);
         // «Eco arcano» (don): el primer hechizo de cada piso pega el doble.
@@ -729,7 +730,7 @@ export function actuar(partida, accion, opcion = null) {
         // (v71) Reacción elemental con el hechizo del turno anterior.
         const previo = magia && m.afectado && m.afectado.turno === partida.turno - 1 ? m.afectado.elemento : null;
         const reaccion = reaccionDe(previo, elemento);
-        const extra = factorDeDano(h, m) * (eco ? 2 : 1) * (reaccion ? REACCIONES[reaccion].factor : 1) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1)
+        const extra = factorDeDano(h, m) * (eco ? 2 : 1) * (reaccion ? REACCIONES[reaccion].factor : 1) * (porBrasa ? HABILIDADES.brasa.primero : 1) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1)
             * (magia && elemento === "fuego" && tiene(h, "llama") ? HABILIDADES.llama.fuego : 1)   // «Llama del Vigía»
             * (tecnica === "quebrar" ? TECNICAS.quebrar.fuerza : 1);
         // «Quebrar» rompe su barrera y su coraza antes de pegar.
@@ -775,6 +776,7 @@ export function actuar(partida, accion, opcion = null) {
         const conTecnica = tecnica ? { tecnica, nombre: TECNICAS[tecnica].nombre, rompio } : {};
         // (v63) Lo que se notó en este golpe.
         if (porImpetu) activas.push("impetu");
+        if (porBrasa) activas.push("brasa");
         if (critico && tiene(h, "desgarro")) activas.push("desgarro");
         if (critico && tieneDon(h, "cazador")) activas.push("cazador");
         if (critico && tieneDon(h, "sangre") && cura > 0) activas.push("sangre");
@@ -814,7 +816,7 @@ export function actuar(partida, accion, opcion = null) {
         frases.push(`Te cubres${cura ? ` y recuperas ${cura}` : ""}.`);
     } else if (accion === "pocion") {
         h.pociones -= 1;
-        const cura = Math.min(Math.round(h.vidaMax * 0.35), h.vidaMax - h.vida);
+        const cura = Math.min(Math.round(h.vidaMax * 0.35 * (tiene(h, "vigor") ? HABILIDADES.vigor.pocion : 1)), h.vidaMax - h.vida);
         h.vida += cura;
         const antidoto = (h.veneno || 0) > 0;   // la poción también cura el veneno
         h.veneno = 0;

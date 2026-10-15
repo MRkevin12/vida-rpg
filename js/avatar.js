@@ -5,9 +5,9 @@
 // etapa, clase, rasgos de los atributos, ánimo, equipamiento y mascota.
 
 import { calcularNivel, ATRIBUTOS, BASE_ATRIBUTO } from "./juego.js";
-import { diasEntre } from "./fechas.js";
+import { diasEntre, hoy as hoyDeHoy } from "./fechas.js";
 import { calcularVida } from "./vida.js";
-import { fisicoDe, nivelDeGym } from "./gym.js";
+import { fisicoDe, nivelDeGym, mejorRachaSemanal } from "./gym.js";
 import { especieActiva, nombreDe, totalDe } from "./mascota.js";
 
 
@@ -109,6 +109,15 @@ export const OBJETOS = {
                        logro: { tipo: "perfectos", meta: 10, texto: "Tener 10 días perfectos" } },
     "alas-dragon":   { nombre: "Alas del Dragón",     icono: "🐲", espacio: "espalda", rareza: "legendario", poder: { armadura: 18, ataque: 3 }, habilidad: "escamas",
                        logro: { tipo: "nivel", meta: 25, texto: "Llegar al nivel 25" } },
+    // --- (v74) Recompensas de constancia en el gimnasio: se ganan cumpliendo tu meta semanal varias semanas seguidas ---
+    "cinta-hierro":   { nombre: "Cinta de hierro",   icono: "🎽", espacio: "cabeza",  rareza: "legendario", poder: { armadura: 5, ataque: 1 }, habilidad: "vigor",
+                        logro: { tipo: "gymsemanas", meta: 2, texto: "Cumplir tu meta de gym 2 semanas seguidas" } },
+    "peto-constante": { nombre: "Peto del constante", icono: "🏋️", espacio: "pecho",  rareza: "legendario", poder: { armadura: 13, ataque: 1 }, habilidad: "ritmo",
+                        logro: { tipo: "gymsemanas", meta: 4, texto: "Cumplir tu meta de gym 4 semanas seguidas" } },
+    "coraza-titan":   { nombre: "Coraza del Titán",  icono: "🗿", espacio: "pecho",   rareza: "legendario", poder: { armadura: 22, ataque: 3 }, habilidad: "titan",
+                        logro: { tipo: "gymsemanas", meta: 8, texto: "Cumplir tu meta de gym 8 semanas seguidas" } },
+    "capa-fragua":    { nombre: "Capa de la Fragua", icono: "🔥", espacio: "espalda", rareza: "legendario", poder: { armadura: 14, ataque: 2 }, habilidad: "brasa",
+                        logro: { tipo: "gymsemanas", meta: 12, texto: "Cumplir tu meta de gym 12 semanas seguidas" } },
     "escudo":        { nombre: "Escudo redondo",      icono: "🛡️", espacio: "espalda", precio: 160, rareza: "raro", poder: { armadura: 9 } },
     "capa-cuervo":   { nombre: "Capa de plumas de cuervo", icono: "🪶", espacio: "espalda", precio: 430, rareza: "epico", poder: { armadura: 9, suerte: 4 }, habilidad: "presagio" },
     "bosque":        { nombre: "Fondo: Bosque",       icono: "🌲", espacio: "fondo",   precio: 100, rareza: "raro" },
@@ -264,6 +273,7 @@ export function progresoObjeto(objeto, estado, info) {
         case "logros":    return estado.logros.filter((l) => l.desbloqueadoEn).length;
         case "nivel":     return calcularNivel(estado.personaje?.xp || 0).nivel;
         case "torre":     return estado.arcade?.records?.torre || 0;   // pisos superados (récord)
+        case "gymsemanas": return mejorRachaSemanal(estado.gym?.sesiones || [], estado.gym?.metaSemanal || 4, hoyDeHoy());   // (v74) la constancia en el gimnasio
         default:          return 0;
     }
 }

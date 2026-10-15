@@ -6,10 +6,11 @@
 
 import * as gym from "./gym.js";
 import * as fragua from "./fragua.js";
+import * as avatar from "./avatar.js";
 import { plural } from "./juego.js";
 import { esc } from "./vistas.js";
-import { dibujarAvatar } from "./dibujo.js";
-import { fechaCorta, sumarDias, lunesDe, diaDeSemana, DIAS_LETRAS } from "./fechas.js";
+import { dibujarAvatarGym } from "./dibujo.js";
+import { fechaCorta, sumarDias, lunesDe, diaDeSemana, DIAS_LETRAS, hoy as hoyDeHoy } from "./fechas.js";
 
 const barra = (porcentaje, clase = "") => `<div class="barra ${clase}"><div class="barra-relleno" style="width: ${porcentaje}%"></div></div>`;
 const kilos = (kg) => `${String(kg).replace(".", ",")} kg`;
@@ -64,8 +65,11 @@ export function tarjetaGymHoy(estado, ctx) {
     return `
         <div class="gym-hoy">
             <span class="gym-hoy-icono" aria-hidden="true">${toca.icono}</span>
-            <span class="gym-hoy-texto"><b>Gym: hoy toca ${esc(toca.nombre)}</b><small>Esta semana ${gym.diasDeLaSemana(g.sesiones, lunes)} de ${g.metaSemanal} días</small></span>
-            <button type="button" class="boton boton-chico boton-principal" data-accion="ir" data-pantalla="gym">Entrenar</button>
+            <span class="gym-hoy-texto"><b>Gym: hoy toca ${esc(toca.nombre)}</b><small>Meta de la semana: ${gym.diasDeLaSemana(g.sesiones, lunes)} de ${g.metaSemanal} días</small></span>
+            <span class="gym-hoy-botones">
+                <button type="button" class="boton boton-chico boton-principal" data-accion="gym-rapido" data-rutina="toca" aria-label="Marcar que hoy entrené">✅ Marcar</button>
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="gym">Abrir</button>
+            </span>
         </div>`;
 }
 
@@ -97,10 +101,16 @@ function tarjetaNivel(estado, ctx) {
     const bono = Math.round(gym.bonoDeGym(n.nivel) * 100);
     const total = gym.totales(sesiones);
     const siguiente = gym.RANGOS.find((r) => r.desde > n.nivel);
+    // (v74) Tu cuerpo en calzoncillos: el nivel de gym marca los músculos y tu peso (IMC) cambia la silueta.
+    const miImc = gym.imcActual(estado.gym);
+    const fisico = gym.fisicoDe(n.nivel);
+    const proximo = gym.NIVELES_DE_FISICO[fisico + 1];
+    const cuerpo = dibujarAvatarGym({ ...ctx.avatar, fisico, corpulencia: gym.corpulenciaDe(miImc) });
     return `
         <section class="panel gym-heroe">
-            <div class="gym-avatar" aria-hidden="true">${dibujarAvatar(ctx.avatar)}</div>
+            <div class="gym-avatar" role="img" aria-label="Tu cuerpo: ${gym.NOMBRES_DE_FISICO[fisico]}">${cuerpo}</div>
             <div class="gym-nivel">
+                <p class="mini texto-suave gym-fisico">Físico: <b>${gym.NOMBRES_DE_FISICO[fisico]}</b>${proximo ? ` · ${gym.NOMBRES_DE_FISICO[fisico + 1]} en el nivel ${proximo}` : " · el máximo"}</p>
                 <p class="etiqueta">${rango.icono} ${rango.nombre}</p>
                 <p class="gym-nivel-numero">Nivel <b>${n.nivel}</b> de gym</p>
                 ${barra(n.porcentaje, "barra-gym")}
@@ -125,15 +135,35 @@ function tarjetaSemana(estado, ctx) {
         const clases = ["gym-dia", deEseDia.length ? "hecho" : "", fecha === ctx.hoy ? "hoy" : "", fecha > ctx.hoy ? "futuro" : ""].join(" ");
         return `<li class="${clases}"><small>${DIAS_LETRAS[diaDeSemana(fecha)]}</small><span>${iconos || "·"}</span></li>`;
     }).join("");
+    // (v74) La meta que se marca: un botón para decir «hoy entrené» (sin anotar series), o marcar otra rutina u otro día.
+    const toca = gym.siguienteRutina(g.sesiones);
+    const ayer = sumarDias(ctx.hoy, -1);
+    const yaHoy = g.sesiones.some((s) => s.fecha === ctx.hoy && s.rutina === toca.id);
+    const filaMarcar = (r, esAyer) => {
+        const fecha = esAyer ? ayer : ctx.hoy;
+        const hecha = g.sesiones.some((s) => s.fecha === fecha && s.rutina === r.id);
+        return `<li class="gym-rutina gym-rutina-chica"><span>${r.icono} ${esc(r.nombre)}</span>
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rapido" data-rutina="${r.id}" ${esAyer ? 'data-ayer="1"' : ""} ${hecha ? "disabled" : ""}>${hecha ? "✓" : "Marcar"}</button></li>`;
+    };
+    const marcar = `
+        <button type="button" class="boton ${yaHoy ? "boton-secundario" : "boton-principal"} boton-ancho gym-marcar" data-accion="gym-rapido" data-rutina="toca" ${yaHoy ? "disabled" : ""}>
+            ${yaHoy ? `✅ Hoy ya marcaste ${esc(toca.nombre)}` : `✅ Marcar que hoy entrené: ${toca.icono} ${esc(toca.nombre)}`}</button>
+        <details class="plegable"><summary>Marcar otra rutina u otro día</summary>
+            <p class="nota">Hoy:</p><ul class="gym-rutinas">${gym.RUTINA.map((r) => filaMarcar(r, false)).join("")}</ul>
+            <p class="nota">Ayer, si se te olvidó:</p><ul class="gym-rutinas">${gym.RUTINA.map((r) => filaMarcar(r, true)).join("")}</ul>
+        </details>`;
     return `
         <section class="panel">
             <div class="titulo-seccion">
-                <h2 class="titulo-juego">Tu semana</h2>
+                <h2 class="titulo-juego">🎯 Tu meta de la semana</h2>
                 <p class="contador ${hechos >= g.metaSemanal ? "completo" : ""}">${hechos >= g.metaSemanal ? "✨" : ""}${hechos}/${g.metaSemanal}</p>
             </div>
             <ol class="gym-semana">${celdas}</ol>
             ${barra(Math.min(100, Math.round((hechos / g.metaSemanal) * 100)), "barra-gym")}
-            <p class="nota">${racha ? `🔥 <b>${plural(racha, "semana seguida", "semanas seguidas")}</b> cumpliendo tu meta.` : "Cumple tu meta de la semana para empezar una racha de semanas."}</p>
+            <p class="nota">${racha ? `🔥 <b>${plural(racha, "semana seguida", "semanas seguidas")}</b> cumpliendo tu meta.` : "Cumple tu meta de la semana para empezar una racha de semanas."}
+               Marca cada día que entrenes (+${gym.XP_RAPIDO} XP) o, si quieres, anota tus series más abajo (da más XP y récords).</p>
+            ${marcar}
+            ${recompensasDeConstancia(estado)}
         </section>`;
 }
 
@@ -181,7 +211,9 @@ function listaDeRutinas(estado, ctx) {
                     <small>${plural(r.ejercicios.length, "ejercicio", "ejercicios")} · ${gym.seriesPlaneadas(r)} series · ${musculos}</small>
                     <small class="texto-suave">${haceCuanto(dias)}</small>
                 </span>
-                <button type="button" class="boton boton-chico ${esLaQueToca ? "boton-principal" : "boton-secundario"}" data-accion="gym-empezar" data-rutina="${r.id}" ${yaHoy ? "disabled" : ""}>${yaHoy ? "✓" : "Empezar"}</button>
+                <span class="gym-rutina-botones">
+                    <button type="button" class="boton boton-chico ${esLaQueToca ? "boton-principal" : "boton-secundario"}" data-accion="gym-empezar" data-rutina="${r.id}" ${yaHoy ? "disabled" : ""}>${yaHoy ? "✓" : "Anotar"}</button>
+                </span>
             </li>`;
     };
     const ayerFilas = gym.RUTINA.map((r) => {
@@ -191,9 +223,9 @@ function listaDeRutinas(estado, ctx) {
     }).join("");
     return `
         <section class="panel">
-            <h2 class="titulo-juego">¿Qué entrenas hoy?</h2>
-            <p class="nota">Cada serie que hagas de verdad le da XP de 💪 Fuerza a tu héroe, sube tus músculos y tu nivel de gym.
-               Anota el peso y las repeticiones: la app te dice cómo superarte.</p>
+            <h2 class="titulo-juego">Anotar un entrenamiento con detalle</h2>
+            <p class="nota">Opcional: anota el peso y las repeticiones de cada serie. Da más XP de 💪 Fuerza que solo marcar el día, sube tus músculos,
+               cuenta récords y la app te dice cómo superarte.</p>
             <ul class="gym-rutinas">${RUTINA_ORDENADA(toca).map(fila).join("")}</ul>
             <details class="plegable"><summary>Se me olvidó anotar ayer</summary><ul class="gym-rutinas">${ayerFilas}</ul></details>
         </section>`;
@@ -347,6 +379,22 @@ function tarjetaHitos(estado) {
         </section>`;
 }
 
+// ===== Recompensas de constancia: piezas de armadura que se ganan cumpliendo tu meta varias semanas seguidas =====
+function recompensasDeConstancia(estado) {
+    const mejor = gym.mejorRachaSemanal(estado.gym.sesiones, estado.gym.metaSemanal, hoyDeHoy());
+    const piezas = Object.entries(avatar.OBJETOS).filter(([, o]) => o.logro?.tipo === "gymsemanas").sort((a, b) => a[1].logro.meta - b[1].logro.meta);
+    const filas = piezas.map(([id, o]) => {
+        const ganada = mejor >= o.logro.meta;
+        return `<li class="gym-pieza ${ganada ? "ganada" : ""}">
+                    <span class="gym-pieza-icono" aria-hidden="true">${ganada ? o.icono : "🔒"}</span>
+                    <span><b>${esc(o.nombre)}</b><small>${ganada ? "¡Ganada! Equípala en Héroe › Equipo." : `${esc(o.logro.texto)} · llevas ${Math.min(mejor, o.logro.meta)}/${o.logro.meta}`}</small></span>
+                </li>`;
+    }).join("");
+    return `<details class="plegable"><summary>🛡️ Armadura por constancia (${piezas.filter(([, o]) => mejor >= o.logro.meta).length}/${piezas.length})</summary>
+                <p class="nota">Cumple tu meta de días por semana varias semanas seguidas y ganas piezas legendarias para tu héroe.</p>
+                <ul class="gym-piezas">${filas}</ul></details>`;
+}
+
 // ===== Las lecturas de la Fragua (se abren con el nivel de gym) =====
 function tarjetaLecturas(estado) {
     const nivel = gym.nivelDeGym(estado.gym.sesiones).nivel;
@@ -376,21 +424,42 @@ function tarjetaLecturas(estado) {
 
 // ===== Peso corporal =====
 function tarjetaPeso(estado, ctx) {
-    const lista = estado.gym.peso;
+    const g = estado.gym;
+    const lista = g.peso;
     const ultimo = lista[lista.length - 1];
     const primero = lista[0];
     const cambio = ultimo && primero && lista.length > 1 ? Math.round((ultimo.kg - primero.kg) * 10) / 10 : null;
     const hoyPuesto = ultimo && ultimo.fecha === ctx.hoy;
+    // (v74) El IMC, con tu último peso y tu altura.
+    const valorImc = gym.imcActual(g);
+    const cat = valorImc === null ? null : gym.categoriaDeImc(valorImc);
+    const marcador = valorImc === null ? 0 : Math.max(2, Math.min(98, ((valorImc - 15) / 25) * 100));
+    const [min, max] = g.altura ? gym.pesoSaludable(g.altura) : [0, 0];
+    const bloqueImc = valorImc === null
+        ? `<p class="nota">${g.altura ? "Anota tu peso para calcular el IMC." : ultimo ? "Anota tu altura para calcular el IMC." : "Anota tu altura y tu peso para calcular el IMC."}</p>`
+        : `<div class="gym-imc">
+               <p class="gym-imc-numero"><b style="color: ${cat.color}">${String(valorImc).replace(".", ",")}</b> <span>IMC · ${cat.nombre}</span></p>
+               <div class="gym-imc-escala" role="img" aria-label="IMC ${valorImc}: ${cat.nombre}">
+                   <i style="background: #38bdf8; flex: 3.5"></i><i style="background: #34d399; flex: 6.5"></i><i style="background: #fbbf24; flex: 5"></i><i style="background: #fb7185; flex: 10"></i>
+                   <b style="left: ${marcador}%"></b></div>
+               <p class="mini texto-suave">Para ${g.altura} cm, un IMC normal va de ${kilos(min)} a ${kilos(max)}. El IMC no distingue músculo de grasa: con mucho músculo puede salir más alto de lo que parece.</p>
+           </div>`;
     return `
         <section class="panel">
-            <h2 class="titulo-juego">⚖️ Peso corporal</h2>
-            ${ultimo ? `<p class="gym-peso-actual"><b>${kilos(ultimo.kg)}</b> <span class="texto-suave">· ${fechaCorta(ultimo.fecha)}${cambio !== null ? ` · ${cambio > 0 ? "+" : ""}${String(cambio).replace(".", ",")} kg desde el inicio` : ""}</span></p>
+            <h2 class="titulo-juego">⚖️ Peso, altura e IMC</h2>
+            ${ultimo ? `<p class="gym-peso-actual"><b>${kilos(ultimo.kg)}</b> <span class="texto-suave">· ${fechaCorta(ultimo.fecha)}${cambio !== null ? ` · ${cambio > 0 ? "+" : ""}${String(cambio).replace(".", ",")} kg desde el inicio` : ""}${g.altura ? ` · ${g.altura} cm` : ""}</span></p>
                        ${sparkline(lista.slice(-30).map((p) => p.kg), { ancho: 300, alto: 48, color: "#34d399" })}`
-                : '<p class="nota">Anota tu peso de vez en cuando para ver tu avance.</p>'}
+                : `<p class="nota">Anota tu peso de vez en cuando para ver tu avance${g.altura ? ` (tu altura: ${g.altura} cm)` : ""}.</p>`}
+            ${bloqueImc}
             <form data-form="gym-peso" class="form-linea">
-                <input type="number" name="kg" inputmode="decimal" step="0.1" min="20" max="400" required placeholder="${hoyPuesto ? "Cambiar el de hoy" : "Tu peso de hoy (kg)"}" aria-label="Peso corporal en kilos">
+                <input type="number" name="kg" inputmode="decimal" step="0.1" min="20" max="400" required placeholder="${hoyPuesto ? "Cambiar el peso de hoy" : "Tu peso de hoy (kg)"}" aria-label="Peso corporal en kilos">
                 <button type="submit" class="boton boton-chico">${hoyPuesto ? "Cambiar" : "Anotar"}</button>
             </form>
+            <form data-form="gym-altura" class="form-linea">
+                <input type="number" name="cm" inputmode="numeric" step="1" min="100" max="230" required placeholder="${g.altura ? `Tu altura: ${g.altura} cm (cambiarla)` : "Tu altura (cm)"}" aria-label="Altura en centímetros">
+                <button type="submit" class="boton boton-chico">${g.altura ? "Cambiar" : "Guardar"}</button>
+            </form>
+            <p class="mini texto-suave">Tu avatar de arriba cambia con tu peso (IMC) y con tu nivel de gym.</p>
         </section>`;
 }
 
@@ -405,7 +474,7 @@ function tarjetaHistorial(estado) {
         const volumen = Math.round(gym.volumenDe(s));
         return `<li class="gym-historial">
                     <span><b>${r.icono} ${esc(r.nombre)}</b>
-                        <small class="texto-suave">${fechaCorta(s.fecha)} · ${plural(series, "serie", "series")}${volumen ? ` · ${volumen.toLocaleString("es")} kg` : ""} · +${s.xp} XP${s.records.length ? ` · 📈 ${plural(s.records.length, "récord", "récords")}` : ""}</small></span>
+                        <small class="texto-suave">${fechaCorta(s.fecha)} · ${s.rapido ? "✅ marcado" : plural(series, "serie", "series")}${volumen ? ` · ${volumen.toLocaleString("es")} kg` : ""} · +${s.xp} XP${s.records.length ? ` · 📈 ${plural(s.records.length, "récord", "récords")}` : ""}</small></span>
                     <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-borrar" data-indice="${i}" aria-label="Borrar esta sesión">🗑️</button>
                 </li>`;
     }).join("");

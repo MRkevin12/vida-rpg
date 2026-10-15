@@ -2933,6 +2933,12 @@ const ACCIONES = {
         descansoGym = null;
         window.scrollTo(0, 0);
     },
+    // La meta que se marca: «hoy entrené» sin anotar series.
+    "gym-rapido": (boton) => {
+        const fecha = boton.dataset.ayer ? sumarDias(hoy(), -1) : hoy();
+        const rutina = boton.dataset.rutina === "toca" ? gym.siguienteRutina(estado.gym.sesiones).id : boton.dataset.rutina;
+        if (ejecutar(() => acciones.marcarGymRapido(estado, rutina, fecha), { mantenerScroll: true })) sonar("completar");
+    },
     "gym-serie": (boton) => {
         const resultado = ejecutar(() => {
             const r = acciones.marcarSerieGym(estado, Number(boton.dataset.ej), Number(boton.dataset.serie));
@@ -3103,6 +3109,11 @@ const FORMULARIOS = {
     },
     tarea: (valores) => ejecutar(() => (valores.id ? acciones.editarTarea(estado, valores) : acciones.crearTarea(estado, valores))),
     principal: (valores) => ejecutar(() => acciones.crearPrincipal(estado, valores)),
+    "gym-altura"(valores, formulario) {
+        const ok = ejecutar(() => acciones.anotarAlturaGym(estado, valores.cm), { mantenerScroll: true });
+        if (ok) formulario.reset();
+        return ok;
+    },
     "gym-peso"(valores, formulario) {
         const ok = ejecutar(() => acciones.anotarPesoGym(estado, valores.kg), { mantenerScroll: true });
         if (ok) formulario.reset();

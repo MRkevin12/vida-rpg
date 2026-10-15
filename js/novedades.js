@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 73;
+export const VERSION_APP = 74;
 
 export const NOVEDADES = [
+    {
+        version: 74,
+        titulo: "El gimnasio: tu cuerpo y tu constancia",
+        cambios: [
+            "🎯 El gimnasio ahora es una meta que se marca: en la pestaña del Gimnasio (y en Hoy) hay un botón «✅ Marcar que hoy entrené». Cuenta para tu meta de la semana, da XP y marca tu misión elegida; anotar las series con detalle sigue ahí, como opción. Los Ajustes del gym no cambian.",
+            "⚖️ Altura, peso e IMC: anota tu altura y tu peso y la app calcula tu IMC con su escala de colores y el rango de peso normal para tu altura.",
+            "🩳 Tu avatar sin ropa (en calzoncillos) en la pestaña del Gimnasio: se ve más ancho o más delgado según tu peso, y a medida que subes de nivel de gym se marcan el pecho, los hombros, los bíceps, el abdomen y las piernas (6 niveles de físico). Tu héroe también se ve más fornido en el resto de la app.",
+            "🛡️ Armadura por constancia: cumple tu meta de días por semana varias semanas seguidas y ganas piezas legendarias: Cinta de hierro (2 semanas), Peto del constante (4), Coraza del Titán (8) y Capa de la Fragua (12). Traen habilidades nuevas para la Torre: Vigor, Ritmo, Titán y Brasa.",
+        ],
+    },
     {
         version: 73,
         titulo: "La Fragua Profunda",

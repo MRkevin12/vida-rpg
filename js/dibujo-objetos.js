@@ -56,6 +56,15 @@ export function sombrero(id, p) {
                         <circle cx="90.6" cy="44.6" r=".65"/><circle cx="109.4" cy="44.6" r=".65"/></g>
                     <path d="M92.4 30.4 Q94.6 26.6 98.4 25.6" fill="none" stroke="#fff" stroke-width="1" opacity=".45" stroke-linecap="round"/>`;
 
+        case "cinta-hierro":    // (v74) cinta de entrenamiento de tela roja con una placa de hierro y el nudo al costado
+            return `<defs>${metal(`${p.id}-cinta`, "#9aa3b2")}</defs>
+                    <path d="M109.4 36.4 Q114.6 36.2 117 41.4 Q113.4 40.6 110.4 40 Z M110 38.4 Q115.6 41 114.6 46.6 Q112.4 43 109.8 41 Z" fill="#b3202f" ${borde(0.5)}/>
+                    <path d="M89.2 36.8 Q100 31.8 110.8 36.8 L110.6 40.4 Q100 35.4 89.4 40.4 Z" fill="#b3202f" ${borde(0.7)}/>
+                    <path d="M91 37.4 Q100 33.4 109 37.4" fill="none" stroke="#e5606a" stroke-width=".5" opacity=".7"/>
+                    <path d="M94 35 L106 35 L105.2 39.2 Q100 37.6 94.8 39.2 Z" fill="url(#${p.id}-cinta)" ${borde(0.6)}/>
+                    <path d="M96.4 36.2 L103.6 36.2" stroke="#fff" stroke-width=".5" opacity=".75"/>
+                    <circle cx="95.6" cy="37.2" r=".5" fill="${TRAZO}"/><circle cx="104.4" cy="37.2" r=".5" fill="${TRAZO}"/>`;
+
         case "diadema":         // diadema de plata en la frente, con un zafiro en forma de gota
             return `<defs>${metal(`${p.id}-plata`, "#c9d2e0")}${halo(`${p.id}-zafiro`, "#7cc4ff", 0.7)}</defs>
                     <path d="M89.4 37.6 Q100 32.4 110.6 37.6 L110.4 39.6 Q100 34.6 89.6 39.6 Z" fill="url(#${p.id}-plata)" ${borde(0.6)}/>
@@ -308,6 +317,7 @@ export function arma(id, p) {
 
 // La «Capa real»: violeta con borde de oro.
 export const COLOR_CAPA_REAL = "#4c1d95";
+export const COLOR_CAPA_FRAGUA = "#c2410c";   // (v74) la capa de la Fragua: naranja de brasa
 
 // Capa. La del héroe es del color de su traje; la «Capa carmesí» y la «Capa real» se compran.
 export function capa(e, p, color, conOro) {
@@ -503,6 +513,33 @@ export function armaduraDePecho(id, e, p) {
                     <path d="M94.6 59.6 Q100 63.8 105.4 59.6 L105.6 62.4 Q100 66.6 94.4 62.4 Z" fill="url(#${p.id}-coraza)" ${borde(0.6)}/>
                     ${luz}${destello(100 - H + 8, 69, 1.8, "chispa", "#fff")}`;
 
+        case "peto-constante":  // (v74) placas de acero con una franja roja y unas pesas grabadas: el peto de quien no falta
+            return `<defs>${metal(`${p.id}-cons`, "#a9b2c2")}${mate(`${p.id}-banda`, "#b3202f", 0.25, 0.5)}</defs>
+                    <path d="${peto}" fill="url(#${p.id}-cons)" ${borde(0.9)}/>
+                    ${sombraDerecha}
+                    <path d="M${100 - H + 5} 70 Q100 65.6 ${100 + H - 5} 70 L${100 + C + 1} 77.6 Q100 81.6 ${100 - C - 1} 77.6 Z" fill="url(#${p.id}-banda)" ${borde(0.6)}/>
+                    <path d="M${100 - H + 5.6} 71.6 Q100 67.4 ${100 + H - 5.6} 71.6" fill="none" stroke="#e5606a" stroke-width=".5" opacity=".7"/>
+                    <path d="M100 62 L100 98" stroke="${TRAZO}" stroke-width=".7" opacity=".4"/>
+                    <path d="M${100 - H + 4.6} 66.6 Q100 60.4 ${100 + H - 4.6} 66.6 M${100 - C - 0.4} 97.6 Q100 102.2 ${100 + C + 0.4} 97.6" fill="none" stroke="${p.m("oro")}" stroke-width="1.4"/>
+                    <g stroke="${TRAZO}" stroke-width=".5"><rect x="91.4" y="84" width="2.4" height="7" rx=".6" fill="#d9dee8"/><rect x="94.4" y="85.2" width="1.8" height="4.6" rx=".5" fill="#9aa3b2"/>
+                       <rect x="105.8" y="85.2" width="1.8" height="4.6" rx=".5" fill="#9aa3b2"/><rect x="106.2" y="84" width="2.4" height="7" rx=".6" fill="#d9dee8"/>
+                       <path d="M96.2 87.5 L105.8 87.5" stroke-width="1.1"/></g>
+                    <path d="M94.6 59.6 Q100 63.8 105.4 59.6 L105.6 62.4 Q100 66.6 94.4 62.4 Z" fill="url(#${p.id}-cons)" ${borde(0.6)}/>
+                    ${luz}`;
+
+        case "coraza-titan":    // (v74) legendaria: acero azul del cielo con relieve de músculos, ribetes de brasa y un yunque en el pecho
+            return `<defs>${metal(`${p.id}-titan`, "#5f7fb0")}${halo(`${p.id}-brasa`, "#ff8a2a", 0.8)}${mate(`${p.id}-placas`, "#3d5688", 0.3, 0.5)}</defs>
+                    ${faldaDePlacas(e, `url(#${p.id}-placas)`, "#ff9a3a")}
+                    <path d="${peto}" fill="url(#${p.id}-titan)" ${borde(0.9)}/>
+                    ${sombraDerecha}
+                    <path d="M${100 - H + 5} 69 Q${100 - 9} 66 98.4 70.4 L98 82 Q${100 - 8} 86 ${100 - H + 7} 78 Z M${100 + H - 5} 69 Q${100 + 9} 66 101.6 70.4 L102 82 Q${100 + 8} 86 ${100 + H - 7} 78 Z" fill="#7f9fd0" opacity=".45" ${borde(0.5)}/>
+                    <path d="M${100 - C + 1.6} 87.6 Q100 90.4 ${100 + C - 1.6} 87.6 M${100 - C + 1.2} 92.6 Q100 95.6 ${100 + C - 1.2} 92.6 M100 88 L100 98" fill="none" stroke="${TRAZO}" stroke-width=".7" opacity=".6"/>
+                    <path d="M${100 - H + 4.6} 66.6 Q100 60.4 ${100 + H - 4.6} 66.6 M${100 - C - 0.4} 97.6 Q100 102.2 ${100 + C + 0.4} 97.6" fill="none" stroke="#ff9a3a" stroke-width="1.6"/>
+                    <circle class="orbe" cx="100" cy="77" r="9" fill="url(#${p.id}-brasa)"/>
+                    <path d="M94.6 80.4 L105.4 80.4 L103.4 77 L96.6 77 Z M97.4 80.4 L97.4 83.8 L102.6 83.8 L102.6 80.4" fill="#ffd9a0" stroke="${TRAZO}" stroke-width=".6" stroke-linejoin="round"/>
+                    <path d="M94.4 59.6 Q100 63.8 105.6 59.6 L105.8 62.4 Q100 66.6 94.2 62.4 Z" fill="url(#${p.id}-titan)" ${borde(0.6)}/>
+                    ${luz}${destello(100 + H - 8, 70, 2, "chispa", "#fff")}`;
+
         case "coraza-vigia":    // legendaria: plata blanca, esmalte de cielo, oro y la Llama del Vigía en el pecho
             return `<defs>${metal(`${p.id}-vigia`, "#e2e8f2")}${halo(`${p.id}-llama`, "#ffb347", 0.85)}
                         <linearGradient id="${p.id}-fuego" x1="0" y1="1" x2="0" y2="0">
@@ -543,6 +580,8 @@ const VISTAS = {
     "escudo": "50 60 56 56", "capa-cuervo": "58 52 84 128",
     "peto-cuero": "68 56 64 50", "cota-malla": "68 56 64 64", "tunica-arcana": "66 56 68 72",
     "coraza": "66 56 68 66", "coraza-vigia": "66 56 68 66",
+    // v74: las recompensas de constancia del gimnasio
+    "cinta-hierro": "85 28 34 20", "peto-constante": "66 56 68 56", "coraza-titan": "66 56 68 66", "capa-fragua": "58 52 84 128",
 };
 
 export function miniatura(id, p, e) {
@@ -551,6 +590,7 @@ export function miniatura(id, p, e) {
     let dibujo;
     if (id === "capa") dibujo = capa(e, p, "#8f1d2c", true);
     else if (id === "capa-real") dibujo = capa(e, p, COLOR_CAPA_REAL, true);
+    else if (id === "capa-fragua") dibujo = capa(e, p, COLOR_CAPA_FRAGUA, true);
     else if (id === "capa-cuervo") dibujo = capaCuervo(e, p);
     else if (id === "escudo") dibujo = escudo(p);
     else if (armaduraDePecho(id, e, p)) dibujo = armaduraDePecho(id, e, p);

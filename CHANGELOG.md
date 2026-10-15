@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v74 — El gimnasio como meta, IMC, avatar sin ropa y armadura por constancia
+- **Meta que se marca:** `acciones.marcarGymRapido(estado, rutina, fecha)` guarda una sesión `{ rapido: true, ejercicios: [], xp: gym.XP_RAPIDO }` (60 XP; reparte la mitad del XP de los ejercicios de su rutina a los músculos). `terminarGym` se parte en `guardarSesionGym` (compartida: XP, niveles, lecturas, Fragua, misión elegida, hitos). Botón «Marcar que hoy entrené» en la pestaña y en la fila de Hoy; las rutinas siguen pudiendo anotarse con detalle. Ajustes del gym intactos.
+- **Altura e IMC:** `estado.gym.altura` (cm); `gym.imc`, `categoriaDeImc`, `pesoSaludable`, `corpulenciaDe`, `imcActual`; tarjeta «Peso, altura e IMC» con escala de colores.
+- **Avatar sin ropa:** `dibujo-gym.js` (`piernasDesnudas`, `torsoDesnudo`, `brazoDesnudo`, `calzoncillos`) y `dibujarAvatarGym(d)` en `dibujo.js`. `esqueleto()` lee `d.fisico` (0–5, `NIVELES_DE_FISICO` 1, 3, 6, 10, 15, 22) y `d.corpulencia` (de −1 a 1,1, según el IMC): ensanchan hombros, brazos, muslos, cintura y cadera. El músculo (pecho, bíceps, abdomen, oblicuos, venas) se dibuja según el físico y se tapa con el peso.
+- **Armadura por constancia:** objetos `cinta-hierro`, `peto-constante`, `coraza-titan` y `capa-fragua` (legendarios; `logro.tipo = "gymsemanas"` = `gym.mejorRachaSemanal`) con sus dibujos, y 4 habilidades nuevas: Vigor (pociones +50 %), Ritmo (doble Voluntad), Titán (ataque base +20 %) y Brasa (primer golpe de cada piso +50 %). 279 pruebas.
+
 ## v73 — La Fragua Profunda
 - **`js/mazmorras.js`**: quinto lugar `fragua` (⚒️, Fuerza; `ZONAS_FRAGUA`: hornos, yunque y corazón), 15 criaturas `fa-*` (guardianes: Capataz del fuelle, Coloso del yunque y Brann, con fase «Al rojo blanco»), su leyenda (prólogo, 3 zonas y epílogo sobre Brann, que no paró nunca, frente a Orrin, que paró sin fecha de vuelta), cinemáticas y final. Paletas, salas y voces en `dibujo-monstruos.js` y `sonido.js`; estilos de ataque en `ataques.js`.
 - **Se abre con el cuerpo:** `abre.gym = 5`; `torre.arcadeConGym(estado)` le suma `gymNivel` a una copia de `estado.arcade` y `lugarAbierto` lo mira (la partida en curso no cuenta para los avisos de «se abrió una mazmorra»). `terminarGym` avisa cuando la Fragua se abre y cuando Maren deja una lectura nueva. `estado.arcade.fragua` (se migra en `completar`). Música `batalla` en la pantalla del gimnasio. 274 pruebas.

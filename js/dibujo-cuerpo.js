@@ -11,19 +11,25 @@ import { TRAZO, capsula, oscurecer, aclarar } from "./dibujo-base.js";
 
 // ===== Medidas =====
 // Todas las partes (ropa, armadura, armas) se colocan usando estos puntos.
+// (v74) Cuánto crece cada medida con el físico de gimnasio (0 a 5) y con la corpulencia (d.corpulencia: de -1, muy delgado, a 1,1).
+const FISICO_HOMBROS = [0, 0.8, 1.6, 2.4, 3.0, 3.5];
+const FISICO_BRAZO = [0, 0.55, 1.1, 1.6, 2.0, 2.4];
+const FISICO_MUSLO = [0, 0.35, 0.7, 1.05, 1.3, 1.5];
+
 export function esqueleto(d) {
     const fem = d.apariencia.cuerpo === "femenino";
     const fuerte = d.rasgos.fuerza >= 1 ? 1 : 0;       // Fuerza nivel 3+: brazos y hombros más anchos
-    const fisico = d.fisico || 0;                      // (v66) el gimnasio: 0–3, más ancho de hombros, brazos y piernas
-    const H = (fem ? 19 : 22) + fuerte * 0.9 + fisico * 0.8;   // medio ancho de hombros
-    const centro = fem ? 6.4 : 7.4;                    // separación de las piernas
+    const fisico = Math.max(0, Math.min(5, d.fisico || 0));   // (v66, v74) el gimnasio: más ancho de hombros, brazos y piernas
+    const corp = d.corpulencia || 0;                   // (v74) tu peso en la pestaña del gimnasio: cintura, cadera y piernas
+    const H = (fem ? 19 : 22) + fuerte * 0.9 + FISICO_HOMBROS[fisico] + corp * 0.7;   // medio ancho de hombros
+    const centro = (fem ? 6.4 : 7.4) + corp * 0.7;     // separación de las piernas
     return {
         fem,
         H,
-        cintura: fem ? 11.8 : 14.8,
-        cadera: fem ? 16 : 15.6,
-        brazo: (fem ? 5 : 5.8) + fuerte * 0.9 + fisico * 0.55,   // radio del brazo en el hombro
-        muslo: (fem ? 7.7 : 8.2) + fisico * 0.35,                        // radios de la pierna: muslo, rodilla y tobillo
+        cintura: (fem ? 11.8 : 14.8) + corp * 2.8,
+        cadera: (fem ? 16 : 15.6) + corp * 1.9,
+        brazo: (fem ? 5 : 5.8) + fuerte * 0.9 + FISICO_BRAZO[fisico] + corp * 0.9,   // radio del brazo en el hombro
+        muslo: (fem ? 7.7 : 8.2) + FISICO_MUSLO[fisico] + corp * 1.5,                        // radios de la pierna: muslo, rodilla y tobillo
         rodilla: 5.9,
         tobillo: 4.5,
         // Brazo izquierdo: relajado junto al cuerpo.
