@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v79 — Tu evolución, el reto semanal y el consejo del día
+- `gym.evolucion(sesiones, pesos, altura)`: las «fotos» (primera sesión + cada subida de físico, con tu peso de ese momento); `tarjetaEvolucion` las dibuja con `dibujarAvatarGym`. `gym.RETOS` (meta, récords, volumen, músculos), `retoDeLaSemana(lunes)` (sale del lunes, no se guarda), `progresoDelReto`, `PREMIO_RETO` (25 💎 + 30 XP) y `estado.gym.retosCobrados`; `guardarSesionGym` lo cobra al cumplirse. `gymAurelio.consejoDelDia(fecha)` (16 consejos). Hitos nuevos: veinticinco, racha-8, veinticinco-records, volumen-250k, nivel-15. 285 pruebas.
+
 ## v78 — Modo foco en el gimnasio
 - `estado.gym.foco` (por defecto `true`): `vistaDeFoco` (una serie a la vez: figura, serie N de M, pista y técnica, `gym-stepper` con botones + y −, botón grande de terminar la serie y el anillo de descanso `data-gym-anillo`, que `tictac` vacía) o `vistaDeLista` (la de siempre). `gym.serieActual`, `acciones.ajustarSerieGym` (peso de 2,5 en 2,5 kg, repeticiones de 1 en 1) y `cambiarAjusteGym(…, "foco", …)`. «¡Todo hecho!» con el botón de terminar.
 - **Prueba de humo:** `pruebas/ejecutar.mjs` (y el ejecutor local) ahora también abren `index.html` y fallan si la app lanza un error al cargar: una variable repetida en `app.js` la deja en blanco y las pruebas de reglas no lo ven (pasó mientras se hacía esta versión; se vio antes de publicar). 284 pruebas.

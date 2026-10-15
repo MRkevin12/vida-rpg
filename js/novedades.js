@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 78;
+export const VERSION_APP = 79;
 
 export const NOVEDADES = [
+    {
+        version: 79,
+        titulo: "Tu evolución y el reto de Aurelio",
+        cambios: [
+            "📸 «Tu evolución»: una tira con tu cuerpo (en calzoncillos, con tu peso de entonces) cada vez que tu físico subió de escalón, hasta hoy. Así ves cómo vas cambiando.",
+            "🧙 Cada día, un consejo de Aurelio sobre entrenamiento, descanso o constancia. Y cada lunes te propone un reto de la semana (cumplir tu meta, romper 2 récords, mover 6 000 kg o trabajar 4 músculos distintos); al cumplirlo cobras +25 💎 y +30 XP, una vez por semana.",
+            "🎖️ Cinco hitos nuevos de gym: 25 sesiones, constancia de acero (8 semanas), 25 récords, 250 toneladas y nivel 15.",
+        ],
+    },
     {
         version: 78,
         titulo: "Modo foco en el gimnasio",

@@ -121,3 +121,27 @@ export function consejoDeTecnica(movimiento, indice = 0) {
     const lista = TECNICAS[movimiento];
     return lista ? lista[Math.abs(indice) % lista.length] : "";
 }
+
+// El consejo de Aurelio del día (cambia cada día y es el mismo todo el día). Cosas básicas y sensatas: no son consejos médicos.
+export const CONSEJOS_DEL_DIA = [
+    "Dormir bien es parte del entrenamiento: el músculo se repara de noche.",
+    "Toma agua durante el día, no solo cuando entrenas.",
+    "Come algo de proteína en cada comida: huevos, carne, pescado, legumbres o lácteos.",
+    "Calentar cinco minutos antes de levantar pesado vale más que cualquier suplemento.",
+    "Sube el peso de a poquito: una repetición más o dos kilos más. Lo pequeño, repetido, lo cambia todo.",
+    "Un día de descanso no es un día perdido: es cuando el cuerpo construye lo que entrenaste.",
+    "Anota lo que levantas: lo que no se mide, no se puede superar.",
+    "La técnica primero. Si no puedes controlar el peso en la bajada, es demasiado.",
+    "Entrenar con sueño o con hambre rinde menos: cuida lo que haces antes de venir.",
+    "No te compares con el que lleva años: compárate con tu yo de hace un mes.",
+    "Estira un poco al terminar, cuando el músculo ya está caliente.",
+    "Si algo duele de forma aguda en una articulación, para. Descansar un día es barato; una lesión, cara.",
+    "Respira: exhala al hacer el esfuerzo y no aguantes el aire.",
+    "Los mejores resultados no vienen del entrenamiento perfecto, sino del que sí haces cada semana.",
+    "Mira tu constancia, no solo el espejo: el espejo tarda, el calendario no miente.",
+    "Entrena todo el cuerpo: las piernas y la espalda sostienen lo que luce.",
+];
+export function consejoDelDia(fechaTexto) {
+    const n = [...fechaTexto].reduce((suma, c) => suma + c.charCodeAt(0) * 7, 0);
+    return CONSEJOS_DEL_DIA[n % CONSEJOS_DEL_DIA.length];
+}

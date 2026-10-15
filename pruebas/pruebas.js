@@ -5946,6 +5946,62 @@ prueba("Gym (modo foco): una serie a la vez con botones + y −, descanso con an
     cierto(datos.desdeRespaldo(JSON.stringify({ ...JSON.parse(JSON.stringify(estado)), gym: { ...estado.gym, foco: undefined } })).gym.foco === true, "una partida sin ese dato lo recibe encendido");
 });
 
+prueba("Gym (v79): tu evolución, el reto de la semana con premio, el consejo del día y más hitos", () => {
+    const estado = partidaNueva();
+    const sesion = (fecha, xp) => ({ fecha, rutina: "hombros", ejercicios: [], rapido: true, xp, monedas: 0, gemas: 0, completa: true, records: [] });
+    igual(gym.evolucion([], [], 175), []);
+    // 100 XP = nivel 2; 300 más = nivel 3 (físico 1); 1000 XP más = nivel 5...
+    estado.gym.sesiones = [sesion("2026-01-05", 100), sesion("2026-02-02", 500), sesion("2026-03-02", 2500)];
+    estado.gym.peso = [{ fecha: "2026-01-04", kg: 90 }, { fecha: "2026-02-20", kg: 82 }];
+    const fotos = gym.evolucion(estado.gym.sesiones, estado.gym.peso, 175);
+    igual(fotos.map((x) => x.fecha), ["2026-01-05", "2026-02-02", "2026-03-02"], "la primera sesión y cada vez que el físico subió");
+    igual(fotos.map((x) => x.fisico), [0, 1, 2]);
+    igual([fotos[0].kg, fotos[1].kg, fotos[2].kg], [90, 90, 82], "el peso que tenías entonces");
+    cierto(fotos[0].corpulencia > fotos[2].corpulencia, "más delgado con el tiempo");
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    let html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes("Tu evolución") && (html.match(/<figure class="gym-foto/g) || []).length === 4 && html.includes("Consejo de Aurelio") && html.includes("Reto de la semana"), "tarjetas de evolución, consejo y reto");
+    cierto(!vistasGym.pantallaGym(partidaNueva(), ctx).includes("Tu evolución"), "sin historia no hay evolución");
+
+    // El consejo del día cambia con la fecha y es estable en el día.
+    igual(gymAurelio.consejoDelDia("2026-10-15"), gymAurelio.consejoDelDia("2026-10-15"));
+    cierto(new Set(Array.from({ length: 30 }, (_, i) => gymAurelio.consejoDelDia(sumarDias("2026-10-01", i)))).size > 8, "varía de un día a otro");
+    cierto(gymAurelio.CONSEJOS_DEL_DIA.length >= 16 && gymAurelio.CONSEJOS_DEL_DIA.every((c) => c.length > 30));
+
+    // El reto: sale del lunes, se mide y se cobra una sola vez.
+    const lunes = lunesDe(hoy());
+    const reto = gym.retoDeLaSemana(lunes);
+    igual(gym.retoDeLaSemana(lunes).id, reto.id, "el mismo toda la semana");
+    cierto(new Set(Array.from({ length: 12 }, (_, i) => gym.retoDeLaSemana(sumarDias("2026-01-05", i * 7)).id)).size >= 3, "cambian de una semana a otra");
+    for (const r of gym.RETOS) {
+        const e = partidaNueva();
+        const p = gym.progresoDelReto(e.gym, lunes);
+        cierto(p.meta > 0 && p.hecho === 0 && typeof gym.RETOS.find((x) => x.id === r.id).texto(e.gym) === "string", `${r.id}: se mide y tiene texto`);
+    }
+    // Cobrar el reto: se deja la semana a un paso de cumplirlo (según el reto de esta semana) y se marca un entrenamiento.
+    const e2 = partidaNueva();
+    const base = { rutina: "pantorrillas", fecha: lunes, xp: 0, monedas: 0, gemas: 0, completa: true, records: [], ejercicios: [] };
+    const preparar = {
+        meta: () => { e2.gym.metaSemanal = 1; },
+        records: () => e2.gym.sesiones.push({ ...base, records: [{ id: "a", puntaje: 1 }, { id: "b", puntaje: 1 }] }),
+        volumen: () => e2.gym.sesiones.push({ ...base, ejercicios: [{ id: "press-banca", series: [{ kg: 100, reps: 60 }] }] }),
+        musculos: () => e2.gym.sesiones.push({ ...base, ejercicios: ["press-banca", "press-hombros", "curl-barra", "jalon-pecho"].map((id) => ({ id, series: [{ kg: 20, reps: 10 }] })) }),
+    };
+    preparar[reto.id]();
+    const gemas = e2.personaje.gemas;
+    const r = acciones.marcarGymRapido(e2, "hombros");
+    cierto(r.celebraciones.some((c) => c.etiqueta === "¡Reto de la semana cumplido!"), `se cobra el reto «${reto.id}» al cumplirlo`);
+    igual(e2.gym.retosCobrados, [lunes]);
+    cierto(e2.personaje.gemas >= gemas + gym.PREMIO_RETO.gemas, "da las gemas");
+    const otra = acciones.marcarGymRapido(e2, "espalda");
+    cierto(!otra.celebraciones.some((c) => c.etiqueta === "¡Reto de la semana cumplido!"), "se cobra una sola vez");
+    igual(gym.progresoDelReto(e2.gym, lunes).cobrado, true);
+
+    // Hitos nuevos.
+    for (const id of ["veinticinco", "racha-8", "veinticinco-records", "volumen-250k", "nivel-15"]) cierto(gym.HITOS.find((h) => h.id === id), `hito ${id}`);
+    igual(new Set(gym.HITOS.map((h) => h.id)).size, gym.HITOS.length, "ids únicos");
+});
+
 // ===== Reacciones elementales (v71) =====
 
 prueba("Reacciones: dos hechizos distintos en turnos seguidos provocan Vapor, Conducción o Explosión", () => {

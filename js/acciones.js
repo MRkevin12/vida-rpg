@@ -2121,6 +2121,15 @@ function guardarSesionGym(estado, sesion) {
         ganar(estado, { gemas: hito.gemas });
         celebraciones.push({ icono: hito.icono, etiqueta: "¡Hito de gym!", titulo: hito.titulo, detalle: `${hito.texto} +${hito.gemas} 💎` });
     }
+    // (v79) El reto de la semana de esa sesión: si ya lo cumpliste y no lo habías cobrado, se cobra.
+    const lunes = lunesDe(sesion.fecha);
+    const reto = gym.progresoDelReto(g, lunes);
+    if (reto.cumplido && !reto.cobrado) {
+        g.retosCobrados.push(lunes);
+        ganar(estado, { gemas: gym.PREMIO_RETO.gemas, xp: gym.PREMIO_RETO.xp, atributo: "fuerza" });
+        celebraciones.push({ icono: reto.reto.icono, etiqueta: "¡Reto de la semana cumplido!", titulo: reto.reto.texto(g),
+                             detalle: `+${gym.PREMIO_RETO.gemas} 💎 · +${gym.PREMIO_RETO.xp} XP de 💪 Fuerza`, maestro: "Te lo propuse el lunes y lo cumpliste, " + estado.personaje.nombre + ". Así se hace." });
+    }
     return { sesion, celebraciones };
 }
 

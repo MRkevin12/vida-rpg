@@ -11120,3 +11120,16 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-foco-descanso-texto small { color: var(--texto-suave); }
 .gym-foco-descanso-texto b { font-family: "Orbitron", sans-serif; font-size: 2.6rem; color: var(--gym-2); }
 .gym-foco-siguiente { margin: 2px 0 6px; }
+
+/* v79: consejo del día, reto de la semana y evolución */
+.gym-consejo { margin: 0 0 12px; }
+.gym-reto { margin: 12px 0 4px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(167, 139, 250, 0.5); background: rgba(139, 92, 246, 0.1); }
+.gym-reto.cobrado { border-color: var(--verde); background: rgba(52, 211, 153, 0.08); }
+.gym-reto-texto { margin: 2px 0 4px; font-weight: 600; }
+.gym-evolucion { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; }
+.gym-foto { flex: 0 0 150px; margin: 0; scroll-snap-align: start; text-align: center; }
+.gym-foto-cuerpo { border-radius: 12px; overflow: hidden; border: 1px solid var(--borde); background: #150f2a; }
+.gym-foto.ahora .gym-foto-cuerpo { border-color: var(--gym-2); box-shadow: 0 0 14px rgba(251, 191, 36, 0.35); }
+.gym-foto-cuerpo svg { display: block; width: 100%; height: auto; }
+.gym-foto figcaption { margin-top: 4px; display: grid; }
+.gym-foto small { color: var(--texto-suave); font-size: 0.74rem; }

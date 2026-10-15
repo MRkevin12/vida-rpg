@@ -155,6 +155,7 @@ export function gymInicial() {
         peso: [],            // tu peso corporal: [{ fecha, kg }] (uno por día)
         altura: null,        // tu altura en centímetros (para el IMC)
         mision: null,        // la misión diaria que se marca sola al terminar un entrenamiento (id), o null
+        retosCobrados: [],   // (v79) los lunes de las semanas cuyo reto ya cobraste
         foco: true,          // (v78) el entrenamiento se ve en «modo foco»: una serie a la vez, con letras grandes
     };
 }
@@ -419,6 +420,11 @@ export const HITOS = [
     { id: "racha-12",   icono: "🌋", titulo: "Tres meses",           texto: "Cumple tu meta 12 semanas seguidas.",     gemas: 120, quiere: (x) => x.racha >= 12 },
     { id: "volumen-10k",  icono: "🪨", titulo: "10 toneladas",       texto: "Mueve 10 000 kg en total.",               gemas: 25,  quiere: (x) => x.total.volumen >= 10000 },
     { id: "volumen-100k", icono: "🏔️", titulo: "100 toneladas",      texto: "Mueve 100 000 kg en total.",              gemas: 80,  quiere: (x) => x.total.volumen >= 100000 },
+    { id: "veinticinco", icono: "🎖️", titulo: "Veinticinco sesiones", texto: "Entrena 25 veces.",                     gemas: 35,  quiere: (x) => x.total.sesiones >= 25 },
+    { id: "racha-8",    icono: "⛓️", titulo: "Constancia de acero",  texto: "Cumple tu meta 8 semanas seguidas.",      gemas: 70,  quiere: (x) => x.racha >= 8 },
+    { id: "veinticinco-records", icono: "🌟", titulo: "Veinticinco récords", texto: "Rompe 25 marcas personales.",       gemas: 90,  quiere: (x) => x.total.records >= 25 },
+    { id: "volumen-250k", icono: "🗻", titulo: "250 toneladas",      texto: "Mueve 250 000 kg en total.",              gemas: 120, quiere: (x) => x.total.volumen >= 250000 },
+    { id: "nivel-15",   icono: "⚔️", titulo: "Gladiador",            texto: "Llega al nivel 15 de gym.",               gemas: 90,  quiere: (x) => x.nivel >= 15 },
     { id: "nivel-10",   icono: "🥇", titulo: "Guerrero del hierro",  texto: "Llega al nivel 10 de gym.",               gemas: 50,  quiere: (x) => x.nivel >= 10 },
     { id: "nivel-20",   icono: "🗿", titulo: "Titán",                texto: "Llega al nivel 20 de gym.",               gemas: 150, quiere: (x) => x.nivel >= 20 },
 ];
@@ -431,4 +437,60 @@ export function hitosNuevos(gym, hoyTexto) {
         racha: rachaSemanal(gym.sesiones, gym.metaSemanal, hoyTexto),
     };
     return HITOS.filter((h) => !gym.hitos.includes(h.id) && h.quiere(x));
+}
+
+
+// ===== Tu evolución (v79): cómo se veía tu cuerpo cada vez que subió tu físico =====
+// Devuelve una lista de fotos en orden: la primera sesión y cada vez que el físico subió de escalón.
+// [{ fecha, nivel, fisico, kg (tu peso de entonces o null), corpulencia }]
+export function evolucion(sesiones, pesos, altura) {
+    if (!sesiones.length) return [];
+    const ordenadas = [...sesiones].sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+    const pesoEn = (fecha) => {
+        const antes = pesos.filter((p) => p.fecha <= fecha);
+        return antes.length ? antes[antes.length - 1].kg : null;
+    };
+    const foto = (fecha, nivel) => {
+        const kg = pesoEn(fecha);
+        return { fecha, nivel, fisico: fisicoDe(nivel), kg, corpulencia: corpulenciaDe(kg && altura ? imc(kg, altura) : null) };
+    };
+    const fotos = [foto(ordenadas[0].fecha, 1)];
+    let xp = 0;
+    for (const s of ordenadas) {
+        xp += s.xp;
+        const nivel = calcularNivel(xp, BASE_GYM).nivel;
+        if (fisicoDe(nivel) > fotos[fotos.length - 1].fisico) fotos.push(foto(s.fecha, nivel));
+    }
+    return fotos;
+}
+
+// ===== El reto de la semana (v79): Aurelio te propone uno cada lunes; al cumplirlo cobras un premio una vez =====
+export const PREMIO_RETO = { gemas: 25, xp: 30 };
+const sesionesDeLaSemana = (sesiones, lunes) => sesiones.filter((s) => s.fecha >= lunes && s.fecha <= sumarDias(lunes, 6));
+export const RETOS = [
+    { id: "meta", icono: "🎯", texto: (g) => `Cumple tu meta: ${g.metaSemanal} ${g.metaSemanal === 1 ? "día" : "días"} de gym esta semana`,
+      medir: (g, lunes) => ({ hecho: diasDeLaSemana(g.sesiones, lunes), meta: g.metaSemanal }) },
+    { id: "records", icono: "📈", texto: () => "Rompe 2 récords personales esta semana",
+      medir: (g, lunes) => ({ hecho: sesionesDeLaSemana(g.sesiones, lunes).reduce((t, s) => t + s.records.length, 0), meta: 2 }) },
+    { id: "volumen", icono: "🏋️", texto: () => "Mueve 6 000 kg esta semana (anotando tus series)",
+      medir: (g, lunes) => ({ hecho: Math.round(sesionesDeLaSemana(g.sesiones, lunes).reduce((t, s) => t + volumenDe(s), 0)), meta: 6000 }) },
+    { id: "musculos", icono: "💪", texto: () => "Trabaja 4 músculos distintos esta semana",
+      medir: (g, lunes) => {
+          const musculos = new Set();
+          for (const s of sesionesDeLaSemana(g.sesiones, lunes)) {
+              for (const ej of s.ejercicios) { const m = ejercicioPorId(ej.id)?.musculo; if (m) musculos.add(m); }
+              if (s.rapido) for (const ej of rutinaPorId(s.rutina)?.ejercicios || []) musculos.add(ej.musculo);
+          }
+          return { hecho: musculos.size, meta: 4 };
+      } },
+];
+// El reto de esa semana (sale del lunes, así es el mismo todo el tiempo y no hace falta guardarlo).
+export function retoDeLaSemana(lunes) {
+    const n = [...lunes].reduce((suma, c) => suma + c.charCodeAt(0), 0);
+    return RETOS[n % RETOS.length];
+}
+export function progresoDelReto(g, lunes) {
+    const reto = retoDeLaSemana(lunes);
+    const { hecho, meta } = reto.medir(g, lunes);
+    return { reto, hecho: Math.min(hecho, meta), meta, cumplido: hecho >= meta, cobrado: g.retosCobrados.includes(lunes) };
 }

@@ -95,6 +95,8 @@ export function pantallaGym(estado, ctx) {
         </div>
         ${!g.encurso && ctx.resumenGym ? tarjetaResumen(estado, ctx) : ""}
         ${tarjetaNivel(estado, ctx, Boolean(g.encurso))}
+        ${g.encurso ? "" : consejoDelDia(ctx)}
+        ${g.encurso ? "" : tarjetaEvolucion(estado, ctx)}
         ${g.encurso ? entrenamientoActual(estado, ctx) : `${tarjetaSemana(estado, ctx)}${listaDeRutinas(estado, ctx)}${tarjetaConstancia(estado, ctx)}`}
         ${g.encurso ? "" : `
             ${tarjetaMusculos(estado)}
@@ -190,6 +192,7 @@ function tarjetaSemana(estado, ctx) {
             <p class="nota">${racha ? `🔥 <b>${plural(racha, "semana seguida", "semanas seguidas")}</b> cumpliendo tu meta.` : "Cumple tu meta de la semana para empezar una racha de semanas."}
                Marca cada día que entrenes (+${gym.XP_RAPIDO} XP) o, si quieres, anota tus series más abajo (da más XP y récords).</p>
             ${marcar}
+            ${tarjetaReto(estado, ctx)}
             ${recompensasDeConstancia(estado)}
         </section>`;
 }
@@ -549,6 +552,45 @@ function tarjetaHitos(estado) {
         <section class="panel">
             <h2 class="titulo-juego">🎖️ Hitos de gym <span class="texto-suave">${hechos}/${gym.HITOS.length}</span></h2>
             <ul class="gym-hitos">${lista}</ul>
+        </section>`;
+}
+
+// ===== (v79) El consejo del día, el reto de la semana y tu evolución =====
+function consejoDelDia(ctx) {
+    return `<div class="gym-aurelio gym-consejo">
+                <span class="gym-aurelio-retrato" aria-hidden="true">${dibujarAvatar(describirMaestro(), { mini: true })}</span>
+                <p><b>Consejo de Aurelio</b>${esc(gymAurelio.consejoDelDia(ctx.hoy))}</p>
+            </div>`;
+}
+
+function tarjetaReto(estado, ctx) {
+    const r = gym.progresoDelReto(estado.gym, lunesDe(ctx.hoy));
+    return `<div class="gym-reto ${r.cobrado ? "cobrado" : ""}">
+                <p class="etiqueta">🧙 Reto de la semana de Aurelio</p>
+                <p class="gym-reto-texto">${r.reto.icono} ${esc(r.reto.texto(estado.gym))}</p>
+                ${barra(Math.round((r.hecho / r.meta) * 100), "barra-gym")}
+                <p class="mini texto-suave">${r.cobrado ? `✅ Cumplido y cobrado (+${gym.PREMIO_RETO.gemas} 💎)` : `${r.hecho.toLocaleString("es")} / ${r.meta.toLocaleString("es")} · premio: +${gym.PREMIO_RETO.gemas} 💎 y +${gym.PREMIO_RETO.xp} XP`}</p>
+            </div>`;
+}
+
+function tarjetaEvolucion(estado, ctx) {
+    const g = estado.gym;
+    const fotos = gym.evolucion(g.sesiones, g.peso, g.altura);
+    if (fotos.length < 2) return "";
+    const ahora = { fecha: ctx.hoy, nivel: gym.nivelDeGym(g.sesiones).nivel, kg: g.peso[g.peso.length - 1]?.kg ?? null };
+    ahora.fisico = gym.fisicoDe(ahora.nivel);
+    ahora.corpulencia = gym.corpulenciaDe(gym.imcActual(g));
+    const lista = [...fotos, ahora].slice(-5);
+    const casillas = lista.map((f, i) => `
+        <figure class="gym-foto ${i === lista.length - 1 ? "ahora" : ""}">
+            <div class="gym-foto-cuerpo">${dibujarAvatarGym({ ...ctx.avatar, fisico: f.fisico, corpulencia: f.corpulencia })}</div>
+            <figcaption><b>${i === lista.length - 1 ? "Hoy" : fechaCorta(f.fecha)}</b><small>Nv ${f.nivel} · ${gym.NOMBRES_DE_FISICO[f.fisico]}${f.kg ? ` · ${kilos(f.kg)}` : ""}</small></figcaption>
+        </figure>`).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">📸 Tu evolución</h2>
+            <p class="nota">Cómo se veía tu cuerpo cada vez que tu físico subió de escalón. Desliza para verlo.</p>
+            <div class="gym-evolucion">${casillas}</div>
         </section>`;
 }
 
