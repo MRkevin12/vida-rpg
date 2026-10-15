@@ -12,9 +12,9 @@ import { TRAZO, capsula, oscurecer, aclarar } from "./dibujo-base.js";
 // ===== Medidas =====
 // Todas las partes (ropa, armadura, armas) se colocan usando estos puntos.
 // (v74) Cuánto crece cada medida con el físico de gimnasio (0 a 5) y con la corpulencia (d.corpulencia: de -1, muy delgado, a 1,1).
-const FISICO_HOMBROS = [0, 0.8, 1.6, 2.4, 3.0, 3.5];
-const FISICO_BRAZO = [0, 0.55, 1.1, 1.6, 2.0, 2.4];
-const FISICO_MUSLO = [0, 0.35, 0.7, 1.05, 1.3, 1.5];
+const FISICO_HOMBROS = [0, 0.8, 1.6, 2.4, 3.4, 4.4];
+const FISICO_BRAZO = [0, 0.55, 1.1, 1.6, 2.3, 3.0];
+const FISICO_MUSLO = [0, 0.35, 0.7, 1.05, 1.5, 1.9];
 
 export function esqueleto(d) {
     const fem = d.apariencia.cuerpo === "femenino";

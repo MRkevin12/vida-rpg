@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 74;
+export const VERSION_APP = 75;
 
 export const NOVEDADES = [
+    {
+        version: 75,
+        titulo: "Vista previa de tu cuerpo",
+        cambios: [
+            "👀 En la pestaña del Gimnasio, bajo tu avatar, hay una «Vista previa»: elige un nivel de físico (1, 3, 6, 10, 15 o 22) y un peso (delgado, normal, con peso o mucho peso) para ver cómo se vería tu cuerpo. No cambia tus datos reales y puedes volver a tu cuerpo con un botón.",
+            "💪 Los últimos niveles de físico se notan más: más hombros, brazos y piernas en el nivel 15 y, sobre todo, en el 22 (Titán).",
+        ],
+    },
     {
         version: 74,
         titulo: "El gimnasio: tu cuerpo y tu constancia",

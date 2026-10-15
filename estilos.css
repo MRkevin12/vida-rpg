@@ -11042,3 +11042,9 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-pieza > span:last-child { display: grid; }
 .gym-pieza small { color: var(--texto-suave); font-size: 0.76rem; }
 .gym-pieza-icono { font-size: 1.5rem; }
+
+/* v75: vista previa del cuerpo en el gimnasio */
+.gym-heroe-grande .gym-avatar { flex: 0 0 150px; width: 150px; }
+.gym-vista { margin: 0 0 10px; }
+.gym-vista-botones { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.gym-vista-aviso { margin: 0 0 4px; font-size: 0.78rem; font-weight: 700; color: var(--gym-2); }

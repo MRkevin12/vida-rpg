@@ -5799,6 +5799,18 @@ prueba("Gym (habilidades de constancia): Vigor, Ritmo, Titán y Brasa hacen lo q
     cierto(!db2.activas?.includes("brasa"), "solo el primero de cada piso");
 });
 
+prueba("Gym (vista previa): se puede ver el cuerpo con otro nivel o peso sin tocar los datos", () => {
+    const estado = partidaNueva();
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const normal = vistasGym.pantallaGym(estado, ctx);
+    cierto(normal.includes('data-accion="gym-vista"') && !normal.includes("Vista previa (no es tu cuerpo real)"), "los controles están, sin vista previa activa");
+    igual((normal.match(/data-fisico="/g) || []).length, 6, "un botón por cada nivel de físico");
+    const maximo = vistasGym.pantallaGym(estado, { ...ctx, gymVista: { fisico: 5, corp: 0 } });
+    cierto(maximo.includes("Vista previa (no es tu cuerpo real)") && maximo.includes("Titán") && maximo.includes("el máximo"), "vista del máximo");
+    cierto(maximo !== normal, "se ve distinto");
+    igual(estado.gym.sesiones.length, 0, "no cambia los datos");
+});
+
 // ===== Reacciones elementales (v71) =====
 
 prueba("Reacciones: dos hechizos distintos en turnos seguidos provocan Vapor, Conducción o Explosión", () => {

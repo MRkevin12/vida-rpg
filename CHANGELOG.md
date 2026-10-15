@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v75 — Vista previa del cuerpo en el gimnasio
+- `ctx.gymVista = { fisico, corp }` (estado de pantalla en `app.js`, acción `gym-vista`) deja ver el avatar sin ropa con otro nivel de físico o de peso sin tocar `estado.gym`; botón para volver al cuerpo real. Los físicos 4 y 5 ensanchan más (`FISICO_*` en `dibujo-cuerpo.js`). `capturas/gym-niveles.png`: la hoja con todos los niveles, los pesos y la armadura por constancia. 280 pruebas.
+
 ## v74 — El gimnasio como meta, IMC, avatar sin ropa y armadura por constancia
 - **Meta que se marca:** `acciones.marcarGymRapido(estado, rutina, fecha)` guarda una sesión `{ rapido: true, ejercicios: [], xp: gym.XP_RAPIDO }` (60 XP; reparte la mitad del XP de los ejercicios de su rutina a los músculos). `terminarGym` se parte en `guardarSesionGym` (compartida: XP, niveles, lecturas, Fragua, misión elegida, hitos). Botón «Marcar que hoy entrené» en la pestaña y en la fila de Hoy; las rutinas siguen pudiendo anotarse con detalle. Ajustes del gym intactos.
 - **Altura e IMC:** `estado.gym.altura` (cm); `gym.imc`, `categoriaDeImc`, `pesoSaludable`, `corpulenciaDe`, `imcActual`; tarjeta «Peso, altura e IMC» con escala de colores.

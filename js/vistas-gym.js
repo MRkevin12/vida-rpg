@@ -103,13 +103,27 @@ function tarjetaNivel(estado, ctx) {
     const siguiente = gym.RANGOS.find((r) => r.desde > n.nivel);
     // (v74) Tu cuerpo en calzoncillos: el nivel de gym marca los músculos y tu peso (IMC) cambia la silueta.
     const miImc = gym.imcActual(estado.gym);
-    const fisico = gym.fisicoDe(n.nivel);
+    // (v75) Vista previa: puedes ver cómo se vería tu cuerpo con otro nivel de gym o con otro peso, sin cambiar tus datos.
+    const vista = ctx.gymVista || null;
+    const fisico = vista?.fisico ?? gym.fisicoDe(n.nivel);
+    const corpulencia = vista?.corp ?? gym.corpulenciaDe(miImc);
     const proximo = gym.NIVELES_DE_FISICO[fisico + 1];
-    const cuerpo = dibujarAvatarGym({ ...ctx.avatar, fisico, corpulencia: gym.corpulenciaDe(miImc) });
+    const cuerpo = dibujarAvatarGym({ ...ctx.avatar, fisico, corpulencia });
+    const boton = (texto, atributos, activo) => `<button type="button" class="boton boton-chico ${activo ? "boton-principal" : "boton-secundario"}" data-accion="gym-vista" ${atributos} aria-pressed="${Boolean(activo)}">${texto}</button>`;
+    const pesos = [[-1, "Delgado"], [0, "Normal"], [0.6, "Con peso"], [1.1, "Mucho peso"]];
+    const controles = `
+        <details class="plegable gym-vista" ${vista ? "open" : ""}>
+            <summary>👀 Vista previa: ver cómo cambia tu cuerpo</summary>
+            <p class="nota">Elige un nivel de físico y un peso para ver cómo se vería. No cambia tus datos.</p>
+            <div class="gym-vista-botones">${gym.NIVELES_DE_FISICO.map((nivel, i) => boton(`Nv ${nivel}`, `data-fisico="${i}"`, vista && vista.fisico === i)).join("")}</div>
+            <div class="gym-vista-botones">${pesos.map(([c, nombre]) => boton(nombre, `data-corp="${c}"`, vista && vista.corp === c)).join("")}</div>
+            ${vista ? '<button type="button" class="boton boton-chico boton-secundario boton-ancho" data-accion="gym-vista" data-quitar="1">↩ Volver a mi cuerpo real</button>' : ""}
+        </details>`;
     return `
-        <section class="panel gym-heroe">
+        <section class="panel gym-heroe gym-heroe-grande">
             <div class="gym-avatar" role="img" aria-label="Tu cuerpo: ${gym.NOMBRES_DE_FISICO[fisico]}">${cuerpo}</div>
             <div class="gym-nivel">
+                ${vista ? '<p class="gym-vista-aviso">👀 Vista previa (no es tu cuerpo real)</p>' : ""}
                 <p class="mini texto-suave gym-fisico">Físico: <b>${gym.NOMBRES_DE_FISICO[fisico]}</b>${proximo ? ` · ${gym.NOMBRES_DE_FISICO[fisico + 1]} en el nivel ${proximo}` : " · el máximo"}</p>
                 <p class="etiqueta">${rango.icono} ${rango.nombre}</p>
                 <p class="gym-nivel-numero">Nivel <b>${n.nivel}</b> de gym</p>
@@ -117,6 +131,7 @@ function tarjetaNivel(estado, ctx) {
                 <p class="mini texto-suave">${n.xpEnNivel} / ${n.xpNecesaria} XP${siguiente ? ` · ${siguiente.icono} ${siguiente.nombre} en el nivel ${siguiente.desde}` : ""}</p>
             </div>
         </section>
+        ${controles}
         <p class="nota gym-bono">${bono ? `💪 Tu entrenamiento le da a tu héroe <b>+${bono} % de vida y de ataque</b> en la Torre y en las mazmorras.`
             : "💪 Desde el nivel 2, cada nivel de gym le da a tu héroe +1 % de vida y de ataque en la Torre y las mazmorras (hasta +25 %)."}
             ${total.sesiones ? ` Llevas ${plural(total.sesiones, "sesión", "sesiones")}, ${plural(total.series, "serie", "series")} y ${total.volumen.toLocaleString("es")} kg movidos.` : ""}</p>`;

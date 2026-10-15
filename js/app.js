@@ -62,6 +62,7 @@ let rangoResumen = 7;            // en Progreso: el resumen muestra los últimos
 // Pantalla «Tu diario»: el mes que se ve (null = el actual), el día tocado, la búsqueda,
 // el filtro de ánimo y cuántas entradas se muestran.
 const diarioVista = { mes: null, dia: null, busqueda: "", filtro: null, limite: 30 };
+let gymVista = null;               // (v75) la vista previa del cuerpo en el gimnasio: { fisico, corp } o null
 let descansoGym = null;          // (v66) el descanso entre series del gym: { fin, total } (milisegundos), o null
 let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
 let paginaLibro = "portada";     // en «Tu libro»: "portada", "indice" o el número de un capítulo
@@ -1142,6 +1143,7 @@ function contextoActual(efectos = {}) {
         ...contextoDiario(fecha),
         renovandoPacto,
         descanso: descansoGym,
+        gymVista,
         paginaLibro,
         problemaAvisos,
         regionMapa,
@@ -2932,6 +2934,18 @@ const ACCIONES = {
         if (!ejecutar(() => acciones.empezarGym(estado, boton.dataset.rutina, fecha))) return;
         descansoGym = null;
         window.scrollTo(0, 0);
+    },
+    // (v75) La vista previa del cuerpo: elegir un nivel de físico o un peso, o volver al cuerpo real.
+    "gym-vista": (boton) => {
+        const d = boton.dataset;
+        if (d.quitar) gymVista = null;
+        else {
+            const real = { fisico: gym.fisicoDe(gym.nivelDeGym(estado.gym.sesiones).nivel), corp: gym.corpulenciaDe(gym.imcActual(estado.gym)) };
+            gymVista = { ...real, ...(gymVista || {}) };
+            if (d.fisico !== undefined) gymVista.fisico = Number(d.fisico);
+            if (d.corp !== undefined) gymVista.corp = Number(d.corp);
+        }
+        dibujarPantalla({ mantenerScroll: true });
     },
     // La meta que se marca: «hoy entrené» sin anotar series.
     "gym-rapido": (boton) => {
