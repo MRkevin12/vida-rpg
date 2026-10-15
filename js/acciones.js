@@ -33,6 +33,7 @@ import * as retos from "./retos.js";
 import * as voces from "./voces.js";
 import * as pergaminos from "./pergaminos.js";
 import * as libroCasio from "./libro-casio.js";
+import * as gym from "./gym.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -1207,7 +1208,7 @@ export function empezarTorre(estado, semilla, lugar = "torre", marca = null, mod
     asegurarRetoDelDia(estado);
     // Entras con tu vida real: si llegas herido, empiezas con menos vida.
     const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
-    const partida = torre.nuevaPartida(nivelesDeAtributos(estado), semilla, proporcion, equipoDeBatalla(estado), lugar, marca, modo);
+    const partida = torre.nuevaPartida({ ...nivelesDeAtributos(estado), gym: gym.nivelDeGym(estado.gym.sesiones).nivel }, semilla, proporcion, equipoDeBatalla(estado), lugar, marca, modo);
     // Las provisiones del bazar se usan al empezar (y se gastan).
     torre.usarProvisiones(partida, estado.arcade.bazar);
     estado.arcade.bazar = [];
@@ -1930,4 +1931,125 @@ export function revisarCambios(estado, antes) {
     }
     anotarArmadura(estado);
     return celebraciones;
+}
+
+
+// ===== El Gimnasio (v66) =====
+// Las reglas están en gym.js. Aquí se guarda el entrenamiento en curso, se anotan las series y se cobra el premio.
+
+const entrenamientoEnCurso = (estado) => {
+    if (!estado.gym.encurso) throw new Error("No tienes ningún entrenamiento en curso.");
+    return estado.gym.encurso;
+};
+
+const numeroEntre = (valor, minimo, maximo, que) => {
+    const n = Number(String(valor).replace(",", "."));
+    if (!Number.isFinite(n) || n < minimo || n > maximo) throw new Error(`${que} debe estar entre ${minimo} y ${maximo}.`);
+    return Math.round(n * 100) / 100;
+};
+
+// Empieza (o sigue) un entrenamiento. fecha: hoy o ayer (por si se te olvidó anotarlo).
+export function empezarGym(estado, rutinaId, fecha = hoy()) {
+    const g = estado.gym;
+    if (g.encurso) {
+        if (g.encurso.rutina !== rutinaId) throw new Error("Ya tienes un entrenamiento en curso: termínalo o cancélalo primero.");
+        return;
+    }
+    if (!gym.rutinaPorId(rutinaId)) throw new Error("Esa rutina no existe.");
+    if (fecha !== hoy() && fecha !== sumarDias(hoy(), -1)) throw new Error("Solo puedes anotar el entrenamiento de hoy o de ayer.");
+    if (g.sesiones.some((s) => s.fecha === fecha && s.rutina === rutinaId)) {
+        throw new Error("Esa rutina ya la hiciste ese día. ¡El músculo crece descansando!");
+    }
+    g.encurso = gym.crearEntrenamiento(rutinaId, fecha, g.sesiones);
+}
+
+export function cancelarGym(estado) {
+    entrenamientoEnCurso(estado);
+    estado.gym.encurso = null;
+}
+
+// Marca o desmarca una serie como hecha.
+export function marcarSerieGym(estado, ejercicio, serie) {
+    const s = entrenamientoEnCurso(estado).ejercicios[ejercicio]?.series[serie];
+    if (!s) throw new Error("Esa serie no existe.");
+    s.hecha = !s.hecha;
+    return { hecha: s.hecha };
+}
+
+// Anota el peso (kg) o las repeticiones de una serie.
+export function anotarSerieGym(estado, ejercicio, serie, campo, valor) {
+    const s = entrenamientoEnCurso(estado).ejercicios[ejercicio]?.series[serie];
+    if (!s) throw new Error("Esa serie no existe.");
+    if (campo === "kg") s.kg = numeroEntre(valor === "" ? 0 : valor, 0, gym.MAX_KG, "El peso");
+    else if (campo === "reps") s.reps = Math.round(numeroEntre(valor === "" ? 0 : valor, 0, gym.MAX_REPS, "Las repeticiones"));
+    else throw new Error("Ese dato no existe.");
+}
+
+// Una serie extra al final de un ejercicio (copia la anterior) o quitar la última.
+export function cambiarSeriesGym(estado, ejercicio, delta) {
+    const ej = entrenamientoEnCurso(estado).ejercicios[ejercicio];
+    if (!ej) throw new Error("Ese ejercicio no existe.");
+    if (delta > 0) {
+        if (ej.series.length >= gym.MAX_SERIES) throw new Error(`Máximo ${gym.MAX_SERIES} series por ejercicio.`);
+        const ultima = ej.series[ej.series.length - 1] || { kg: 0, reps: 10 };
+        ej.series.push({ kg: ultima.kg, reps: ultima.reps, hecha: false });
+    } else if (ej.series.length > 1) {
+        ej.series.pop();
+    }
+}
+
+// Termina el entrenamiento: lo guarda, da el XP de Fuerza, las monedas y los hitos, y avisa de los récords.
+export function terminarGym(estado) {
+    const g = estado.gym;
+    const entrenamiento = entrenamientoEnCurso(estado);
+    const sesion = gym.cerrarEntrenamiento(entrenamiento, g.sesiones);
+    const nivelAntes = gym.nivelDeGym(g.sesiones).nivel;
+    const musculosAntes = gym.nivelesDeMusculos(g.sesiones);
+    g.sesiones.push(sesion);
+    g.sesiones.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+    g.encurso = null;
+    ganar(estado, { xp: sesion.xp, monedas: sesion.monedas, atributo: "fuerza" });
+
+    const rutina = gym.rutinaPorId(sesion.rutina);
+    const celebraciones = [{ icono: rutina.icono, etiqueta: sesion.completa ? "¡Entrenamiento completo!" : "Entrenamiento guardado",
+                             titulo: rutina.nombre, detalle: `+${sesion.xp} XP de 💪 Fuerza${sesion.monedas ? ` · +${sesion.monedas} 🪙` : ""}` }];
+    for (const r of sesion.records) {
+        const ej = gym.ejercicioPorId(r.id);
+        celebraciones.push({ icono: "📈", etiqueta: "¡Récord personal!", titulo: ej.nombre, detalle: "Superaste tu mejor marca. Eso es sobrecarga progresiva." });
+    }
+    const nivelAhora = gym.nivelDeGym(g.sesiones).nivel;
+    if (nivelAhora > nivelAntes) {
+        const rango = gym.rangoDe(nivelAhora);
+        celebraciones.push({ icono: rango.icono, etiqueta: "¡Subiste de nivel de gym!", titulo: `Gym nivel ${nivelAhora} · ${rango.nombre}`,
+                             detalle: `Tu héroe gana +${Math.round(gym.bonoDeGym(nivelAhora) * 100)} % de vida y ataque en la Torre.` });
+    }
+    const musculosAhora = gym.nivelesDeMusculos(g.sesiones);
+    for (const [clave, m] of Object.entries(musculosAhora)) {
+        if (m.nivel > musculosAntes[clave].nivel) {
+            celebraciones.push({ pequena: true, icono: gym.MUSCULOS[clave].icono, titulo: `${gym.MUSCULOS[clave].nombre} subió a nivel ${m.nivel}` });
+        }
+    }
+    for (const hito of gym.hitosNuevos(g, hoy())) {
+        g.hitos.push(hito.id);
+        ganar(estado, { gemas: hito.gemas });
+        celebraciones.push({ icono: hito.icono, etiqueta: "¡Hito de gym!", titulo: hito.titulo, detalle: `${hito.texto} +${hito.gemas} 💎` });
+    }
+    return { sesion, celebraciones };
+}
+
+// Borra una sesión equivocada y le quita lo que había dado (los hitos ya cobrados se quedan).
+export function borrarSesionGym(estado, indice) {
+    const sesion = estado.gym.sesiones[indice];
+    if (!sesion) throw new Error("Esa sesión no existe.");
+    estado.gym.sesiones.splice(indice, 1);
+    ganar(estado, { xp: -sesion.xp, monedas: -sesion.monedas, atributo: "fuerza" });
+}
+
+export function cambiarAjusteGym(estado, clave, valor) {
+    if (clave === "meta") estado.gym.metaSemanal = Math.round(numeroEntre(valor, 1, 7, "La meta"));
+    else if (clave === "descanso") {
+        const seg = Number(valor);
+        if (!gym.DESCANSOS.includes(seg)) throw new Error("Ese descanso no existe.");
+        estado.gym.descanso = seg;
+    } else throw new Error("Ese ajuste no existe.");
 }

@@ -7,6 +7,7 @@
 import { calcularNivel, ATRIBUTOS, BASE_ATRIBUTO } from "./juego.js";
 import { diasEntre } from "./fechas.js";
 import { calcularVida } from "./vida.js";
+import { fisicoDe, nivelDeGym } from "./gym.js";
 import { especieActiva, nombreDe, totalDe } from "./mascota.js";
 
 
@@ -308,6 +309,7 @@ export function describirAvatar(estado, hoy, info) {
     return {
         nivel,
         etapa,
+        fisico: fisicoDe(nivelDeGym(estado.gym?.sesiones || []).nivel),   // (v66) qué tan fornido te hace el gimnasio (0–3)
         clave: claseClave,
         clase: CLASES[claseClave],
         niveles,

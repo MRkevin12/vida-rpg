@@ -45,6 +45,7 @@ import { HABILIDADES, ESQUIVAR_MAXIMO, tiene } from "./habilidades.js";
 import { MASCOTAS } from "./mascota.js";
 import { NUEVOS_LUGARES } from "./mazmorras.js";
 import { semilla as hashDeTexto } from "./desafios.js";
+import { bonoDeGym } from "./gym.js";
 
 // El premio es en gemas 💎 (la moneda del arcade, v31) y algo de XP (desde la v31, la mitad).
 export const ATRIBUTO = "carisma";                       // el premio sube Carisma
@@ -378,17 +379,19 @@ function elegir(partida, lista) {
 // equipo = { ataque, magia, suerte, armadura, habilidades } (lo que suma tu equipo; la armadura,
 // la que tienes ahora; habilidades, las de tus objetos épicos y legendarios)
 // equipo.racha (v38): tus días seguidos, que te dan Voluntad al empezar.
+// niveles.gym (v66, opcional): tu nivel de gimnasio; da hasta +25 % de vida y de ataque (ver gym.js).
 export function heroeDeLaTorre(niveles, equipo = {}) {
     const { ataque = 0, magia = 0, suerte = 0, armadura = 0 } = equipo;
     const habilidades = (equipo.habilidades || []).filter((clave) => HABILIDADES[clave]);
     const gloria = habilidades.includes("gloria");
-    const vidaMax = Math.round((40 + 6 * niveles.fuerza + 4 * niveles.carisma) * (gloria ? 1 + HABILIDADES.gloria.vida : 1));
+    const fuerzaGym = 1 + bonoDeGym(niveles.gym || 1);   // el entrenamiento real se nota en el combate
+    const vidaMax = Math.round((40 + 6 * niveles.fuerza + 4 * niveles.carisma) * (gloria ? 1 + HABILIDADES.gloria.vida : 1) * fuerzaGym);
     const mana = 2 + Math.floor(niveles.intelecto / 3) + (magia >= 8 ? 1 : 0) + (habilidades.includes("estrellas") ? HABILIDADES.estrellas.mana : 0);
     const pociones = 1 + Math.floor(niveles.riqueza / 2) + (gloria ? 1 : 0);
     return {
         vida: vidaMax,
         vidaMax,
-        ataque: 6 + 2 * niveles.fuerza + ataque,
+        ataque: Math.round((6 + 2 * niveles.fuerza) * fuerzaGym) + ataque,
         hechizo: 10 + 3 * niveles.intelecto + Math.round(magia * 1.5),
         mana,                 // hechizos que te quedan en este piso
         manaMax: mana,

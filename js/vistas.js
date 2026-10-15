@@ -38,6 +38,7 @@ import { calcularResumen, resumenSemana } from "./resumen.js";
 import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
 import * as voces from "./voces.js";
+import { tarjetaGymHoy } from "./vistas-gym.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
          diasEntre, lunesDe, relojTexto, relojLargo, sumarDias, MESES, hoy as fechaDeHoy } from "./fechas.js";
 
@@ -297,6 +298,7 @@ export function pantallaHoy(estado, ctx) {
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
         ${esencial ? "" : `${avisoNotificaciones(ctx)}
         ${avisoDescanso(estado, ctx)}`}
+        ${esAyer ? "" : tarjetaGymHoy(estado, ctx)}
         ${esAyer || vista === "importantes" ? "" : destacadasDeHoy(estado)}
         ${pestanasHoy}
         ${contenido}`;

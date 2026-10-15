@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v66 — El Gimnasio
+- **`js/gym.js`** (nuevo, reglas puras; en `sw.js`): `RUTINA` (7 entrenamientos, 24 ejercicios con músculo, series y rango de repeticiones), `MUSCULOS`, `RANGOS`, `HITOS`; `crearEntrenamiento` (rellena peso y repeticiones con la última vez), `cerrarEntrenamiento` (XP: 4 por serie + 20 si ≥80 % + 15 por récord, máx. 3; monedas), `mejoresDe` (récord por 1RM estimado de Epley), `sugerencia` (doble progresión), `nivelDeGym` (100×N), `nivelesDeMusculos` (50×N), `bonoDeGym` (+1 % por nivel, máx. +25 %), `fisicoDe` (0–3), `rachaSemanal`, `siguienteRutina`. Todo se calcula desde `estado.gym.sesiones`.
+- `estado.gym = { sesiones, encurso, hitos, metaSemanal, descanso }` (se migra en `completar`). Acciones al final de `acciones.js`: `empezarGym` (hoy o ayer, una vez por rutina y día), `marcarSerieGym`, `anotarSerieGym`, `cambiarSeriesGym`, `terminarGym` (XP a Fuerza, celebraciones, hitos), `cancelarGym`, `borrarSesionGym`, `cambiarAjusteGym`.
+- Torre: `heroeDeLaTorre` usa `niveles.gym` (opcional). Avatar: `describirAvatar().fisico` ensancha hombros, brazos y muslos en `esqueleto`.
+- Pantallas: `js/vistas-gym.js` (`pantallaGym`, `tarjetaGymHoy` en Hoy), pantalla `gym` (también en modo esencial). El peso y las repeticiones se guardan al cambiar (`change`) sin redibujar; el descanso se actualiza en `tictac`. 260 pruebas.
+
 ## v65 — Modos de juego
 - `torre.MODOS` (normal, asalto, diaria) y `partida.modo` (si falta, es normal). **Asalto:** `nuevaPartida(…, modo)` empieza en el piso 5; `elegirMejora` salta 5 pisos y cura 30 %; sin salas ni rutas; `pisosSuperados` = `piso − 5`; premio ×0,8; récord propio `arcade.records["asalto-<lugar>"]` (guardianes) y no abre mazmorras. Pide `records[lugar] ≥ 5`. **Reto diario:** `marcaDeLaDiaria` y `semillaDeLaDiaria` (salen de la fecha y el lugar); con 8 pisos paga `bonus` una vez al día (`arcade.diaria = {fecha, mejor, cobrado}`).
 - `acciones.empezarTorre(estado, semilla, lugar, marca, modo)`; `terminarTorre` devuelve `modo` y `bonus`. Vistas: `selectorDeModo` (radios `modo-<lugar>`) y reglas plegadas con `<details class="plegable-reglas">`. 250 pruebas.

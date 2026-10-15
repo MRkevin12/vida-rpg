@@ -10574,3 +10574,92 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .pildora.apagada input { pointer-events: none; }
 .plegable-reglas { margin: .4rem 0 .8rem; }
 .plegable-reglas > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+
+/* ===== v66: el gimnasio ===== */
+:root { --gym: #fb7185; --gym-2: #fbbf24; }
+
+/* La fila de Hoy */
+.gym-hoy {
+    display: flex; align-items: center; gap: 12px;
+    margin: 0 0 12px; padding: 10px 12px;
+    background: linear-gradient(135deg, rgba(251, 113, 133, 0.16), rgba(251, 191, 36, 0.08));
+    border: 1px solid rgba(251, 113, 133, 0.45); border-radius: 14px;
+}
+.gym-hoy-icono { font-size: 1.7rem; line-height: 1; }
+.gym-hoy-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.gym-hoy-texto small { color: var(--texto-suave); font-size: 0.78rem; }
+.gym-hoy-hecho { border-color: rgba(52, 211, 153, 0.45); background: rgba(52, 211, 153, 0.08); }
+.gym-hoy-activo { border-color: var(--gym-2); animation: pulso-gym 2.4s ease-in-out infinite; }
+@keyframes pulso-gym { 50% { box-shadow: 0 0 14px rgba(251, 191, 36, 0.45); } }
+
+/* Nivel de gym */
+.gym-heroe { display: flex; gap: 14px; align-items: center; }
+.gym-avatar { flex: 0 0 104px; width: 104px; }
+.gym-avatar svg { width: 100%; height: auto; display: block; }
+.gym-nivel { flex: 1; min-width: 0; }
+.gym-nivel-numero { margin: 2px 0 0; font-size: 1.15rem; }
+.gym-nivel-numero b { font-family: "Orbitron", sans-serif; color: var(--gym-2); font-size: 1.5rem; }
+.barra-gym .barra-relleno { background: linear-gradient(90deg, var(--gym), var(--gym-2)); box-shadow: 0 0 10px rgba(251, 113, 133, 0.5); }
+.gym-bono { margin: 10px 2px 14px; }
+
+/* La semana */
+.gym-semana { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.gym-dia { display: grid; gap: 2px; justify-items: center; padding: 6px 0; border: 1px solid var(--borde); border-radius: 10px; background: var(--hundido); }
+.gym-dia small { color: var(--texto-suave); font-size: 0.7rem; }
+.gym-dia span { min-height: 1.4em; font-size: 1.1rem; color: var(--texto-suave); }
+.gym-dia.hecho { border-color: var(--gym); background: rgba(251, 113, 133, 0.14); }
+.gym-dia.hoy { outline: 2px solid var(--gym-2); outline-offset: 1px; }
+.gym-dia.futuro { opacity: 0.55; }
+
+/* Elegir rutina */
+.gym-rutinas { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.gym-rutina { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--borde); border-radius: 14px; background: var(--hundido); }
+.gym-rutina.toca { border-color: var(--gym); background: rgba(251, 113, 133, 0.1); }
+.gym-rutina.hecha { opacity: 0.6; }
+.gym-rutina-chica { justify-content: space-between; padding: 6px 10px; }
+.gym-rutina-icono { font-size: 1.6rem; }
+.gym-rutina-texto { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.gym-rutina-texto small { color: var(--texto-suave); font-size: 0.76rem; }
+.gym-toca { font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--gym); color: #1b0b10; vertical-align: middle; }
+
+/* El entrenamiento en curso */
+.gym-sesion { display: grid; gap: 12px; }
+.gym-descanso {
+    position: sticky; top: calc(var(--alto-cabecera, 72px) + 6px); z-index: 5;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 14px; border-radius: 14px; font-size: 1.05rem;
+    background: rgba(13, 10, 28, 0.96); border: 1px solid var(--gym-2); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.gym-descanso b { font-family: "Orbitron", sans-serif; color: var(--gym-2); font-size: 1.3rem; }
+.gym-ejercicio { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--borde); border-radius: 14px; background: var(--hundido); }
+.gym-ejercicio.completo { border-color: var(--verde); }
+.gym-ejercicio h3 { margin: 0; font-size: 1rem; }
+.gym-ejercicio p { margin: 0; }
+.gym-pista { color: var(--gym-2); }
+.gym-pista-peso { color: var(--verde); font-weight: 600; }
+.gym-serie { display: grid; grid-template-columns: 24px 1fr 1fr 52px; gap: 8px; align-items: end; }
+.gym-n { align-self: center; text-align: center; color: var(--texto-suave); font-weight: 700; }
+.gym-serie label { display: grid; gap: 2px; }
+.gym-serie label span { font-size: 0.7rem; color: var(--texto-suave); }
+.gym-serie input { width: 100%; min-height: 44px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+.gym-ok { min-height: 44px; border-radius: 12px; font-size: 1.3rem; border: 2px solid var(--borde); background: var(--panel); color: var(--texto-suave); cursor: pointer; }
+.gym-ok[aria-pressed="true"] { background: var(--verde); border-color: var(--verde); color: #062b1c; }
+.gym-serie.hecha input { opacity: 0.65; }
+.gym-mas { display: flex; gap: 8px; }
+
+/* Músculos */
+.gym-musculos { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.gym-musculo { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; }
+.gym-musculo .barra { grid-column: 1 / -1; margin-top: 2px; height: 9px; }
+.gym-musculo-nivel { font-family: "Orbitron", sans-serif; font-size: 0.8rem; color: var(--gym-2); }
+
+/* Hitos e historial */
+.gym-hitos { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.gym-hito { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--borde); background: var(--hundido); opacity: 0.65; }
+.gym-hito.logrado { opacity: 1; border-color: var(--gym-2); background: rgba(251, 191, 36, 0.08); }
+.gym-hito > span:nth-child(2) { flex: 1; display: grid; }
+.gym-hito small { color: var(--texto-suave); font-size: 0.76rem; }
+.gym-hito-icono { font-size: 1.5rem; }
+.gym-hito-premio { font-size: 0.8rem; color: var(--gym-2); white-space: nowrap; }
+.gym-historial { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.gym-historial > span { display: grid; min-width: 0; }

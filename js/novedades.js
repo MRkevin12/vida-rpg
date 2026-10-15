@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 65;
+export const VERSION_APP = 66;
 
 export const NOVEDADES = [
+    {
+        version: 66,
+        titulo: "El Gimnasio",
+        cambios: [
+            "🏋️ Tu rutina real de gym dentro del juego: Pecho + Tríceps, Hombros, Isquiosurales, Espalda, Bíceps, Cuádriceps y Pantorrilla, con sus ejercicios, series y repeticiones. En Hoy ves cuál toca y la app te lleva al entrenamiento.",
+            "📝 Anotas el peso y las repeticiones de cada serie (ya vienen llenos con lo de la última vez), marcas ✓ y empieza el descanso con cuenta atrás, sonido y vibración. La app te dice cómo superarte: una repetición más, o subir el peso al llegar al tope.",
+            "💪 Cada serie da XP de Fuerza; terminar da monedas; superar tu marca da XP extra (📈 récords personales). Tus 8 músculos suben de nivel por separado y el nivel de gym le da a tu héroe hasta +25 % de vida y ataque en la Torre y las mazmorras. Tu avatar se ve más fornido al subir de nivel.",
+            "🔥 Meta de días por semana, racha de semanas, historial de sesiones y 12 hitos con gemas. Si se te olvidó anotar ayer, puedes registrarlo.",
+        ],
+    },
     {
         version: 65,
         titulo: "Modos de juego",

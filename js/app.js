@@ -25,8 +25,10 @@ import * as cinesReino from "./cinematicas-reino.js";
 import * as pergaminos from "./pergaminos.js";
 import * as libroCasio from "./libro-casio.js";
 import * as vistasVoces from "./vistas-voces.js";
+import * as vistasGym from "./vistas-gym.js";
 import * as vocesModulo from "./voces.js";
 import * as vida from "./vida.js";
+import * as gym from "./gym.js";
 import * as diario from "./diario.js";
 import * as pacto from "./pacto.js";
 import * as libro from "./libro.js";
@@ -60,6 +62,7 @@ let rangoResumen = 7;            // en Progreso: el resumen muestra los últimos
 // Pantalla «Tu diario»: el mes que se ve (null = el actual), el día tocado, la búsqueda,
 // el filtro de ánimo y cuántas entradas se muestran.
 const diarioVista = { mes: null, dia: null, busqueda: "", filtro: null, limite: 30 };
+let descansoGym = null;          // (v66) el descanso entre series del gym: { fin, total } (milisegundos), o null
 let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
 let paginaLibro = "portada";     // en «Tu libro»: "portada", "indice" o el número de un capítulo
 let problemaAvisos = null;       // si las notificaciones se cortaron: "bloqueadas" o "desconectadas"
@@ -76,10 +79,10 @@ let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
 
 // Modo esencial (v46): las únicas pantallas que quedan a la mano. Si lo enciendes estando en otra, vuelves a Hoy.
-const PANTALLAS_ESENCIALES = new Set(["hoy", "tienda", "enfoque"]);
+const PANTALLAS_ESENCIALES = new Set(["hoy", "tienda", "enfoque", "gym"]);
 
 // Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
-const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje", biblioteca: "personaje", novela: "personaje" };
+const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", gym: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje", biblioteca: "personaje", novela: "personaje" };
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 const $ = (selector) => document.querySelector(selector);
@@ -96,6 +99,7 @@ const DIBUJAR = {
     enfoque: vistas.pantallaEnfoque,
     diario: vistas.pantallaDiario,
     pacto: vistas.pantallaPacto,
+    gym: vistasGym.pantallaGym,
     libro: vistas.pantallaLibro,
     mapa: vistas.pantallaMapa,
     memorias: vistas.pantallaMemorias,
@@ -230,6 +234,19 @@ function revisarAlAbrir() {
 // Reloj del modo enfoque: cada segundo cambia solo el texto del tiempo y el anillo
 // (sin redibujar la pantalla). Al llegar a 0, entrega el premio.
 function tictac() {
+    // El descanso entre series del gym: cuenta atrás y, al llegar a 0, suena y vibra.
+    const reloj = document.querySelector("[data-descanso-fin]");
+    if (reloj) {
+        const restante = Number(reloj.dataset.descansoFin) - Date.now();
+        if (restante <= 0) {
+            descansoGym = null;
+            sonar("habilidad");
+            navigator.vibrate?.([200, 100, 200]);
+            dibujarPantalla({ mantenerScroll: true });
+        } else {
+            reloj.textContent = relojTexto(restante);
+        }
+    }
     // El reloj del desafío relámpago (si está en pantalla). Al llegar a 0 se redibuja Hoy.
     for (const reloj of document.querySelectorAll("[data-relampago-fin]")) {
         const restante = Number(reloj.dataset.relampagoFin) - Date.now();
@@ -1120,6 +1137,7 @@ function contextoActual(efectos = {}) {
         ahora,                                              // para los relojes (enfoque y relámpago)
         ...contextoDiario(fecha),
         renovandoPacto,
+        descanso: descansoGym,
         paginaLibro,
         problemaAvisos,
         regionMapa,
@@ -2902,6 +2920,47 @@ const ACCIONES = {
         dibujarPantalla();
         window.scrollTo(0, 0);
     },
+    // El gimnasio (v66). Ver gym.js, vistas-gym.js y el final de acciones.js.
+    "gym-empezar": (boton) => {
+        const fecha = boton.dataset.ayer ? sumarDias(hoy(), -1) : hoy();
+        if (!ejecutar(() => acciones.empezarGym(estado, boton.dataset.rutina, fecha))) return;
+        descansoGym = null;
+        window.scrollTo(0, 0);
+    },
+    "gym-serie": (boton) => {
+        const resultado = ejecutar(() => {
+            const r = acciones.marcarSerieGym(estado, Number(boton.dataset.ej), Number(boton.dataset.serie));
+            // Al terminar una serie empieza el descanso; al desmarcarla, se quita.
+            descansoGym = r.hecha ? { fin: Date.now() + estado.gym.descanso * 1000, total: estado.gym.descanso * 1000 } : null;
+            return r;
+        }, { mantenerScroll: true });
+        if (resultado) sonar(resultado.hecha ? "completar" : "desmarcar");
+    },
+    "gym-serie-mas": (boton) => ejecutar(() => acciones.cambiarSeriesGym(estado, Number(boton.dataset.ej), 1), { mantenerScroll: true }),
+    "gym-serie-menos": (boton) => ejecutar(() => acciones.cambiarSeriesGym(estado, Number(boton.dataset.ej), -1), { mantenerScroll: true }),
+    "gym-saltar-descanso": () => { descansoGym = null; dibujarPantalla({ mantenerScroll: true }); },
+    "gym-terminar": () => {
+        const hechas = gym.seriesMarcadas(estado.gym.encurso);
+        const planeadas = gym.seriesPlaneadas(gym.rutinaPorId(estado.gym.encurso.rutina));
+        if (hechas * 2 < planeadas && !confirm(`Solo marcaste ${hechas} de ${planeadas} series. ¿Terminar así?`)) return;
+        if (ejecutar(() => acciones.terminarGym(estado))) {
+            descansoGym = null;
+            sonar("completar");
+            window.scrollTo(0, 0);
+        }
+    },
+    "gym-cancelar": () => {
+        if (!confirm("¿Cancelar el entrenamiento? Se pierde lo que anotaste y no da premio.")) return;
+        descansoGym = null;
+        ejecutar(() => acciones.cancelarGym(estado));
+    },
+    "gym-borrar": (boton) => {
+        if (!confirm("¿Borrar esta sesión? Se le quita el XP y las monedas que dio.")) return;
+        ejecutar(() => acciones.borrarSesionGym(estado, Number(boton.dataset.indice)), { mantenerScroll: true });
+    },
+    "gym-meta": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "meta", estado.gym.metaSemanal + Number(boton.dataset.delta)), { mantenerScroll: true }),
+    "gym-descanso": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "descanso", boton.dataset.segundos), { mantenerScroll: true }),
+
     "ver-pacto": () => {
         $("#dialogo-ajustes").close();
         cambiarPantalla("pacto");
@@ -3236,6 +3295,18 @@ function conectarEventos() {
 
     // Diario: tocar una carita guarda al instante (junto con la frase que hayas escrito).
     document.addEventListener("change", (evento) => {
+        // Gimnasio: el peso y las repeticiones se guardan al cambiarlos, sin redibujar (así no se cierra el teclado).
+        const campo = evento.target.dataset?.gym;
+        if (campo) {
+            try {
+                acciones.anotarSerieGym(estado, Number(evento.target.dataset.ej), Number(evento.target.dataset.serie), campo, evento.target.value);
+                datos.guardar(estado);
+            } catch (error) {
+                alert(error.message);
+                dibujarPantalla({ mantenerScroll: true });   // vuelve a poner el valor que sí valía
+            }
+            return;
+        }
         if (evento.target.name === "animo" && evento.target.form?.dataset.form === "diario") evento.target.form.requestSubmit();
     });
 

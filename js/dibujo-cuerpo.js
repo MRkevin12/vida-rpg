@@ -14,15 +14,16 @@ import { TRAZO, capsula, oscurecer, aclarar } from "./dibujo-base.js";
 export function esqueleto(d) {
     const fem = d.apariencia.cuerpo === "femenino";
     const fuerte = d.rasgos.fuerza >= 1 ? 1 : 0;       // Fuerza nivel 3+: brazos y hombros más anchos
-    const H = (fem ? 19 : 22) + fuerte * 0.9;          // medio ancho de hombros
+    const fisico = d.fisico || 0;                      // (v66) el gimnasio: 0–3, más ancho de hombros, brazos y piernas
+    const H = (fem ? 19 : 22) + fuerte * 0.9 + fisico * 0.8;   // medio ancho de hombros
     const centro = fem ? 6.4 : 7.4;                    // separación de las piernas
     return {
         fem,
         H,
         cintura: fem ? 11.8 : 14.8,
         cadera: fem ? 16 : 15.6,
-        brazo: (fem ? 5 : 5.8) + fuerte * 0.9,         // radio del brazo en el hombro
-        muslo: fem ? 7.7 : 8.2,                        // radios de la pierna: muslo, rodilla y tobillo
+        brazo: (fem ? 5 : 5.8) + fuerte * 0.9 + fisico * 0.55,   // radio del brazo en el hombro
+        muslo: (fem ? 7.7 : 8.2) + fisico * 0.35,                        // radios de la pierna: muslo, rodilla y tobillo
         rodilla: 5.9,
         tobillo: 4.5,
         // Brazo izquierdo: relajado junto al cuerpo.

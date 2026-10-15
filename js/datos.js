@@ -8,6 +8,7 @@
 // para exportar e importar una copia de seguridad.
 
 import { hoy } from "./fechas.js";
+import { gymInicial } from "./gym.js";
 
 const CLAVE = "vida-rpg";
 
@@ -69,6 +70,7 @@ export function estadoInicial() {
         noches: [],           // días que cerraste con el ritual de la noche
         relampagos: {},       // desafío relámpago de cada día: { inicio, base, meta, minutos, cobradoEn } o { rechazado }
         cofres: {},           // cofre de cada día, con lo que salió: { tipo, cantidad, atributo, objeto, icono, texto }
+        gym: gymInicial(),    // (v66) el gimnasio: sesiones, el entrenamiento en curso, hitos y tus ajustes (ver gym.js)
         libros: { casio: { marca: 0, leidos: 0, fin: null } },   // (v62) el libro largo de Historia: por dónde vas y cuándo lo terminaste
         pergaminos: { leidos: {} },   // (v57) los pergaminos de la Biblioteca prohibida que ya leíste: { id: fecha }
         mapa: { reclamados: [],     // lugares del mapa cuyo premio ya reclamaste ("r1-5"…)
@@ -161,6 +163,7 @@ function completar(guardado) {
         mascota: { ...base.mascota, ...guardado.mascota, adoptadas: { ...guardado.mascota?.adoptadas } },
         pergaminos: { leidos: { ...guardado.pergaminos?.leidos } },
         libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio } },
+        gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [] },   // (v66)
         mapa: { reclamados: guardado.mapa?.reclamados || [], cines: guardado.mapa?.cines || [] },
         arcade: {
             usadas: guardado.arcade?.usadas || 0,
