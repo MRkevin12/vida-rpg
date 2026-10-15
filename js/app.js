@@ -2213,8 +2213,6 @@ const ACCIONES = {
     // (v49) El botón de Hoy ahora abre la pregunta «¿Cómo te sientes hoy?» para cambiar el menú cuando quieras.
     "alternar-esencial": () => preguntarAnimo(),
     "elegir-animo": (boton) => elegirAnimo(boton.dataset.animo),
-    // Modo esencial: los tres números de arriba llevan a su grupo (diarias, tareas o importantes).
-    "ir-grupo": (boton) => document.getElementById(boton.dataset.grupo)?.scrollIntoView({ behavior: "smooth", block: "start" }),
     "cerrar-semana": () => {
         ejecutar(() => acciones.cerrarResumenSemanal(estado));
         window.scrollTo(0, 0);

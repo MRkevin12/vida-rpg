@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 50;
+export const VERSION_APP = 51;
 
 export const NOVEDADES = [
+    {
+        version: 51,
+        titulo: "Hoy, más ordenado",
+        cambios: [
+            "📑 Hoy ahora tiene pestañas y solo ves una sección a la vez: ⚔️ Misiones, 🗓️ Metas de la semana, 📌 Tareas, 🎯 Importantes y 📓 Diario (el diario no sale en el modo esencial). Cada una tiene su color y su contador.",
+            "💪 Las misiones y las tareas se agrupan por atributo (Fuerza, Intelecto, Carisma, Riqueza y los tuyos), cada uno con su color. Si prefieres, cambia a «Por momento» (mañana, tarde, noche).",
+            "Lo que antes iba arriba (tu semana, héroe y «Tu día») ahora está debajo de las secciones, para que lo primero que veas sea lo que vas a hacer.",
+        ],
+    },
     {
         version: 50,
         titulo: "Una portada para tu día",

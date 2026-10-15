@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v51 — Hoy en secciones
+- `pantallaHoy`: pestañas `.hoy-tabs` (`subvista.hoy`: misiones · metas · tareas · importantes · diario) y solo se dibuja la elegida, en todos los ánimos (el diario no sale en el esencial). Reemplaza al resumen del modo esencial y a `ir-grupo`.
+- Misiones y tareas agrupadas por atributo con `agruparPorAtributo` (título de color y «hechas/total»); alternable a «Por momento» con `subvista["hoy-agrupar"]`. Las metas semanales tienen su propia pestaña.
+- El orden cambió: botón de ánimo, pestañas y contenido primero; semana, foco, avisos, héroe y «Tu día» debajo.
+
 ## v50 — Portada para «¿Cómo te sientes hoy?»
 - `#dialogo-animo` ahora es pantalla completa (`.dialogo-animo`): pintura `fondos/camino.jpg` con velo oscuro, el Maestro Aurelio, saludo por hora y una cita de `maestro.CONSEJOS` que cambia por día. La arma `vistas.pantallaAnimo(nombre, hora, dia)`.
 - Botón grande `.boton-animo` arriba de Hoy (reemplaza al chip): muestra el ánimo actual y reabre la portada.

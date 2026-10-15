@@ -8805,3 +8805,67 @@ body:has(#deshacer:not([hidden])) .aviso {
     background: #c4b5fd;
     border-radius: 999px;
 }
+
+
+/* ===== (v51) Hoy en secciones: una a la vez, con colores propios; las listas se agrupan por atributo ===== */
+.esencial-metas { --acento: #4ade80; }
+.esencial-diario { --acento: #f472b6; }
+
+.hoy-tabs {
+    position: sticky;
+    top: calc(var(--alto-cabecera, 72px) + 6px);
+    z-index: 4;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 6px;
+    padding: 6px;
+    background: rgba(13, 10, 28, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(60, 48, 112, 0.9);
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.hoy-tab {
+    display: grid;
+    gap: 1px;
+    min-height: 52px;
+    padding: 6px 2px;
+    font: inherit;
+    text-align: center;
+    color: var(--texto-suave);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.hoy-tab b { font-size: 0.92rem; color: var(--texto); white-space: nowrap; }
+.hoy-tab small { font-size: 0.68rem; }
+.hoy-tab[aria-pressed="true"] {
+    color: var(--texto);
+    background: color-mix(in srgb, var(--acento) 18%, transparent);
+    border-color: var(--acento);
+}
+.hoy-tab-diarias { --acento: #22d3ee; }
+.hoy-tab-metas { --acento: #4ade80; }
+.hoy-tab-tareas { --acento: #fbbf24; }
+.hoy-tab-importantes { --acento: #a78bfa; }
+.hoy-tab-diario { --acento: #f472b6; }
+
+/* Título de cada atributo dentro de una lista. */
+.subtitulo-atributo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 14px 0 6px;
+    padding-bottom: 4px;
+    color: var(--color-attr);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-attr) 45%, transparent);
+}
+.subtitulo-atributo small { color: var(--texto-suave); }
+.lista-atributo .mision { border-left: 4px solid var(--color-attr); }
+
+.selector-chico button { min-height: 34px; font-size: 0.8rem; }
