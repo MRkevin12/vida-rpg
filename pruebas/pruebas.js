@@ -5482,6 +5482,7 @@ prueba("Gym: las pantallas se dibujan (la fila de Hoy, la elección, el entrenam
     acciones.terminarGym(estado);
     html = vistasGym.pantallaGym(estado, ctx);
     cierto(html.includes("Récords personales") && html.includes("Últimas sesiones") && html.includes("Hitos de gym"), "resultados");
+    cierto(html.includes("Tu constancia") && (html.match(/gym-cuadro n/g) || []).length === 84, "el calendario de 12 semanas tiene 84 cuadritos");
     cierto(vistasGym.tarjetaGymHoy(estado, ctx).includes("Hoy entrenaste"));
 });
 
@@ -5674,6 +5675,27 @@ prueba("Reacciones: dos hechizos distintos en turnos seguidos provocan Vapor, Co
     const conReaccion = torre.actuar(a, "hechizo", "hielo").find((e) => e.quien === "heroe").dano;
     const sinReaccion = torre.actuar(b, "hechizo", "hielo").find((e) => e.quien === "heroe").dano;
     cierto(conReaccion > sinReaccion * 1.1, `con reacción ${conReaccion} > sin ella ${sinReaccion}`);
+});
+
+prueba("Maestro: sabe de tu gimnasio (te empuja si hace días que no entrenas y celebra tus marcas)", () => {
+    const estado = partidaNueva();
+    const a = (h) => new Date(2026, 0, 15, h).getTime();
+    estado.misiones = [];
+    let c = maestro.contexto(estado, hoy(), a(14));
+    igual([c.gym.sesiones, c.gym.diasSin, c.gym.hechoHoy], [0, null, false], "sin sesiones no dice nada del gym");
+    cierto(!maestro.saludo(c).includes("gimnasio"), "no menciona el gym");
+    entrenar(estado, "espalda", 30, 10, sumarDias(hoy(), -1));
+    estado.gym.sesiones[0].fecha = sumarDias(hoy(), -5);
+    c = maestro.contexto(estado, hoy(), a(14));
+    igual([c.gym.diasSin, c.gym.toca], [5, "Bíceps"]);
+    cierto(maestro.saludo(c).includes("Hace 5 días que no pisas el gimnasio") && maestro.saludo(c).includes("Bíceps"), "te empuja");
+    cierto(maestro.responder(estado, c, "comoVoy").includes("En el gimnasio vas en el nivel 1"), "«¿Cómo voy?» cuenta el gym");
+    entrenar(estado, "biceps", 20, 10);
+    entrenar(estado, "hombros", 20, 10, sumarDias(hoy(), -1));
+    estado.gym.sesiones.sort((x, y) => (x.fecha < y.fecha ? -1 : 1));
+    estado.gym.sesiones[estado.gym.sesiones.length - 1].records = [{ id: "curl-barra", puntaje: 30 }];
+    c = maestro.contexto(estado, hoy(), a(14));
+    cierto(c.gym.recordHoy && maestro.saludo(c).includes("rompiste una marca"), "celebra el récord de hoy");
 });
 
 // ===== Los ataques de las criaturas se ven (v67) =====

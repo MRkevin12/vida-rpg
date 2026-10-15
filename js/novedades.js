@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 71;
+export const VERSION_APP = 72;
 
 export const NOVEDADES = [
+    {
+        version: 72,
+        titulo: "Aurelio y el gimnasio",
+        cambios: [
+            "🧙 El Maestro Aurelio ahora sabe de tu gimnasio: celebra el día que rompes una marca y, si llevas 3 días o más sin entrenar, te recuerda qué rutina toca. Si le preguntas «¿Cómo voy?», también te cuenta tu nivel de gym y tus días de la semana.",
+            "🟥 Nueva tarjeta «Tu constancia» en el Gimnasio: un cuadrito por día de las últimas 12 semanas, para ver tu regularidad de un vistazo.",
+        ],
+    },
     {
         version: 71,
         titulo: "Reacciones elementales",

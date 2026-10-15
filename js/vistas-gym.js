@@ -79,7 +79,7 @@ export function pantallaGym(estado, ctx) {
             <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="hoy">‹ Hoy</button>
         </div>
         ${tarjetaNivel(estado, ctx)}
-        ${g.encurso ? entrenamientoActual(estado, ctx) : `${tarjetaSemana(estado, ctx)}${listaDeRutinas(estado, ctx)}`}
+        ${g.encurso ? entrenamientoActual(estado, ctx) : `${tarjetaSemana(estado, ctx)}${listaDeRutinas(estado, ctx)}${tarjetaConstancia(estado, ctx)}`}
         ${g.encurso ? "" : `
             ${tarjetaMusculos(estado)}
             ${tarjetaRecords(estado)}
@@ -134,6 +134,32 @@ function tarjetaSemana(estado, ctx) {
             <ol class="gym-semana">${celdas}</ol>
             ${barra(Math.min(100, Math.round((hechos / g.metaSemanal) * 100)), "barra-gym")}
             <p class="nota">${racha ? `🔥 <b>${plural(racha, "semana seguida", "semanas seguidas")}</b> cumpliendo tu meta.` : "Cumple tu meta de la semana para empezar una racha de semanas."}</p>
+        </section>`;
+}
+
+// ===== Las últimas 12 semanas (como el calendario de misiones): un cuadrito por día =====
+function tarjetaConstancia(estado, ctx) {
+    const sesiones = estado.gym.sesiones;
+    if (!sesiones.length) return "";
+    const SEMANAS = 12;
+    const primerLunes = sumarDias(lunesDe(ctx.hoy), -7 * (SEMANAS - 1));
+    const porDia = {};
+    for (const s of sesiones) porDia[s.fecha] = (porDia[s.fecha] || 0) + 1;
+    let celdas = "";
+    let total = 0;
+    for (let semana = 0; semana < SEMANAS; semana++) {
+        for (let dia = 0; dia < 7; dia++) {
+            const fecha = sumarDias(primerLunes, semana * 7 + dia);
+            const n = porDia[fecha] || 0;
+            total += n;
+            celdas += `<i class="gym-cuadro n${Math.min(n, 2)} ${fecha > ctx.hoy ? "futuro" : ""} ${fecha === ctx.hoy ? "hoy" : ""}" title="${fechaCorta(fecha)}${n ? ` · ${plural(n, "entrenamiento", "entrenamientos")}` : ""}"></i>`;
+        }
+    }
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">Tu constancia <span class="texto-suave">${SEMANAS} semanas</span></h2>
+            <div class="gym-calendario" role="img" aria-label="${plural(total, "entrenamiento", "entrenamientos")} en las últimas ${SEMANAS} semanas">${celdas}</div>
+            <p class="mini texto-suave">Cada columna es una semana (lunes arriba). ${plural(total, "entrenamiento", "entrenamientos")} en ${SEMANAS} semanas.</p>
         </section>`;
 }
 

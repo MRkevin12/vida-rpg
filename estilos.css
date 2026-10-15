@@ -11005,3 +11005,14 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     box-shadow: 0 0 10px rgba(255, 140, 40, 0.8);
 }
 .ff-hechizo small { display: block; }
+
+/* v72: el calendario del gym */
+.gym-calendario {
+    display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 4px;
+    margin: 10px 0 6px; justify-content: center;
+}
+.gym-cuadro { width: 18px; height: 18px; border-radius: 4px; background: var(--hundido); border: 1px solid var(--borde); display: block; }
+.gym-cuadro.n1 { background: rgba(251, 113, 133, 0.55); border-color: rgba(251, 113, 133, 0.8); }
+.gym-cuadro.n2 { background: var(--gym); border-color: var(--gym-2); box-shadow: 0 0 6px rgba(251, 191, 36, 0.6); }
+.gym-cuadro.futuro { opacity: 0.35; }
+.gym-cuadro.hoy { outline: 2px solid var(--gym-2); outline-offset: 1px; }

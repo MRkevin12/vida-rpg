@@ -23,6 +23,8 @@ import { cumplimientoDelPacto, citaDelDia } from "./pacto.js";
 import { cofreDisponible } from "./cofre.js";
 import { eventoDelDia } from "./eventos.js";
 import * as rituales from "./rituales.js";
+import * as gymReglas from "./gym.js";
+import { diasEntre, lunesDe } from "./fechas.js";
 
 export const NOMBRE = "Maestro Aurelio";
 
@@ -54,9 +56,23 @@ export function contexto(estado, hoy, ahora = Date.now(), info = juego.resumen(e
     const datos = memorias.datosDeMemorias(estado, info);
     const abiertas = memorias.cuantasAbiertas(datos);
     const leidas = Math.min(estado.maestro?.leidas || 0, abiertas);
+    // (v72) Lo que sabe de tu gimnasio: cuánto hace que entrenaste, qué toca y cómo va tu semana.
+    const sesionesGym = estado.gym?.sesiones || [];
+    const ultimaGym = sesionesGym[sesionesGym.length - 1];
+    const gym = {
+        sesiones: sesionesGym.length,
+        hechoHoy: sesionesGym.some((s) => s.fecha === hoy),
+        diasSin: ultimaGym ? diasEntre(ultimaGym.fecha, hoy) : null,
+        toca: gymReglas.siguienteRutina(sesionesGym).nombre,
+        semana: gymReglas.diasDeLaSemana(sesionesGym, lunesDe(hoy)),
+        meta: estado.gym?.metaSemanal || 4,
+        nivel: gymReglas.nivelDeGym(sesionesGym).nivel,
+        recordHoy: Boolean(ultimaGym && ultimaGym.fecha === hoy && ultimaGym.records.length),
+    };
     return {
         hoy,
         hora,
+        gym,
         nombre: estado.pacto?.nombre || estado.personaje.nombre,
         vida: calcularVida(estado, hoy),
         racha: info.racha.actual,
@@ -101,6 +117,11 @@ export function saludo(c) {
     }
     if (c.hora >= 18 && !c.cerrado) {
         return `Cae la noche, ${n}. ${c.pendientes.length ? `Te quedan ${misiones(c.pendientes.length)}. ` : ""}¿Cerramos el día juntos?`;
+    }
+    // (v72) El gimnasio: un aplauso si rompiste una marca hoy, o un empujón si hace días que no entrenas.
+    if (c.gym?.recordHoy) return `Hoy rompiste una marca en el gimnasio, ${n}. Eso no es suerte: es sobrecarga progresiva. Descansa bien: ahí se crece.`;
+    if (c.gym?.sesiones && !c.gym.hechoHoy && c.gym.diasSin >= 3) {
+        return `Hace ${c.gym.diasSin} días que no pisas el gimnasio, ${n}. El hierro espera: hoy toca ${c.gym.toca}. Basta con la primera serie.`;
     }
     // Si te contó algo nuevo de su pasado (y no es momento de algo más urgente).
     if (c.memorias?.sinLeer) {
@@ -253,6 +274,7 @@ export function responder(estado, c, opcion, azar = Math.random) {
                 c.racha ? `Llevas ${juego.plural(c.racha, "día", "días")} de racha.` : "Hoy puede empezar tu racha.",
                 `Tu vida está en ${c.vida.puntos} de ${c.vida.maxima}.`,
             ];
+            if (c.gym?.sesiones) partes.push(`En el gimnasio vas en el nivel ${c.gym.nivel}: ${c.gym.semana} de ${c.gym.meta} días esta semana.`);
             if (c.pacto?.porcentaje !== null && c.pacto?.porcentaje !== undefined) partes.push(`Has honrado tu pacto el ${c.pacto.porcentaje} % de los días.`);
             if (jefe) partes.push(`${jefe.jefe.nombre} es el jefe más cerca de caer: le quedan ${jefe.vida} de vida.`);
             const s = saga.estadoDeSaga(saga.datosDeSaga(estado, campana.estadoCampanas(estado)));

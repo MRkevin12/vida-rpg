@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v72 — Aurelio y el gimnasio
+- `maestro.contexto` trae `gym` (sesiones, hechoHoy, diasSin, toca, semana, meta, nivel, recordHoy); `saludo` celebra la marca del día o empuja tras 3 días sin entrenar (antes de las memorias y de la misión clave); «¿Cómo voy?» cuenta el nivel y la semana de gym. `tarjetaConstancia` (vistas-gym.js): 84 cuadritos (12 semanas × 7 días, lunes arriba). 272 pruebas.
+
 ## v71 — Reacciones elementales
 - `torre.REACCIONES` (vapor, conducción, explosión), `reaccionDe(a, b)` y `reaccionPosible(partida, elemento)`. La criatura recuerda tu último hechizo en `m.afectado = { elemento, turno }` (`partida.turno` = tu número de acción); si el siguiente hechizo, en el turno siguiente, es de otro elemento, `actuar` multiplica el daño (×1,3 / ×1,15 / ×1,4) y aplica el efecto: `m.empanada` (su próximo golpe ×`GOLPE_VAPOR` 0,65), `m.aturdida` (no a guardianes) o rompe `barrera` y `coraza`. El evento del héroe lleva `reaccion`. Menú de Magia y escena (`.ff-reaccion`) lo muestran. 271 pruebas.
 
