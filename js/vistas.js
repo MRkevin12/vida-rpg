@@ -24,6 +24,7 @@ import * as maestro from "./maestro.js";
 import * as memorias from "./memorias.js";
 import * as pergamino from "./pergamino.js";
 import * as pergaminos from "./pergaminos.js";
+import * as libros from "./libros.js";
 import * as libroCasio from "./libro-casio.js";
 import * as saga from "./saga.js";
 import * as rituales from "./rituales.js";
@@ -1048,6 +1049,7 @@ function lineaDeSaga(estado, ctx, s) {
 
 // Cómo se abre cada historia (los atributos del botón).
 function abrirHistoriaDeSaga(abrir) {
+    if (abrir.libro) return `data-accion="${abrir.accion}" data-libro="${abrir.libro}"`;
     if (abrir.accion === "ir") return `data-accion="ir" data-pantalla="${abrir.pantalla}"`;
     if (abrir.accion === "historia-abrir") return `data-accion="historia-abrir" data-lugar="${abrir.lugar}"`;
     return `data-accion="${abrir.accion}"`;
@@ -1499,6 +1501,9 @@ function tarjetaSemana(estado, ctx) {
     if (s.enfoque.sesiones) {
         lineas.push(`⏱️ ${plural(s.enfoque.sesiones, "sesión", "sesiones")} de enfoque (${s.enfoque.minutos} min).`);
     }
+    // (v66) El gimnasio de esa semana.
+    const diasGym = gymReglas.diasDeLaSemana(estado.gym.sesiones, s.lunes);
+    if (diasGym) lineas.push(`🏋️ Gimnasio: ${plural(diasGym, "día", "días")} de ${estado.gym.metaSemanal}${diasGym >= estado.gym.metaSemanal ? " ✓" : ""}.`);
     const animos = Object.entries(s.animos).filter(([, n]) => n > 0);
     if (animos.length) {
         lineas.push(`📓 Tu ánimo: ${animos.map(([clave, n]) => `${ANIMOS_DIARIO[clave].icono} ${n}`).join(" · ")}`);
@@ -3783,6 +3788,20 @@ export function pantallaBienvenida(b, nombre, plantillas) {
 
 // ===== Pantalla: Personaje (avatar, clase, equipamiento y mascota) =====
 
+// (v66) Un botón en la ficha del héroe: su nivel de gym y el acceso al gimnasio.
+function botonDeGym(estado) {
+    const n = gymReglas.nivelDeGym(estado.gym.sesiones);
+    const rango = gymReglas.rangoDe(n.nivel);
+    const sesiones = estado.gym.sesiones.length;
+    return `
+        <button type="button" class="ficha-gym" data-accion="ir" data-pantalla="gym">
+            <span class="ficha-gym-icono" aria-hidden="true">🏋️</span>
+            <span class="ficha-gym-texto"><b>Gimnasio · nivel ${n.nivel} · ${rango.icono} ${rango.nombre}</b>
+                <small>${sesiones ? `${plural(sesiones, "sesión", "sesiones")} · +${Math.round(gymReglas.bonoDeGym(n.nivel) * 100)} % de vida y ataque en la Torre` : "Entrena de verdad y tu héroe se hará más fuerte."}</small></span>
+            <span aria-hidden="true">›</span>
+        </button>`;
+}
+
 export function pantallaPersonaje(estado, ctx) {
     const a = ctx.avatar;
     const vista = ctx.subvista?.personaje || "equipo";
@@ -3811,6 +3830,7 @@ export function pantallaPersonaje(estado, ctx) {
             <p class="mini texto-suave">${vida.ESTADOS[ctx.vida.nivel].texto} 🛡️ La armadura cuenta cuando fallas una misión:
                se gasta al fallar y se repara cumpliendo.</p>
             <ol class="etapas">${etapas}</ol>
+            ${botonDeGym(estado)}
         </section>
         ${selectorSecciones("personaje", [["equipo", "🛡️ Equipo"], ["mascotas", "🐾 Mascotas"], ["apariencia", "🎨 Aspecto"], ["historia", "📜 Historia"]], vista)}
         ${(secciones[vista] || secciones.equipo)()}`;
@@ -3843,6 +3863,9 @@ function seccionHistoria(estado, ctx) {
     const detalle = {
         pergamino: `${pergamino.minutosDeLectura()} min de lectura`,
         casio: `${Math.min(estado.libros.casio.leidos, libroCasio.CAPITULOS.length)} de ${libroCasio.CAPITULOS.length} capítulos · ${libroCasio.minutosDeLectura()} min${estado.libros.casio.fin ? " · ✅ terminado" : ""}`,
+        orrin: libros.recordDe(estado, "orrin") < libros.libroPorId("orrin").PUERTA.libre
+            ? `🔒 ${libros.libroPorId("orrin").PUERTA.textoLibre}`
+            : `${Math.min(estado.libros.orrin.leidos, libros.libroPorId("orrin").CAPITULOS.length)} de ${libros.libroPorId("orrin").CAPITULOS.length} capítulos · ${libros.libroPorId("orrin").minutosDeLectura()} min${estado.libros.orrin.fin ? " · ✅ terminado" : ""}`,
         memorias: m ? `${m.abiertas} de ${m.total} capítulos${m.sinLeer ? ` · ${plural(m.sinLeer, "nuevo", "nuevos")}` : ""}` : "",
         cronica: `Capítulo ${cronica.ROMANOS[pos.region] || pos.region + 1} · ${mapa.nombreRegion(pos.region)}`,
         torre: `Tu récord: ${records.torre || 0} de ${torre.ABRIR_MAZMORRA} pisos`,
@@ -3973,11 +3996,13 @@ export function pantallaPergamino(estado, ctx = {}) {
         ${volver}`;
 }
 
-// ===== «El Centinela»: el libro largo de Casio (v62) =====
-// ctx.capituloNovela = null (la portada, con el prólogo y el índice) o el número del capítulo que se lee (desde 0).
+// ===== Los libros largos de Historia (v62, v70): «El Centinela» y «La linterna de Orrin» =====
+// ctx.libroNovela = "casio" u "orrin"; ctx.capituloNovela = null (la portada, con el prólogo y el índice) o el número del capítulo que se lee (desde 0).
 export function pantallaNovela(estado, ctx = {}) {
-    const libro = libroCasio.libroDeCasio(estado.personaje.nombre, estado.arcade.records?.torre || 0);
-    const marca = estado.libros.casio;
+    const id = libros.libroPorId(ctx.libroNovela) ? ctx.libroNovela : "casio";
+    const modulo = libros.libroPorId(id);
+    const libro = libros.libroDeEstado(estado, id);
+    const marca = estado.libros[id];
     const total = libro.capitulos.length;
     const parrafos = (lista) => lista.map((texto) => `<p>${esc(texto)}</p>`).join("");
     const adorno = '<p class="rollo-adorno" aria-hidden="true">❦</p>';
@@ -3990,7 +4015,7 @@ export function pantallaNovela(estado, ctx = {}) {
         const siguiente = libro.capitulos[i + 1];
         const terminado = Boolean(marca.fin);
         return `
-            ${encabezado("📖 El Centinela", "personaje", "Héroe")}
+            ${encabezado(`📖 ${esc(modulo.TITULO)}`, "personaje", "Héroe")}
             <article class="rollo novela">
                 <div class="rollo-vara" aria-hidden="true"></div>
                 <div class="rollo-papel">
@@ -4000,7 +4025,7 @@ export function pantallaNovela(estado, ctx = {}) {
                         <h2>${esc(c.titulo)}</h2>
                     </header>
                     <section class="rollo-capitulo novela-texto">${parrafos(c.parrafos)}</section>
-                    <blockquote class="rollo-moraleja"><span>Lo que aprendió Casio</span>«${esc(c.moraleja)}»</blockquote>
+                    <blockquote class="rollo-moraleja"><span>${esc(modulo.ETIQUETA_MORALEJA)}</span>«${esc(c.moraleja)}»</blockquote>
                     ${ultimo ? `
                         ${adorno}
                         <section class="rollo-capitulo novela-epilogo"><h3 class="rollo-titulo-capitulo">Epílogo</h3>${parrafos(libro.epilogo)}</section>
@@ -4014,7 +4039,7 @@ export function pantallaNovela(estado, ctx = {}) {
                 ? (terminado
                     ? `<p class="nota">✅ Terminaste este libro el ${fechaCorta(marca.fin)}.</p>
                        <button type="button" class="boton boton-secundario boton-ancho" data-accion="novela-escena">🎬 Ver la escena otra vez</button>`
-                    : `<button type="button" class="boton boton-principal boton-ancho" data-accion="novela-terminar">📖 Terminé el libro (+${libroCasio.PREMIO.xp} XP · +${libroCasio.PREMIO.gemas} 💎)</button>`)
+                    : `<button type="button" class="boton boton-principal boton-ancho" data-accion="novela-terminar">📖 Terminé el libro (+${modulo.PREMIO.xp} XP · +${modulo.PREMIO.gemas} 💎)</button>`)
                 : ""}
             <nav class="novela-nav" aria-label="Capítulos">
                 <button type="button" class="boton boton-secundario" data-accion="novela-capitulo" data-i="${i - 1}" ${i > 0 ? "" : "disabled"}>‹ Anterior</button>
@@ -4035,7 +4060,7 @@ export function pantallaNovela(estado, ctx = {}) {
             <span class="fila-enlace-flecha" aria-hidden="true">›</span>
         </button>`).join("");
     return `
-        ${encabezado("📖 El Centinela", "personaje", "Héroe")}
+        ${encabezado(`📖 ${esc(modulo.TITULO)}`, "personaje", "Héroe")}
         <article class="rollo novela">
             <div class="rollo-vara" aria-hidden="true"></div>
             <div class="rollo-papel">
@@ -4044,15 +4069,16 @@ export function pantallaNovela(estado, ctx = {}) {
                     <h2>${esc(libro.titulo)}</h2>
                     <p class="rollo-subtitulo">${esc(libro.subtitulo)}</p>
                 </header>
-                <section class="rollo-prologo"><h3 class="rollo-titulo-capitulo">Prólogo</h3>${parrafos(libro.prologo)}</section>
+                ${libro.prologo.length ? `<section class="rollo-prologo"><h3 class="rollo-titulo-capitulo">Prólogo</h3>${parrafos(libro.prologo)}</section>` : ""}
             </div>
             <div class="rollo-vara" aria-hidden="true"></div>
         </article>
         <section class="panel">
-            <p class="mini">Llevas <b>${leidos} de ${total}</b> capítulos${abiertos < total ? ` (hay ${total - abiertos} cerrados hasta que liberes a Casio)` : ""}.</p>
+            <p class="mini">Llevas <b>${leidos} de ${total}</b> capítulos${abiertos && abiertos < total ? ` (hay ${total - abiertos} cerrados todavía)` : ""}.</p>
             ${barra(Math.round((leidos / total) * 100), "barra-mini")}
-            <button type="button" class="boton boton-principal boton-ancho" data-accion="novela-capitulo" data-i="${leidos ? Math.min(marca.marca, abiertos - 1) : 0}">
-                ${leidos ? `Continuar: capítulo ${libro.capitulos[Math.min(marca.marca, abiertos - 1)].numero}` : "Empezar a leer"}</button>
+            ${abiertos ? `<button type="button" class="boton boton-principal boton-ancho" data-accion="novela-capitulo" data-i="${leidos ? Math.min(marca.marca, abiertos - 1) : 0}">
+                ${leidos ? `Continuar: capítulo ${libro.capitulos[Math.min(marca.marca, abiertos - 1)].numero}` : "Empezar a leer"}</button>`
+                : `<p class="nota">🔒 ${esc(modulo.PUERTA.textoLibre)}</p>`}
         </section>
         <section class="panel novela-indice">
             <h2 class="titulo-juego">Índice</h2>

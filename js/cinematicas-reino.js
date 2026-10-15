@@ -205,6 +205,25 @@ export function cinematicaDeCasio(nombre) {
 }
 
 
+// ===== «La linterna de Orrin», el libro de Marta (v70) =====
+
+// Al terminar el libro: el Rey Hueco en su trono de cuadernos, y lo que Marta pidió a quien bajara.
+export function cinematicaDeOrrin(nombre) {
+    const fondo = "abismo";
+    const rey = { quien: "criatura", x: 30 };
+    return armar("libro", [
+        { fondo, actores: [{ ...rey, anim: "cine-late" }], camara: "arriba", ambiente: "niebla", efecto: "oscuro", titulo: "La linterna de Orrin",
+          texto: "En el fondo de la Mazmorra hay un trono de cuadernos y una corona de cuerda sin nada dentro.", ms: 5600, sonido: "retumbo" },
+        { fondo, actores: [{ ...rey, anim: "cine-late" }, tu(74)], camara: "zoom", foco: "30% 60%", ambiente: "niebla",
+          texto: "Antes de ser el Rey Hueco fue Orrin: el mejor de los doce, el de la risa que se oía desde la cantera.", ms: 5600, sonido: "campana" },
+        { fondo, actores: [rey, tu(74)], camara: "quieto", efecto: "destello", ambiente: "chispas",
+          texto: "No lo vació un gran fallo. Lo vaciaron mil «solo un día» sin fecha de vuelta.", ms: 5200, sonido: "victoria" },
+        { fondo, actores: [rey, tu(72)], camara: "derecha", ambiente: "chispas",
+          titulo: "Su nombre", texto: "Marta escribió: «No lo odies. Llámalo Orrin, en voz alta, una vez. Y sube su linterna hasta la piedra del primer piso.»", ms: 6400, sonido: "logro" },
+    ], nombre);
+}
+
+
 // ===== La historia: «▶ Ver escena» de cada capítulo (Torre y Mazmorra) =====
 
 // El guardián de una zona (para que aparezca en la escena de su capítulo). Si no hay, null.

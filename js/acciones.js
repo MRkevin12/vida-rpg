@@ -32,7 +32,7 @@ import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
 import * as voces from "./voces.js";
 import * as pergaminos from "./pergaminos.js";
-import * as libroCasio from "./libro-casio.js";
+import * as libros from "./libros.js";
 import * as gym from "./gym.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
@@ -1266,33 +1266,33 @@ export function tomarCinematica(estado, lugar = "torre", reproducir = true) {
     return reproducir && estado.ajustes.cinematicas !== false ? { tipo } : null;
 }
 
-// (v62) El libro largo «El Centinela»: se guarda por qué capítulo vas (para «Continuar») y el más lejano que abriste.
+// (v62, v70) Los libros largos de Historia («El Centinela» y «La linterna de Orrin», ver libros.js): se guarda por qué
+// capítulo vas (para «Continuar») y el más lejano que abriste.
 export function marcarLibro(estado, id, capitulo) {
-    if (id !== libroCasio.ID) throw new Error("Ese libro no existe.");
-    const total = libroCasio.CAPITULOS.length;
-    if (!Number.isInteger(capitulo) || capitulo < 0 || capitulo >= total) throw new Error("Ese capítulo no existe.");
-    const piso = estado.arcade.records?.torre || 0;
-    if (capitulo >= libroCasio.CAPITULOS_LIBRES && piso < libroCasio.PISO_PARA_EL_FINAL) {
-        throw new Error(`Aurelio te lo entregará cuando liberes a Casio: supera el piso ${libroCasio.PISO_PARA_EL_FINAL} de la Torre.`);
+    const libro = libros.libroPorId(id);
+    if (!libro) throw new Error("Ese libro no existe.");
+    if (!Number.isInteger(capitulo) || capitulo < 0 || capitulo >= libro.CAPITULOS.length) throw new Error("Ese capítulo no existe.");
+    if (!libros.capituloAbierto(libro, capitulo, libros.recordDe(estado, id))) {
+        throw new Error(capitulo < libro.CAPITULOS_LIBRES ? libro.PUERTA.textoLibre : libro.PUERTA.textoFinal);
     }
-    const libro = estado.libros[id];
-    libro.marca = capitulo;
-    libro.leidos = Math.max(libro.leidos, capitulo + 1);
+    const marca = estado.libros[id];
+    marca.marca = capitulo;
+    marca.leidos = Math.max(marca.leidos, capitulo + 1);
 }
 
-// (v62) Terminar el libro (hay que haber llegado al último capítulo y tener todo abierto). La primera vez da un premio.
+// Terminar el libro (hay que haber llegado al último capítulo y tener todo abierto). La primera vez da un premio.
 export function terminarLibro(estado, id) {
-    if (id !== libroCasio.ID) throw new Error("Ese libro no existe.");
-    const piso = estado.arcade.records?.torre || 0;
-    if (piso < libroCasio.PISO_PARA_EL_FINAL) throw new Error("Todavía te faltan capítulos por abrir.");
-    const libro = estado.libros[id];
-    if (libro.leidos < libroCasio.CAPITULOS.length) throw new Error("Léelo hasta el último capítulo.");
-    if (libro.fin) return { primera: false };
-    libro.fin = hoy();
-    ganar(estado, { ...libroCasio.PREMIO, atributo: "intelecto" });
+    const libro = libros.libroPorId(id);
+    if (!libro) throw new Error("Ese libro no existe.");
+    if (libros.recordDe(estado, id) < libro.PUERTA.final) throw new Error("Todavía te faltan capítulos por abrir.");
+    const marca = estado.libros[id];
+    if (marca.leidos < libro.CAPITULOS.length) throw new Error("Léelo hasta el último capítulo.");
+    if (marca.fin) return { primera: false };
+    marca.fin = hoy();
+    ganar(estado, { ...libro.PREMIO, atributo: "intelecto" });
     return {
-        primera: true, premio: libroCasio.PREMIO,
-        celebraciones: [{ icono: "📖", etiqueta: "¡Libro terminado!", titulo: libroCasio.TITULO, detalle: `+${libroCasio.PREMIO.xp} XP de Intelecto · +${libroCasio.PREMIO.gemas} 💎` }],
+        primera: true, premio: libro.PREMIO,
+        celebraciones: [{ icono: "📖", etiqueta: "¡Libro terminado!", titulo: libro.TITULO, detalle: `+${libro.PREMIO.xp} XP de Intelecto · +${libro.PREMIO.gemas} 💎` }],
     };
 }
 

@@ -58,6 +58,8 @@ import * as avatar from "../js/avatar.js";
 import * as gym from "../js/gym.js";
 import * as ataques from "../js/ataques.js";
 import * as fragua from "../js/fragua.js";
+import * as libroOrrin from "../js/libro-orrin.js";
+import * as libros from "../js/libros.js";
 import * as vistasGym from "../js/vistas-gym.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -3222,7 +3224,7 @@ prueba("Saga: 7 actos en orden con un objetivo final; el primero que falta es el
     igual(saga.ACTOS.length, 7);
     igual(new Set(saga.ACTOS.map((a) => a.id)).size, 7, "ids distintos");
     const historias = saga.HISTORIAS.map((h) => h.id);
-    igual(historias, ["pergamino", "memorias", "casio", "cronica", "torre", "mazmorra", "voces", "libro"], "las historias, en el orden en que pasan");
+    igual(historias, ["pergamino", "orrin", "memorias", "casio", "cronica", "torre", "mazmorra", "voces", "libro"], "las historias, en el orden en que pasan");
     for (const h of saga.HISTORIAS) cierto(["pergamino-abrir", "memorias-abrir", "novela-abrir", "ir", "historia-abrir"].includes(h.abrir.accion), `${h.id} se puede abrir`);
     for (const a of saga.ACTOS) {
         cierto(a.titulo && a.relato && a.objetivo && a.cierre && a.condicion.meta > 0, `${a.id} tiene todo`);
@@ -5551,6 +5553,70 @@ prueba("Gym: las 7 lecturas de la Fragua se abren con el nivel de gym", () => {
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
     const html = vistasGym.pantallaGym(estado, ctx);
     cierto(html.includes("Lecturas de la Fragua") && html.includes("El hierro no pide permiso") && html.includes("Se abre en el nivel 2"), "la primera abierta y la segunda cerrada");
+});
+
+// ===== «La linterna de Orrin», el segundo libro largo (v70) =====
+
+prueba("Orrin: 18 capítulos en 3 libros, cada uno con su moraleja, y coherente con las otras historias", () => {
+    igual(libroOrrin.CAPITULOS.length, 18);
+    igual(libroOrrin.LIBROS.map((l) => l.desde), [0, 5, 12]);
+    igual(libroOrrin.CAPITULOS_LIBRES, 12);
+    for (const c of libroOrrin.CAPITULOS) {
+        cierto(c.titulo && c.moraleja && c.parrafos.length === 5, `${c.titulo}: título, moraleja y 5 párrafos`);
+        cierto(c.parrafos.every((p) => p.length > 120), `${c.titulo}: párrafos con cuerpo`);
+    }
+    const texto = [...libroOrrin.PROLOGO, ...libroOrrin.CAPITULOS.flatMap((c) => c.parrafos), ...libroOrrin.EPILOGO].join(" ");
+    cierto(!/undefined|\{n\}/.test(texto), "sin huecos ni marcas sin reemplazar");
+    // Lo que ya cuentan las otras historias (pergamino del nombre raspado, Casio y la Mazmorra):
+    for (const frase of ["solo un día", "Ya casi", "piso cien", "cantera", "Brasa", "Mañana", "Cuerpo", "Mente", "Voz", "Tesoro", "Dragón de la tormenta"]) {
+        cierto(texto.includes(frase) || texto.includes(frase.toLowerCase()) || texto.includes(frase.replace("Ya", "ya")), `menciona «${frase}»`);
+    }
+    cierto(!/la Llama (ya )?arde|encendiste la Llama/.test(texto), "no dice que la Llama ya arde");
+    cierto(libroOrrin.minutosDeLectura() >= 30, `se lee en ${libroOrrin.minutosDeLectura()} min`);
+    cierto(libroOrrin.ENSENANZAS.length >= 15);
+});
+
+prueba("Orrin: se abre con tu récord en la Mazmorra (sótano 5 y sótano 10) y da su premio una vez", () => {
+    const estado = partidaNueva();
+    igual(libros.IDS, ["casio", "orrin"]);
+    igual(libros.libroDeEstado(estado, "orrin").capitulos.filter((c) => c.abierto).length, 0, "cerrado al principio");
+    debeFallar(() => acciones.marcarLibro(estado, "orrin", 0), "sótano 5");
+    estado.arcade.records.mazmorra = 5;
+    igual(libros.libroDeEstado(estado, "orrin").capitulos.filter((c) => c.abierto).length, 12, "los libros primero y segundo");
+    acciones.marcarLibro(estado, "orrin", 11);
+    debeFallar(() => acciones.marcarLibro(estado, "orrin", 12), "sótano 10");
+    debeFallar(() => acciones.terminarLibro(estado, "orrin"), "capítulos");
+    estado.arcade.records.mazmorra = 10;
+    igual(libros.libroDeEstado(estado, "orrin").capitulos.filter((c) => c.abierto).length, 18, "todo abierto");
+    debeFallar(() => acciones.terminarLibro(estado, "orrin"), "hasta el último");
+    acciones.marcarLibro(estado, "orrin", 17);
+    const xp = estado.atributos.intelecto;
+    const r = acciones.terminarLibro(estado, "orrin");
+    igual([r.primera, estado.atributos.intelecto - xp, estado.libros.orrin.fin], [true, libroOrrin.PREMIO.xp, hoy()]);
+    igual(acciones.terminarLibro(estado, "orrin").primera, false, "el premio es una sola vez");
+    igual(estado.libros.casio.leidos, 0, "el otro libro no se toca");
+    debeFallar(() => acciones.marcarLibro(estado, "no-existe", 0), "no existe");
+});
+
+prueba("Orrin: las pantallas (portada cerrada, índice, capítulo y el último) y la escena final", () => {
+    const estado = partidaNueva();
+    const html = (cambios = {}) => vistas.pantallaNovela(estado, { libroNovela: "orrin", ...cambios });
+    let h = html();
+    cierto(h.includes("La linterna de Orrin") && h.includes("caja que solo se abre"), "portada cerrada con el candado");
+    cierto(!h.includes("Prólogo"), "sin prólogo mientras está cerrado");
+    estado.arcade.records.mazmorra = 10;
+    h = html();
+    cierto(h.includes("Libro primero · La cantera") && h.includes("Libro tercero · La linterna") && h.includes("Empezar a leer"), "índice con los 3 libros");
+    acciones.marcarLibro(estado, "orrin", 0);
+    h = html({ capituloNovela: 0 });
+    cierto(h.includes("La risa en la cantera") && h.includes("Lo que aprendió Marta"), "un capítulo");
+    acciones.marcarLibro(estado, "orrin", 17);
+    h = html({ capituloNovela: 17 });
+    cierto(h.includes("Para quien baje") && h.includes("Epílogo") && h.includes('data-accion="novela-terminar"'), "el último capítulo");
+    cierto(vistas.pantallaNovela(estado, { libroNovela: "casio", capituloNovela: null }).includes("El Centinela"), "el libro de Casio sigue igual");
+    const cine = cinesReino.cinematicaDeOrrin("Prueba");
+    igual([cine.tipo, cine.tomas.length], ["libro", 4]);
+    cierto(cine.tomas.every((t) => t.texto && !t.texto.includes("{n}")), "tomas con texto");
 });
 
 // ===== Los ataques de las criaturas se ven (v67) =====

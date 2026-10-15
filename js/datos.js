@@ -71,7 +71,7 @@ export function estadoInicial() {
         relampagos: {},       // desafío relámpago de cada día: { inicio, base, meta, minutos, cobradoEn } o { rechazado }
         cofres: {},           // cofre de cada día, con lo que salió: { tipo, cantidad, atributo, objeto, icono, texto }
         gym: gymInicial(),    // (v66) el gimnasio: sesiones, el entrenamiento en curso, hitos y tus ajustes (ver gym.js)
-        libros: { casio: { marca: 0, leidos: 0, fin: null } },   // (v62) el libro largo de Historia: por dónde vas y cuándo lo terminaste
+        libros: { casio: { marca: 0, leidos: 0, fin: null }, orrin: { marca: 0, leidos: 0, fin: null } },   // (v62) el libro largo de Historia: por dónde vas y cuándo lo terminaste
         pergaminos: { leidos: {} },   // (v57) los pergaminos de la Biblioteca prohibida que ya leíste: { id: fecha }
         mapa: { reclamados: [],     // lugares del mapa cuyo premio ya reclamaste ("r1-5"…)
                 cines: [] },        // (v56) las cinemáticas del reino, el arcade y la aldea que ya viste ("region-1", "senor-r1-7"…)
@@ -162,7 +162,7 @@ function completar(guardado) {
         },
         mascota: { ...base.mascota, ...guardado.mascota, adoptadas: { ...guardado.mascota?.adoptadas } },
         pergaminos: { leidos: { ...guardado.pergaminos?.leidos } },
-        libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio } },
+        libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio }, orrin: { ...base.libros.orrin, ...guardado.libros?.orrin } },
         gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null },   // (v66)
         mapa: { reclamados: guardado.mapa?.reclamados || [], cines: guardado.mapa?.cines || [] },
         arcade: {

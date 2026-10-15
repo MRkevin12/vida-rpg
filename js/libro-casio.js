@@ -34,6 +34,14 @@ export const CAPITULOS_LIBRES = 18;
 // Lo que se gana al terminar el libro (una sola vez).
 export const PREMIO = { xp: 40, gemas: 20 };
 
+// (v70) Lo mismo que cualquier libro largo (ver libros.js): dónde se abre y cómo se llama lo que enseña cada capítulo.
+export const ETIQUETA_MORALEJA = "Lo que aprendió Casio";
+export const PUERTA = {
+    lugar: "torre", libre: 0, final: PISO_PARA_EL_FINAL,
+    textoLibre: "",
+    textoFinal: `Aurelio te lo entregará cuando liberes a Casio: supera el piso ${PISO_PARA_EL_FINAL} de la Torre.`,
+};
+
 // Los tres libros: en qué capítulo (empezando en 0) empieza cada uno.
 export const LIBROS = [
     { desde: 0, titulo: "Libro primero", nombre: "La orilla" },
@@ -407,6 +415,8 @@ export function libroDeCasio(nombre, tuPiso = 0) {
         minutos: minutosDeLectura(), palabras: palabras(),
     };
 }
+
+export const libroDe = (nombre, record = 0) => libroDeCasio(nombre, record);
 
 // Cuántas palabras tiene todo el libro.
 export function palabras() {

@@ -10983,3 +10983,14 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-lectura-texto { margin-top: 8px; }
 .gym-lectura-texto p { margin: 0 0 10px; line-height: 1.6; }
 .gym-moraleja { color: var(--gym-2); font-style: italic; border-left: 3px solid var(--gym-2); padding-left: 10px; }
+
+/* El botón de gym en la ficha del héroe */
+.ficha-gym {
+    display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 10px 12px; min-height: 52px;
+    text-align: left; color: var(--texto); cursor: pointer;
+    background: linear-gradient(135deg, rgba(251, 113, 133, 0.16), rgba(251, 191, 36, 0.08));
+    border: 1px solid rgba(251, 113, 133, 0.45); border-radius: 14px; font: inherit;
+}
+.ficha-gym-icono { font-size: 1.6rem; }
+.ficha-gym-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.ficha-gym-texto small { color: var(--texto-suave); font-size: 0.76rem; }

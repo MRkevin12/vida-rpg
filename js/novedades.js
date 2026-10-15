@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 69;
+export const VERSION_APP = 70;
 
 export const NOVEDADES = [
+    {
+        version: 70,
+        titulo: "La linterna de Orrin",
+        cambios: [
+            "📖 Un segundo libro largo en Héroe › Historia: «La linterna de Orrin», escrito por Marta, una de los doce primeros Vigías. Cuenta quién fue Orrin, el de la risa que se oía desde la cantera, cómo el mejor de los doce se quedó abajo con un «solo un día» sin fecha de vuelta, cómo de su vacío nacieron las Cuatro Sombras y qué pasó cuando Marta bajó a buscarlo. 18 capítulos en 3 libros (unos 35 minutos de lectura), con su escena final y su premio.",
+            "🔓 Los dos primeros libros se abren al llegar al sótano 5 de la Mazmorra; el tercero, al superar el sótano 10 (el Rey Hueco).",
+            "🏋️ Tu ficha de Héroe tiene un acceso al Gimnasio con tu nivel de gym, y el resumen de tu semana cuenta tus días de entrenamiento.",
+        ],
+    },
     {
         version: 69,
         titulo: "La Fragua",
