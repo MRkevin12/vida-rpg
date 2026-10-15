@@ -34,6 +34,7 @@ import * as voces from "./voces.js";
 import * as pergaminos from "./pergaminos.js";
 import * as libros from "./libros.js";
 import * as gym from "./gym.js";
+import * as fragua from "./fragua.js";
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -1188,7 +1189,7 @@ export function empezarTorre(estado, semilla, lugar = "torre", marca = null, mod
         bestiario.anotarEncuentro(estado.arcade.bestiario, enCurso.enemigo.id);
         return { relato: lugar === "torre" ? contarElDespertar(estado) : null };
     }
-    if (!torre.lugarAbierto(estado.arcade, lugar)) {
+    if (!torre.lugarAbierto(torre.arcadeConGym(estado), lugar)) {
         throw new Error(lugar === "mazmorra"
             ? `La Mazmorra del Abismo se abre cuando superes el piso ${torre.ABRIR_MAZMORRA} de la Torre del héroe.`
             : `${bestiario.LUGARES[lugar].nombre}: ${bestiario.LUGARES[lugar].abre.texto}`);
@@ -1380,7 +1381,7 @@ export function terminarTorre(estado, lugar = "torre") {
     const premio = { gemas: base.gemas * factor, xp: base.xp * factor };
     const atributo = torre.REGLAS[lugar].atributo;
     ganar(estado, { ...premio, atributo });
-    const abiertasAntes = Object.keys(bestiario.LUGARES).filter((l) => torre.lugarAbierto({ records: estado.arcade.records }, l));
+    const abiertasAntes = Object.keys(bestiario.LUGARES).filter((l) => torre.lugarAbierto({ records: estado.arcade.records, gymNivel: torre.arcadeConGym(estado).gymNivel }, l));
     // (v65) El asalto tiene su propio récord (guardianes vencidos) y no abre nada; lo demás cuenta como siempre.
     const claveRecord = modo === "asalto" ? `asalto-${lugar}` : lugar;
     const medida = modo === "asalto" ? Math.round(pisos / torre.CADA_GUARDIAN) : pisos;
@@ -1413,7 +1414,7 @@ export function terminarTorre(estado, lugar = "torre") {
                              detalle: `Premio extra: +${bonus.gemas} 💎 · +${bonus.xp} XP` });
     }
     for (const otro of Object.values(bestiario.LUGARES)) {
-        if (abiertasAntes.includes(otro.id) || !torre.lugarAbierto({ records: estado.arcade.records }, otro.id)) continue;
+        if (abiertasAntes.includes(otro.id) || !torre.lugarAbierto({ records: estado.arcade.records, gymNivel: torre.arcadeConGym(estado).gymNivel }, otro.id)) continue;
         celebraciones.push({
             icono: otro.icono, etiqueta: "¡Se abrió una mazmorra!", titulo: otro.nombre,
             detalle: otro.id === "mazmorra" ? "Bajo la Torre hay una escalera. Más difícil y con criaturas nuevas: búscala en el Arcade."
@@ -2013,6 +2014,7 @@ export function terminarGym(estado) {
     const entrenamiento = entrenamientoEnCurso(estado);
     const sesion = gym.cerrarEntrenamiento(entrenamiento, g.sesiones);
     const nivelAntes = gym.nivelDeGym(g.sesiones).nivel;
+    const fraguaAntes = torre.lugarAbierto(torre.arcadeConGym(estado), "fragua");
     const musculosAntes = gym.nivelesDeMusculos(g.sesiones);
     g.sesiones.push(sesion);
     g.sesiones.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
@@ -2031,6 +2033,17 @@ export function terminarGym(estado) {
         const rango = gym.rangoDe(nivelAhora);
         celebraciones.push({ icono: rango.icono, etiqueta: "¡Subiste de nivel de gym!", titulo: `Gym nivel ${nivelAhora} · ${rango.nombre}`,
                              detalle: `Tu héroe gana +${Math.round(gym.bonoDeGym(nivelAhora) * 100)} % de vida y ataque en la Torre.` });
+    }
+    // Tu cuerpo abre la Fragua Profunda (nivel 5 de gym).
+    if (!fraguaAntes && torre.lugarAbierto(torre.arcadeConGym(estado), "fragua")) {
+        celebraciones.push({ icono: "⚒️", etiqueta: "¡Se abrió una mazmorra!", titulo: bestiario.LUGARES.fragua.nombre,
+                             detalle: "Tu entrenamiento te dejó bajar a la Fragua Profunda. Búscala en el Arcade.", maestro: "Solo un cuerpo entrenado aguanta ese calor, " + estado.personaje.nombre + "." });
+    }
+    // Maren te deja una lectura nueva cada vez que subes al nivel que la abre.
+    for (const lectura of fragua.LECTURAS) {
+        if (lectura.nivel > nivelAntes && lectura.nivel <= nivelAhora) {
+            celebraciones.push({ icono: "📜", etiqueta: "Maren te dejó una lectura", titulo: lectura.titulo, detalle: "Léela en el Gimnasio › Lecturas de la Fragua.", maestro: lectura.moraleja });
+        }
     }
     const musculosAhora = gym.nivelesDeMusculos(g.sesiones);
     for (const [clave, m] of Object.entries(musculosAhora)) {

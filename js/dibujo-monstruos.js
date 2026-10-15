@@ -1249,6 +1249,23 @@ Object.assign(FIGURAS, {
     "mi-centinela": [caballero, { armadura: "#e0c050", adorno: "#fff0a0", capa: "#6a4a10", hoja: "#fff4c0", cuerno: "#e8c860", ojo: "#ff6a2a" }],
     "mi-rey": [rey, { manto: "#5a3a08", forro: "#f0e6c0", oro: "#ffd23c", vacio: "#05030a", ojo: "#fff4c0",
                       cuerpo: "#ff5a3a", mente: "#5aa8ff", voz: "#ffd23c", tesoro: "#5aff9a" }],
+    // --- (v73) La Fragua Profunda: hornos, yunque y corazón ---
+    "fa-murcielago": [murcielago, { pelo: "#2a2422", ala: "#4a3a32", hueso: "#1a1412", oreja: "#8a5a3a", ojo: "#ff7a2a" }],
+    "fa-aprendiz": [esqueleto, { hueso: "#b8aea0", acero: "#5a5048", escudo: "#3a2a22", guarda: "#c8702c", trapo: "#5a2a1a", ojo: "#ff7a2a" }],
+    "fa-escoria": [cieno, { masa: "#c8501c", restos: "#ffb060", ojo: "#2a0a00", boca: "#2a0e04" }],
+    "fa-escorpion": [arana, { cuerpo: "#8a2a14", pata: "#5a1a0c", marca: "#ff9a2a", ojo: "#ffd23c" }],
+    "fa-capataz": [caballero, { armadura: "#6a5a50", adorno: "#e0782c", capa: "#4a1a10", hoja: "#c8c0b8", cuerno: "#2a1a14", ojo: "#ff7a2a" }],
+    "fa-chispa": [espectro, { tunica: "#c8501c", ojo: "#fff0a0" }],
+    "fa-molde": [golem, { hierro: "#7a7a82", oxido: "#4a4a52", fuego: "#ff9a2a" }],
+    "fa-gargola": [gargola, { piel: "#5a5a66", ala: "#3a3a46", cuerno: "#2a2a34", ojo: "#ff7a2a" }],
+    "fa-brasa": [ascua, { llama: "#e0401c", medio: "#ff9a2a", centro: "#fff0a0", hueso: "#6a4a3a" }],
+    "fa-coloso": [golem, { hierro: "#5a6a90", oxido: "#34406a", fuego: "#7ac8ff" }],
+    "fa-sombra": [espectro, { tunica: "#1a1a2a", ojo: "#ff9a2a" }],
+    "fa-acero": [cristal, { claro: "#d8f0ff", medio: "#5a9ae0", oscuro: "#243e8a", ojo: "#ffffff" }],
+    "fa-cofre": [mimico, { madera: "#2a2220", herraje: "#6a5a50", boca: "#2a0808", lengua: "#c8401c", ojo: "#ffb03a", oro: "#ff9a2a" }],
+    "fa-dragon": [dragon, { escama: "#8a2a14", ala: "#c8501c", vientre: "#f0b070", cresta: "#ffb03a", ojo: "#fff0a0", aliento: "#ff7a2a" }],
+    "fa-brann": [rey, { manto: "#3a1a10", forro: "#e8d8c0", oro: "#c8702c", vacio: "#05030a", ojo: "#7ac8ff",
+                        cuerpo: "#ff5a3a", mente: "#5aa8ff", voz: "#ffd23c", tesoro: "#5aff9a" }],
     // --- Laberinto de los Ecos: pasillos, ecos y silencio ---
     "la-espejo": [cristal, { claro: "#f4f8ff", medio: "#aab8d8", oscuro: "#5a6a90", ojo: "#7affff" }],
     "la-sombra": [espectro, { tunica: "#4a2a6a", ojo: "#d8a8ff" }],
@@ -1301,6 +1318,10 @@ const COLORES_SALA = {
     galerias:   { pared: ["#150f08", "#3a2a14"], piso: ["#1a120a", "#4a3a22"], junta: "#0c0804", luz: "#ffb04a", suelo: "tierra" },
     veta:       { pared: ["#1a1204", "#5a4010"], piso: ["#201606", "#6a4e14"], junta: "#120c02", luz: "#ffd23c" },
     tesoreria:  { pared: ["#1a1004", "#6a4a10"], piso: ["#2a1c06", "#8a6a1a"], junta: "#140c02", luz: "#fff0a0" },
+    // La Fragua Profunda (v73)
+    hornos:     { pared: ["#120a08", "#3a1c14"], piso: ["#1a0e0a", "#4a2a1e"], junta: "#0a0504", luz: "#ff7a2a", suelo: "tierra" },
+    yunque:     { pared: ["#14100e", "#4a3a30"], piso: ["#1c1410", "#5a4636"], junta: "#0c0806", luz: "#ffb04a" },
+    corazon:    { pared: ["#08102a", "#1a3a7a"], piso: ["#0c1636", "#244a8a"], junta: "#050a1c", luz: "#7ac8ff" },
     // Laberinto de los Ecos (v64)
     pasillos:   { pared: ["#10162a", "#3a4a7a"], piso: ["#161e38", "#4a5a8a"], junta: "#0c1226", luz: "#c8e0ff" },
     ecos:       { pared: ["#0a1020", "#24406a"], piso: ["#0e1830", "#2a4a7a"], junta: "#080e1c", luz: "#7affff" },
@@ -1603,10 +1624,12 @@ export function dibujarSala(zona) {
 Object.assign(PAREDES, {
     galerias: PAREDES.fragua, veta: PAREDES.fragua, tesoreria: PAREDES.corona,
     pasillos: PAREDES.cripta, ecos: PAREDES.biblioteca, silencio: PAREDES.abismo,
+    hornos: PAREDES.fragua, yunque: PAREDES.fragua, corazon: PAREDES.fragua,   // (v73)
 });
 Object.assign(SUELOS, {
     galerias: SUELOS.fragua, veta: SUELOS.fragua, tesoreria: SUELOS.corona || SUELOS.fragua,
     pasillos: SUELOS.cripta || SUELOS.abismo, ecos: SUELOS.biblioteca || SUELOS.abismo, silencio: SUELOS.abismo,
+    hornos: SUELOS.fragua, yunque: SUELOS.fragua, corazon: SUELOS.fragua,   // (v73)
 });
 
 // Las criaturas que tienen dibujo (las pruebas revisan que sean todas las del bestiario).

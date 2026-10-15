@@ -45,7 +45,7 @@ import { HABILIDADES, ESQUIVAR_MAXIMO, tiene } from "./habilidades.js";
 import { MASCOTAS } from "./mascota.js";
 import { NUEVOS_LUGARES } from "./mazmorras.js";
 import { semilla as hashDeTexto } from "./desafios.js";
-import { bonoDeGym } from "./gym.js";
+import { bonoDeGym, nivelDeGym } from "./gym.js";
 
 // El premio es en gemas 💎 (la moneda del arcade, v31) y algo de XP (desde la v31, la mitad).
 export const ATRIBUTO = "carisma";                       // el premio sube Carisma
@@ -190,12 +190,17 @@ export function mazmorraAbierta(arcade) {
 
 // (v64) ¿Está abierto ese lugar? La Torre, siempre; la Mazmorra, al superar el piso 20 de la Torre; las demás, al superar cierto
 // piso del lugar anterior (ver `abre` en mazmorras.js). Cuenta lo que llevas en la partida de ahora.
+// (v73) La Fragua Profunda también se abre con tu cuerpo: `abre.gym` es el nivel de gimnasio que la abre. Como lugarAbierto solo
+// recibe `estado.arcade`, esta función le suma `gymNivel` a una copia.
+export const arcadeConGym = (estado) => ({ ...estado.arcade, gymNivel: nivelDeGym(estado.gym?.sesiones || []).nivel });
+
 export function lugarAbierto(arcade, lugar) {
     if (lugar === "torre") return true;
     if (lugar === "mazmorra") return mazmorraAbierta(arcade);
     const abre = LUGARES[lugar]?.abre;
     if (!abre) return false;
     const enCurso = arcade?.[abre.lugar] && modoDe(arcade[abre.lugar]) !== "asalto" ? pisosSuperados(arcade[abre.lugar]) : 0;
+    if (abre.gym && (arcade?.gymNivel || 0) >= abre.gym) return true;
     return Math.max(arcade?.records?.[abre.lugar] || 0, enCurso) >= abre.piso;
 }
 

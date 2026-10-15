@@ -108,6 +108,10 @@ export const FAMILIA_DE_CRIATURA = {
     "mi-recaudador": "espectral", "mi-gargola": "bestia", "mi-libro": "espectral", "mi-centinela": "metal", "mi-rey": "rugido",
     "la-espejo": "cristal", "la-sombra": "espectral", "la-murcielago": "chillido", "la-arana": "bicho", "la-gemelo": "metal",
     "la-ojo": "ojo", "la-hongo": "baba", "la-aguaviva": "baba", "la-acolito": "espectral", "la-coro": "espectral",
+    // (v73) La Fragua Profunda.
+    "fa-murcielago": "chillido", "fa-aprendiz": "hueso", "fa-escoria": "baba", "fa-escorpion": "bicho", "fa-capataz": "metal",
+    "fa-chispa": "fuego", "fa-molde": "metal", "fa-gargola": "bestia", "fa-brasa": "fuego", "fa-coloso": "metal",
+    "fa-sombra": "espectral", "fa-acero": "cristal", "fa-cofre": "bestia", "fa-dragon": "rugido", "fa-brann": "rugido",
     "la-mudo": "espectral", "la-can": "bestia", "la-sacerdotisa": "espectral", "la-gusano": "baba", "la-silencio": "rugido",
 };
 

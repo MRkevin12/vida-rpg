@@ -2554,7 +2554,7 @@ export function pantallaArcade(estado, ctx) {
         ${caido ? avisoCaido(ctx.vida, "El arcade está cerrado") : ""}
         ${tarjetaReto(estado, ctx)}
         ${tarjetaTorre}
-        ${["mazmorra", "minas", "laberinto"].map((lugar) => tarjetaMazmorra(estado, caido, fichas, ctx.hoy, lugar)).join("")}
+        ${["mazmorra", "minas", "laberinto", "fragua"].map((lugar) => tarjetaMazmorra(estado, caido, fichas, ctx.hoy, lugar)).join("")}
         ${panelBazar(estado, caido)}
         <section class="panel arcade-cabecera">
             <div class="arcade-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
@@ -2627,7 +2627,7 @@ function panelBazar(estado, caido) {
                 <dl class="estadisticas">
                     <div><dt>Minijuegos</dt><dd>💎 hasta ${arcade.MAX_GEMAS}</dd></div>
                     <div><dt>Torre del héroe</dt><dd>💎 ${torre.PREMIO.gemasPorPiso} por piso (máx. ${torre.PREMIO.maxGemas})</dd></div>
-                    ${["mazmorra", "minas", "laberinto"].map((l) => `<div><dt>${bestiario.LUGARES[l].nombre}</dt><dd>💎 ${torre.REGLAS[l].premio.gemasPorPiso} por ${bestiario.LUGARES[l].piso.toLowerCase()} (máx. ${torre.REGLAS[l].premio.maxGemas})</dd></div>`).join("")}
+                    ${["mazmorra", "minas", "laberinto", "fragua"].map((l) => `<div><dt>${bestiario.LUGARES[l].nombre}</dt><dd>💎 ${torre.REGLAS[l].premio.gemasPorPiso} por ${bestiario.LUGARES[l].piso.toLowerCase()} (máx. ${torre.REGLAS[l].premio.maxGemas})</dd></div>`).join("")}
                     <div><dt>Jefe derrotado (1.º al 5.º)</dt><dd>💎 ${premioJefe[0]}–${premioJefe[1]}</dd></div>
                     <div><dt>Cofre del día</dt><dd>💎 15–40 (a veces)</dd></div>
                     <div><dt>Desafío de la semana</dt><dd>💎 ${desafios.COFRE.gemas}</dd></div>
@@ -2699,7 +2699,7 @@ function tarjetaMazmorra(estado, caido, fichas, fecha, lugar = "mazmorra") {
     const sitio = bestiario.LUGARES[lugar];
     const abre = lugar === "mazmorra" ? { lugar: "torre", piso: torre.ABRIR_MAZMORRA } : sitio.abre;
     const previo = bestiario.LUGARES[abre.lugar];
-    if (!torre.lugarAbierto(estado.arcade, lugar)) {
+    if (!torre.lugarAbierto(torre.arcadeConGym(estado), lugar)) {
         const record = estado.arcade.records[abre.lugar] || 0;
         return `
             <article class="panel mazmorra-cerrada">

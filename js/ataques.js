@@ -31,9 +31,9 @@ const POR_FAMILIA = {
 
 // Las que no atacan como el resto de su familia.
 const EXCEPCIONES = {
-    tajo: ["esqueleto", "caballero", "vigia-caido", "mi-minero", "mi-capataz", "centinela", "mi-centinela", "la-gemelo"],
-    mordida: ["sierpe", "mimico", "mi-mimico", "can", "sabueso", "la-can"],
-    fuego: ["dragon", "mi-dragon", "cieno-magma"],
+    tajo: ["esqueleto", "caballero", "vigia-caido", "mi-minero", "mi-capataz", "centinela", "mi-centinela", "la-gemelo", "fa-aprendiz", "fa-capataz", "fa-escorpion"],
+    mordida: ["sierpe", "mimico", "mi-mimico", "can", "sabueso", "la-can", "fa-cofre"],
+    fuego: ["dragon", "mi-dragon", "cieno-magma", "fa-dragon", "fa-escoria"],
     golpe: ["kraken", "arbol", "raiz", "apagador", "mi-golem"],
 };
 

@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v73 — La Fragua Profunda
+- **`js/mazmorras.js`**: quinto lugar `fragua` (⚒️, Fuerza; `ZONAS_FRAGUA`: hornos, yunque y corazón), 15 criaturas `fa-*` (guardianes: Capataz del fuelle, Coloso del yunque y Brann, con fase «Al rojo blanco»), su leyenda (prólogo, 3 zonas y epílogo sobre Brann, que no paró nunca, frente a Orrin, que paró sin fecha de vuelta), cinemáticas y final. Paletas, salas y voces en `dibujo-monstruos.js` y `sonido.js`; estilos de ataque en `ataques.js`.
+- **Se abre con el cuerpo:** `abre.gym = 5`; `torre.arcadeConGym(estado)` le suma `gymNivel` a una copia de `estado.arcade` y `lugarAbierto` lo mira (la partida en curso no cuenta para los avisos de «se abrió una mazmorra»). `terminarGym` avisa cuando la Fragua se abre y cuando Maren deja una lectura nueva. `estado.arcade.fragua` (se migra en `completar`). Música `batalla` en la pantalla del gimnasio. 274 pruebas.
+
 ## v72 — Aurelio y el gimnasio
 - `maestro.contexto` trae `gym` (sesiones, hechoHoy, diasSin, toca, semana, meta, nivel, recordHoy); `saludo` celebra la marca del día o empuja tras 3 días sin entrenar (antes de las memorias y de la misión clave); «¿Cómo voy?» cuenta el nivel y la semana de gym. `tarjetaConstancia` (vistas-gym.js): 84 cuadritos (12 semanas × 7 días, lunes arriba). 272 pruebas.
 

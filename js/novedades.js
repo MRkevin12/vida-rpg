@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 72;
+export const VERSION_APP = 73;
 
 export const NOVEDADES = [
+    {
+        version: 73,
+        titulo: "La Fragua Profunda",
+        cambios: [
+            "⚒️ Una quinta mazmorra, la Fragua Profunda: 15 hornos en 3 zonas, bajo el piso de la Fragua de la Torre, donde Brann forjó las armas de los Vigías y no volvió a parar. Da XP de Fuerza, sus 15 criaturas (con dibujo, voz y ficha en el bestiario; ahora 95) resisten el fuego y casi todas se cubren o se cargan, y su guardián final tiene una segunda forma. Trae su propia historia, cinemáticas y final.",
+            "🏋️ Se abre con tu cuerpo: al llegar al nivel 5 de gimnasio, o bajando 10 cámaras del Laberinto de los Ecos. Al entrenar, la app te avisa cuando se abre.",
+            "📜 Cuando subes al nivel de gym que abre una lectura de la Fragua, Maren te avisa. Además, en el Gimnasio suena «Marte», de Holst, para levantar hierro.",
+        ],
+    },
     {
         version: 72,
         titulo: "Aurelio y el gimnasio",

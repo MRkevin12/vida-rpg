@@ -1,10 +1,12 @@
-// mazmorras.js — Dos mazmorras nuevas (v64): «Las Minas de la Codicia» y «El Laberinto de los Ecos».
+// mazmorras.js — Tres mazmorras nuevas: «Las Minas de la Codicia» y «El Laberinto de los Ecos» (v64) y «La Fragua Profunda» (v73).
 //
 // Son SOLO DATOS (no importan nada): bestiario.js, torre.js, leyendas.js y cinematicas.js los leen y los suman a lo que ya
 // hay. Funcionan con las mismas reglas de la Torre y la Mazmorra del Abismo (ver torre.js), pero cada una tiene lo suyo:
 //
 //   Las Minas de la Codicia (⛏️, Riqueza)   15 niveles en 3 zonas. Se abren al bajar 10 sótanos de la Mazmorra del Abismo.
 //   El Laberinto de los Ecos (🌀, Intelecto) 15 cámaras en 3 zonas. Se abre al bajar 10 niveles de las Minas.
+//   La Fragua Profunda (⚒️, Fuerza)          15 hornos en 3 zonas. Se abre al bajar 10 cámaras del Laberinto O al llegar al nivel 5 de
+//                                            gimnasio: solo un cuerpo entrenado aguanta su calor (ver gym.js).
 //
 // Cada zona tiene 5 criaturas (la quinta es su guardián). Las criaturas nuevas reutilizan los dibujos de las que ya existían,
 // con otros colores y otros nombres (ver dibujo-monstruos.js). En la historia: las Minas son la guarida de la Sombra del Tesoro y el
@@ -25,6 +27,12 @@ export const ZONAS_LABERINTO = [
     { id: "pasillos", nombre: "Pasillos de espejos", articulo: "los", texto: "Cada pared devuelve una versión de ti. Ninguna se parece del todo." },
     { id: "ecos", nombre: "Cámara de los Ecos", articulo: "la", texto: "Aquí lo que dices vuelve cambiado. Y lo que piensas, también." },
     { id: "silencio", nombre: "Salón del Silencio", articulo: "el", texto: "Ni un sonido, ni siquiera el tuyo. Hay cosas que solo se oyen cuando todo calla." },
+];
+
+export const ZONAS_FRAGUA = [
+    { id: "hornos", nombre: "Hornos fríos", articulo: "los", texto: "Bocas de horno apagadas, con las herramientas colgadas esperando una mano que no llega." },
+    { id: "yunque", nombre: "El yunque", articulo: "el", texto: "Un yunque del tamaño de una casa. De cada golpe lejano salen chispas que se quedan colgando en el aire." },
+    { id: "corazon", nombre: "El corazón de la Fragua", articulo: "el", texto: "Una llama azul que no calienta y un hombre que lleva cien años golpeando sin levantar la vista." },
 ];
 
 export const NUEVOS_LUGARES = {
@@ -53,6 +61,20 @@ export const NUEVOS_LUGARES = {
             escala: { vida: [170, 28, 1.3], ataque: [24, 2.8], guardianVida: 1.5, guardianAtaque: 1.25 },
         },
         resumen: "Quince cámaras de espejos, ecos y silencio. Aquí fueron a parar las voces que se perdieron. Es lo más difícil del juego: las criaturas pegan fuerte, repiten tus trucos y casi no hay descanso. Pero lo que se oye al final vale la pena.",
+    },
+    fragua: {
+        id: "fragua", nombre: "Fragua Profunda", icono: "⚒️", piso: "Horno", pisos: "hornos", vuelta: "al rojo", zonas: ZONAS_FRAGUA,
+        verboBajar: "el descenso", verboFin: "Fin del descenso", otraVez: "Bajar otra vez", boton: "Bajar a la Fragua",
+        abre: { lugar: "laberinto", piso: 10, gym: 5,
+                texto: "Baja 10 cámaras del Laberinto de los Ecos… o entrena de verdad: llega al nivel 5 de gimnasio. Solo un cuerpo entrenado aguanta el calor de la Fragua Profunda." },
+        portada: "corazon",
+        regla: {
+            atributo: "fuerza",
+            premio: { gemasPorPiso: 6.5, xpPorPiso: 4.8, maxGemas: 98, maxXp: 75 },
+            curaAlSubir: 0.03, enfurecer: true,
+            escala: { vida: [160, 27, 1.2], ataque: [22, 2.6], guardianVida: 1.5, guardianAtaque: 1.22 },
+        },
+        resumen: "Quince hornos bajo el piso de la Fragua, donde Brann forjó las armas de los Vigías y no volvió a parar. Las criaturas están hechas de hierro, brasa y ceniza: resisten el fuego y casi todas se cubren o se cargan. Da XP de Fuerza, y se abre con tu cuerpo: entrena de verdad hasta el nivel 5 de gimnasio, o baja 10 cámaras del Laberinto.",
     },
 };
 
@@ -222,6 +244,89 @@ export const NUEVAS_CRIATURAS = {
         golpe: "Quietud", fuerte: "Lo no dicho", especial: { tipo: "sellar", nombre: "Silencio total" }, talla: 124,
         texto: "Guardián del Salón. No hace ruido ni lo necesita: su peso es todo lo que nunca se dijo en voz alta.",
     },
+
+    // ===== La Fragua Profunda (las ids empiezan con «fa-») =====
+    // --- Hornos fríos ---
+    "fa-murcielago": {
+        nombre: "Murciélago de hollín", genero: "m", zona: "hornos", debil: "hielo", resiste: null,
+        golpe: "Aleteo ceniciento", fuerte: "Nube de hollín", talla: 76, vuela: true,
+        texto: "Duerme colgado de las bocas de los hornos. Se despierta con el frío, que es lo que menos esperaba encontrar aquí.",
+    },
+    "fa-aprendiz": {
+        nombre: "Aprendiz de fuelle", genero: "m", zona: "hornos", debil: "hielo", resiste: "fuego",
+        golpe: "Pinza", fuerte: "Golpe de fuelle", especial: { tipo: "sellar", nombre: "Humo en los ojos" }, talla: 94,
+        texto: "Sigue moviendo el fuelle aunque ya no queda fuego. Nadie le dijo que podía parar.",
+    },
+    "fa-escoria": {
+        nombre: "Escoria viva", genero: "f", zona: "hornos", debil: "hielo", resiste: "fuego",
+        golpe: "Salpicadura al rojo", fuerte: "Colada", especial: { tipo: "veneno", nombre: "Humo de forja" }, talla: 86,
+        texto: "Es lo que sobra cuando el metal se limpia. Se juntó con tanto descarte que un día se puso en pie.",
+    },
+    "fa-escorpion": {
+        nombre: "Escorpión de brasa", genero: "m", zona: "hornos", debil: "hielo", resiste: "fuego",
+        golpe: "Aguijón candente", fuerte: "Pinza al rojo", especial: { tipo: "coraza", nombre: "Caparazón de hierro" }, talla: 90,
+        texto: "Nació entre las cenizas tibias de una colada. Todo su cuerpo está caliente menos la cola.",
+    },
+    "fa-capataz": {
+        nombre: "Capataz del fuelle", genero: "m", zona: "hornos", guardian: true, debil: "hielo", resiste: "fuego",
+        golpe: "Tenaza", fuerte: "Mazazo de turno", especial: { tipo: "carga", nombre: "Soplo al máximo" }, talla: 112,
+        texto: "Guardián de los hornos. Lleva cien años dando órdenes a un fuego que se apagó hace noventa y nueve.",
+    },
+
+    // --- El yunque ---
+    "fa-chispa": {
+        nombre: "Espíritu de la chispa", genero: "m", zona: "yunque", debil: "hielo", resiste: "fuego",
+        golpe: "Chispazo", fuerte: "Lluvia de chispas", especial: { tipo: "reflejo", nombre: "Destello" }, talla: 88, vuela: true,
+        texto: "Salta del yunque con cada golpe y ya no encuentra por dónde volver. Brilla un instante y se vuelve a encender.",
+    },
+    "fa-molde": {
+        nombre: "Molde hueco", genero: "m", zona: "yunque", debil: "rayo", resiste: "fuego",
+        golpe: "Embestida", fuerte: "Aplastar", especial: { tipo: "barrera", nombre: "Cáscara de arena" }, talla: 100,
+        texto: "Una pieza que nunca llegó a rellenarse. Camina buscando el metal que le falta para ser algo.",
+    },
+    "fa-gargola": {
+        nombre: "Gárgola de hierro", genero: "f", zona: "yunque", debil: "rayo", resiste: "fuego",
+        golpe: "Zarpazo de hierro", fuerte: "Picado", especial: { tipo: "coraza", nombre: "Hierro colado" }, talla: 94,
+        texto: "La colocaron para vigilar la fragua desde el techo. Con los años se olvidó de qué.",
+    },
+    "fa-brasa": {
+        nombre: "Brasa mayor", genero: "f", zona: "yunque", debil: "hielo", resiste: "fuego",
+        golpe: "Llamarada", fuerte: "Estallido", especial: { tipo: "carga", nombre: "Rojo vivo" }, talla: 84, vuela: true,
+        texto: "La última brasa de un horno enorme. No quiere apagarse, y por eso se volvió peligrosa.",
+    },
+    "fa-coloso": {
+        nombre: "Coloso del yunque", genero: "m", zona: "yunque", guardian: true, debil: "rayo", resiste: "fuego",
+        golpe: "Martillazo", fuerte: "Derrumbe", especial: { tipo: "carga", nombre: "Alzar el martillo" }, talla: 124,
+        texto: "Guardián del yunque. Lo forjaron para golpear sin cansarse y eso es lo único que sabe hacer.",
+    },
+
+    // --- El corazón de la Fragua ---
+    "fa-sombra": {
+        nombre: "Sombra del herrero", genero: "f", zona: "corazon", debil: "rayo", resiste: "hielo",
+        golpe: "Toque de ceniza", fuerte: "Vacío", especial: { tipo: "sellar", nombre: "Sin respiro" }, talla: 92, vuela: true,
+        texto: "Es la sombra de todos los que trabajaron aquí sin parar. Tiene los hombros caídos y no deja de moverse.",
+    },
+    "fa-acero": {
+        nombre: "Acero estelar", genero: "m", zona: "corazon", debil: "fuego", resiste: "rayo",
+        golpe: "Esquirla azul", fuerte: "Filo del cielo", especial: { tipo: "reflejo", nombre: "Brillo de acero" }, talla: 84, vuela: true,
+        texto: "El metal que cae con las tormentas, trabajado durante cien años. Es tan puro que ya no se deja doblar.",
+    },
+    "fa-cofre": {
+        nombre: "Cofre de carbón", genero: "m", zona: "corazon", debil: "hielo", resiste: "fuego",
+        golpe: "Mordisco de tapa", fuerte: "Brasas en la boca", especial: { tipo: "veneno", nombre: "Gas de carbón" }, talla: 90,
+        texto: "Guarda el carbón de la última noche. Si lo abres, cuesta más cerrarlo que lo que pesa.",
+    },
+    "fa-dragon": {
+        nombre: "Dragón de brasa", genero: "m", zona: "corazon", debil: "hielo", resiste: "fuego",
+        golpe: "Zarpazo", fuerte: "Aliento de forja", especial: { tipo: "carga", nombre: "Soplar la fragua" }, talla: 118,
+        texto: "Llegó atraído por el calor y se quedó cuando se acabó. Duerme sobre el yunque más caliente.",
+    },
+    "fa-brann": {
+        nombre: "Brann, el herrero sin descanso", genero: "m", zona: "corazon", guardian: true, debil: "hielo", resiste: "fuego",
+        fase: { debil: "rayo", resiste: "hielo", nombre: "Al rojo blanco" },
+        golpe: "Martillo", fuerte: "Golpe sin pausa", especial: { tipo: "drenar", nombre: "Un golpe más" }, talla: 124,
+        texto: "Forjó las armas de los Vigías y, cuando la Llama se apagó, siguió golpeando: parar era admitir que nadie volvería.",
+    },
 };
 
 // ===== La historia de cada mazmorra (se lee en 📜 Historia; ver leyendas.js) =====
@@ -292,6 +397,40 @@ export const LEYENDAS_NUEVAS = {
             aviso: "🏆 Venciste al Gran Silencio. Lo que callaste, por fin, se oyó.",
         },
     },
+    fragua: {
+        titulo: "El herrero sin descanso",
+        prologo: {
+            titulo: "El calor que sube del suelo",
+            parrafos: [
+                "En el piso de la Fragua, debajo del yunque grande, hay una trampilla que ni la ceniza consigue tapar. Sube de ella un aire que quema los ojos y huele a hierro mojado. {n} la abre con el pie y se queda mirando: abajo, muy abajo, hay una luz azul que no calienta.",
+                "Aurelio se asoma con la manga sobre la cara. «La Fragua Profunda. Aquí abajo estaban los hornos de verdad: los de arriba son solo el escaparate. Brann, el herrero, forjó aquí las armas de los Vigías, y cuando la Llama se apagó no dejó de golpear. Cien años. Si paraba, tenía que aceptar que nadie volvería.»",
+                "«No todo el mundo aguanta ese calor —añade—. Hace falta un cuerpo entrenado, de los que no se rinden a mitad de la escalera. Pero ojo, {n}: el que no descansa también se pierde. Baja con el cuerpo fuerte y la cabeza tranquila. Y si ves a Brann, no le hables de fuerza: dile que puede sentarse.»",
+            ],
+        },
+        zonas: {
+            hornos: {
+                entrada: "Los hornos están fríos, pero el aire pesa: huele a ceniza vieja y a hierro mojado. En cada boca cuelga una herramienta, lista para una mano que no llega. En algún sitio, sin motivo, un fuelle sigue soplando donde ya no queda fuego.",
+                caida: "El Capataz del fuelle suelta la tenaza y, por primera vez, el fuelle deja de soplar. En el silencio se oye lo que tapaba: golpes lejanos, regulares, de un martillo que lleva demasiado tiempo golpeando el mismo sitio.",
+            },
+            yunque: {
+                entrada: "El yunque es del tamaño de una casa, y de él saltan chispas que no llegan al suelo: se quedan colgadas en el aire como estrellas pequeñas. Cada golpe lejano hace temblar las paredes. Las criaturas de aquí no nacieron: las forjaron, y todavía llevan la marca del molde.",
+                caida: "El Coloso del yunque se desarma pieza a pieza, y cada una, al caer, suena como una campana. Debajo no había nada que proteger: solo un yunque agrietado. El martillo golpeó tantas veces el mismo punto que acabó partiendo lo que quería forjar. Hay golpes que, de tanto repetirse sin pausa, rompen.",
+            },
+            corazon: {
+                entrada: "En el corazón de la Fragua arde una llama azul que no calienta. Es el acero que cae del cielo con las tormentas, trabajado durante cien años sin una pausa. En el centro, un hombre enorme, de manos negras, golpea y golpea sin levantar la vista. No parece enfadado: parece que ya no sabe hacer otra cosa.",
+                caida: "Brann deja el martillo. Le tiemblan las manos: nadie le había dicho en cien años que podía parar. «Pensé que si dejaba de golpear tendría que aceptar que no volvían», dice con una voz cansadísima. {n} no discute: le acerca un banco. Brann se sienta. Y el fuego de la Fragua, que llevaba cien años encendido a la fuerza, se apaga como se apagan los fuegos cuando por fin ya no hacen falta.",
+            },
+        },
+        epilogo: {
+            titulo: "Descansar también es forjar",
+            parrafos: [
+                "{n} sube los quince hornos con las manos negras de hollín y el cuerpo agotado, pero con la cabeza clara. Arriba, junto al yunque, Aurelio lo espera con un cuenco de agua. «¿Te dijo algo Brann?» «Que parar no era rendirse», responde {n}. «Que nunca se lo había dicho nadie.»",
+                "Aurelio se queda un rato en silencio. «Hay dos maneras de perderse, {n}. Una es parar sin fecha de vuelta, como Orrin. La otra es no parar nunca, como Brann. Las dos se parecen más de lo que creemos: en las dos, uno deja de elegir.» Mira el fuego apagado. «El camino está en medio: golpear, descansar, y volver a golpear.»",
+                "Desde ese día, cuando {n} termina de entrenar y se sienta a descansar, no lo hace con culpa. Lo hace como quien enfría el acero en el agua: con la certeza de que sin ese descanso, lo forjado se rompe.",
+            ],
+            aviso: "🏆 Venciste a Brann. La Fragua Profunda descansa, y tú también puedes hacerlo.",
+        },
+    },
 };
 
 // ===== Las cinemáticas (ver cinematicas.js): la entrada, la caída y el cartel de cada zona =====
@@ -303,6 +442,9 @@ export const CINE_NUEVAS = {
         pasillos: "Cada pared devuelve un rostro. Uno de ellos se mueve antes que tú.",
         ecos: "Dices una palabra y el eco contesta otra. No es la que tú dijiste.",
         silencio: "Ni siquiera tu corazón suena. Algo inmenso, quieto, espera.",
+        hornos: "Los hornos están fríos y, aun así, un fuelle sigue soplando en la oscuridad.",
+        yunque: "Chispas que no caen. Un golpe lejano que no se detiene.",
+        corazon: "Una llama azul que no calienta, y un herrero que lleva cien años sin levantar la vista.",
     },
     DERROTA: {
         galerias: "El Capataz suelta su látigo: el turno, por fin, ha terminado.",
@@ -311,6 +453,9 @@ export const CINE_NUEVAS = {
         pasillos: "El Gemelo se rompe en mil espejos, y en cada uno {n} sigue de pie.",
         ecos: "El coro canta una última nota y, al fin, todas las voces son una.",
         silencio: "El Silencio se va como una nube. Y {n} oye su propia voz.",
+        hornos: "El Capataz suelta la tenaza: el fuelle, por fin, se calla.",
+        yunque: "El Coloso se desarma: de tanto golpear el mismo punto, rompió el yunque.",
+        corazon: "Brann deja el martillo. Nadie le había dicho que podía parar.",
     },
     SUBTITULO: {
         galerias: "Donde se cavó sin saber para qué",
@@ -319,6 +464,9 @@ export const CINE_NUEVAS = {
         pasillos: "Una versión de ti en cada pared",
         ecos: "Lo que dijiste y volvió cambiado",
         silencio: "Todo lo que nunca se dijo",
+        hornos: "Un fuego que se apagó y nadie avisó",
+        yunque: "Golpear sin pausa, golpear sin rumbo",
+        corazon: "El que no descansó nunca",
     },
     // El final de cada mazmorra (las tomas de la última cinemática).
     FINAL: {
@@ -333,6 +481,12 @@ export const CINE_NUEVAS = {
             "{n} da un paso y, por primera vez en el laberinto, oye algo: su propia voz, diciendo lo que callaba.",
             "El Silencio se deshace como una nube. Las voces perdidas, por fin, vuelven a casa.",
             "Lo que no se dice no desaparece: espera. Pero cada vez que alguien lo dice, espera un poco menos.",
+        ],
+        fragua: [
+            "Brann forjó las armas de los Vigías. Cuando la Llama se apagó, siguió golpeando: parar era aceptar que no volverían.",
+            "{n} no le gana con fuerza. Le acerca un banco, y Brann, por primera vez en cien años, se sienta.",
+            "Con el herrero, se apaga el fuego que ardía a la fuerza. En el yunque agrietado queda una sola marca, la del último golpe.",
+            "Orrin paró sin fecha de vuelta; Brann no paró nunca. Entre los dos está el camino: golpear, descansar y volver.",
         ],
     },
 };

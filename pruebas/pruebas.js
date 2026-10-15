@@ -2041,7 +2041,7 @@ prueba("Pixel art: el Reflejo sombrío es tu héroe en sombras", async () => {
     const imagen = await sprites.spriteDeMonstruo("reflejo", avatarDePrueba());
     cierto(typeof imagen === "string" && imagen.startsWith("data:image/png"), "es una imagen PNG");
     const todas = await sprites.spritesDeCriaturas(avatarDePrueba());
-    igual(Object.keys(todas).length, 80, "las 80 criaturas para el bestiario (Torre, Mazmorra, Minas y Laberinto)");
+    igual(Object.keys(todas).length, 95, "las 95 criaturas para el bestiario (Torre, Mazmorra, Minas, Laberinto y Fragua)");
 });
 
 prueba("Mazmorra (pantalla): tarjeta cerrada y abierta, batalla, historia, bestiario y final sin huecos", () => {
@@ -4749,7 +4749,7 @@ prueba("Música por escena: lectura, diario, mapa, Mazmorra y Torre; sin «auto�
 
 prueba("Voces: cada criatura de la Torre y de la Mazmorra tiene su voz (aparece, ataca, herido y cae)", () => {
     const todas = Object.values(bestiario.LUGARES).flatMap((l) => l.orden);
-    igual(todas.length, 80, "las 80 criaturas de los cuatro lugares");
+    igual(todas.length, 95, "las 95 criaturas de los cinco lugares");
     for (const id of todas) {
         const familia = sonidoModulo.FAMILIA_DE_CRIATURA[id];
         cierto(familia, `${id} tiene familia`);
@@ -5119,8 +5119,8 @@ prueba("Habilidades visibles (pantalla): etiquetas doradas sobre tu héroe, pane
 // ===== Las Minas de la Codicia y el Laberinto de los Ecos (v64) =====
 
 prueba("Mazmorras nuevas: cuatro lugares, 15 criaturas en cada una (3 zonas de 5 con su guardián), todas con su dibujo y su historia", () => {
-    igual(Object.keys(bestiario.LUGARES), ["torre", "mazmorra", "minas", "laberinto"]);
-    for (const id of ["minas", "laberinto"]) {
+    igual(Object.keys(bestiario.LUGARES), ["torre", "mazmorra", "minas", "laberinto", "fragua"]);
+    for (const id of ["minas", "laberinto", "fragua"]) {
         const lugar = bestiario.LUGARES[id];
         igual([lugar.zonas.length, lugar.orden.length], [3, 15], `${id}: 3 zonas y 15 criaturas`);
         lugar.orden.forEach((c, i) => {
@@ -5134,7 +5134,7 @@ prueba("Mazmorras nuevas: cuatro lugares, 15 criaturas en cada una (3 zonas de 5
         });
         igual(bestiario.lugarDeCriatura(lugar.orden[0]), id, "se sabe en qué lugar vive cada una");
         const leyenda = leyendas.LEYENDAS[id];
-        cierto(leyenda.prologo.parrafos.length === 3 && leyenda.epilogo.parrafos.length === 2 && leyenda.epilogo.aviso, `${id}: prólogo y epílogo`);
+        cierto(leyenda.prologo.parrafos.length === 3 && leyenda.epilogo.parrafos.length >= 2 && leyenda.epilogo.aviso, `${id}: prólogo y epílogo`);
         for (const zona of lugar.zonas) {
             cierto(leyenda.zonas[zona.id].entrada.length > 80 && leyenda.zonas[zona.id].caida.length > 80, `${zona.id}: historia`);
         }
@@ -5232,9 +5232,9 @@ prueba("Mazmorras nuevas (pantallas): tarjetas en el Arcade (cerradas con lo que
     const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
     let html = vistas.pantallaArcade(estado, ctx());
     sano(html, "el arcade cerrado");
-    igual(html.split("mazmorra-cerrada").length - 1, 3, "las tres mazmorras cerradas");
+    igual(html.split("mazmorra-cerrada").length - 1, 4, "las cuatro mazmorras cerradas");
     cierto(html.includes("Minas de la Codicia") && html.includes("Laberinto de los Ecos") && html.includes("Baja 10 sótanos") && html.includes("Baja 10 niveles"), "dicen qué falta");
-    estado.arcade.records = { torre: 20, mazmorra: 12, minas: 11 };
+    estado.arcade.records = { torre: 20, mazmorra: 12, minas: 11, laberinto: 11 };
     html = vistas.pantallaArcade(estado, ctx());
     sano(html, "el arcade abierto");
     igual(html.split("mazmorra-cerrada").length - 1, 0, "todas abiertas");
@@ -5547,6 +5547,7 @@ prueba("Gym: las 7 lecturas de la Fragua se abren con el nivel de gym", () => {
         cierto(fragua.minutosDeLectura(l) >= 1);
         cierto(!/undefined|\{n\}/.test(l.parrafos.join(" ")), "sin huecos");
     }
+    cierto(musicaModulo.pistaDeEscena({ pantalla: "gym", auto: true }) === "batalla" && musicaModulo.pistaDeEscena({ pantalla: "gym", auto: false, elegida: "epica" }) === "epica", "música del gym");
     igual(fragua.lecturasAbiertas(1).length, 1);
     igual(fragua.lecturasAbiertas(6).length, 4);
     igual(fragua.lecturasAbiertas(30).length, 7);
@@ -5618,6 +5619,49 @@ prueba("Orrin: las pantallas (portada cerrada, índice, capítulo y el último) 
     const cine = cinesReino.cinematicaDeOrrin("Prueba");
     igual([cine.tipo, cine.tomas.length], ["libro", 4]);
     cierto(cine.tomas.every((t) => t.texto && !t.texto.includes("{n}")), "tomas con texto");
+});
+
+// ===== La Fragua Profunda (v73): una mazmorra que también abre tu cuerpo =====
+
+prueba("Fragua: se abre con 10 cámaras del Laberinto O con el nivel 5 de gimnasio, y da XP de Fuerza", () => {
+    const estado = partidaNueva();
+    const fragua = bestiario.LUGARES.fragua;
+    igual([fragua.zonas.length, fragua.orden.length], [3, 15]);
+    igual(fragua.orden.filter((id) => bestiario.CRIATURAS[id].guardian).length, 3, "un guardián por zona");
+    igual(torre.REGLAS.fragua.atributo, "fuerza");
+    igual(torre.lugarAbierto(torre.arcadeConGym(estado), "fragua"), false, "cerrada al principio");
+    debeFallar(() => acciones.empezarTorre(estado, 5, "fragua"), "gimnasio");
+    // Por el Laberinto:
+    estado.arcade.records.laberinto = 10;
+    igual(torre.lugarAbierto(torre.arcadeConGym(estado), "fragua"), true, "abierta por el laberinto");
+    estado.arcade.records.laberinto = 0;
+    igual(torre.lugarAbierto(torre.arcadeConGym(estado), "fragua"), false);
+    // Por el cuerpo: 5 niveles de gym (el nivel 5 pide 100+200+300+400 = 1000 XP de gym).
+    estado.gym.sesiones = [{ fecha: "2026-01-01", rutina: "hombros", ejercicios: [], xp: 1000, monedas: 0, gemas: 0, completa: true, records: [] }];
+    igual(gym.nivelDeGym(estado.gym.sesiones).nivel, 5);
+    igual(torre.lugarAbierto(torre.arcadeConGym(estado), "fragua"), true, "abierta por el gimnasio");
+    acciones.empezarTorre(estado, 5, "fragua");
+    const p = estado.arcade.fragua;
+    cierto(p && p.lugar === "fragua" && p.enemigo.id.startsWith("fa-"), "empieza con una criatura de la Fragua");
+    p.piso = 3;
+    const xp = estado.atributos.fuerza;
+    const r = acciones.terminarTorre(estado, "fragua");
+    igual([r.lugar, r.atributo, r.pisos], ["fragua", "fuerza", 2]);
+    cierto(estado.atributos.fuerza > xp, "sube la Fuerza");
+    igual(estado.arcade.records.fragua, 2);
+});
+
+prueba("Fragua: el gimnasio avisa cuando tu cuerpo abre la mazmorra", () => {
+    const estado = partidaNueva();
+    estado.gym.sesiones = [{ fecha: "2026-01-01", rutina: "hombros", ejercicios: [], xp: 950, monedas: 0, gemas: 0, completa: true, records: [] }];
+    igual(torre.lugarAbierto(torre.arcadeConGym(estado), "fragua"), false, "con 950 XP de gym aún no");
+    const r = entrenar(estado, "hombros");   // +60 XP: pasa de 1000
+    cierto(r.celebraciones.some((c) => c.titulo === "Fragua Profunda" && c.etiqueta.includes("mazmorra")), "se avisa que se abrió la Fragua");
+    // Y Maren deja una lectura cuando subes al nivel que la abre (la 2.ª, «Calor y descanso», en el nivel 2).
+    const otro = partidaNueva();
+    otro.gym.sesiones = [{ fecha: "2026-01-01", rutina: "hombros", ejercicios: [], xp: 90, monedas: 0, gemas: 0, completa: true, records: [] }];
+    const r2 = entrenar(otro, "hombros");
+    cierto(r2.celebraciones.some((c) => c.etiqueta === "Maren te dejó una lectura" && c.titulo === "Calor y descanso"), "Maren deja una lectura nueva");
 });
 
 // ===== Reacciones elementales (v71) =====
@@ -5700,9 +5744,9 @@ prueba("Maestro: sabe de tu gimnasio (te empuja si hace días que no entrenas y 
 
 // ===== Los ataques de las criaturas se ven (v67) =====
 
-prueba("Ataques: las 80 criaturas tienen un estilo de ataque válido y los 11 estilos se usan", () => {
+prueba("Ataques: las 95 criaturas tienen un estilo de ataque válido y los 11 estilos se usan", () => {
     const todas = Object.values(bestiario.LUGARES).flatMap((l) => l.orden);
-    igual(todas.length, 80);
+    igual(todas.length, 95);
     const usados = new Set();
     for (const id of todas) {
         const estilo = ataques.estiloDe(id);

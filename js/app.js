@@ -770,7 +770,7 @@ async function abrirBestiario() {
     const imagenes = await sprites.spritesDeCriaturas(avatarActual());
     $("#torre-caja").innerHTML = vistas.pantallaBestiario({
         bestiario: estado.arcade.bestiario, sprites: imagenes, mazmorra: torre.mazmorraAbierta(estado.arcade),
-        abiertos: Object.keys(bestiario.LUGARES).filter((lugar) => torre.lugarAbierto(estado.arcade, lugar)),
+        abiertos: Object.keys(bestiario.LUGARES).filter((lugar) => torre.lugarAbierto(torre.arcadeConGym(estado), lugar)),
     });
     $("#torre").hidden = false;
     $("#torre-caja").scrollTop = 0;

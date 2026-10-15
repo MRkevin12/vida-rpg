@@ -89,6 +89,7 @@ export function pistaDeEscena({ pantalla, torre = null, elegida = "epica", auto 
     if (!auto) return elegida;
     if (PANTALLAS_DE_LECTURA.includes(pantalla)) return "lectura";
     if (pantalla === "diario") return "nocturno";
+    if (pantalla === "gym") return "batalla";   // (v73) para levantar hierro: «Marte», de Holst
     if (pantalla === "mapa" || pantalla === "voces") return "alba";
     return elegida;
 }

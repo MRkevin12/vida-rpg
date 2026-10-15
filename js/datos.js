@@ -88,7 +88,7 @@ export function estadoInicial() {
             activa: "dragon", // la que te acompaña
             adoptadas: {},    // las que adoptaste en la Tienda: { fenix: { nombre, desde (fecha) } }
         },
-        arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, minas: null, laberinto: null, diaria: { fecha: null, mejor: 0, cobrado: false }, extra: 0, bestiario: {}, bazar: [], despertar: false, retos: {} },   // fichas gastadas, mejor
+        arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, minas: null, laberinto: null, fragua: null, diaria: { fecha: null, mejor: 0, cobrado: false }, extra: 0, bestiario: {}, bazar: [], despertar: false, retos: {} },   // fichas gastadas, mejor
                                               //   puntaje de cada minijuego (records.torre y records.mazmorra = pisos superados),
                                               //   la partida de la Torre y la de la Mazmorra en curso (ver torre.js) o null,
                                               //   fichas de cofres y lo que sabes de cada criatura (ver bestiario.js):
@@ -172,6 +172,7 @@ function completar(guardado) {
             mazmorra: guardado.arcade?.mazmorra || null,
             minas: guardado.arcade?.minas || null,
             laberinto: guardado.arcade?.laberinto || null,
+            fragua: guardado.arcade?.fragua || null,
             diaria: { fecha: null, mejor: 0, cobrado: false, ...guardado.arcade?.diaria },   // (v65) el reto diario de la Torre
             extra: guardado.arcade?.extra || 0,
             bestiario: { ...guardado.arcade?.bestiario },
