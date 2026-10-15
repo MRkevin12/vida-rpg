@@ -354,7 +354,9 @@ function vistaDeFoco(estado, ctx) {
             ${cabecera}
             ${escena}
             ${siguiente}
+            ${antes ? `<p class="mini gym-antes">Última vez (${fechaCorta(antes.fecha)}): ${antes.series.map((x) => (x.kg ? `${kilos(x.kg)}×${x.reps}` : `${x.reps} reps`)).join(" · ")}</p>` : ""}
             <p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${pista.texto}</p>
+            ${pista.tipo === "peso" && pista.kg > s.kg ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="kg" data-delta="${pista.kg - s.kg}">⬆️ Subir a ${kilos(pista.kg)}</button>` : ""}
             <p class="mini gym-tecnica">🎯 ${esc(gymAurelio.consejoDeTecnica(movimiento, actual.ejercicio + actual.serie))}</p>
             ${stepper("kg", "Peso", s.kg, 2.5, " kg")}
             ${stepper("reps", "Repeticiones", s.reps, 1, "")}
@@ -362,7 +364,10 @@ function vistaDeFoco(estado, ctx) {
                 👆 ${s.contando ? `Toca por cada repetición: llevas ${s.reps}` : "Contar las repeticiones tocando"}</button>
             <button type="button" class="boton boton-principal boton-ancho gym-foco-grande" data-accion="gym-serie" data-ej="${actual.ejercicio}" data-serie="${actual.serie}">
                 ${descansando ? "⏭️ Empezar ya esta serie" : "✅ Terminé la serie"}</button>
-            ${descansando ? '<button type="button" class="boton boton-secundario boton-ancho" data-accion="gym-saltar-descanso">Saltar el descanso</button>' : ""}
+            ${descansando ? `<div class="gym-foco-pie">
+                <button type="button" class="boton boton-secundario" data-accion="gym-descanso-mas" data-segundos="-15">− 15 s</button>
+                <button type="button" class="boton boton-secundario" data-accion="gym-descanso-mas" data-segundos="15">+ 15 s</button></div>
+                <button type="button" class="boton boton-secundario boton-ancho" data-accion="gym-saltar-descanso">Saltar el descanso</button>` : ""}
             ${burbujaDeAurelio(ctx)}
             ${pie}
         </section>`;

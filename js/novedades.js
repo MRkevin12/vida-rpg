@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 80;
+export const VERSION_APP = 81;
 
 export const NOVEDADES = [
+    {
+        version: 81,
+        titulo: "Modo foco más completo",
+        cambios: [
+            "📋 En el modo foco ahora ves lo que hiciste la última vez en ese ejercicio y, cuando llegaste al tope de repeticiones, un botón «⬆️ Subir a X kg» que sube el peso de la serie de un toque.",
+            "⏱️ Durante el descanso puedes acortarlo o alargarlo de 15 en 15 segundos.",
+        ],
+    },
     {
         version: 80,
         titulo: "El bombeo",

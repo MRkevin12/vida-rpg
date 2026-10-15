@@ -6037,6 +6037,23 @@ prueba("Gym (v80): el bombeo del día que entrenas y el contador de repeticiones
     igual(acciones.contarRepeticionGym(e2, 0, 1).reps, 1);
 });
 
+prueba("Gym (v81): en el modo foco se ve la última vez, un botón para subir de peso y ±15 s de descanso", () => {
+    const estado = partidaNueva();
+    const sesion = (kg) => ({ fecha: "2026-01-01", rutina: "hombros", ejercicios: [{ id: "press-hombros", series: Array.from({ length: 4 }, () => ({ kg, reps: 12 })) }], xp: 50, monedas: 0, gemas: 0, completa: true, records: [] });
+    estado.gym.sesiones = [sesion(30)];   // llegó al tope (12 reps) en las 4 series: toca subir
+    acciones.empezarGym(estado, "hombros");
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    let html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes("Última vez") && html.includes("30 kg×12"), "se ve lo de la última vez");
+    cierto(html.includes("Subir a 32,5 kg") && html.includes('data-delta="2.5"'), "botón para subir a 32,5 kg");
+    acciones.ajustarSerieGym(estado, 0, 0, "kg", 2.5);
+    html = vistasGym.pantallaGym(estado, ctx);
+    cierto(!html.includes("Subir a 32,5 kg"), "ya no hace falta si ya lo subiste");
+    acciones.marcarSerieGym(estado, 0, 0);
+    html = vistasGym.pantallaGym(estado, { ...ctx, descanso: { fin: Date.now() + 60000, total: 90000 } });
+    cierto(html.includes('data-segundos="15"') && html.includes('data-segundos="-15"') && html.includes("Saltar el descanso"), "±15 s y saltar");
+});
+
 // ===== Reacciones elementales (v71) =====
 
 prueba("Reacciones: dos hechizos distintos en turnos seguidos provocan Vapor, Conducción o Explosión", () => {

@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v81 — Modo foco: última vez, subir de peso y ajustar el descanso
+- `vistaDeFoco` muestra «Última vez», un botón «Subir a X kg» (si `sugerencia` es de tipo «peso» y aún no lo subiste; usa `gym-ajuste`) y los botones ±15 s (`gym-descanso-mas`, que cambia `descansoGym.fin` y `total`). 287 pruebas.
+
 ## v80 — El bombeo y el contador de repeticiones
 - `gym.BOMBEO` (10 %) y `bombeoDeHoy(sesiones, hoy)`: `empezarTorre` pasa `bombeo` a `heroeDeLaTorre`, que lo suma a `fuerzaGym` (vida y ataque); `notaDeGym` lo cuenta en la tarjeta de la Torre. `acciones.contarRepeticionGym` (`serie.contando`: el primer toque pone 0 y cada toque suma 1; marcar la serie lo apaga) y el botón «Contar las repeticiones tocando» del modo foco. 286 pruebas.
 

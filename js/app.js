@@ -3012,6 +3012,13 @@ const ACCIONES = {
     },
     "gym-serie-mas": (boton) => ejecutar(() => acciones.cambiarSeriesGym(estado, Number(boton.dataset.ej), 1), { mantenerScroll: true }),
     "gym-serie-menos": (boton) => ejecutar(() => acciones.cambiarSeriesGym(estado, Number(boton.dataset.ej), -1), { mantenerScroll: true }),
+    // (v81) Acortar o alargar el descanso que corre, de 15 en 15 segundos.
+    "gym-descanso-mas": (boton) => {
+        if (!descansoGym) return;
+        const cambio = Number(boton.dataset.segundos) * 1000;
+        descansoGym = { fin: Math.max(Date.now() + 5000, descansoGym.fin + cambio), total: Math.max(15000, descansoGym.total + cambio) };
+        dibujarPantalla({ mantenerScroll: true });
+    },
     "gym-saltar-descanso": () => { descansoGym = null; dibujarPantalla({ mantenerScroll: true }); },
     "gym-terminar": () => {
         const hechas = gym.seriesMarcadas(estado.gym.encurso);
