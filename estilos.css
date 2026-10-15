@@ -69,6 +69,13 @@ body {
     background-attachment: fixed;
     -webkit-tap-highlight-color: transparent; /* sin flash gris al tocar */
     overscroll-behavior-y: none;
+    overflow-x: clip;                 /* (v52) la pantalla no se mueve de lado */
+}
+
+/* (v52) Pantalla fija: un dedo solo hace scroll (sin zoom con doble toque); con dos dedos sí se puede hacer zoom. */
+html {
+    touch-action: pan-x pan-y pinch-zoom;
+    -webkit-text-size-adjust: 100%;
 }
 
 h1, h2, h3, p, dl, dd {
@@ -8869,3 +8876,50 @@ body:has(#deshacer:not([hidden])) .aviso {
 .lista-atributo .mision { border-left: 4px solid var(--color-attr); }
 
 .selector-chico button { min-height: 34px; font-size: 0.8rem; }
+
+
+/* ===== (v52) Pestaña Aurelio en Hoy y jefes que esperan en otra región del mapa ===== */
+.hoy-tab-aurelio { --acento: #c084fc; }
+
+.rivales-lista {
+    display: grid;
+    gap: 8px;
+}
+
+.rival-fila {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    list-style: none;
+    background: var(--hundido, rgba(0, 0, 0, 0.25));
+    border: 1px solid var(--borde);
+    border-left: 4px solid var(--color-attr);
+    border-radius: 12px;
+}
+
+.rival-fila .rival-retrato {
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+.rival-fila .rival-retrato img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rival-datos {
+    display: grid;
+    flex: 1;
+    gap: 3px;
+    min-width: 0;
+}
+
+.jefe-esperando {
+    display: block;
+    color: #c4b5fd;
+}

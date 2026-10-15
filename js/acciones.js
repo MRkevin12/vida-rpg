@@ -689,8 +689,11 @@ function sincronizarCampanas(estado, danoAntes) {
         // Aviso del golpe al jefe actual.
         const golpe = c.dano - (danoAntes[categoria] || 0);
         if (golpe > 0 && !cayoAlguno) {
-            celebraciones.push({ pequena: true, icono: "⚔️",
-                                 titulo: `${c.jefe.nombre} −${golpe} (le quedan ${c.vida} de vida)` });
+            // (v52) Si su región está más adelante en el mapa, el golpe se le guarda.
+            celebraciones.push({ pequena: true, icono: c.esperando ? "🔒" : "⚔️",
+                                 titulo: c.esperando
+                                     ? `${c.jefe.nombre}: +${golpe} de daño guardado (lo recibe al llegar a la región ${c.region + 1})`
+                                     : `${c.jefe.nombre} −${golpe} (le quedan ${c.vida} de vida)` });
         }
     }
     return celebraciones;

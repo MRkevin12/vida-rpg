@@ -360,13 +360,13 @@ prueba("Jefes: las diarias hacen poco daño y los pasos de una misión principal
     const mision = crearMision(estado, { atributo: "fuerza" });   // normal: 8 de daño
     acciones.completarMision(estado, mision.id);
     let jefe = campana.estadoCampanas(estado).fuerza;
-    igual([jefe.indice, jefe.vida, jefe.vidaMax], [0, 72, 80]);
+    igual([jefe.indice, jefe.vida, jefe.vidaMax], [0, 142, 150]);
 
     acciones.crearPrincipal(estado, { nombre: "Meta", atributo: "fuerza", submisiones: "Paso 1\nPaso 2" });
     const meta = estado.principales[0];
     acciones.alternarSubmision(estado, meta.id, meta.submisiones[0].id);   // 40 de daño
     jefe = campana.estadoCampanas(estado).fuerza;
-    igual(jefe.vida, 32);
+    igual(jefe.vida, 102);
     igual(campana.estadoCampanas(estado).intelecto.dano, 0, "daño al jefe de otra categoría");
 });
 
@@ -395,13 +395,19 @@ prueba("Jefes: cada jefe tiene más vida que el anterior y hay 5 por categoría"
 
 prueba("Partida+: tras los 5 jefes empieza la ronda 2, con más vida y mejores premios", () => {
     const estado = partidaNueva();
-    const pasos = Array.from({ length: 38 }, (_, i) => `Paso ${i + 1}`).join("\n");
+    const pasos = Array.from({ length: 73 }, (_, i) => `Paso ${i + 1}`).join("\n");
     acciones.crearPrincipal(estado, { nombre: "Meta enorme", atributo: "fuerza", submisiones: pasos });
-    // 38 pasos × 40 = 1520 de daño; la ronda 1 suma 1500 de vida.
+    // Los jefes viven en las regiones 1 a 5 del mapa (v52): tu héroe camina 400 pasos hasta la región 5.
+    for (let n = 0; n < 400; n++) estado.tareas.push({ id: 5000 + n, nombre: "x", hechaEn: hoy(), premio: null });
+    // 73 pasos × 40 = 2920 de daño; la ronda 1 suma 2800 de vida: sobran 120.
     const celebraciones = jugar(estado, () => { for (const paso of estado.principales[0].submisiones) paso.hecha = true; });
-    const c = campana.estadoCampanas(estado).fuerza;
+    let c = campana.estadoCampanas(estado).fuerza;
     igual([c.derrotados, c.ronda, c.indice], [5, 2, 0]);
-    igual([c.vidaMax, c.vida], [120, 100], "el primer jefe de la ronda 2 tiene 50 % más de vida");
+    // El primer jefe de la ronda 2 vive en el Valle II (región 7): aún no llegas, así que el daño que sobra se le guarda.
+    igual([c.vidaMax, c.vida, c.esperando, c.guardado, c.region], [225, 225, true, 120, 6], "50 % más de vida y el daño guardado");
+    for (let n = 0; n < 200; n++) estado.tareas.push({ id: 6000 + n, nombre: "x", hechaEn: hoy(), premio: null });
+    c = campana.estadoCampanas(estado).fuerza;
+    igual([c.vida, c.esperando], [105, false], "al llegar a su región recibe el daño guardado");
     igual(campana.premioJefe(6), { xp: 150, gemas: 75 }, "y da 50 % más de premio (en gemas)");
     igual(estado.campana.recompensados.fuerza, 5, "premios entregados");
     cierto(celebraciones.some((x) => x.etiqueta === "¡Campaña completada!"), "avisa que empieza la Partida+");
@@ -2344,7 +2350,7 @@ prueba("Reino: las guaridas son de los jefes de cada campaña, se liberan al ven
     cierto(!mapa.lugaresPorReclamar(estado).some((l) => l.id === "r1-25"), "fortaleza cerrada");
     for (const atributo of ["fuerza", "carisma", "riqueza"]) {
         const m = crearMision(estado, { atributo, dificultad: "dificil" });
-        for (let n = -5; n <= 0; n++) marcarEn(estado, m, dia(n));                       // 6 × 15 = 90 > 80
+        for (let n = -10; n <= 0; n++) marcarEn(estado, m, dia(n));                      // 11 × 15 = 165 > 150
     }
     campanas = campana.estadoCampanas(estado);
     cierto(mapa.regionLiberada(0, campanas), "los cuatro cayeron");
@@ -2365,7 +2371,7 @@ prueba("Crónica: el prólogo con tu nombre, un capítulo por región y un párr
     cierto(capitulos[1].parrafos.filter((p) => p.tipo === "pendiente").length === 4, "los cuatro señores todavía gobiernan");
     cierto(capitulos[1].parrafos.some((p) => p.texto.startsWith("Los Recaudadores") && p.texto.includes("gobiernan")), "plural: «gobiernan»");
     const leer = crearMision(estado);
-    for (let n = -9; n <= 0; n++) marcarEn(estado, leer, dia(n));                         // 80 de daño: cae Medusa
+    for (let n = -18; n <= 0; n++) marcarEn(estado, leer, dia(n));                        // 152 de daño: cae Medusa
     capitulos = cronica.capitulosDeLaCronica(estado, campana.estadoCampanas(estado), { heroe: "Aria", dragon: "Chispa" });
     const caida = capitulos[1].parrafos.find((p) => p.tipo === "caida");
     cierto(caida && caida.texto.startsWith("Medusa"), "el párrafo de Medusa");
@@ -2483,7 +2489,7 @@ prueba("Misiones mensuales: hoy salen en la lista, cuentan para la vida y el avi
     const html = vistas.pantallaHoy(estado, {
         hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info: juego.resumen(estado, hoy()),
         avatar: avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())), vida: vida.calcularVida(estado, hoy()),
-        maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null, subvista: {}, diarioVista: {},
+        maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null, subvista: { hoy: "misiones" }, diarioVista: {},
     });
     cierto(html.includes("de cada mes") && html.includes("📅 próxima:"), "Hoy muestra la frecuencia y la próxima fecha");
     cierto(!/undefined|NaN/.test(html), "sin huecos");
@@ -2512,10 +2518,10 @@ prueba("Orden: cada pantalla larga se divide en secciones y cada cosa está en u
     const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
     const veces = (html, texto) => html.split(texto).length - 1;
 
-    // Hoy: el héroe con sus rivales y un solo panel «Tu día»; ya no hay lista «En combate» ni chips del mapa o del arcade.
+    // Hoy › Aurelio (v52): el héroe, el resumen de sus rivales y un solo panel «Tu día»; sin lista «En combate» ni chips del mapa o del arcade.
     let html = vistas.pantallaHoy(estado, ctx());
     sano(html, "Hoy");
-    cierto(html.includes("class=\"rivales\"") && veces(html, "class=\"panel panel-dia\"") === 1, "héroe con rivales y panel del día");
+    cierto(html.includes('aria-label="Tus rivales"') && veces(html, "class=\"panel panel-dia\"") === 1, "héroe con rivales y panel del día");
     cierto(!html.includes("En combate") && !html.includes("data-pantalla=\"arcade\"") && !html.includes("data-pantalla=\"mapa\""), "sin lo repetido");
 
     // Progreso: los números o los logros.
@@ -2897,17 +2903,17 @@ prueba("Armadura: lo que te pones hoy no cambia el pasado, y llega entero", () =
 
 prueba("Robo de vida: al fallar, el jefe de esa categoría se cura con lo que te quitó", () => {
     const estado = partidaNueva();
-    const leer = crearMision(estado);                       // Intelecto → Medusa (80 de vida)
+    const leer = crearMision(estado);                       // Intelecto → Medusa (150 de vida)
     vidaDesde(estado, 3);
-    for (const n of [-3, -2, -1]) marcarEn(estado, leer, dia(n));   // 3 golpes de 8: Medusa queda en 56
-    igual(campana.estadoCampanas(estado).intelecto.vida, 56);
+    for (const n of [-3, -2, -1]) marcarEn(estado, leer, dia(n));   // 3 golpes de 8: Medusa queda en 126
+    igual(campana.estadoCampanas(estado).intelecto.vida, 126);
 
     const r = acciones.fallarMision(estado, leer.id, hoy(), "tiempo");
     igual([r.dano, r.robo.total, r.robo.base, r.robo.conArmadura], [11, 11, 8, 11], "8 × 1,31 con armadura de novato");
-    igual(r.robo.golpes.map((g) => [g.jefe.id, g.dano, g.curo, g.jefeVida]), [["medusa", 11, 11, { antes: 56, despues: 67, maxima: 80 }]]);
+    igual(r.robo.golpes.map((g) => [g.jefe.id, g.dano, g.curo, g.jefeVida]), [["medusa", 11, 11, { antes: 126, despues: 137, maxima: 150 }]]);
     igual(vida.calcularVida(estado, hoy()).puntos, 105 - 11);
     const c = campana.estadoCampanas(estado).intelecto;
-    igual([c.vida, c.curado, c.dano], [67, 11, 24], "se curó con tu vida");
+    igual([c.vida, c.curado, c.dano], [137, 11, 24], "se curó con tu vida");
     igual(vida.robosDeJefes(estado, hoy()), [{ fecha: hoy(), atributo: "intelecto", cantidad: 11 }]);
 
     // La escena del robo se dibuja con eso.
@@ -2916,21 +2922,20 @@ prueba("Robo de vida: al fallar, el jefe de esa categoría se cura con lo que te
     cierto(!/undefined|NaN/.test(escena), "la escena no tiene huecos");
 
     acciones.quitarFalla(estado, leer.id, hoy());           // te arrepientes: se lo devuelve
-    igual(campana.estadoCampanas(estado).intelecto.vida, 56);
+    igual(campana.estadoCampanas(estado).intelecto.vida, 126);
 });
 
 prueba("Robo de vida: un jefe no pasa de su vida llena ni revive a uno vencido; lo de antes de la v24 no cuenta", () => {
     const estado = partidaNueva();
-    acciones.crearPrincipal(estado, { nombre: "Curso", atributo: "intelecto", submisiones: "a\nb\nc" });
+    acciones.crearPrincipal(estado, { nombre: "Curso", atributo: "intelecto", submisiones: "a\nb\nc\nd\ne" });
     const principal = estado.principales[0];
-    acciones.alternarSubmision(estado, principal.id, principal.submisiones[0].id);
-    acciones.alternarSubmision(estado, principal.id, principal.submisiones[1].id);   // 2 pasos = 80: cae Medusa
+    for (const paso of principal.submisiones.slice(0, 4)) acciones.alternarSubmision(estado, principal.id, paso.id);   // 4 pasos = 160: cae Medusa
     const leer = crearMision(estado);
     let c = campana.estadoCampanas(estado).intelecto;
-    igual([c.derrotados, c.jefe.id, c.vida], [1, "cerbero", 160]);
+    igual([c.derrotados, c.jefe.id, c.vida], [1, "cerbero", 300]);
     const r = acciones.fallarMision(estado, leer.id, hoy(), "ganas");
     c = campana.estadoCampanas(estado).intelecto;
-    igual([r.dano, r.robo.golpes[0].curo, c.derrotados, c.vida], [11, 0, 1, 160], "tú pierdes vida, pero Cerbero ya estaba lleno");
+    igual([r.dano, r.robo.golpes[0].curo, c.derrotados, c.vida], [11, 0, 1, 300], "tú pierdes vida, pero Cerbero ya estaba lleno");
 
     const vieja = partidaNueva();
     crearMision(vieja);
@@ -3889,11 +3894,12 @@ prueba("Aurelio responde a tu diario, te despide en la noche y sus memorias se l
     cierto(html.includes("Memorias de Aurelio") && html.includes("El que dejaba todo para mañana") && html.includes("Nuevo"), "el primer capítulo, nuevo");
     cierto(html.includes("???") && html.includes("🔒 Aurelio te lo contará cuando logres una racha de 7 días"), "el siguiente, con lo que falta");
     estado.diario[hoy()] = { animo: "bien", texto: "" };
-    html = vistas.pantallaHoy(estado, {
+    const ctxHoy = (subvista) => ({
         hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
-        vida: vida.calcularVida(estado, hoy()), maestro: ctx.maestro, evento: null, subvista: {}, diarioVista: {},
+        vida: vida.calcularVida(estado, hoy()), maestro: ctx.maestro, evento: null, subvista, diarioVista: {},
     });
-    cierto(html.includes(maestro.respuestaAlDiario("bien", hoy())) && html.includes('data-accion="memorias-abrir"'), "en Hoy: su respuesta y «Escuchar»");
+    cierto(vistas.pantallaHoy(estado, ctxHoy({})).includes('data-accion="memorias-abrir"'), "en Hoy › Aurelio: «Escuchar»");
+    cierto(vistas.pantallaHoy(estado, ctxHoy({ hoy: "diario" })).includes(maestro.respuestaAlDiario("bien", hoy())), "en Hoy › Diario: su respuesta");
 });
 
 
@@ -3964,9 +3970,9 @@ prueba("Tu libro: cada día con diario es un capítulo, contado con lo que pasó
 
 prueba("Tu libro: el día que cae un jefe, el capítulo lleva su nombre", () => {
     const estado = partidaNueva();
-    acciones.crearPrincipal(estado, { nombre: "Curso", atributo: "intelecto", submisiones: "Uno\nDos\nTres" });
+    acciones.crearPrincipal(estado, { nombre: "Curso", atributo: "intelecto", submisiones: "Uno\nDos\nTres\nCuatro\nCinco" });
     const principal = estado.principales[0];
-    for (const paso of principal.submisiones.slice(0, 2)) {      // 2 pasos × 40 = 80: cae el primer jefe
+    for (const paso of principal.submisiones.slice(0, 4)) {      // 4 pasos × 40 = 160: cae el primer jefe
         paso.hecha = true;
         paso.hechaEn = dia(-1);
     }
@@ -4265,10 +4271,11 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     const vieja = JSON.stringify({ version: 1, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] });
     const estado = datos.desdeRespaldo(vieja);
     igual(estado.version, datos.estadoInicial().version, "la versión de los datos");
-    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true, esencial: false, esencialAlAbrir: true });
+    igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true, esencial: false, esencialAlAbrir: true,
+                          animo: "bien", preguntarAnimo: true });
     igual([estado.claves, estado.cofres, estado.noches, estado.mapa, estado.arcade.extra], [{}, {}, [], { reclamados: [] }, 0], "lo de la v22");
     igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
-    igual(estado.campana, { recompensados: {} });
+    igual(estado.campana, { recompensados: {}, libres: {} });
     igual([estado.tareas, estado.desafios, estado.diario, estado.avances], [[], [], {}, {}], "las listas nuevas");
     igual(estado.enfoque, { activo: null, sesiones: [] });
     igual(estado.avisos, { horarios: [], enfoque: true }, "las notificaciones");
@@ -4409,29 +4416,40 @@ prueba("Modo esencial: Hoy muestra solo tus misiones en tres grupos, la Tienda s
     igual(datos.estadoInicial().ajustes.esencialAlAbrir, true, "pero al abrir la app arranca en él (v47)");
     debeFallar(() => acciones.cambiarAjuste(partidaNueva(), "inventado", true), "no existe");
 
-    // Completo: el héroe, «Tu día», el diario y las misiones; sin las «importantes».
+    // Completo (v52): Hoy en pestañas y la primera es Aurelio, con tu héroe, tus rivales y «Tu día».
     const completo = vistas.pantallaHoy(estado, ctx());
     sano(completo, "Hoy completo");
-    cierto(completo.includes('aria-label="Tu día"') && completo.includes("Misiones de hoy") && completo.includes("Diario"), "Hoy completo");
-    cierto(!completo.includes('aria-label="Misiones principales"') && !completo.includes("esencial-grupo"), "sin los grupos del modo esencial");
-    cierto(completo.includes('data-accion="alternar-esencial"') && completo.includes('aria-pressed="false"'), "con su botón apagado");
+    cierto(completo.includes('data-vista="aurelio"') && completo.indexOf('data-vista="aurelio"') < completo.indexOf('data-vista="misiones"'), "la pestaña Aurelio va primero");
+    cierto(completo.includes('aria-label="Tu día"') && completo.includes('aria-label="Tus rivales"') && completo.includes("heroe-hoy"), "y se abre sola: héroe, rivales y «Tu día»");
+    cierto(!completo.includes("⚔️ Misiones diarias"), "las misiones están en su propia pestaña");
+    cierto(completo.includes('data-accion="alternar-esencial"'), "con el botón de ánimo");
+    for (const vista of ["misiones", "metas", "tareas", "importantes", "diario"]) {
+        const html = vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: vista } });
+        sano(html, `Hoy › ${vista}`);
+        cierto(!html.includes('aria-label="Tu día"'), `Hoy › ${vista}: solo su sección`);
+    }
+    const misiones = vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "misiones" } });
+    cierto(misiones.includes("subtitulo-atributo") && misiones.includes('data-accion="agrupar-hoy"'), "por atributo, con el botón para cambiar");
+    cierto(!misiones.includes('data-pantalla="hoy-agrupar"'), "el botón de agrupar ya no intenta abrir otra pantalla");
+    const porMomento = vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "misiones" }, agruparHoy: "momento" });
+    cierto(!porMomento.includes("subtitulo-atributo"), "por momento: sin los títulos de atributo");
 
-    // Esencial: tres grupos (diarias, tareas, importantes) con su resumen; sin héroe, «Tu día», semana ni diario.
-    acciones.cambiarAjuste(estado, "esencial", true);
+    // Esencial: sin la pestaña Aurelio (ni héroe, «Tu día», semana o diario); abre en las misiones.
+    acciones.elegirAnimo(estado, "mal");
     const html = vistas.pantallaHoy(estado, ctx());
     sano(html, "Hoy esencial");
-    cierto(html.includes("⚔️ Misiones diarias") && html.includes("📌 Tareas") && html.includes("🎯 Misiones importantes"), "los tres grupos con su nombre");
-    for (const grupo of ["esencial-diarias", "esencial-tareas", "esencial-importantes"]) {
-        cierto(html.includes(`id="${grupo}"`) && html.includes(`data-grupo="${grupo}"`), `${grupo}: existe y tiene su atajo arriba`);
-    }
-    cierto(html.includes('data-dialogo="mision"') && html.includes("+ Nueva misión") && html.includes('data-dialogo="tarea"') && html.includes('data-dialogo="principal"'), "agregar de cada tipo");
-    cierto(!html.includes('aria-label="Tu día"') && !html.includes("Rivales") && !html.includes('class="panel semana"') && !html.includes("📓"), "sin héroe, «Tu día», semana ni diario");
-    cierto(html.includes('aria-pressed="true"') && html.length < completo.length, "el botón queda encendido y la pantalla es más corta");
-    cierto(!html.includes("contra los jefes"), "la nota de las importantes no habla de jefes");
-    cierto(!vistas.pantallaHoy(estado, { ...ctx(), fechaVista: sumarDias(hoy(), -1) }).includes("esencial-resumen"), "el resumen de arriba solo se ve en «Hoy»");
+    cierto(html.includes("⚔️ Misiones diarias") && html.includes("+ Nueva misión"), "abre en las misiones diarias");
+    for (const vista of ["misiones", "metas", "tareas", "importantes"]) cierto(html.includes(`data-vista="${vista}"`), `pestaña ${vista}`);
+    cierto(!html.includes('data-vista="aurelio"') && !html.includes('data-vista="diario"'), "sin las pestañas Aurelio ni Diario");
+    cierto(!html.includes('aria-label="Tu día"') && !html.includes("Rivales") && !html.includes('class="panel semana"'), "sin héroe, «Tu día» ni semana");
+    cierto(vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "aurelio" } }).includes("⚔️ Misiones diarias"), "si pides Aurelio en el esencial, ves las misiones");
+    const importantes = vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "importantes" } });
+    cierto(importantes.includes("🎯 Misiones importantes") && importantes.includes('data-dialogo="principal"') && !importantes.includes("contra los jefes"), "las importantes, sin hablar de jefes");
+    cierto(!vistas.pantallaHoy(estado, { ...ctx(), fechaVista: sumarDias(hoy(), -1) }).includes("hoy-tabs"), "viendo ayer, sin pestañas");
 
     // El enfoque (temporizador) solo aparece si tienes una sesión en marcha.
     cierto(!html.includes('data-pantalla="enfoque"'), "sin sesión, sin botón de enfoque");
+    igual([estado.ajustes.esencial, estado.ajustes.animo], [true, "mal"], "«mal» enciende el modo esencial");
     acciones.empezarEnfoque(estado, { minutos: 25, atributo: "intelecto" });
     cierto(vistas.pantallaHoy(estado, ctx()).includes('data-pantalla="enfoque"'), "con una sesión activa, sí");
     acciones.cancelarEnfoque(estado);
@@ -4443,13 +4461,56 @@ prueba("Modo esencial: Hoy muestra solo tus misiones en tres grupos, la Tienda s
     cierto(!tiendaEsencial.includes("💎") && !tiendaEsencial.includes("Equipo") && !tiendaEsencial.includes("Mascotas") && !tiendaEsencial.includes("gemas"), "sin gemas, equipo ni mascotas");
 
     // Apagado: todo vuelve (y las principales siguen en Aventuras, una sola vez).
-    acciones.cambiarAjuste(estado, "esencial", false);
+    acciones.elegirAnimo(estado, "bien");
     const tiendaCompleta = vistas.pantallaTienda(estado, ctx());
     cierto(tiendaCompleta.includes("💎") && tiendaCompleta.includes("Mascotas"), "la tienda completa sigue igual");
     const aventuras = vistas.pantallaAventuras(estado, ctx());
     sano(aventuras, "Aventuras");
     igual(aventuras.split('aria-label="Misiones principales"').length - 1, 1, "una sola vez en Aventuras");
     cierto(aventuras.includes("Campaña de jefes") && !aventuras.includes("esencial-grupo"), "y la campaña de jefes sigue ahí, sin los estilos del modo esencial");
+});
+
+
+// ===== Jefes atados al mapa (v52) =====
+
+prueba("Jefes y mapa: el jefe de la región 2 no recibe daño hasta que tu héroe llega; el daño se le guarda", () => {
+    igual([0, 1, 4, 5, 9].map(campana.regionDelJefe), [0, 1, 4, 6, 10], "la Ciudadela (región 6) no tiene jefes");
+    igual([0, 99, 100, 250].map(campana.regionDelHeroe), [0, 0, 1, 2]);
+    const estado = partidaNueva();
+    acciones.crearPrincipal(estado, { nombre: "Curso", atributo: "intelecto", submisiones: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10" });
+    const principal = estado.principales[0];
+    // 10 pasos × 40 + 100 al terminarla = 500: Medusa (150) cae y Cerbero (300) tendría que caer también…
+    const celebraciones = jugar(estado, () => { for (const paso of principal.submisiones) acciones.alternarSubmision(estado, principal.id, paso.id); });
+    let c = campana.estadoCampanas(estado).intelecto;
+    igual([c.derrotados, c.jefe.id, c.esperando, c.vida, c.guardado], [1, "cerbero", true, 300, 350], "…pero vive en la región 2: el daño se le guarda");
+    igual(estado.campana.recompensados.intelecto, 1, "solo el premio de Medusa");
+    cierto(celebraciones.some((x) => x.titulo === "Medusa"), "cae Medusa");
+    // Tu héroe camina hasta la región 2 (100 pasos) y Cerbero recibe todo el daño guardado.
+    jugar(estado, () => { for (let n = 0; n < 100; n++) estado.tareas.push({ id: 7000 + n, nombre: "x", hechaEn: hoy(), premio: null }); });
+    c = campana.estadoCampanas(estado).intelecto;
+    igual([c.derrotados, c.jefe.id, c.esperando, c.vida], [2, "hidra", true, 500], "Cerbero cae al llegar; la Hidra espera en la región 3");
+    igual(estado.campana.recompensados.intelecto, 2);
+    const info = juego.resumen(estado, hoy());
+    const html = vistas.pantallaAventuras(estado, {
+        hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+        vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
+        rangoResumen: 7, subvista: {}, campanaVista: "intelecto", diarioVista: {},
+    });
+    cierto(html.includes("🔒 Te espera en") && !/undefined|NaN/.test(html), "Aventuras dice dónde te espera");
+});
+
+prueba("Jefes y mapa: los jefes que ya habías vencido antes de la v52 siguen vencidos (con la vida de antes)", () => {
+    const vieja = partidaNueva();
+    const leer = crearMision(vieja);
+    envejecer(vieja, 30);
+    for (let n = -30; n <= 0; n++) marcarEn(vieja, leer, dia(n));   // 31 × 8 = 248: antes caían Medusa (80) y Cerbero (160)
+    vieja.campana.recompensados = { intelecto: 2 };
+    delete vieja.campana.libres;
+    const estado = datos.desdeRespaldo(JSON.stringify({ ...vieja, version: 26 }));
+    igual(estado.campana.libres, { intelecto: 2 }, "la migración guarda los que ya cayeron");
+    const c = campana.estadoCampanas(estado).intelecto;
+    igual([c.derrotados, c.jefe.id, c.esperando], [2, "hidra", true], "siguen vencidos, aunque tu héroe esté en la región 1");
+    igual(c.guardado, 248 - 80 - 160, "lo que sobra se guarda para la Hidra");
 });
 
 

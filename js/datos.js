@@ -15,7 +15,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 26,
+        version: 27,
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -91,7 +91,8 @@ export function estadoInicial() {
                                               //   despertar (v38): si ya se te contó que la Torre despertó
                                               //   bazar: las provisiones compradas para la próxima partida ("pocion"…)
                                               //   retos (v40): el reto del día de cada fecha { tipo, meta, mejor, cobradoEn } (ver retos.js)
-        campana: { recompensados: {} },       // cuántos jefes de cada categoría ya dieron su premio
+        campana: { recompensados: {},         // cuántos jefes de cada categoría ya dieron su premio
+                   libres: {} },              // (v52) los que ya estaban vencidos antes de atar los jefes al mapa
         maestro: { leidas: 0 },               // cuántos capítulos de las memorias de Aurelio ya leíste (ver memorias.js)
         // Cómo se ve tu avatar (las opciones están en avatar.js → APARIENCIA).
         apariencia: { cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
@@ -166,7 +167,11 @@ function completar(guardado) {
             despertar: guardado.arcade?.despertar || false,
             retos: { ...guardado.arcade?.retos },
         },
-        campana: { recompensados: { ...guardado.campana?.recompensados } },
+        campana: {
+            recompensados: { ...guardado.campana?.recompensados },
+            // (v52) Los jefes atados al mapa: los que ya habías vencido antes (= los premios entregados) siguen vencidos.
+            libres: (guardado.version || 0) < 27 ? { ...guardado.campana?.recompensados } : { ...guardado.campana?.libres },
+        },
         maestro: { leidas: guardado.maestro?.leidas || 0 },
         // La vida empieza a contar el día en que llega esta versión: no castiga el pasado.
         vida: {

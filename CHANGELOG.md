@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v52 — Jefes atados al mapa, pestaña Aurelio y arreglos
+- **Jefes y mapa** (`campana.js`): `regionDelJefe(n)` (5 regiones con jefes + la Ciudadela por vuelta) y `regionDelHeroe(pasos)`. En `estadoCampanas`, un jefe solo cae si tu héroe ya llegó a su región ese día (`fechasDePasos`); si no, el daño se guarda (`esperando`, `guardado`, `region`, `pasosHeroe`). Los vencidos antes de la v52 quedan en `estado.campana.libres` (migración en `completar()`, datos versión 27) y usan `VIDAS_ANTES`.
+- **Jefes más duros:** `VIDAS = [150, 300, 500, 750, 1100]` (antes 80, 160, 260, 400, 600). Aventuras, el mapa y Hoy muestran «🔒 Te espera en…» con los pasos que faltan.
+- **Pestaña Aurelio en Hoy** (no en el esencial), la primera y la que abre: `tarjetaHeroe` (sin la fila de rivales), `resumenRivales`, `panelDelDia`, `tarjetaSemana` y `tarjetaFoco`.
+- **Arreglos:** «Por atributo / Por momento» usaba la acción `subvista` con `data-pantalla="hoy-agrupar"` y `cambiarPantalla` fallaba → nueva acción `agrupar-hoy`. El interruptor de Ajustes ahora llama a `elegirAnimo`. 3 pruebas fallaban desde la v49 (CI en rojo en v49–v51): actualizadas. 222 pruebas.
+- **Pantalla fija:** `html { touch-action: pan-x pan-y pinch-zoom }` (sin zoom con doble toque, sí con dos dedos) y `body { overflow-x: clip }`.
+
 ## v51 — Hoy en secciones
 - `pantallaHoy`: pestañas `.hoy-tabs` (`subvista.hoy`: misiones · metas · tareas · importantes · diario) y solo se dibuja la elegida, en todos los ánimos (el diario no sale en el esencial). Reemplaza al resumen del modo esencial y a `ir-grupo`.
 - Misiones y tareas agrupadas por atributo con `agruparPorAtributo` (título de color y «hechas/total»); alternable a «Por momento» con `subvista["hoy-agrupar"]`. Las metas semanales tienen su propia pestaña.

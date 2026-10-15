@@ -67,6 +67,7 @@ let golpe = null;                // el golpe con timing en curso
 let alCerrarRobo = null;         // qué hacer cuando se cierre la escena del robo de vida
 // Las secciones elegidas en las pantallas largas (el selector de arriba): solo se ve una a la vez.
 const subvista = { progreso: "numeros", tienda: "recompensas", personaje: "equipo" };
+let agruparHoy = "atributo";   // (v51) en Hoy, las misiones se agrupan por "atributo" o por "momento"
 let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (null = la del jefe más cerca de caer)
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
 
@@ -941,6 +942,7 @@ function contextoActual(efectos = {}) {
         problemaAvisos,
         regionMapa,
         subvista,                                           // la sección elegida en Progreso, Tienda y Héroe
+        agruparHoy,
         campanaVista,
         maestro: maestro.contexto(estado, fecha, ahora, info),   // lo que el Maestro sabe de tu día
         memoriasDesde,
@@ -1009,7 +1011,7 @@ function fechaVista() {
 // Enciende o apaga el modo esencial (el botón de Hoy y el interruptor de Ajustes). Si queda encendido y estabas en una
 // pantalla que ya no está a la mano (Aventuras, Héroe…), te lleva a Hoy.
 function cambiarModoEsencial(encendido) {
-    if (!ejecutar(() => acciones.cambiarAjuste(estado, "esencial", encendido))) return;
+    if (!ejecutar(() => acciones.elegirAnimo(estado, encendido ? "mal" : "bien"))) return;
     if (encendido && !PANTALLAS_ESENCIALES.has(pantallaActual)) cambiarPantalla("hoy");
 }
 
@@ -2213,6 +2215,11 @@ const ACCIONES = {
     // (v49) El botón de Hoy ahora abre la pregunta «¿Cómo te sientes hoy?» para cambiar el menú cuando quieras.
     "alternar-esencial": () => preguntarAnimo(),
     "elegir-animo": (boton) => elegirAnimo(boton.dataset.animo),
+    // (v52) «Por atributo» / «Por momento» en Hoy. (Antes usaban la acción «subvista», que intentaba abrir una pantalla «hoy-agrupar».)
+    "agrupar-hoy": (boton) => {
+        agruparHoy = boton.dataset.grupo;
+        dibujarPantalla({ mantenerScroll: true });
+    },
     "cerrar-semana": () => {
         ejecutar(() => acciones.cerrarResumenSemanal(estado));
         window.scrollTo(0, 0);

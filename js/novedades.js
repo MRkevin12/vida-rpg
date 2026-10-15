@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 51;
+export const VERSION_APP = 52;
 
 export const NOVEDADES = [
+    {
+        version: 52,
+        titulo: "Los jefes te esperan en el mapa",
+        cambios: [
+            "🗺️ Cada jefe vive en una región del mapa del reino y solo puedes vencerlo cuando tu héroe llega ahí. Mientras tanto, el daño que le haces se le guarda 🔒 y lo recibe todo junto el día que llegas.",
+            "💪 Los jefes ahora son más duros (150, 300, 500, 750 y 1100 de vida). Los que ya habías vencido siguen vencidos.",
+            "🧙 Nueva pestaña Aurelio en Hoy (en los ánimos Bien y Normal), la primera: tu personaje, el resumen de tus rivales, «Tu día» con Aurelio y tu semana.",
+            "🔧 Arreglado: los botones «Por atributo» y «Por momento» de Hoy no funcionaban. El interruptor del modo esencial en Ajustes ahora también cambia tu ánimo.",
+            "📱 La pantalla queda fija: con un dedo solo haces scroll (sin zoom con doble toque); con dos dedos sí puedes hacer zoom.",
+        ],
+    },
     {
         version: 51,
         titulo: "Hoy, más ordenado",

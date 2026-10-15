@@ -17,10 +17,16 @@
 // Todo se CALCULA a partir de tu historial (como las rachas): si desmarcas una
 // misión, el daño se descuenta solo y nada se desordena.
 //
+// Atados al mapa (v52): cada jefe vive en una región del mapa del reino (el 1.º de cada campaña en la
+// región 1, el 2.º en la 2…). Mientras tu héroe no llegue a esa región, el jefe no recibe el daño:
+// se GUARDA, y lo recibe todo junto el día que llegas. Los jefes que ya habías vencido antes de
+// la v52 (estado.campana.libres) siguen vencidos, con la vida que tenían entonces (VIDAS_ANTES).
+//
 // Imágenes: obras de arte de dominio público (Wikimedia Commons), en jefes/.
 
 import { hoy } from "./fechas.js";
 import { robosDeJefes } from "./vida.js";
+import { REGIONES, PASOS_POR_LUGAR, LUGARES_POR_REGION } from "./mapa.js";
 
 export const DANO = {
     diaria: { facil: 4, normal: 8, dificil: 15 },
@@ -28,8 +34,9 @@ export const DANO = {
     principal: 100,  // extra al completar toda la misión principal
 };
 
-// Vida de los jefes 1 a 5 de cada campaña (en la ronda 1).
-export const VIDAS = [80, 160, 260, 400, 600];
+// Vida de los jefes 1 a 5 de cada campaña (en la ronda 1). Subió en la v52 (antes: VIDAS_ANTES).
+export const VIDAS = [150, 300, 500, 750, 1100];
+export const VIDAS_ANTES = [80, 160, 260, 400, 600];
 
 // En Partida+ cada ronda suma 50 % a la vida y a los premios:
 // ronda 1 = ×1, ronda 2 = ×1,5, ronda 3 = ×2…
@@ -45,8 +52,33 @@ export function vidaJefe(indice, ronda = 1) {
 }
 
 // Vida del jefe que enfrentas después de vencer a "n" jefes de una categoría.
-function vidaDelJefe(n) {
-    return vidaJefe(n % VIDAS.length, Math.floor(n / VIDAS.length) + 1);
+// libres: cuántos de esa campaña ya habías vencido antes de la v52 (esos usan la vida de antes).
+function vidaDelJefe(n, libres = 0) {
+    const ronda = Math.floor(n / VIDAS.length) + 1;
+    const vidas = n < libres ? VIDAS_ANTES : VIDAS;
+    return Math.round(vidas[n % VIDAS.length] * multiplicador(ronda));
+}
+
+// ===== Jefes y mapa (v52) =====
+
+// En qué región del mapa vive el jefe número n de una campaña (0 = el primero, contando las rondas).
+// Cada vuelta del mapa tiene 6 regiones: 5 con jefes y la Ciudadela (sin jefes).
+export function regionDelJefe(n) {
+    return Math.floor(n / VIDAS.length) * REGIONES.length + (n % VIDAS.length);
+}
+
+// En qué región está tu héroe después de dar "pasos" pasos (ver mapa.posicion).
+export function regionDelHeroe(pasos) {
+    return Math.floor(Math.floor(pasos / PASOS_POR_LUGAR) / LUGARES_POR_REGION);
+}
+
+// Las fechas de todos tus pasos, ordenadas (cada misión, tarea o sesión de enfoque es un paso).
+function fechasDePasos(estado) {
+    return [
+        ...estado.completadas.map((c) => c.fecha),
+        ...estado.tareas.filter((t) => t.hechaEn).map((t) => t.hechaEn),
+        ...estado.enfoque.sesiones.map((s) => s.fecha),
+    ].map((f) => f || "").sort();
 }
 
 // Recompensa al derrotar al jefe número n de una categoría, contando todas las rondas
@@ -211,8 +243,12 @@ export function danoPorCategoria(estado) {
 // fecha: hasta qué día contar los robos (hoy, salvo en el libro). robos: si ya los calculaste.
 export function estadoCampanas(estado, fecha = hoy(), robos = robosDeJefes(estado, fecha)) {
     const golpes = golpesConFecha(estado);
+    const pasos = fechasDePasos(estado);
     const resultado = {};
     for (const [categoria, campana] of Object.entries(CAMPANAS)) {
+        const libres = estado.campana?.libres?.[categoria] || 0;
+        // ¿Puedes pelear con el jefe n habiendo dado "dados" pasos? (los de antes de la v52, siempre)
+        const puedePelear = (n, dados) => n < libres || regionDelJefe(n) <= regionDelHeroe(dados);
         const sucesos = [
             ...golpes[categoria].filter((g) => g.fecha <= fecha),
             ...robos.filter((r) => r.atributo === categoria && r.fecha <= fecha).map((r) => ({ fecha: r.fecha, cura: r.cantidad })),
@@ -220,11 +256,21 @@ export function estadoCampanas(estado, fecha = hoy(), robos = robosDeJefes(estad
         // Por fecha; el mismo día, primero tus golpes y después lo que te robaron.
         sucesos.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : (a.cura ? 1 : 0) - (b.cura ? 1 : 0)));
 
-        let restante = 0;     // el daño que lleva el jefe actual
+        let restante = 0;     // el daño que lleva el jefe actual (si aún no llegas a su región, es el daño guardado)
         let derrotados = 0;
         let dano = 0;
         let curado = 0;
+        let dados = 0;        // pasos dados hasta la fecha del suceso
+        const avanzar = (hasta) => { while (dados < pasos.length && pasos[dados] <= hasta) dados += 1; };
+        // Cae el jefe si tiene el daño suficiente Y tu héroe ya llegó a su región.
+        const vencer = () => {
+            while (restante >= vidaDelJefe(derrotados, libres) && puedePelear(derrotados, dados)) {
+                restante -= vidaDelJefe(derrotados, libres);
+                derrotados += 1;
+            }
+        };
         for (const suceso of sucesos) {
+            avanzar(suceso.fecha);
             if (suceso.cura) {
                 const cura = Math.min(suceso.cura, restante);   // no pasa de su vida llena
                 restante -= cura;
@@ -233,15 +279,15 @@ export function estadoCampanas(estado, fecha = hoy(), robos = robosDeJefes(estad
             }
             dano += suceso.dano;
             restante += suceso.dano;
-            while (restante >= vidaDelJefe(derrotados)) {
-                restante -= vidaDelJefe(derrotados);
-                derrotados += 1;
-            }
+            vencer();
         }
+        avanzar(fecha);   // si llegaste a la región después del último golpe, el daño guardado se aplica ahora
+        vencer();
         const ronda = Math.floor(derrotados / VIDAS.length) + 1;
         const indice = derrotados % VIDAS.length;
-        const vidaMax = vidaDelJefe(derrotados);
-        const vida = vidaMax - restante;
+        const vidaMax = vidaDelJefe(derrotados, libres);
+        const esperando = !puedePelear(derrotados, dados);   // su región está más adelante en el mapa
+        const vida = esperando ? vidaMax : vidaMax - restante;
         resultado[categoria] = {
             categoria,
             campana,
@@ -253,6 +299,10 @@ export function estadoCampanas(estado, fecha = hoy(), robos = robosDeJefes(estad
             jefe: campana.jefes[indice],
             vida,
             vidaMax,
+            esperando,                     // true: aún no llegas a su región; el daño se le guarda
+            guardado: esperando ? restante : 0,   // el daño guardado que recibirá al llegar
+            region: regionDelJefe(derrotados),    // la región del mapa donde vive (0 = la primera)
+            pasosHeroe: dados,             // los pasos que llevas en el mapa (hasta esa fecha)
             porcentaje: Math.round((vida / vidaMax) * 1000) / 10,
         };
     }

@@ -166,7 +166,7 @@ export function pantallaHoy(estado, ctx) {
     const todoListo = delDia.length > 0 && hechas === delDia.length;
     const sinMisiones = estado.misiones.every((m) => m.archivadaEn);
     const tarjeta = (m) => tarjetaMision(m, estado, fecha, hechasEseDia.has(m.id), ctx.recienHecha === m.id);
-    const agruparPor = ctx.subvista?.["hoy-agrupar"] || "atributo";
+    const agruparPor = ctx.agruparHoy || "atributo";
 
     let lista = "";
     if (delDia.length) {
@@ -202,19 +202,21 @@ export function pantallaHoy(estado, ctx) {
     // ⚔️ misiones diarias · 🗓️ metas de la semana · 📌 tareas · 🎯 misiones importantes · 📓 diario (solo fuera del modo esencial).
     const metasPendientes = semanales.filter((m) => juego.vecesEnSemana(estado.completadas, m.id, fecha) < m.veces).length;
     const secciones = [
+        // (v52) Aurelio: tu héroe, tus rivales y «Tu día». Solo fuera del modo esencial, y es la primera.
+        ...(esencial ? [] : [["aurelio", "🧙", ctx.maestro?.memorias?.sinLeer ? "•" : "", "Aurelio", "aurelio"]]),
         ["misiones", "⚔️", `${hechas}/${delDia.length}`, "Misiones", "diarias"],
         ["metas", "🗓️", `${semanales.length - metasPendientes}/${semanales.length}`, "Metas", "metas"],
         ["tareas", "📌", tareasDeHoy, "Tareas", "tareas"],
         ["importantes", "🎯", importantes.length, "Importantes", "importantes"],
         ...(esencial ? [] : [["diario", "📓", estado.diario[ctx.hoy] ? "✓" : "·", "Diario", "diario"]]),
     ];
-    const vistaPedida = ctx.subvista?.hoy || "misiones";
+    const vistaPedida = ctx.subvista?.hoy || (esencial ? "misiones" : "aurelio");
     const vista = esAyer || !secciones.some((x) => x[0] === vistaPedida) ? "misiones" : vistaPedida;
     const pestanasHoy = esAyer ? "" : `
         <nav class="hoy-tabs" aria-label="Secciones de Hoy">
             ${secciones.map(([clave, icono, numero, nombre, color]) => `
                 <button type="button" class="hoy-tab hoy-tab-${color}" data-accion="subvista" data-pantalla="hoy" data-vista="${clave}"
-                        aria-pressed="${clave === vista}"><b>${icono} ${numero}</b><small>${nombre}</small></button>`).join("")}
+                        aria-pressed="${clave === vista}"><b>${icono}${numero === "" ? "" : ` ${numero}`}</b><small>${nombre}</small></button>`).join("")}
         </nav>`;
     // (v50) Botón grande arriba de Hoy: muestra cómo te sientes y abre la portada para cambiarlo.
     const animo = { mal: ["😔", "Mal", "solo lo esencial"], normal: ["🙂", "Normal", "sin Aventuras"], bien: ["😄", "Bien", "todo el menú"] }
@@ -234,8 +236,8 @@ export function pantallaHoy(estado, ctx) {
                 ${esencial && !activo ? "" : `<button type="button" class="chip chip-enfoque ${activo ? "activo" : ""}" data-accion="ir" data-pantalla="enfoque">${botonEnfoque}</button>`}
             </div>
             <div class="selector selector-chico" role="group" aria-label="Agrupar por">
-                <button type="button" data-accion="subvista" data-pantalla="hoy-agrupar" data-vista="atributo" aria-pressed="${agruparPor === "atributo"}">Por atributo</button>
-                <button type="button" data-accion="subvista" data-pantalla="hoy-agrupar" data-vista="momento" aria-pressed="${agruparPor === "momento"}">Por momento</button>
+                <button type="button" data-accion="agrupar-hoy" data-grupo="atributo" aria-pressed="${agruparPor === "atributo"}">Por atributo</button>
+                <button type="button" data-accion="agrupar-hoy" data-grupo="momento" aria-pressed="${agruparPor === "momento"}">Por momento</button>
             </div>`;
     const seccionMisiones = `
         <section class="bloque esencial-grupo esencial-diarias" aria-label="Misiones diarias">
@@ -272,6 +274,13 @@ export function pantallaHoy(estado, ctx) {
             </div>
         </section>`;
     const contenido = {
+        // Primero tu personaje y tus rivales; después Aurelio con «Tu día», tu semana y el foco.
+        aurelio: esencial ? "" : `
+            ${tarjetaHeroe(estado, ctx, { conRivales: false })}
+            ${resumenRivales(estado, ctx)}
+            ${esAyer ? "" : panelDelDia(estado, ctx)}
+            ${esAyer ? "" : tarjetaSemana(estado, ctx)}
+            ${esAyer ? "" : tarjetaFoco(estado, ctx)}`,
         misiones: seccionMisiones,
         metas: seccionMetas,
         tareas: `<section class="bloque esencial-grupo esencial-tareas" aria-label="Tareas">${seccionTareas(estado, ctx)}</section>`,
@@ -279,18 +288,15 @@ export function pantallaHoy(estado, ctx) {
         diario: esencial ? "" : seccionDiario(estado, ctx, fecha, esAyer),
     }[vista];
 
-    // Primero lo que haces (el ánimo y las secciones de Hoy); debajo, lo que rodea a tu día: avisos, tu semana, tu héroe y «Tu día».
+    // Arriba el ánimo, los avisos y las pestañas; debajo, solo la sección elegida.
+    // (v52) El héroe, los rivales, «Tu día», tu semana y el foco ahora viven en la pestaña Aurelio.
     return `
         ${botonAnimo}
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
+        ${esencial ? "" : `${avisoNotificaciones(ctx)}
+        ${avisoDescanso(estado, ctx)}`}
         ${pestanasHoy}
-        ${contenido}
-        ${esencial ? "" : `${esAyer ? "" : tarjetaSemana(estado, ctx)}
-        ${esAyer ? "" : tarjetaFoco(estado, ctx)}
-        ${avisoNotificaciones(ctx)}
-        ${avisoDescanso(estado, ctx)}
-        ${tarjetaHeroe(estado, ctx)}
-        ${esAyer ? "" : panelDelDia(estado, ctx)}`}`;
+        ${contenido}`;
 }
 
 // «Tu día»: en un solo panel, el Maestro y todo lo que trae el día (antes eran 6 tarjetas sueltas):
@@ -876,7 +882,7 @@ function fichaSenor(s, region, campanas, porReclamar, alcanzado) {
         estadoTexto = `<span class="mini oro">✓ Derrotado · guarida liberada${llegaste ? "" : ` (llegas en el lugar ${s.n})`}</span>`;
     } else if (s.actual) {
         estadoTexto = `<span class="mini">⚔️ Es tu rival ahora en Aventuras. Debilítalo con misiones de ${a.icono} ${a.nombre}:
-                           ${c.vida} de ${c.vidaMax} ❤️</span>${barra(c.porcentaje, "barra-mini barra-jefe")}`;
+                           ${c.vida} de ${c.vidaMax} ❤️</span>${barra(c.porcentaje, "barra-mini barra-jefe")}${notaJefeEsperando(c)}`;
     } else {
         const antes = c.jefe;
         estadoTexto = `<span class="mini texto-suave">Espera en su guarida. Antes tienes que vencer a ${esc(antes.nombre)} (${esc(antes.titulo.toLowerCase())}).</span>`;
@@ -1617,7 +1623,7 @@ function notaDeVida(estado, ctx) {
 // Tu héroe arriba de "Hoy" (en pequeño: la vida y la armadura ya están en la cabecera y en la
 // pestaña Héroe). Salta cuando completas una misión. Debajo, tus 4 rivales: el jefe de cada campaña
 // con su vida (antes era la lista «En combate», al final de la pantalla).
-function tarjetaHeroe(estado, ctx) {
+function tarjetaHeroe(estado, ctx, { conRivales = true } = {}) {
     const a = ctx.avatar;
     const racha = ctx.info.racha;
     const nota = notaDeVida(estado, ctx);
@@ -1636,7 +1642,44 @@ function tarjetaHeroe(estado, ctx) {
                     ${nota ? `<span class="mini texto-suave">${nota}</span>` : ""}
                 </span>
             </button>
-            ${rivalesDeHoy(estado, ctx)}
+            ${conRivales ? rivalesDeHoy(estado, ctx) : ""}
+        </section>`;
+}
+
+// (v52) Si el jefe vive en una región a la que tu héroe aún no llega: dónde está, cuánto falta y el daño guardado.
+function notaJefeEsperando(c) {
+    if (!c.esperando) return "";
+    const faltan = Math.max(0, c.region * mapa.PASOS_POR_LUGAR * mapa.LUGARES_POR_REGION - c.pasosHeroe);
+    return `<span class="mini jefe-esperando">🔒 Te espera en ${esc(mapa.nombreRegion(c.region))}: te faltan ${plural(faltan, "paso", "pasos")} en el mapa.
+                ${c.guardado ? `Daño guardado: ⚔️ ${c.guardado}, lo recibe al llegar.` : ""}</span>`;
+}
+
+// (v52) El resumen de tus rivales en la pestaña Aurelio de Hoy: cada jefe con su nombre, su vida y si te espera más adelante.
+function resumenRivales(estado, ctx) {
+    const campanas = Object.values(campana.estadoCampanas(estado));
+    return `
+        <section class="panel rivales-resumen" aria-label="Tus rivales">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">⚔️ Tus rivales</h2>
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="aventuras">Ver campaña ›</button>
+            </div>
+            <ul class="lista rivales-lista">
+                ${campanas.map((c) => {
+                    const a = juego.ATRIBUTOS[c.categoria];
+                    const dano = (ctx.golpes || {})[c.categoria] || 0;
+                    return `
+                        <li class="rival-fila ${dano ? "golpeado" : ""}" style="--color-attr: ${a.color}">
+                            <span class="rival-retrato">${retratoJefe(c.jefe, campana.estadoVisual(c.porcentaje), "mini", dano)}</span>
+                            <span class="rival-datos">
+                                <b>${esc(c.jefe.nombre)}</b>
+                                <span class="mini texto-suave">${a.icono} ${a.nombre} · Jefe ${c.indice + 1}/5${c.ronda > 1 ? ` · Ronda ${c.ronda}` : ""}</span>
+                                ${barra(c.porcentaje, "barra-vida barra-mini")}
+                                <span class="mini">${c.vida} / ${c.vidaMax} ❤️</span>
+                                ${notaJefeEsperando(c)}
+                            </span>
+                        </li>`;
+                }).join("")}
+            </ul>
         </section>`;
 }
 
@@ -1653,7 +1696,7 @@ function rivalesDeHoy(estado, ctx) {
                 return `<span class="rival ${dano ? "golpeado" : ""}" title="${esc(c.jefe.nombre)} · ${a.nombre}">
                             <span class="rival-retrato">${retratoJefe(c.jefe, campana.estadoVisual(c.porcentaje), "mini", dano)}</span>
                             ${barra(c.porcentaje, "barra-vida barra-mini")}
-                            <span class="rival-icono" aria-hidden="true">${a.icono}</span>
+                            <span class="rival-icono" aria-hidden="true">${c.esperando ? "🔒" : a.icono}</span>
                         </span>`;
             }).join("")}
         </button>`;
@@ -2252,6 +2295,7 @@ function tarjetaCampana(c, ctx) {
             ${barra(c.porcentaje, "barra-vida")}
             <p class="mini"><strong>Vida ${c.vida} / ${c.vidaMax}</strong>
                <span class="texto-suave">· ${FRASES_JEFE[visual]}</span></p>
+            ${c.esperando ? `<p>${notaJefeEsperando(c)}</p>` : ""}
             <p class="mini texto-suave">Recompensa al derrotarlo: +${premio.xp} XP y ${premio.gemas} 💎</p>
             ${c.curado ? `<p class="mini robado">🩸 Los jefes de esta campaña se han curado ${c.curado} con la vida que te robaron.</p>` : ""}
             <ol class="ruta-jefes">${ruta}</ol>
