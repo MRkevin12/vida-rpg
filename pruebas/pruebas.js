@@ -2517,7 +2517,7 @@ prueba("Orden: cada pantalla larga se divide en secciones y cada cosa está en u
     const veces = (html, texto) => html.split(texto).length - 1;
 
     // Hoy › Aurelio (v52): el héroe, el resumen de sus rivales y un solo panel «Tu día»; sin lista «En combate» ni chips del mapa o del arcade.
-    let html = vistas.pantallaHoy(estado, ctx());
+    let html = vistas.pantallaHoy(estado, ctx({ hoy: "aurelio" }));
     sano(html, "Hoy");
     cierto(html.includes('aria-label="Tus rivales"') && veces(html, "class=\"panel panel-dia\"") === 1, "héroe con rivales y panel del día");
     cierto(!html.includes("En combate") && !html.includes("data-pantalla=\"arcade\"") && !html.includes("data-pantalla=\"mapa\""), "sin lo repetido");
@@ -3272,7 +3272,7 @@ prueba("Saga en la partida: se ve en Hoy y en Héroe › Historia, y cada acto c
         vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
         rangoResumen: 7, subvista, campanaVista: null, diarioVista: {},
     });
-    let html = vistas.pantallaHoy(estado, ctx());
+    let html = vistas.pantallaHoy(estado, ctx({ hoy: "aurelio" }));
     cierto(html.includes("Saga · Acto I: La primera piedra") && html.includes("Pon tu primera piedra"), "el objetivo de ahora, en Hoy");
 
     const leer = crearMision(estado);
@@ -3280,7 +3280,7 @@ prueba("Saga en la partida: se ve en Hoy y en Héroe › Historia, y cada acto c
     const acto = celebraciones.find((c) => c.etiqueta === "Saga · Acto I cumplido");
     cierto(acto && acto.detalle.startsWith("Siguiente: Haz el juramento") && acto.maestro, "se celebra y dice lo que sigue");
 
-    html = vistas.pantallaHoy(estado, ctx());
+    html = vistas.pantallaHoy(estado, ctx({ hoy: "aurelio" }));
     cierto(html.includes("Acto II: El juramento") && !html.includes("Sella tu pacto"), "el pacto no se repite: lo pide la saga");
 
     html = vistas.pantallaPersonaje(estado, ctx({ personaje: "historia" }));
@@ -3896,7 +3896,7 @@ prueba("Aurelio responde a tu diario, te despide en la noche y sus memorias se l
         hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
         vida: vida.calcularVida(estado, hoy()), maestro: ctx.maestro, evento: null, subvista, diarioVista: {},
     });
-    cierto(vistas.pantallaHoy(estado, ctxHoy({})).includes('data-accion="memorias-abrir"'), "en Hoy › Aurelio: «Escuchar»");
+    cierto(vistas.pantallaHoy(estado, ctxHoy({ hoy: "aurelio" })).includes('data-accion="memorias-abrir"'), "en Hoy › Aurelio: «Escuchar»");
     cierto(vistas.pantallaHoy(estado, ctxHoy({ hoy: "diario" })).includes(maestro.respuestaAlDiario("bien", hoy())), "en Hoy › Diario: su respuesta");
 });
 
@@ -4417,9 +4417,10 @@ prueba("Modo esencial: Hoy muestra solo tus misiones en tres grupos, la Tienda s
     // Completo (v52): Hoy en pestañas y la primera es Aurelio, con tu héroe, tus rivales y «Tu día».
     const completo = vistas.pantallaHoy(estado, ctx());
     sano(completo, "Hoy completo");
-    cierto(completo.includes('data-vista="aurelio"') && completo.indexOf('data-vista="aurelio"') < completo.indexOf('data-vista="misiones"'), "la pestaña Aurelio va primero");
-    cierto(completo.includes('aria-label="Tu día"') && completo.includes('aria-label="Tus rivales"') && completo.includes("heroe-hoy"), "y se abre sola: héroe, rivales y «Tu día»");
-    cierto(!completo.includes("⚔️ Misiones diarias"), "las misiones están en su propia pestaña");
+    cierto(completo.indexOf('data-vista="aurelio"') > completo.indexOf('data-vista="diario"'), "la pestaña Aurelio va la última (v54)");
+    cierto(completo.includes("⚔️ Misiones diarias") && !completo.includes('aria-label="Tu día"'), "Hoy abre en las misiones");
+    const aurelio = vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "aurelio" } });
+    cierto(aurelio.includes('aria-label="Tu día"') && aurelio.includes('aria-label="Tus rivales"') && aurelio.includes("heroe-hoy"), "Aurelio: héroe, rivales y «Tu día»");
     cierto(completo.includes('data-accion="alternar-esencial"'), "con el botón de ánimo");
     for (const vista of ["misiones", "metas", "tareas", "importantes", "diario"]) {
         const html = vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: vista } });

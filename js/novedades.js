@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 53;
+export const VERSION_APP = 54;
 
 export const NOVEDADES = [
+    {
+        version: 54,
+        titulo: "Aurelio, al final",
+        cambios: [
+            "🧙 La pestaña Aurelio de Hoy ahora es la última, y Hoy abre directo en tus misiones.",
+        ],
+    },
     {
         version: 53,
         titulo: "Viajas más rápido",

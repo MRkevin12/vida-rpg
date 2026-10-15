@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v54 — La pestaña Aurelio, al final
+- En `pantallaHoy` la pestaña `aurelio` pasa a ser la última y la pestaña por defecto vuelve a ser `misiones`.
+
 ## v53 — El viaje se acelera con cada jefe
 - `campana.jefesVencidos(estado)` (por daño, aunque el jefe espere en su región) y `factorDeViaje` (`1 + 0,1 × jefes`, tope ×3). `mapa.pasosTotales` = `pasosBrutos × factor`; `estadoCampanas` usa el mismo factor para saber en qué región estás. El mapa muestra «🐎 Viajas ×N más rápido».
 

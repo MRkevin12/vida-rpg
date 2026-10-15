@@ -202,15 +202,15 @@ export function pantallaHoy(estado, ctx) {
     // ⚔️ misiones diarias · 🗓️ metas de la semana · 📌 tareas · 🎯 misiones importantes · 📓 diario (solo fuera del modo esencial).
     const metasPendientes = semanales.filter((m) => juego.vecesEnSemana(estado.completadas, m.id, fecha) < m.veces).length;
     const secciones = [
-        // (v52) Aurelio: tu héroe, tus rivales y «Tu día». Solo fuera del modo esencial, y es la primera.
-        ...(esencial ? [] : [["aurelio", "🧙", ctx.maestro?.memorias?.sinLeer ? "•" : "", "Aurelio", "aurelio"]]),
         ["misiones", "⚔️", `${hechas}/${delDia.length}`, "Misiones", "diarias"],
         ["metas", "🗓️", `${semanales.length - metasPendientes}/${semanales.length}`, "Metas", "metas"],
         ["tareas", "📌", tareasDeHoy, "Tareas", "tareas"],
         ["importantes", "🎯", importantes.length, "Importantes", "importantes"],
         ...(esencial ? [] : [["diario", "📓", estado.diario[ctx.hoy] ? "✓" : "·", "Diario", "diario"]]),
+        // (v52) Aurelio: tu héroe, tus rivales y «Tu día». Solo fuera del modo esencial; desde la v54, la última pestaña.
+        ...(esencial ? [] : [["aurelio", "🧙", ctx.maestro?.memorias?.sinLeer ? "•" : "", "Aurelio", "aurelio"]]),
     ];
-    const vistaPedida = ctx.subvista?.hoy || (esencial ? "misiones" : "aurelio");
+    const vistaPedida = ctx.subvista?.hoy || "misiones";
     const vista = esAyer || !secciones.some((x) => x[0] === vistaPedida) ? "misiones" : vistaPedida;
     const pestanasHoy = esAyer ? "" : `
         <nav class="hoy-tabs" aria-label="Secciones de Hoy">
