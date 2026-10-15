@@ -575,6 +575,7 @@ export function actuar(partida, accion, opcion = null) {
     const m = partida.enemigo;
     const eventos = [];
     const frases = [];
+    const activas = [];   // (v63) las habilidades y dones que se notaron en tu acción (se muestran en pantalla)
 
     // --- Turno del héroe ---
     if (accion === "hechizo") {
@@ -611,6 +612,8 @@ export function actuar(partida, accion, opcion = null) {
     } else if (accion === "voluntad") {
         // El Golpe de Voluntad: rompe todo lo que lo cubre y pega fuerte.
         const base = Math.max(h.ataque, h.hechizo);
+        if (tiene(h, "valor") && h.vida < h.vidaMax * HABILIDADES.valor.umbral) activas.push("valor");
+        if (tiene(h, "juramento") && m.guardian) activas.push("juramento");
         const dano = Math.max(1, Math.round(base * VOLUNTAD.multiplica * factorDeDano(h, m) * (0.95 + azar(partida) * 0.1)));
         const rompio = Boolean(m.barrera || m.coraza || m.espejo || m.cargando);
         m.barrera = 0;
@@ -648,7 +651,8 @@ export function actuar(partida, accion, opcion = null) {
         const base = magia ? h.hechizo : h.ataque;
         const variacion = magia ? 0.9 + azar(partida) * 0.2 : 0.85 + azar(partida) * 0.3;
         const azarCritico = azar(partida);
-        const critico = tecnica === "certero" || (tiene(h, "impetu") && !piso.atacado) || azarCritico < h.critico;
+        const porImpetu = tiene(h, "impetu") && !piso.atacado;
+        const critico = tecnica === "certero" || porImpetu || azarCritico < h.critico;
         const multiplicaCritico = (tiene(h, "desgarro") ? HABILIDADES.desgarro.critico : 1.8) + (tieneDon(h, "cazador") ? DONES.cazador : 0);
         // «Eco arcano» (don): el primer hechizo de cada piso pega el doble.
         const eco = magia && tieneDon(h, "eco") && !piso.eco;
@@ -687,6 +691,21 @@ export function actuar(partida, accion, opcion = null) {
         if (critico && tieneDon(h, "sangre")) cura += Math.min(Math.round(h.vidaMax * DONES.sangre), h.vidaMax - h.vida - cura);
         h.vida += cura;
         const conTecnica = tecnica ? { tecnica, nombre: TECNICAS[tecnica].nombre, rompio } : {};
+        // (v63) Lo que se notó en este golpe.
+        if (porImpetu) activas.push("impetu");
+        if (critico && tiene(h, "desgarro")) activas.push("desgarro");
+        if (critico && tieneDon(h, "cazador")) activas.push("cazador");
+        if (critico && tieneDon(h, "sangre") && cura > 0) activas.push("sangre");
+        if (doble) activas.push("embestida");
+        if (aturde) activas.push("aturdir");
+        if (tiene(h, "sed") && cura > 0 && !(critico && tieneDon(h, "sangre"))) activas.push("sed");
+        if (gratis) activas.push("aurora");
+        if (eco) activas.push("eco");
+        if (efecto === "debil" && tiene(h, "arcano")) activas.push("arcano");
+        if (magia && tiene(h, "ojo-dragon")) activas.push("ojo-dragon");
+        if (magia && elemento === "fuego" && tiene(h, "llama")) activas.push("llama");
+        if (tiene(h, "valor") && h.vida < h.vidaMax * HABILIDADES.valor.umbral) activas.push("valor");
+        if (tiene(h, "juramento") && m.guardian) activas.push("juramento");
         eventos.push(magia
             ? { quien: "heroe", tipo: "hechizo", elemento, efecto, dano, critico, cura, coraza: Boolean(m.coraza), absorbido }
             : { quien: "heroe", tipo: tecnica ? "tecnica" : "atacar", dano, critico, doble, cura, coraza: Boolean(m.coraza), absorbido, ...conTecnica });
@@ -703,6 +722,8 @@ export function actuar(partida, accion, opcion = null) {
     } else if (accion === "defender") {
         h.defendiendo = true;
         sumarVoluntad(h, VOLUNTAD.alDefender);
+        if (tiene(h, "bastion")) activas.push("bastion");
+        if (tiene(h, "muralla")) activas.push("muralla");
         const curaBase = h.curaDefensa * (tiene(h, "bastion") ? HABILIDADES.bastion.cura : 1);
         const cura = Math.min(curaBase, h.vidaMax - h.vida);
         h.vida += cura;
@@ -717,6 +738,10 @@ export function actuar(partida, accion, opcion = null) {
         eventos.push({ quien: "heroe", tipo: "pocion", cura, antidoto });
         frases.push(`Bebes una poción: +${cura} de vida${antidoto ? " y se te pasa el veneno" : ""}.`);
     }
+
+    // (v63) Las habilidades que se notaron van en tu evento: la pantalla las muestra con su nombre.
+    const tuEvento = eventos.find((e) => e.quien === "heroe");
+    if (tuEvento && activas.length) tuEvento.activas = [...new Set(activas)];
 
     // --- Tu mascota ---
     const suyo = actuaMascota(partida);
@@ -801,11 +826,16 @@ export function actuar(partida, accion, opcion = null) {
         // «Sombra»: puedes esquivarlo del todo.
         const esquivar = Math.min(ESQUIVAR_MAXIMO, tiene(h, "sombra") ? HABILIDADES.sombra.esquivar : 0);
         if (esquivar && azar(partida) < esquivar) {
-            eventos.push({ quien: "enemigo", tipo: intencion, especial: tipoEspecial, dano: 0, nombre, esquivado: true });
+            eventos.push({ quien: "enemigo", tipo: intencion, especial: tipoEspecial, dano: 0, nombre, esquivado: true, activas: ["sombra"] });
             frases.push(`${sujeto} usa «${nombre}», pero lo esquivas.`);
         } else {
+            const activasE = [];   // (v63) lo que se notó en este golpe de la criatura
+            if (m.intencion === "fuerte" && tiene(h, "presagio")) activasE.push("presagio");
             let dano = danoContra(h, m);
-            if (tiene(h, "firme") && !piso.golpeado) dano = 0;   // «Firme»: el primero no duele
+            if (tiene(h, "firme") && !piso.golpeado) {   // «Firme»: el primero no duele
+                dano = 0;
+                activasE.push("firme");
+            }
             piso.golpeado = true;
             h.vida = Math.max(0, h.vida - dano);
             if (dano > 0) sumarVoluntad(h, VOLUNTAD.alRecibir);   // lo que aguantas te da Voluntad
@@ -815,7 +845,11 @@ export function actuar(partida, accion, opcion = null) {
             const reflejoEscamas = tiene(h, "escamas") ? Math.round(dano * HABILIDADES.escamas.reflejo) : 0;
             const reflejo = reflejoEscamas + (tieneDon(h, "espinas") ? Math.round(dano * DONES.espinas) : 0);
             golpearA(m, reflejo);
+            if (reflejoEscamas > 0) activasE.push("escamas");
+            if (tieneDon(h, "espinas") && dano > 0) activasE.push("espinas");
             const evento = { quien: "enemigo", tipo: intencion, especial: tipoEspecial, dano, nombre, reflejo };
+            if (tipoEspecial === "veneno" && tiene(h, "llama") && !h.inmuneVeneno) activasE.push("llama");
+            if (activasE.length) evento.activas = activasE;
             let extra = "";
             if (tipoEspecial === "veneno" && (h.inmuneVeneno || tiene(h, "llama"))) {
                 extra = h.inmuneVeneno ? " Tu raíz amarga para el veneno." : " La Llama del Vigía quema el veneno.";

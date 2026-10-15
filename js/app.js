@@ -873,6 +873,10 @@ function sonarTurno(eventos) {
     const veneno = eventos.find((e) => e.quien === "veneno");
     const tarde = (ms, hacer) => setTimeout(hacer, ms);
 
+    // (v63) Una habilidad o un don que se nota: un destello de sonido (en tu acción y, si es de la criatura, en su turno).
+    if (heroe?.activas?.length) tarde(120, () => sonar("habilidad"));
+    if (enemigo?.activas?.length) tarde(950, () => sonar("habilidad"));
+
     // 1. Tú
     if (heroe?.tipo === "hechizo") sonar(heroe.elemento);   // "fuego", "hielo" o "rayo"
     if (heroe?.tipo === "atacar" || (heroe?.tipo === "tecnica" && heroe.dano)) sonar("tajo");

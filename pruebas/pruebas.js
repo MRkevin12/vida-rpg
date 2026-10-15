@@ -5028,6 +5028,87 @@ prueba("El Centinela (pantallas): portada con prólogo e índice, capítulo con 
     igual(musicaModulo.pistaDeEscena({ pantalla: "novela", elegida: "epica", auto: true }), "lectura", "suena la música de lectura");
 });
 
+// ===== Habilidades a la vista (v63) =====
+
+prueba("Habilidades visibles: cada golpe dice qué habilidades y dones se notaron (impetu, embestida, aurora, firme, bastión…)", () => {
+    const hero = (p) => p.heroe;
+    // Ímpetu: el primer golpe de cada piso; el segundo ya no.
+    let p = torreCon(["impetu"], 3, null, 21);
+    p.enemigo.vida = p.enemigo.vidaMax = 9999;
+    let ev = torre.actuar(p, "atacar");
+    cierto(ev.find((e) => e.quien === "heroe").activas.includes("impetu"), "ímpetu en el primer golpe");
+    ev = torre.actuar(p, "atacar");
+    cierto(!(ev.find((e) => e.quien === "heroe").activas || []).includes("impetu"), "pero no en el segundo");
+    // Embestida: el golpe va dos veces.
+    p = torreCon(["embestida"], 3, null, 22);
+    p.enemigo.vida = p.enemigo.vidaMax = 9999;
+    cierto(torre.actuar(p, "atacar").find((e) => e.quien === "heroe").activas.includes("embestida"), "embestida");
+    // Aurora: el primer hechizo de cada piso no gasta PM.
+    p = torreCon(["aurora"], 3, null, 23);
+    p.enemigo.vida = p.enemigo.vidaMax = 9999;
+    cierto(torre.actuar(p, "hechizo", "fuego").find((e) => e.quien === "heroe").activas.includes("aurora"), "aurora");
+    // Llama del Vigía: el fuego.
+    p = torreCon(["llama"], 3, null, 24);
+    p.enemigo.vida = p.enemigo.vidaMax = 9999;
+    cierto(torre.actuar(p, "hechizo", "fuego").find((e) => e.quien === "heroe").activas.includes("llama"), "llama con el fuego");
+    p = torreCon(["llama"], 3, null, 24);
+    p.enemigo.vida = p.enemigo.vidaMax = 9999;
+    cierto(!(torre.actuar(p, "hechizo", "hielo").find((e) => e.quien === "heroe").activas || []).includes("llama"), "pero no con el hielo");
+    // Defender: bastión y muralla.
+    p = torreCon(["bastion", "muralla"], 3, null, 25);
+    p.enemigo.vida = p.enemigo.vidaMax = 9999;
+    igual(torre.actuar(p, "defender").find((e) => e.quien === "heroe").activas, ["bastion", "muralla"], "al defenderte");
+    // Juramento contra un guardián.
+    p = torreCon(["juramento"], 5, null, 26);
+    p.enemigo.vida = p.enemigo.vidaMax = 9999;
+    cierto(p.enemigo.guardian && torre.actuar(p, "atacar").find((e) => e.quien === "heroe").activas.includes("juramento"), "juramento contra un guardián");
+    // Firme: el primer golpe que recibes (se ve en el evento de la criatura).
+    p = torreCon(["firme"], 3, null, 27);
+    p.enemigo.vida = p.enemigo.vidaMax = 9999;
+    p.enemigo.intencion = "golpe";
+    ev = torre.actuar(p, "defender");
+    const suyo = ev.find((e) => e.quien === "enemigo");
+    cierto(suyo.dano === 0 && suyo.activas.includes("firme"), "firme: el primer golpe no duele y se ve");
+    // Sin habilidades, sin etiquetas.
+    p = torreCon([], 3, null, 28);
+    p.enemigo.vida = p.enemigo.vidaMax = 9999;
+    cierto(!torre.actuar(p, "defender").some((e) => e.activas), "sin habilidades no hay etiquetas");
+    hero(p);
+});
+
+prueba("Habilidades visibles (pantalla): etiquetas doradas sobre tu héroe, panel con todo lo que sabes y un efecto por técnica", () => {
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 11);
+    const p = estado.arcade.torre;
+    p.heroe.habilidades = ["impetu", "firme", "bastion"];
+    p.heroe.dones = ["eco"];
+    p.heroe.tecnicas = ["quebrar", "analizar"];
+    const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
+    const t = (cambios = {}) => ({ partida: p, nombre: "Ana", sprites: imagenes, eventos: [], menu: "principal", ultimo: "atacar",
+                                   bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
+    const ev = (quien, tipo, extra = {}) => ({ quien, tipo, ...extra });
+    let html = vistas.pantallaTorre(t({ eventos: [ev("heroe", "atacar", { dano: 12, critico: true, activas: ["impetu", "embestida"] }),
+                                                  ev("enemigo", "golpe", { dano: 0, nombre: "Mordisco", activas: ["firme"] })] }));
+    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(html.includes('class="ff-habs"') && html.includes("💨 Ímpetu") && html.includes("⚡ Embestida") && html.includes("🪨 Firme"), "las tres etiquetas con su nombre");
+    cierto(html.includes("ff-hab-fila") && html.includes("Eco arcano") && html.includes("Quebrar") && html.includes("<em>don</em>") && html.includes("<em>técnica</em>") && html.includes("<em>pasiva</em>"),
+           "el panel: pasivas, dones y técnicas");
+    cierto(html.includes("🎖️ Habilidades y técnicas") && html.includes("(6)"), "con su cuenta");
+    // En el turno jugado, junto a tu acción van sus iconos.
+    cierto(/Tú[\s\S]*?Ataque[\s\S]*?💨⚡/.test(html), "los iconos junto a tu acción");
+    // Sin habilidades ni técnicas, no hay panel.
+    p.heroe.habilidades = [];
+    p.heroe.dones = [];
+    p.heroe.tecnicas = [];
+    cierto(!vistas.pantallaTorre(t()).includes("ff-habilidades"), "sin nada que mostrar, sin panel");
+    // Un efecto para cada técnica, incluso las que no hacen daño.
+    for (const tecnica of ["quebrar", "analizar", "intimidar", "certero"]) {
+        html = vistas.pantallaTorre(t({ eventos: [ev("heroe", "tecnica", { tecnica, nombre: tecnica, dano: tecnica === "quebrar" || tecnica === "certero" ? 9 : 0 })] }));
+        cierto(html.includes(`ff-efecto ff-${tecnica}`), `efecto de ${tecnica}`);
+    }
+    cierto(sonidoModulo.existeSonido("habilidad"), "suena un destello");
+});
+
 // ===== Ejecutar todo y mostrar el resultado =====
 
 const lista = document.querySelector("#lista");

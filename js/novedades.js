@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 62;
+export const VERSION_APP = 63;
 
 export const NOVEDADES = [
+    {
+        version: 63,
+        titulo: "Habilidades a la vista",
+        cambios: [
+            "🎖️ En la batalla, cada vez que una habilidad de tu equipo o un don se nota en un golpe, aparece su etiqueta dorada junto a tu héroe con su nombre (Ímpetu, Embestida, Firme, Aurora, Bastión, Sombra, Escamas…), con un destello de sonido. También salen sus iconos en la secuencia del turno.",
+            "📋 Debajo de los comandos hay un panel «Habilidades y técnicas»: tus habilidades pasivas, tus dones y tus técnicas, cada una con lo que hace.",
+            "✨ Cada técnica tiene su propio efecto: Quebrar agrieta el suelo, Analizar pasa una línea de luz con una lupa, Intimidar lanza ondas oscuras y Golpe certero cierra una mira dorada.",
+        ],
+    },
     {
         version: 62,
         titulo: "Un libro nuevo: El Centinela",

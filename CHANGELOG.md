@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v63 — Habilidades a la vista
+- `torre.actuar` anota en `eventos[i].activas` (claves) qué habilidades y dones se notaron en tu golpe (ímpetu, desgarro, cazador, sangre, embestida, aturdir, sed, aurora, eco, arcano, ojo del dragón, llama, valor, juramento, bastión, muralla) y en el golpe de la criatura (sombra, firme, presagio, escamas, espinas, llama). Sin añadir eventos nuevos (no se mueven los índices).
+- Vistas: `etiquetasDeHabilidad` (`.ff-hab` sobre el héroe, una tras otra), `panelDeHabilidades` (`<details class="ff-habilidades">` con pasivas, dones y técnicas) y un efecto por técnica (`.ff-quebrar`, `.ff-analizar`, `.ff-intimidar`, `.ff-certero`). Sonido `habilidad`. 243 pruebas.
+
 ## v62 — «El Centinela», el libro largo de Historia
 - **`js/libro-casio.js`** (nuevo, en `sw.js`): novela de Aurelio sobre Casio, en 3 libros y 24 capítulos (~11 900 palabras, ~59 min): «La orilla» (infancia, Isa, la canción de su madre, el Caballero), «La Torre» (Biblioteca, el invierno que no subió, la Fragua, los doce nombres, Aurelio, Ceniza, la luz del este, la tormenta) y «La guardia» (los cien años, las cartas, las visitas, el año que no subió, lo que hizo Aurelio, el día en que alguien subió) + prólogo, epílogo y 16 enseñanzas. Cada capítulo con su moraleja. Es coherente con las Memorias, la Torre y los pergaminos (hay una prueba).
 - **Lectura:** `pantallaNovela` (portada con prólogo e índice por libros, capítulo con letra capital y moraleja, «Anterior / Índice / Siguiente»). `estado.libros.casio = { marca, leidos, fin }` (se migra en `completar`), `acciones.marcarLibro` (el libro tercero pide `records.torre >= 20`) y `terminarLibro` (+40 XP de Intelecto, +20 💎 una vez), `cinematicaDeCasio` (con la criatura «centinela»). Entrada en Héroe › Historia (`saga.HISTORIAS`, id `casio`) y música `lectura`.

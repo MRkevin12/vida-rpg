@@ -49,6 +49,8 @@ const SONIDOS = {
     campana:   { onda: "triangle", volumen: 0.16, notas: [[392, 0, 1.0], [784, 0, 0.7], [1175, 0.02, 0.45]] },
 
     // ===== (v58) La Torre y la Mazmorra: tus golpes, los ataques especiales y tu mascota =====
+    // Una habilidad o un don que se nota en la batalla: un destello que sube.
+    habilidad: { onda: "triangle", volumen: 0.1, notas: [[1046, 0, 0.07], [1568, 0.06, 0.09], [2093, 0.12, 0.24]] },
     // Tu espada: un tajo que silba y un golpe de metal.
     tajo:      { onda: "sawtooth", volumen: 0.07, notas: [[1100, 0, 0.09, 220], [180, 0.1, 0.1, 90]], ruido: [[0, 0.14, 3200, 0.22, 900, "bandpass"]] },
     // Una poción: tres tragos que suben.

@@ -2762,7 +2762,8 @@ function pasosDelTurno(t, ctxTurno) {
                 : tuyo.tipo === "voluntad" ? "✨ Golpe de Voluntad"
                 : { atacar: "⚔️ Ataque", defender: "🛡️ Defensa", pocion: "🧪 Poción" }[tuyo.tipo] || "Tu turno";
             const resultado = tuyo.dano ? ` · ${tuyo.critico ? "¡crítico! " : ""}${tuyo.dano}` : tuyo.cura ? ` · +${tuyo.cura} ❤️` : "";
-            pasos.push({ icono: "🧑", quien: "Tú", texto: `${que}${resultado}`, clase: "tuyo", cuando: 0 });
+            const notadas = (tuyo.activas || []).map(infoDeHabilidad).filter(Boolean).map((i) => i.icono).join("");
+            pasos.push({ icono: "🧑", quien: "Tú", texto: `${que}${resultado}${notadas ? ` ${notadas}` : ""}`, clase: "tuyo", cuando: 0 });
         }
         if (mio) pasos.push({ icono: "🐾", quien: pet?.nombre || "Tu mascota", texto: `${mio.nombre}${mio.dano ? ` · ${mio.dano}` : mio.cura ? ` · +${mio.cura} ❤️` : ""}`, clase: "mascota", cuando: TURNO_MASCOTA });
         if (cayo) {
@@ -2883,6 +2884,33 @@ function tarjetaRuta(clave, i) {
         </button>`;
 }
 
+// (v63) Una habilidad del equipo o un don: su icono, nombre y texto (para mostrarla en pantalla).
+const infoDeHabilidad = (clave) => habilidades.HABILIDADES[clave] || torre.MEJORAS[clave] || null;
+
+// Las habilidades que se notaron en un golpe, como etiquetas que aparecen una tras otra (desde `cuando` milisegundos).
+function etiquetasDeHabilidad(claves = [], cuando = 0) {
+    return claves.map(infoDeHabilidad).filter(Boolean).map((i, n) =>
+        `<span class="ff-hab" style="animation-delay: ${cuando + n * 280}ms">${i.icono} ${esc(i.nombre)}</span>`).join("");
+}
+
+// El panel plegable con todo lo que sabes hacer: tus habilidades del equipo, tus dones y tus técnicas.
+function panelDeHabilidades(h) {
+    const pasivas = [...(h.habilidades || []), ...(h.dones || [])].map(infoDeHabilidad).filter(Boolean);
+    const tecnicas = (h.tecnicas || []).map((c) => torre.TECNICAS[c]).filter(Boolean);
+    const cuantas = pasivas.length + tecnicas.length;
+    if (!cuantas) return "";
+    const fila = (i, extra = "") => `<li class="ff-hab-fila"><span class="ff-hab-icono" aria-hidden="true">${i.icono}</span>
+        <span><b>${esc(i.nombre)}</b>${extra}<small>${esc(i.texto)}</small></span></li>`;
+    return `
+        <details class="ff-ventana ff-habilidades">
+            <summary>🎖️ Habilidades y técnicas <small>(${cuantas})</small></summary>
+            <ul>
+                ${pasivas.map((i) => fila(i, i.don ? " <em>don</em>" : " <em>pasiva</em>")).join("")}
+                ${tecnicas.map((i) => fila(i, " <em>técnica</em>")).join("")}
+            </ul>
+        </details>`;
+}
+
 export function pantallaTorre(t) {
     if (t.resultado) return finalTorre(t);
     const p = t.partida;
@@ -2967,8 +2995,10 @@ export function pantallaTorre(t) {
         mio?.tipo === "petrificar" ? "piedra" : "",
         cayo ? (suyo?.reflejo ? "cae tarde" : "cae") : m.vida <= 0 ? "vencido" : "",
     ].join(" ");
-    const efecto = !tuyo?.dano ? ""
-        : `<span class="ff-efecto ff-${tuyo.tipo === "hechizo" ? tuyo.elemento : tuyo.tipo === "voluntad" ? "voluntad" : "tajo"}" aria-hidden="true"></span>`;
+    // (v63) Cada técnica tiene su propio efecto (Analizar e Intimidar también, aunque no hagan daño).
+    const claseDeEfecto = tuyo?.tipo === "hechizo" ? tuyo.elemento : tuyo?.tipo === "voluntad" ? "voluntad" : tuyo?.tipo === "tecnica" ? tuyo.tecnica : "tajo";
+    const efecto = !tuyo || !(tuyo.dano || tuyo.tipo === "tecnica") ? ""
+        : `<span class="ff-efecto ff-${claseDeEfecto}" aria-hidden="true"></span>`;
     const efectoMascota = !mio?.dano ? "" : `<span class="ff-efecto ff-${mio.elemento || "garra"} ff-de-mascota" aria-hidden="true"></span>`;
     const enemigo = `
         <div class="ff-bando ff-enemigo ${clasesEnemigo} ${m.elite ? "elite" : ""}">
@@ -3021,6 +3051,7 @@ export function pantallaTorre(t) {
             <span class="ff-sombra"></span>
             ${spriteFF(t.sprites.heroe, t.nombre, 54)}
             ${tuyo?.tipo === "defender" ? '<span class="ff-escudo" aria-hidden="true"></span>' : ""}${fxHeroe}
+            <span class="ff-habs" aria-hidden="true">${etiquetasDeHabilidad(tuyo?.activas, 80)}${etiquetasDeHabilidad(suyo?.activas, TURNO_ENEMIGO + 300)}</span>
             ${tuyo?.cura ? numeroFF(tuyo.cura, "cura", 150) : ""}
             ${tuyo?.reflejado ? numeroFF(`${tuyo.reflejado} 🪞`, "", 300) : ""}
             ${tuyo?.mana ? numeroFF("+1 PM", "pm", 150) : ""}
@@ -3101,6 +3132,7 @@ export function pantallaTorre(t) {
                 ${comandosTorre(t)}
                 <div class="ff-fichas">${fichaEnemigo(t)}${fichaHeroe(h, t.nombre, p.mascota)}</div>
             </div>
+            ${panelDeHabilidades(h)}
             <button type="button" class="enlace torre-rendirse" data-accion="torre-rendirse">Huir y cobrar lo ganado</button>`;
     }
 
