@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 48;
+export const VERSION_APP = 49;
 
 export const NOVEDADES = [
+    {
+        version: 49,
+        titulo: "¿Cómo te sientes hoy?",
+        cambios: [
+            "🙂 Al abrir la app te pregunta cómo estás: 😔 Mal (solo lo esencial: Hoy y Tienda), 🙂 Normal (sin Aventuras: Hoy, Progreso, Héroe y Tienda) o 😄 Bien (todo el menú).",
+            "Lo puedes cambiar cuando quieras con el botón «Mi ánimo» de Hoy.",
+            "Si no quieres que pregunte, apaga «Preguntar cómo me siento» en Ajustes.",
+        ],
+    },
     {
         version: 48,
         titulo: "Modo esencial, más claro",

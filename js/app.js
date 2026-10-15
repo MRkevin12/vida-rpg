@@ -144,17 +144,42 @@ function entrarAlJuego({ nuevo = false } = {}) {
     $("#crear-personaje").hidden = true;
     $("#juego").hidden = false;
     // (v47) Cada vez que abres la app arranca en modo esencial (si no lo quieres, se apaga en Ajustes).
-    if (estado.ajustes.esencialAlAbrir) estado.ajustes.esencial = true;
+    // (v49) Si está activada la pregunta «¿Cómo te sientes hoy?», ella decide el menú; si no, vale lo de la v47.
+    const preguntar = estado.ajustes.preguntarAnimo && !nuevo;
+    if (!preguntar && estado.ajustes.esencialAlAbrir) estado.ajustes.esencial = true;
     refrescar();
     revisarAlAbrir();
     if (nuevo) {
         // La primera vez: la guía de bienvenida y, al terminarla, ofrecer el PIN.
         marcarNovedadesVistas();
         abrirBienvenida(ofrecerPin);
+    } else if (preguntar) {
+        // Primero la pregunta; después, el PIN y las novedades.
+        preguntarAnimo(() => { ofrecerPin(); mostrarNovedades(); });
     } else {
         ofrecerPin();
         mostrarNovedades();
     }
+}
+
+// (v49) La ventana «¿Cómo te sientes hoy?». `despues` se llama al elegir (al abrir la app); desde Hoy no hace falta.
+let despuesDeAnimo = null;
+
+function preguntarAnimo(despues = null) {
+    despuesDeAnimo = despues;
+    $("#dialogo-animo").showModal();
+}
+
+function elegirAnimo(animo) {
+    if (!ejecutar(() => acciones.elegirAnimo(estado, animo))) return;
+    $("#dialogo-animo").close();
+    // Si el menú nuevo no incluye la pantalla en la que estabas, vuelves a Hoy.
+    const ocultas = animo === "mal" ? !PANTALLAS_ESENCIALES.has(pantallaActual)
+        : animo === "normal" ? pantallaActual === "aventuras" : false;
+    if (ocultas) cambiarPantalla("hoy");
+    const despues = despuesDeAnimo;
+    despuesDeAnimo = null;
+    despues?.();
 }
 
 // Si nunca has creado un PIN (ni dijiste "Ahora no"), te lo ofrecemos.
@@ -924,6 +949,7 @@ function contextoActual(efectos = {}) {
 
 function dibujarPantalla(efectos = {}) {
     document.body.classList.toggle("modo-esencial", Boolean(estado.ajustes.esencial));   // (v46) esconde pestañas y secciones
+    document.body.classList.toggle("modo-normal", estado.ajustes.animo === "normal");    // (v49) menú sencillo
     const contenedor = $(`#pantalla-${pantallaActual}`);
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
@@ -1397,6 +1423,7 @@ const PREPARAR = {
         $("#ajustes-cinematicas").checked = estado.ajustes.cinematicas !== false;
         $("#ajustes-esencial").checked = Boolean(estado.ajustes.esencial);
         $("#ajustes-esencial-al-abrir").checked = Boolean(estado.ajustes.esencialAlAbrir);
+        $("#ajustes-preguntar-animo").checked = Boolean(estado.ajustes.preguntarAnimo);
         $("#ajustes-musica").checked = estado.ajustes.musica;
         $("#ajustes-volumen").value = Math.round((Number.isFinite(estado.ajustes.volumen) ? estado.ajustes.volumen : 0.6) * 100);
         for (const radio of document.querySelectorAll('input[name="pista"]')) radio.checked = radio.value === estado.ajustes.pista;
@@ -2180,7 +2207,9 @@ const ACCIONES = {
             .then(pintarAvisos)
             .then(() => avisar("🔕 Notificaciones desactivadas"));
     },
-    "alternar-esencial": () => cambiarModoEsencial(!estado.ajustes.esencial),
+    // (v49) El botón de Hoy ahora abre la pregunta «¿Cómo te sientes hoy?» para cambiar el menú cuando quieras.
+    "alternar-esencial": () => preguntarAnimo(),
+    "elegir-animo": (boton) => elegirAnimo(boton.dataset.animo),
     // Modo esencial: los tres números de arriba llevan a su grupo (diarias, tareas o importantes).
     "ir-grupo": (boton) => document.getElementById(boton.dataset.grupo)?.scrollIntoView({ behavior: "smooth", block: "start" }),
     "cerrar-semana": () => {
@@ -2939,6 +2968,8 @@ function conectarEventos() {
     $("#ajustes-golpe").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "golpe", evento.target.checked)));
     $("#ajustes-eventos").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "eventos", evento.target.checked)));
     $("#ajustes-esencial").addEventListener("change", (evento) => cambiarModoEsencial(evento.target.checked));
+    $("#ajustes-preguntar-animo").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "preguntarAnimo", evento.target.checked)));
+    $("#dialogo-animo").addEventListener("cancel", (evento) => { if (despuesDeAnimo) evento.preventDefault(); });   // al abrir la app hay que elegir una opción
     $("#ajustes-esencial-al-abrir").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "esencialAlAbrir", evento.target.checked)));
     $("#ajustes-cinematicas").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "cinematicas", evento.target.checked)));
     // Tocar el fondo del golpe con timing = golpear.

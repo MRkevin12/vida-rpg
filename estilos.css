@@ -8579,6 +8579,15 @@ body:has(#deshacer:not([hidden])) .aviso {
     display: none;
 }
 
+/* (v49) Ánimo «normal»: sin Aventuras (quedan Hoy, Progreso, Héroe y Tienda). */
+.modo-normal:not(.modo-esencial) .pestanas {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.modo-normal:not(.modo-esencial) .pestana[data-pantalla="aventuras"] {
+    display: none;
+}
+
 /* Las gemas 💎 son del arcade y del equipo: en el modo esencial solo se ven las monedas 🪙. */
 .modo-esencial .cab-gemas {
     display: none;

@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v49 — ¿Cómo te sientes hoy?
+- **Pregunta al abrir la app** (`#dialogo-animo`, `preguntarAnimo`/`elegirAnimo` en app.js): 😔 mal → modo esencial (Hoy y Tienda), 🙂 normal → `body.modo-normal` (Hoy, Progreso, Héroe y Tienda; sin Aventuras), 😄 bien → todo el menú. Guarda `ajustes.animo` y pone `ajustes.esencial`. El botón de Hoy («🙂 Mi ánimo») reabre la pregunta. `ajustes.preguntarAnimo` (por defecto sí) se apaga en Ajustes; apagado, vale lo de la v47. Acción: `acciones.elegirAnimo`.
+
 ## v48 — Modo esencial, más claro
 - **Hoy esencial en tres grupos de colores** (`pantallaHoy`): ⚔️ **Misiones diarias** (cian: la lista de hoy con sus momentos, metas semanales, «+ Nueva misión» y «Ordenar»), 📌 **Tareas** (oro: las de una sola vez) y 🎯 **Misiones importantes** (violeta: las principales, con otro nombre y sin hablar de jefes). Arriba, un resumen con tres números (`⚔️ 2/7 · 📌 1 · 🎯 1`) que llevan a cada grupo. Sin diario.
 - **Dos pestañas:** Hoy y Tienda (sin Progreso). La **Tienda esencial** muestra solo el saldo de monedas 🪙 y los premios reales con su historial de canjes: sin gemas, poción, equipo ni mascotas.

@@ -925,6 +925,13 @@ export function cambiarAjuste(estado, clave, valor) {
     estado.ajustes[clave] = Boolean(valor);
 }
 
+// (v49) Cómo te sientes hoy decide cuánto menú ves: mal = modo esencial, normal = sin Aventuras, bien = todo.
+export function elegirAnimo(estado, animo) {
+    if (!["mal", "normal", "bien"].includes(animo)) throw new Error("Ese ánimo no existe.");
+    estado.ajustes.animo = animo;
+    estado.ajustes.esencial = animo === "mal";
+}
+
 // Música de fondo: qué pista suena (ver musica.js) y a qué volumen (de 0 a 1).
 export function elegirMusica(estado, pista) {
     if (!PISTAS[pista]) throw new Error("Esa música no existe.");

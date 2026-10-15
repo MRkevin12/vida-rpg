@@ -522,6 +522,10 @@
                     <input type="checkbox" id="ajustes-esencial">
                 </label>
                 <label class="interruptor">
+                    <span><b>🙂 Preguntar cómo me siento</b><br><span class="nota">Al abrir la app te pregunta cómo estás hoy (mal, normal o bien) y ajusta el menú. Si lo apagas, se usa la opción de abajo.</span></span>
+                    <input type="checkbox" id="ajustes-preguntar-animo">
+                </label>
+                <label class="interruptor">
                     <span><b>🚪 Abrir siempre en modo esencial</b><br><span class="nota">Cada vez que abres la app empieza en modo esencial. Puedes salir con el botón 🎯 de Hoy; al volver a abrirla, arranca otra vez en él.</span></span>
                     <input type="checkbox" id="ajustes-esencial-al-abrir">
                 </label>
@@ -632,6 +636,17 @@
     <!-- Novedades de cada versión -->
     <dialog id="dialogo-novedades" class="dialogo">
         <div class="formulario" id="novedades-contenido"></div>
+    </dialog>
+
+    <!-- ¿Cómo te sientes hoy? (v49): decide cuánto menú se ve -->
+    <dialog id="dialogo-animo" class="dialogo">
+        <div class="formulario">
+            <h2>¿Cómo te sientes hoy?</h2>
+            <p class="nota">Según eso, la app te muestra más o menos cosas. Lo puedes cambiar cuando quieras con el botón de Hoy.</p>
+            <button type="button" class="boton" data-accion="elegir-animo" data-animo="mal">😔 Mal — solo lo esencial</button>
+            <button type="button" class="boton" data-accion="elegir-animo" data-animo="normal">🙂 Normal — sin Aventuras</button>
+            <button type="button" class="boton" data-accion="elegir-animo" data-animo="bien">😄 Bien — todo el menú</button>
+        </div>
     </dialog>
 
     <!-- Recuperar la copia de la nube (en un teléfono nuevo, o para volver a una copia) -->

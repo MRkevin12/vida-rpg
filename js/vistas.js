@@ -192,7 +192,7 @@ export function pantallaHoy(estado, ctx) {
                 <b>🎯 ${importantes.length}</b><small>${importantes.length === 1 ? "Importante" : "Importantes"}</small></button>
         </nav>` : "";
     const chipEsencial = `<button type="button" class="chip chip-esencial ${esencial ? "activo" : ""}" data-accion="alternar-esencial"
-                                  aria-pressed="${esencial}" title="Solo lo importante: tus misiones, tareas y objetivos">🎯 Esencial</button>`;
+                                  aria-pressed="${esencial}" title="¿Cómo te sientes hoy? Cambia cuánto menú ves">🙂 Mi ánimo</button>`;
 
     // Arriba, lo que pide atención (avisos y tu semana); después tu héroe y tu día;
     // en el centro, las misiones; abajo, las tareas y el diario.
