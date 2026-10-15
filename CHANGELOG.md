@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v77 — Cada ejercicio, en movimiento
+- **`js/dibujo-ejercicios.js`** (nuevo, en `sw.js`): `dibujarMovimiento(movimiento, apariencia, { animar })` y `LISTA_DE_MOVIMIENTOS` (13: curl, tríceps, press vertical y horizontal, elevación lateral, jalón, remo, sentadilla, bisagra, curl femoral, talones, abdominales y encogimiento). Cada uno es un par de poses (arriba y abajo) con las coordenadas de las articulaciones; la animación es SMIL (`<animate attributeName="d">` en cada extremidad y `animateTransform` en la cabeza y las pesas), sin JavaScript. Solo se anima el ejercicio actual y se respeta `prefers-reduced-motion`. 283 pruebas.
+
 ## v76 — Entrenar en el gimnasio (inmersión)
 - **`js/gym-aurelio.js`** (nuevo, en `sw.js`): `FRASES` (inicio, calentado, primera, serie, mitad, ejercicio, ejercicioFinal, record, ultima, fin, marcado), `fraseDeGym(tipo, datos, indice)` y `TECNICAS`/`consejoDeTecnica` por movimiento. `gym.MOVIMIENTO_DE` dice qué movimiento hace cada ejercicio (13 movimientos; de ahí saldrá la animación).
 - `acciones.marcarSerieGym` devuelve `{ hecha, frase }` (según la serie: primera, mitad, récord, ejercicio listo, última); `empezarGym` devuelve la bienvenida; `calentarGym` (+`XP_CALENTAMIENTO` 10 al terminar); la sesión guarda `calentado` y `minutos`; la celebración final lleva `maestro`. Sonidos `pesa` y `descanso`.

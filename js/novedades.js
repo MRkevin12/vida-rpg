@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 76;
+export const VERSION_APP = 77;
 
 export const NOVEDADES = [
+    {
+        version: 77,
+        titulo: "Cada ejercicio, en movimiento",
+        cambios: [
+            "🎬 En el entrenamiento, cada ejercicio trae una figura animada que hace el movimiento (press de banca, curl, sentadilla, jalón, remo, peso muerto, elevaciones laterales, talones, abdominales y más) con tu color de piel y de pelo. La del ejercicio que te toca ahora se mueve; las demás esperan quietas.",
+            "✨ El ejercicio actual se resalta con un borde dorado. Si tu iPhone tiene activado «Reducir movimiento», las figuras se quedan quietas.",
+        ],
+    },
     {
         version: 76,
         titulo: "Entrenar en el gimnasio",

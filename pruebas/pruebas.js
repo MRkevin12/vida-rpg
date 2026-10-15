@@ -60,6 +60,7 @@ import * as ataques from "../js/ataques.js";
 import * as fragua from "../js/fragua.js";
 import * as libroOrrin from "../js/libro-orrin.js";
 import * as libros from "../js/libros.js";
+import { dibujarMovimiento, LISTA_DE_MOVIMIENTOS } from "../js/dibujo-ejercicios.js";
 import * as gymAurelio from "../js/gym-aurelio.js";
 import { esqueleto } from "../js/dibujo-cuerpo.js";
 import * as vistasGym from "../js/vistas-gym.js";
@@ -5873,6 +5874,35 @@ prueba("Gym (entrenamiento): marcar una serie trae la frase de Aurelio según el
     html = vistasGym.pantallaGym(estado, { ...ctx, resumenGym: fin.sesion, fraseGym: { tipo: "fin", texto: "Terminaste." } });
     cierto(html.includes("Entrenamiento terminado") && html.includes("gym-resumen") && html.includes("Pantorrilla"), "el resumen");
     cierto(!vistasGym.pantallaGym(estado, ctx).includes("gym-resumen"), "sin resumen no se muestra");
+});
+
+prueba("Gym (animaciones): cada movimiento tiene su figura, con animación o quieta, y todos los ejercicios tienen la suya", () => {
+    igual(LISTA_DE_MOVIMIENTOS.length, 13);
+    const ap = { piel: "morena", pelo: "negro" };
+    for (const m of LISTA_DE_MOVIMIENTOS) {
+        const vivo = dibujarMovimiento(m, ap);
+        const quieto = dibujarMovimiento(m, ap, { animar: false });
+        cierto(vivo.startsWith("<svg") && vivo.endsWith("</svg>") && !/undefined|NaN/.test(vivo), `${m}: dibujo sin huecos`);
+        cierto(vivo.includes("<animate") && vivo.includes("animateTransform"), `${m}: se mueve`);
+        cierto(!quieto.includes("<animate") && !/NaN|undefined/.test(quieto), `${m}: quieto no tiene animaciones`);
+        // Las dos poses (arriba y abajo) tienen los mismos puntos: si no, la animación se rompe.
+        for (const [, valores] of vivo.matchAll(/attributeName="d" values="([^"]+)"/g)) {
+            const [p1, p2, p3] = valores.split(";");
+            cierto(p1.split(" L").length === p2.split(" L").length && p1 === p3, `${m}: las poses de una línea tienen los mismos puntos`);
+        }
+    }
+    for (const x of [...gym.RUTINA.flatMap((r) => r.ejercicios), ...gym.EXTRAS]) {
+        cierto(LISTA_DE_MOVIMIENTOS.includes(gym.movimientoDe(x.id)), `${x.id}: su movimiento (${gym.movimientoDe(x.id)}) tiene figura`);
+    }
+    cierto(dibujarMovimiento("curl", ap) !== dibujarMovimiento("sentadilla", ap), "cada movimiento se dibuja distinto");
+    cierto(dibujarMovimiento("curl", { piel: "oscura" }).includes("#5e3b27"), "usa tu color de piel");
+    // En el entrenamiento, solo el ejercicio de ahora se mueve.
+    const estado = partidaNueva();
+    acciones.empezarGym(estado, "pecho-triceps");
+    const html = vistasGym.pantallaGym(estado, { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
+    igual((html.match(/class="gym-demo"/g) || []).length, 6, "una figura por ejercicio");
+    igual((html.match(/gym-ejercicio [^"]*actual/g) || []).length, 1, "uno solo es el actual");
+    cierto((html.match(/<animateTransform/g) || []).length > 0, "y ese se mueve");
 });
 
 // ===== Reacciones elementales (v71) =====

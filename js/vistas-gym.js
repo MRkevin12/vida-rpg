@@ -10,6 +10,7 @@ import * as avatar from "./avatar.js";
 import * as gymAurelio from "./gym-aurelio.js";
 import { describirMaestro } from "./maestro.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
+import { dibujarMovimiento } from "./dibujo-ejercicios.js";
 import { plural } from "./juego.js";
 import { esc } from "./vistas.js";
 import { fechaCorta, sumarDias, lunesDe, diaDeSemana, DIAS_LETRAS, hoy as hoyDeHoy } from "./fechas.js";
@@ -273,6 +274,9 @@ function entrenamientoActual(estado, ctx) {
     const mejores = gym.mejoresDe(g.sesiones);
     const ayer = en.fecha !== ctx.hoy;
     const kilosMovidos = gym.volumenMarcado(en);
+    // (v77) Solo se mueve la figura del ejercicio que toca ahora; las demás se quedan quietas (menos batería y menos distracción).
+    const actual = en.ejercicios.findIndex((ej) => ej.series.some((s) => !s.hecha));
+    const sinMovimiento = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const ejercicios = en.ejercicios.map((ej, ei) => {
         const info = gym.ejercicioPorId(ej.id);
@@ -293,7 +297,8 @@ function entrenamientoActual(estado, ctx) {
             </div>`).join("");
         const hechasEj = ej.series.filter((s) => s.hecha).length;
         return `
-            <article class="gym-ejercicio ${hechasEj === ej.series.length ? "completo" : ""}">
+            <article class="gym-ejercicio ${hechasEj === ej.series.length ? "completo" : ""} ${ei === actual ? "actual" : ""}">
+                <div class="gym-demo" aria-hidden="true">${dibujarMovimiento(movimiento, ctx.avatar.apariencia, { animar: ei === actual && !sinMovimiento })}</div>
                 <h3>${musculo.icono} ${esc(info.nombre)}</h3>
                 <p class="mini texto-suave gym-meta-ej">${info.series} × ${info.min}–${info.max} reps · ${musculo.nombre}
                     ${sparkline(gym.historialDe(g.sesiones, ej.id).slice(-10).map((x) => x.puntaje), { ancho: 70, alto: 20 })}</p>

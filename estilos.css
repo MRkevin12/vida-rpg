@@ -11077,3 +11077,16 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 @media (prefers-reduced-motion: reduce) { .gym-aurelio { animation: none; } }
 
 .gym-heroe:not(.gym-heroe-grande) .gym-avatar { flex: 0 0 96px; width: 96px; }
+
+/* v77: las figuras que hacen cada ejercicio */
+.gym-demo { float: right; width: 108px; margin: 0 0 6px 10px; border-radius: 10px; overflow: hidden; }
+.gym-demo-svg { display: block; width: 100%; height: auto; }
+.gym-ejercicio.actual { border-color: var(--gym-2); box-shadow: 0 0 14px rgba(251, 191, 36, 0.25); }
+.gym-ejercicio::after { content: ""; display: block; clear: both; }
+.gym-ejercicio .gym-serie { clear: both; }
+
+/* v77 (arreglo): la figura va a la derecha del encabezado del ejercicio, en una rejilla de dos columnas */
+.gym-ejercicio { grid-template-columns: 1fr 108px; }
+.gym-ejercicio > * { grid-column: 1 / -1; }
+.gym-ejercicio > h3, .gym-ejercicio > .gym-meta-ej, .gym-ejercicio > .gym-antes, .gym-ejercicio > .gym-pista, .gym-ejercicio > .gym-tecnica { grid-column: 1; }
+.gym-ejercicio > .gym-demo { grid-column: 2; grid-row: 1 / span 5; float: none; margin: 0; align-self: start; }
