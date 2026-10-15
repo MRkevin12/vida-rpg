@@ -203,9 +203,9 @@ export function pantallaHoy(estado, ctx) {
     const metasPendientes = semanales.filter((m) => juego.vecesEnSemana(estado.completadas, m.id, fecha) < m.veces).length;
     const secciones = [
         ["misiones", "⚔️", `${hechas}/${delDia.length}`, "Misiones", "diarias"],
+        ["importantes", "🎯", importantes.length, "Principales", "importantes"],   // (v55) justo después de las misiones
         ["metas", "🗓️", `${semanales.length - metasPendientes}/${semanales.length}`, "Metas", "metas"],
         ["tareas", "📌", tareasDeHoy, "Tareas", "tareas"],
-        ["importantes", "🎯", importantes.length, "Importantes", "importantes"],
         ...(esencial ? [] : [["diario", "📓", estado.diario[ctx.hoy] ? "✓" : "·", "Diario", "diario"]]),
         // (v52) Aurelio: tu héroe, tus rivales y «Tu día». Solo fuera del modo esencial; desde la v54, la última pestaña.
         ...(esencial ? [] : [["aurelio", "🧙", ctx.maestro?.memorias?.sinLeer ? "•" : "", "Aurelio", "aurelio"]]),
@@ -295,6 +295,7 @@ export function pantallaHoy(estado, ctx) {
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
         ${esencial ? "" : `${avisoNotificaciones(ctx)}
         ${avisoDescanso(estado, ctx)}`}
+        ${esAyer || vista === "importantes" ? "" : destacadasDeHoy(estado)}
         ${pestanasHoy}
         ${contenido}`;
 }
@@ -2212,6 +2213,38 @@ function tarjetaPrincipal(estado, p) {
             <ul class="submisiones">${pasos}</ul>
             ${pie}
         </article>`;
+}
+
+// (v55) Tus misiones principales, siempre a la vista arriba de Hoy: las 3 más avanzadas, con su barra y el siguiente paso
+// (se marca desde aquí). Tocar el título abre la pestaña Importantes.
+function destacadasDeHoy(estado) {
+    const enCurso = estado.principales.filter((p) => !p.archivada && !p.completadaEn);
+    if (!enCurso.length) return "";
+    const avance = (p) => (p.submisiones.length ? p.submisiones.filter((s) => s.hecha).length / p.submisiones.length : 0);
+    const tarjetas = [...enCurso].sort((a, b) => avance(b) - avance(a)).slice(0, 3).map((p) => {
+        const hechas = p.submisiones.filter((s) => s.hecha).length;
+        const siguiente = p.submisiones.find((s) => !s.hecha);
+        const a = juego.infoAtributo(estado, p.atributo, p.atributoPropio);
+        return `
+            <li class="destacada" style="--color-attr: ${a.color}">
+                <button type="button" class="destacada-titulo" data-accion="subvista" data-pantalla="hoy" data-vista="importantes">
+                    <span>🎯 ${esc(p.nombre)}</span><small>${esc(a.icono)} ${hechas}/${p.submisiones.length}</small>
+                </button>
+                ${barra(Math.round(avance(p) * 100), "barra-mini")}
+                ${siguiente
+                    ? `<div class="destacada-paso">
+                           <button type="button" class="check-chico" data-accion="alternar-submision" data-id="${p.id}" data-sub="${siguiente.id}"
+                                   aria-pressed="false" aria-label="Marcar ${esc(siguiente.nombre)}">${ICONOS.check}</button>
+                           <span>Siguiente: <b>${esc(siguiente.nombre)}</b></span>
+                       </div>`
+                    : '<p class="mini texto-suave">Añade un paso para avanzar.</p>'}
+            </li>`;
+    }).join("");
+    return `
+        <section class="panel destacadas" aria-label="Tus misiones principales">
+            <h2 class="titulo-juego">🎯 Misiones principales</h2>
+            <ul class="lista">${tarjetas}</ul>
+        </section>`;
 }
 
 const FRASES_JEFE = {

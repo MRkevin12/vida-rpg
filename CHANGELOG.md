@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v55 — Misiones principales al frente
+- `destacadasDeHoy(estado)`: tarjeta fija arriba de Hoy (en todos los ánimos, no viendo ayer ni en la pestaña Principales) con las 3 principales más avanzadas, su barra y el siguiente paso con su check (`alternar-submision`). La pestaña «Principales» pasa al 2.º lugar.
+
 ## v54 — La pestaña Aurelio, al final
 - En `pantallaHoy` la pestaña `aurelio` pasa a ser la última y la pestaña por defecto vuelve a ser `misiones`.
 
