@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 79;
+export const VERSION_APP = 80;
 
 export const NOVEDADES = [
+    {
+        version: 80,
+        titulo: "El bombeo",
+        cambios: [
+            "💪 El día que entrenas, tu héroe está «bombeado»: +10 % de vida y de ataque en la Torre y en las mazmorras hasta mañana (se suma al bono de tu nivel de gym). Lo ves en la tarjeta de la Torre.",
+            "👆 En el modo foco puedes contar las repeticiones tocando un botón grande: cada toque suma una (con un tic y una vibración) y, al llegar al máximo del rango, suena un destello.",
+        ],
+    },
     {
         version: 79,
         titulo: "Tu evolución y el reto de Aurelio",

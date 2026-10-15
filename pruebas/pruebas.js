@@ -6002,6 +6002,41 @@ prueba("Gym (v79): tu evolución, el reto de la semana con premio, el consejo de
     igual(new Set(gym.HITOS.map((h) => h.id)).size, gym.HITOS.length, "ids únicos");
 });
 
+prueba("Gym (v80): el bombeo del día que entrenas y el contador de repeticiones", () => {
+    const base = { fuerza: 5, intelecto: 1, carisma: 1, riqueza: 1 };
+    const sin = torre.heroeDeLaTorre(base);
+    const con = torre.heroeDeLaTorre({ ...base, bombeo: true });
+    igual(con.vidaMax, Math.round(sin.vidaMax * 1.1), "+10 % de vida con el bombeo");
+    igual(con.ataque, Math.round((6 + 2 * 5) * 1.1), "+10 % de ataque con el bombeo");
+    const mas = torre.heroeDeLaTorre({ ...base, gym: 11, bombeo: true });
+    igual(mas.ataque, Math.round((6 + 2 * 5) * 1.2), "se suma al bono del nivel de gym (+10 % y +10 %)");
+    const estado = partidaNueva();
+    igual(gym.bombeoDeHoy(estado.gym.sesiones, hoy()), false);
+    const antes = (() => { acciones.empezarTorre(estado, 4, "torre"); const v = estado.arcade.torre.heroe.ataque; estado.arcade.torre = null; estado.arcade.usadas = 0; return v; })();
+    acciones.marcarGymRapido(estado, "hombros");
+    igual(gym.bombeoDeHoy(estado.gym.sesiones, hoy()), true, "entrenaste hoy");
+    acciones.empezarTorre(estado, 4, "torre");
+    cierto(estado.arcade.torre.heroe.ataque > antes, `con bombeo el héroe pega más (${estado.arcade.torre.heroe.ataque} > ${antes})`);
+    const ctx = { hoy: hoy(), fechaVista: hoy(), ahora: Date.now() };
+    cierto(vistas.pantallaArcade(estado, { ...ctx, avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), vida: vida.calcularVida(estado, hoy()), info: juego.resumen(estado, hoy()),
+                                           maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null, rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {} }).includes("Bombeo:"), "la tarjeta de la Torre lo cuenta");
+
+    // El contador: el primer toque empieza de cero, cada toque suma uno y marcar la serie lo apaga.
+    const e2 = partidaNueva();
+    acciones.empezarGym(e2, "biceps");
+    const r1 = acciones.contarRepeticionGym(e2, 0, 0);
+    igual([r1.reps, r1.meta], [1, 12], "el primer toque: 1 (y el máximo del rango es 12)");
+    acciones.contarRepeticionGym(e2, 0, 0);
+    igual(acciones.contarRepeticionGym(e2, 0, 0).reps, 3);
+    const html = vistasGym.pantallaGym(e2, { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
+    cierto(html.includes("llevas 3") && html.includes('data-accion="gym-contar"'), "la pantalla muestra el contador");
+    acciones.marcarSerieGym(e2, 0, 0);
+    igual([e2.gym.encurso.ejercicios[0].series[0].reps, e2.gym.encurso.ejercicios[0].series[0].contando], [3, undefined], "la serie queda con 3 y el contador se apaga");
+    debeFallar(() => acciones.contarRepeticionGym(e2, 0, 0), "ya está marcada");
+    // Una serie nueva vuelve a empezar de cero.
+    igual(acciones.contarRepeticionGym(e2, 0, 1).reps, 1);
+});
+
 // ===== Reacciones elementales (v71) =====
 
 prueba("Reacciones: dos hechizos distintos en turnos seguidos provocan Vapor, Conducción o Explosión", () => {

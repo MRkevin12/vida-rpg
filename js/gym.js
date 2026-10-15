@@ -323,6 +323,10 @@ export const nivelesDeMusculos = (sesiones) =>
 // Lo que el nivel de gym le da al héroe en la Torre y las mazmorras: más vida y más ataque (fracción: 0,05 = +5 %).
 export const bonoDeGym = (nivel) => Math.min(MAX_BONO, Math.max(0, nivel - 1) * 0.01);
 
+// El BOMBEO (v80): el día que entrenas, tu héroe está «inflado» y es un 10 % más fuerte (vida y ataque) en la Torre y las mazmorras.
+export const BOMBEO = 0.10;
+export const bombeoDeHoy = (sesiones, hoyTexto) => sesiones.some((s) => s.fecha === hoyTexto);
+
 // Qué tan fornido se ve el avatar: 0 a 5 (con los niveles de gym 1, 3, 6, 10, 15 y 22). Ensancha hombros, brazos y muslos
 // y, en la pestaña del gimnasio (con el avatar sin ropa), marca pecho, abdomen y brazos.
 export const NIVELES_DE_FISICO = [1, 3, 6, 10, 15, 22];

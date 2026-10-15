@@ -2998,6 +2998,13 @@ const ACCIONES = {
     "gym-extra": (boton) => ejecutar(() => acciones.agregarEjercicioGym(estado, boton.dataset.ejercicio), { mantenerScroll: true }),
     // (v78) El modo foco: los botones + y − de peso y repeticiones, y pasar de la lista al modo foco.
     "gym-ajuste": (boton) => ejecutar(() => acciones.ajustarSerieGym(estado, Number(boton.dataset.ej), Number(boton.dataset.serie), boton.dataset.campo, Number(boton.dataset.delta)), { mantenerScroll: true }),
+    // (v80) Cada toque es una repetición: suena un tic y, al llegar al máximo del rango, un destello.
+    "gym-contar": (boton) => {
+        const r = ejecutar(() => acciones.contarRepeticionGym(estado, Number(boton.dataset.ej), Number(boton.dataset.serie)), { mantenerScroll: true });
+        if (!r) return;
+        sonar(r.reps >= r.meta ? "habilidad" : "cursor");
+        navigator.vibrate?.(15);
+    },
     "gym-foco": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "foco", boton.dataset.valor === "1"), { mantenerScroll: true }),
     "gym-calentar": () => {
         const r = ejecutar(() => acciones.calentarGym(estado), { mantenerScroll: true });

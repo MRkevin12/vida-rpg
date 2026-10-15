@@ -11133,3 +11133,6 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-foto-cuerpo svg { display: block; width: 100%; height: auto; }
 .gym-foto figcaption { margin-top: 4px; display: grid; }
 .gym-foto small { color: var(--texto-suave); font-size: 0.74rem; }
+
+/* v80: contar repeticiones tocando */
+.gym-contar { min-height: 52px; margin: 4px 0; font-size: 1.05rem; }

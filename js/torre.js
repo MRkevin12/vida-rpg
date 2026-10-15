@@ -45,7 +45,7 @@ import { HABILIDADES, ESQUIVAR_MAXIMO, tiene } from "./habilidades.js";
 import { MASCOTAS } from "./mascota.js";
 import { NUEVOS_LUGARES } from "./mazmorras.js";
 import { semilla as hashDeTexto } from "./desafios.js";
-import { bonoDeGym, nivelDeGym } from "./gym.js";
+import { bonoDeGym, nivelDeGym, BOMBEO } from "./gym.js";
 
 // El premio es en gemas 💎 (la moneda del arcade, v31) y algo de XP (desde la v31, la mitad).
 export const ATRIBUTO = "carisma";                       // el premio sube Carisma
@@ -411,7 +411,8 @@ export function heroeDeLaTorre(niveles, equipo = {}) {
     const { ataque = 0, magia = 0, suerte = 0, armadura = 0 } = equipo;
     const habilidades = (equipo.habilidades || []).filter((clave) => HABILIDADES[clave]);
     const gloria = habilidades.includes("gloria");
-    const fuerzaGym = 1 + bonoDeGym(niveles.gym || 1);   // el entrenamiento real se nota en el combate
+    // El entrenamiento real se nota en el combate: tu nivel de gym y, el día que entrenas, el bombeo (niveles.bombeo = true, v80).
+    const fuerzaGym = 1 + bonoDeGym(niveles.gym || 1) + (niveles.bombeo ? BOMBEO : 0);
     const vidaMax = Math.round((40 + 6 * niveles.fuerza + 4 * niveles.carisma) * (gloria ? 1 + HABILIDADES.gloria.vida : 1) * fuerzaGym);
     const mana = 2 + Math.floor(niveles.intelecto / 3) + (magia >= 8 ? 1 : 0) + (habilidades.includes("estrellas") ? HABILIDADES.estrellas.mana : 0);
     const pociones = 1 + Math.floor(niveles.riqueza / 2) + (gloria ? 1 : 0);

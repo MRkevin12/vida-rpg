@@ -2649,9 +2649,14 @@ const textoPremioMarca = (m) => `premio ×${String(m.premio).replace(".", ",")}`
 function notaDeGym(estado) {
     const nivel = gymReglas.nivelDeGym(estado.gym.sesiones).nivel;
     const bono = Math.round(gymReglas.bonoDeGym(nivel) * 100);
-    return bono
+    const bombeo = gymReglas.bombeoDeHoy(estado.gym.sesiones, fechaDeHoy());
+    const linea = bono
         ? `<p class="mini equipo-ventaja">🏋️ Tu nivel de gym (${nivel}) te da <b>+${bono} % de vida y de ataque</b>.</p>`
         : '<p class="mini texto-suave">🏋️ Entrena en el gimnasio y tu héroe ganará vida y ataque aquí.</p>';
+    // (v80) El bombeo: entrenaste hoy.
+    return linea + (bombeo
+        ? `<p class="mini equipo-ventaja">💪 <b>Bombeo:</b> entrenaste hoy, así que tu héroe va un <b>+${Math.round(gymReglas.BOMBEO * 100)} % más fuerte</b> (vida y ataque) hasta mañana.</p>`
+        : `<p class="mini texto-suave">💪 El día que entrenas, tu héroe gana un +${Math.round(gymReglas.BOMBEO * 100)} % extra (el «bombeo»).</p>`);
 }
 
 function selectorDeModo(estado, lugar, partida, fecha) {

@@ -1210,7 +1210,7 @@ export function empezarTorre(estado, semilla, lugar = "torre", marca = null, mod
     asegurarRetoDelDia(estado);
     // Entras con tu vida real: si llegas herido, empiezas con menos vida.
     const proporcion = vida.proporcionTorre(vida.calcularVida(estado, hoy()));
-    const partida = torre.nuevaPartida({ ...nivelesDeAtributos(estado), gym: gym.nivelDeGym(estado.gym.sesiones).nivel }, semilla, proporcion, equipoDeBatalla(estado), lugar, marca, modo);
+    const partida = torre.nuevaPartida({ ...nivelesDeAtributos(estado), gym: gym.nivelDeGym(estado.gym.sesiones).nivel, bombeo: gym.bombeoDeHoy(estado.gym.sesiones, hoy()) }, semilla, proporcion, equipoDeBatalla(estado), lugar, marca, modo);
     // Las provisiones del bazar se usan al empezar (y se gastan).
     torre.usarProvisiones(partida, estado.arcade.bazar);
     estado.arcade.bazar = [];
@@ -1979,6 +1979,7 @@ export function marcarSerieGym(estado, ejercicio, serie) {
     const s = en.ejercicios[ejercicio]?.series[serie];
     if (!s) throw new Error("Esa serie no existe.");
     s.hecha = !s.hecha;
+    delete s.contando;
     if (!s.hecha) return { hecha: false };
 
     // (v76) Aurelio te dice algo según el momento: primera serie, récord, ejercicio terminado, mitad, última…
@@ -2021,6 +2022,17 @@ export function agregarEjercicioGym(estado, ejercicioId) {
     if (!ej) throw new Error("Ese ejercicio no existe.");
     if (en.ejercicios.some((x) => x.id === ejercicioId)) throw new Error("Ese ejercicio ya está en tu entrenamiento.");
     en.ejercicios.push({ ...gym.ejercicioDelEntrenamiento(ej, estado.gym.sesiones), extra: true });
+}
+
+// (v80) Contar las repeticiones tocando: la primera vez empieza de cero y cada toque suma una. Se apaga al marcar la serie.
+export function contarRepeticionGym(estado, ejercicio, serie) {
+    const ej = entrenamientoEnCurso(estado).ejercicios[ejercicio];
+    const s = ej?.series[serie];
+    if (!s) throw new Error("Esa serie no existe.");
+    if (s.hecha) throw new Error("Esa serie ya está marcada.");
+    if (!s.contando) { s.contando = true; s.reps = 0; }
+    s.reps = Math.min(gym.MAX_REPS, s.reps + 1);
+    return { reps: s.reps, meta: gym.ejercicioPorId(ej.id).max };
 }
 
 // (v78) Sube o baja el peso (de 2,5 en 2,5 kg) o las repeticiones de una serie con los botones + y −.

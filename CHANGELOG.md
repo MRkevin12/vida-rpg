@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v80 — El bombeo y el contador de repeticiones
+- `gym.BOMBEO` (10 %) y `bombeoDeHoy(sesiones, hoy)`: `empezarTorre` pasa `bombeo` a `heroeDeLaTorre`, que lo suma a `fuerzaGym` (vida y ataque); `notaDeGym` lo cuenta en la tarjeta de la Torre. `acciones.contarRepeticionGym` (`serie.contando`: el primer toque pone 0 y cada toque suma 1; marcar la serie lo apaga) y el botón «Contar las repeticiones tocando» del modo foco. 286 pruebas.
+
 ## v79 — Tu evolución, el reto semanal y el consejo del día
 - `gym.evolucion(sesiones, pesos, altura)`: las «fotos» (primera sesión + cada subida de físico, con tu peso de ese momento); `tarjetaEvolucion` las dibuja con `dibujarAvatarGym`. `gym.RETOS` (meta, récords, volumen, músculos), `retoDeLaSemana(lunes)` (sale del lunes, no se guarda), `progresoDelReto`, `PREMIO_RETO` (25 💎 + 30 XP) y `estado.gym.retosCobrados`; `guardarSesionGym` lo cobra al cumplirse. `gymAurelio.consejoDelDia(fecha)` (16 consejos). Hitos nuevos: veinticinco, racha-8, veinticinco-records, volumen-250k, nivel-15. 285 pruebas.
 

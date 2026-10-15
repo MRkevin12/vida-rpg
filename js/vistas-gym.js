@@ -358,6 +358,8 @@ function vistaDeFoco(estado, ctx) {
             <p class="mini gym-tecnica">🎯 ${esc(gymAurelio.consejoDeTecnica(movimiento, actual.ejercicio + actual.serie))}</p>
             ${stepper("kg", "Peso", s.kg, 2.5, " kg")}
             ${stepper("reps", "Repeticiones", s.reps, 1, "")}
+            <button type="button" class="boton boton-secundario boton-ancho gym-contar" data-accion="gym-contar" data-ej="${actual.ejercicio}" data-serie="${actual.serie}">
+                👆 ${s.contando ? `Toca por cada repetición: llevas ${s.reps}` : "Contar las repeticiones tocando"}</button>
             <button type="button" class="boton boton-principal boton-ancho gym-foco-grande" data-accion="gym-serie" data-ej="${actual.ejercicio}" data-serie="${actual.serie}">
                 ${descansando ? "⏭️ Empezar ya esta serie" : "✅ Terminé la serie"}</button>
             ${descansando ? '<button type="button" class="boton boton-secundario boton-ancho" data-accion="gym-saltar-descanso">Saltar el descanso</button>' : ""}
