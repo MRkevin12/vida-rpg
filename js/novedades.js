@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 58;
+export const VERSION_APP = 59;
 
 export const NOVEDADES = [
+    {
+        version: 59,
+        titulo: "La música te sigue",
+        cambios: [
+            "🎵 La música cambia sola según dónde estés: Lectura al leer pergaminos, memorias y el libro; Nocturno en el diario; Alba en el mapa y la aldea; Abismo en la Mazmorra. Ahora las pistas nuevas se bajan en segundo plano, para que el cambio sea inmediato.",
+            "En Ajustes ves qué pista suena en la pantalla donde estás. Si no cambia sola, revisa que «Música» y «Música según la escena» estén encendidas.",
+        ],
+    },
     {
         version: 58,
         titulo: "Más música, voces y turnos claros",

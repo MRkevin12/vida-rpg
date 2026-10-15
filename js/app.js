@@ -984,6 +984,8 @@ function ponerMusica() {
         elegida: a.pista, auto: a.musicaAuto !== false,
     });
     musica.reproducir(musica.PISTAS[pista] ? pista : "epica", volumen);
+    // (v59) Con la música por escena, las demás pistas se bajan en segundo plano a los pocos segundos.
+    if (a.musicaAuto !== false) setTimeout(() => musica.precargar(["lectura", "alba", "nocturno", "abismo"]), 6000);
 }
 
 
@@ -1612,6 +1614,11 @@ const PREPARAR = {
         $("#ajustes-esencial-al-abrir").checked = Boolean(estado.ajustes.esencialAlAbrir);
         $("#ajustes-preguntar-animo").checked = Boolean(estado.ajustes.preguntarAnimo);
         $("#ajustes-musica-auto").checked = estado.ajustes.musicaAuto !== false;
+        // Qué toca en esta escena (así se ve que la música sigue a dónde estás).
+        const ahora = musica.pistaDeEscena({ pantalla: pantallaActual, torre: null, elegida: estado.ajustes.pista, auto: estado.ajustes.musicaAuto !== false });
+        const pistaAhora = musica.PISTAS[ahora];
+        $("#ajustes-sonando").textContent = estado.ajustes.musica && pistaAhora
+            ? `🎵 En esta pantalla suena: ${pistaAhora.icono} ${pistaAhora.nombre} (${pistaAhora.obra}).` : "";
         $("#ajustes-musica").checked = estado.ajustes.musica;
         $("#ajustes-volumen").value = Math.round((Number.isFinite(estado.ajustes.volumen) ? estado.ajustes.volumen : 0.6) * 100);
         for (const radio of document.querySelectorAll('input[name="pista"]')) radio.checked = radio.value === estado.ajustes.pista;

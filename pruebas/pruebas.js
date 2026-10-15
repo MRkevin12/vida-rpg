@@ -4734,6 +4734,7 @@ prueba("Música por escena: lectura, diario, mapa, Mazmorra y Torre; sin «auto�
     // Todas las pistas que usa pistaDeEscena existen.
     for (const pantalla of ["pergamino", "diario", "mapa", "hoy"]) cierto(PISTAS[elegir({ pantalla })], `la pista de ${pantalla} existe`);
     igual(datos.estadoInicial().ajustes.musicaAuto, true, "viene encendida");
+    igual([typeof musicaModulo.precargar, typeof musicaModulo.pistaActual, musicaModulo.pistaActual()], ["function", "function", null], "se puede saber qué suena y precargar las pistas");
 });
 
 prueba("Voces: cada criatura de la Torre y de la Mazmorra tiene su voz (aparece, ataca, herido y cae)", () => {

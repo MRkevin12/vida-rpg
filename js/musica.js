@@ -183,3 +183,21 @@ export function pausar() {
 export function estaSonando() {
     return Boolean(sonando);
 }
+
+// (v59) Baja las pistas de escena en segundo plano (una tras otra, sin decodificarlas) para que el cambio de escena
+// sea inmediato y no espere a una descarga. sw.js las guarda en su caché de música. Si el teléfono ahorra datos, no.
+let precargadas = false;
+export function precargar(claves) {
+    if (precargadas || navigator.connection?.saveData) return;
+    precargadas = true;
+    (async () => {
+        for (const clave of claves) {
+            try { if (PISTAS[clave]) await fetch(PISTAS[clave].archivo); } catch { /* sin internet: se intentará al sonar */ }
+        }
+    })();
+}
+
+// Qué pista suena ahora (o null). Sirve para comprobar que cambió de escena.
+export function pistaActual() {
+    return sonando?.pista || null;
+}

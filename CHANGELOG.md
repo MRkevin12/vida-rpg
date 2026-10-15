@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v59 — La música te sigue
+- `musica.precargar` baja en segundo plano las 4 pistas de escena (6 s después de empezar a sonar, solo con «Música según la escena» y sin ahorro de datos) para que el cambio no espere a la descarga. `musica.pistaActual()`. En Ajustes, una línea dice qué pista corresponde a la pantalla actual. Comprobado en el navegador: Hoy → épica, mapa → alba, pergamino → lectura, diario → nocturno, Hoy → épica.
+
 ## v58 — Música, voces de criaturas y turnos claros
 - **Música:** 4 pistas nuevas en `musica/` (Satie, Grieg «La mañana», Chopin n.º 2, Mussorgsky) con bucle sin corte (fundido cruzado) y a -21 LUFS; créditos y licencias en `PISTAS`. `musica.pistaDeEscena({ pantalla, torre, elegida, auto })` (función pura): lectura → `lectura`, diario → `nocturno`, mapa y aldea → `alba`, Mazmorra → `abismo`; `ajustes.musicaAuto` (interruptor en Ajustes). `cambiarPantalla` llama a `ponerMusica`.
 - **Sonido:** `sonido.js` ahora desliza notas (4.º dato) y tiene `ruido` filtrado. Sonidos nuevos: tajo, poción, drenar, sellar, barrera, carga, descarga, reflejo y uno por mascota. **Voces:** 12 familias (`FAMILIAS`) y `FAMILIA_DE_CRIATURA` (las 50 criaturas): `sonarVoz(id, "aparece" | "ataque" | "herido" | "cae")`.
