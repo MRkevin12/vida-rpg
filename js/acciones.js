@@ -2023,6 +2023,15 @@ export function agregarEjercicioGym(estado, ejercicioId) {
     en.ejercicios.push({ ...gym.ejercicioDelEntrenamiento(ej, estado.gym.sesiones), extra: true });
 }
 
+// (v78) Sube o baja el peso (de 2,5 en 2,5 kg) o las repeticiones de una serie con los botones + y −.
+export function ajustarSerieGym(estado, ejercicio, serie, campo, delta) {
+    const s = entrenamientoEnCurso(estado).ejercicios[ejercicio]?.series[serie];
+    if (!s) throw new Error("Esa serie no existe.");
+    if (campo === "kg") s.kg = Math.max(0, Math.min(gym.MAX_KG, Math.round((s.kg + delta) * 100) / 100));
+    else if (campo === "reps") s.reps = Math.max(0, Math.min(gym.MAX_REPS, Math.round(s.reps + delta)));
+    else throw new Error("Ese dato no existe.");
+}
+
 // Una serie extra al final de un ejercicio (copia la anterior) o quitar la última.
 export function cambiarSeriesGym(estado, ejercicio, delta) {
     const ej = entrenamientoEnCurso(estado).ejercicios[ejercicio];
@@ -2142,7 +2151,9 @@ export function anotarAlturaGym(estado, cm) {
 
 export function cambiarAjusteGym(estado, clave, valor) {
     if (clave === "meta") estado.gym.metaSemanal = Math.round(numeroEntre(valor, 1, 7, "La meta"));
-    else if (clave === "mision") {
+    else if (clave === "foco") {
+        estado.gym.foco = Boolean(valor);
+    } else if (clave === "mision") {
         const id = valor === "" || valor === null ? null : Number(valor);
         if (id !== null && !estado.misiones.some((m) => m.id === id && !m.archivadaEn)) throw new Error("Esa misión no existe.");
         estado.gym.mision = id;

@@ -155,6 +155,7 @@ export function gymInicial() {
         peso: [],            // tu peso corporal: [{ fecha, kg }] (uno por día)
         altura: null,        // tu altura en centímetros (para el IMC)
         mision: null,        // la misión diaria que se marca sola al terminar un entrenamiento (id), o null
+        foco: true,          // (v78) el entrenamiento se ve en «modo foco»: una serie a la vez, con letras grandes
     };
 }
 
@@ -252,6 +253,15 @@ export function ejercicioDelEntrenamiento(ej, sesiones) {
 // Los kilos que llevas movidos en este entrenamiento (solo las series ya marcadas).
 export const volumenMarcado = (entrenamiento) =>
     Math.round(entrenamiento.ejercicios.reduce((suma, ej) => suma + ej.series.filter((s) => s.hecha).reduce((t, s) => t + s.kg * s.reps, 0), 0));
+
+// La serie que toca ahora: la primera sin marcar. { ejercicio, serie } o null si ya está todo hecho.
+export function serieActual(entrenamiento) {
+    for (let ei = 0; ei < entrenamiento.ejercicios.length; ei++) {
+        const si = entrenamiento.ejercicios[ei].series.findIndex((s) => !s.hecha);
+        if (si !== -1) return { ejercicio: ei, serie: si };
+    }
+    return null;
+}
 
 export const seriesMarcadas = (entrenamiento) =>
     entrenamiento.ejercicios.reduce((suma, ej) => suma + ej.series.filter((s) => s.hecha).length, 0);

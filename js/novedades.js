@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 77;
+export const VERSION_APP = 78;
 
 export const NOVEDADES = [
+    {
+        version: 78,
+        titulo: "Modo foco en el gimnasio",
+        cambios: [
+            "🎯 Nuevo modo foco al entrenar: una serie a la vez, con letras y botones grandes (pensado para usarlo con las manos sudadas). Ves la figura haciendo el ejercicio, el número de serie, y subes o bajas el peso (de 2,5 en 2,5 kg) y las repeticiones con grandes botones + y −. Un botón enorme dice «✅ Terminé la serie».",
+            "⏳ Entre serie y serie sale un anillo de descanso que se va vaciando, con lo que viene después y las palabras de Aurelio. Puedes empezar la siguiente ya, o saltar el descanso.",
+            "📋 Si prefieres ver todos los ejercicios juntos, hay un botón para volver a la lista (y otro para volver al modo foco).",
+        ],
+    },
     {
         version: 77,
         titulo: "Cada ejercicio, en movimiento",

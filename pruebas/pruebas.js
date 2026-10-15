@@ -5478,6 +5478,7 @@ prueba("Gym: las pantallas se dibujan (la fila de Hoy, la elección, el entrenam
     let html = vistasGym.pantallaGym(estado, ctx);
     cierto(html.includes('data-accion="gym-empezar"') && html.includes("Tus músculos"), "elección");
     acciones.empezarGym(estado, "pecho-triceps");
+    estado.gym.foco = false;   // la lista de siempre
     html = vistasGym.pantallaGym(estado, { ...ctx, descanso: { fin: Date.now() + 60000, total: 60000 } });
     cierto(html.includes('data-gym="kg"') && html.includes("data-descanso-fin") && html.includes("Press de banca plano"), "entrenamiento");
     cierto(vistasGym.tarjetaGymHoy(estado, ctx).includes("Entrenando"));
@@ -5529,6 +5530,7 @@ prueba("Gym: se pueden sumar ejercicios extra, que cuentan igual (XP, músculo y
     const ids = [...gym.RUTINA.flatMap((r) => r.ejercicios), ...gym.EXTRAS].map((x) => x.id);
     igual(new Set(ids).size, ids.length, "ningún id repetido entre la rutina y los extras");
     acciones.empezarGym(estado, "pecho-triceps");
+    estado.gym.foco = false;
     debeFallar(() => acciones.agregarEjercicioGym(estado, "press-banca"), "no existe");
     acciones.agregarEjercicioGym(estado, "abdominales");
     debeFallar(() => acciones.agregarEjercicioGym(estado, "abdominales"), "ya está");
@@ -5868,6 +5870,7 @@ prueba("Gym (entrenamiento): marcar una serie trae la frase de Aurelio según el
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
     const otro = partidaNueva();
     acciones.empezarGym(otro, "espalda");
+    otro.gym.foco = false;
     let html = vistasGym.pantallaGym(otro, { ...ctx, fraseGym: { tipo: "inicio", texto: "Calienta primero, Aria." } });
     cierto(html.includes("data-gym-inicio") && html.includes("gym-chips") && html.includes('data-accion="gym-calentar"') && html.includes("Calienta primero, Aria.") && html.includes("Técnica:"),
            "reloj, kilos, calentamiento, Aurelio y técnica");
@@ -5899,10 +5902,48 @@ prueba("Gym (animaciones): cada movimiento tiene su figura, con animación o qui
     // En el entrenamiento, solo el ejercicio de ahora se mueve.
     const estado = partidaNueva();
     acciones.empezarGym(estado, "pecho-triceps");
+    estado.gym.foco = false;
     const html = vistasGym.pantallaGym(estado, { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
     igual((html.match(/class="gym-demo"/g) || []).length, 6, "una figura por ejercicio");
     igual((html.match(/gym-ejercicio [^"]*actual/g) || []).length, 1, "uno solo es el actual");
     cierto((html.match(/<animateTransform/g) || []).length > 0, "y ese se mueve");
+});
+
+prueba("Gym (modo foco): una serie a la vez con botones + y −, descanso con anillo y vuelta a la lista", () => {
+    const estado = partidaNueva();
+    igual(estado.gym.foco, true, "el modo foco viene encendido");
+    acciones.empezarGym(estado, "hombros");
+    const en = estado.gym.encurso;
+    igual(gym.serieActual(en), { ejercicio: 0, serie: 0 });
+    // Los botones + y −.
+    acciones.ajustarSerieGym(estado, 0, 0, "kg", 2.5);
+    acciones.ajustarSerieGym(estado, 0, 0, "kg", 2.5);
+    acciones.ajustarSerieGym(estado, 0, 0, "reps", 1);
+    igual([en.ejercicios[0].series[0].kg, en.ejercicios[0].series[0].reps], [5, 9], "sube de 2,5 en 2,5 kg y de 1 en 1 repetición");
+    acciones.ajustarSerieGym(estado, 0, 0, "kg", -100);
+    igual(en.ejercicios[0].series[0].kg, 0, "no baja de cero");
+    debeFallar(() => acciones.ajustarSerieGym(estado, 0, 0, "color", 1), "no existe");
+    debeFallar(() => acciones.ajustarSerieGym(estado, 9, 0, "kg", 1), "no existe");
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    let html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes("gym-foco") && html.includes("Terminé la serie") && html.includes('data-campo="kg"') && html.includes("Serie <b>1</b> de 4") && html.includes("gym-foco-demo"), "la pantalla de foco");
+    cierto(!html.includes('data-gym="kg"'), "no hay cajitas pequeñas de texto: solo botones grandes");
+    // Marcar la serie lleva a la siguiente, con el descanso en un anillo.
+    acciones.marcarSerieGym(estado, 0, 0);
+    igual(gym.serieActual(en), { ejercicio: 0, serie: 1 }, "pasa a la serie 2");
+    html = vistasGym.pantallaGym(estado, { ...ctx, descanso: { fin: Date.now() + 60000, total: 90000 } });
+    cierto(html.includes("data-gym-anillo") && html.includes("data-descanso-fin") && html.includes("Empezar ya esta serie") && html.includes("Serie <b>2</b> de 4"), "descanso con anillo y la serie que sigue");
+    // La lista de siempre sigue disponible.
+    acciones.cambiarAjusteGym(estado, "foco", false);
+    html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes('data-gym="kg"') && html.includes("Pasar al modo foco") && !html.includes("Terminé la serie"), "la lista con todos los ejercicios");
+    acciones.cambiarAjusteGym(estado, "foco", true);
+    // Al marcar todo, sale «¡Todo hecho!» con el botón de terminar.
+    en.ejercicios.forEach((e, ei) => e.series.forEach((_, si) => { if (!en.ejercicios[ei].series[si].hecha) acciones.marcarSerieGym(estado, ei, si); }));
+    igual(gym.serieActual(en), null);
+    html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes("¡Todo hecho!") && html.includes('data-accion="gym-terminar"'), "todo hecho");
+    cierto(datos.desdeRespaldo(JSON.stringify({ ...JSON.parse(JSON.stringify(estado)), gym: { ...estado.gym, foco: undefined } })).gym.foco === true, "una partida sin ese dato lo recibe encendido");
 });
 
 // ===== Reacciones elementales (v71) =====

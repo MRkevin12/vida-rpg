@@ -11090,3 +11090,33 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-ejercicio > * { grid-column: 1 / -1; }
 .gym-ejercicio > h3, .gym-ejercicio > .gym-meta-ej, .gym-ejercicio > .gym-antes, .gym-ejercicio > .gym-pista, .gym-ejercicio > .gym-tecnica { grid-column: 1; }
 .gym-ejercicio > .gym-demo { grid-column: 2; grid-row: 1 / span 5; float: none; margin: 0; align-self: start; }
+
+/* v78: el modo foco */
+.gym-foco { text-align: center; }
+.gym-foco .titulo-seccion { text-align: left; }
+.gym-foco .gym-chips { justify-content: center; }
+.gym-foco-demo { width: min(78%, 280px); margin: 8px auto 4px; border-radius: 14px; overflow: hidden; }
+.gym-foco-nombre { margin: 4px 0 0; font-size: 1.25rem; }
+.gym-foco-serie { margin: 2px 0 4px; font-size: 1.05rem; }
+.gym-foco-serie b { font-family: "Orbitron", sans-serif; color: var(--gym-2); font-size: 1.5rem; }
+.gym-foco .gym-pista, .gym-foco .gym-tecnica { margin: 2px 0; text-align: left; font-size: 0.82rem; }
+.gym-stepper { display: grid; grid-template-columns: 1fr 60px auto 60px; align-items: center; gap: 10px; margin: 10px 0; }
+.gym-stepper-nombre { text-align: left; color: var(--texto-suave); font-size: 0.9rem; }
+.gym-mas-menos {
+    min-height: 56px; border-radius: 16px; font-size: 2rem; font-weight: 700; line-height: 1; cursor: pointer;
+    color: var(--texto); background: var(--panel-claro); border: 2px solid var(--borde);
+}
+.gym-mas-menos:active { background: var(--gym); color: #1b0b10; border-color: var(--gym); }
+.gym-stepper-valor { min-width: 96px; font-family: "Orbitron", sans-serif; font-size: 2.1rem; color: var(--gym-2); }
+.gym-stepper-valor small { font-size: 0.9rem; color: var(--texto-suave); margin-left: 3px; }
+.gym-foco-grande { min-height: 64px; font-size: 1.25rem; margin: 8px 0; }
+.gym-foco-listo { font-size: 1.6rem; margin: 18px 0; font-family: "Orbitron", sans-serif; color: var(--gym-2); }
+.gym-foco-pie { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.gym-foco-descanso { position: relative; width: 200px; margin: 6px auto; }
+.gym-foco-descanso svg { display: block; width: 100%; height: auto; }
+.gym-anillo-pista { fill: none; stroke: var(--hundido); stroke-width: 9; }
+.gym-anillo { fill: none; stroke: var(--gym-2); stroke-width: 9; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6)); }
+.gym-foco-descanso-texto { position: absolute; inset: 0; display: grid; place-content: center; }
+.gym-foco-descanso-texto small { color: var(--texto-suave); }
+.gym-foco-descanso-texto b { font-family: "Orbitron", sans-serif; font-size: 2.6rem; color: var(--gym-2); }
+.gym-foco-siguiente { margin: 2px 0 6px; }

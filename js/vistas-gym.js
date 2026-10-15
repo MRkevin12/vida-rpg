@@ -266,6 +266,105 @@ function RUTINA_ORDENADA(toca) {
 
 // ===== El entrenamiento en curso =====
 function entrenamientoActual(estado, ctx) {
+    return estado.gym.foco ? vistaDeFoco(estado, ctx) : vistaDeLista(estado, ctx);
+}
+
+// (v78) El MODO FOCO: una serie a la vez, con letras y botones grandes (para usar con las manos sudadas, entre pesa y pesa).
+function vistaDeFoco(estado, ctx) {
+    const g = estado.gym;
+    const en = g.encurso;
+    const rutina = gym.rutinaPorId(en.rutina);
+    const total = en.ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
+    const hechas = gym.seriesMarcadas(en);
+    const actual = gym.serieActual(en);
+    const descansando = ctx.descanso && ctx.descanso.fin > ctx.ahora;
+    const sinMovimiento = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const cabecera = `
+        <div class="titulo-seccion">
+            <div>
+                <p class="etiqueta">${en.fecha !== ctx.hoy ? "Entrenamiento de ayer" : "Modo foco"}</p>
+                <h2 class="titulo-juego">${rutina.icono} ${esc(rutina.nombre)}</h2>
+            </div>
+            <p class="contador ${hechas === total ? "completo" : ""}">${hechas}/${total}</p>
+        </div>
+        ${barra(total ? Math.round((hechas / total) * 100) : 0, "barra-gym")}
+        <ul class="gym-chips" aria-label="Cómo vas">
+            <li>⏱️ <b data-gym-inicio="${en.inicio}">${duracionLarga(Math.max(0, ctx.ahora - en.inicio))}</b></li>
+            <li>🏋️ <b>${gym.volumenMarcado(en).toLocaleString("es")}</b> kg</li>
+            <li>🔥 <b>${hechas}</b> de ${total}</li>
+        </ul>`;
+    const pie = `
+        <button type="button" class="boton boton-chico ${en.calentado ? "boton-principal" : "boton-secundario"} gym-calentar" data-accion="gym-calentar" aria-pressed="${Boolean(en.calentado)}">
+            ${en.calentado ? "✅ Calentamiento hecho (+" + gym.XP_CALENTAMIENTO + " XP)" : "🔥 Marcar calentamiento (+" + gym.XP_CALENTAMIENTO + " XP)"}</button>
+        <div class="gym-foco-pie">
+            <button type="button" class="boton boton-secundario" data-accion="gym-foco" data-valor="0">📋 Ver todos los ejercicios</button>
+            <button type="button" class="boton boton-secundario" data-accion="gym-cancelar">Cancelar</button>
+        </div>`;
+
+    // Ya está todo hecho.
+    if (!actual) {
+        return `
+        <section class="panel gym-sesion gym-foco">
+            ${cabecera}
+            <p class="gym-foco-listo">🏁 ¡Todo hecho!</p>
+            ${burbujaDeAurelio(ctx)}
+            <button type="button" class="boton boton-principal boton-ancho gym-foco-grande" data-accion="gym-terminar">Terminar entrenamiento</button>
+            ${ejerciciosExtra(en)}
+            ${pie}
+        </section>`;
+    }
+
+    const ej = en.ejercicios[actual.ejercicio];
+    const s = ej.series[actual.serie];
+    const info = gym.ejercicioPorId(ej.id);
+    const musculo = gym.MUSCULOS[info.musculo];
+    const movimiento = gym.movimientoDe(ej.id);
+    const antes = gym.ultimaVez(g.sesiones, ej.id);
+    const pista = gym.sugerencia(info, antes);
+    const stepper = (campo, etiqueta, valor, paso, unidad) => `
+        <div class="gym-stepper">
+            <span class="gym-stepper-nombre">${etiqueta}</span>
+            <button type="button" class="gym-mas-menos" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="${campo}" data-delta="${-paso}" aria-label="Menos ${etiqueta}">−</button>
+            <b class="gym-stepper-valor">${String(valor).replace(".", ",")}<small>${unidad}</small></b>
+            <button type="button" class="gym-mas-menos" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="${campo}" data-delta="${paso}" aria-label="Más ${etiqueta}">+</button>
+        </div>`;
+    const siguiente = `<p class="gym-foco-serie">Serie <b>${actual.serie + 1}</b> de ${ej.series.length} · objetivo ${info.min}–${info.max} reps</p>`;
+    let escena;
+    if (descansando) {
+        const falta = Math.ceil((ctx.descanso.fin - ctx.ahora) / 1000);
+        const largo = 2 * Math.PI * 52;
+        const parte = Math.max(0, Math.min(1, (ctx.descanso.fin - ctx.ahora) / ctx.descanso.total));
+        escena = `
+            <div class="gym-foco-descanso" role="timer">
+                <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="gym-anillo-pista" cx="60" cy="60" r="52"/>
+                    <circle class="gym-anillo" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" stroke-dasharray="${largo.toFixed(1)}" stroke-dashoffset="${(largo * (1 - parte)).toFixed(1)}"
+                            data-gym-anillo data-fin="${ctx.descanso.fin}" data-total="${ctx.descanso.total}" data-largo="${largo.toFixed(1)}"/></svg>
+                <div class="gym-foco-descanso-texto"><small>Descanso</small><b data-descanso-fin="${ctx.descanso.fin}">${duracion(falta)}</b></div>
+            </div>
+            <p class="gym-foco-siguiente">Sigue: <b>${esc(info.nombre)}</b></p>`;
+    } else {
+        escena = `<div class="gym-foco-demo" aria-hidden="true">${dibujarMovimiento(movimiento, ctx.avatar.apariencia, { animar: !sinMovimiento })}</div>
+                  <h3 class="gym-foco-nombre">${musculo.icono} ${esc(info.nombre)}</h3>`;
+    }
+    return `
+        <section class="panel gym-sesion gym-foco">
+            ${cabecera}
+            ${escena}
+            ${siguiente}
+            <p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${pista.texto}</p>
+            <p class="mini gym-tecnica">🎯 ${esc(gymAurelio.consejoDeTecnica(movimiento, actual.ejercicio + actual.serie))}</p>
+            ${stepper("kg", "Peso", s.kg, 2.5, " kg")}
+            ${stepper("reps", "Repeticiones", s.reps, 1, "")}
+            <button type="button" class="boton boton-principal boton-ancho gym-foco-grande" data-accion="gym-serie" data-ej="${actual.ejercicio}" data-serie="${actual.serie}">
+                ${descansando ? "⏭️ Empezar ya esta serie" : "✅ Terminé la serie"}</button>
+            ${descansando ? '<button type="button" class="boton boton-secundario boton-ancho" data-accion="gym-saltar-descanso">Saltar el descanso</button>' : ""}
+            ${burbujaDeAurelio(ctx)}
+            ${pie}
+        </section>`;
+}
+
+// La lista de todos los ejercicios (el modo de siempre).
+function vistaDeLista(estado, ctx) {
     const g = estado.gym;
     const en = g.encurso;
     const rutina = gym.rutinaPorId(en.rutina);
@@ -340,6 +439,7 @@ function entrenamientoActual(estado, ctx) {
             </ul>
             <button type="button" class="boton boton-chico ${en.calentado ? "boton-principal" : "boton-secundario"} gym-calentar" data-accion="gym-calentar" aria-pressed="${Boolean(en.calentado)}">
                 ${en.calentado ? "✅ Calentamiento hecho (+" + gym.XP_CALENTAMIENTO + " XP)" : "🔥 Marcar calentamiento (+" + gym.XP_CALENTAMIENTO + " XP)"}</button>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-foco" data-valor="1">🎯 Pasar al modo foco (una serie a la vez)</button>
             ${descanso}
             ${burbujaDeAurelio(ctx)}
             ${ejercicios}

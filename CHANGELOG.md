@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v78 — Modo foco en el gimnasio
+- `estado.gym.foco` (por defecto `true`): `vistaDeFoco` (una serie a la vez: figura, serie N de M, pista y técnica, `gym-stepper` con botones + y −, botón grande de terminar la serie y el anillo de descanso `data-gym-anillo`, que `tictac` vacía) o `vistaDeLista` (la de siempre). `gym.serieActual`, `acciones.ajustarSerieGym` (peso de 2,5 en 2,5 kg, repeticiones de 1 en 1) y `cambiarAjusteGym(…, "foco", …)`. «¡Todo hecho!» con el botón de terminar.
+- **Prueba de humo:** `pruebas/ejecutar.mjs` (y el ejecutor local) ahora también abren `index.html` y fallan si la app lanza un error al cargar: una variable repetida en `app.js` la deja en blanco y las pruebas de reglas no lo ven (pasó mientras se hacía esta versión; se vio antes de publicar). 284 pruebas.
+
 ## v77 — Cada ejercicio, en movimiento
 - **`js/dibujo-ejercicios.js`** (nuevo, en `sw.js`): `dibujarMovimiento(movimiento, apariencia, { animar })` y `LISTA_DE_MOVIMIENTOS` (13: curl, tríceps, press vertical y horizontal, elevación lateral, jalón, remo, sentadilla, bisagra, curl femoral, talones, abdominales y encogimiento). Cada uno es un par de poses (arriba y abajo) con las coordenadas de las articulaciones; la animación es SMIL (`<animate attributeName="d">` en cada extremidad y `animateTransform` en la cabeza y las pesas), sin JavaScript. Solo se anima el ejercicio actual y se respeta `prefers-reduced-motion`. 283 pruebas.
 

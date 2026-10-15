@@ -244,6 +244,12 @@ function tictac() {
         const m = Math.floor((t % 3600) / 60);
         reloj.textContent = `${h ? `${h}:${String(m).padStart(2, "0")}` : m}:${String(t % 60).padStart(2, "0")}`;
     }
+    // (v78) El anillo del descanso del modo foco se va vaciando.
+    const anilloGym = document.querySelector("[data-gym-anillo]");
+    if (anilloGym) {
+        const parte = Math.max(0, Math.min(1, (Number(anilloGym.dataset.fin) - Date.now()) / Number(anilloGym.dataset.total)));
+        anilloGym.setAttribute("stroke-dashoffset", String(Number(anilloGym.dataset.largo) * (1 - parte)));
+    }
     // El descanso entre series del gym: cuenta atrás y, al llegar a 0, suena y vibra.
     const reloj = document.querySelector("[data-descanso-fin]");
     if (reloj) {
@@ -2990,6 +2996,9 @@ const ACCIONES = {
         }
     },
     "gym-extra": (boton) => ejecutar(() => acciones.agregarEjercicioGym(estado, boton.dataset.ejercicio), { mantenerScroll: true }),
+    // (v78) El modo foco: los botones + y − de peso y repeticiones, y pasar de la lista al modo foco.
+    "gym-ajuste": (boton) => ejecutar(() => acciones.ajustarSerieGym(estado, Number(boton.dataset.ej), Number(boton.dataset.serie), boton.dataset.campo, Number(boton.dataset.delta)), { mantenerScroll: true }),
+    "gym-foco": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "foco", boton.dataset.valor === "1"), { mantenerScroll: true }),
     "gym-calentar": () => {
         const r = ejecutar(() => acciones.calentarGym(estado), { mantenerScroll: true });
         if (r?.frase) { fraseGym = r.frase; sonar("completar"); dibujarPantalla({ mantenerScroll: true }); }
