@@ -56,6 +56,8 @@ import * as avatar from "../js/avatar.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
 import { PISTAS } from "../js/musica.js";
+import * as musicaModulo from "../js/musica.js";
+import * as sonidoModulo from "../js/sonido.js";
 import { PINTURAS as PINTURAS_DE_FONDO } from "../js/pinturas.js";
 import { partidaDemo } from "./demo.js";
 
@@ -4248,8 +4250,8 @@ prueba("Música (v23): la pista y el volumen se guardan y se revisan", () => {
     debeFallar(() => acciones.cambiarVolumen(estado, "mucho"), "no es válido");
 });
 
-prueba("Música (v23): las 3 pistas existen y son de dominio público o CC0", async () => {
-    igual(Object.keys(PISTAS), ["epica", "batalla", "misterio"]);
+prueba("Música (v23, v58): las 7 pistas existen y son de dominio público o CC0", async () => {
+    igual(Object.keys(PISTAS), ["epica", "batalla", "misterio", "lectura", "alba", "nocturno", "abismo"]);
     for (const [clave, pista] of Object.entries(PISTAS)) {
         cierto(["Dominio público", "CC0"].includes(pista.licencia), `licencia de ${clave}`);
         cierto(pista.fuente.startsWith("https://commons.wikimedia.org/wiki/File:"), `fuente de ${clave}`);
@@ -4272,7 +4274,7 @@ prueba("Copia de seguridad: una copia vieja se completa con lo que le falte", ()
     const estado = datos.desdeRespaldo(vieja);
     igual(estado.version, datos.estadoInicial().version, "la versión de los datos");
     igual(estado.ajustes, { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true, esencial: false, esencialAlAbrir: true,
-                          animo: "bien", preguntarAnimo: true });
+                          animo: "bien", preguntarAnimo: true, musicaAuto: true });
     igual([estado.claves, estado.cofres, estado.noches, estado.mapa, estado.arcade.extra], [{}, {}, [], { reclamados: [], cines: [] }, 0], "lo de la v22");
     igual(estado.apariencia, avatar.APARIENCIA_INICIAL, "la apariencia inicial completa");
     igual(estado.campana, { recompensados: {}, libres: {} });
@@ -4712,6 +4714,111 @@ prueba("Biblioteca (pantallas): lista con candados, pergamino con moraleja y bot
         cierto(c.tomas[2].texto.includes(p.moraleja) && c.tomas[3].texto === p.presagio, `«${p.titulo}»: moraleja y presagio`);
         cierto(c.tomas.every((t) => t.fondo && t.ms >= 4000 && !/\{n\}|undefined/.test(t.texto)), `«${p.titulo}»: tomas completas`);
     }
+});
+
+// ===== Música por escena, voces de criaturas y turnos claros (v58) =====
+
+prueba("Música por escena: lectura, diario, mapa, Mazmorra y Torre; sin «auto» suena lo que elegiste", () => {
+    const elegir = (extra) => musicaModulo.pistaDeEscena({ elegida: "epica", auto: true, ...extra });
+    for (const pantalla of ["pergamino", "biblioteca", "memorias", "libro", "pacto", "historia"]) igual(elegir({ pantalla }), "lectura", `${pantalla} → lectura`);
+    igual(elegir({ pantalla: "diario" }), "nocturno");
+    igual([elegir({ pantalla: "mapa" }), elegir({ pantalla: "voces" })], ["alba", "alba"]);
+    igual(elegir({ pantalla: "hoy" }), "epica", "en Hoy, la que elegiste");
+    igual(elegir({ pantalla: "hoy", elegida: "misterio" }), "misterio");
+    igual([elegir({ pantalla: "arcade", torre: "torre" }), elegir({ pantalla: "arcade", torre: "mazmorra" })], ["batalla", "abismo"], "la Torre y la Mazmorra");
+    // Con la música automática apagada: lo de siempre.
+    igual(elegir({ pantalla: "pergamino", auto: false }), "epica");
+    igual(elegir({ pantalla: "mapa", auto: false, elegida: "batalla" }), "batalla");
+    igual(elegir({ pantalla: "arcade", torre: "mazmorra", auto: false }), "misterio", "la Mazmorra sin auto conserva su música de antes");
+    for (const clave of ["lectura", "alba", "nocturno", "abismo"]) cierto(PISTAS[clave].obra && PISTAS[clave].autor && PISTAS[clave].interpretes, `${clave}: con sus créditos`);
+    // Todas las pistas que usa pistaDeEscena existen.
+    for (const pantalla of ["pergamino", "diario", "mapa", "hoy"]) cierto(PISTAS[elegir({ pantalla })], `la pista de ${pantalla} existe`);
+    igual(datos.estadoInicial().ajustes.musicaAuto, true, "viene encendida");
+});
+
+prueba("Voces: cada criatura de la Torre y de la Mazmorra tiene su voz (aparece, ataca, herido y cae)", () => {
+    const todas = [...bestiario.ORDEN, ...bestiario.ORDEN_MAZMORRA];
+    igual(todas.length, 50, "las 50 criaturas");
+    for (const id of todas) {
+        const familia = sonidoModulo.FAMILIA_DE_CRIATURA[id];
+        cierto(familia, `${id} tiene familia`);
+        for (const momento of sonidoModulo.MOMENTOS_DE_VOZ) {
+            const sonido = sonidoModulo.sonidoDeVoz(familia, momento);
+            cierto(sonido && sonido.notas.length >= 1 && sonido.volumen > 0 && sonido.volumen < 0.3, `${id} · ${momento}`);
+            for (const [frecuencia, inicio, duracion, final] of sonido.notas) {
+                cierto(frecuencia >= 20 && frecuencia < 8000 && inicio >= 0 && duracion > 0 && (final === undefined || final >= 20), `${id} · ${momento}: notas válidas`);
+            }
+        }
+    }
+    igual(sonidoModulo.sonidoDeVoz("inventada", "ataque"), null, "una familia que no existe no suena");
+    igual(sonidoModulo.sonidoDeVoz("bestia", "inventado"), null);
+    // Las familias suenan distinto entre sí.
+    cierto(JSON.stringify(sonidoModulo.sonidoDeVoz("rugido", "ataque")) !== JSON.stringify(sonidoModulo.sonidoDeVoz("chillido", "ataque")), "un rugido no suena como un chillido");
+    cierto(JSON.stringify(sonidoModulo.sonidoDeVoz("bestia", "cae")) !== JSON.stringify(sonidoModulo.sonidoDeVoz("bestia", "ataque")), "cada momento suena distinto");
+    // Los sonidos nuevos de la batalla existen (los pide app.js por su nombre).
+    for (const nombre of ["tajo", "pocion", "drenar", "sellar", "barrera", "carga", "descarga", "reflejo", "veneno", "coraza",
+                          "rugidito", "graznido", "ulular", "siseo", "chillido", "fenix"]) cierto(sonidoModulo.existeSonido(nombre), `existe «${nombre}»`);
+});
+
+prueba("Batalla: la secuencia del turno (plan y resultado, en orden) y un banner y efecto por cada ataque especial", () => {
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 11);
+    const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
+    const t = (cambios = {}) => ({ partida: estado.arcade.torre, nombre: "Ana", sprites: imagenes, eventos: [], menu: "principal",
+                                   ultimo: "atacar", bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    // Antes de actuar: el plan del turno.
+    let html = vistas.pantallaTorre(t());
+    sano(html, "el plan");
+    cierto(html.includes('class="ff-turnos plan"') && html.includes("Elige un comando"), "antes de actuar, el plan");
+    const numeros = (texto) => [...texto.matchAll(/ff-turno-numero" aria-hidden="true">(\d)</g)].map((x) => Number(x[1]));
+    igual(numeros(html), [1, 2], "tú y la criatura (sin mascota)");
+    const lista = html.slice(html.indexOf('<ol class="ff-turnos'), html.indexOf("</ol>", html.indexOf('<ol class="ff-turnos')));
+    cierto(lista.indexOf("Tú") < lista.indexOf("Murciélago de cripta"), "primero tú, después la criatura");
+    // Después de actuar: lo que pasó, en orden.
+    const evento = (quien, tipo, extra = {}) => ({ quien, tipo, ...extra });
+    html = vistas.pantallaTorre(t({ eventos: [evento("heroe", "atacar", { dano: 12 }), evento("enemigo", "golpe", { dano: 5, nombre: "Mordisco" })] }));
+    sano(html, "el turno jugado");
+    cierto(html.includes('class="ff-turnos jugado"') && html.includes("Mordisco") && html.includes("−5"), "el turno jugado");
+    igual(numeros(html), [1, 2], "1 tú, 2 la criatura");
+    // Con la mascota y el fin del turno hay cuatro pasos, en el orden de siempre.
+    estado.arcade.torre.mascota = { especie: "dragon", nombre: "Chispa", etapa: "cria", potencia: 1, cada: 3, espera: 0 };
+    html = vistas.pantallaTorre(t({ sprites: { ...imagenes, mascota: "data:image/png;base64,DD" },
+        eventos: [evento("heroe", "atacar", { dano: 12 }), evento("mascota", "ataque", { dano: 7, nombre: "Aliento de fuego" }),
+                  evento("enemigo", "golpe", { dano: 5, nombre: "Mordisco" }), evento("veneno", "veneno", { dano: 4 })] }));
+    sano(html, "el turno completo");
+    igual(numeros(html), [1, 2, 3, 4], "tú, la mascota, la criatura y el fin del turno");
+    const turno = html.slice(html.indexOf('<ol class="ff-turnos'), html.indexOf("</ol>", html.indexOf('<ol class="ff-turnos')));
+    cierto(turno.indexOf("Aliento de fuego") < turno.indexOf("Mordisco") && turno.indexOf("Mordisco") < turno.indexOf("Veneno −4"), "en ese orden");
+    // Cuando cae, el último paso de la criatura es su caída.
+    html = vistas.pantallaTorre(t({ eventos: [evento("heroe", "atacar", { dano: 99 }), evento("enemigo", "derrotado")] }));
+    cierto(html.includes("Cae derrotada"), "la caída aparece en la secuencia");
+    // Cada ataque especial: su banner, su efecto y su paso resaltado.
+    const casos = [
+        ["veneno", { tipo: "especial", dano: 6 }, "ff-sp-veneno"], ["drenar", { tipo: "especial", dano: 8, cura: 8 }, "ff-sp-drenar"],
+        ["sellar", { tipo: "especial", dano: 5, sello: 2 }, "ff-sp-sellar"], ["coraza", { tipo: "especial" }, "ff-sp-coraza"],
+        ["barrera", { tipo: "especial", barrera: 40 }, "ff-sp-barrera"], ["carga", { tipo: "especial" }, "ff-sp-carga"],
+        ["reflejo", { tipo: "especial" }, "ff-sp-reflejo"],
+    ];
+    for (const [clave, extra, efecto] of casos) {
+        html = vistas.pantallaTorre(t({ eventos: [evento("heroe", "atacar", { dano: 3 }), evento("enemigo", "especial", { especial: clave, nombre: "Ataque raro", ...extra })] }));
+        sano(html, `el especial ${clave}`);
+        cierto(html.includes(`ff-especial ff-especial-${clave}`) && html.includes(efecto) && html.includes("ff-turno-especial") && html.includes("«Ataque raro»"), `${clave}: banner, efecto y paso resaltado`);
+    }
+    html = vistas.pantallaTorre(t({ eventos: [evento("heroe", "defender"), evento("enemigo", "descarga", { dano: 20, nombre: "Infierno" })] }));
+    cierto(html.includes("ff-especial-descarga") && html.includes("ff-sp-descarga") && html.includes("ff-sacude"), "la descarga: banner, onda y sacudida");
+    // Un golpe normal no es un especial.
+    html = vistas.pantallaTorre(t({ eventos: [evento("heroe", "atacar", { dano: 3 }), evento("enemigo", "golpe", { dano: 4, nombre: "Mordisco" })] }));
+    cierto(!html.includes("ff-especial-") && !html.includes("ff-turno-especial"), "un golpe normal no es especial");
+    // Si lo esquivas, el efecto sobre ti no aparece (pero el banner sí dice qué intentó).
+    html = vistas.pantallaTorre(t({ eventos: [evento("heroe", "defender"), evento("enemigo", "especial", { especial: "veneno", nombre: "Filamentos", dano: 0, esquivado: true })] }));
+    cierto(html.includes("ff-especial-veneno") && !html.includes("ff-sp-veneno") && html.includes("esquivaste"), "esquivado: sin efecto sobre ti");
+    // Y la Mazmorra también.
+    estado.arcade.records.torre = 20;
+    acciones.empezarTorre(estado, 4, "mazmorra");
+    const mazmorra = vistas.pantallaTorre({ ...t(), partida: estado.arcade.mazmorra });
+    sano(mazmorra, "la Mazmorra");
+    cierto(mazmorra.includes("ff-turnos plan"), "la Mazmorra también muestra el plan");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

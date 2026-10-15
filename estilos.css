@@ -9124,7 +9124,7 @@ details.ff-capitulo[open] > summary::after {
 }
 
 details.ff-capitulo[open] > p,
-details.ff-capitulo[open] > .ff-escena {
+details.ff-capitulo[open] > .ff-ver-escena {
     animation: tarjeta-entra 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -9132,7 +9132,7 @@ details.ff-capitulo[open] > p:nth-of-type(2) { animation-delay: 0.1s; }
 details.ff-capitulo[open] > p:nth-of-type(3) { animation-delay: 0.2s; }
 details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
-.ff-escena {
+.ff-ver-escena {
     justify-self: start;
 }
 
@@ -9253,7 +9253,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     .mapa-guarida.libre,
     .mapa-trofeo,
     details.ff-capitulo[open] > p,
-    details.ff-capitulo[open] > .ff-escena,
+    details.ff-capitulo[open] > .ff-ver-escena,
     .cine-flota .cine-sprite,
     .cine-flota .cine-cuadro,
     .cine-ambiente,
@@ -9340,4 +9340,321 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .saga-futura small {
     color: var(--texto-suave);
     line-height: 1.4;
+}
+
+
+/* ===== (v58) La Torre y la Mazmorra: la secuencia del turno y los ataques especiales ===== */
+
+/* La secuencia: 1 Tú → 2 tu mascota → 3 la criatura → 4 el fin del turno. Después de actuar, cada paso se enciende cuando le toca. */
+.ff-turnos {
+    display: grid;
+    gap: 10px;
+    margin: 4px 0 2px;
+    padding: 0;
+    list-style: none;
+}
+
+.ff-turno {
+    position: relative;
+    display: grid;
+    grid-template-columns: 22px 26px minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0, 0, 20, 0.85);
+    background: linear-gradient(180deg, #2a42b0 0%, #17267e 60%, #0a1258 100%);
+    border: 2px solid #8fa0ff;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px #060a3a, 0 0 0 1px #060a3a;
+}
+
+/* La flechita que une un paso con el siguiente. */
+.ff-turno:not(:last-child)::after {
+    content: "▾";
+    position: absolute;
+    left: 15px;
+    bottom: -12px;
+    z-index: 2;
+    font-size: 0.8rem;
+    line-height: 1;
+    color: #cfd8ff;
+    text-shadow: 0 0 3px #060a3a;
+}
+
+.ff-turno-numero {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #0a1258;
+    text-shadow: none;
+    background: #cfd8ff;
+    border-radius: 50%;
+}
+
+.ff-turno-icono {
+    font-size: 1.15rem;
+    text-align: center;
+}
+
+.ff-turno-texto {
+    display: grid;
+    min-width: 0;
+}
+
+.ff-turno-texto b {
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    color: #cfd8ff;
+}
+
+.ff-turno-texto small {
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #fff;
+}
+
+.ff-turno-tuyo { border-color: #7dd3fc; }
+.ff-turno-mascota { border-color: #86efac; }
+.ff-turno-criatura { border-color: #fda4af; }
+.ff-turno-fin { border-color: #c4b5fd; }
+.ff-turno-cae { border-color: #fde68a; }
+
+/* El ataque especial de la criatura: dorado y que se note. */
+.ff-turno-especial {
+    border-color: #ffd84a;
+    background: linear-gradient(180deg, #6a3a0a 0%, #4a2406 55%, #2a1203 100%);
+    box-shadow: inset 0 0 0 1px #2a1203, 0 0 0 1px #2a1203, 0 0 10px rgba(255, 216, 74, 0.55);
+}
+
+.ff-turno-especial .ff-turno-texto b { color: #ffe9a0; }
+
+/* Lo que va a pasar: en el paso que te toca (el tuyo) la manito late. */
+.ff-turnos.plan .ff-turno.ahora {
+    animation: turno-late 1.1s ease-in-out infinite;
+}
+
+@keyframes turno-late {
+    50% { box-shadow: inset 0 0 0 1px #060a3a, 0 0 0 1px #060a3a, 0 0 12px rgba(125, 211, 252, 0.8); }
+}
+
+/* Lo que acaba de pasar: cada paso entra en su momento (el mismo orden que las animaciones de la escena). */
+.ff-turnos.jugado .ff-turno {
+    animation: turno-enciende 0.35s steps(4) both;
+}
+
+@keyframes turno-enciende {
+    from { opacity: 0.18; transform: translateX(-10px); filter: grayscale(1); }
+    to { opacity: 1; transform: none; filter: none; }
+}
+
+/* --- El banner del ataque especial: nombre grande y lo que hace --- */
+.ff-especial {
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    bottom: 3%;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 9px;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+    background: rgba(8, 6, 24, 0.9);
+    border: 2px solid var(--esp, #ffd84a);
+    border-radius: 8px;
+    box-shadow: 0 0 12px var(--esp, #ffd84a);
+    opacity: 0;
+    animation: ff-especial-sale 2.3s steps(1) both;
+}
+
+.ff-especial-icono { font-size: 1.7rem; }
+.ff-especial-texto { display: grid; min-width: 0; }
+.ff-especial-texto b { font-family: "Orbitron", sans-serif; font-size: 0.82rem; color: var(--esp, #ffd84a); }
+.ff-especial-texto small { font-size: 0.72rem; font-weight: 600; line-height: 1.25; }
+
+.ff-especial-veneno { --esp: #7dff6a; }
+.ff-especial-drenar { --esp: #ff4d6d; }
+.ff-especial-sellar { --esp: #c4b5fd; }
+.ff-especial-coraza { --esp: #cbd5e1; }
+.ff-especial-barrera { --esp: #7dd3fc; }
+.ff-especial-carga { --esp: #ffb020; }
+.ff-especial-reflejo { --esp: #e0f2fe; }
+.ff-especial-descarga { --esp: #ff5a36; }
+
+@keyframes ff-especial-sale {
+    0% { opacity: 0; transform: translateY(10px); }
+    8%, 88% { opacity: 1; transform: none; }
+    100% { opacity: 0; }
+}
+
+/* --- El efecto de cada ataque especial sobre la escena --- */
+.ff-sp {
+    position: absolute;
+    z-index: 4;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Carga: anillos de energía que se juntan sobre la criatura. */
+.ff-sp-carga {
+    inset: -18%;
+    border-radius: 50%;
+    border: 3px solid #ffd84a;
+    box-shadow: 0 0 14px #ffb020, inset 0 0 14px #ffb020;
+    animation: sp-carga 1.3s steps(8) both;
+}
+
+@keyframes sp-carga {
+    0% { opacity: 0; transform: scale(1.9); }
+    20% { opacity: 1; }
+    60% { opacity: 1; transform: scale(0.95); }
+    80% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 0; transform: scale(0.9); }
+}
+
+/* Descarga: una onda de choque que cruza la escena. */
+.ff-sp-descarga {
+    inset: -60%;
+    border-radius: 50%;
+    border: 5px solid #ff5a36;
+    box-shadow: 0 0 18px #ff9a1f, inset 0 0 18px #ff5a36;
+    animation: sp-descarga 0.8s steps(8) both;
+}
+
+@keyframes sp-descarga {
+    0% { opacity: 1; transform: scale(0.1); }
+    70% { opacity: 1; }
+    100% { opacity: 0; transform: scale(2.4); }
+}
+
+.ff-escena.ff-sacude {
+    animation: ff-sacude 0.5s steps(8) 0.8s;
+}
+
+@keyframes ff-sacude {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-4px, 2px); }
+    50% { transform: translate(4px, -2px); }
+    75% { transform: translate(-3px, -2px); }
+}
+
+/* Barrera: un hexágono de cristal azul. */
+.ff-sp-barrera {
+    inset: -12%;
+    background: radial-gradient(circle, rgba(170, 230, 255, 0.5), rgba(70, 140, 255, 0.35));
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    animation: sp-barrera 1.3s steps(6) both;
+}
+
+@keyframes sp-barrera {
+    0% { opacity: 0; transform: scale(0.3); }
+    25%, 70% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.1); }
+}
+
+/* Coraza: placas de metal que aparecen en franjas. */
+.ff-sp-coraza {
+    inset: 4%;
+    background: repeating-linear-gradient(45deg, rgba(220, 226, 240, 0.7) 0 4px, rgba(90, 100, 130, 0.5) 4px 8px);
+    clip-path: ellipse(48% 50% at 50% 50%);
+    animation: sp-coraza 1.1s steps(5) both;
+}
+
+@keyframes sp-coraza {
+    0% { opacity: 0; }
+    30%, 60% { opacity: 0.9; }
+    100% { opacity: 0; }
+}
+
+/* Espejo: un brillo que cruza de lado a lado. */
+.ff-sp-reflejo {
+    inset: 0;
+    background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.95) 48%, rgba(180, 225, 255, 0.8) 52%, transparent 62%);
+    background-size: 260% 100%;
+    animation: sp-reflejo 1.1s steps(8) both;
+}
+
+@keyframes sp-reflejo {
+    0% { opacity: 1; background-position: 130% 0; }
+    100% { opacity: 0; background-position: -30% 0; }
+}
+
+/* Veneno (sobre tu héroe): burbujas verdes que suben. */
+.ff-sp-veneno {
+    inset: -10% 0;
+    background:
+        radial-gradient(circle at 25% 80%, #a8ff6a 0 3px, transparent 4px),
+        radial-gradient(circle at 60% 90%, #7dff6a 0 4px, transparent 5px),
+        radial-gradient(circle at 80% 70%, #c8ff8a 0 3px, transparent 4px),
+        radial-gradient(circle at 45% 60%, #7dff6a 0 2px, transparent 3px);
+    animation: sp-veneno 1.2s steps(8) both;
+}
+
+@keyframes sp-veneno {
+    0% { opacity: 0; transform: translateY(24%); }
+    25% { opacity: 1; }
+    80% { opacity: 1; transform: translateY(-18%); }
+    100% { opacity: 0; transform: translateY(-30%); }
+}
+
+/* Sello (sobre tu héroe): cadenas que lo atan y un candado. */
+.ff-sp-sellar {
+    inset: 10% -6%;
+    background: repeating-linear-gradient(0deg, transparent 0 14%, #cfd6ff 14% 18%, #6a5ab8 18% 22%, transparent 22% 34%);
+    animation: sp-sellar 1.2s steps(6) both;
+}
+
+.ff-sp-sellar::after {
+    content: "🔒";
+    position: absolute;
+    left: 50%;
+    top: 22%;
+    font-size: 1.5rem;
+    transform: translateX(-50%);
+}
+
+@keyframes sp-sellar {
+    0% { opacity: 0; transform: scaleX(0.2); }
+    30%, 70% { opacity: 1; transform: scaleX(1); }
+    100% { opacity: 0; transform: scaleX(1.1); }
+}
+
+/* Drenar (sobre tu héroe): chispas rojas que se le escapan hacia arriba (hacia la criatura). */
+.ff-sp-drenar {
+    inset: -20% 0;
+    background:
+        radial-gradient(circle, #ff4d6d 0 2px, transparent 3px) 0 0 / 14px 18px,
+        radial-gradient(circle, #ff9aa8 0 1.5px, transparent 2.5px) 7px 9px / 14px 18px;
+    animation: sp-drenar 1.2s steps(8) both;
+}
+
+@keyframes sp-drenar {
+    0% { opacity: 0; background-position: 0 24px, 7px 33px; }
+    25%, 75% { opacity: 1; }
+    100% { opacity: 0; background-position: 0 -24px, 7px -15px; }
+}
+
+/* Quien prefiere menos movimiento: el banner y los pasos se quedan quietos y a la vista. */
+@media (prefers-reduced-motion: reduce) {
+    .ff-turnos.jugado .ff-turno,
+    .ff-turnos.plan .ff-turno.ahora,
+    .ff-escena.ff-sacude {
+        animation: none;
+    }
+
+    .ff-sp {
+        display: none;
+    }
+
+    .ff-especial {
+        opacity: 1;
+        animation: none;
+    }
 }

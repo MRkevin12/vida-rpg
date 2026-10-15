@@ -2725,6 +2725,73 @@ const salaFF = (direccion) => (direccion ? `<img class="ff-sala" src="${direccio
 // Las criaturas «ancestrales» (después del piso 20) son las mismas, de otro color.
 const tinteDeVuelta = (vuelta) => (vuelta ? `hue-rotate(${(vuelta * 140) % 360}deg) saturate(1.2)` : "");
 
+// (v58) Los ataques especiales, bien a la vista: el nombre grande y lo que hace. Una criatura los usa cuando prepara «su ataque especial»
+// (en la Mazmorra) o un truco (barrera, carga, espejo en la Torre). `descarga` es el golpe que cargó el turno anterior.
+const ICONO_DESCARGA = "💢";
+function textoDelEspecial(suyo, h) {
+    const tipo = suyo.tipo === "descarga" ? "descarga" : suyo.especial;
+    const esquivado = suyo.esquivado ? " Pero lo esquivaste." : "";
+    const texto = {
+        veneno: `Te envenena: pierdes ${Math.round(torre.ESPECIALES.veneno.porTurno * 100)} % de vida cada turno, ${torre.ESPECIALES.veneno.turnos} turnos. Una poción lo cura.`,
+        drenar: `Se cura lo mismo que te quita${suyo.cura ? ` (+${suyo.cura})` : ""}.`,
+        sellar: `Sella tu magia${suyo.sello ? `: −${suyo.sello} PM` : ""}.`,
+        coraza: "Se cubre: tu próximo golpe le hará la mitad. «Quebrar» la rompe.",
+        barrera: `Levanta una barrera${suyo.barrera ? ` de ${suyo.barrera}` : ""} que absorbe tus golpes. «Quebrar» y la Voluntad la rompen.`,
+        carga: "¡Está cargando un golpe enorme! Defiéndete el próximo turno o usa «Intimidar».",
+        reflejo: "Se cubre con un espejo: tu próximo hechizo le rebota. Usa un golpe normal.",
+        descarga: "¡Suelta el golpe que cargaba! Defenderte lo reduce.",
+    }[tipo];
+    return { tipo, icono: tipo === "descarga" ? ICONO_DESCARGA : torre.ESPECIALES[tipo].icono, texto: `${texto || ""}${esquivado}` };
+}
+
+// (v58) La secuencia del turno, bien clara: 1 Tú → 2 tu mascota → 3 la criatura → 4 el fin del turno.
+// Después de actuar muestra lo que pasó en ese orden (cada paso se enciende cuando le toca); antes de actuar, lo que va a pasar.
+// Devuelve una lista de pasos [{ icono, quien, texto, clase, cuando }].
+function pasosDelTurno(t, ctxTurno) {
+    const { eventos, tuyo, mio, suyo, veneno, regenera, cayo, elemento, pet, criatura, especial, esquivaste, enfurecido, cambioDeForma } = ctxTurno;
+    const p = t.partida;
+    const m = p.enemigo;
+    const h = p.heroe;
+    const pasos = [];
+    if (eventos.length) {
+        // --- Lo que acaba de pasar ---
+        if (tuyo) {
+            const que = elemento ? `${elemento.icono} ${elemento.nombre}`
+                : tuyo.tipo === "tecnica" ? `${torre.TECNICAS[tuyo.tecnica].icono} ${tuyo.nombre}`
+                : tuyo.tipo === "voluntad" ? "✨ Golpe de Voluntad"
+                : { atacar: "⚔️ Ataque", defender: "🛡️ Defensa", pocion: "🧪 Poción" }[tuyo.tipo] || "Tu turno";
+            const resultado = tuyo.dano ? ` · ${tuyo.critico ? "¡crítico! " : ""}${tuyo.dano}` : tuyo.cura ? ` · +${tuyo.cura} ❤️` : "";
+            pasos.push({ icono: "🧑", quien: "Tú", texto: `${que}${resultado}`, clase: "tuyo", cuando: 0 });
+        }
+        if (mio) pasos.push({ icono: "🐾", quien: pet?.nombre || "Tu mascota", texto: `${mio.nombre}${mio.dano ? ` · ${mio.dano}` : mio.cura ? ` · +${mio.cura} ❤️` : ""}`, clase: "mascota", cuando: TURNO_MASCOTA });
+        if (cayo) {
+            pasos.push({ icono: "💀", quien: criatura.nombre || m.nombre, texto: "Cae derrotada", clase: "cae", cuando: TURNO_ENEMIGO });
+        } else if (suyo) {
+            const sp = especial ? textoDelEspecial(suyo, h) : null;
+            const texto = ["intimidada", "aturdida", "petrificada"].includes(suyo.tipo) ? "Pierde su turno"
+                : sp ? `${sp.icono} «${suyo.nombre}»${suyo.dano ? ` · −${suyo.dano} ❤️` : ""}`
+                : suyo.tipo === "curar" ? `💚 ${suyo.nombre} · +${suyo.cura}`
+                : suyo.tipo === "furia" ? "😡 Se enfurece"
+                : `«${suyo.nombre}»${esquivaste ? " · ¡esquivado!" : suyo.dano ? ` · −${suyo.dano} ❤️` : ""}`;
+            pasos.push({ icono: "👹", quien: criatura.nombre || m.nombre, texto, clase: sp ? "especial" : "criatura", cuando: TURNO_ENEMIGO });
+        }
+        const fin = [];
+        if (enfurecido) fin.push("😡 ¡Furia!");
+        if (cambioDeForma) fin.push("🔁 Cambia de forma");
+        if (regenera) fin.push(`🌿 Se regenera +${regenera.cura}`);
+        if (veneno) fin.push(`☠️ Veneno −${veneno.dano}`);
+        if (fin.length) pasos.push({ icono: "⏳", quien: "Fin del turno", texto: fin.join(" · "), clase: "fin", cuando: TURNO_ENEMIGO + 450 });
+        return pasos;
+    }
+    // --- Lo que va a pasar ---
+    pasos.push({ icono: "🧑", quien: "Tú", texto: "Elige un comando", clase: "tuyo", cuando: 0, ahora: true });
+    if (pet && pet.potencia > 0) pasos.push({ icono: "🐾", quien: pet.nombre, texto: "Actúa si le toca", clase: "mascota", cuando: 0 });
+    const intencion = torre.textoIntencion(m, h);
+    const esEspecial = m.intencion === "especial" || m.intencion === "descarga";
+    pasos.push({ icono: "👹", quien: criatura.nombre || m.nombre, texto: `${intencion.icono} ${intencion.texto}`, clase: esEspecial ? "especial" : "criatura", cuando: 0 });
+    return pasos;
+}
+
 export function pantallaTorre(t) {
     if (t.resultado) return finalTorre(t);
     const p = t.partida;
@@ -2752,6 +2819,31 @@ export function pantallaTorre(t) {
     const esquivaste = suyo?.esquivado;
     const elemento = tuyo?.tipo === "hechizo" ? bestiario.ELEMENTOS[tuyo.elemento] : null;
     const pet = p.mascota;
+    // (v58) Los ataques especiales de la criatura: se ven como un banner grande y con su efecto propio.
+    const especial = suyo && !esquivaste && (suyo.especial || suyo.tipo === "descarga") ? (suyo.tipo === "descarga" ? "descarga" : suyo.especial) : null;
+    const especialInfo = suyo && (suyo.especial || suyo.tipo === "descarga") ? textoDelEspecial(suyo, h) : null;
+    const bannerEspecial = especialInfo?.texto ? `
+        <div class="ff-especial ff-especial-${especialInfo.tipo}" style="animation-delay: ${TURNO_ENEMIGO}ms" aria-hidden="true">
+            <span class="ff-especial-icono">${especialInfo.icono}</span>
+            <span class="ff-especial-texto"><b>«${esc(suyo.nombre)}»</b><small>${esc(especialInfo.texto)}</small></span>
+        </div>` : "";
+    const fxEnemigo = ["carga", "barrera", "coraza", "reflejo", "descarga"].includes(especial)
+        ? `<span class="ff-sp ff-sp-${especial}" style="animation-delay: ${TURNO_ENEMIGO + 150}ms" aria-hidden="true"></span>` : "";
+    const fxHeroe = ["veneno", "sellar", "drenar"].includes(especial)
+        ? `<span class="ff-sp ff-sp-${especial}" style="animation-delay: ${TURNO_ENEMIGO + 250}ms" aria-hidden="true"></span>` : "";
+    const secuencia = (eventos.length || p.fase === "batalla") ? (() => {
+        const pasos = pasosDelTurno(t, { eventos, tuyo, mio, suyo, veneno, regenera, cayo, elemento, pet, criatura, especial: Boolean(especialInfo),
+                                         esquivaste, enfurecido, cambioDeForma });
+        return `
+        <ol class="ff-turnos ${eventos.length ? "jugado" : "plan"}" aria-label="${eventos.length ? "Lo que pasó en el turno, en orden" : "Lo que va a pasar este turno, en orden"}">
+            ${pasos.map((paso, i) => `
+                <li class="ff-turno ff-turno-${paso.clase} ${paso.ahora ? "ahora" : ""}" style="animation-delay: ${paso.cuando}ms">
+                    <span class="ff-turno-numero" aria-hidden="true">${i + 1}</span>
+                    <span class="ff-turno-icono" aria-hidden="true">${paso.icono}</span>
+                    <span class="ff-turno-texto"><b>${esc(paso.quien)}</b><small>${esc(paso.texto)}</small></span>
+                </li>`).join("")}
+        </ol>`;
+    })() : "";
 
     // El cartel de arriba dice el nombre de lo que se usa: lo tuyo, lo de tu mascota y lo de la criatura.
     const cartel = (texto, cuando) => `<p class="ff-ventana ff-anuncio" style="animation-delay: ${cuando}ms">${esc(texto)}</p>`;
@@ -2780,7 +2872,7 @@ export function pantallaTorre(t) {
         <div class="ff-bando ff-enemigo ${clasesEnemigo}">
             <span class="ff-sombra"></span>
             ${spriteFF(t.sprites.enemigo, m.nombre, criatura.talla || 96, tinteDeVuelta(m.vuelta))}
-            ${efecto}${efectoMascota}
+            ${efecto}${efectoMascota}${fxEnemigo}
             ${tuyo?.dano ? numeroFF(tuyo.dano, tuyo.critico ? "critico" : "", 300) : ""}
             ${mio?.dano ? numeroFF(mio.dano, "de-mascota", TURNO_MASCOTA + 120) : ""}
             ${suyo?.reflejo ? numeroFF(suyo.reflejo, "de-mascota", TURNO_ENEMIGO + 350) : ""}
@@ -2825,7 +2917,7 @@ export function pantallaTorre(t) {
         <div class="ff-bando ff-heroe ${clasesHeroe}">
             <span class="ff-sombra"></span>
             ${spriteFF(t.sprites.heroe, t.nombre, 54)}
-            ${tuyo?.tipo === "defender" ? '<span class="ff-escudo" aria-hidden="true"></span>' : ""}
+            ${tuyo?.tipo === "defender" ? '<span class="ff-escudo" aria-hidden="true"></span>' : ""}${fxHeroe}
             ${tuyo?.cura ? numeroFF(tuyo.cura, "cura", 150) : ""}
             ${tuyo?.reflejado ? numeroFF(`${tuyo.reflejado} 🪞`, "", 300) : ""}
             ${tuyo?.mana ? numeroFF("+1 PM", "pm", 150) : ""}
@@ -2839,9 +2931,10 @@ export function pantallaTorre(t) {
         </div>`;
 
     const escena = `
-        <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""}">
-            ${salaFF(t.sprites.sala)}${carteles}${enemigo}${heroe}${mascotaHtml}
-        </div>`;
+        <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""} ${especial === "descarga" ? "ff-sacude" : ""}">
+            ${salaFF(t.sprites.sala)}${carteles}${enemigo}${heroe}${mascotaHtml}${bannerEspecial}
+        </div>
+        ${secuencia}`;
 
     // --- Abajo: los comandos (o el botín, o el final) y las fichas ---
     // Si aparecen justo después de un golpe, esperan un instante para que se vea el golpe final.
@@ -3110,7 +3203,7 @@ export function pantallaHistoria(h) {
                     ${c.parrafos.map((texto) => `<p>${esc(texto)}</p>`).join("")}
                     ${c.pendiente ? `<p class="ff-renglon"><small>⏳ ${esc(c.pendiente)}</small></p>` : ""}
                     ${c.aviso ? `<p class="ff-oro">${esc(c.aviso)}</p>` : ""}
-                    <button type="button" class="boton boton-chico ff-escena" data-accion="cine-capitulo" data-lugar="${esc(h.lugar)}" data-id="${esc(c.id)}">▶ Ver escena</button>
+                    <button type="button" class="boton boton-chico ff-ver-escena" data-accion="cine-capitulo" data-lugar="${esc(h.lugar)}" data-id="${esc(c.id)}">▶ Ver escena</button>
                 </details>`;
     }).join("");
     return `

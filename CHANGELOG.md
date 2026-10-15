@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v58 — Música, voces de criaturas y turnos claros
+- **Música:** 4 pistas nuevas en `musica/` (Satie, Grieg «La mañana», Chopin n.º 2, Mussorgsky) con bucle sin corte (fundido cruzado) y a -21 LUFS; créditos y licencias en `PISTAS`. `musica.pistaDeEscena({ pantalla, torre, elegida, auto })` (función pura): lectura → `lectura`, diario → `nocturno`, mapa y aldea → `alba`, Mazmorra → `abismo`; `ajustes.musicaAuto` (interruptor en Ajustes). `cambiarPantalla` llama a `ponerMusica`.
+- **Sonido:** `sonido.js` ahora desliza notas (4.º dato) y tiene `ruido` filtrado. Sonidos nuevos: tajo, poción, drenar, sellar, barrera, carga, descarga, reflejo y uno por mascota. **Voces:** 12 familias (`FAMILIAS`) y `FAMILIA_DE_CRIATURA` (las 50 criaturas): `sonarVoz(id, "aparece" | "ataque" | "herido" | "cae")`.
+- **Batalla:** `pasosDelTurno` + `<ol class="ff-turnos">` (plan antes de actuar, resultado en orden después), banner `.ff-especial` y un efecto `.ff-sp-*` por especial; `sonarTurno` suena cada cosa a su tiempo (0 / 0,4 / 0,65 / 1 s).
+- **Arreglo:** el botón «▶ Ver escena» usaba la clase `ff-escena` (la del cuadro de batalla) y se veía enorme; ahora es `ff-ver-escena`.
+
 ## v57 — La Biblioteca prohibida
 - **`js/pergaminos.js`** (nuevo, en `sw.js`): 8 pergaminos en orden (el 1.º es «La primera piedra», de `pergamino.js`; los 7 nuevos viven aquí con prólogo, 3 capítulos, enseñanzas, moraleja, presagio y datos de su escena). `estadoDeBiblioteca` los abre EN ORDEN (leer el anterior + `condicion`: misiones, jefes, región, Torre, Mazmorra, voces o saga; `datosDePartida` la saca de la partida). `SAGAS_FUTURAS` (4) se insinúa según los pergaminos leídos: son anuncios, no se juegan.
 - **Leer:** `acciones.terminarPergamino` anota `estado.pergaminos.leidos[id] = fecha` (migra sola en `completar`) y da `PREMIO_LECTURA` (+30 XP de Intelecto, +15 💎) una vez. `cinematicaDePergamino` (en `cinematicas-reino.js`): 2 tomas de la historia, la moraleja con Aurelio y el presagio; se repite con «🎬 Ver la escena otra vez».

@@ -628,7 +628,8 @@ async function abrirTorre(lugar = "torre", marca = null) {
     // La primera vez, antes de pelear, se cuenta cómo empieza la historia.
     if (resultado.relato) await mostrarRelato(resultado.relato);
     else pintarTorre();
-    ponerMusica();   // en la Torre suena la música de batalla; en la Mazmorra, la de misterio
+    ponerMusica();   // en la Torre suena la música de batalla; en la Mazmorra, «Abismo»
+    if (!resultado.relato) vozDeLlegada();   // (v58) la criatura que te espera
     // Si quedó una cinemática sin ver (saliste justo antes), se ve ahora; si empieza el relato, ese ya cuenta la historia.
     if (resultado.relato) descartarCinematica(lugar);
     else await reproducirCinematica(lugar);
@@ -788,6 +789,7 @@ function abrirHistoria(lugar) {
     });
     $("#torre").hidden = false;
     $("#torre-caja").scrollTop = 0;
+    ponerMusica();   // (v58) la historia se lee con la música de lectura
 }
 
 function cerrarTorre() {
@@ -846,27 +848,71 @@ function pintarPortadas() {
 }
 
 // Sonidos de un turno, al compás de las animaciones (tu acción, la de tu mascota y la de la criatura).
+// (v58) Cada quien suena a su tiempo, igual que las animaciones y la secuencia de turnos de la pantalla:
+//   0 s tu acción · 0,4 s tu mascota · 0,65 s la criatura (su voz y su ataque, con su sonido propio si es especial) · 1 s el fin del turno.
+// Cada criatura tiene su voz (sonido.sonarVoz, que respeta el ajuste de sonido): aparece, ataca, se queja cuando le pegas y cae.
+const SONIDO_DE_MASCOTA = { dragon: "rugidito", cuervo: "graznido", buho: "ulular", basilisco: "siseo", grifo: "chillido", fenix: "fenix", escarcha: "hielo" };
+const SONIDO_DE_ESPECIAL = { veneno: "veneno", drenar: "drenar", sellar: "sellar", coraza: "coraza", barrera: "barrera", carga: "carga", reflejo: "reflejo" };
+
 function sonarTurno(eventos) {
+    const partida = estado.arcade[lugarAbierto];
+    const criatura = partida?.enemigo?.id;
     const heroe = eventos.find((e) => e.quien === "heroe");
     const mascota = eventos.find((e) => e.quien === "mascota");
     const enemigo = eventos.find((e) => e.quien === "enemigo" && e.tipo !== "derrotado");
     const cayo = eventos.some((e) => e.tipo === "derrotado");
     const veneno = eventos.find((e) => e.quien === "veneno");
+    const tarde = (ms, hacer) => setTimeout(hacer, ms);
+
+    // 1. Tú
     if (heroe?.tipo === "hechizo") sonar(heroe.elemento);   // "fuego", "hielo" o "rayo"
+    if (heroe?.tipo === "atacar" || (heroe?.tipo === "tecnica" && heroe.dano)) sonar("tajo");
+    if (heroe?.tipo === "defender") sonar("coraza");
+    if (heroe?.tipo === "pocion") sonar("pocion");
     if (heroe?.tipo === "voluntad") sonar("nivel");          // el Golpe de Voluntad
     if (heroe?.tipo === "tecnica" && !heroe.dano) sonar("cursor");   // Analizar o Intimidar
-    if (heroe?.reflejado) setTimeout(() => sonar("coraza"), 250);    // su espejo te devolvió el hechizo
-    if (heroe?.dano) setTimeout(() => sonar(heroe.critico ? "critico" : "impacto"), 300);
-    if (heroe?.cura) sonar("moneda");
-    if (mascota) setTimeout(() => sonar(mascota.elemento || (mascota.dano ? "impacto" : mascota.tipo === "renacer" ? "nivel" : "moneda")), 450);
-    if (cayo) setTimeout(() => sonar("victoria"), enemigo?.reflejo ? 1250 : 750);
-    else if (enemigo?.dano) setTimeout(() => sonar(estado.arcade[lugarAbierto]?.fase === "fin" ? "fallo" : "impacto"), 900);
-    else if (["coraza", "barrera", "reflejo"].includes(enemigo?.especial)) setTimeout(() => sonar("coraza"), 700);
-    else if (enemigo?.especial === "carga") setTimeout(() => sonar("robo"), 700);
-    if (eventos.some((e) => e.quien === "fase")) setTimeout(() => sonar("robo"), 500);
-    if (veneno) setTimeout(() => sonar("veneno"), 1250);
-    if (eventos.some((e) => e.quien === "furia")) setTimeout(() => sonar("robo"), 450);
-    if (eventos.some((e) => e.tipo === "renacer" || e.habilidad === "gracia")) setTimeout(() => sonar("nivel"), 1350);
+    if (heroe?.reflejado) tarde(250, () => sonar("coraza"));    // su espejo te devolvió el hechizo
+    if (heroe?.dano) tarde(300, () => sonar(heroe.critico ? "critico" : "impacto"));
+    if (heroe?.cura && heroe.tipo !== "pocion") sonar("moneda");
+    // La criatura se queja si le pegaste (y no cayó).
+    if (criatura && !cayo && (heroe?.dano || mascota?.dano)) tarde(heroe?.dano ? 350 : 650, () => voz(criatura, "herido"));
+
+    // 2. Tu mascota
+    if (mascota) {
+        const suena = SONIDO_DE_MASCOTA[partida?.mascota?.especie];
+        if (mascota.tipo === "renacer") tarde(450, () => sonar("nivel"));
+        else {
+            if (suena) tarde(400, () => sonar(suena));
+            if (mascota.dano || mascota.elemento) tarde(520, () => sonar(mascota.elemento || "impacto"));
+            else if (!suena) tarde(450, () => sonar("moneda"));
+        }
+    }
+
+    // 3. La criatura
+    if (cayo) {
+        if (criatura) tarde(enemigo?.reflejo ? 1100 : 700, () => voz(criatura, "cae"));
+        tarde(enemigo?.reflejo ? 1250 : 850, () => sonar("victoria"));
+    } else if (enemigo) {
+        const especial = enemigo.tipo === "descarga" ? "descarga" : enemigo.especial;
+        if (criatura && (torre.GOLPES.includes(enemigo.tipo) || enemigo.tipo === "especial")) tarde(650, () => voz(criatura, "ataque"));
+        if (especial && SONIDO_DE_ESPECIAL[especial] || especial === "descarga") {
+            tarde(especial === "descarga" ? 700 : 760, () => sonar(especial === "descarga" ? "descarga" : SONIDO_DE_ESPECIAL[especial]));
+        }
+        if (enemigo.dano) tarde(900, () => sonar(partida?.fase === "fin" ? "fallo" : "impacto"));
+        if (enemigo.especial === "coraza" || enemigo.especial === "barrera" || enemigo.especial === "reflejo") tarde(1000, () => sonar("coraza"));
+    }
+
+    // 4. El fin del turno
+    if (eventos.some((e) => e.quien === "fase")) tarde(500, () => sonar("robo"));
+    if (veneno) tarde(1250, () => sonar("veneno"));
+    if (eventos.some((e) => e.quien === "furia")) tarde(450, () => { sonar("robo"); if (criatura) voz(criatura, "ataque"); });
+    if (eventos.some((e) => e.tipo === "renacer" || e.habilidad === "gracia")) tarde(1350, () => sonar("nivel"));
+}
+
+// Cuando llega una criatura nueva (el piso siguiente, o al abrir la Torre), se oye su voz.
+function vozDeLlegada() {
+    const id = estado.arcade[lugarAbierto]?.enemigo?.id;
+    if (id) setTimeout(() => voz(id, "aparece"), 450);
 }
 
 
@@ -911,6 +957,11 @@ function cerrarRobo() {
 
 // ===== Sonido =====
 // Suena solo si el sonido está encendido en Ajustes.
+// (v58) La voz de una criatura (aparece, ataca, herido, cae), si el sonido está encendido.
+function voz(criatura, momento) {
+    if (estado.ajustes.sonido) sonido.sonarVoz(criatura, momento);
+}
+
 function sonar(nombre) {
     if (estado.ajustes.sonido) sonido.sonar(nombre);
 }
@@ -925,8 +976,13 @@ function ponerMusica() {
         return;
     }
     const volumen = Number.isFinite(a.volumen) ? a.volumen : 0.6;
-    // En la Torre suena la de batalla; en la Mazmorra, la de misterio (el Rey de la montaña).
-    const pista = $("#torre").hidden ? a.pista : lugarAbierto === "mazmorra" ? "misterio" : "batalla";
+    // En la Torre suena la de batalla; en la Mazmorra, «Abismo». (v58) Al leer, en el diario y en el mapa, una pieza a propósito.
+    const leyendoHistoria = !$("#torre").hidden && Boolean($("#torre-caja .ff-historia"));
+    const pista = musica.pistaDeEscena({
+        pantalla: leyendoHistoria ? "historia" : pantallaActual,
+        torre: $("#torre").hidden || leyendoHistoria ? null : lugarAbierto,
+        elegida: a.pista, auto: a.musicaAuto !== false,
+    });
     musica.reproducir(musica.PISTAS[pista] ? pista : "epica", volumen);
 }
 
@@ -1142,6 +1198,7 @@ function cambiarPantalla(nombre) {
     window.scrollTo(0, 0);
     if (nombre === "mapa") $("#mapa-heroe")?.scrollIntoView({ block: "center" });
     animarEntrada(nombre);
+    ponerMusica();   // (v58) cada escena tiene su música
     if (["mapa", "arcade", "voces"].includes(nombre)) setTimeout(() => revisarCines(nombre), 600);
 }
 
@@ -1554,6 +1611,7 @@ const PREPARAR = {
         $("#ajustes-esencial").checked = Boolean(estado.ajustes.esencial);
         $("#ajustes-esencial-al-abrir").checked = Boolean(estado.ajustes.esencialAlAbrir);
         $("#ajustes-preguntar-animo").checked = Boolean(estado.ajustes.preguntarAnimo);
+        $("#ajustes-musica-auto").checked = estado.ajustes.musicaAuto !== false;
         $("#ajustes-musica").checked = estado.ajustes.musica;
         $("#ajustes-volumen").value = Math.round((Number.isFinite(estado.ajustes.volumen) ? estado.ajustes.volumen : 0.6) * 100);
         for (const radio of document.querySelectorAll('input[name="pista"]')) radio.checked = radio.value === estado.ajustes.pista;
@@ -2504,6 +2562,7 @@ const ACCIONES = {
             descartarCinematica(lugarAbierto);
         } else {
             pintarTorre();
+            vozDeLlegada();   // (v58) la criatura del piso nuevo
             await reproducirCinematica(lugarAbierto);   // llegaste a una zona nueva o al piso de un guardián
         }
     },
@@ -3122,6 +3181,10 @@ function conectarEventos() {
     $("#ajustes-golpe").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "golpe", evento.target.checked)));
     $("#ajustes-eventos").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "eventos", evento.target.checked)));
     $("#ajustes-esencial").addEventListener("change", (evento) => cambiarModoEsencial(evento.target.checked));
+    $("#ajustes-musica-auto").addEventListener("change", (evento) => {
+        ejecutar(() => acciones.cambiarAjuste(estado, "musicaAuto", evento.target.checked));
+        ponerMusica();
+    });
     $("#ajustes-preguntar-animo").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "preguntarAnimo", evento.target.checked)));
     $("#dialogo-animo").addEventListener("cancel", (evento) => { if (despuesDeAnimo) evento.preventDefault(); });   // al abrir la app hay que elegir una opción
     $("#ajustes-esencial-al-abrir").addEventListener("change", (evento) => ejecutar(() => acciones.cambiarAjuste(estado, "esencialAlAbrir", evento.target.checked)));

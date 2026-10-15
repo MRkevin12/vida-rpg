@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 57;
+export const VERSION_APP = 58;
 
 export const NOVEDADES = [
+    {
+        version: 58,
+        titulo: "Más música, voces y turnos claros",
+        cambios: [
+            "🎼 Cuatro pistas nuevas: «Lectura» (Gymnopédie n.º 1, de Satie), «Alba» (la mañana de Grieg), «Nocturno» (Chopin) y «Abismo» (Mussorgsky). Con «Música según la escena» (Ajustes), suena Lectura al leer pergaminos, memorias y el libro, Nocturno en el diario, Alba en el mapa y la aldea, y Abismo en la Mazmorra.",
+            "🔊 Cada criatura de la Torre y la Mazmorra tiene su voz: se oye al aparecer, al atacar, cuando le pegas y cuando cae. Tu espada, tus pociones y tu mascota (el dragón ruge, el cuervo grazna, el búho ulula…) también suenan.",
+            "⚡ Los ataques especiales se ven y se oyen: un banner con su nombre y lo que hacen, y un efecto distinto para el veneno, el drenaje, el sello, la coraza, la barrera, la carga, el espejo y la descarga (que sacude la pantalla).",
+            "🔢 La batalla muestra la secuencia del turno: 1 Tú → 2 tu mascota → 3 la criatura → 4 el fin del turno. Antes de actuar te dice qué va a pasar; después, qué pasó, en orden.",
+            "🔧 Arreglado: el botón «▶ Ver escena» de la historia de la Torre se veía como un cuadro enorme.",
+        ],
+    },
     {
         version: 57,
         titulo: "La Biblioteca prohibida",

@@ -1,7 +1,8 @@
 // musica.js — La música de fondo.
 //
-// Tres grabaciones orquestales de DOMINIO PÚBLICO o CC0 (Wikimedia Commons), recortadas para
+// Siete grabaciones de DOMINIO PÚBLICO o CC0 (Wikimedia Commons), recortadas para
 // que se repitan sin cortes bruscos y comprimidas a MP3 mono (carpeta musica/).
+// (v58) Las cuatro nuevas se repiten con un fundido cruzado entre el final y el principio, así el bucle no se nota.
 //
 // Cómo suena:
 //   - Se usa la Web Audio API: el archivo se decodifica una vez y se repite en bucle perfecto.
@@ -41,7 +42,51 @@ export const PISTAS = {
         fuente: "https://commons.wikimedia.org/wiki/File:Grieg_-_Peer_Gynt_Suite_No._1,_Op._46_-_IV._In_the_Hall_of_the_Mountain_King_(Musopen_Symphony).flac",
         ganancia: 0.77,
     },
+    // (v58) Las nuevas. «lectura» suena sola al leer pergaminos, memorias y el libro.
+    lectura: {
+        nombre: "Lectura", icono: "📜", obra: "Gymnopédie n.º 1", autor: "Erik Satie",
+        interpretes: "Robin Alciatore (Musopen)", licencia: "Dominio público",
+        archivo: "./musica/satie-gymnopedia-1.mp3",
+        fuente: "https://commons.wikimedia.org/wiki/File:Erik_Satie_-_gymnopedies_-_la_1_ere._lent_et_douloureux.ogg",
+        ganancia: 1.0,
+    },
+    alba: {
+        nombre: "Alba", icono: "🌅", obra: "Peer Gynt: «La mañana»", autor: "Edvard Grieg",
+        interpretes: "Orquesta Sinfónica Nacional Checa (Musopen)", licencia: "Dominio público",
+        archivo: "./musica/grieg-mananita.mp3",
+        fuente: "https://commons.wikimedia.org/wiki/File:Musopen_-_Morning.ogg",
+        ganancia: 1.0,
+    },
+    nocturno: {
+        nombre: "Nocturno", icono: "🌙", obra: "Nocturno n.º 2, op. 9", autor: "Frédéric Chopin",
+        interpretes: "Peter Johnston (Musopen)", licencia: "CC0",
+        archivo: "./musica/chopin-nocturno-9-2.mp3",
+        fuente: "https://commons.wikimedia.org/wiki/File:Chopin_Nocturne_No._2_in_E_Flat_Major,_Op._9.ogg",
+        ganancia: 1.0,
+    },
+    abismo: {
+        nombre: "Abismo", icono: "🕳️", obra: "Una noche en el monte pelado", autor: "Modest Mussorgsky",
+        interpretes: "Musopen", licencia: "Dominio público",
+        archivo: "./musica/mussorgsky-noche-en-el-monte-pelado.mp3",
+        fuente: "https://commons.wikimedia.org/wiki/File:Modest_Mussorgsky_-_night_on_bald_mountain.ogg",
+        ganancia: 1.0,
+    },
 };
+
+// ¿Qué pista toca en cada escena? (v58) Una función pura, para poder probarla.
+//   pantalla: la pantalla de Hoy, Aventuras, etc. (o "historia" si se lee la historia de la Torre)
+//   torre: null si la Torre está cerrada, o "torre" / "mazmorra" si hay una batalla
+//   elegida: la pista que tú elegiste en Ajustes; auto: si la música cambia según la escena (Ajustes)
+// Sin «auto», suena la que elegiste (y en la Torre y la Mazmorra, las de siempre).
+export const PANTALLAS_DE_LECTURA = ["pergamino", "biblioteca", "memorias", "libro", "pacto", "historia"];
+export function pistaDeEscena({ pantalla, torre = null, elegida = "epica", auto = true }) {
+    if (torre) return torre === "mazmorra" ? (auto ? "abismo" : "misterio") : "batalla";
+    if (!auto) return elegida;
+    if (PANTALLAS_DE_LECTURA.includes(pantalla)) return "lectura";
+    if (pantalla === "diario") return "nocturno";
+    if (pantalla === "mapa" || pantalla === "voces") return "alba";
+    return elegida;
+}
 
 const VOLUMEN_BASE = 0.5;     // la música va por debajo de los efectos de sonido
 const FUNDIDO = 1.2;          // segundos que tarda en subir o bajar el volumen

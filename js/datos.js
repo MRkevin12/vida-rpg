@@ -101,7 +101,8 @@ export function estadoInicial() {
                       pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase" },
         // Sonido, golpe con timing, eventos del día y música de fondo (pista elegida y volumen de 0 a 1).
         ajustes: { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true, esencial: false, esencialAlAbrir: true,
-                   animo: "bien", preguntarAnimo: true },   // (v49) cómo te sientes hoy: "mal" | "normal" | "bien" (decide el menú)
+                   animo: "bien", preguntarAnimo: true,
+                   musicaAuto: true },   // (v58) la música cambia según la escena (lectura, diario, mapa, Mazmorra)   // (v49) cómo te sientes hoy: "mal" | "normal" | "bien" (decide el menú)
         avisos: {                             // notificaciones (ver avisos.js)
             horarios: [],                     // recordatorios: { id, hora: "20:00", dias (como en misiones) }
             enfoque: true,                    // avisar cuando termine una sesión de enfoque
