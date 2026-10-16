@@ -6451,7 +6451,8 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    *, *::after {
+    /* (v88) La pantalla de carga se queda fuera: dura 4 s y su escena es lo que se quiere ver (ver «.carga» más abajo). */
+    :not(.carga):not(.carga *), :not(.carga):not(.carga *)::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
@@ -7150,10 +7151,9 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    /* (v88) Solo las chispas que suben; el aro y el ícono siguen: son lo que dice «está cargando». */
     .carga::before,
-    .carga::after,
-    .carga-aro,
-    .carga-icono {
+    .carga::after {
         animation: none;
     }
 }
@@ -11402,17 +11402,12 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     100% { opacity: 0; }
 }
 
+/* (v88) Con «Reducir movimiento» (muy común en iPhone) la escena SIGUE animándose: dura solo 4 s y es lo que se quiere ver.
+   Solo se apagan los efectos bruscos: el destello de pantalla completa y la estrella fugaz. */
 @media (prefers-reduced-motion: reduce) {
-    .carga-estrellas i,
     .carga-fugaz,
-    .carga-onda,
-    .carga-capa,
-    .carga-heroe,
-    .carga-paso,
-    .carga-llama,
-    .carga-destello { animation: none; }
-    .carga-heroe { transform: translate(250px, 188px); }
-    .carga-ventana { fill: #ffd27a; }
+    .carga-destello { animation: none; opacity: 0; }
+}
 }
 
 

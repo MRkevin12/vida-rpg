@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 87;
+export const VERSION_APP = 88;
 
 export const NOVEDADES = [
+    {
+        version: 88,
+        titulo: "La animación de la carga ahora siempre corre",
+        cambios: [
+            "🎬 Si tu iPhone tiene activado «Reducir movimiento», la escena de la pantalla de carga (el héroe caminando hacia la Torre, sus ventanas que se encienden y la Llama) se quedaba congelada. Ahora se anima siempre; solo se apagan el destello y la estrella fugaz.",
+        ],
+    },
     {
         version: 87,
         titulo: "Una fortaleza distinta en cada región",

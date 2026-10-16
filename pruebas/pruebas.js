@@ -2522,6 +2522,8 @@ prueba("Pantalla de carga (v85): dura 4 segundos con su escena, y con PIN va des
     cierto(/pedirPinParaEntrar\(entrarConCarga\)/.test(app) && /correrCarga\(entrarAlJuego, \{ completa: true \}\)/.test(app), "primero la clave y después la carga");
     const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
     cierto(css.includes(".carga.espera { display: none; }"), "la espera la esconde");
+    // (v88) Con «Reducir movimiento» (común en iPhone) la escena debe seguir animándose: la regla global que lo apaga todo se salta la carga.
+    cierto(css.includes(":not(.carga):not(.carga *)") && !/\.carga-heroe[^}]*\{[^}]*animation: none/.test(css), "la escena de la carga no se congela con «Reducir movimiento»");
 });
 
 prueba("Reino (v87): cada región tiene su propia fortaleza (y la Ciudadela, su brasero)", () => {

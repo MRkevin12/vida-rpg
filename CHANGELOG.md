@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v88 — La escena de la carga se anima también con «Reducir movimiento»
+- La regla global de `prefers-reduced-motion` (`animation-duration: 0.01ms !important`) congelaba la escena: ahora se salta la carga (`:not(.carga):not(.carga *)`). En esa opción solo se apagan `.carga-fugaz`, `.carga-destello` y las chispas que suben. Se comprobó con `reducedMotion: "reduce"` que el héroe, las capas, las ventanas y la Llama avanzan. 291 pruebas.
+
 ## v87 — Una fortaleza distinta en cada región
 - `dibujo-mapa.js`: `fortalezaDe(tipo, p, abierta)` elige entre `fortaleza` (castillo de piedra del Valle), `fortinDeMadera` (Bosque), `ciudadelaDeRoca` (Montañas), `palacioDeArena` (Desierto) y `fortalezaMarina` (Mar); la Ciudadela sigue con `brasero`. Comparten `puertaDe` y `bandera` (rejas y estandarte rojo si está cerrada; puerta encendida y estandarte blanco si la región está libre). Todas caben en el lienzo (el palo del estandarte no pasa del borde de arriba). 291 pruebas.
 
