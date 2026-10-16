@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 88;
+export const VERSION_APP = 89;
 
 export const NOVEDADES = [
+    {
+        version: 89,
+        titulo: "Las cinemáticas del reino vuelven a moverse",
+        cambios: [
+            "🎬 Las cinemáticas del reino (la llegada a una región, la caída de un señor y la apertura de la fortaleza) se quedaban como fotos fijas si tu iPhone tiene «Reducir movimiento»: el héroe no caminaba ni la cámara se movía. Ahora se animan siempre. Tu héroe y tu mascota también vuelven a pasear por el mapa.",
+            "🏰 La escena de la fortaleza ahora sale justo al pasarla: las escenas del mapa se ven en el orden de la historia (llegas, caen los señores, se abre la fortaleza) y caben hasta 3 por visita.",
+        ],
+    },
     {
         version: 88,
         titulo: "La animación de la carga ahora siempre corre",

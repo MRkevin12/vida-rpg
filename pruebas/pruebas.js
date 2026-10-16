@@ -2523,6 +2523,7 @@ prueba("Pantalla de carga (v85): dura 4 segundos con su escena, y con PIN va des
     const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
     cierto(css.includes(".carga.espera { display: none; }"), "la espera la esconde");
     // (v88) Con «Reducir movimiento» (común en iPhone) la escena debe seguir animándose: la regla global que lo apaga todo se salta la carga.
+    cierto(css.includes(":not(#cine):not(#cine *)"), "las cinemáticas del reino tampoco se congelan con «Reducir movimiento»");
     cierto(css.includes(":not(.carga):not(.carga *)") && !/\.carga-heroe[^}]*\{[^}]*animation: none/.test(css), "la escena de la carga no se congela con «Reducir movimiento»");
 });
 

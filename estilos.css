@@ -6451,16 +6451,24 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    /* (v88) La pantalla de carga se queda fuera: dura 4 s y su escena es lo que se quiere ver (ver «.carga» más abajo). */
-    :not(.carga):not(.carga *), :not(.carga):not(.carga *)::after {
+    /* (v88) La pantalla de carga se queda fuera: dura 4 s y su escena es lo que se quiere ver (ver «.carga» más abajo).
+       (v89) Y las cinemáticas del reino (#cine): sin movimiento serían fotos fijas (el héroe no camina, la cámara no se mueve). */
+    :not(.carga):not(.carga *):not(#cine):not(#cine *), :not(.carga):not(.carga *):not(#cine):not(#cine *)::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
 }
 
-/* La marca del golpe con timing es parte del juego: se mueve aunque se reduzca el movimiento. */
+/* La marca del golpe con timing es parte del juego: se mueve aunque se reduzca el movimiento.
+   (v89) También tu héroe y tu mascota paseando por el mapa del reino. */
 @media (prefers-reduced-motion: reduce) {
+    .mapa-heroe,
+    .mapa-mascota {
+        animation-duration: 0.9s !important;
+        animation-iteration-count: infinite !important;
+    }
+
     .golpe-marca {
         animation-duration: 1.3s !important;
         animation-iteration-count: infinite !important;
@@ -8192,15 +8200,9 @@ body:has(#deshacer:not([hidden])) .aviso {
     100% { opacity: 0; }
 }
 
-/* Quien prefiere menos movimiento: sin cámara, sin temblor y sin destellos (el texto y el cambio de toma siguen). */
+/* (v89) Quien prefiere menos movimiento: antes se apagaban la cámara, el temblor y el caminar del héroe, y la escena quedaba
+   como una foto fija. Ahora solo se apaga el destello de pantalla completa; lo demás se mueve. */
 @media (prefers-reduced-motion: reduce) {
-    .cine-mundo,
-    .cine-toma.efecto-temblor,
-    .cine-late .cine-sprite,
-    .cine-camina .cine-sprite {
-        animation: none;
-    }
-
     .cine-destello {
         display: none;
     }

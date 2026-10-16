@@ -738,7 +738,7 @@ async function reproducirEscena(cinematica, { criatura = null } = {}) {
 }
 
 // Las cinemáticas que tocan al abrir una pantalla: el mapa (región nueva, guaridas liberadas, fortalezas abiertas),
-// el arcade y la aldea. Como máximo 2 por visita, para no abrumar; las demás esperan a la próxima.
+// el arcade y la aldea. Como máximo 3 por visita, para no abrumar; las demás esperan a la próxima.
 async function revisarCines(pantalla) {
     if (!estado.personaje || !$("#cine").hidden || pantallaActual !== pantalla) return;
     const nombre = estado.personaje.nombre;
@@ -749,8 +749,12 @@ async function revisarCines(pantalla) {
     if (pantalla === "mapa") {
         const pos = mapa.posicion(estado);
         const campanas = campana.estadoCampanas(estado);
-        if (nuevo(cinesReino.claveDeRegion(pos.region))) pendientes.push({ clave: cinesReino.claveDeRegion(pos.region), cine: cinesReino.cinematicaDeRegion(pos.region, nombre) });
-        for (let region = pos.region; region >= 0; region--) {
+        // (v89) En orden de historia: de la primera región a la tuya; en cada una, primero llegas, luego caen los señores y al
+        // final se abre la fortaleza. Así, al pasar una fortaleza, su escena sale antes que la de la región siguiente.
+        for (let region = 0; region <= pos.region; region++) {
+            if (region === pos.region && nuevo(cinesReino.claveDeRegion(region))) {
+                pendientes.push({ clave: cinesReino.claveDeRegion(region), cine: cinesReino.cinematicaDeRegion(region, nombre) });
+            }
             for (const s of mapa.senoresDeRegion(region, campanas)) {
                 const clave = cinesReino.claveDeSenor(s.id);
                 if (s.tipo === "guarida" && s.liberada && (region < pos.region || s.n <= pos.enRegion) && nuevo(clave)) {
@@ -763,7 +767,7 @@ async function revisarCines(pantalla) {
             }
         }
     }
-    for (const { clave, cine: escena } of pendientes.slice(0, 2)) {
+    for (const { clave, cine: escena } of pendientes.slice(0, 3)) {
         const toca = acciones.verCinematica(estado, clave);
         datos.guardar(estado);
         if (toca) await reproducirEscena(escena);

@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v89 — Las cinemáticas del reino se animan también con «Reducir movimiento»
+- La regla global de `prefers-reduced-motion` ahora también se salta `#cine` (antes el héroe no caminaba y la cámara no se movía: se midió con `reducedMotion: "reduce"`), y `.mapa-heroe` / `.mapa-mascota` recuperan su paseo. Se quitó también el bloque propio de las cinemáticas que ponía `animation: none` a `.cine-mundo`, `.cine-late` y `.cine-camina` (solo queda oculto `.cine-destello`).
+- `revisarCines("mapa")`: la fila va en orden de historia (en cada región: llegada → señores → fortaleza) y caben 3 por visita (antes: la región nueva primero y la fortaleza al final, y solo 2; la escena de la fortaleza podía salir varias visitas después de pasarla). 291 pruebas.
+
 ## v88 — La escena de la carga se anima también con «Reducir movimiento»
 - La regla global de `prefers-reduced-motion` (`animation-duration: 0.01ms !important`) congelaba la escena: ahora se salta la carga (`:not(.carga):not(.carga *)`). En esa opción solo se apagan `.carga-fugaz`, `.carga-destello` y las chispas que suben. Se comprobó con `reducedMotion: "reduce"` que el héroe, las capas, las ventanas y la Llama avanzan. 291 pruebas.
 
