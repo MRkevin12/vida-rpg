@@ -2524,6 +2524,21 @@ prueba("Pantalla de carga (v85): dura 4 segundos con su escena, y con PIN va des
     cierto(css.includes(".carga.espera { display: none; }"), "la espera la esconde");
 });
 
+prueba("Reino (v87): cada región tiene su propia fortaleza (y la Ciudadela, su brasero)", () => {
+    const estado = partidaNueva();
+    const campanas = campana.estadoCampanas(estado);
+    const dibujo = (r, libre) => dibujarMapa({ ...mapa.datosParaDibujar(estado, r, campanas), alcanzado: 25, regionLibre: libre });
+    // Una marca de color propia de cada fortaleza: techos con musgo, roca azulada, cúpulas doradas, torres azules del mar, y el fuego del brasero.
+    const marcas = ["#2f5a2c", "#7c8aa6", "#e0b040", "#2a5a9a"];
+    marcas.forEach((color, i) => {
+        cierto(dibujo(i + 1, false).includes(color), `la región ${i + 2} tiene su fortaleza`);
+        cierto(!dibujo(0, false).includes(color), `el castillo del Valle no usa el color de la región ${i + 2}`);
+    });
+    cierto(dibujo(5, true).includes('class="brasero"') && !dibujo(5, true).includes("#2f5a2c"), "la Ciudadela, su brasero");
+    // Cerradas tienen rejas y abiertas, la puerta encendida.
+    for (let r = 0; r < 5; r++) cierto(dibujo(r, false) !== dibujo(r, true), `la fortaleza ${r + 1} cambia al abrirse`);
+});
+
 prueba("Reino (v86): números de cada región, franja con nombres, leyenda y rótulos en el mapa", () => {
     const estado = partidaDemo();
     const campanas = campana.estadoCampanas(estado);

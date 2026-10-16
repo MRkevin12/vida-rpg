@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v87 — Una fortaleza distinta en cada región
+- `dibujo-mapa.js`: `fortalezaDe(tipo, p, abierta)` elige entre `fortaleza` (castillo de piedra del Valle), `fortinDeMadera` (Bosque), `ciudadelaDeRoca` (Montañas), `palacioDeArena` (Desierto) y `fortalezaMarina` (Mar); la Ciudadela sigue con `brasero`. Comparten `puertaDe` y `bandera` (rejas y estandarte rojo si está cerrada; puerta encendida y estandarte blanco si la región está libre). Todas caben en el lienzo (el palo del estandarte no pasa del borde de arriba). 291 pruebas.
+
 ## v86 — El reino más completo y la carga de 4 segundos
 - **Entrada (v85/v86):** `index.html` deja la pantalla de carga con la clase `espera` si hay PIN guardado (`vida-rpg-pin` con `huella`); `app.js › correrCarga(alTerminar, { completa })` la muestra, dura `CARGA_DURACION` = 4000 ms (la salida de 550 ms va dentro) y llama a `alTerminar` cuando empieza a desvanecerse. Con PIN: `pedirPinParaEntrar` / `entrarConFaceId` → `correrCarga(entrarAlJuego, { completa: true })`; sin PIN, la cuenta empieza al abrir. La escena es HTML + SVG + CSS (sin archivos nuevos): estrellas, estrella fugaz, franjas de cine, capas de montañas en paralaje, la Torre con ventanas que se encienden y la Llama, el héroe caminando, destello final, porcentaje y 5 frases. `window.reiniciarCarga()` reinicia texto y consejo.
 - **Mapa:** `dibujo-mapa.js` › `INTERES` (puntos de interés por región, colocados por `repartidor` lejos del camino y sin pisarse), `CRUCES` (río, barranco o canal con puente de madera, cuerda o piedra), postes de señal, antorchas en la Ciudadela, muelle en el Mar, nubes, aves y brújula. El paisaje aleatorio se aparta de ellos (`evitar`).

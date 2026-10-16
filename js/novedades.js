@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 86;
+export const VERSION_APP = 87;
 
 export const NOVEDADES = [
+    {
+        version: 87,
+        titulo: "Una fortaleza distinta en cada región",
+        cambios: [
+            "🏰 Cada región del reino tiene su propia fortaleza: el castillo de piedra del Valle, un fortín de madera con musgo en el Bosque, una ciudadela de roca con techos nevados en las Montañas, un palacio de arena con cúpulas doradas y minaretes en el Desierto, y una fortaleza blanca y azul sobre una roca en el Mar. La Ciudadela sigue con su brasero.",
+            "✨ Al liberar la región, la puerta de su fortaleza se enciende y los estandartes se vuelven blancos.",
+        ],
+    },
     {
         version: 86,
         titulo: "El reino más completo y una entrada con cinemática",

@@ -295,6 +295,123 @@ function fortaleza(p, abierta) {
         ${abierta ? "" : `<path d="M${x - 5} ${y - 6} h10 M${x - 5} ${y - 3} h10 M${x - 2} ${y - 11} v11 M${x + 2} ${y - 11} v11" stroke="#5a5060" stroke-width=".8"/>`}`;
 }
 
+
+// ===== (v87) Una fortaleza distinta en cada región =====
+// Todas se dibujan sobre p (el lugar 25) y miden unos 56 de ancho y 40 de alto. `abierta` = la región está libre:
+// la puerta brilla y los estandartes se vuelven blancos (si no, puerta con rejas y estandartes rojos).
+const bandera = (x, y, abierta) => estandarte(x, y, abierta ? "#eef2ff" : "#b01c2c");
+const puertaDe = (x, y, abierta, w = 5, h = 9) => `<path d="M${x - w} ${y} L${x - w} ${y - h} Q${x} ${y - h - 6} ${x + w} ${y - h} L${x + w} ${y} Z" fill="${abierta ? "#ffd27a" : "#1a1222"}" stroke="${LINEA}" stroke-width="1"/>
+    ${abierta ? "" : `<path d="M${x - w} ${y - 6} h${2 * w} M${x - w} ${y - 3} h${2 * w} M${x - 2} ${y - h - 2} v${h + 2} M${x + 2} ${y - h - 2} v${h + 2}" stroke="#5a5060" stroke-width=".8"/>`}`;
+
+// Bosque: un fortín de madera, con muralla de troncos puntiagudos, techos con musgo y antorchas.
+function fortinDeMadera(p, abierta) {
+    const { x } = p;
+    const y = p.y + 4;
+    const troncos = (x0, n) => Array.from({ length: n }, (_, i) => `<path d="M${x0 + i * 4} ${y} V${y - 15} L${x0 + i * 4 + 2} ${y - 19} L${x0 + i * 4 + 4} ${y - 15} V${y} Z"
+        fill="${i % 2 ? "#6a4222" : "#7e5232"}" stroke="${LINEA}" stroke-width=".7"/>`).join("");
+    const torreon = (tx) => `<rect x="${tx - 5}" y="${y - 32}" width="10" height="32" fill="#7a4e2a" stroke="${LINEA}" stroke-width="1"/>
+        <path d="M${tx - 5} ${y - 22} h10 M${tx - 5} ${y - 12} h10" stroke="#4a2e1a" stroke-width="1"/>
+        <rect x="${tx - 7}" y="${y - 35}" width="14" height="4" fill="#5a3a20" stroke="${LINEA}" stroke-width="1"/>
+        <path d="M${tx - 8} ${y - 35} L${tx} ${y - 46} L${tx + 8} ${y - 35} Z" fill="#2f5a2c" stroke="${LINEA}" stroke-width="1" stroke-linejoin="round"/>
+        <path d="M${tx - 5} ${y - 38} q3 -2 6 0" stroke="#68a84a" stroke-width="1.4" fill="none"/>
+        <rect x="${tx - 1}" y="${y - 27}" width="2" height="3" fill="${abierta ? "#ffd27a" : "#2a2230"}"/>
+        ${bandera(tx, y - 38, abierta)}`;
+    return `<ellipse cx="${x}" cy="${y + 2}" rx="26" ry="3" fill="#000" opacity=".35"/>
+        ${troncos(x - 14, 7)}${troncos(x + 2, 3)}
+        ${torreon(x - 20)}${torreon(x + 20)}
+        <path d="M${x - 6} ${y} L${x - 6} ${y - 11} L${x} ${y - 16} L${x + 6} ${y - 11} L${x + 6} ${y} Z" fill="#5a3a20" stroke="${LINEA}" stroke-width="1"/>
+        ${puertaDe(x, y, abierta, 4, 8)}
+        <ellipse cx="${x - 9}" cy="${y - 1}" rx="3" ry="1.2" fill="#4a8a3a"/><ellipse cx="${x + 11}" cy="${y - 1}" rx="3" ry="1.2" fill="#4a8a3a"/>
+        <rect x="${x - 10}" y="${y - 15}" width="1.2" height="5" fill="#5a3a20"/><circle cx="${x - 9.4}" cy="${y - 17}" r="3" fill="#ffd27a" opacity=".4"/><path d="M${x - 9.4} ${y - 19.6} q1.4 1.6 0 3 q-1.4 -1.4 0 -3 Z" fill="#ff9a1f"/>`;
+}
+
+// Montañas: una ciudadela de roca azulada pegada a un pico, con techos nevados.
+function ciudadelaDeRoca(p, abierta) {
+    const { x } = p;
+    const y = p.y + 4;
+    const roca = "#7c8aa6";
+    const sombraRoca = "#5c6a86";
+    const torre = (tx, alto) => `<rect x="${tx - 4.5}" y="${y - alto}" width="9" height="${alto}" fill="${roca}" stroke="${LINEA}" stroke-width="1"/>
+        <rect x="${tx + 1}" y="${y - alto}" width="3.5" height="${alto}" fill="${sombraRoca}"/>
+        <path d="M${tx - 6} ${y - alto} L${tx} ${y - alto - 11} L${tx + 6} ${y - alto} Z" fill="#eef2ff" stroke="${LINEA}" stroke-width="1" stroke-linejoin="round"/>
+        <rect x="${tx - 1}" y="${y - alto + 6}" width="2" height="3" fill="${abierta ? "#ffd27a" : "#1a1830"}"/>`;
+    return `${montana(x, y + 2, 2.3)}
+        <ellipse cx="${x}" cy="${y + 2}" rx="26" ry="3" fill="#000" opacity=".35"/>
+        ${torre(x - 19, 22)}${torre(x + 19, 26)}
+        <rect x="${x - 13}" y="${y - 24}" width="26" height="24" fill="${roca}" stroke="${LINEA}" stroke-width="1"/>
+        <rect x="${x + 4}" y="${y - 24}" width="9" height="24" fill="${sombraRoca}"/>
+        <path d="M${x - 15} ${y - 24} L${x} ${y - 38} L${x + 15} ${y - 24} Z" fill="#eef2ff" stroke="${LINEA}" stroke-width="1" stroke-linejoin="round"/>
+        <path d="M${x} ${y - 38} L${x + 15} ${y - 24} L${x + 5} ${y - 24} Z" fill="#c4d2ea"/>
+        <rect x="${x - 9}" y="${y - 18}" width="3" height="4" fill="${abierta ? "#ffd27a" : "#1a1830"}"/><rect x="${x + 6}" y="${y - 18}" width="3" height="4" fill="${abierta ? "#ffd27a" : "#1a1830"}"/>
+        ${puertaDe(x, y, abierta, 4.5, 8)}
+        ${bandera(x - 19, y - 33, abierta)}${bandera(x + 19, y - 37, abierta)}`;
+}
+
+// Desierto: un palacio de arena con cúpulas doradas y minaretes.
+function palacioDeArena(p, abierta) {
+    const { x } = p;
+    const y = p.y + 4;
+    const arena = "#dcc088";
+    const sombraArena = "#b89a62";
+    const oro = "#e0b040";
+    const minarete = (tx) => `<rect x="${tx - 2.6}" y="${y - 34}" width="5.2" height="34" fill="${arena}" stroke="${LINEA}" stroke-width="1"/>
+        <rect x="${tx + 0.6}" y="${y - 34}" width="2" height="34" fill="${sombraArena}"/>
+        <rect x="${tx - 4}" y="${y - 28}" width="8" height="2.6" fill="${sombraArena}" stroke="${LINEA}" stroke-width=".7"/>
+        <path d="M${tx - 3.4} ${y - 34} Q${tx} ${y - 44} ${tx + 3.4} ${y - 34} Z" fill="${oro}" stroke="${LINEA}" stroke-width="1"/>
+        <path d="M${tx} ${y - 43} v-5" stroke="${LINEA}" stroke-width="1"/><circle cx="${tx}" cy="${y - 48.4}" r="1.4" fill="${oro}"/>`;
+    const cupula = (cx, cy, r, color) => `<rect x="${cx - r * 0.7}" y="${cy}" width="${r * 1.4}" height="3" fill="${arena}" stroke="${LINEA}" stroke-width=".8"/>
+        <path d="M${cx - r} ${cy} Q${cx - r} ${cy - r * 1.7} ${cx} ${cy - r * 1.9} Q${cx + r} ${cy - r * 1.7} ${cx + r} ${cy} Z" fill="${color}" stroke="${LINEA}" stroke-width="1"/>
+        <path d="M${cx - r * 0.5} ${cy - r * 0.4} q0 ${-r * 0.9} ${r * 0.3} ${-r * 1.2}" stroke="#fff" stroke-width="1" opacity=".35" fill="none"/>`;
+    return `<ellipse cx="${x}" cy="${y + 2}" rx="30" ry="3" fill="#000" opacity=".3"/>
+        ${minarete(x - 25)}${minarete(x + 25)}
+        <rect x="${x - 21}" y="${y - 17}" width="42" height="17" fill="${arena}" stroke="${LINEA}" stroke-width="1"/>
+        <rect x="${x + 6}" y="${y - 17}" width="15" height="17" fill="${sombraArena}" opacity=".55"/>
+        ${cupula(x - 12, y - 17, 6, "#3a9ac8")}${cupula(x + 12, y - 17, 6, "#3a9ac8")}${cupula(x, y - 22, 9, oro)}
+        <rect x="${x - 9}" y="${y - 22}" width="18" height="22" fill="${arena}" stroke="${LINEA}" stroke-width="1"/>
+        <path d="M${x - 5} ${y - 14} q0 -4 2.5 -4 q2.5 0 2.5 4 M${x + 0.5} ${y - 14} q0 -4 2.5 -4 q2.5 0 2.5 4" fill="${abierta ? "#ffd27a" : "#2a2230"}" stroke="${LINEA}" stroke-width=".7"/>
+        ${puertaDe(x, y, abierta, 5, 6)}
+        <path d="M${x - 21} ${y - 17} h42" stroke="${oro}" stroke-width="1.2"/>`;
+}
+
+// Mar: una fortaleza blanca y azul sobre una roca en el agua, con una torre con lámpara.
+function fortalezaMarina(p, abierta) {
+    const { x } = p;
+    const y = p.y + 4;
+    const piedra = "#cdd8e8";
+    const sombraPiedra = "#9fb0c8";
+    const azul = "#2a5a9a";
+    const torre = (tx) => `<rect x="${tx - 4.5}" y="${y - 28}" width="9" height="28" fill="${piedra}" stroke="${LINEA}" stroke-width="1"/>
+        <rect x="${tx + 0.6}" y="${y - 28}" width="3.9" height="28" fill="${sombraPiedra}"/>
+        <path d="M${tx - 6.4} ${y - 28} L${tx} ${y - 40} L${tx + 6.4} ${y - 28} Z" fill="${azul}" stroke="${LINEA}" stroke-width="1" stroke-linejoin="round"/>
+        <rect x="${tx - 1}" y="${y - 22}" width="2" height="3" fill="${abierta ? "#ffd27a" : "#1a2a4a"}"/>
+        ${bandera(tx, y - 37, abierta)}`;
+    const olas = [-24, -10, 6, 20].map((d) => ola(x + d, y + 3, "#bcdcf4")).join("");
+    return `<ellipse cx="${x}" cy="${y + 3}" rx="34" ry="6" fill="#0f3a6a" opacity=".5"/>
+        <path d="M${x - 30} ${y + 3} Q${x - 26} ${y - 4} ${x - 18} ${y - 2} L${x + 18} ${y - 2} Q${x + 26} ${y - 4} ${x + 30} ${y + 3} Z" fill="#5a6070" stroke="${LINEA}" stroke-width="1"/>
+        ${torre(x - 20)}${torre(x + 20)}
+        <rect x="${x - 15}" y="${y - 18}" width="30" height="16" fill="${piedra}" stroke="${LINEA}" stroke-width="1"/>
+        <rect x="${x + 4}" y="${y - 18}" width="11" height="16" fill="${sombraPiedra}" opacity=".6"/>
+        <g transform="translate(0 -21)">${Array.from({ length: 7 }, (_, i) => `<rect x="${x - 15 + i * 4.4}" y="0" width="2.6" height="3" fill="${piedra}" stroke="${LINEA}" stroke-width=".6"/>`).join("")}</g>
+        <rect x="${x - 4}" y="${y - 34}" width="8" height="16" fill="${piedra}" stroke="${LINEA}" stroke-width="1"/>
+        <rect x="${x - 5}" y="${y - 39}" width="10" height="5" fill="${abierta ? "#ffd27a" : "#2a3a5a"}" stroke="${LINEA}" stroke-width="1"/>
+        ${abierta ? `<circle cx="${x}" cy="${y - 36.5}" r="9" fill="#ffd27a" opacity=".3"/>` : ""}
+        <path d="M${x - 6} ${y - 39} L${x} ${y - 46} L${x + 6} ${y - 39} Z" fill="${azul}" stroke="${LINEA}" stroke-width="1" stroke-linejoin="round"/>
+        ${puertaDe(x, y - 2, abierta, 4, 7)}
+        <path d="M${x + 9} ${y - 12} v5 m-2 -3 h4 m-4 5 a2 2 0 0 0 4 0" stroke="${azul}" stroke-width="1" fill="none"/>
+        ${olas}`;
+}
+
+// La fortaleza de cada región (la Ciudadela termina en el brasero, que se dibuja aparte).
+function fortalezaDe(tipo, p, abierta) {
+    switch (tipo) {
+        case "bosque": return fortinDeMadera(p, abierta);
+        case "montanas": return ciudadelaDeRoca(p, abierta);
+        case "desierto": return palacioDeArena(p, abierta);
+        case "mar": return fortalezaMarina(p, abierta);
+        default: return fortaleza(p, abierta);   // el castillo de piedra del Valle
+    }
+}
+
 // La Torre de los Vigías, en el valle, junto a la partida (v37). Sus ventanas se encienden de
 // abajo hacia arriba con los pisos que subiste (6 ventanas para los `tope` pisos: 30 desde la
 // v38), y arriba arde la Llama cuando terminas la saga.
@@ -667,7 +784,7 @@ export function dibujarMapa(datos) {
             case "santuario": return santuario(p, alcanzado, lugar.reclamado);
             case "guarida": return guarida(p, lugar.libre, alcanzado);
             case "memorial": return memorial(p, lugar.libre);
-            case "fortaleza": return tramo === CIUDADELA ? brasero(p, datos.regionLibre) : fortaleza(p, datos.regionLibre && alcanzado);
+            case "fortaleza": return tramo === CIUDADELA ? brasero(p, datos.regionLibre) : fortalezaDe(tipo, p, datos.regionLibre && alcanzado);
             default: return marca(p, alcanzado);
         }
     });
