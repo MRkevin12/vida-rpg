@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v83 — El gimnasio, en secciones
+- `pantallaGym` (vistas-gym.js) usa `selectorSecciones` (ahora exportado de vistas.js) con `SECCIONES_GYM`: **Entrenar** (resumen, nivel compacto, consejo, meta de la semana y rutinas), **Progreso** (constancia, músculos, récords, hitos, sesiones), **Cuerpo** (nivel grande con vista previa, evolución, peso y medidas) y **Más** (lecturas de la Fragua y ajustes). La sección vive en `subvista.gym` (app.js; por defecto `entrenar`); con un entrenamiento en curso no hay menú, y el resumen recién terminado fuerza «Entrenar». Pruebas: `gymEn(sección, estado, ctx)` y una prueba nueva del menú. 289 pruebas.
+
 ## v82 — Medidas, peso objetivo y «tu cuerpo cambió»
 - `estado.gym.metaPeso` y `gym.avanceDePeso` (falta con signo, porcentaje, `llego`); `estado.gym.medidas` (`[{ fecha, pecho, brazo, cintura, muslo }]`, una por día) con `gym.MEDIDAS` y `cambioDeMedida`; `acciones.anotarMetaPesoGym` y `anotarMedidasGym`. Ambos se migran en `completar` (vacíos). `guardarSesionGym` añade la celebración `cuerpo: { antes, despues }` cuando sube el escalón de físico; `siguienteCelebracion` (app.js) la dibuja con `dibujarAvatarGym` (`.cel-cuerpos`). 288 pruebas.
 

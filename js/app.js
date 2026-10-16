@@ -76,7 +76,7 @@ let ritual = null;               // el ritual de la noche en curso: { paso, cola
 let golpe = null;                // el golpe con timing en curso
 let alCerrarRobo = null;         // qué hacer cuando se cierre la escena del robo de vida
 // Las secciones elegidas en las pantallas largas (el selector de arriba): solo se ve una a la vez.
-const subvista = { progreso: "numeros", tienda: "recompensas", personaje: "equipo" };
+const subvista = { progreso: "numeros", tienda: "recompensas", personaje: "equipo", gym: "entrenar" };
 let agruparHoy = "atributo";   // (v51) en Hoy, las misiones se agrupan por "atributo" o por "momento"
 let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (null = la del jefe más cerca de caer)
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)

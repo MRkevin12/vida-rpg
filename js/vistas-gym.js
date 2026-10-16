@@ -12,7 +12,7 @@ import { describirMaestro } from "./maestro.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { dibujarMovimiento } from "./dibujo-ejercicios.js";
 import { plural } from "./juego.js";
-import { esc } from "./vistas.js";
+import { esc, selectorSecciones } from "./vistas.js";
 import { fechaCorta, sumarDias, lunesDe, diaDeSemana, DIAS_LETRAS, hoy as hoyDeHoy } from "./fechas.js";
 
 const barra = (porcentaje, clase = "") => `<div class="barra ${clase}"><div class="barra-relleno" style="width: ${porcentaje}%"></div></div>`;
@@ -85,27 +85,48 @@ export function tarjetaGymHoy(estado, ctx) {
 }
 
 // ===== La pantalla del gimnasio =====
-// ctx = { hoy, ahora, avatar, descanso: { fin, total } | null }
+// (v83) Un menú de 4 secciones (como Progreso y Tienda) en vez de una sola pantalla larguísima:
+//   Entrenar (lo de hoy) · Progreso (músculos, récords, hitos, historial) · Cuerpo (físico, evolución, peso, medidas) · Más (Fragua y ajustes).
+// Mientras hay un entrenamiento en curso no hay menú: solo ves el entrenamiento.
+export const SECCIONES_GYM = [["entrenar", "🏋️ Entrenar"], ["progreso", "📈 Progreso"], ["cuerpo", "🧍 Cuerpo"], ["mas", "📜 Más"]];
+
+// ctx = { hoy, ahora, avatar, descanso: { fin, total } | null, subvista }
 export function pantallaGym(estado, ctx) {
     const g = estado.gym;
-    return `
+    const encabezado = `
         <div class="titulo-seccion encabezado">
             <h2 class="titulo-juego">🏋️ Gimnasio</h2>
             <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="hoy">‹ Hoy</button>
-        </div>
-        ${!g.encurso && ctx.resumenGym ? tarjetaResumen(estado, ctx) : ""}
-        ${tarjetaNivel(estado, ctx, Boolean(g.encurso))}
-        ${g.encurso ? "" : consejoDelDia(ctx)}
-        ${g.encurso ? "" : tarjetaEvolucion(estado, ctx)}
-        ${g.encurso ? entrenamientoActual(estado, ctx) : `${tarjetaSemana(estado, ctx)}${listaDeRutinas(estado, ctx)}${tarjetaConstancia(estado, ctx)}`}
-        ${g.encurso ? "" : `
+        </div>`;
+    if (g.encurso) return `${encabezado}${tarjetaNivel(estado, ctx, true)}${entrenamientoActual(estado, ctx)}`;
+
+    // Si acabas de terminar un entrenamiento, el resumen se ve en «Entrenar».
+    const pedida = ctx.subvista?.gym;
+    const seccion = ctx.resumenGym || !SECCIONES_GYM.some(([clave]) => clave === pedida) ? "entrenar" : pedida;
+    const menu = selectorSecciones("gym", SECCIONES_GYM, seccion);
+    const contenido = {
+        entrenar: () => `
+            ${ctx.resumenGym ? tarjetaResumen(estado, ctx) : ""}
+            ${tarjetaNivel(estado, ctx, true)}
+            ${consejoDelDia(ctx)}
+            ${tarjetaSemana(estado, ctx)}
+            ${listaDeRutinas(estado, ctx)}`,
+        progreso: () => `
+            ${tarjetaConstancia(estado, ctx)}
             ${tarjetaMusculos(estado)}
             ${tarjetaRecords(estado)}
             ${tarjetaHitos(estado)}
-            ${tarjetaLecturas(estado)}
-            ${tarjetaPeso(estado, ctx)}
             ${tarjetaHistorial(estado)}
-            ${tarjetaAjustes(estado)}`}`;
+            ${estado.gym.sesiones.length ? "" : '<p class="vacio">Aún no hay entrenamientos. Cuando anotes el primero, aquí verás tu constancia, tus músculos y tus récords.</p>'}`,
+        cuerpo: () => `
+            ${tarjetaNivel(estado, ctx, false)}
+            ${tarjetaEvolucion(estado, ctx)}
+            ${tarjetaPeso(estado, ctx)}`,
+        mas: () => `
+            ${tarjetaLecturas(estado)}
+            ${tarjetaAjustes(estado)}`,
+    }[seccion];
+    return `${encabezado}${menu}${contenido()}`;
 }
 
 function tarjetaNivel(estado, ctx, compacta = false) {
@@ -145,8 +166,8 @@ function tarjetaNivel(estado, ctx, compacta = false) {
                 <p class="mini texto-suave">${n.xpEnNivel} / ${n.xpNecesaria} XP${siguiente ? ` · ${siguiente.icono} ${siguiente.nombre} en el nivel ${siguiente.desde}` : ""}</p>
             </div>
         </section>
-        ${controles}
-<p class="nota gym-bono">${bono ? `💪 Tu entrenamiento le da a tu héroe <b>+${bono} % de vida y de ataque</b> en la Torre y en las mazmorras.`
+        ${compacta ? "" : controles}
+        <p class="nota gym-bono">${bono ? `💪 Tu entrenamiento le da a tu héroe <b>+${bono} % de vida y de ataque</b> en la Torre y en las mazmorras.`
             : "💪 Desde el nivel 2, cada nivel de gym le da a tu héroe +1 % de vida y de ataque en la Torre y las mazmorras (hasta +25 %)."}
             ${total.sesiones ? ` Llevas ${plural(total.sesiones, "sesión", "sesiones")}, ${plural(total.series, "serie", "series")} y ${total.volumen.toLocaleString("es")} kg movidos.` : ""}</p>`;
 }

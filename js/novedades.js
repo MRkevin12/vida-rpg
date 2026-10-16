@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 82;
+export const VERSION_APP = 83;
 
 export const NOVEDADES = [
+    {
+        version: 83,
+        titulo: "Un gimnasio más ordenado",
+        cambios: [
+            "🗂️ El Gimnasio ahora tiene un menú arriba con 4 secciones: 🏋️ Entrenar (tu meta, el consejo de Aurelio y las rutinas), 📈 Progreso (constancia, músculos, récords, hitos y sesiones), 🧍 Cuerpo (tu físico, evolución, peso y medidas) y 📜 Más (lecturas de la Fragua y ajustes).",
+            "🎯 Mientras entrenas el menú se esconde y ves solo tu entrenamiento.",
+        ],
+    },
     {
         version: 82,
         titulo: "Tu cuerpo: medidas, objetivo y cambios",

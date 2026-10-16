@@ -74,7 +74,7 @@ function vacio(texto) {
 
 // Las secciones de una pantalla larga, como pestañas pequeñas arriba (solo se ve una a la vez).
 // opciones = [[clave, texto], …]. Se queda pegado bajo la cabecera al bajar.
-function selectorSecciones(pantalla, opciones, actual) {
+export function selectorSecciones(pantalla, opciones, actual) {
     return `
         <div class="selector selector-secciones" role="group" aria-label="Secciones">
             ${opciones.map(([clave, texto]) => `<button type="button" data-accion="subvista" data-pantalla="${pantalla}"

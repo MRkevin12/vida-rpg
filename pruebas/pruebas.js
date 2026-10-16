@@ -5471,12 +5471,29 @@ prueba("Gym: una partida guardada sin gimnasio lo recibe vacío, y las sesiones 
     igual(copia.gym.metaSemanal, 4);
 });
 
+// (v83) La pantalla del gym tiene secciones: esto dibuja la que se pide.
+const gymEn = (seccion, estado, ctx) => vistasGym.pantallaGym(estado, { ...ctx, subvista: { gym: seccion } });
+
+prueba("Gym (v83): el menú de secciones separa la pantalla en Entrenar, Progreso, Cuerpo y Más", () => {
+    const estado = partidaNueva();
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const entrenar = vistasGym.pantallaGym(estado, ctx);
+    igual((entrenar.match(/data-accion="subvista" data-pantalla="gym"/g) || []).length, 4, "4 botones de sección");
+    cierto(entrenar.includes("Tu meta de la semana") && !entrenar.includes("Peso corporal") && !entrenar.includes("Ajustes del gym"), "Entrenar solo trae lo de hoy");
+    cierto(gymEn("progreso", estado, ctx).includes("Tus músculos"), "Progreso");
+    cierto(gymEn("cuerpo", estado, ctx).includes("Peso corporal") && !gymEn("cuerpo", estado, ctx).includes("Tus músculos"), "Cuerpo");
+    cierto(gymEn("mas", estado, ctx).includes("Ajustes del gym"), "Más");
+    cierto(gymEn("no-existe", estado, ctx).includes("Tu meta de la semana"), "una sección desconocida cae en Entrenar");
+    acciones.empezarGym(estado, "pecho-triceps");
+    cierto(!gymEn("cuerpo", estado, ctx).includes('data-pantalla="gym"'), "entrenando no hay menú");
+});
+
 prueba("Gym: las pantallas se dibujan (la fila de Hoy, la elección, el entrenamiento y los resultados)", () => {
     const estado = partidaNueva();
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
     cierto(vistasGym.tarjetaGymHoy(estado, ctx).includes("hoy toca Pecho + Tríceps"));
-    let html = vistasGym.pantallaGym(estado, ctx);
-    cierto(html.includes('data-accion="gym-empezar"') && html.includes("Tus músculos"), "elección");
+    let html = gymEn("entrenar", estado, ctx);
+    cierto(html.includes('data-accion="gym-empezar"') && gymEn("progreso", estado, ctx).includes("Tus músculos"), "elección");
     acciones.empezarGym(estado, "pecho-triceps");
     estado.gym.foco = false;   // la lista de siempre
     html = vistasGym.pantallaGym(estado, { ...ctx, descanso: { fin: Date.now() + 60000, total: 60000 } });
@@ -5484,7 +5501,7 @@ prueba("Gym: las pantallas se dibujan (la fila de Hoy, la elección, el entrenam
     cierto(vistasGym.tarjetaGymHoy(estado, ctx).includes("Entrenando"));
     acciones.marcarSerieGym(estado, 0, 0);
     acciones.terminarGym(estado);
-    html = vistasGym.pantallaGym(estado, ctx);
+    html = gymEn("progreso", estado, ctx);
     cierto(html.includes("Récords personales") && html.includes("Últimas sesiones") && html.includes("Hitos de gym"), "resultados");
     cierto(html.includes("Tu constancia") && (html.match(/gym-cuadro n/g) || []).length === 84, "el calendario de 12 semanas tiene 84 cuadritos");
     cierto(vistasGym.tarjetaGymHoy(estado, ctx).includes("Hoy entrenaste"));
@@ -5502,8 +5519,8 @@ prueba("Gym: la gráfica de cada ejercicio y el peso corporal", () => {
     acciones.anotarPesoGym(estado, 78.1);
     igual(estado.gym.peso, [{ fecha: hoy(), kg: 78.1 }], "uno por día: el segundo cambia el primero");
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
-    const html = vistasGym.pantallaGym(estado, ctx);
-    cierto(html.includes("Peso corporal") && html.includes("78,1 kg") && html.includes("gym-spark"), "se ve el peso y las gráficas");
+    const html = gymEn("cuerpo", estado, ctx);
+    cierto(html.includes("Peso corporal") && html.includes("78,1 kg") && gymEn("progreso", estado, ctx).includes("gym-spark"), "se ve el peso y las gráficas");
 });
 
 prueba("Gym: al terminar un entrenamiento se marca sola la misión que elegiste", () => {
@@ -5558,7 +5575,7 @@ prueba("Gym: las 7 lecturas de la Fragua se abren con el nivel de gym", () => {
     igual(fragua.lecturasAbiertas(30).length, 7);
     const estado = partidaNueva();
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
-    const html = vistasGym.pantallaGym(estado, ctx);
+    const html = gymEn("mas", estado, ctx);
     cierto(html.includes("Lecturas de la Fragua") && html.includes("El hierro no pide permiso") && html.includes("Se abre en el nivel 2"), "la primera abierta y la segunda cerrada");
 });
 
@@ -5697,9 +5714,10 @@ prueba("Gym (meta): se puede marcar «hoy entrené» sin anotar series: da XP, c
     igual(estado.atributos.fuerza, xp - gym.XP_RAPIDO);
     // La pantalla ofrece el botón de marcar y deja intacto lo de Ajustes del gym.
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
-    const html = vistasGym.pantallaGym(partidaNueva(), ctx);
+    const html = gymEn("entrenar", partidaNueva(), ctx);
     cierto(html.includes('data-accion="gym-rapido"') && html.includes("Marcar que hoy entrené"), "botón para marcar");
-    cierto(html.includes('data-accion="gym-meta"') && html.includes('data-accion="gym-descanso"') && html.includes("data-gym-mision"), "los ajustes del gym siguen ahí");
+    const mas = gymEn("mas", partidaNueva(), ctx);
+    cierto(mas.includes('data-accion="gym-meta"') && mas.includes('data-accion="gym-descanso"') && mas.includes("data-gym-mision"), "los ajustes del gym siguen ahí");
     cierto(vistasGym.tarjetaGymHoy(partidaNueva(), ctx).includes('data-accion="gym-rapido"'), "y en Hoy también");
 });
 
@@ -5717,7 +5735,7 @@ prueba("Gym (IMC): altura, peso, categorías y la silueta del avatar", () => {
     acciones.anotarPesoGym(estado, 80);
     igual([estado.gym.altura, gym.imcActual(estado.gym)], [175, 26.1]);
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
-    const html = vistasGym.pantallaGym(estado, ctx);
+    const html = gymEn("cuerpo", estado, ctx);
     cierto(html.includes("26,1") && html.includes("Sobrepeso") && html.includes("data-form=\"gym-altura\""), "la tarjeta muestra el IMC");
     const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
     igual(copia.gym.altura, 175, "la altura viaja en la copia");
@@ -5806,10 +5824,10 @@ prueba("Gym (habilidades de constancia): Vigor, Ritmo, Titán y Brasa hacen lo q
 prueba("Gym (vista previa): se puede ver el cuerpo con otro nivel o peso sin tocar los datos", () => {
     const estado = partidaNueva();
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
-    const normal = vistasGym.pantallaGym(estado, ctx);
+    const normal = gymEn("cuerpo", estado, ctx);
     cierto(normal.includes('data-accion="gym-vista"') && !normal.includes("Vista previa (no es tu cuerpo real)"), "los controles están, sin vista previa activa");
     igual((normal.match(/data-fisico="/g) || []).length, 6, "un botón por cada nivel de físico");
-    const maximo = vistasGym.pantallaGym(estado, { ...ctx, gymVista: { fisico: 5, corp: 0 } });
+    const maximo = gymEn("cuerpo", estado, { ...ctx, gymVista: { fisico: 5, corp: 0 } });
     cierto(maximo.includes("Vista previa (no es tu cuerpo real)") && maximo.includes("Titán") && maximo.includes("el máximo"), "vista del máximo");
     cierto(maximo !== normal, "se ve distinto");
     igual(estado.gym.sesiones.length, 0, "no cambia los datos");
@@ -5959,9 +5977,9 @@ prueba("Gym (v79): tu evolución, el reto de la semana con premio, el consejo de
     igual([fotos[0].kg, fotos[1].kg, fotos[2].kg], [90, 90, 82], "el peso que tenías entonces");
     cierto(fotos[0].corpulencia > fotos[2].corpulencia, "más delgado con el tiempo");
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
-    let html = vistasGym.pantallaGym(estado, ctx);
-    cierto(html.includes("Tu evolución") && (html.match(/<figure class="gym-foto/g) || []).length === 4 && html.includes("Consejo de Aurelio") && html.includes("Reto de la semana"), "tarjetas de evolución, consejo y reto");
-    cierto(!vistasGym.pantallaGym(partidaNueva(), ctx).includes("Tu evolución"), "sin historia no hay evolución");
+    let html = gymEn("cuerpo", estado, ctx);
+    cierto(html.includes("Tu evolución") && (html.match(/<figure class="gym-foto/g) || []).length === 4 && gymEn("entrenar", estado, ctx).includes("Consejo de Aurelio") && gymEn("entrenar", estado, ctx).includes("Reto de la semana"), "tarjetas de evolución, consejo y reto");
+    cierto(!gymEn("cuerpo", partidaNueva(), ctx).includes("Tu evolución"), "sin historia no hay evolución");
 
     // El consejo del día cambia con la fecha y es estable en el día.
     igual(gymAurelio.consejoDelDia("2026-10-15"), gymAurelio.consejoDelDia("2026-10-15"));
@@ -6080,7 +6098,7 @@ prueba("Gym (v82): peso objetivo, medidas del cuerpo y la celebración de «tu c
     igual(gym.cambioDeMedida(estado.gym.medidas, "muslo"), null);
     estado.gym.peso = [{ fecha: sumarDias(hoy(), -20), kg: 80 }, { fecha: hoy(), kg: 77 }];
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
-    const html = vistasGym.pantallaGym(estado, ctx);
+    const html = gymEn("cuerpo", estado, ctx);
     cierto(html.includes("Medidas del cuerpo") && html.includes("-5 cm desde el inicio") && html.includes("Tu objetivo") && html.includes("te faltan") && html.includes('data-form="gym-medidas"') && html.includes('data-form="gym-meta-peso"'), "las tarjetas se ven");
     cierto(datos.desdeRespaldo(datos.textoRespaldo(estado)).gym.medidas.length === 2 && datos.desdeRespaldo(datos.textoRespaldo(estado)).gym.metaPeso === 70, "viajan en la copia");
     const viejo = JSON.parse(JSON.stringify(estado)); delete viejo.gym.medidas; delete viejo.gym.metaPeso;
