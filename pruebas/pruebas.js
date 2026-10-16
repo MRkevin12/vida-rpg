@@ -5245,7 +5245,9 @@ prueba("Mazmorras nuevas (pantallas): tarjetas en el Arcade (cerradas con lo que
         cierto(html.includes(`data-accion="torre-abrir" data-lugar="${lugar}"`) && html.includes(`data-accion="historia-abrir" data-lugar="${lugar}"`), `${lugar}: entrar e historia`);
     }
     cierto(html.includes("Bajar a las minas") && html.includes("Entrar al laberinto") && html.includes("Récord: 11 niveles superados") && html.includes('data-sala="ecos"'), "textos propios, récord y portada");
-    cierto(html.includes('name="marca-minas"') && html.includes('name="marca-laberinto"') && !html.includes("Ayuno"), "marcas para cada una (sin «Ayuno», que es de la Torre)");
+    // («Ayuno» puede salir en el Reto diario de la Torre según el día: solo se mira lo que ofrecen las minas y el laberinto.)
+    const marcasDeMinas = html.match(/<input type="radio" name="marca-(minas|laberinto)"[^>]*><span>.*?<\/span>/g) || [];
+    cierto(html.includes('name="marca-minas"') && html.includes('name="marca-laberinto"') && marcasDeMinas.length > 2 && !marcasDeMinas.some((m) => m.includes("Ayuno")), "marcas para cada una (sin «Ayuno», que es de la Torre)");
     // El bestiario muestra los lugares abiertos y los cerrados con su motivo.
     const imagenes = Object.fromEntries(Object.values(bestiario.LUGARES).flatMap((l) => l.orden).map((id) => [id, "data:image/png;base64,AA"]));
     html = vistas.pantallaBestiario({ bestiario: {}, sprites: imagenes, abiertos: ["torre", "mazmorra", "minas"] });
