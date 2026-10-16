@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 83;
+export const VERSION_APP = 84;
 
 export const NOVEDADES = [
+    {
+        version: 84,
+        titulo: "Gimnasio más armonioso",
+        cambios: [
+            "🎨 Todo el gimnasio usa ahora el dorado como único color de acento (barras, días hechos, «Toca hoy», contadores) en vez de mezclar rosa, cian y dorado.",
+            "🐞 Arreglado: después de terminar un entrenamiento, los botones del menú (Progreso, Cuerpo, Más) no respondían hasta cambiar de pantalla.",
+            "🐞 Arreglado: al cambiar de sección con la pantalla bajada, ahora vuelves arriba en vez de quedarte a la mitad.",
+            "🏁 En el modo foco hay un botón «Terminar ya el entrenamiento» cuando ya marcaste alguna serie.",
+        ],
+    },
     {
         version: 83,
         titulo: "Un gimnasio más ordenado",

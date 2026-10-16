@@ -5486,8 +5486,14 @@ prueba("Gym (v83): el menú de secciones separa la pantalla en Entrenar, Progres
     cierto(gymEn("cuerpo", estado, ctx).includes("Peso corporal") && !gymEn("cuerpo", estado, ctx).includes("Tus músculos"), "Cuerpo");
     cierto(gymEn("mas", estado, ctx).includes("Ajustes del gym"), "Más");
     cierto(gymEn("no-existe", estado, ctx).includes("Tu meta de la semana"), "una sección desconocida cae en Entrenar");
+    // (v84) Con el resumen de un entrenamiento recién terminado, las demás secciones siguen funcionando.
+    cierto(vistasGym.pantallaGym(estado, { ...ctx, resumenGym: { rutina: "pecho-triceps", ejercicios: [], xp: 5, records: [], minutos: 1 }, subvista: { gym: "cuerpo" } }).includes("Peso corporal"), "el resumen no encierra en Entrenar");
     acciones.empezarGym(estado, "pecho-triceps");
     cierto(!gymEn("cuerpo", estado, ctx).includes('data-pantalla="gym"'), "entrenando no hay menú");
+    // (v84) En el modo foco se puede terminar antes de completar todas las series, pero solo si ya marcaste alguna.
+    cierto(!gymEn("entrenar", estado, ctx).includes('data-accion="gym-terminar"'), "sin series marcadas no se ofrece terminar ya");
+    acciones.marcarSerieGym(estado, 0, 0);
+    cierto(gymEn("entrenar", estado, ctx).includes("Terminar ya el entrenamiento"), "con una serie marcada sí");
 });
 
 prueba("Gym: las pantallas se dibujan (la fila de Hoy, la elección, el entrenamiento y los resultados)", () => {

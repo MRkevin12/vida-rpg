@@ -100,9 +100,9 @@ export function pantallaGym(estado, ctx) {
         </div>`;
     if (g.encurso) return `${encabezado}${tarjetaNivel(estado, ctx, true)}${entrenamientoActual(estado, ctx)}`;
 
-    // Si acabas de terminar un entrenamiento, el resumen se ve en «Entrenar».
+    // (El resumen del entrenamiento recién terminado se ve en «Entrenar»; app.js te lleva ahí al terminar.)
     const pedida = ctx.subvista?.gym;
-    const seccion = ctx.resumenGym || !SECCIONES_GYM.some(([clave]) => clave === pedida) ? "entrenar" : pedida;
+    const seccion = SECCIONES_GYM.some(([clave]) => clave === pedida) ? pedida : "entrenar";
     const menu = selectorSecciones("gym", SECCIONES_GYM, seccion);
     const contenido = {
         entrenar: () => `
@@ -258,7 +258,7 @@ function listaDeRutinas(estado, ctx) {
             <li class="gym-rutina ${esLaQueToca ? "toca" : ""} ${yaHoy ? "hecha" : ""}">
                 <span class="gym-rutina-icono" aria-hidden="true">${r.icono}</span>
                 <span class="gym-rutina-texto">
-                    <b>${esc(r.nombre)}</b>${esLaQueToca ? ' <span class="gym-toca">Toca hoy</span>' : ""}
+                    <b>${esc(r.nombre)}${esLaQueToca ? ' <span class="gym-toca">Toca hoy</span>' : ""}</b>
                     <small>${plural(r.ejercicios.length, "ejercicio", "ejercicios")} · ${gym.seriesPlaneadas(r)} series · ${musculos}</small>
                     <small class="texto-suave">${haceCuanto(dias)}</small>
                 </span>
@@ -317,9 +317,13 @@ function vistaDeFoco(estado, ctx) {
             <li>🏋️ <b>${gym.volumenMarcado(en).toLocaleString("es")}</b> kg</li>
             <li>🔥 <b>${hechas}</b> de ${total}</li>
         </ul>`;
+    // (v84) Terminar antes de completar todas las series (si ya marcaste alguna): antes solo se podía desde la lista.
+    const terminarYa = hechas > 0 && hechas < total
+        ? '<button type="button" class="boton boton-secundario boton-ancho" data-accion="gym-terminar">🏁 Terminar ya el entrenamiento</button>' : "";
     const pie = `
         <button type="button" class="boton boton-chico ${en.calentado ? "boton-principal" : "boton-secundario"} gym-calentar" data-accion="gym-calentar" aria-pressed="${Boolean(en.calentado)}">
             ${en.calentado ? "✅ Calentamiento hecho (+" + gym.XP_CALENTAMIENTO + " XP)" : "🔥 Marcar calentamiento (+" + gym.XP_CALENTAMIENTO + " XP)"}</button>
+        ${terminarYa}
         <div class="gym-foco-pie">
             <button type="button" class="boton boton-secundario" data-accion="gym-foco" data-valor="0">📋 Ver todos los ejercicios</button>
             <button type="button" class="boton boton-secundario" data-accion="gym-cancelar">Cancelar</button>

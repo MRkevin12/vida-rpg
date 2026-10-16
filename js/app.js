@@ -2533,9 +2533,9 @@ const ACCIONES = {
             return;
         }
         dibujarPantalla({ mantenerScroll: true });
-        // Que el selector quede a la vista (si bajaste mucho, la sección nueva empieza arriba).
+        // Si bajaste mucho (el menú va pegado bajo la cabecera), la sección nueva empieza desde arriba.
         const selector = $(`#pantalla-${pantalla} .selector-secciones`);
-        if (selector && selector.getBoundingClientRect().top < 0) selector.scrollIntoView({ block: "start" });
+        if (selector && selector.getBoundingClientRect().top <= parseFloat(getComputedStyle(selector).top) + 1) window.scrollTo(0, 0);
     },
     // En Aventuras: ver otra campaña de jefes.
     "ver-campana": (boton) => {
@@ -2959,6 +2959,7 @@ const ACCIONES = {
         if (!empezo) return;
         descansoGym = null;
         resumenGym = null;
+        subvista.gym = "entrenar";
         if (empezo.frase) { fraseGym = empezo.frase; sonar("campana"); dibujarPantalla(); }
         window.scrollTo(0, 0);
     },
@@ -2982,6 +2983,7 @@ const ACCIONES = {
         if (marcado) {
             sonar("completar");
             resumenGym = marcado.sesion;
+            subvista.gym = "entrenar";
             fraseGym = { tipo: "marcado", texto: marcado.celebraciones[0]?.maestro || "" };
             dibujarPantalla({ mantenerScroll: true });
         }
@@ -3033,6 +3035,7 @@ const ACCIONES = {
         if (fin) {
             descansoGym = null;
             resumenGym = fin.sesion;
+            subvista.gym = "entrenar";
             fraseGym = { tipo: "fin", texto: fin.celebraciones[0]?.maestro || "" };
             sonar("completar");
             dibujarPantalla();

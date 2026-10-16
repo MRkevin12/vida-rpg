@@ -6514,7 +6514,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 /* --- Las secciones de una pantalla larga: pegadas bajo la cabecera al bajar --- */
 .selector-secciones {
     position: sticky;
-    top: calc(var(--alto-cabecera, 72px) + 6px);
+    top: calc(var(--alto-cabecera, 72px) - 1px);
     z-index: 4;
     background: rgba(13, 10, 28, 0.88);
     backdrop-filter: blur(12px);
@@ -10576,14 +10576,14 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .plegable-reglas > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
 
 /* ===== v66: el gimnasio ===== */
-:root { --gym: #fb7185; --gym-2: #fbbf24; }
+:root { --gym: #f59e0b; --gym-2: #fcd34d; }   /* v84: el gym es dorado (como el nivel), no rosa */
 
 /* La fila de Hoy */
 .gym-hoy {
     display: flex; align-items: center; gap: 12px;
     margin: 0 0 12px; padding: 10px 12px;
-    background: linear-gradient(135deg, rgba(251, 113, 133, 0.16), rgba(251, 191, 36, 0.08));
-    border: 1px solid rgba(251, 113, 133, 0.45); border-radius: 14px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(251, 191, 36, 0.08));
+    border: 1px solid rgba(245, 158, 11, 0.45); border-radius: 14px;
 }
 .gym-hoy-icono { font-size: 1.7rem; line-height: 1; }
 .gym-hoy-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
@@ -10599,22 +10599,22 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-nivel { flex: 1; min-width: 0; }
 .gym-nivel-numero { margin: 2px 0 0; font-size: 1.15rem; }
 .gym-nivel-numero b { font-family: "Orbitron", sans-serif; color: var(--gym-2); font-size: 1.5rem; }
-.barra-gym .barra-relleno { background: linear-gradient(90deg, var(--gym), var(--gym-2)); box-shadow: 0 0 10px rgba(251, 113, 133, 0.5); }
-.gym-bono { margin: 10px 2px 14px; }
+.barra-gym .barra-relleno { background: linear-gradient(90deg, var(--gym), var(--gym-2)); box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+.gym-bono { margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.07); font-size: 0.85rem; line-height: 1.45; }
 
 /* La semana */
 .gym-semana { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .gym-dia { display: grid; gap: 2px; justify-items: center; padding: 6px 0; border: 1px solid var(--borde); border-radius: 10px; background: var(--hundido); }
 .gym-dia small { color: var(--texto-suave); font-size: 0.7rem; }
 .gym-dia span { min-height: 1.4em; font-size: 1.1rem; color: var(--texto-suave); }
-.gym-dia.hecho { border-color: var(--gym); background: rgba(251, 113, 133, 0.14); }
+.gym-dia.hecho { border-color: var(--gym); background: rgba(245, 158, 11, 0.14); }
 .gym-dia.hoy { outline: 2px solid var(--gym-2); outline-offset: 1px; }
 .gym-dia.futuro { opacity: 0.55; }
 
 /* Elegir rutina */
 .gym-rutinas { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
 .gym-rutina { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--borde); border-radius: 14px; background: var(--hundido); }
-.gym-rutina.toca { border-color: var(--gym); background: rgba(251, 113, 133, 0.1); }
+.gym-rutina.toca { border-color: var(--gym); background: rgba(245, 158, 11, 0.1); }
 .gym-rutina.hecha { opacity: 0.6; }
 .gym-rutina-chica { justify-content: space-between; padding: 6px 10px; }
 .gym-rutina-icono { font-size: 1.6rem; }
@@ -10988,8 +10988,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .ficha-gym {
     display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 10px 12px; min-height: 52px;
     text-align: left; color: var(--texto); cursor: pointer;
-    background: linear-gradient(135deg, rgba(251, 113, 133, 0.16), rgba(251, 191, 36, 0.08));
-    border: 1px solid rgba(251, 113, 133, 0.45); border-radius: 14px; font: inherit;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(251, 191, 36, 0.08));
+    border: 1px solid rgba(245, 158, 11, 0.45); border-radius: 14px; font: inherit;
 }
 .ficha-gym-icono { font-size: 1.6rem; }
 .ficha-gym-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
@@ -11012,7 +11012,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     margin: 10px 0 6px; justify-content: center;
 }
 .gym-cuadro { width: 18px; height: 18px; border-radius: 4px; background: var(--hundido); border: 1px solid var(--borde); display: block; }
-.gym-cuadro.n1 { background: rgba(251, 113, 133, 0.55); border-color: rgba(251, 113, 133, 0.8); }
+.gym-cuadro.n1 { background: rgba(245, 158, 11, 0.55); border-color: rgba(245, 158, 11, 0.8); }
 .gym-cuadro.n2 { background: var(--gym); border-color: var(--gym-2); box-shadow: 0 0 6px rgba(251, 191, 36, 0.6); }
 .gym-cuadro.futuro { opacity: 0.35; }
 .gym-cuadro.hoy { outline: 2px solid var(--gym-2); outline-offset: 1px; }
@@ -11151,3 +11151,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-campos-medida { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
 .gym-campo-medida { display: grid; gap: 3px; font-size: 0.8rem; color: var(--texto-suave); }
 .gym-campo-medida input { min-height: 44px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+
+/* v84: el contador de la meta del gym en dorado (como el resto del gym), y el «Toca hoy» sin estirarse */
+#pantalla-gym .contador { color: var(--gym-2); }
+#pantalla-gym .contador.completo { color: var(--verde); text-shadow: 0 0 14px rgba(52, 211, 153, 0.5); }
+.gym-rutina-texto b .gym-toca { margin-left: 4px; }

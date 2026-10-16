@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v84 — Armonía de colores del gym y arreglos del menú
+- CSS: `--gym` pasa de rosa (#fb7185) a ámbar (#f59e0b) y `--gym-2` a #fcd34d; todos los `rgba(251, 113, 133, …)` de la parte del gym pasan a ámbar. `.gym-bono` es una tarjeta, el contador de la meta va en dorado (verde al cumplirla), «Toca hoy» va dentro del nombre (ya no se estira) y el menú de secciones pegado ya no deja una rendija arriba (`top: alto-cabecera − 1px`).
+- Bugs: `resumenGym` ya no fuerza la sección «Entrenar» (los botones del menú no respondían tras terminar; ahora app.js pone `subvista.gym = "entrenar"` al empezar, terminar o marcar). La acción `subvista` vuelve arriba (`scrollTo(0, 0)`) cuando el menú está pegado (antes comparaba contra 0 y nunca ocurría). Modo foco: botón «Terminar ya el entrenamiento» (`terminarYa`). 289 pruebas.
+
 ## v83 — El gimnasio, en secciones
 - `pantallaGym` (vistas-gym.js) usa `selectorSecciones` (ahora exportado de vistas.js) con `SECCIONES_GYM`: **Entrenar** (resumen, nivel compacto, consejo, meta de la semana y rutinas), **Progreso** (constancia, músculos, récords, hitos, sesiones), **Cuerpo** (nivel grande con vista previa, evolución, peso y medidas) y **Más** (lecturas de la Fragua y ajustes). La sección vive en `subvista.gym` (app.js; por defecto `entrenar`); con un entrenamiento en curso no hay menú, y el resumen recién terminado fuerza «Entrenar». Pruebas: `gymEn(sección, estado, ctx)` y una prueba nueva del menú. 289 pruebas.
 
