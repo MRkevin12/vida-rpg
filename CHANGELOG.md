@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v86 — El reino más completo y la carga de 4 segundos
+- **Entrada (v85/v86):** `index.html` deja la pantalla de carga con la clase `espera` si hay PIN guardado (`vida-rpg-pin` con `huella`); `app.js › correrCarga(alTerminar, { completa })` la muestra, dura `CARGA_DURACION` = 4000 ms (la salida de 550 ms va dentro) y llama a `alTerminar` cuando empieza a desvanecerse. Con PIN: `pedirPinParaEntrar` / `entrarConFaceId` → `correrCarga(entrarAlJuego, { completa: true })`; sin PIN, la cuenta empieza al abrir. La escena es HTML + SVG + CSS (sin archivos nuevos): estrellas, estrella fugaz, franjas de cine, capas de montañas en paralaje, la Torre con ventanas que se encienden y la Llama, el héroe caminando, destello final, porcentaje y 5 frases. `window.reiniciarCarga()` reinicia texto y consejo.
+- **Mapa:** `dibujo-mapa.js` › `INTERES` (puntos de interés por región, colocados por `repartidor` lejos del camino y sin pisarse), `CRUCES` (río, barranco o canal con puente de madera, cuerda o piedra), postes de señal, antorchas en la Ciudadela, muelle en el Mar, nubes, aves y brújula. El paisaje aleatorio se aparta de ellos (`evitar`).
+- **Vista del reino:** `mapa.resumenDeRegion` (lugares, botín reclamado por tipo, señores, pendientes) y `REGIONES[].corto`; `franjaDelReino` con nombre, barra y 📍; panel `.mapa-datos`; `etiquetasDelMapa` (rótulos `.mapa-rotulo`); `leyendaDelMapa`. 290 pruebas.
+
 ## v85 — El botón del gym en la ficha del héroe
 - `.ficha-gym` lleva `grid-column: 1 / -1`: `.ficha` es una cuadrícula de 2 columnas y el botón se quedaba en la del avatar (116 px). Se comprobó a 390 y 792 px de ancho.
 

@@ -11157,3 +11157,402 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 #pantalla-gym .contador { color: var(--gym-2); }
 #pantalla-gym .contador.completo { color: var(--verde); text-shadow: 0 0 14px rgba(52, 211, 153, 0.5); }
 .gym-rutina-texto b .gym-toca { margin-left: 4px; }
+
+
+/* ===== (v85) Pantalla de carga de 4 segundos, con escena animada =====
+   Línea de tiempo (todo en 4 s; la salida empieza a los 3,45 s): franjas de cine → estrellas y estrella fugaz →
+   el emblema aparece con una onda → el título se revela → el héroe camina hacia la Torre mientras sus ventanas
+   se encienden de abajo hacia arriba → arde la Llama → destello y desvanecido. */
+.carga.espera { display: none; }   /* con PIN: primero va la clave; app.js la muestra después */
+
+.carga-estrellas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.carga-estrellas i {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px rgba(196, 181, 253, 0.9);
+    animation: carga-brilla 1.8s ease-in-out infinite;
+}
+
+@keyframes carga-brilla {
+    0%, 100% { opacity: 0.25; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* La estrella fugaz cruza el cielo a 1,1 s. */
+.carga-fugaz {
+    position: absolute;
+    top: 14%;
+    left: 70%;
+    width: 70px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #fff 80%);
+    border-radius: 2px;
+    opacity: 0;
+    transform: rotate(28deg);
+    animation: carga-fugaz 0.9s ease-in 1.1s both;
+}
+
+@keyframes carga-fugaz {
+    0% { opacity: 0; transform: translate(0, 0) rotate(28deg); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-150px, 80px) rotate(28deg); }
+}
+
+/* Las franjas negras del cine. */
+.carga-cine {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    height: calc(env(safe-area-inset-top) + 7vh);
+    background: #000;
+    pointer-events: none;
+}
+
+.carga-cine-arriba { top: 0; animation: carga-franja-arriba 4s ease-in-out both; }
+.carga-cine-abajo { bottom: 0; height: calc(env(safe-area-inset-bottom) + 7vh); animation: carga-franja-abajo 4s ease-in-out both; }
+
+@keyframes carga-franja-arriba {
+    0% { transform: translateY(-100%); }
+    14%, 82% { transform: translateY(0); }
+    100% { transform: translateY(-100%); }
+}
+
+@keyframes carga-franja-abajo {
+    0% { transform: translateY(100%); }
+    14%, 82% { transform: translateY(0); }
+    100% { transform: translateY(100%); }
+}
+
+/* El emblema aparece con un golpe de luz: onda, rebote y el aro girando. */
+.carga-icono {
+    animation: carga-aparece 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both, carga-latido 2s ease-in-out 1.2s infinite;
+}
+
+@keyframes carga-aparece {
+    from { opacity: 0; transform: scale(0.3) rotate(-14deg); }
+    to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+.carga-onda {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(165, 243, 252, 0.9);
+    opacity: 0;
+    animation: carga-onda 1.1s ease-out 0.35s 2 both;
+}
+
+@keyframes carga-onda {
+    from { opacity: 0.9; transform: scale(0.7); }
+    to { opacity: 0; transform: scale(2.4); }
+}
+
+/* El título se revela: las letras se juntan y una luz lo recorre. */
+.carga-titulo {
+    background-size: 220% 100%;
+    animation: carga-titulo 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s both, carga-luz 1.6s linear 2s both;
+}
+
+@keyframes carga-titulo {
+    from { opacity: 0; letter-spacing: 0.7em; filter: blur(6px) drop-shadow(0 0 14px rgba(139, 92, 246, 0.5)); }
+    to { opacity: 1; letter-spacing: 0.14em; filter: blur(0) drop-shadow(0 0 14px rgba(139, 92, 246, 0.5)); }
+}
+
+@keyframes carga-luz {
+    from { background-position: 120% 0; }
+    to { background-position: -40% 0; }
+}
+
+.carga-lema { animation: carga-sube 0.8s ease-out 1.3s both; }
+
+@keyframes carga-sube {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* La barra se llena durante todo el rato (3,6 s) y su punta brilla. */
+.carga-barra { animation: carga-sube 0.6s ease-out 1.5s both; }
+
+.carga-barra span {
+    position: relative;
+    animation: carga-llenar-4 3.45s cubic-bezier(0.25, 0.6, 0.3, 1) 0.2s both;
+}
+
+.carga-barra span::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    right: -2px;
+    width: 10px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    filter: blur(3px);
+    opacity: 0.9;
+}
+
+@keyframes carga-llenar-4 {
+    from { transform: scaleX(0.02); }
+    to { transform: scaleX(1); }
+}
+
+.carga-texto { display: flex; align-items: baseline; justify-content: center; gap: 8px; }
+.carga-texto b { min-width: 3.2em; text-align: left; font-family: "Orbitron", sans-serif; font-size: 0.78rem; color: var(--cian); font-variant-numeric: tabular-nums; }
+
+/* La escena de abajo: montañas que se deslizan, la Torre que se enciende y el héroe que camina hacia ella. */
+.carga-escena {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(7vh + env(safe-area-inset-bottom));   /* justo encima de la franja negra de abajo */
+    z-index: 0;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 390 / 220;
+    pointer-events: none;
+}
+
+/* Bajo la escena, el mismo color de las lomas: cuando la franja negra se va, no queda un hueco. */
+.carga {
+    background:
+        linear-gradient(to top, #0a0716 0 calc(7vh + env(safe-area-inset-bottom) + 1px), transparent 0),
+        radial-gradient(circle at 50% 38%, rgba(139, 92, 246, 0.32), transparent 52%),
+        radial-gradient(circle at 50% 110%, rgba(34, 211, 238, 0.18), transparent 50%),
+        var(--fondo);
+}
+
+.carga-capa { animation-duration: 4s; animation-timing-function: linear; animation-fill-mode: both; }
+.carga-lejos { animation-name: carga-deriva-1; }
+.carga-medio { animation-name: carga-deriva-2; }
+.carga-cerca { animation-name: carga-deriva-3; }
+
+@keyframes carga-deriva-1 { from { transform: translateX(0); } to { transform: translateX(-14px); } }
+@keyframes carga-deriva-2 { from { transform: translateX(0); } to { transform: translateX(-30px); } }
+@keyframes carga-deriva-3 { from { transform: translateX(0); } to { transform: translateX(-52px); } }
+
+.carga-torre { animation: carga-sube 1s ease-out 0.5s both; }
+
+.carga-ventana {
+    fill: #2a2230;
+    animation: carga-enciende 0.4s ease-out both;
+}
+
+@keyframes carga-enciende {
+    from { fill: #2a2230; }
+    to { fill: #ffd27a; }
+}
+
+.carga-llama {
+    transform-box: fill-box;
+    transform-origin: 50% 90%;
+    animation: carga-arde 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 2.9s both, carga-parpadea 0.3s ease-in-out 3.6s infinite alternate;
+}
+
+@keyframes carga-arde {
+    from { opacity: 0; transform: scale(0.1); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes carga-parpadea {
+    from { transform: scale(1); }
+    to { transform: scale(1.12); }
+}
+
+/* El héroe cruza la escena de izquierda a derecha, con su pasito. */
+.carga-heroe {
+    transform: translate(-30px, 188px);
+    animation: carga-camina 3.1s cubic-bezier(0.3, 0.1, 0.5, 1) 0.4s both;
+}
+
+@keyframes carga-camina {
+    from { transform: translate(-30px, 188px); }
+    to { transform: translate(300px, 188px); }
+}
+
+.carga-paso { animation: carga-bota 0.36s steps(1) infinite; }
+
+@keyframes carga-bota {
+    50% { transform: translateY(-1.6px); }
+}
+
+/* Al final, un destello cubre la pantalla un instante. */
+.carga-destello {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.9), rgba(196, 181, 253, 0.5) 40%, transparent 70%);
+    opacity: 0;
+    animation: carga-destello 4s ease-out both;
+}
+
+@keyframes carga-destello {
+    0%, 70% { opacity: 0; }
+    82% { opacity: 0.75; }
+    100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .carga-estrellas i,
+    .carga-fugaz,
+    .carga-onda,
+    .carga-capa,
+    .carga-heroe,
+    .carga-paso,
+    .carga-llama,
+    .carga-destello { animation: none; }
+    .carga-heroe { transform: translate(250px, 188px); }
+    .carga-ventana { fill: #ffd27a; }
+}
+
+
+/* ===== (v86) El reino: franja de regiones, números de la región, rótulos y leyenda ===== */
+.reino-franja { gap: 5px; margin-bottom: 6px; }
+
+.reino-region {
+    min-height: 92px;
+    padding: 8px 2px 6px;
+    align-content: start;
+    gap: 2px;
+}
+
+.reino-icono { font-size: 1.35rem; line-height: 1; }
+
+.reino-region .reino-nombre {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--texto);
+}
+
+.reino-region em {
+    font-size: 0.58rem;
+    font-style: normal;
+    font-weight: 700;
+    color: var(--texto-suave);
+    white-space: nowrap;
+}
+
+.reino-region.libre em { color: var(--oro); }
+
+.reino-barra {
+    display: block;
+    width: 78%;
+    height: 4px;
+    margin-top: 3px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+}
+
+.reino-barra i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--violeta), var(--cian));
+    border-radius: inherit;
+}
+
+.reino-region.libre .reino-barra i { background: linear-gradient(90deg, #f59e0b, var(--oro)); }
+
+.reino-aqui {
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    font-size: 0.85rem;
+    transform: translateX(-50%);
+    animation: reino-aqui 1.4s ease-in-out infinite;
+}
+
+@keyframes reino-aqui { 50% { transform: translate(-50%, -3px); } }
+
+.reino-total {
+    margin: 0 0 10px;
+    font-size: 0.74rem;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+/* Cuatro números de la región, en casillas. */
+.mapa-datos {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin: 10px 0 8px;
+}
+
+.mapa-datos > div {
+    display: grid;
+    gap: 1px;
+    padding: 7px 2px;
+    text-align: center;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+}
+
+.mapa-datos b {
+    font-family: "Orbitron", sans-serif;
+    font-size: 0.95rem;
+    color: var(--oro);
+    font-variant-numeric: tabular-nums;
+}
+
+.mapa-datos span {
+    font-size: 0.6rem;
+    color: var(--texto-suave);
+}
+
+/* Rótulos sobre el mapa (no se tocan: solo informan). */
+.mapa-rotulo {
+    position: absolute;
+    z-index: 2;
+    max-width: 44%;
+    padding: 1px 6px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: center;
+    color: #f1f3ff;
+    background: rgba(10, 7, 22, 0.78);
+    border: 1px solid rgba(241, 243, 255, 0.45);
+    border-radius: 999px;
+    transform: translate(-50%, 0);
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mapa-rotulo.libre { color: #fcd34d; border-color: rgba(252, 211, 77, 0.8); }
+.mapa-rotulo.lejos { opacity: 0.7; }
+.mapa-rotulo.mayor { font-size: 0.64rem; color: #fff; border-color: rgba(196, 181, 253, 0.9); background: rgba(58, 36, 110, 0.85); }
+
+/* La leyenda */
+.mapa-leyenda { margin: 0 0 12px; }
+
+.mapa-leyenda-lista {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0 2px;
+    padding: 0;
+    list-style: none;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--texto-suave);
+}
+
+.mapa-leyenda-lista li { display: flex; gap: 10px; align-items: baseline; }
+.mapa-leyenda-lista li > span { flex: 0 0 1.6em; text-align: center; }

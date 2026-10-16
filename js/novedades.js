@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 85;
+export const VERSION_APP = 86;
 
 export const NOVEDADES = [
+    {
+        version: 86,
+        titulo: "El reino más completo y una entrada con cinemática",
+        cambios: [
+            "🔐 Si tienes PIN, ahora la clave sale primero. Cuando la aciertas (o Face ID te reconoce) empieza la pantalla de carga.",
+            "🎬 La pantalla de carga dura 4 segundos y tiene su propia cinemática: franjas de cine, estrellas y una estrella fugaz, montañas que se deslizan, tu héroe caminando hacia la Torre mientras se encienden sus ventanas y arde la Llama, con un destello al final.",
+            "🗺️ Los mapas de las 6 regiones tienen muchos más elementos: ríos y puentes, aldea, molino y granero en el Valle; cabaña, ruinas y luciérnagas en el Bosque; cascada, campamento y atalayas en las Montañas; oasis, obelisco y caravana en el Desierto; faro, barcos y arrecife en el Mar; mercado, fuente y antorchas en la Ciudadela. Además, postes de señal, nubes, aves y una brújula.",
+            "📊 Sobre el mapa ves el nombre de cada señor, el Inicio y la Fortaleza; arriba, la franja de regiones muestra nombre, avance y dónde estás, y cada región tiene sus números (lugares, señores, tesoros y santuarios) y una leyenda.",
+        ],
+    },
     {
         version: 85,
         titulo: "Arreglo en la pantalla del héroe",

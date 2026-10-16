@@ -24,26 +24,65 @@
 </head>
 <body>
 
-    <!-- ========== Pantalla de carga ==========
-         Se ve apenas se abre la app, mientras se cargan los archivos. app.js la quita al terminar de
-         dibujar (ocultarCarga). Va escrita aquí, en el HTML, para que aparezca antes que todo. -->
+    <!-- ========== Pantalla de carga (v85: 4 segundos, con escena animada) ==========
+         Se ve apenas se abre la app, mientras se cargan los archivos. Si tienes PIN, NO se ve al abrir: primero sale
+         la clave y la carga corre después de acertarla (app.js: correrCarga). Va escrita aquí, en el HTML, para que
+         aparezca antes que todo. -->
     <div id="carga" class="carga" role="status" aria-label="Cargando Vida RPG">
+        <div class="carga-estrellas" aria-hidden="true">
+            <i style="left: 8%; top: 9%"></i><i style="left: 22%; top: 17%; animation-delay: .5s"></i><i style="left: 37%; top: 7%; animation-delay: 1.1s"></i>
+            <i style="left: 61%; top: 12%; animation-delay: .3s"></i><i style="left: 78%; top: 6%; animation-delay: .9s"></i><i style="left: 91%; top: 16%; animation-delay: 1.4s"></i>
+            <i style="left: 14%; top: 29%; animation-delay: 1.7s"></i><i style="left: 88%; top: 33%; animation-delay: .7s"></i><i style="left: 49%; top: 21%; animation-delay: 1.9s"></i>
+            <b class="carga-fugaz"></b>
+        </div>
         <div class="carga-caja">
             <div class="carga-emblema">
+                <span class="carga-onda" aria-hidden="true"></span>
                 <span class="carga-aro" aria-hidden="true"></span>
                 <img class="carga-icono" src="iconos/icono-192.png" alt="" width="112" height="112">
             </div>
             <h1 class="carga-titulo">VIDA RPG</h1>
             <p class="carga-lema">Tu vida es la aventura</p>
             <div class="carga-barra" aria-hidden="true"><span></span></div>
-            <p class="carga-texto" id="carga-texto">Preparando tu aventura…</p>
+            <p class="carga-texto"><span id="carga-texto">Preparando tu aventura…</span> <b id="carga-pct">0 %</b></p>
         </div>
+        <svg class="carga-escena" viewBox="0 0 390 220" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+            <g class="carga-capa carga-lejos"><path d="M-40 220 V122 L0 92 L42 126 L92 70 L142 122 L192 86 L242 126 L292 94 L346 130 L430 100 V220 Z" fill="#1d1740"/></g>
+            <g class="carga-capa carga-medio"><path d="M-40 220 V152 L10 118 L60 152 L112 110 L172 154 L232 120 L292 156 L360 124 L430 152 V220 Z" fill="#150f30"/></g>
+            <g class="carga-torre">
+                <path d="M330 190 L334 102 L346 102 L350 190 Z" fill="#0b071a"/>
+                <rect x="328" y="96" width="24" height="8" fill="#0b071a"/><path d="M331 96 L340 78 L349 96 Z" fill="#0b071a"/>
+                <rect class="carga-ventana" style="animation-delay: 1.1s" x="339" y="176" width="2" height="4"/>
+                <rect class="carga-ventana" style="animation-delay: 1.5s" x="339" y="160" width="2" height="4"/>
+                <rect class="carga-ventana" style="animation-delay: 1.9s" x="339" y="144" width="2" height="4"/>
+                <rect class="carga-ventana" style="animation-delay: 2.3s" x="339" y="128" width="2" height="4"/>
+                <rect class="carga-ventana" style="animation-delay: 2.7s" x="339" y="112" width="2" height="4"/>
+                <g class="carga-llama"><circle cx="340" cy="72" r="14" fill="#ffd27a" opacity=".35"/><path d="M340 62 q6 7 0 13 q-6 -6 0 -13 Z" fill="#ff9a1f"/><path d="M340 67 q3 4 0 7 q-3 -3 0 -7 Z" fill="#ffe45a"/></g>
+            </g>
+            <g class="carga-capa carga-cerca"><path d="M-40 220 V188 Q20 168 80 188 T200 184 T320 190 T430 182 V220 Z" fill="#0a0716"/></g>
+            <g class="carga-heroe"><g class="carga-paso">
+                <path d="M-4 -17 L-11 -6 L-4 -4 Z" fill="#5b3aa8"/>
+                <circle cx="0" cy="-22" r="4.2" fill="#07040f" stroke="#22d3ee" stroke-width=".7"/>
+                <path d="M-4.5 -17.5 H4.5 L5.5 -4 H-5.5 Z" fill="#07040f" stroke="#22d3ee" stroke-width=".7"/>
+                <path d="M-3.4 -4 V1 M3 -4 V1" stroke="#07040f" stroke-width="2.4"/>
+                <path d="M6 -12 L12 -24" stroke="#a5f3fc" stroke-width="1.2" stroke-linecap="round"/>
+            </g></g>
+        </svg>
         <p class="carga-consejo" id="carga-consejo"></p>
+        <span class="carga-destello" aria-hidden="true"></span>
+        <span class="carga-cine carga-cine-arriba" aria-hidden="true"></span>
+        <span class="carga-cine carga-cine-abajo" aria-hidden="true"></span>
     </div>
     <script>
-        // Un consejo al azar y frases que cambian mientras carga. Es un script normal (no un módulo)
-        // para que corra al instante, antes que el resto de la app.
+        // Si tienes PIN, la pantalla de carga no se ve al abrir: primero va la clave (ver app.js, correrCarga).
+        // Es un script normal (no un módulo) para que corra al instante, antes que el resto de la app.
         (function () {
+            var carga = document.getElementById("carga");
+            try {
+                var pin = JSON.parse(localStorage.getItem("vida-rpg-pin"));
+                if (pin && pin.huella) carga.classList.add("espera");
+            } catch (e) { /* sin PIN guardado */ }
+
             var consejos = [
                 "Desliza una misión a la derecha para completarla.",
                 "¿Olvidaste marcar algo? En «Ayer» todavía puedes.",
@@ -54,19 +93,30 @@
                 "Cada 7 días seguidos ganas un escudo para tu racha.",
                 "Cuando cae un jefe, su guarida del reino tiene botín.",
             ];
+            // Las frases cambian cada 800 ms: 5 etapas en los 4 segundos.
             var frases = ["Despertando a tu héroe…", "Encendiendo las antorchas…", "Consultando al Maestro Aurelio…",
-                          "Contando tus monedas…", "Abriendo las puertas del reino…"];
-            var carga = document.getElementById("carga");
-            document.getElementById("carga-consejo").textContent = "💡 " + consejos[Math.floor(Math.random() * consejos.length)];
-            var i = 0;
-            var reloj = setInterval(function () {
-                if (!document.body.contains(carga)) return clearInterval(reloj);
-                i = (i + 1) % frases.length;
-                document.getElementById("carga-texto").textContent = frases[i];
-            }, 450);
-            // Por si algo fallara al cargar: nunca se queda tapando la app más de 8 segundos.
+                          "Encendiendo la Llama de la Torre…", "¡Se abren las puertas del reino!"];
+            var DURACION = 4000;
+            var reloj = null;
+            // (Re)inicia el texto, el porcentaje y el consejo. app.js lo vuelve a llamar después de la clave.
+            window.reiniciarCarga = function () {
+                var inicio = Date.now();
+                clearInterval(reloj);
+                document.getElementById("carga-consejo").textContent = "💡 " + consejos[Math.floor(Math.random() * consejos.length)];
+                function pintar() {
+                    if (!document.body.contains(carga)) return clearInterval(reloj);
+                    var t = Math.min(1, (Date.now() - inicio) / (DURACION - 550));
+                    document.getElementById("carga-texto").textContent = frases[Math.min(frases.length - 1, Math.floor((Date.now() - inicio) / 800))];
+                    document.getElementById("carga-pct").textContent = Math.round(100 * (1 - Math.pow(1 - t, 2))) + " %";
+                }
+                pintar();
+                reloj = setInterval(pintar, 80);
+            };
+            if (!carga.classList.contains("espera")) window.reiniciarCarga();
+            // Por si algo fallara al cargar: nunca se queda tapando la app más de 8 segundos
+            // (salvo si está esperando la clave: entonces todavía no se ha usado).
             setTimeout(function () {
-                if (document.body.contains(carga)) carga.remove();
+                if (document.body.contains(carga) && !carga.classList.contains("espera")) carga.remove();
             }, 8000);
         })();
     </script>

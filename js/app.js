@@ -131,27 +131,40 @@ function iniciar() {
     setInterval(tictac, 1000);   // reloj del modo enfoque
 
     if (!estado.personaje) {
-        $("#crear-personaje").hidden = false;
+        correrCarga(() => { $("#crear-personaje").hidden = false; });
     } else if (seguridad.hayPin()) {
-        pedirPinParaEntrar(entrarAlJuego);   // primero el PIN (o Face ID), después el juego
-        entrarConFaceId(entrarAlJuego, { silencioso: true });
+        // (v85) Primero la clave (la carga no se ve todavía: index.html la deja en espera); al acertarla, o con Face ID,
+        // corre la carga de 4 segundos y después entras al juego.
+        const entrarConCarga = () => correrCarga(entrarAlJuego, { completa: true });
+        pedirPinParaEntrar(entrarConCarga);
+        entrarConFaceId(entrarConCarga, { silencioso: true });
     } else {
-        entrarAlJuego();
+        correrCarga(entrarAlJuego);
     }
-    ocultarCarga();
 }
 
-// La pantalla de carga (está en index.html) se va con una transición. Se queda al menos
-// CARGA_MINIMA milisegundos desde que se abrió la app: si se fuera de golpe, se vería un parpadeo.
-const CARGA_MINIMA = 1100;
+// La pantalla de carga (está en index.html) dura CARGA_DURACION milisegundos, con su escena animada (ver .carga en
+// estilos.css, que dura lo mismo). `alTerminar` se llama cuando empieza a desvanecerse, para que lo de abajo ya esté listo.
+// Sin PIN, la cuenta empieza al abrir la app; con PIN, empieza después de la clave (completa: true).
+const CARGA_DURACION = 4000;
+const CARGA_SALIDA = 550;   // lo que dura el desvanecido (ver .carga.saliendo)
+let cargaEnMarcha = false;
 
-function ocultarCarga() {
+function correrCarga(alTerminar, { completa = false } = {}) {
     const carga = $("#carga");
-    if (!carga) return;
+    if (!carga) { alTerminar(); return; }
+    if (cargaEnMarcha) return;   // (Face ID y PIN a la vez: solo cuenta el primero)
+    cargaEnMarcha = true;
+    if (carga.classList.contains("espera")) {
+        carga.classList.remove("espera");   // vuelve a verse y su animación empieza de cero
+        window.reiniciarCarga?.();
+    }
+    const falta = completa ? CARGA_DURACION : Math.max(0, CARGA_DURACION - performance.now());
     setTimeout(() => {
         carga.classList.add("saliendo");
-        setTimeout(() => carga.remove(), 600);   // lo que dura la transición (ver .carga.saliendo)
-    }, Math.max(0, CARGA_MINIMA - performance.now()));
+        alTerminar();
+        setTimeout(() => { carga.remove(); cargaEnMarcha = false; }, CARGA_SALIDA + 50);
+    }, Math.max(0, falta - CARGA_SALIDA));
 }
 
 function entrarAlJuego({ nuevo = false } = {}) {

@@ -853,16 +853,55 @@ export function pantallaGolpe(g) {
 // Dónde va algo del lienzo del mapa, en % (para ponerlo encima de la imagen).
 const enElMapa = (p) => `left: ${((p.x / mapa.LIENZO.ancho) * 100).toFixed(2)}%; top: ${((p.y / mapa.LIENZO.alto) * 100).toFixed(2)}%`;
 
-// La franja con las 6 regiones de la vuelta en que vas.
+// (v86) Rótulos sobre el mapa: el nombre de cada señor (dorado si ya cayó), «Inicio», la fortaleza y la Torre.
+function etiquetasDelMapa(senores, puntos, tramo, alcanzado) {
+    const rotulo = (p, texto, clase = "", dy = 4) => `<span class="mapa-rotulo ${clase}" style="${enElMapa({ x: p.x, y: p.y + dy })}">${texto}</span>`;
+    const ciudadela = tramo === mapa.CIUDADELA;
+    return `
+        ${rotulo(puntos[0], "Inicio", "", 8)}
+        ${senores.map((s) => rotulo(puntos[s.n], `${s.liberada ? "✓ " : ""}${esc(s.nombre)}`, s.liberada ? "libre" : s.n <= alcanzado ? "" : "lejos", 8)).join("")}
+        ${rotulo(puntos[mapa.LUGARES_POR_REGION], ciudadela ? "Brasero de los Vigías" : "Fortaleza", "mayor", 10)}
+        ${tramo === 0 ? rotulo({ x: mapa.TORRE_VALLE.x - 6, y: mapa.TORRE_VALLE.y }, "Torre de los Vigías", "mayor", 8) : ""}`;
+}
+
+// La franja con las 6 regiones de la vuelta en que vas (v86: con nombre, barra de recorrido y dónde estás).
 function franjaDelReino(estado, campanas, region) {
-    return `<nav class="reino-franja" aria-label="Regiones del reino">${mapa.resumenDelReino(estado, campanas).map((r) => `
+    const regiones = mapa.resumenDelReino(estado, campanas);
+    const liberadas = regiones.filter((r) => r.pisada && r.liberada).length;
+    const senores = regiones.reduce((suma, r) => suma + (r.pisada ? r.senoresCaidos : 0), 0);
+    const tarjetas = regiones.map((r) => `
         <button type="button" class="reino-region ${r.liberada && r.pisada ? "libre" : ""} ${r.actual ? "actual" : ""} ${r.region === region ? "vista" : ""}"
                 data-accion="mapa-region" data-region="${r.region}" ${r.pisada ? "" : "disabled"}
-                aria-label="${r.nombre}${r.pisada ? `: ${r.senoresCaidos} de 4` : " (todavía no llegas)"}">
-            <span aria-hidden="true">${r.pisada ? r.icono : "🔒"}</span>
+                aria-label="${r.nombre}${r.pisada ? `: ${r.senoresCaidos} de 4 señores` : " (todavía no llegas)"}">
+            ${r.actual ? '<span class="reino-aqui" aria-hidden="true">📍</span>' : ""}
+            <span class="reino-icono" aria-hidden="true">${r.pisada ? r.icono : "🔒"}</span>
             <small>${cronica.ROMANOS[r.region] || r.region + 1}</small>
-            ${r.pisada ? `<i>${r.liberada ? "✓" : `${r.senoresCaidos}/4`}</i>` : ""}
-        </button>`).join("")}</nav>`;
+            <b class="reino-nombre">${r.corto}</b>
+            ${r.pisada ? `<span class="reino-barra" aria-hidden="true"><i style="width: ${Math.round((r.avance / mapa.LUGARES_POR_REGION) * 100)}%"></i></span>
+                          <em>${r.liberada ? "✓ libre" : `⚔️ ${r.senoresCaidos}/4`}</em>` : '<em>—</em>'}
+        </button>`).join("");
+    return `
+        <nav class="reino-franja" aria-label="Regiones del reino">${tarjetas}</nav>
+        <p class="reino-total">🏁 ${liberadas} de ${regiones.length} regiones libres · ⚔️ ${senores} de ${regiones.length * 4} señores vencidos</p>`;
+}
+
+// (v86) La leyenda del mapa: qué es cada dibujo.
+function leyendaDelMapa(ciudadela) {
+    const fila = (icono, texto) => `<li><span aria-hidden="true">${icono}</span>${texto}</li>`;
+    return `
+        <details class="plegable mapa-leyenda">
+            <summary>🧭 Leyenda del mapa</summary>
+            <ul class="mapa-leyenda-lista">
+                ${fila("🔥", "Fogata: donde empieza el camino de la región.")}
+                ${fila("🟡", "Puntos amarillos: los lugares que ya recorriste (cada " + mapa.PASOS_POR_LUGAR + " pasos, uno).")}
+                ${fila("💰", "Cofre: tesoro con gemas (lugares 5 y 15).")}
+                ${fila("🕯️", "Santuario: XP para tu atributo más descuidado (lugares 10 y 20).")}
+                ${fila("⚔️", ciudadela ? "Memorial: se enciende al vencer a los 5 señores de su campaña." : "Guarida: roja con estandarte si el señor sigue en pie; blanca si ya cayó.")}
+                ${fila("🏰", ciudadela ? "Brasero de los Vigías: arde cuando se encienden los cuatro memoriales." : "Fortaleza: sus puertas se abren cuando caen los cuatro señores.")}
+                ${fila("🪧", "Postes de señal, ríos con puente y campamentos: decoran el viaje, no dan premio.")}
+                ${fila("🌫️", "Niebla: lo que todavía no exploras.")}
+            </ul>
+        </details>`;
 }
 
 // La ficha de uno de los señores de la región (o de un memorial de la Ciudadela).
@@ -942,6 +981,7 @@ export function pantallaMapa(estado, ctx) {
     const datos = mapa.REGIONES[tramo];
     const puntos = mapa.puntosDelCamino();
     const porReclamar = mapa.lugaresPorReclamar(estado, campanas);
+    const numeros = mapa.resumenDeRegion(estado, region, campanas);
 
     // Encima del mapa: tu héroe y tu mascota (en la región donde vas) y un botón en cada guarida.
     const aqui = region === pos.region ? puntos[pos.enRegion] : null;
@@ -952,7 +992,8 @@ export function pantallaMapa(estado, ctx) {
                                       style="${enElMapa(puntos[s.n])}" aria-label="${esc(s.nombre)}: ${s.liberada ? "liberada" : "en pie"}">
                                   ${s.liberada && s.jefe ? `<img class="mapa-trofeo" src="${campana.imagenDe(s.jefe.id)}" alt="" loading="lazy" decoding="async">` : ""}</button>`).join("")}
         ${tramo === 0 ? `<button type="button" class="mapa-guarida" data-accion="ir" data-pantalla="arcade"
-                                 style="${enElMapa({ x: mapa.TORRE_VALLE.x, y: mapa.TORRE_VALLE.y - 30 })}" aria-label="La Torre de los Vigías: súbela en el Arcade"></button>` : ""}`;
+                                 style="${enElMapa({ x: mapa.TORRE_VALLE.x, y: mapa.TORRE_VALLE.y - 30 })}" aria-label="La Torre de los Vigías: súbela en el Arcade"></button>` : ""}
+        ${etiquetasDelMapa(senores, puntos, tramo, dibujo.alcanzado)}`;
 
     const listaReclamar = porReclamar.length ? `
         <section class="panel mapa-premios">
@@ -996,8 +1037,15 @@ export function pantallaMapa(estado, ctx) {
                      <p class="mapa-lema">${datos.lema}</p></div>
                 <button type="button" class="boton-icono" data-accion="mapa-region" data-region="${region + 1}" ${region < pos.region ? "" : "disabled"} aria-label="Región siguiente">›</button>
             </div>
-            <p class="nota">${progreso} ${ciudadela ? "Memoriales encendidos" : "Señores vencidos"}: <b>${caidos} de 4</b>.
-               ${finalDeRegion}</p>
+            <div class="mapa-datos">
+                <div><b>${numeros.alcanzado}/${numeros.total}</b><span>📍 Lugares</span></div>
+                <div><b>${caidos}/4</b><span>${ciudadela ? "🗿 Memoriales" : "⚔️ Señores"}</span></div>
+                <div><b>${numeros.botin.tesoro.reclamados}/${numeros.botin.tesoro.total}</b><span>💰 Tesoros</span></div>
+                <div><b>${numeros.botin.santuario.reclamados}/${numeros.botin.santuario.total}</b><span>🕯️ Santuarios</span></div>
+            </div>
+            ${barra(numeros.porcentaje, "barra-mini")}
+            <p class="nota">${progreso} ${finalDeRegion}
+               ${numeros.pendientes ? `🎁 Tienes <b>${plural(numeros.pendientes, "lugar con botín", "lugares con botín")}</b> en esta región.` : ""}</p>
             ${notaTorre}
             <button type="button" class="boton boton-chico boton-secundario" data-accion="cine-region" data-region="${region}">🎬 Ver la escena de esta región</button>
         </section>
@@ -1006,6 +1054,7 @@ export function pantallaMapa(estado, ctx) {
             <img class="mapa-imagen" id="mapa-imagen" alt="Mapa de ${mapa.nombreRegion(region)}">
             ${encima}
         </div>
+        ${leyendaDelMapa(ciudadela)}
         <section class="panel">
             <h3 class="subtitulo">${tramo === mapa.CIUDADELA ? "🗿 Los memoriales" : "⚔️ Los señores de la región"}</h3>
             <p class="nota">${tramo === mapa.CIUDADELA

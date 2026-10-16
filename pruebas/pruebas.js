@@ -2511,12 +2511,39 @@ prueba("Misiones mensuales: hoy salen en la lista, cuentan para la vida y el avi
     igual(otra.diasMes.length, 1);
 });
 
-prueba("Pantalla de carga: está en la página, se quita sola al arrancar y nunca se queda más de 8 segundos", async () => {
+prueba("Pantalla de carga (v85): dura 4 segundos con su escena, y con PIN va después de la clave", async () => {
     const pagina = await (await fetch("../index.html", { cache: "no-store" })).text();
     cierto(pagina.includes('id="carga"') && pagina.includes("carga-barra") && pagina.includes("carga-consejo"), "las partes de la pantalla de carga");
+    cierto(pagina.includes("carga-escena") && pagina.includes("carga-torre") && pagina.includes("carga-heroe") && pagina.includes("carga-fugaz"), "la escena animada");
     cierto(pagina.includes("8000") && pagina.indexOf('id="carga"') < pagina.indexOf('id="bloqueo"'), "va antes que todo, con su seguro de 8 segundos");
+    cierto(pagina.includes('classList.add("espera")') && pagina.includes("reiniciarCarga"), "con PIN guardado se deja en espera y se puede reiniciar");
     const app = await (await fetch("../js/app.js", { cache: "no-store" })).text();
-    cierto(/ocultarCarga\(\);\s*\}/.test(app), "iniciar() la quita al terminar");
+    cierto(app.includes("const CARGA_DURACION = 4000;"), "dura 4 segundos");
+    cierto(/pedirPinParaEntrar\(entrarConCarga\)/.test(app) && /correrCarga\(entrarAlJuego, \{ completa: true \}\)/.test(app), "primero la clave y después la carga");
+    const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
+    cierto(css.includes(".carga.espera { display: none; }"), "la espera la esconde");
+});
+
+prueba("Reino (v86): números de cada región, franja con nombres, leyenda y rótulos en el mapa", () => {
+    const estado = partidaDemo();
+    const campanas = campana.estadoCampanas(estado);
+    const valle = mapa.resumenDeRegion(estado, 0, campanas);
+    igual([valle.alcanzado, valle.total, valle.porcentaje], [25, 25, 100], "el valle ya está recorrido");
+    igual([valle.botin.tesoro.total, valle.botin.santuario.total, valle.botin.guarida.total, valle.botin.fortaleza.total], [2, 2, 4, 1], "el botín de cada región");
+    const memoriales = mapa.resumenDeRegion(estado, mapa.CIUDADELA, campanas);
+    igual([memoriales.alcanzado, memoriales.botin.memorial.total], [0, 4], "la Ciudadela aún no se pisa y tiene 4 memoriales");
+    const reino = mapa.resumenDelReino(estado, campanas);
+    igual(reino.map((r) => r.corto), ["Valle", "Bosque", "Montañas", "Desierto", "Mar", "Ciudadela"], "nombres cortos");
+    cierto(reino[0].avance === 25 && reino.filter((r) => r.actual).length === 1, "avance y dónde estás");
+    const ctx = { vida: vida.calcularVida(estado, hoy()), avatar: avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())),
+                  info: juego.resumen(estado, hoy()), hoy: hoy(), evento: null, regionMapa: null };
+    const html = vistas.pantallaMapa(estado, ctx);
+    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(html.includes("reino-barra") && html.includes("Montañas") && html.includes("regiones libres") && html.includes("mapa-datos"), "franja y números");
+    cierto(html.includes("Leyenda del mapa") && html.includes("mapa-rotulo") && html.includes("Inicio") && html.includes("Fortaleza"), "leyenda y rótulos");
+    // Cada región se dibuja con sus cosas nuevas (el valle tiene río y aldea; el mar, faro y barcos; la Ciudadela, antorchas).
+    const dibujo = (r) => dibujarMapa({ ...mapa.datosParaDibujar(estado, r, campanas), alcanzado: 25 });
+    cierto(dibujo(0).includes("#3a78b8") && dibujo(4).includes("#ffd27a") && dibujo(5).includes("#ff9a1f"), "más elementos por región");
 });
 
 

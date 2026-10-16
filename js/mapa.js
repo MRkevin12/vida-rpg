@@ -35,12 +35,12 @@ export const GUARIDAS = [7, 12, 17, 22];        // en qué lugares de cada regi�
 export const CIUDADELA = 5;                       // la sexta región (empezando en 0)
 
 export const REGIONES = [
-    { nombre: "El Valle del Comienzo",          paisaje: "valle",     icono: "🌾", lema: "Donde todo invita a quedarse." },
-    { nombre: "El Bosque de las Dudas",         paisaje: "bosque",    icono: "🌲", lema: "Se camina mucho y se avanza poco." },
-    { nombre: "Las Montañas de la Disciplina",  paisaje: "montanas",  icono: "⛰️", lema: "La cima se alcanza sin ganas muchos días." },
-    { nombre: "El Desierto de la Constancia",   paisaje: "desierto",  icono: "🏜️", lema: "Nada cambia, y eso es lo difícil." },
-    { nombre: "El Mar de la Paciencia",         paisaje: "mar",       icono: "🌊", lema: "El mar no se cruza: se espera." },
-    { nombre: "La Ciudadela del Carácter",      paisaje: "ciudadela", icono: "🏯", lema: "La construyen quienes vencieron." },
+    { nombre: "El Valle del Comienzo",          paisaje: "valle", corto: "Valle",     icono: "🌾", lema: "Donde todo invita a quedarse." },
+    { nombre: "El Bosque de las Dudas",         paisaje: "bosque", corto: "Bosque",    icono: "🌲", lema: "Se camina mucho y se avanza poco." },
+    { nombre: "Las Montañas de la Disciplina",  paisaje: "montanas", corto: "Montañas",  icono: "⛰️", lema: "La cima se alcanza sin ganas muchos días." },
+    { nombre: "El Desierto de la Constancia",   paisaje: "desierto", corto: "Desierto",  icono: "🏜️", lema: "Nada cambia, y eso es lo difícil." },
+    { nombre: "El Mar de la Paciencia",         paisaje: "mar", corto: "Mar",       icono: "🌊", lema: "El mar no se cruza: se espera." },
+    { nombre: "La Ciudadela del Carácter",      paisaje: "ciudadela", corto: "Ciudadela", icono: "🏯", lema: "La construyen quienes vencieron." },
 ];
 
 // Los nombres de los memoriales de la Ciudadela (uno por campaña).
@@ -225,12 +225,39 @@ export function resumenDelReino(estado, campanas) {
             region,
             nombre: nombreRegion(region),
             icono: REGIONES[i].icono,
+            corto: REGIONES[i].corto,
+            avance: region < actual ? LUGARES_POR_REGION : region === actual ? posicion(estado).enRegion : 0,   // lugares recorridos (0…25)
             pisada: region <= actual,
             actual: region === actual,
             liberada: senores.every((s) => s.liberada),
             senoresCaidos: senores.filter((s) => s.liberada).length,
         };
     });
+}
+
+
+// (v86) Los números de una región para el panel del mapa: lugares recorridos, botín reclamado de cada tipo y señores vencidos.
+// Devuelve { alcanzado, total, porcentaje, botin: { tesoro|santuario|guarida|memorial|fortaleza: { total, reclamados } }, senoresCaidos, pendientes }.
+export function resumenDeRegion(estado, region, campanas) {
+    const pos = posicion(estado);
+    const alcanzado = region < pos.region ? LUGARES_POR_REGION : region === pos.region ? pos.enRegion : 0;
+    const reclamados = new Set(estado.mapa?.reclamados || []);
+    const botin = {};
+    for (let n = 1; n <= LUGARES_POR_REGION; n++) {
+        const tipo = tipoDeLugar(n, region);
+        if (tipo === "camino") continue;
+        const cuenta = (botin[tipo] ||= { total: 0, reclamados: 0 });
+        cuenta.total += 1;
+        if (reclamados.has(idLugar(region, n))) cuenta.reclamados += 1;
+    }
+    return {
+        alcanzado,
+        total: LUGARES_POR_REGION,
+        porcentaje: Math.round((alcanzado / LUGARES_POR_REGION) * 100),
+        botin,
+        senoresCaidos: senoresDeRegion(region, campanas).filter((s) => s.liberada).length,
+        pendientes: lugaresPorReclamar(estado, campanas).filter((l) => l.region === region).length,
+    };
 }
 
 
