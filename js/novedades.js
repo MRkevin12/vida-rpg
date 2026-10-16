@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 84;
+export const VERSION_APP = 85;
 
 export const NOVEDADES = [
+    {
+        version: 85,
+        titulo: "Arreglo en la pantalla del héroe",
+        cambios: [
+            "🐞 El botón del Gimnasio en la ficha de tu héroe se veía apretado en una columna angosta; ahora ocupa todo el ancho.",
+        ],
+    },
     {
         version: 84,
         titulo: "Gimnasio más armonioso",

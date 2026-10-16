@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v85 — El botón del gym en la ficha del héroe
+- `.ficha-gym` lleva `grid-column: 1 / -1`: `.ficha` es una cuadrícula de 2 columnas y el botón se quedaba en la del avatar (116 px). Se comprobó a 390 y 792 px de ancho.
+
 ## v84 — Armonía de colores del gym y arreglos del menú
 - CSS: `--gym` pasa de rosa (#fb7185) a ámbar (#f59e0b) y `--gym-2` a #fcd34d; todos los `rgba(251, 113, 133, …)` de la parte del gym pasan a ámbar. `.gym-bono` es una tarjeta, el contador de la meta va en dorado (verde al cumplirla), «Toca hoy» va dentro del nombre (ya no se estira) y el menú de secciones pegado ya no deja una rendija arriba (`top: alto-cabecera − 1px`).
 - Bugs: `resumenGym` ya no fuerza la sección «Entrenar» (los botones del menú no respondían tras terminar; ahora app.js pone `subvista.gym = "entrenar"` al empezar, terminar o marcar). La acción `subvista` vuelve arriba (`scrollTo(0, 0)`) cuando el menú está pegado (antes comparaba contra 0 y nunca ocurría). Modo foco: botón «Terminar ya el entrenamiento» (`terminarYa`). 289 pruebas.

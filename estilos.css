@@ -10986,6 +10986,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 /* El botón de gym en la ficha del héroe */
 .ficha-gym {
+    grid-column: 1 / -1;   /* v85: la ficha del héroe es una cuadrícula de 2 columnas; sin esto el botón se quedaba en la del avatar */
     display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 10px 12px; min-height: 52px;
     text-align: left; color: var(--texto); cursor: pointer;
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(251, 191, 36, 0.08));
