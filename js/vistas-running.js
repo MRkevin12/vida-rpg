@@ -416,7 +416,10 @@ function tarjetaAjustes(estado) {
             </div>
             <label class="formulario-grupo"><span>🗣️ Voz de la carrera</span>
                 <select data-running-voz data-actual="${esc(r.voz || "")}"><option value="">Automática (la del teléfono)</option></select></label>
-            <button type="button" class="boton boton-chico boton-secundario boton-ancho" data-accion="run-probar-voz">🔊 Probar la voz</button>
+            <div class="run-botones">
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="run-probar-voz">🔊 Probar la voz</button>
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="run-buscar-voces">🔄 Buscar voces nuevas</button>
+            </div>
             <p class="mini texto-suave" data-run-voces-nota></p>
             ${misiones.length ? "" : '<p class="mini texto-suave">Crea una misión (ej: «Correr») en Hoy para que se marque sola.</p>'}
         </section>`;

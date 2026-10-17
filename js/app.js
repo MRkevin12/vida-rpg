@@ -497,7 +497,7 @@ function vocesEnEspanol() {
     const orden = (v) => { const i = ["MX", "CO"].indexOf(v.lang.split(/[-_]/)[1]); return i === -1 ? 9 : i; };
     return speechSynthesis.getVoices().filter((v) => /^es([-_]|$)/i.test(v.lang)).sort((x, y) => orden(x) - orden(y) || x.name.localeCompare(y.name));
 }
-const nombreDeVoz = (v) => `${v.name.replace(/\s*\(.*\)\s*$/, "")} · ${PAISES_VOZ[v.lang.split(/[-_]/)[1]] || v.lang}`;
+const nombreDeVoz = (v) => `${v.name} · ${PAISES_VOZ[v.lang.split(/[-_]/)[1]] || v.lang}`;   // v.name ya trae «(Mejorada)», «(Premium)»…
 
 // Llena la lista de voces (se llama al dibujar Running y cuando el teléfono termina de cargarlas).
 function poblarVocesRunning() {
@@ -516,6 +516,17 @@ function poblarVocesRunning() {
 }
 if ("speechSynthesis" in window) speechSynthesis.addEventListener?.("voiceschanged", poblarVocesRunning);
 
+// (v126) El iPhone entrega la lista de voces tarde y no siempre avisa cuando bajas una nueva: se vuelve a pedir varias veces.
+function buscarVocesNuevas() {
+    const antes = vocesEnEspanol().length;
+    if ("speechSynthesis" in window) { try { speechSynthesis.getVoices(); } catch (error) { /* sin voces */ } }
+    for (const espera of [0, 400, 1200, 3000]) setTimeout(poblarVocesRunning, espera);
+    setTimeout(() => {
+        const ahora = vocesEnEspanol().length;
+        avisar(ahora > antes ? `🗣️ ${ahora - antes} voz nueva${ahora - antes === 1 ? "" : "s"} encontrada${ahora - antes === 1 ? "" : "s"}` : `🗣️ ${ahora} voces en español. Si acabas de bajar una y no sale, cierra la app del todo y ábrela otra vez.`);
+    }, 3200);
+}
+
 function detenerGps() {
     if (seguimientoGps !== null) navigator.geolocation?.clearWatch(seguimientoGps);
     seguimientoGps = null;
@@ -531,6 +542,7 @@ async function mantenerPantallaDespierta(encendida) {
     }
 }
 document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && pantallaActual === "running") setTimeout(poblarVocesRunning, 300);   // (v126) volviste de bajar voces
     if (document.visibilityState === "visible" && estado.running?.encurso) mantenerPantallaDespierta(true);
     // (v120) Al salir de la app con una carrera en curso, la notificación aparece al instante.
     if (document.visibilityState === "hidden" && estado.running?.encurso) { ultimaNotificacionCarrera = 0; mostrarNotificacionCarrera(); }
@@ -1448,7 +1460,7 @@ function dibujarPantalla(efectos = {}) {
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
-    if (pantallaActual === "running") poblarVocesRunning();   // (v124)
+    if (pantallaActual === "running") { poblarVocesRunning(); setTimeout(poblarVocesRunning, 800); }   // (v124, v126)
     if (pantallaActual === "running" && $("[data-run-mapa]")) { ponerHeroeEnMapaVivo(); ponerCriaturasDeCarrera(); }   // (v118–v119) héroe y criatura sobre el mapa
     if (pantallaActual === "mapa") pintarMapa();   // la imagen del mapa (pixel art) llega un instante después
     actualizarBarraRun();
@@ -3479,6 +3491,7 @@ const ACCIONES = {
         ponerMusica();   // (v125) se acabó la carrera: vuelve la música del juego
     },
     "run-meta": (boton) => ejecutar(() => acciones.cambiarMetaKm(estado, estado.running.metaKm + Number(boton.dataset.delta)), { mantenerScroll: true }),
+    "run-buscar-voces": () => buscarVocesNuevas(),
     "run-probar-voz": () => decir("Kilómetro 3. 5 minutos 12 segundos. ¡Venciste al esqueleto! Aparece un jefe: mantén el ritmo.", { forzar: true }),
     "run-concentracion": () => ejecutar(() => acciones.cambiarConcentracion(estado, estado.running.concentracion === false), { mantenerScroll: true }),
     "run-aviso-km": () => ejecutar(() => acciones.cambiarAvisoKm(estado, estado.running.avisoKm === false), { mantenerScroll: true }),
