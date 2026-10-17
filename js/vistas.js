@@ -35,7 +35,7 @@ import * as equipo from "./equipo.js";
 import { precioConEvento } from "./eventos.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
-import { retratoPixel, figuraPixel, dioramaPixel, pixelEstatico, pixelarEnVivo } from "./retratos.js";
+import { retratoPixel, figuraPixel, dioramaPixel, pixelEstatico, pixelarEnVivo, ilustracion } from "./retratos.js";
 import { icono } from "./iconos.js";
 import * as insignias from "./insignias.js";   // (v101)
 import { dibujarInsignia } from "./dibujo-insignias.js";
@@ -4084,6 +4084,17 @@ function filaEnlace(icono, titulo, detalle, destino) {
             </button>`;
 }
 
+// (v108) La letra capitular: la primera letra del primer párrafo, grande y en un marco, como en los libros antiguos.
+function conCapitular(html) {
+    return html.replace(/^<p>([«"¡¿]?)([A-Za-zÁÉÍÓÚÑáéíóúñ])/, (_, signo, letra) => `<p class="con-capitular">${signo}<span class="capitular" aria-hidden="true">${letra}</span><span class="solo-lectores">${letra}</span>`);
+}
+
+// (v108) La ilustración de un libro largo: Casio en la cima de la tormenta, Orrin en el fondo del abismo.
+function ilustracionDeLibro(id, ctx, capitulo) {
+    const fondo = id === "orrin" ? "abismo" : "cima";
+    return ilustracion(fondo, { actores: capitulo < 0 || capitulo % 2 === 0 ? [] : [{ d: ctx.avatar, x: 66 }] });
+}
+
 function bibliotecaLeidos(estado) {
     return pergaminos.IDS.filter((id) => estado.pergaminos.leidos[id]).length;
 }
@@ -4112,8 +4123,21 @@ function seccionHistoria(estado, ctx) {
         voces: `${voces.progreso(estado).hechas} de ${voces.progreso(estado).total} voces recuperadas${estado.voces.epilogo ? " · ✅ La aldea habló" : ""}`,
         libro: `${plural(escritos, "día escrito", "días escritos")} en tu diario`,
     };
+    // (v108) Cada historia con su miniatura: el lugar donde pasa y quién la protagoniza.
+    const yo = [{ d: ctx.avatar, x: 62 }];
+    const miniaturas = {
+        pergamino: ilustracion("pintura:torre", { clase: "miniatura" }),
+        orrin: ilustracion("abismo", { clase: "miniatura" }),
+        memorias: ilustracion("pintura:salon", { clase: "miniatura", actores: [{ d: maestro.describirMaestro(), x: 50 }] }),
+        casio: ilustracion("cima", { clase: "miniatura" }),
+        cronica: ilustracion("pintura:aldea", { clase: "miniatura", actores: yo }),
+        torre: ilustracion("cripta", { clase: "miniatura", actores: yo }),
+        mazmorra: ilustracion("cisterna", { clase: "miniatura" }),
+        voces: ilustracion("pintura:aldea", { clase: "miniatura" }),
+        libro: ilustracion("pintura:camino", { clase: "miniatura", actores: yo }),
+    };
     const historias = saga.HISTORIAS.map((h) =>
-        filaEnlace(h.icono, esc(h.titulo), `<i>${h.cuando}.</i> ${esc(h.texto)} · ${detalle[h.id]}`, abrirHistoriaDeSaga(h.abrir))).join("");
+        filaEnlace(miniaturas[h.id] || h.icono, esc(h.titulo), `<i>${h.cuando}.</i> ${esc(h.texto)} · ${detalle[h.id]}`, abrirHistoriaDeSaga(h.abrir))).join("");
     return `
         ${panelSaga(estado, ctx, s)}
         <section class="panel">
@@ -4173,7 +4197,7 @@ export function pantallaMemorias(estado, ctx) {
     return `
         ${encabezado("🧙 Memorias", "personaje", "Héroe")}
         <section class="cronica memorias">
-            <div class="memorias-retrato" aria-hidden="true">${figuraPixel(maestro.describirMaestro())}</div>
+            ${ilustracion("pintura:salon", { actores: [{ d: maestro.describirMaestro(), x: 50 }] })}
             <h2 class="cronica-titulo">Memorias de Aurelio</h2>
             <p class="cronica-sub">${todo
                 ? "Ya te lo contó todo. Lo demás lo estás escribiendo tú."
@@ -4203,8 +4227,14 @@ export function pantallaPergamino(estado, ctx = {}) {
         <section class="rollo-capitulo">
             <p class="rollo-numero">${["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][i]}</p>
             <h3 class="rollo-titulo-capitulo">${esc(c.titulo)}</h3>
-            ${parrafos(c.parrafos)}
+            ${conCapitular(parrafos(c.parrafos))}
         </section>`).join(adorno);
+    // (v108) La ilustración del pergamino: el lugar de su escena con tu héroe; en el del huevo, también Aurelio.
+    const conAurelio = ["huevo", "juramento"].includes(p.id);
+    const dibujo = p.escena?.fondo ? ilustracion(p.escena.fondo, {
+        actores: conAurelio ? [{ d: maestro.describirMaestro(), x: 30 }, { d: ctx.avatar, x: 72 }] : [{ d: ctx.avatar, x: 64 }],
+        titulo: esc(p.titulo),
+    }) : "";
     return `
         ${encabezado(`📜 Pergamino ${p.numero}`, "personaje", "Héroe")}
         <article class="rollo">
@@ -4215,7 +4245,8 @@ export function pantallaPergamino(estado, ctx = {}) {
                     <h2>${esc(p.titulo)}</h2>
                     <p class="rollo-subtitulo">${esc(p.subtitulo)}</p>
                 </header>
-                <div class="rollo-prologo">${parrafos(p.prologo)}</div>
+                ${dibujo}
+                <div class="rollo-prologo">${conCapitular(parrafos(p.prologo))}</div>
                 ${adorno}
                 ${capitulos}
                 <section class="rollo-ensenanzas">
@@ -4263,7 +4294,8 @@ export function pantallaNovela(estado, ctx = {}) {
                         <p class="rollo-numero">Capítulo ${c.numero} de ${total}</p>
                         <h2>${esc(c.titulo)}</h2>
                     </header>
-                    <section class="rollo-capitulo novela-texto">${parrafos(c.parrafos)}</section>
+                    ${ilustracionDeLibro(id, ctx, i)}
+                    <section class="rollo-capitulo novela-texto">${conCapitular(parrafos(c.parrafos))}</section>
                     <blockquote class="rollo-moraleja"><span>${esc(modulo.ETIQUETA_MORALEJA)}</span>«${esc(c.moraleja)}»</blockquote>
                     ${ultimo ? `
                         ${adorno}
@@ -4308,6 +4340,7 @@ export function pantallaNovela(estado, ctx = {}) {
                     <h2>${esc(libro.titulo)}</h2>
                     <p class="rollo-subtitulo">${esc(libro.subtitulo)}</p>
                 </header>
+                ${ilustracionDeLibro(id, ctx, -1)}
                 ${libro.prologo.length ? `<section class="rollo-prologo"><h3 class="rollo-titulo-capitulo">Prólogo</h3>${parrafos(libro.prologo)}</section>` : ""}
             </div>
             <div class="rollo-vara" aria-hidden="true"></div>

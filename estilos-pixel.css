@@ -1348,3 +1348,108 @@ body {
 .carta-texto {
     white-space: pre-wrap;
 }
+
+
+/* =====================================================================
+   Ilustraciones (v108): pergaminos, libros, memorias e Historia
+   ===================================================================== */
+.ilustracion {
+    position: relative;
+    margin: 10px 0 14px;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+    background: #0b0816;
+    border: 3px solid #6b4a1c;
+    box-shadow: 0 0 0 2px var(--tinta), inset 0 0 0 2px rgba(255, 220, 140, 0.25);
+}
+
+.ilustracion-fondo {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+    image-rendering: pixelated;
+}
+
+/* Viñeta: las esquinas oscuras, como un grabado. */
+.ilustracion::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 75% at 50% 50%, transparent 55%, rgba(6, 4, 13, 0.6));
+    pointer-events: none;
+}
+
+.ilustracion-actor {
+    position: absolute;
+    bottom: 4%;
+    width: 22%;
+    transform: translateX(-50%);
+    z-index: 1;
+}
+
+.ilustracion figcaption {
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    z-index: 2;
+    transform: translateX(-50%);
+    padding: 2px 10px;
+    font-family: var(--letra-titulo);
+    font-size: 0.82rem;
+    white-space: nowrap;
+    color: #fff3c4;
+    background: rgba(20, 12, 34, 0.82);
+    border: 2px solid #9a5212;
+}
+
+/* La miniatura de la lista de Historia (en lugar del emoji). */
+.ilustracion.miniatura {
+    width: 72px;
+    margin: 0;
+    flex: 0 0 72px;
+    border-width: 2px;
+}
+
+.fila-enlace-icono:has(.ilustracion) {
+    width: auto;
+    font-size: 1rem;
+}
+
+/* La letra capitular. */
+.con-capitular::first-line {
+    letter-spacing: 0.01em;
+}
+
+.capitular {
+    float: left;
+    display: grid;
+    place-items: center;
+    width: 2.1em;
+    height: 2.1em;
+    margin: 0.15em 0.4em 0 0;
+    font-family: var(--letra-titulo);
+    font-size: 1.6em;
+    line-height: 1;
+    color: #ffe9a6;
+    background: linear-gradient(180deg, #5a1a2a, #3a0f1c);
+    border: 2px solid #c8a040;
+    box-shadow: 0 0 0 2px var(--tinta), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+    text-shadow: 0 2px 0 var(--tinta);
+}
+
+/* (v108) Donde va la letra capitular en pixel art, se apaga la letra grande roja de antes (si no, salían dos). */
+.rollo-capitulo > h3 + p.con-capitular::first-letter,
+.novela-texto p.con-capitular:first-child::first-letter,
+.rollo-prologo p.con-capitular::first-letter {
+    float: none;
+    margin: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
+    text-shadow: none;
+}

@@ -12,6 +12,8 @@
 
 import { pixelar, yaPixelado } from "./pixel.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
+import { dibujarSala, SALA } from "./dibujo-monstruos.js";   // (v108) las salas de la Torre, para las ilustraciones
+import { rutaPintura } from "./pinturas.js";
 
 // Los encuadres de dibujarAvatar (su viewBox: x, y, ancho, alto), ver dibujo.js.
 const ENCUADRES = {
@@ -167,6 +169,22 @@ export function cuerpoGymPixel(d, { clase = "" } = {}) {
 export function pixelEstatico(svg, ancho, alto, { clase = "", alt = "", contorno = true } = {}) {
     const clave = `dibujo-${ancho}x${alto}-${contorno ? 1 : 0}-${huella(svg.replace(/\b(av|es|mo|m|sala|d)\d+/g, ""))}`;
     return imagen(clave, () => pixelar(svg, ancho, alto, { clave, contorno }), { clase: `dibujo-pixel ${clase}`, ancho, alto, alt });
+}
+
+// (v108) Una ilustración en pixel art, como las de un libro: un fondo (una pintura «pintura:aldea» o una sala de la
+// Torre «cripta») y, encima, los personajes de pie (cada uno: { d, x } con d = describirAvatar() o describirMaestro(),
+// y x = dónde, en % del ancho). titulo = un letrero abajo. clase = "miniatura" para las pequeñas de la lista de Historia.
+export function ilustracion(fondo, { actores = [], titulo = "", clase = "" } = {}) {
+    let imagenFondo;
+    if (String(fondo).startsWith("pintura:")) {
+        imagenFondo = `<img class="pixel ilustracion-fondo" src="${rutaPintura(fondo.slice(8))}" alt="" draggable="false">`;
+    } else {
+        const clave = `sala-${fondo}`;   // la misma clave que sprites.js › spriteDeSala: se comparte la imagen
+        imagenFondo = imagen(clave, () => pixelar(dibujarSala(fondo), SALA.ancho, SALA.alto, { clave, contorno: false, niveles: 20 }),
+            { clase: "ilustracion-fondo", ancho: SALA.ancho, alto: SALA.alto });
+    }
+    const personajes = actores.filter(({ d }) => d).map(({ d, x = 50 }) => `<div class="ilustracion-actor" style="left: ${x}%">${figuraPixel(d)}</div>`).join("");   // sin héroe (d vacío), solo el fondo
+    return `<figure class="ilustracion ${clase}" aria-hidden="true">${imagenFondo}${personajes}${titulo ? `<figcaption>${titulo}</figcaption>` : ""}</figure>`;
 }
 
 // Para tenerlas listas antes de abrir una pantalla (al arrancar la app): así salen al instante.

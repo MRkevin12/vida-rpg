@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v108 — Pergaminos e historias ilustrados
+- `retratos.js › ilustracion(fondo, { actores, titulo, clase })`: una pintura (`pintura:…`, en pixel art) o una sala de la Torre (misma clave que `spriteDeSala`) con figuras de pie encima, marco de oro y viñeta; `clase: "miniatura"` para la lista de Historia.
+- `vistas.js`: ilustración en los pergaminos (su `escena.fondo`), en la portada y los capítulos de los libros largos (`ilustracionDeLibro`: Casio en la cima, Orrin en el abismo) y en las Memorias; miniaturas en `seccionHistoria`; `conCapitular()` pone la letra capitular (y apaga la `::first-letter` roja de antes).
+- Pruebas: la revisión de «huecos» ignora las imágenes `data:` (su base64 puede contener «NaN» por casualidad). 306 pruebas.
+
 ## v107 — Cinemáticas más largas
 - `cinematicas.js`: zona 1 → 3 tomas (la descripción de la zona y un paso más), entrada 3 → 5 (el guardián se planta y «¡A pelear!»), derrota 2 → 4 (el respiro y «Guardián vencido»).
 - `cinematicas-reino.js`: región 3 → 6, señor 3 → 5, fortaleza 2 → 4, arcade 3 → 4, voces 3 → 4, voz 3 → 4, epílogo 2 → 4, pergamino 4 → 5. Pruebas: los límites de duración subieron (zona 12 s, entrada 16 s, derrota 14 s). 306 pruebas.

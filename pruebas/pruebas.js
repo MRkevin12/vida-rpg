@@ -111,6 +111,9 @@ async function debeFallarAsync(funcion, texto) {
 }
 
 // La función debe fallar con un mensaje que contenga "texto".
+// (v108) Las imágenes ya hechas van dentro del HTML como "data:…base64": ahí pueden salir letras como «NaN» por casualidad.
+const sinImagenes = (html) => html.replace(/data:[^"')]*/g, "");
+
 // (v105) El arcade se ve por secciones: para revisarlo entero, se juntan las cuatro.
 function arcadeCompleto(estado, ctx) {
     return ["torre", "mazmorras", "minijuegos", "bazar"]
@@ -991,7 +994,7 @@ prueba("Torre (pantalla): batalla, menú de magia, botín, final y bestiario se 
     const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
     const t = (cambios = {}) => ({ partida: estado.arcade.torre, nombre: "Prueba <b>", sprites: imagenes, eventos: [], menu: "principal",
                                    ultimo: "atacar", bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
-    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), `${que} no tiene huecos`);
 
     let html = vistas.pantallaTorre(t());
     sano(html, "la batalla");
@@ -1865,7 +1868,7 @@ prueba("Voces: al recuperar la última voz se cuenta el epílogo, se paga una ve
         const aldea = vistasVoces.pantallaVoces(estado, ctx);
         cierto(aldea.includes("La aldea ya habló") && aldea.includes('data-accion="voces-epilogo"'), "la aldea ofrece releer el epílogo");
         const html = vistasVoces.pantallaEscena({ estado, nombre: "Aria", hoy: hoy(), resultado: null, epilogo: true });
-        cierto(html.includes("La aldea habla") && html.includes("Aurelio") && !/undefined|NaN|\[object/.test(html), "el epílogo se dibuja");
+        cierto(html.includes("La aldea habla") && html.includes("Aurelio") && !/undefined|NaN|\[object/.test(sinImagenes(html)), "el epílogo se dibuja");
         const textoEpilogo = voces.EPILOGO.paginas.join(" ");
         cierto(!/vuelve a arder|hasta la Llama|luz de la Llama|Llama (ya )?(arde|brilla|se enciende)/i.test(textoEpilogo), "el epílogo no dice que la Llama arde");
         cierto(textoEpilogo.includes("no prende"), "y recuerda que la Llama sigue esperando");
@@ -2074,7 +2077,7 @@ prueba("Pixel art: el Reflejo sombrío es tu héroe en sombras", async () => {
 prueba("Mazmorra (pantalla): tarjeta cerrada y abierta, batalla, historia, bestiario y final sin huecos", () => {
     const estado = partidaNueva();
     const ctx = () => ({ vida: vida.calcularVida(estado, hoy()), avatar: avatarDePrueba() });
-    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), `${que} no tiene huecos`);
     let html = arcadeCompleto(estado, ctx());
     sano(html, "el arcade (cerrada)");
     cierto(html.includes("Mazmorra del Abismo") && html.includes("0 de 20 pisos") && !html.includes('data-lugar="mazmorra"'), "cerrada");
@@ -2440,7 +2443,7 @@ prueba("Pantallas: el reino, la tienda de mascotas y la Torre con mascota y habi
     equipar(estado, "corona-dragon", "lanza-dragon");
     const ctx = { vida: vida.calcularVida(estado, hoy()), avatar: avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())),
                   info: juego.resumen(estado, hoy()), hoy: hoy(), evento: null, regionMapa: null };
-    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), `${que} no tiene huecos`);
     let html = vistas.pantallaMapa(estado, ctx);
     sano(html, "el reino");
     cierto(html.includes("Crónica del reino") && html.includes("mapa-imagen") && html.includes("data-accion=\"mapa-senor\""), "las partes del reino");
@@ -2531,7 +2534,7 @@ prueba("Misiones mensuales: hoy salen en la lista, cuentan para la vida y el avi
         maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null, subvista: { hoy: "misiones" }, diarioVista: {},
     });
     cierto(html.includes("de cada mes") && html.includes("📅 próxima:"), "Hoy muestra la frecuencia y la próxima fecha");
-    cierto(!/undefined|NaN/.test(html), "sin huecos");
+    cierto(!/undefined|NaN/.test(sinImagenes(html)), "sin huecos");
     igual(otra.diasMes.length, 1);
 });
 
@@ -2580,7 +2583,7 @@ prueba("Reino (v86): números de cada región, franja con nombres, leyenda y ró
     const ctx = { vida: vida.calcularVida(estado, hoy()), avatar: avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())),
                   info: juego.resumen(estado, hoy()), hoy: hoy(), evento: null, regionMapa: null };
     const html = vistas.pantallaMapa(estado, ctx);
-    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), "sin huecos");
     cierto(html.includes("reino-barra") && html.includes("Montañas") && html.includes("regiones libres") && html.includes("mapa-datos"), "franja y números");
     cierto(html.includes("Leyenda del mapa") && html.includes("mapa-rotulo") && html.includes("Inicio") && html.includes("Fortaleza"), "leyenda y rótulos");
     // Cada región se dibuja con sus cosas nuevas (el valle tiene río y aldea; el mar, faro y barcos; la Ciudadela, antorchas).
@@ -2599,7 +2602,7 @@ prueba("Orden: cada pantalla larga se divide en secciones y cada cosa está en u
         vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
         rangoResumen: 7, subvista, campanaVista: null, diarioVista: {},
     });
-    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), `${que} no tiene huecos`);
     const veces = (html, texto) => html.split(texto).length - 1;
 
     // Hoy › Aurelio (v52): el héroe, el resumen de sus rivales y un solo panel «Tu día»; sin lista «En combate» ni chips del mapa o del arcade.
@@ -3003,7 +3006,7 @@ prueba("Robo de vida: al fallar, el jefe de esa categoría se cura con lo que te
     // La escena del robo se dibuja con eso.
     const escena = vistas.pantallaRobo(r.robo, "<svg></svg>");
     cierto(escena.includes("Medusa te robó 11 de vida") && escena.includes("La Parálisis se hace más fuerte: recuperó 11"), "el texto de la escena");
-    cierto(!/undefined|NaN/.test(escena), "la escena no tiene huecos");
+    cierto(!/undefined|NaN/.test(sinImagenes(escena)), "la escena no tiene huecos");
 
     acciones.quitarFalla(estado, leer.id, hoy());           // te arrepientes: se lo devuelve
     igual(campana.estadoCampanas(estado).intelecto.vida, 126);
@@ -3040,7 +3043,7 @@ prueba("Robo de vida: al abrir la app te cuenta qué jefes te robaron mientras n
     igual([robo.titulo, robo.total, robo.base, robo.conArmadura], ["Ayer, lo que no hiciste", 28, 20, 28]);
     igual(robo.golpes.map((g) => [g.jefe.id, g.dano]), [["lobo", 17], ["medusa", 11]], "primero el que más robó");
     const escena = vistas.pantallaRobo(robo, "<svg></svg>");
-    cierto(escena.includes("Tus jefes te robaron 28 de vida") && !/undefined|NaN/.test(escena), "la escena con varios jefes");
+    cierto(escena.includes("Tus jefes te robaron 28 de vida") && !/undefined|NaN/.test(sinImagenes(escena)), "la escena con varios jefes");
 });
 
 prueba("Equipo en la Torre: suma ataque, magia y suerte, y tu armadura para parte de cada golpe", () => {
@@ -3276,7 +3279,7 @@ prueba("La primera piedra (pantalla): se lee como un rollo, sin huecos, y se lle
     const estado = partidaNueva();
     estado.personaje.nombre = "Ana <b>";
     const html = vistas.pantallaPergamino(estado);
-    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), "sin huecos");
     cierto(html.includes("rollo-vara") && html.includes("rollo-papel") && html.includes("La primera piedra"), "el rollo");
     igual(html.split('class="rollo-capitulo"').length - 1, 10, "los diez capítulos");
     cierto(html.includes("Ana &lt;b&gt;") && !html.includes("Ana <b>"), "el nombre va escapado");
@@ -3370,7 +3373,7 @@ prueba("Saga en la partida: se ve en Hoy y en Héroe › Historia, y cada acto c
     cierto(html.includes("Acto II: El juramento") && !html.includes("Sella tu pacto"), "el pacto no se repite: lo pide la saga");
 
     html = vistas.pantallaPersonaje(estado, ctx({ personaje: "historia" }));
-    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), "sin huecos");
     cierto(html.includes("La Saga de la Llama") && html.includes("Las historias, en orden") && html.includes("📜 Firmar tu pacto"), "la saga en Héroe");
     const orden = ["La primera piedra", "Memorias de Aurelio", "Crónica del reino", "La Torre de los Vigías", "El Rey Hueco", "Tu libro"]
         .map((titulo) => html.indexOf(titulo, html.indexOf("Las historias, en orden")));
@@ -3563,14 +3566,14 @@ prueba("Pantalla de la Torre (v38): técnicas, Voluntad y los trucos de la criat
     let html = vistas.pantallaTorre(t());
     cierto(html.includes("Técnicas") && html.includes("1 lista") && html.includes("ff-voluntad-barra") && !html.includes('data-torre="voluntad"'), "el menú y la barra");
     html = vistas.pantallaTorre(t({ menu: "tecnicas" }));
-    cierto(html.includes("🔨 Quebrar") && html.includes("🔒 Intelecto 3") && !/undefined|NaN/.test(html), "las técnicas, con las que faltan");
+    cierto(html.includes("🔨 Quebrar") && html.includes("🔒 Intelecto 3") && !/undefined|NaN/.test(sinImagenes(html)), "las técnicas, con las que faltan");
     p.heroe.voluntad = torre.VOLUNTAD.max;
     Object.assign(p.enemigo, { barrera: 12, espejo: true, cargando: true });
     html = vistas.pantallaTorre(t());
     cierto(html.includes('data-torre="voluntad"') && html.includes("Barrera: 12") && html.includes("Espejo") && html.includes("Cargando"), "Voluntad lista y los trucos a la vista");
     const eventos = acciones.accionTorre(estado, "voluntad").eventos;
     html = vistas.pantallaTorre(t({ eventos }));
-    cierto(html.includes("Golpe de Voluntad") && html.includes("ff-voluntad") && !/undefined|NaN/.test(html), "el golpe se anuncia");
+    cierto(html.includes("Golpe de Voluntad") && html.includes("ff-voluntad") && !/undefined|NaN/.test(sinImagenes(html)), "el golpe se anuncia");
 });
 
 
@@ -3861,13 +3864,13 @@ prueba("Monedas y gemas: las copias viejas empiezan sin gemas, y el arcade y la 
     copia.arcade.bazar = ["pocion"];
     const ctx = { vida: vida.calcularVida(copia, hoy()), avatar: avatarDePrueba(), evento: null, subvista: { tienda: "mascotas" } };
     let html = arcadeCompleto(copia, ctx);
-    cierto(!/undefined|NaN/.test(html) && html.includes("💎 Bazar") && html.includes("💎 120") && html.includes("✓ La llevas") &&
+    cierto(!/undefined|NaN/.test(sinImagenes(html)) && html.includes("💎 Bazar") && html.includes("💎 120") && html.includes("✓ La llevas") &&
            html.includes('data-accion="comprar-provision" data-clave="afilar"'), "el bazar en el Arcade");
     cierto(!html.includes("🪙 y"), "el arcade ya no promete monedas");
     html = vistas.pantallaTienda(copia, ctx);
-    cierto(!/undefined|NaN/.test(html) && html.includes("💎 180") && html.includes("💎 120 gemas"), "las mascotas cuestan gemas");
+    cierto(!/undefined|NaN/.test(sinImagenes(html)) && html.includes("💎 180") && html.includes("💎 120 gemas"), "las mascotas cuestan gemas");
     html = vistas.pantallaTienda(copia, { ...ctx, subvista: { tienda: "equipo" } });
-    cierto(!/undefined|NaN/.test(html) && html.includes(`💎 ${avatar.OBJETOS.gorra.precio}`) &&
+    cierto(!/undefined|NaN/.test(sinImagenes(html)) && html.includes(`💎 ${avatar.OBJETOS.gorra.precio}`) &&
            !html.split("Equipamiento")[1].split("Los objetos legendarios")[0].includes("🪙"),
            "el equipo también (la poción de vida sigue en monedas)");
 
@@ -3974,7 +3977,7 @@ prueba("Aurelio responde a tu diario, te despide en la noche y sus memorias se l
     const info = juego.resumen(estado, hoy());
     const ctx = { hoy: hoy(), info, maestro: maestro.contexto(estado, hoy(), Date.now(), info), memoriasDesde: 0 };
     let html = vistas.pantallaMemorias(estado, ctx);
-    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), "sin huecos");
     cierto(html.includes("Memorias de Aurelio") && html.includes("El que dejaba todo para mañana") && html.includes("Nuevo"), "el primer capítulo, nuevo");
     cierto(html.includes("???") && html.includes("🔒 Aurelio te lo contará cuando logres una racha de 7 días"), "el siguiente, con lo que falta");
     estado.diario[hoy()] = { animo: "bien", texto: "" };
@@ -4495,7 +4498,7 @@ prueba("Modo esencial: Hoy muestra solo tus misiones en tres grupos, la Tienda s
         vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
         rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {},
     });
-    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), `${que} no tiene huecos`);
     igual(datos.estadoInicial().ajustes.esencial, false, "viene apagado");
     igual(datos.estadoInicial().ajustes.esencialAlAbrir, true, "pero al abrir la app arranca en él (v47)");
     debeFallar(() => acciones.cambiarAjuste(partidaNueva(), "inventado", true), "no existe");
@@ -4582,7 +4585,7 @@ prueba("Jefes y mapa: el jefe de la región 2 no recibe daño hasta que tu héro
         vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
         rangoResumen: 7, subvista: {}, campanaVista: "intelecto", diarioVista: {},
     });
-    cierto(html.includes("🔒 Te espera en") && !/undefined|NaN/.test(html), "Aventuras dice dónde te espera");
+    cierto(html.includes("🔒 Te espera en") && !/undefined|NaN/.test(sinImagenes(html)), "Aventuras dice dónde te espera");
 });
 
 prueba("Jefes y mapa: los jefes que ya habías vencido antes de la v52 siguen vencidos (con la vida de antes)", () => {
@@ -4673,7 +4676,7 @@ prueba("Historia: cada capítulo se parte en tomas cortas, con el guardián en l
     cierto(trozos.length >= 2 && trozos.every((t) => t.length <= 160), "se parte en trozos");
     // La pantalla de Historia: capítulos desplegables con su botón «Ver escena».
     const html = vistas.pantallaHistoria({ lugar: "torre", capitulos });
-    cierto(html.includes("<details") && html.includes('data-accion="cine-capitulo"') && !/undefined|NaN|\[object/.test(html), "capítulos que se abren, con su escena");
+    cierto(html.includes("<details") && html.includes('data-accion="cine-capitulo"') && !/undefined|NaN|\[object/.test(sinImagenes(html)), "capítulos que se abren, con su escena");
     igual(html.split('data-accion="cine-capitulo"').length - 1, capitulos.filter((c) => c.abierto).length, "un botón por capítulo abierto");
 });
 
@@ -4689,7 +4692,7 @@ prueba("Mapa: los señores vencidos se ven en su guarida y cada región tiene su
         rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {},
     };
     const html = vistas.pantallaMapa(estado, ctx);
-    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), "sin huecos");
     igual(html.split('class="mapa-trofeo"').length - 1, 1, "solo Medusa, el único señor vencido, aparece en su guarida");
     cierto(html.includes('data-accion="cine-region"') && html.includes("Ver la escena de esta región"), "con el botón de la escena");
     cierto(html.includes("mapa-guarida libre"), "su guarida queda marcada como libre");
@@ -4769,7 +4772,7 @@ prueba("Biblioteca (pantallas): lista con candados, pergamino con moraleja y bot
     const estado = partidaNueva();
     estado.personaje.nombre = "Ana <b>";
     let html = vistas.pantallaBiblioteca(estado);
-    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), "sin huecos");
     cierto(html.includes("0 de 8") && html.includes('data-accion="pergamino-abrir" data-id="piedra"'), "el primero se puede abrir");
     cierto(html.includes("???") && html.includes("Lee el pergamino anterior"), "los demás, con su candado y lo que falta");
     cierto(html.includes("Lo que queda abierto") && html.includes("Una historia todavía sin nombre"), "las sagas que vendrán, todavía ocultas");
@@ -4850,7 +4853,7 @@ prueba("Batalla: la secuencia del turno (plan y resultado, en orden) y un banner
     const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
     const t = (cambios = {}) => ({ partida: estado.arcade.torre, nombre: "Ana", sprites: imagenes, eventos: [], menu: "principal",
                                    ultimo: "atacar", bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
-    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), `${que} no tiene huecos`);
     // Antes de actuar (v60): el orden del turno con las caras (tú «Ahora», la criatura «Luego») y su intención en un globo.
     let html = vistas.pantallaTorre(t());
     sano(html, "el plan");
@@ -4949,7 +4952,7 @@ prueba("Botín en tarjetas: cada mejora tiene su tipo, y la pantalla las muestra
     const t = (cambios = {}) => ({ partida: p, nombre: "Ana", sprites: imagenes, eventos: [], menu: "principal", ultimo: "atacar",
                                    bestiario: estado.arcade.bestiario, resultado: null, fichas: 2, ...cambios });
     let html = vistas.pantallaTorre(t({ eventos: [{ quien: "heroe", tipo: "atacar", dano: 40 }, { quien: "enemigo", tipo: "derrotado" }] }));
-    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), "sin huecos");
     igual(html.split('class="ff-carta ').length - 1, 4, "cuatro tarjetas");
     for (const tipo of ["ofensiva", "magica", "defensiva"]) cierto(html.includes(`tipo-${tipo}`), `una ${tipo}`);
     cierto(html.includes("✦ Don raro") && html.includes("ff-carta tipo-ofensiva don"), "la cinta del don");
@@ -5078,7 +5081,7 @@ prueba("El Centinela (pantallas): portada con prólogo e índice, capítulo con 
     const estado = partidaNueva();
     estado.personaje.nombre = "Ana <b>";
     let html = vistas.pantallaNovela(estado, { capituloNovela: null });
-    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), "sin huecos");
     cierto(html.includes("El Centinela") && html.includes("Prólogo") && html.includes("Empezar a leer") && html.includes("Libro primero · La orilla") && html.includes("Libro tercero · La guardia"), "portada: título, prólogo, empezar e índice por libros");
     igual(html.split('data-accion="novela-capitulo"').length - 1, 18 + 1, "18 capítulos abiertos en el índice + el botón de empezar");
     cierto(html.includes("disabled") && html.includes("liberes a Casio"), "los últimos, cerrados con su motivo");
@@ -5169,7 +5172,7 @@ prueba("Habilidades visibles (pantalla): etiquetas doradas sobre tu héroe, pane
     const ev = (quien, tipo, extra = {}) => ({ quien, tipo, ...extra });
     let html = vistas.pantallaTorre(t({ eventos: [ev("heroe", "atacar", { dano: 12, critico: true, activas: ["impetu", "embestida"] }),
                                                   ev("enemigo", "golpe", { dano: 0, nombre: "Mordisco", activas: ["firme"] })] }));
-    cierto(!/undefined|NaN|\[object/.test(html), "sin huecos");
+    cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), "sin huecos");
     cierto(html.includes('class="ff-habs"') && html.includes("💨 Ímpetu") && html.includes("⚡ Embestida") && html.includes("🪨 Firme"), "las tres etiquetas con su nombre");
     cierto(html.includes("ff-hab-fila") && html.includes("Eco arcano") && html.includes("Quebrar") && html.includes("<em>don</em>") && html.includes("<em>técnica</em>") && html.includes("<em>pasiva</em>"),
            "el panel: pasivas, dones y técnicas");
@@ -5302,7 +5305,7 @@ prueba("Mazmorras nuevas (pantallas): tarjetas en el Arcade (cerradas con lo que
         vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null,
         rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {},
     });
-    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), `${que} no tiene huecos`);
     let html = arcadeCompleto(estado, ctx());
     sano(html, "el arcade cerrado");
     igual(html.split("mazmorra-cerrada").length - 1, 4, "las cuatro mazmorras cerradas");

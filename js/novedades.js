@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 107;
+export const VERSION_APP = 108;
 
 export const NOVEDADES = [
+    {
+        version: 108,
+        titulo: "Pergaminos e historias ilustrados",
+        cambios: [
+            "🖼️ Cada pergamino abre con una ilustración en pixel art: el lugar donde pasa su historia, con tu héroe (y Aurelio en los suyos).",
+            "🔠 Cada capítulo empieza con una letra capitular dibujada, como en los libros antiguos.",
+            "📚 En Héroe › Historia, cada historia tiene su miniatura ilustrada; El Centinela, La linterna de Orrin y las Memorias de Aurelio también tienen sus ilustraciones.",
+        ],
+    },
     {
         version: 107,
         titulo: "Cinemáticas más largas",
