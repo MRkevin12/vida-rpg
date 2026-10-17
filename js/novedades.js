@@ -4,9 +4,14 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 126;
+export const VERSION_APP = 127;
 
 export const NOVEDADES = [
+    {
+        version: 127,
+        titulo: "¿Qué voces ve tu teléfono?",
+        cambios: ["🔍 En Running › Progreso › Tus metas, el botón «Ver todas las voces que ve la app» lista cada voz que el iPhone le entrega (de cualquier idioma) y cuántas hay por idioma."],
+    },
     {
         version: 126,
         titulo: "Las voces nuevas sí aparecen",

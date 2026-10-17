@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v127 — Diagnóstico de voces
+- `verTodasLasVoces`: lista todas las voces de `speechSynthesis.getVoices()` (nombre, idioma, local o en línea), el conteo por idioma y el navegador.
+
 ## v126 — Voces nuevas
 - `nombreDeVoz` conserva «(Mejorada)/(Premium)» (antes se borraba y dos voces parecían la misma); `buscarVocesNuevas` vuelve a pedir `getVoices()` varias veces; la lista se refresca al volver a la app y al dibujar Running.
 

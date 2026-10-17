@@ -420,6 +420,8 @@ function tarjetaAjustes(estado) {
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="run-probar-voz">🔊 Probar la voz</button>
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="run-buscar-voces">🔄 Buscar voces nuevas</button>
             </div>
+            <button type="button" class="boton boton-chico boton-secundario boton-ancho" data-accion="run-ver-voces">🔍 Ver todas las voces que ve la app</button>
+            <div class="run-voces-todas" data-run-voces-todas></div>
             <p class="mini texto-suave" data-run-voces-nota></p>
             ${misiones.length ? "" : '<p class="mini texto-suave">Crea una misión (ej: «Correr») en Hoy para que se marque sola.</p>'}
         </section>`;

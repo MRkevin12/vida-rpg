@@ -12013,6 +12013,23 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .run-criaturas li.escapo { color: var(--texto-suave); }
 
 
+/* ===== (v127) Diagnóstico de voces ===== */
+.run-voces-lista {
+    max-height: 220px;
+    margin: 6px 0;
+    padding: 6px 10px;
+    overflow-y: auto;
+    list-style: none;
+    font-size: 0.78rem;
+    background: rgba(8, 6, 20, 0.6);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.run-voces-lista small {
+    color: var(--texto-suave);
+}
+
 /* ===== (v120) Modo concentración: la carrera sin distracciones ===== */
 .run-concentracion .cabecera,
 .run-concentracion .pestanas,

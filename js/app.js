@@ -516,6 +516,28 @@ function poblarVocesRunning() {
 }
 if ("speechSynthesis" in window) speechSynthesis.addEventListener?.("voiceschanged", poblarVocesRunning);
 
+// (v127) Diagnóstico: TODAS las voces que el teléfono le da a la app (de cualquier idioma), para saber si el iPhone oculta las que bajaste.
+function verTodasLasVoces() {
+    const esc = vistas.esc;
+    const caja = document.querySelector("[data-run-voces-todas]");
+    if (!caja) return;
+    if (!("speechSynthesis" in window)) { caja.textContent = "Este navegador no tiene voces (speechSynthesis)."; return; }
+    const pintar = () => {
+        const todas = speechSynthesis.getVoices();
+        const porIdioma = {};
+        for (const v of todas) porIdioma[v.lang] = (porIdioma[v.lang] || 0) + 1;
+        const resumen = Object.entries(porIdioma).sort((x, y) => y[1] - x[1]).map(([lang, n]) => `${lang}: ${n}`).join(" · ");
+        const filas = [...todas].sort((x, y) => x.lang.localeCompare(y.lang) || x.name.localeCompare(y.name))
+            .map((v) => `<li>${esc(v.name)} <small>${esc(v.lang)}${v.localService ? " · en el teléfono" : " · en línea"}${v.default ? " · predeterminada" : ""}</small></li>`).join("");
+        caja.innerHTML = `<p class="mini"><b>${todas.length} voces</b> en total.${todas.length ? ` Por idioma → ${esc(resumen)}` : " La lista está vacía: el teléfono todavía no las entrega."}</p>
+            <p class="mini texto-suave">${esc(navigator.userAgent.replace(/^Mozilla\/5\.0 /, ""))}</p>
+            <ul class="run-voces-lista">${filas}</ul>`;
+    };
+    try { speechSynthesis.getVoices(); } catch (error) { /* sin voces */ }
+    pintar();
+    for (const espera of [500, 1500, 3000]) setTimeout(pintar, espera);   // llegan tarde
+}
+
 // (v126) El iPhone entrega la lista de voces tarde y no siempre avisa cuando bajas una nueva: se vuelve a pedir varias veces.
 function buscarVocesNuevas() {
     const antes = vocesEnEspanol().length;
@@ -3492,6 +3514,7 @@ const ACCIONES = {
     },
     "run-meta": (boton) => ejecutar(() => acciones.cambiarMetaKm(estado, estado.running.metaKm + Number(boton.dataset.delta)), { mantenerScroll: true }),
     "run-buscar-voces": () => buscarVocesNuevas(),
+    "run-ver-voces": () => verTodasLasVoces(),
     "run-probar-voz": () => decir("Kilómetro 3. 5 minutos 12 segundos. ¡Venciste al esqueleto! Aparece un jefe: mantén el ritmo.", { forzar: true }),
     "run-concentracion": () => ejecutar(() => acciones.cambiarConcentracion(estado, estado.running.concentracion === false), { mantenerScroll: true }),
     "run-aviso-km": () => ejecutar(() => acciones.cambiarAvisoKm(estado, estado.running.avisoKm === false), { mantenerScroll: true }),
