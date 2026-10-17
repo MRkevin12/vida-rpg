@@ -78,6 +78,7 @@ function imagen(clave, crear, { clase = "", ancho, alto, alt = "" }) {
             for (const img of document.querySelectorAll(`img[data-pixel="${clave}"]`)) {
                 img.src = direccion;
                 img.removeAttribute("data-pixel");
+                img.classList.remove("cargando");
             }
         }));
     }

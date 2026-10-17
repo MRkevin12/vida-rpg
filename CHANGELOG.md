@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v98 — Pequeños arreglos
+- Revisión completa en Chromium y WebKit (todas las pantallas y sus pestañas, 11 pantallas sueltas, todas las ventanas, los 3 minijuegos y 6 turnos de la Torre): 0 errores de JavaScript, 0 archivos que no cargan, 0 imágenes rotas, 0 emojis sueltos, 0 desbordes.
+- `app.js › pinturasEnPixel`: el redibujado final espera (cada 2 s) si hay un campo de texto con el cursor. `minijuegos.js`: se quitan las capas de texto viejas al empezar. `retratos.js`: los retratos terminados pierden la clase `cargando`.
+- Observación: en WebKit de Playwright el Cache Storage no persiste entre cargas (en Safari real sí); el peor caso es volver a pixelar las pinturas en segundo plano en cada apertura.
+
 ## v97 — «Aspecto» en pixel art
 - `vistas.js`: `apariencia-previa` usa `figuraPixel` (54 × 72, al doble exacto: 108 px). Era lo último que quedaba en vector (aparte del ícono de la app, que es la imagen del usuario). 300 pruebas.
 

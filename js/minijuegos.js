@@ -270,6 +270,7 @@ export async function jugar(tipo, { lienzo, avatarSvg, pixel = null, marcador, a
     // El texto, en cambio, a resolución completa (si no, no se leería): va en otro lienzo, encima y transparente.
     // La densidad de píxeles se limita a 2 (se ve igual de bien y ahorra batería).
     const escala = Math.min(2, window.devicePixelRatio || 1);
+    document.querySelectorAll(".minijuego-texto").forEach((vieja) => vieja.remove());   // por si quedó alguna de una partida anterior
     const capa = document.createElement("canvas");
     capa.className = "minijuego-texto";
     capa.width = Math.round(ancho * escala);

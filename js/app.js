@@ -1321,7 +1321,15 @@ function pinturasEnPixel() {
         clave: `fondo-${id}`, direccion: `fondos/${id}.jpg`, ancho: medidas(id)[0], alto: medidas(id)[1],
         listo: (url) => ponerPinturaPixel(id, url),
     }));
-    prepararPinturas([...jefes, ...fondos]).then(() => { if (estado?.personaje) refrescar(); });
+    // Al terminar se redibuja la pantalla una vez. Si en ese momento estás escribiendo en un campo, se espera
+    // (redibujar lo vaciaría): se vuelve a mirar cada 2 segundos.
+    const redibujar = () => {
+        if (!estado?.personaje) return;
+        const escribiendo = document.activeElement?.matches?.("input, textarea, select");
+        if (escribiendo) return void setTimeout(redibujar, 2000);
+        refrescar();
+    };
+    prepararPinturas([...jefes, ...fondos]).then(redibujar);
 }
 
 // (v94) Cuántas monedas, gemas y XP tienes ahora (para comparar antes y después de una acción).

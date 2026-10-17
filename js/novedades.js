@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 97;
+export const VERSION_APP = 98;
 
 export const NOVEDADES = [
+    {
+        version: 98,
+        titulo: "Pequeños arreglos",
+        cambios: [
+            "🛠️ Si estás escribiendo en un campo cuando terminan de pasar las pinturas a pixel art, la pantalla espera a que termines en vez de borrarte lo escrito.",
+            "🕹️ Los minijuegos limpian cualquier resto de una partida anterior al empezar.",
+        ],
+    },
     {
         version: 97,
         titulo: "«Aspecto» en pixel art",
