@@ -52,6 +52,7 @@ import { calcularResumen, semanaPorMostrar } from "./resumen.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { vigilarIconos } from "./iconos.js";
 import { retratoPixel, figuraPixel, dioramaPixel } from "./retratos.js";
+import * as fx from "./efectos.js";   // fx = "efectos especiales", como en el cine (v94)
 import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, relojLargo, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
 
 
@@ -127,6 +128,7 @@ function avatarActual() {
 
 function iniciar() {
     vigilarIconos();             // (v91) los emojis de la página se vuelven íconos en pixel art
+    fx.recordarToques();    // (v94) de donde tocas salen las monedas que ganas
     datos.pedirAlmacenamientoPersistente();
     registrarServiceWorker();
     rellenarOpciones();
@@ -1065,6 +1067,7 @@ function ponerMusica() {
 // se hace siempre igual, sin repetir código.
 function ejecutar(accion, efectos = {}) {
     const antes = acciones.foto(estado);
+    const bolsaAntes = bolsa();   // (v94) para hacer volar lo que ganes
     let resultado;
     try {
         resultado = accion() || {};
@@ -1094,6 +1097,7 @@ function ejecutar(accion, efectos = {}) {
 
     const subioNivel = celebraciones.some((c) => c.tipo === "nivel");
     refrescar({ ...efectos, subioNivel, golpes });
+    recompensar(bolsaAntes);
     celebraciones.forEach(celebrar);
 
     // ¿Cambió tu vida? (ej: +4 ❤️ al completar una misión)
@@ -1298,6 +1302,28 @@ function animarEntrada(nombre) {
 
 // ===== Animaciones y celebraciones =====
 
+// (v94) Cuántas monedas, gemas y XP tienes ahora (para comparar antes y después de una acción).
+function bolsa() {
+    const p = estado.personaje;
+    return p ? { monedas: p.monedas || 0, gemas: p.gemas || 0, xp: p.xp || 0 } : null;
+}
+
+// (v94) Lo que ganaste vuela desde donde tocaste hasta la cabecera, y el número sube contando.
+// (Si gastaste, solo baja contando.)
+function recompensar(antes) {
+    const ahora = bolsa();
+    if (!antes || !ahora) return;
+    const monedas = ahora.monedas - antes.monedas;
+    const gemas = ahora.gemas - antes.gemas;
+    const xp = ahora.xp - antes.xp;
+    if (monedas > 0) fx.volar("moneda", fx.cuantosPara(monedas, 5), $("#cab-monedas").parentElement);
+    if (gemas > 0) fx.volar("gema", fx.cuantosPara(gemas, 10), $("#cab-gemas").parentElement);
+    if (xp > 0) fx.volar("chispas", fx.cuantosPara(xp, 15, 5), $("#cab-barra"), { clase: "chispa-xp" });
+    // Mientras vuelan, el número espera; después cuenta hasta el nuevo.
+    fx.contar($("#cab-monedas"), antes.monedas, ahora.monedas, { espera: monedas > 0 ? 500 : 0 });
+    fx.contar($("#cab-gemas"), antes.gemas, ahora.gemas, { espera: gemas > 0 ? 500 : 0 });
+}
+
 // Texto que sube y se desvanece sobre un elemento (ej: "+25 XP").
 function flotar(selector, texto, negativo = false) {
     const elemento = $(selector);
@@ -1367,6 +1393,14 @@ function siguienteCelebracion() {
     $("#cel-maestro").textContent = celebracion.maestro ? `🧙 «${celebracion.maestro}»` : "";
     $("#cel-maestro").hidden = !celebracion.maestro;
     capa.hidden = false;
+    // (v94) Subir de nivel y vencer a un jefe son épicos: rayos de luz, un destello y confeti.
+    const epica = celebracion.tipo === "nivel" || Boolean(celebracion.imagen);
+    capa.classList.remove("epica");
+    if (epica) {
+        void capa.offsetWidth;   // reinicia el destello si ya estaba
+        capa.classList.add("epica");
+        fx.confeti(capa);
+    }
     reproducirAnimacion($(".celebracion-caja"), "entrar");
     // Con las palabras del Maestro se queda un poco más, para que alcance a leerse.
     temporizadorCelebracion = setTimeout(siguienteCelebracion, celebracion.cuerpo ? 6500 : celebracion.maestro ? 4600 : 3200);

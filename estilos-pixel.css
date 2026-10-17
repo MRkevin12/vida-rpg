@@ -659,3 +659,133 @@ img.figura-pixel { aspect-ratio: 54 / 72; }
         animation: none;
     }
 }
+
+
+/* =====================================================================
+   Recompensas (v94): monedas que vuelan, saltitos y celebraciones épicas
+   ===================================================================== */
+
+/* La capa donde vuelan las monedas, las gemas y las chispas de XP (efectos.js › volar). */
+#vuelos {
+    position: fixed;
+    inset: 0;
+    z-index: 25;   /* encima de las celebraciones (20) */
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.vuela {
+    position: fixed;
+    font-size: 24px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 0 var(--tinta));
+    will-change: transform, opacity;
+}
+
+.vuela.chispa-xp {
+    font-size: 16px;
+    filter: drop-shadow(0 0 4px rgba(255, 228, 90, 0.9));
+}
+
+/* Lo que recibe una moneda da un saltito; la barra de XP, un destello. */
+.cab-monedas > span {
+    display: inline-block;
+}
+
+.recibe {
+    animation: recibe 0.24s steps(3);
+}
+
+.barra-relleno.recibe {
+    animation: barra-recibe 0.3s steps(3);
+}
+
+@keyframes recibe {
+    50% { transform: scale(1.28); }
+}
+
+@keyframes barra-recibe {
+    50% { filter: brightness(1.9); }
+}
+
+/* Celebración épica (subir de nivel, vencer a un jefe): rayos que giran, un destello y confeti. */
+.celebracion {
+    overflow: hidden;
+}
+
+.celebracion-caja {
+    position: relative;
+    z-index: 1;
+}
+
+.celebracion.epica::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 160vmax;
+    height: 160vmax;
+    margin: -80vmax 0 0 -80vmax;
+    background: repeating-conic-gradient(rgba(255, 214, 90, 0.17) 0 9deg, transparent 9deg 18deg);
+    -webkit-mask: radial-gradient(circle, #000 0 18%, transparent 46%);
+    mask: radial-gradient(circle, #000 0 18%, transparent 46%);
+    animation: rayos-giran 14s steps(56) infinite;
+    pointer-events: none;
+}
+
+.celebracion.epica::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #fff8d6;
+    opacity: 0;
+    animation: destello-epico 0.55s steps(4);
+    pointer-events: none;
+}
+
+.celebracion.epica .celebracion-caja {
+    border: 2px solid var(--oro);
+    box-shadow: 0 0 0 2px var(--tinta), 0 0 0 4px rgba(251, 191, 36, 0.35), 0 0 60px rgba(251, 191, 36, 0.45);
+}
+
+@keyframes rayos-giran {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes destello-epico {
+    0% { opacity: 0.85; }
+    100% { opacity: 0; }
+}
+
+/* El confeti: cuadritos que caen girando (efectos.js › confeti pone sus variables). */
+.confeti {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.confeti i {
+    position: absolute;
+    top: -14px;
+    left: var(--x);
+    width: var(--s);
+    height: var(--s);
+    background: var(--c);
+    box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.25);
+    animation: confeti-cae var(--t) steps(26) var(--d) forwards;
+}
+
+@keyframes confeti-cae {
+    to { transform: translate(var(--v), 108vh) rotate(var(--g)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .celebracion.epica::before,
+    .celebracion.epica::after,
+    .recibe,
+    .barra-relleno.recibe {
+        animation: none;
+    }
+}

@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v94 — Recompensas que se sienten (el reino en pixel art, parte 4)
+- **`js/efectos.js` (nuevo, en app.js se importa como `fx`):** `recordarToques()` (dónde tocaste por última vez), `volar(icono, cuantos, destino)` (Web Animations API: abanico hacia arriba y caída en el destino, que da un saltito con la clase `recibe`), `cuantosPara(cantidad, paso, maximo)`, `contar(elemento, desde, hasta)` (requestAnimationFrame) y `confeti(contenedor)`.
+- `app.js`: `bolsa()` guarda monedas, gemas y XP antes de cada acción y `recompensar(antes)` hace volar lo ganado después de `refrescar`. Las celebraciones de nivel y de jefe agregan la clase `epica` (rayos con `repeating-conic-gradient` y máscara, destello y marco dorado) y confeti.
+- Con «Reducir movimiento» no vuela nada ni hay confeti: los números cambian igual.
+- 1 prueba nueva. 298 pruebas. Revisado en Chromium y WebKit.
+
 ## v93 — Tu héroe y Aurelio en pixel art (el reino en pixel art, parte 3)
 - **`js/retratos.js` (nuevo):** `retratoPixel(d)` (32 × 32, cabecera y Aurelio), `figuraPixel(d, { efectos })` (54 × 72, campaña, arcade, robo y Aurelio de pie) y `dioramaPixel(d)` (72 × 72 por capas). Devuelven el `<img>` al instante: si la imagen ya está hecha, con ella; si no, vacío con `data-pixel` y se completa al terminar `pixelar`.
 - `rasgosEnPixeles(d, encuadre, ancho, alto)`: dónde caen los ojos (cabeza ×1,12 alrededor de (100, 58.5)) y qué puntos estampar (pupila de 1 punto; en retratos grandes 2 puntos con brillo). Se usa también en `sprites.js` (héroe, Aurelio, la gente del valle y el Reflejo, con ojos rojos y al revés).

@@ -54,6 +54,7 @@ import * as nube from "../js/nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "../js/novedades.js";
 import { ICONOS, EMOJIS, icono, iconizar } from "../js/iconos.js";
 import * as retratos from "../js/retratos.js";
+import * as fx from "../js/efectos.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
@@ -6306,6 +6307,17 @@ prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no
     const cura = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "curar", cura: 5, nombre: "Regenerar" }]));
     cierto(!cura.includes("ff-atq "), "curarse no es atacar");
     cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
+});
+
+// ===== Recompensas que vuelan (v94) =====
+
+prueba("Recompensas: vuela 1 moneda por cada 5 (al menos 1 y como mucho 8), y el número cuenta hasta el nuevo", async () => {
+    igual([fx.cuantosPara(1, 5), fx.cuantosPara(10, 5), fx.cuantosPara(11, 5), fx.cuantosPara(500, 5)], [1, 2, 3, 8]);
+    igual(fx.cuantosPara(500, 15, 5), 5, "con otro tope");
+    const numero = document.createElement("span");
+    fx.contar(numero, 100, 140, { duracion: 50 });
+    await new Promise((listo) => setTimeout(listo, 250));
+    igual(numero.textContent, "140");
 });
 
 // ===== El héroe en pixel art (v93) =====

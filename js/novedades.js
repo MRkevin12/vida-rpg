@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 93;
+export const VERSION_APP = 94;
 
 export const NOVEDADES = [
+    {
+        version: 94,
+        titulo: "Recompensas que se sienten",
+        cambios: [
+            "🪙 Al ganar monedas o gemas, vuelan desde lo que tocaste hasta la cabecera, y el número sube contando.",
+            "✨ La XP que ganas viaja en chispas a tu barra, que destella al recibirla.",
+            "👑 Subir de nivel y vencer a un jefe es épico: un destello, rayos de luz dorada y una lluvia de confeti en pixel art.",
+            "🎁 El cofre del día también reparte así su premio.",
+        ],
+    },
     {
         version: 93,
         titulo: "Tu héroe y Aurelio, en pixel art",
