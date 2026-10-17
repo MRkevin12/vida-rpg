@@ -1605,6 +1605,1155 @@ const TEMPLO = [
     "SSSSSSSSSSSSSS",
 ];
 
+const CERRAR = [
+    "ss........ss",
+    "sWs......sWs",
+    ".sWs....sWs.",
+    "..sWs..sWs..",
+    "...sWssWs...",
+    "....sWWs....",
+    "....sWWs....",
+    "...sWssWs...",
+    "..sWs..sWs..",
+    ".sWs....sWs.",
+    "sWs......sWs",
+    "ss........ss",
+];
+
+const LAPIZ = [
+    "...........iK.",
+    "..........sKKi",
+    ".........ysKi.",
+    "........yyys..",
+    ".......yYyo...",
+    "......yYyo....",
+    ".....yYyo.....",
+    "....yYyo......",
+    "...yYyo.......",
+    "..TYyo........",
+    ".TTto.........",
+    ".Ttt..........",
+    "xt............",
+];
+
+const LUPA = [
+    "...ssss.......",
+    "..sBBBBs......",
+    ".sBWBBbbs.....",
+    "sBWBbbbbbs....",
+    "sBBbbbbbbs....",
+    "sBbbbbbbbs....",
+    "sbbbbbbbbs....",
+    ".sbbbbbbs.....",
+    "..sbbbbsS.....",
+    "...ssssSmt....",
+    "........mtt...",
+    ".........mtt..",
+    "..........mtt.",
+    "...........mm.",
+];
+
+const REPRODUCIR = [
+    "ww........",
+    "wWww......",
+    "wWWwww....",
+    "wWWWWwww..",
+    "wWWWWWWwws",
+    "wWWWWWWwss",
+    "wWWWWwss..",
+    "wWWwss....",
+    "wwss......",
+    "ss........",
+];
+
+const SALTAR = [
+    "w.....w.....ss",
+    "ww....ww....ss",
+    "wWw...wWw...ss",
+    "wWWw..wWWw..ss",
+    "wWWWw.wWWWw.ss",
+    "wWWw..wWWw..ss",
+    "wWw...wWw...ss",
+    "ww....ww....ss",
+    "w.....w.....ss",
+];
+
+const VOLVER = [
+    "..w...........",
+    ".wW...........",
+    "wWWwwwwwwww...",
+    "wWWWWWWWWWWw..",
+    ".wW.......Ww..",
+    "..w.......Ww..",
+    "..........Ww..",
+    "......wwwwWw..",
+    "......wWWWWw..",
+];
+
+const ARRIBA = [
+    "....ww....",
+    "...wWWw...",
+    "..wWWWWw..",
+    ".wWWWWWWw.",
+    "wwwWWWWwww",
+    "...wWWw...",
+    "...wWWw...",
+    "...wWWw...",
+    "...wWWw...",
+    "...wwww...",
+];
+
+const ABAJO = [
+    "...wwww...",
+    "...wWWw...",
+    "...wWWw...",
+    "...wWWw...",
+    "...wWWw...",
+    "wwwWWWWwww",
+    ".wWWWWWWw.",
+    "..wWWWWw..",
+    "...wWWw...",
+    "....ww....",
+];
+
+const AMBOS = [
+    "....ww....",
+    "...wWWw...",
+    "..wWWWWw..",
+    ".wwwWWwww.",
+    "...wWWw...",
+    "...wWWw...",
+    ".wwwWWwww.",
+    "..wWWWWw..",
+    "...wWWw...",
+    "....ww....",
+];
+
+const MAS = [
+    "...gggg...",
+    "...gGGv...",
+    "...gGGv...",
+    "gggGGGGggg",
+    "gGGGGGGGGv",
+    "gvvGGGGvvv",
+    "...gGGv...",
+    "...gGGv...",
+    "...gvvv...",
+];
+
+const PREGUNTA = [
+    "..wwwwww..",
+    ".wWWWWWWw.",
+    "wWWw..wWWs",
+    "wWw....wWs",
+    "......wWWs",
+    ".....wWWs.",
+    "....wWWs..",
+    "....wWs...",
+    "....wWs...",
+    "..........",
+    "....wWs...",
+    "....wss...",
+];
+
+const LUNA_NUEVA = [
+    "....kkkk....",
+    "..kkSSSSkk..",
+    ".kSSkkkkkkk.",
+    ".kSkkkkkkkx.",
+    "kSkkkkkkkkkx",
+    "kSkkkkkkkkkx",
+    "kkkkkkkkkkkx",
+    "kkkkkkkkkkxx",
+    ".kkkkkkkkxx.",
+    ".kkkkkkkxxx.",
+    "..kkkkxxxx..",
+    "....xxxx....",
+];
+
+const MANOS = [
+    "......hh......",
+    ".....fFFf.....",
+    ".....fFhf.....",
+    "....fFFhFf....",
+    "....fFFhFf....",
+    "...fFFfhfFf...",
+    "...fFFfhfFf...",
+    "..fFFffhffFf..",
+    "..fFfffhfffh..",
+    "..fffffhffhh..",
+    "...ffffhfhh...",
+    "...bbbbbbbb...",
+    "...bnnnnnnb...",
+];
+
+const CARNE = [
+    "..........wW..",
+    ".........wWWw.",
+    "..dddd..wWWw..",
+    ".dRRrrd.wWw...",
+    "dRRrrrrdww....",
+    "drRrrrrrd.....",
+    "drrrrrrrd.....",
+    "dddrrrrdd.....",
+    ".wwddddd......",
+    "wWWw..........",
+    "wWw...........",
+];
+
+const HACHA = [
+    "....ssss......",
+    "...sWwwss.....",
+    "..sWwwwsS.....",
+    "..sWwwsSttt...",
+    "...sssSttm....",
+    "......tTm.....",
+    ".....tTm......",
+    "....tTm.......",
+    "...tTm........",
+    "..tTm.........",
+    ".tTm..........",
+    "tmm...........",
+];
+
+const PINO = [
+    "......gg......",
+    ".....gGGv.....",
+    "....gGgggv....",
+    "...gGgggggv...",
+    ".....gGgv.....",
+    "....gGgggv....",
+    "...gGgggggv...",
+    "..gGgggggggv..",
+    "....gGgggv....",
+    "...gGgggggvv..",
+    "..gGgggggggvv.",
+    ".ggggggggggvvv",
+    "......tm......",
+    "......tm......",
+];
+
+const OLA = [
+    "......bbbb....",
+    "....bbBBBBb...",
+    "...bBWWWWBBb..",
+    "..bBW....bBb..",
+    ".bBW.....bBb..",
+    ".bW....bbBb...",
+    "bBW..bbBBb....",
+    "bBbbbBBBbbbbb.",
+    "nbBBBBBBBBBBbn",
+    "nnbbbbbbbbbbnn",
+    "NnnnnnnnnnnnnN",
+];
+
+const FUGAZ = [
+    "..........y...",
+    ".........yYy..",
+    "......yyyYWYyy",
+    ".........yYy..",
+    "........B.y...",
+    ".......B......",
+    "......b.......",
+    ".....b........",
+    "....n.........",
+    "...n..........",
+];
+
+const TORO = [
+    "w............w",
+    "ws..........ws",
+    ".ws..tttt..ws.",
+    "..wttTTTTttw..",
+    "..tTTttttTTt..",
+    ".ttTxttttxTtt.",
+    "..tTtttttttt..",
+    "...tFFFFFFt...",
+    "...fFxFFxFf...",
+    "....ffffff....",
+];
+
+const LADRILLOS = [
+    "rRrrrsrRrrrrs",
+    "rrrrdsrrrrrds",
+    "sssssssssssss",
+    "rrsrRrrrrsrRr",
+    "rdsrrrrrdsrrd",
+    "sssssssssssss",
+    "rRrrrsrRrrrrs",
+    "rrrrdsrrrrrds",
+];
+
+const BUHO = [
+    "..t........t..",
+    "..tt......tt..",
+    "..tTttttttTt..",
+    ".tTwwttttwwTt.",
+    ".tw.wtttw.wtt.",
+    ".twwwtyytwwwt.",
+    ".tTtttyyttttm.",
+    ".tTtTTTTTTtmm.",
+    ".tTTtTTtTTtmm.",
+    "..tTTTTTTTmm..",
+    "...tmmmmmmm...",
+    "....y....y....",
+];
+
+const AGUJERO = [
+    "....kkkkkk....",
+    "..kkxxxxxxkk..",
+    ".kxxxxxxxxxxk.",
+    "kxxxxxxxxxxxxk",
+    ".kxxxxxxxxxxk.",
+    "..kkxxxxxxkk..",
+    "....kkkkkk....",
+];
+
+const CARPETA = [
+    "ooooo.........",
+    "oYYYYo........",
+    "oYyyyyoooooooo",
+    "oYyyyyyyyyyyyO",
+    "oYyyyyyyyyyyyO",
+    "oYyyyyyyyyyyyO",
+    "oYyyyyyyyyyyyO",
+    "oYyyyyyyyyyyyO",
+    "oyyyyyyyyyyyyO",
+    "OOOOOOOOOOOOOO",
+];
+
+const PERSONA = [
+    ".....ff.....",
+    "....fFFf....",
+    "....fFFf....",
+    ".....ff.....",
+    "...bbbbbb...",
+    "..bBbbbbbn..",
+    "..bBbbbbbn..",
+    "..fbBbbbnf..",
+    "...bBbbbn...",
+    "...nn..nn...",
+    "...nn..nn...",
+    "...nn..nn...",
+    "..xxx..xxx..",
+];
+
+
+const SENALA = [
+    "..ffff........",
+    ".fFFFFfffffff.",
+    "fFFFFFFFFFFFFf",
+    "fFFFffffffff..",
+    "fFFFFFf.......",
+    "fFFFFFf.......",
+    ".fFFFFh.......",
+    "..hhhh........",
+];
+
+const CAMARA = [
+    "...kkkk.......",
+    ".kkkSSkkkkkkk.",
+    "kSSSSSSSSSSyk.",
+    "kSSSkkkkkSSSk.",
+    "kSSkbbbbbkSSk.",
+    "kSSkbBbbbkSSk.",
+    "kSSkbbbbnkSSk.",
+    "kSSSkkkkkSSSk.",
+    "kSSSSSSSSSSSk.",
+    ".kkkkkkkkkkk..",
+];
+
+const MOVIL = [
+    "kkkkkkkk",
+    "kbbbbbbk",
+    "kbBbbbbk",
+    "kbbbbbbk",
+    "kbbbbbbk",
+    "kbbbbbbk",
+    "kbbbbbbk",
+    "kbbbbbbk",
+    "kkkkkkkk",
+    "kkkwwkkk",
+    "kkkkkkkk",
+];
+
+const NUMEROS = [
+    "nnnnnnnnnnnnnn",
+    "nbbbbbbbbbbbbn",
+    "nbWbbWWbbWWbbn",
+    "nWWbbbbWbbbWbn",
+    "nbWbbbWbbbWWbn",
+    "nbWbbWbbbbbWbn",
+    "nWWWbWWWbWWbbn",
+    "nbbbbbbbbbbbbn",
+    "nnnnnnnnnnnnnn",
+];
+
+const REPETIR = [
+    "...bbbbbbbb.b.",
+    "..bBBBBBBBBbBb",
+    ".bB........bBb",
+    "bB........bBBb",
+    "bB............",
+    "bB..........Bb",
+    "............Bb",
+    "bBBb........Bb",
+    "bBb........Bb.",
+    "bBbBBBBBBBBb..",
+    ".b.bbbbbbbb...",
+];
+
+const CABALLO = [
+    "....mm........",
+    "...mtTt.......",
+    "..mtTTtt......",
+    ".mtTTxTtt.....",
+    "mtTTTTTttt....",
+    "tTTTTTTtttt...",
+    "ttTTTttttttm..",
+    ".tttm..tttttm.",
+    "..mm...ttttttm",
+    ".......tttttmm",
+    "........tttmm.",
+];
+
+const CARRITO = [
+    "ss............",
+    ".s............",
+    ".swwwwwwwwwww.",
+    ".swsswsswsswS.",
+    "..swwwwwwwwS..",
+    "..swsswsswsS..",
+    "...sssssssS...",
+    "...s..........",
+    "...ssssssssss.",
+    "....xx....xx..",
+    "....xx....xx..",
+];
+
+const CACTUS = [
+    ".....gg.......",
+    "....gGGv......",
+    "....gGgv..gg..",
+    "....gGgv.gGgv.",
+    ".gg.gGgv.gGgv.",
+    "gGgvgGgvgGgv..",
+    "gGgvgGgvvvv...",
+    "gGgvgGgv......",
+    ".vvvgGgv......",
+    "....gGgv......",
+    "....gGgv......",
+    "...TTTTTTT....",
+    "...tttttttm...",
+];
+
+const MOCHILA = [
+    "....tttt....",
+    "...t....t...",
+    "..rrrrrrrr..",
+    ".rRRRRRRRRd.",
+    ".rRrrrrrrrd.",
+    ".rRryyyyrrd.",
+    ".rRrryyrrrd.",
+    ".rRrrrrrrrd.",
+    ".rRrrrrrrrd.",
+    ".rrrrrrrrdd.",
+    "..dddddddd..",
+];
+
+const DADO = [
+    "..wwwwwwwwww..",
+    ".wWWWWWWWWWws.",
+    "wWxWWWWWWWxWws",
+    "wWWWWWWWWWWWws",
+    "wWWWWWxWWWWWws",
+    "wWWWWWWWWWWWws",
+    "wWxWWWWWWWxWws",
+    "wwwwwwwwwwwwws",
+    ".ssssssssssss.",
+];
+
+const CUADRO = [
+    "yyyyyyyyyyyyyy",
+    "yobbbbbbbbbboy",
+    "yobbBbbbbbbboy",
+    "yobbbbbbyybboy",
+    "yobbbbbbyybboy",
+    "yobgbbbbbbbboy",
+    "yoggggbbgbbboy",
+    "yogggggggggvoy",
+    "yoooooooooooOy",
+    "yyyyyyyyyyyyyy",
+];
+
+const IRA = [
+    "..rr....rr..",
+    "..rR....Rr..",
+    "rrrR....Rrrr",
+    "rRR......RRr",
+    "............",
+    "............",
+    "rRR......RRr",
+    "rrrR....Rrrr",
+    "..rR....Rr..",
+    "..rr....rr..",
+];
+
+const MASCARA = [
+    ".wwwwwwwwwww..",
+    "wWWWWWWWWWWWs.",
+    "wWW..WWW..WWs.",
+    "wWW..WWW..WWs.",
+    "wWWWWWWWWWWWs.",
+    "wWWWWW.WWWWWs.",
+    ".wWW.WWW.WWs..",
+    ".wWWW...WWWs..",
+    "..wWWWWWWWs...",
+    "...wsssss.....",
+];
+
+const LUNA_LLENA = [
+    "....yyyy....",
+    "..yyYYYYyy..",
+    ".yYYYYyyyyy.",
+    ".yYYoYyyyyo.",
+    "yYYyyyyyoyyo",
+    "yYyyyyyyyyyo",
+    "yyyyoyyyyyyo",
+    "yyyyyyyyyyoo",
+    ".yyyyyyoyyo.",
+    ".yyyyyyyyoo.",
+    "..yyyyyooo..",
+    "....oooo....",
+];
+
+const MEDALLA_PLATA = [
+    ".rr......bb.",
+    ".rRr....bBb.",
+    "..rRr..bBb..",
+    "...rRrbBb...",
+    "....rrbb....",
+    "....wwww....",
+    "...wWWwws...",
+    "..wWwwwwws..",
+    "..wWwswwws..",
+    "..wwwwwwws..",
+    "..wwwwwwss..",
+    "...wwwwss...",
+    "....ssss....",
+];
+
+const MEDALLA_BRONCE = [
+    ".rr......bb.",
+    ".rRr....bBb.",
+    "..rRr..bBb..",
+    "...rRrbBb...",
+    "....rrbb....",
+    "....tttt....",
+    "...tTTttm...",
+    "..tTttttttm.",
+    "..tTtmtttm..",
+    "..ttttttttm.",
+    "..ttttttmm..",
+    "...ttttmm...",
+    "....mmmm....",
+];
+
+const CIRCULO_VIOLETA = [
+    "..pppppp..",
+    ".pPPppppq.",
+    "pPPppppppq",
+    "pPppppppqq",
+    "pppppppppq",
+    "pppppppqqq",
+    ".ppppqqqq.",
+    "..qqqqqq..",
+];
+
+const CIRCULO_AMARILLO = [
+    "..yyyyyy..",
+    ".yYYyyyyo.",
+    "yYYyyyyyyo",
+    "yYyyyyyyoo",
+    "yyyyyyyyyo",
+    "yyyyyyyooo",
+    ".yyyyoooo.",
+    "..oooooo..",
+];
+
+const CUADRO_ROJO = [
+    "rrrrrrrrrr",
+    "rRRRRRRRRd",
+    "rRrrrrrrrd",
+    "rRrrrrrrrd",
+    "rRrrrrrrrd",
+    "rRrrrrrrrd",
+    "rRrrrrrrrd",
+    "rddddddddd",
+];
+
+const CUADRITO = [
+    "wwwwww",
+    "wWWWWs",
+    "wWWWWs",
+    "wWWWWs",
+    "wWWWWs",
+    "wsssss",
+];
+
+const ALA = [
+    "..........ww",
+    "........wwWw",
+    "......wwWWws",
+    "....wwWWWwws",
+    "..wwWWWwwss.",
+    "wwWWWwwwss..",
+    "wWWwwwsss...",
+    ".wwwsss.....",
+    "..sss.......",
+];
+
+const PAISAJE = [
+    "BBBBBBBBBBBBBB",
+    "BBBBBBwBBBBBBB",
+    "BBBBBwsSBBBBBB",
+    "BBBBwssSSBBBgg",
+    "BBBwsssSSSBggg",
+    "gggsssSSSSgggg",
+    "ggggggggggggvv",
+    "ggbbbbbbbbbbgg",
+    "gbbBbbbbbbbbbg",
+    "vvvvvvvvvvvvvv",
+];
+
+const DESIERTO = [
+    "BBBBBBBBByyBBB",
+    "BBBBBBBByYYyBB",
+    "BBBBBBBBByyBBB",
+    "BBBBBBBBBBBBBB",
+    "BBBTTBBBBBBBBB",
+    "BBTTTTBBBBTTBB",
+    "BTTTTTTTBTTTTB",
+    "TTTTttTTTTTTTT",
+    "TTTttttTTTTttT",
+    "tttttttttttttt",
+];
+
+const VIAS = [
+    ".....s..s.....",
+    ".....s..s.....",
+    "....mmmmmm....",
+    "....s....s....",
+    "...mmmmmmmm...",
+    "...s......s...",
+    "..mmmmmmmmmm..",
+    "..s........s..",
+    ".mmmmmmmmmmmm.",
+    ".s..........s.",
+    "mmmmmmmmmmmmmm",
+];
+
+const SOL_NUBE = [
+    "....a.........",
+    ".a..yy..a.....",
+    "...yYYy.......",
+    "a.yYYYyy..a...",
+    "..yYYyy.......",
+    ".a.yywwww.....",
+    "...wwWWWWw....",
+    "..wWWwwwwwww..",
+    ".wWwwwwwwwwwws",
+    ".wwwwwwwwwwwss",
+    "..ssssssssss..",
+];
+
+const VIENTO = [
+    "......ww......",
+    "....wwWWw.....",
+    ".......Ww.....",
+    "wwwwwwwWw.....",
+    "WWWWWWWw......",
+    "..............",
+    "wwwwwwwwwww...",
+    "WWWWWWWWWWWw..",
+    "..........Ww..",
+    "........wwWw..",
+    "........WWw...",
+];
+
+const CHALECO = [
+    "..aa....aa..",
+    ".aAa....aAa.",
+    ".aAaa..aaaa.",
+    "aAaaaaaaaaaz",
+    "aWWWWWWWWWWz",
+    "aAaaaaaaaaaz",
+    "aAaaaaaaaaaz",
+    "aWWWWWWWWWWz",
+    "aAaaaaaaaaaz",
+    "zzzzzzzzzzzz",
+];
+
+const SHORTS = [
+    "bbbbbbbbbbbb",
+    "bBBBBBBBBBBn",
+    "bBbbbbbbbbbn",
+    "bBbbbnnbbbbn",
+    "bBbbn..nbbbn",
+    "bBbbn..nbbbn",
+    "bbbbn..nbbbn",
+    "nnnn....nnnn",
+];
+
+const GORRA = [
+    "....bbbbb.....",
+    "..bbBBBBBbb...",
+    ".bBBBbbbbbbn..",
+    ".bBbbbbbbbbbn.",
+    "bBbbbbbbbbbbn.",
+    "bbbbbbbbbbbnnn",
+    "nnnnnnnnnbbbbb",
+    ".........nnnnn",
+];
+
+const NINJA = [
+    "...xxxxxxxx...",
+    "..xkkkkkkkkx..",
+    ".xkkkkkkkkkkx.",
+    ".xkFFFFFFFFkx.",
+    ".xkFxFFFFxFkx.",
+    ".xkFFFFFFFFkx.",
+    ".xkkkkkkkkkkrr",
+    ".xkkkkkkkkkkxr",
+    "..xkkkkkkkkx..",
+    "...xxxxxxxx...",
+];
+
+const BIRRETE = [
+    "......xx......",
+    "....xxkkxx....",
+    "..xxkkkkkkxx..",
+    "xxkkkkkkkkkkxx",
+    "..xxkkkkkkxxy.",
+    "....xxkkxx..y.",
+    "...xkkkkkkx.y.",
+    "...xkkkkkkx.yy",
+    "...xxxxxxxx.yy",
+];
+
+const BUFANDA = [
+    "..rrrrrrrrrr..",
+    ".rRRRRRRRRRRd.",
+    "rRrrrrrrrrrrrd",
+    ".dddrrrrddddd.",
+    "....rRrd......",
+    "....rRrd......",
+    "....rRrd......",
+    "....rRrd......",
+    "....wwww......",
+];
+
+const MALETA = [
+    "....tttt....",
+    "....t..t....",
+    ".mmmmmmmmmm.",
+    "mTTTTTTTTTTm",
+    "mTtttyytttTm",
+    "mTttttttttTm",
+    "mTttttttttTm",
+    "mTtttyytttTm",
+    "mttttttttttm",
+    "mmmmmmmmmmmm",
+    ".x........x.",
+];
+
+const VARITA = [
+    "..........y...",
+    ".........yWy..",
+    "..........y...",
+    "........xx....",
+    ".......xkx....",
+    "......xkx.....",
+    ".....xkx......",
+    "....xkx.......",
+    "...xkx........",
+    "..wwx.........",
+    ".wWw..........",
+    ".ww...........",
+];
+
+const LAUD = [
+    "............tm",
+    "...........tm.",
+    "..........tm..",
+    ".........tm...",
+    "........tm....",
+    "...wwwwtm.....",
+    "..wWWWwww.....",
+    ".wWWWWWWWw....",
+    ".wWWxWWWWw....",
+    ".wWWWWWWWs....",
+    "..wWWWWWs.....",
+    "...sssss......",
+];
+
+const TRIDENTE = [
+    "y....y....y",
+    "y....y....y",
+    "yy...y...yy",
+    ".yy..y..yy.",
+    "..yyyyyyy..",
+    ".....y.....",
+    ".....o.....",
+    ".....y.....",
+    ".....o.....",
+    ".....y.....",
+    ".....o.....",
+    ".....y.....",
+];
+
+const FLOR_LIS = [
+    "......yy......",
+    ".....yYYy.....",
+    "..yy.yYYy.yy..",
+    ".yYYyyYYyyYYy.",
+    "yYy.yyYYyy.yYy",
+    "yy..yYYYYy..yy",
+    ".y.yyyyyyyy.y.",
+    "..oooooooooo..",
+    "....yy..yy....",
+    "...yy....yy...",
+];
+
+const LEON = [
+    "..aazzzzzzaa..",
+    ".azzaaaaaazza.",
+    "azaaTTTTTTaaza",
+    "zaaTTTTTTTTaaz",
+    "zaTTxTTTTxTTaz",
+    "zaTTTTTTTTTTaz",
+    "zaaTTTmmTTTaaz",
+    ".zaaTTTTTTaaz.",
+    "..zaaTmmTaaz..",
+    "...zzaaaazz...",
+];
+
+const JABALI = [
+    "..mm......mm..",
+    ".mmm......mmm.",
+    ".mMMmmmmmmMMm.",
+    "mMMMMMMMMMMMMm",
+    "mMMxMMMMMMxMMm",
+    "mMMMMMMMMMMMMm",
+    ".mMMMttttMMMm.",
+    "..mMtxttxtMm..",
+    "..wmttttttmw..",
+    "..w.mmmmmm.w..",
+];
+
+const LAGARTO = [
+    ".....gg.......",
+    "....gGGg......",
+    "....gggg......",
+    "..g.gggg.g....",
+    "..gggggggg....",
+    ".....ggg......",
+    ".....gggg.....",
+    "..g.gggggg.g..",
+    "..gggggggggg..",
+    "......ggg.....",
+    ".......gg.....",
+    "........gg....",
+    ".........g....",
+];
+
+const AGUILA = [
+    "......ww......",
+    ".....wWWy.....",
+    "......ww......",
+    "m....mttm....m",
+    "mm..mttttm..mm",
+    "mtmmtttttmmmtm",
+    ".mtttttttttmm.",
+    "..mmmttttmmm..",
+    ".....tttt.....",
+    "....yy..yy....",
+];
+
+const CUERVO = [
+    "..........kk..",
+    ".........kxkk.",
+    "........kkkkyy",
+    "...kkkkkkkk...",
+    "..kSkkkkkk....",
+    ".kSkkkkkkk....",
+    "kkkkkkkkk.....",
+    "..kkkkkk......",
+    "....y..y......",
+];
+
+const POLLITO = [
+    ".....yyyy.....",
+    "....yYYyyy....",
+    "....yYxyyyaa..",
+    "....yyyyyy....",
+    "...wWwwwwwws..",
+    "..wWwwwwwwwws.",
+    "..wWwwwwwwwws.",
+    "..wwwwwwwwwss.",
+    "...wwwwwwwss..",
+    "....ssssss....",
+];
+
+const PULMONES = [
+    "......ss......",
+    "......ss......",
+    "..iii.ss.iii..",
+    ".iKKis..siKKi.",
+    "iKKKis..siKKKi",
+    "iKKii....iiKKi",
+    "iKiii....iiiKi",
+    "iiiii....iiiii",
+    ".iiii....iiii.",
+    "..ii......ii..",
+];
+
+const BATERIA = [
+    "kkkkkkkkkkkkk.",
+    "kGGGGGGGGswwk.",
+    "kgggggggggswkk",
+    "kgggggggggswkk",
+    "kgggggggggswk.",
+    "kkkkkkkkkkkkk.",
+];
+
+const SOFA = [
+    "..pppppppppp..",
+    ".pPPPPPPPPPPq.",
+    ".pPppppppppPq.",
+    "ppPppppppppPqq",
+    "pPPPPPPPPPPPPq",
+    "pPpppppppppppq",
+    "qqqqqqqqqqqqqq",
+    ".t..........t.",
+];
+
+const BOMBA = [
+    "..........a...",
+    ".........aY...",
+    "........t.a...",
+    ".......t......",
+    "....kkkkk.....",
+    "..kkSSkkkkk...",
+    ".kSSkkkkkkkk..",
+    ".kSkkkkkkkkx..",
+    "kkkkkkkkkkkxx.",
+    "kkkkkkkkkkxxx.",
+    ".kkkkkkkkxxx..",
+    "..kkkkkxxxx...",
+    "....xxxx......",
+];
+
+const CARTA = [
+    "wwwwwwwwww",
+    "wrWWWWWWWs",
+    "wWWWWWWWWs",
+    "wWWWrrWWWs",
+    "wWWrrrrWWs",
+    "wWWWrrWWWs",
+    "wWWWWWWWWs",
+    "wWWWWWWWrs",
+    "ssssssssss",
+];
+
+const FAROL = [
+    ".....yy.....",
+    "....dddd....",
+    "..rrrrrrrr..",
+    ".rRRrrrrrrd.",
+    "rRRrrrrrrrdd",
+    "rRrrrrrrrrdd",
+    "rRrrrrrrrrdd",
+    ".rRrrrrrrdd.",
+    "..rrrrrrdd..",
+    "....dddd....",
+    ".....yy.....",
+];
+
+const PROHIBIDO = [
+    "....rrrrrr....",
+    "..rrrrrrrrrr..",
+    ".rrrr.....rrr.",
+    ".rr.rr.....rr.",
+    "rr...rr.....rr",
+    "rr....rr....rr",
+    "rr.....rr...rr",
+    "rr......rr..rr",
+    "rr.......rr.rr",
+    ".rr.......rrr.",
+    ".rrr.....rrrr.",
+    "..rrrrrrrrrr..",
+    "....rrrrrr....",
+];
+
+const PAPELERA = [
+    "....ssss....",
+    "ssssssssssss",
+    "swwwwwwwwwws",
+    ".sWsWsWsWss.",
+    ".sWsWsWsWss.",
+    ".sWsWsWsWss.",
+    ".sWsWsWsWss.",
+    ".sWsWsWsWss.",
+    "..ssssssss..",
+];
+
+const CARTEL = [
+    "TTTTTTTTTTTT",
+    "TFFFFFFFFFFt",
+    "TFhhhhhhhhFt",
+    "TFFFFFFFFFFt",
+    "TFhhhhhFFFFt",
+    "TFFFFFFFFFFt",
+    "tttttttttttt",
+    ".....mm.....",
+    ".....mm.....",
+    ".....mm.....",
+];
+
+const MANO = [
+    "..f.f.f.......",
+    "..fFfFfFf.....",
+    "..fFfFfFf.....",
+    "..fFfFfFf.ff..",
+    "..fFFFFFfFFf..",
+    "..fFFFFFFFf...",
+    "..fFFFFFFf....",
+    "...fFFFFFf....",
+    "....hhhhh.....",
+];
+
+const JARRA = [
+    ".wwWwwWw....",
+    "wWWWWWWWw...",
+    "oyyyyyyyosss",
+    "oYyyyyyyos.s",
+    "oYyyyyyyos.s",
+    "oYyyyyyyosss",
+    "oyyyyyyyo...",
+    "ooooooooo...",
+];
+
+const ANCLA = [
+    "....ss....",
+    "...s..s...",
+    "....ss....",
+    "..ssssss..",
+    "....ss....",
+    "....ss....",
+    "s...ss...s",
+    "ss..ss..ss",
+    ".ss.ss.ss.",
+    "..ssssss..",
+    "....ss....",
+];
+
+const SIERRA = [
+    "rr............",
+    "rRr...........",
+    "rrrsssssssssss",
+    "rRrwwwwwwwwwws",
+    "rrrswswswswsws",
+];
+
+const OREJA = [
+    "..ffff..",
+    ".fFFFFf.",
+    "fFFhhFFf",
+    "fFh..fFf",
+    "fFh.fFf.",
+    "fFFhFFf.",
+    ".fFFFf..",
+    "..fFFf..",
+    "...fFf..",
+    "..fff...",
+];
+
+const BANDEJA = [
+    ".....bb.......",
+    ".....bb.......",
+    "...bbbbbb.....",
+    "....bbbb......",
+    ".....bb.......",
+    "ss........ss..",
+    "swww....wwws..",
+    "swwwwwwwwwws..",
+    "ssssssssssss..",
+];
+
+const COHETE = [
+    "......ww......",
+    ".....wWWw.....",
+    "....wWWWWs....",
+    "....wWbbWs....",
+    "....wWbbWs....",
+    "....wWWWWs....",
+    "...rwWWWWsr...",
+    "..rrwWWWWsrr..",
+    "..rr.ssss.rr..",
+    "......aa......",
+    ".....aYYa.....",
+    "......aa......",
+];
+
+const VOLCAN = [
+    ".....a..a.....",
+    "......ar......",
+    ".....rAAr.....",
+    "....kraark....",
+    "...kkkaakkk...",
+    "..kSkkkkkkkk..",
+    ".kSkkkkkkkkkk.",
+    "kSkkkkkkkkkkkk",
+    "xxxxxxxxxxxxxx",
+];
+
+const DIEZ = [
+    "nnnnnnnnnnnn",
+    "nbbbbbbbbbbn",
+    "nbbWbbWWWbbn",
+    "nbWWbbWbWbbn",
+    "nbbWbbWbWbbn",
+    "nbbWbbWbWbbn",
+    "nbWWWbWWWbbn",
+    "nbbbbbbbbbbn",
+    "nnnnnnnnnnnn",
+];
+
+const CIEN = [
+    "r..rrr.rrr...",
+    "rr.r.r.r.r...",
+    "r..r.r.r.r...",
+    "r..r.r.r.r...",
+    "r..rrr.rrr...",
+    "rrrrrrrrrrr..",
+    ".rrrrrrrrrr..",
+];
+
+const TRIGO = [
+    "..y....y....y.",
+    ".yoy..yoy..yoy",
+    ".yoy..yoy..yoy",
+    "..yy...yy..yy.",
+    "..y.y.y.y.y.y.",
+    "...y..y..y.y..",
+    "...y..y..yy...",
+    "....y.y.y.....",
+    ".....yyy......",
+    "......y.......",
+    "......y.......",
+];
+
 // ---------- La lista: nombre del ícono → su dibujo ----------
 export const ICONOS = {
     corazon: CORAZON,
@@ -1722,6 +2871,93 @@ export const ICONOS = {
     camiseta: CAMISETA,
     tambor: TAMBOR,
     templo: TEMPLO,
+    cerrar: CERRAR,
+    lapiz: LAPIZ,
+    lupa: LUPA,
+    reproducir: REPRODUCIR,
+    saltar: SALTAR,
+    volver: VOLVER,
+    arriba: ARRIBA,
+    abajo: ABAJO,
+    ambos: AMBOS,
+    mas: MAS,
+    pregunta: PREGUNTA,
+    "luna-nueva": LUNA_NUEVA,
+    manos: MANOS,
+    carne: CARNE,
+    hacha: HACHA,
+    pino: PINO,
+    ola: OLA,
+    fugaz: FUGAZ,
+    toro: TORO,
+    ladrillos: LADRILLOS,
+    buho: BUHO,
+    agujero: AGUJERO,
+    carpeta: CARPETA,
+    persona: PERSONA,
+    senala: SENALA,
+    camara: CAMARA,
+    movil: MOVIL,
+    numeros: NUMEROS,
+    repetir: REPETIR,
+    caballo: CABALLO,
+    carrito: CARRITO,
+    cactus: CACTUS,
+    mochila: MOCHILA,
+    dado: DADO,
+    cuadro: CUADRO,
+    ira: IRA,
+    mascara: MASCARA,
+    "luna-llena": LUNA_LLENA,
+    "medalla-plata": MEDALLA_PLATA,
+    "medalla-bronce": MEDALLA_BRONCE,
+    "circulo-violeta": CIRCULO_VIOLETA,
+    "circulo-amarillo": CIRCULO_AMARILLO,
+    "cuadro-rojo": CUADRO_ROJO,
+    cuadrito: CUADRITO,
+    ala: ALA,
+    paisaje: PAISAJE,
+    desierto: DESIERTO,
+    vias: VIAS,
+    "sol-nube": SOL_NUBE,
+    viento: VIENTO,
+    chaleco: CHALECO,
+    shorts: SHORTS,
+    gorra: GORRA,
+    ninja: NINJA,
+    birrete: BIRRETE,
+    bufanda: BUFANDA,
+    maleta: MALETA,
+    varita: VARITA,
+    laud: LAUD,
+    tridente: TRIDENTE,
+    "flor-lis": FLOR_LIS,
+    leon: LEON,
+    jabali: JABALI,
+    lagarto: LAGARTO,
+    aguila: AGUILA,
+    cuervo: CUERVO,
+    pollito: POLLITO,
+    pulmones: PULMONES,
+    bateria: BATERIA,
+    sofa: SOFA,
+    bomba: BOMBA,
+    carta: CARTA,
+    farol: FAROL,
+    prohibido: PROHIBIDO,
+    papelera: PAPELERA,
+    cartel: CARTEL,
+    mano: MANO,
+    jarra: JARRA,
+    ancla: ANCLA,
+    sierra: SIERRA,
+    oreja: OREJA,
+    bandeja: BANDEJA,
+    cohete: COHETE,
+    volcan: VOLCAN,
+    diez: DIEZ,
+    cien: CIEN,
+    trigo: TRIGO,
 };
 
 // Qué emoji se cambia por qué ícono. (El "️" invisible que llevan algunos emojis da igual:
@@ -1732,7 +2968,7 @@ export const EMOJIS = {
     "⚔": "espadas", "🗡": "daga", "🔪": "daga", "🔥": "fuego", "♨": "fuego", "✨": "chispas", "🌟": "chispas",
     "💫": "chispas", "⭐": "estrella", "⚡": "rayo", "☠": "calavera", "💀": "calavera", "✅": "check", "✔": "check",
     "🔒": "candado", "🔐": "candado", "🔓": "abierto", "🔑": "llave", "🎯": "diana", "📜": "pergamino",
-    "📖": "libro", "📚": "libros", "📓": "cuaderno", "📝": "cuaderno", "✍": "pluma", "✏": "pluma", "🪶": "pluma",
+    "📖": "libro", "📚": "libros", "📓": "cuaderno", "📝": "cuaderno", "✍": "pluma", "✏": "lapiz", "🪶": "pluma",
     "📌": "chincheta", "📍": "chincheta", "🏋": "pesa", "💪": "brazo", "🦾": "brazo", "🧠": "cerebro",
     "💬": "globo", "🗣": "globo", "🎁": "regalo", "🎟": "ficha", "🧙": "sombrero", "⏱": "reloj", "⏰": "reloj",
     "🕐": "reloj", "🕰": "reloj", "⏳": "arena", "⌛": "arena", "🏆": "trofeo", "👑": "corona", "🏅": "medalla",
@@ -1754,6 +2990,25 @@ export const EMOJIS = {
     "🦿": "pierna", "📏": "regla", "🐞": "mariquita", "👀": "ojos", "👁": "ojos", "👾": "invasor",
     "🔊": "altavoz", "🔈": "altavoz", "🚪": "puerta", "🎺": "trompeta", "🧰": "herramientas", "🍷": "copa",
     "🕊": "paloma", "🎽": "camiseta", "🥁": "tambor", "🏛": "templo", "🆕": "chispas",
+    "✖": "cerrar", "❌": "cerrar", "🖊": "lapiz",
+    "🔍": "lupa", "🔎": "lupa", "▶": "reproducir", "⏭": "saltar", "↩": "volver", "⬆": "arriba",
+    "⬇": "abajo", "↕": "ambos", "➕": "mas", "❔": "pregunta", "❓": "pregunta", "🌑": "luna-nueva",
+    "🙏": "manos", "🍖": "carne", "🪓": "hacha", "🌲": "pino", "🌳": "pino", "🌊": "ola",
+    "🌠": "fugaz", "🐄": "toro", "🐂": "toro", "🧱": "ladrillos", "🦉": "buho", "🕳": "agujero",
+    "🗂": "carpeta", "📁": "carpeta", "🧍": "persona", "🧑": "persona", "👆": "arriba", "👉": "senala",
+    "📸": "camara", "📷": "camara", "📱": "movil", "🔢": "numeros", "🔁": "repetir", "🔀": "repetir",
+    "♻": "repetir", "🐎": "caballo", "🛒": "carrito", "🌵": "cactus", "🎒": "mochila", "🎲": "dado",
+    "🖼": "cuadro", "💢": "ira", "🎭": "mascara", "🤕": "cara-triste", "🎼": "notas", "🫥": "cara-normal",
+    "🛠": "martillo", "🔗": "cadena", "📑": "lista", "🥱": "cara-agotada", "😴": "cara-agotada", "🤐": "cara-normal",
+    "🌕": "luna-llena", "🥈": "medalla-plata", "🥉": "medalla-bronce", "🟣": "circulo-violeta", "🟡": "circulo-amarillo", "🟥": "cuadro-rojo",
+    "▫": "cuadrito", "🪽": "ala", "🏞": "paisaje", "🏜": "desierto", "🛤": "vias", "🌤": "sol-nube",
+    "💨": "viento", "🦺": "chaleco", "🩳": "shorts", "🧢": "gorra", "🥷": "ninja", "🎓": "birrete",
+    "🧣": "bufanda", "🧳": "maleta", "🪄": "varita", "🪕": "laud", "🔱": "tridente", "⚜": "flor-lis",
+    "🦁": "leon", "🐗": "jabali", "🦎": "lagarto", "🦅": "aguila", "🐦‍⬛": "cuervo", "🐣": "pollito",
+    "🫁": "pulmones", "🔋": "bateria", "🛋": "sofa", "💣": "bomba", "🃏": "carta", "🏮": "farol",
+    "🚫": "prohibido", "🗑": "papelera", "🪧": "cartel", "🤚": "mano", "🍺": "jarra", "⚓": "ancla",
+    "🪚": "sierra", "👂": "oreja", "📥": "bandeja", "🚀": "cohete", "🌋": "volcan", "🔟": "diez",
+    "💯": "cien", "🌾": "trigo", "🌌": "chispas", "🔯": "estrella",
 };
 
 // ---------- De dibujo a SVG ----------

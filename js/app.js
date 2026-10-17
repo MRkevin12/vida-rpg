@@ -51,7 +51,7 @@ import { VERSION_APP, NOVEDADES, novedadesPorVer } from "./novedades.js";
 import { calcularResumen, semanaPorMostrar } from "./resumen.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { vigilarIconos } from "./iconos.js";
-import { retratoPixel, figuraPixel, dioramaPixel } from "./retratos.js";
+import { retratoPixel, figuraPixel, dioramaPixel, cuerpoGymPixel } from "./retratos.js";
 import * as fx from "./efectos.js";   // fx = "efectos especiales", como en el cine (v94)
 import { prepararPinturas } from "./pixel-pintura.js";   // (v95) las pinturas en pixel art
 import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, relojLargo, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
@@ -1398,7 +1398,7 @@ function siguienteCelebracion() {
     // al derrotar a un jefe, su retrato.
     if (celebracion.cuerpo) {
         // (v82) Tu cuerpo de antes y el de ahora, uno junto al otro.
-        const cuerpo = (c) => dibujarAvatarGym({ ...avatarActual(), fisico: c.fisico, corpulencia: c.corpulencia });
+        const cuerpo = (c) => cuerpoGymPixel({ ...avatarActual(), fisico: c.fisico, corpulencia: c.corpulencia });
         $("#cel-icono").innerHTML = `<div class="cel-cuerpos"><figure>${cuerpo(celebracion.cuerpo.antes)}<figcaption>Antes</figcaption></figure>
             <span aria-hidden="true">➜</span><figure>${cuerpo(celebracion.cuerpo.despues)}<figcaption>Ahora</figcaption></figure></div>`;
     } else if (celebracion.avatar) {

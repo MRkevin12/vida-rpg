@@ -35,7 +35,8 @@ import * as equipo from "./equipo.js";
 import { precioConEvento } from "./eventos.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
-import { retratoPixel, figuraPixel, dioramaPixel } from "./retratos.js";
+import { retratoPixel, figuraPixel, dioramaPixel, pixelEstatico, pixelarEnVivo } from "./retratos.js";
+import { icono } from "./iconos.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
@@ -60,9 +61,10 @@ export function esc(texto) {
 
 // Íconos dibujados con SVG (líneas simples).
 export const ICONOS = {
-    check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
-    cerrar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
-    editar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></svg>',
+    // (v96) En pixel art, como el resto de los íconos (iconos.js).
+    check: icono("check"),
+    cerrar: icono("cerrar"),
+    editar: icono("lapiz"),
 };
 
 function barra(porcentaje, clase = "") {
@@ -642,7 +644,7 @@ function avisoEvento(ctx) {
 
 // El cofre de madera (se abre con una animación: ver estilos.css).
 function dibujoCofre() {
-    return `
+    return pixelarEnVivo(`
         <svg class="cofre-svg" viewBox="0 0 120 100" aria-hidden="true">
             <defs>
                 <linearGradient id="cofre-madera" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5a2b"/><stop offset="1" stop-color="#4a2c14"/></linearGradient>
@@ -659,7 +661,7 @@ function dibujoCofre() {
             </g>
             <rect x="51" y="54" width="18" height="14" rx="2" fill="#d4a017" stroke="#5c4300" stroke-width="1.5"/>
             <circle cx="60" cy="60" r="2.2" fill="#5c4300"/>
-        </svg>`;
+        </svg>`, 2.5);   // (v96) en pixel art: 48 puntos de ancho
 }
 
 function tarjetaCofre(estado, ctx) {
@@ -1188,7 +1190,7 @@ function lineaDeVoces(estado, ctx) {
 // El sello de lacre rojo, con la inicial de tu nombre.
 function selloDeLacre(nombre) {
     const inicial = esc((Array.from(nombre.trim())[0] || "V").toUpperCase());
-    return `
+    return pixelarEnVivo(`
         <svg class="sello-lacre" viewBox="0 0 120 120" role="img" aria-label="Sello de lacre">
             <defs><radialGradient id="lacre" cx="38%" cy="32%" r="72%">
                 <stop offset="0" stop-color="#c8323a"/><stop offset=".6" stop-color="#8f1218"/><stop offset="1" stop-color="#560a0e"/>
@@ -1200,14 +1202,15 @@ function selloDeLacre(nombre) {
             <text x="60" y="74" text-anchor="middle" font-family="Georgia, serif" font-size="40" font-weight="700" fill="#45060a"
                   opacity=".85">${inicial}</text>
             <ellipse cx="42" cy="34" rx="15" ry="7" fill="#fff" opacity=".16" transform="rotate(-32 42 34)"/>
-        </svg>`;
+        </svg>`, 2.5);
 }
 
 // La firma guardada (un trazo SVG). Solo se dibuja si es un trazo válido.
 function dibujoDeFirma(trazo) {
     if (!pacto.firmaValida(trazo)) return "";
-    return `<svg class="firma-dibujo" viewBox="0 0 ${pacto.ANCHO_FIRMA} ${pacto.ALTO_FIRMA}" role="img" aria-label="Tu firma">
-                <path d="${trazo}" fill="none" stroke="#7a1414" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    // (v96) En pixel art: 150 puntos de ancho; el trazo, más grueso para que no se corte al pixelar.
+    return pixelarEnVivo(`<svg class="firma-dibujo" viewBox="0 0 ${pacto.ANCHO_FIRMA} ${pacto.ALTO_FIRMA}" role="img" aria-label="Tu firma">
+                <path d="${trazo}" fill="none" stroke="#7a1414" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>`, pacto.ANCHO_FIRMA / 150);
 }
 
 // La pantalla del pacto: el pergamino con el tratado completo. Si todavía no lo firmaste
@@ -2344,7 +2347,7 @@ function retratoJefe(jefe, estadoVisual, clase = "", dano = 0) {
 
 // Miniatura de un objeto, con el marco del color de su rareza.
 function iconoObjeto(id, extra = "") {
-    return `<span class="objeto-icono rareza-${avatar.OBJETOS[id].rareza} ${extra}">${dibujarObjeto(id)}</span>`;
+    return `<span class="objeto-icono rareza-${avatar.OBJETOS[id].rareza} ${extra}">${pixelEstatico(dibujarObjeto(id), 32, 32)}</span>`;
 }
 
 function textoRareza(objeto) {
@@ -2396,7 +2399,7 @@ function tarjetaCampana(c, ctx) {
 
             <!-- Escena de batalla: tu avatar contra el jefe -->
             <div class="escena">
-                <div class="escena-fondo">${dibujarEscenario(c.categoria)}</div>
+                <div class="escena-fondo">${pixelarEnVivo(dibujarEscenario(c.categoria), 320 / 192)}</div>
                 <div class="escena-heroe ${golpeado ? "atacar" : ""}">${figuraPixel(ctx.avatar, { alt: "Tu héroe", efectos: true })}</div>
                 <span class="escena-vs">VS</span>
                 <div class="escena-jefe">${retratoJefe(jefe, visual, "", dano)}</div>
@@ -3627,12 +3630,12 @@ export function pantallaEnfoque(estado, ctx) {
             <section class="panel enfoque-activo" style="--color-atributo: ${a.color}">
                 <p class="etiqueta">Enfocado en ${esc(a.icono)} ${esc(a.nombre)}</p>
                 <div class="reloj">
-                    <svg viewBox="0 0 120 120" aria-hidden="true">
+                    ${pixelarEnVivo(`<svg viewBox="0 0 120 120" aria-hidden="true">
                         <circle class="reloj-pista" cx="60" cy="60" r="52"/>
                         <circle class="reloj-arco" cx="60" cy="60" r="52" transform="rotate(-90 60 60)"
                                 stroke-dasharray="${LARGO_ANILLO}" stroke-dashoffset="${LARGO_ANILLO * (1 - restante / total)}"
                                 data-anillo data-total="${total}" data-largo="${LARGO_ANILLO}"/>
-                    </svg>
+                    </svg>`, 2.5)}
                     <span class="reloj-tiempo" data-reloj role="timer">${relojTexto(restante)}</span>
                 </div>
                 <p class="nota">Puedes bloquear el iPhone o salir de la app: el tiempo sigue contando y al volver
@@ -4285,7 +4288,7 @@ function seccionEquipamiento(estado, ctx) {
         const id = a.equipado[espacio];
         const objeto = id ? avatar.OBJETOS[id] : null;
         return `<div class="espacio ${objeto ? `lleno rareza-${objeto.rareza}` : ""}">
-                    <span class="espacio-icono">${objeto ? dibujarObjeto(id) : "—"}</span>
+                    <span class="espacio-icono">${objeto ? pixelEstatico(dibujarObjeto(id), 32, 32) : "—"}</span>
                     <span class="mini texto-suave">${nombre}</span>
                     <span class="mini">${objeto ? esc(objeto.nombre) : "Vacío"}</span>
                 </div>`;
@@ -4349,7 +4352,7 @@ function seccionMascota(estado, m, ctx) {
         <section class="panel">
             <h2 class="titulo-juego">Mascota</h2>
             <div class="mascota-ficha">
-                <div class="mascota-dibujo">${dibujarMascota(m)}</div>
+                <div class="mascota-dibujo">${pixelarEnVivo(dibujarMascota(m), 72 / 44)}</div>
                 <div>
                     <p><b>${esc(m.nombre)}</b> · ${mascota.MASCOTAS[m.especie].nombre} · ${m.etapa.nombre}</p>
                     <p class="mini texto-suave">${crecimiento}</p>
@@ -4472,7 +4475,7 @@ function tiendaDelAvatar(estado, cerrada, evento) {
 function retratoMascota(especie, extra = "") {
     const datos = mascota.MASCOTAS[especie];
     const m = { especie, nombre: datos.nombre, etapa: { clave: "adulto", nombre: "Adulta" }, total: 0, triste: false };
-    return `<span class="objeto-icono retrato-mascota rareza-${datos.rareza} ${extra}">${dibujarMascota(m)}</span>`;
+    return `<span class="objeto-icono retrato-mascota rareza-${datos.rareza} ${extra}">${pixelEstatico(dibujarMascota(m), 44, 34)}</span>`;
 }
 
 // Una línea con lo que hace una mascota en la Torre.

@@ -10,7 +10,7 @@ import * as avatar from "./avatar.js";
 import * as gymAurelio from "./gym-aurelio.js";
 import { describirMaestro } from "./maestro.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
-import { retratoPixel } from "./retratos.js";
+import { retratoPixel, cuerpoGymPixel, pixelarEnVivo } from "./retratos.js";
 import { dibujarMovimiento } from "./dibujo-ejercicios.js";
 import { plural } from "./juego.js";
 import { esc, selectorSecciones } from "./vistas.js";
@@ -144,7 +144,7 @@ function tarjetaNivel(estado, ctx, compacta = false) {
     const fisico = vista?.fisico ?? gym.fisicoDe(n.nivel);
     const corpulencia = vista?.corp ?? gym.corpulenciaDe(miImc);
     const proximo = gym.NIVELES_DE_FISICO[fisico + 1];
-    const cuerpo = dibujarAvatarGym({ ...ctx.avatar, fisico, corpulencia });
+    const cuerpo = cuerpoGymPixel({ ...ctx.avatar, fisico, corpulencia });
     const boton = (texto, atributos, activo) => `<button type="button" class="boton boton-chico ${activo ? "boton-principal" : "boton-secundario"}" data-accion="gym-vista" ${atributos} aria-pressed="${Boolean(activo)}">${texto}</button>`;
     const pesos = [[-1, "Delgado"], [0, "Normal"], [0.6, "Con peso"], [1.1, "Mucho peso"]];
     const controles = `
@@ -365,14 +365,14 @@ function vistaDeFoco(estado, ctx) {
         const parte = Math.max(0, Math.min(1, (ctx.descanso.fin - ctx.ahora) / ctx.descanso.total));
         escena = `
             <div class="gym-foco-descanso" role="timer">
-                <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="gym-anillo-pista" cx="60" cy="60" r="52"/>
+                ${pixelarEnVivo(`<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="gym-anillo-pista" cx="60" cy="60" r="52"/>
                     <circle class="gym-anillo" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" stroke-dasharray="${largo.toFixed(1)}" stroke-dashoffset="${(largo * (1 - parte)).toFixed(1)}"
-                            data-gym-anillo data-fin="${ctx.descanso.fin}" data-total="${ctx.descanso.total}" data-largo="${largo.toFixed(1)}"/></svg>
+                            data-gym-anillo data-fin="${ctx.descanso.fin}" data-total="${ctx.descanso.total}" data-largo="${largo.toFixed(1)}"/></svg>`, 2.5)}
                 <div class="gym-foco-descanso-texto"><small>Descanso</small><b data-descanso-fin="${ctx.descanso.fin}">${duracion(falta)}</b></div>
             </div>
             <p class="gym-foco-siguiente">Sigue: <b>${esc(info.nombre)}</b></p>`;
     } else {
-        escena = `<div class="gym-foco-demo" aria-hidden="true">${dibujarMovimiento(movimiento, ctx.avatar.apariencia, { animar: !sinMovimiento })}</div>
+        escena = `<div class="gym-foco-demo" aria-hidden="true">${pixelarEnVivo(dibujarMovimiento(movimiento, ctx.avatar.apariencia, { animar: !sinMovimiento }), 2)}</div>
                   <h3 class="gym-foco-nombre">${musculo.icono} ${esc(info.nombre)}</h3>`;
     }
     return `
@@ -433,7 +433,7 @@ function vistaDeLista(estado, ctx) {
         const hechasEj = ej.series.filter((s) => s.hecha).length;
         return `
             <article class="gym-ejercicio ${hechasEj === ej.series.length ? "completo" : ""} ${ei === actual ? "actual" : ""}">
-                <div class="gym-demo" aria-hidden="true">${dibujarMovimiento(movimiento, ctx.avatar.apariencia, { animar: ei === actual && !sinMovimiento })}</div>
+                <div class="gym-demo" aria-hidden="true">${pixelarEnVivo(dibujarMovimiento(movimiento, ctx.avatar.apariencia, { animar: ei === actual && !sinMovimiento }), 2)}</div>
                 <h3>${musculo.icono} ${esc(info.nombre)}</h3>
                 <p class="mini texto-suave gym-meta-ej">${info.series} × ${info.min}–${info.max} reps · ${musculo.nombre}
                     ${sparkline(gym.historialDe(g.sesiones, ej.id).slice(-10).map((x) => x.puntaje), { ancho: 70, alto: 20 })}</p>
@@ -616,7 +616,7 @@ function tarjetaEvolucion(estado, ctx) {
     const lista = [...fotos, ahora].slice(-5);
     const casillas = lista.map((f, i) => `
         <figure class="gym-foto ${i === lista.length - 1 ? "ahora" : ""}">
-            <div class="gym-foto-cuerpo">${dibujarAvatarGym({ ...ctx.avatar, fisico: f.fisico, corpulencia: f.corpulencia })}</div>
+            <div class="gym-foto-cuerpo">${cuerpoGymPixel({ ...ctx.avatar, fisico: f.fisico, corpulencia: f.corpulencia })}</div>
             <figcaption><b>${i === lista.length - 1 ? "Hoy" : fechaCorta(f.fecha)}</b><small>Nv ${f.nivel} · ${gym.NOMBRES_DE_FISICO[f.fisico]}${f.kg ? ` · ${kilos(f.kg)}` : ""}</small></figcaption>
         </figure>`).join("");
     return `

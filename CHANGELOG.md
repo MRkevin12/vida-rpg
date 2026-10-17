@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v96 — Todo en pixel art: letra, dibujos, minijuegos e íconos
+- `retratos.js`: `pixelarEnVivo(svg, paso)` sirve para cualquier dibujo (el filtro cubre su viewBox; se exporta), `pixelEstatico(svg, ancho, alto)` (imagen fija; la clave quita los ids que cambian, ver `nuevoId`) y `cuerpoGymPixel(d)` (62 × 72, con ojos; encuadre `gym`).
+- En vivo (siguen animados): la mascota grande (72 → 44 puntos), el escenario de la campaña, el cofre, el sello, la firma (trazo más grueso), el anillo del reloj de Enfoque y el del descanso del gym, los ejercicios (60 puntos) y la escena de carga (filtro escrito en index.html). Fijos: los objetos (32 × 32) y el retrato pequeño de la mascota. Se probó aplicar el filtro desde CSS (`filter: url(#…)`): en WebKit los elementos desaparecen, por eso va dentro de cada SVG.
+- `minijuegos.js`: el mundo se pinta a media resolución (`PUNTO` = 2) y se agranda con `image-rendering: pixelated`; el texto (números que flotan, cartel de pausa, nombre de la criatura) va en otro lienzo encima (`capaTexto`), a resolución completa y con DotGothic16.
+- Letra: `body`, campos y botones con `--letra-titulo`. `font-synthesis: none` y la negrita se hace con `text-shadow: 1px 0 0 currentColor` (la negrita inventada pegaba el punto de la i).
+- Íconos: 87 nuevos (✕, lápiz, lupa, flechas, animales, objetos, lugares, medallas de plata y bronce…) y los emojis parecidos usan uno que ya había. La ✓ de las misiones aparece con opacidad (antes era un trazo que se dibujaba). Se quitó un ícono de mano señalando que parecía un gesto grosero (👆 usa la flecha).
+- 300 pruebas. Revisado en Chromium y WebKit.
+
 ## v95 — Los jefes y los paisajes en pixel art
 - **`js/pixel-pintura.js` (nuevo):** `pixelarPintura(direccion, ancho, alto, { colores, tramado, contraste, saturacion, filo })`: achica en dos saltos, sube contraste y color, afila, saca una paleta de k colores con k-medias (10 vueltas, inicio fijo) y pinta cada punto con tramado de Bayer 4 × 4. `prepararPinturas(lista)` las hace una por una (con un respiro entre cada una) y las guarda en Cache Storage (`pixel-pinturas-v1`, no se borra al actualizar).
 - `campana.imagenDe(id)` y `rutaPintura(id)` devuelven la versión en pixel art si ya está (`ponerImagenPixel` / `ponerPinturaPixel`). `app.js › pinturasEnPixel()`: 20 jefes a 96 × 120 y los fondos (128 × 128, escenarios 192 × 108, Torre 120 × 160), 24 colores; al final se redibuja la pantalla.

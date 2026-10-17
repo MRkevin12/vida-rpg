@@ -197,13 +197,15 @@ function crearTextos() {
             }
             lista = lista.filter((t) => t.vida > 0);
         },
-        dibujar(g) {
+        dibujar(mundo) {
+            const g = mundo.capaTexto || mundo;   // (v96) el texto va en su capa, nítido (ver jugar)
             g.textAlign = "center";
             for (const t of lista) {
                 g.globalAlpha = Math.max(0, t.vida);
-                g.font = `800 ${t.tamano}px Orbitron, sans-serif`;
-                g.lineWidth = 3;
-                g.strokeStyle = "rgba(0,0,0,.6)";
+                g.font = `700 ${t.tamano}px DotGothic16, Orbitron, sans-serif`;
+                g.lineWidth = 4;
+                g.lineJoin = "miter";
+                g.strokeStyle = "#140c22";
                 g.strokeText(t.texto, t.x, t.y);
                 g.fillStyle = t.color;
                 g.fillText(t.texto, t.x, t.y);
@@ -214,14 +216,15 @@ function crearTextos() {
 }
 
 // Cartel de pausa encima del juego.
-function cartel(g, ancho, alto, titulo, subtitulo) {
+function cartel(mundo, ancho, alto, titulo, subtitulo) {
+    const g = mundo.capaTexto || mundo;   // (v96) en la capa de texto
     g.fillStyle = "rgba(5,3,12,.65)";
     g.fillRect(0, 0, ancho, alto);
     g.textAlign = "center";
     g.fillStyle = "#fff";
-    g.font = "800 28px Orbitron, sans-serif";
+    g.font = "700 28px DotGothic16, Orbitron, sans-serif";
     g.fillText(titulo, ancho / 2, alto / 2);
-    g.font = "600 15px -apple-system, system-ui, sans-serif";
+    g.font = "400 16px DotGothic16, -apple-system, system-ui, sans-serif";
     g.fillStyle = "#c4b5fd";
     g.fillText(subtitulo, ancho / 2, alto / 2 + 28);
 }
@@ -256,11 +259,26 @@ export async function jugar(tipo, { lienzo, avatarSvg, pixel = null, marcador, a
     // se ve igual de bien y el teléfono pinta menos de la mitad de píxeles (ahorra batería).
     const ancho = lienzo.clientWidth;
     const alto = lienzo.clientHeight;
-    const escala = Math.min(2, window.devicePixelRatio || 1);
-    lienzo.width = Math.round(ancho * escala);
-    lienzo.height = Math.round(alto * escala);
+    // (v96) Pixel art: el mundo se pinta a la MITAD de resolución (un punto = 2 px de pantalla) y el CSS lo
+    // agranda sin suavizar (image-rendering: pixelated). Los juegos siguen pensando en px de pantalla:
+    // setTransform achica todo lo que dibujan.
+    const PUNTO = 2;
+    lienzo.width = Math.round(ancho / PUNTO);
+    lienzo.height = Math.round(alto / PUNTO);
     const g = lienzo.getContext("2d");
-    g.setTransform(escala, 0, 0, escala, 0, 0);
+    g.setTransform(1 / PUNTO, 0, 0, 1 / PUNTO, 0, 0);
+    // El texto, en cambio, a resolución completa (si no, no se leería): va en otro lienzo, encima y transparente.
+    // La densidad de píxeles se limita a 2 (se ve igual de bien y ahorra batería).
+    const escala = Math.min(2, window.devicePixelRatio || 1);
+    const capa = document.createElement("canvas");
+    capa.className = "minijuego-texto";
+    capa.width = Math.round(ancho * escala);
+    capa.height = Math.round(alto * escala);
+    capa.style.cssText = `left: ${lienzo.offsetLeft + lienzo.clientLeft}px; top: ${lienzo.offsetTop + lienzo.clientTop}px; width: ${ancho}px; height: ${alto}px`;
+    lienzo.after(capa);
+    const gt = capa.getContext("2d");
+    gt.setTransform(escala, 0, 0, escala, 0, 0);
+    g.capaTexto = gt;
 
     const juego = crear({ ancho, alto, heroe, escena, sonar, ventajas });
     ayuda.textContent = juego.ayuda;
@@ -275,6 +293,7 @@ export async function jugar(tipo, { lienzo, avatarSvg, pixel = null, marcador, a
         const dt = Math.min(0.05, (ahora - anterior) / 1000);
         anterior = ahora;
         if (!pausado) juego.actualizar(dt);
+        gt.clearRect(0, 0, ancho, alto);   // la capa de texto se limpia en cada cuadro
         juego.dibujar(g);
         if (pausado) cartel(g, ancho, alto, "Pausa", "Toca para seguir");
         marcador.textContent = juego.marcador();
@@ -288,6 +307,7 @@ export async function jugar(tipo, { lienzo, avatarSvg, pixel = null, marcador, a
     function terminar(demora) {
         if (terminado) return;
         terminado = true;
+        setTimeout(() => capa.remove(), demora);   // (v96) la capa de texto se va con el juego
         lienzo.removeEventListener("pointerdown", alTocar);
         lienzo.removeEventListener("pointermove", alMover);
         document.removeEventListener("keydown", alTeclear);
@@ -732,10 +752,11 @@ function golpe({ ancho, alto, heroe, escena, sonar, ventajas }) {
             g.fill();
             g.strokeStyle = "#f1f3ff";
             g.stroke();
-            g.textAlign = "left";
-            g.font = "700 12px -apple-system, system-ui, sans-serif";
-            g.fillStyle = "#fff";
-            g.fillText(img.nombre || "Criatura", ventana.x + 9, ventana.y + 15, ventana.w - 18);
+            const gt = g.capaTexto || g;   // (v96) el nombre, nítido en la capa de texto
+            gt.textAlign = "left";
+            gt.font = "400 13px DotGothic16, -apple-system, system-ui, sans-serif";
+            gt.fillStyle = "#fff";
+            gt.fillText(img.nombre || "Criatura", ventana.x + 9, ventana.y + 15, ventana.w - 18);
             g.fillStyle = "#05072a";
             g.fillRect(ventana.x + 9, ventana.y + 22, ventana.w - 18, 6);
             g.fillStyle = "#e11d48";

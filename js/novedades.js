@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 95;
+export const VERSION_APP = 96;
 
 export const NOVEDADES = [
+    {
+        version: 96,
+        titulo: "Todo en pixel art",
+        cambios: [
+            "🔤 La letra de pixel ya no es solo de los títulos: ahora es la de toda la app (con negritas hechas como en el pixel art, para que la «i» no se confunda con la «l»).",
+            "🐉 Tu mascota, los objetos del equipo, tu cuerpo del gimnasio, los ejercicios, el cofre, el sello y la firma del pacto, el reloj del modo Enfoque y la escena de carga, todo en pixel art (lo que se mueve sigue moviéndose).",
+            "🕹️ Los minijuegos se pintan en pixel art, con los números y carteles nítidos encima.",
+            "🧩 Ya no queda ni un emoji: hay 202 íconos dibujados punto por punto.",
+        ],
+    },
     {
         version: 95,
         titulo: "Los jefes y los paisajes, en pixel art",

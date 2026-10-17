@@ -49,6 +49,15 @@
             <p class="carga-texto"><span id="carga-texto">Preparando tu aventura…</span> <b id="carga-pct">0 %</b></p>
         </div>
         <svg class="carga-escena" viewBox="0 0 390 220" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+            <!-- (v96) pixel art: toma un punto de cada cuadrito de 2 × 2 y lo agranda hasta llenarlo -->
+            <defs><filter id="carga-mosaico" x="0" y="0" width="390" height="220" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <feFlood x="0" y="0" width="1" height="1" flood-color="#000"/>
+                <feComposite x="0" y="0" width="2" height="2"/>
+                <feTile result="rejilla"/>
+                <feComposite in="SourceGraphic" in2="rejilla" operator="in"/>
+                <feMorphology operator="dilate" radius="1"/>
+            </filter></defs>
+            <g filter="url(#carga-mosaico)">
             <g class="carga-capa carga-lejos"><path d="M-40 220 V122 L0 92 L42 126 L92 70 L142 122 L192 86 L242 126 L292 94 L346 130 L430 100 V220 Z" fill="#1d1740"/></g>
             <g class="carga-capa carga-medio"><path d="M-40 220 V152 L10 118 L60 152 L112 110 L172 154 L232 120 L292 156 L360 124 L430 152 V220 Z" fill="#150f30"/></g>
             <g class="carga-torre">
@@ -69,6 +78,7 @@
                 <path d="M-3.4 -4 V1 M3 -4 V1" stroke="#07040f" stroke-width="2.4"/>
                 <path d="M6 -12 L12 -24" stroke="#a5f3fc" stroke-width="1.2" stroke-linecap="round"/>
             </g></g>
+            </g>
         </svg>
         <p class="carga-consejo" id="carga-consejo"></p>
         <span class="carga-destello" aria-hidden="true"></span>
@@ -733,7 +743,7 @@
             <div class="minijuego-barra">
                 <span class="titulo-juego" id="mj-titulo"></span>
                 <button type="button" class="boton-icono" id="mj-salir" aria-label="Salir del minijuego">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    <span class="boton-icono-pixel" aria-hidden="true">✖️</span>
                 </button>
             </div>
             <p class="minijuego-marcador" id="mj-marcador"></p>

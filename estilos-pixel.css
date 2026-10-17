@@ -800,3 +800,77 @@ img[src^="data:image/png"],
 .voces-escena {
     image-rendering: pixelated;
 }
+
+
+/* =====================================================================
+   Todo en pixel art (v96): casillas, gráficas, minijuegos y letra
+   ===================================================================== */
+
+/* La ✓ de las misiones era un trazo que se "dibujaba". Ahora es un ícono: aparece con un saltito al cumplir. */
+.boton-check svg.pxi,
+.check-chico svg.pxi {
+    opacity: 0;
+    transform: scale(0.4);
+    transition: opacity 0.15s steps(2), transform 0.25s steps(3);
+}
+
+.mision.hecha .boton-check svg.pxi,
+.submision.hecha .check-chico svg.pxi {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* La gráfica de Progreso y la del gimnasio: líneas duras (sin suavizar) y letra de pixel. */
+.grafica,
+.gym-spark {
+    shape-rendering: crispEdges;
+}
+
+.grafica text,
+.gym-spark text {
+    font-family: var(--letra-titulo);
+}
+
+/* Los minijuegos: el mundo pintado a media resolución se agranda sin suavizar; el texto va en una capa encima. */
+.minijuego-lienzo {
+    image-rendering: pixelated;
+}
+
+.minijuego-caja {
+    position: relative;
+}
+
+.minijuego-texto {
+    position: absolute;
+    pointer-events: none;
+}
+
+/* (v96) La letra de pixel en TODO el texto, no solo en los títulos. DotGothic16 está hecha para leerse
+   a 16 px (la medida del texto de la app), y tiene tildes y ñ. Los campos de escribir también. */
+body,
+input,
+textarea,
+select,
+button {
+    font-family: var(--letra-titulo);
+}
+
+body {
+    letter-spacing: 0.01em;
+}
+
+/* (v96) La negrita. DotGothic16 tiene un solo grosor y el navegador "inventa" la negrita engrosando cada
+   letra hacia todos lados: el punto de la i se pega y «Misiones» parece «Mlslones». Se apaga esa negrita
+   inventada (font-synthesis: none) y se hace como en el pixel art: la letra otra vez, 1 px a la derecha
+   (text-shadow). Así engorda solo de lado y el punto de la i queda separado. */
+* {
+    font-synthesis: none;
+}
+
+:where(b, strong, h1, h2, h3, h4, th, .boton, .pestana, .cab-nombre, .etiqueta, .mision-nombre, .ff-comando-nombre) {
+    text-shadow: 1px 0 0 currentColor;
+}
+
+.titulo-juego {
+    text-shadow: 1px 0 0 currentColor, 0 2px 0 var(--tinta);
+}

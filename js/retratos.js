@@ -11,13 +11,14 @@
 //      rasgosEnPixeles() calcula dónde caen los ojos en la imagen chica y los "estampa" encima.
 
 import { pixelar, yaPixelado } from "./pixel.js";
-import { dibujarAvatar } from "./dibujo.js";
+import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 
 // Los encuadres de dibujarAvatar (su viewBox: x, y, ancho, alto), ver dibujo.js.
 const ENCUADRES = {
     mini: [75, 11, 50, 50],
     batalla: [32.5, 6, 135, 180],
     completo: [6, 2, 188, 188],
+    gym: [22, 10, 156, 180],      // (v96) el cuerpo del gimnasio (dibujarAvatarGym)
 };
 
 // La cabeza se dibuja ×1,12 alrededor del punto (100, 58.5) (ESCALA_CABEZA en dibujo.js) y los ojos
@@ -133,19 +134,38 @@ export function dioramaPixel(d, { clase = "" } = {}) {
 //   feFlood + feComposite + feTile → una rejilla con un punto de muestra en cada cuadrito
 //   feComposite "in"              → de lo dibujado, solo quedan esos puntos
 //   feMorphology "dilate"         → cada punto crece hasta tapar su cuadrito
+// (v96) Sirve para cualquier dibujo: el filtro cubre todo su viewBox, y `paso` es el lado de un punto en
+// unidades del dibujo (por ejemplo, un dibujo de 120 de ancho con paso 2,5 se ve como 48 puntos de ancho).
 let filtros = 0;
-function pixelarEnVivo(svg, paso) {
+export function pixelarEnVivo(svg, paso) {
     const id = `mosaico-${++filtros}`;
-    const filtro = `<filter id="${id}" x="0" y="0" width="200" height="200" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-        <feFlood x="0" y="0" width="${(paso * 0.5).toFixed(3)}" height="${(paso * 0.5).toFixed(3)}" flood-color="#000"/>
-        <feComposite width="${paso.toFixed(3)}" height="${paso.toFixed(3)}"/>
+    const [vx, vy, vw, vh] = (svg.match(/viewBox="([^"]+)"/)?.[1] || "0 0 200 200").split(/[\s,]+/).map(Number);
+    const filtro = `<filter id="${id}" x="${vx}" y="${vy}" width="${vw}" height="${vh}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+        <feFlood x="${vx}" y="${vy}" width="${(paso * 0.5).toFixed(3)}" height="${(paso * 0.5).toFixed(3)}" flood-color="#000"/>
+        <feComposite x="${vx}" y="${vy}" width="${paso.toFixed(3)}" height="${paso.toFixed(3)}"/>
         <feTile result="rejilla"/>
         <feComposite in="SourceGraphic" in2="rejilla" operator="in"/>
         <feMorphology operator="dilate" radius="${(paso / 2).toFixed(3)}"/>
     </filter>`;
     // Todo lo que hay dentro del <svg> (salvo las definiciones) pasa por el filtro.
-    return svg.replace(/(<svg[^>]*>)(<defs>[\s\S]*?<\/defs>)?([\s\S]*)(<\/svg>)$/,
+    return svg.trim().replace(/(<svg[^>]*>)(<defs>[\s\S]*?<\/defs>)?([\s\S]*)(<\/svg>)$/,
         (_, abre, defs = "", resto, cierra) => `${abre}${defs}<defs>${filtro}</defs><g filter="url(#${id})">${resto}</g>${cierra}`);
+}
+
+// (v96) Tu cuerpo en el gimnasio, en pixel art y con sus ojos. Misma densidad que la figura de batalla (≈0,4 puntos por unidad).
+export function cuerpoGymPixel(d, { clase = "" } = {}) {
+    const [ancho, alto] = [62, 72];
+    const clave = `gym-${huella(JSON.stringify(d))}`;
+    return imagen(clave, () => pixelar(dibujarAvatarGym(d), ancho, alto, { clave, puntos: rasgosEnPixeles(d, "gym", ancho, alto) }),
+        { clase: `figura-pixel cuerpo-gym-pixel ${clase}`, ancho, alto, alt: `Tu cuerpo: nivel de físico ${d.fisico || 0}` });
+}
+
+// (v96) Cualquier dibujo SVG fijo en pixel art (mascotas, objetos…).
+// ancho × alto = puntos de la imagen; contorno: la línea oscura de afuera (para figuras sueltas sí, para escenas no).
+// (Los dibujos llevan ids que cambian cada vez —av12, mo7…, ver nuevoId en dibujo-base.js—: se quitan para la clave.)
+export function pixelEstatico(svg, ancho, alto, { clase = "", alt = "", contorno = true } = {}) {
+    const clave = `dibujo-${ancho}x${alto}-${contorno ? 1 : 0}-${huella(svg.replace(/\b(av|es|mo|m|sala|d)\d+/g, ""))}`;
+    return imagen(clave, () => pixelar(svg, ancho, alto, { clave, contorno }), { clase: `dibujo-pixel ${clase}`, ancho, alto, alt });
 }
 
 // Para tenerlas listas antes de abrir una pantalla (al arrancar la app): así salen al instante.
