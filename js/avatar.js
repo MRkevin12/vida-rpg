@@ -57,7 +57,8 @@ export const ANIMOS = {
 
 // 5 y 6. Equipamiento: unos se compran con monedas, otros solo se ganan con logros.
 // v34: el PECHO (armaduras que se ponen sobre la ropa de tu etapa).
-export const ESPACIOS = { cabeza: "Cabeza", pecho: "Pecho", mano: "Mano", espalda: "Espalda", fondo: "Fondo" };
+// v100: PIERNAS (pantalones) y PIES (botas). El orden es el de la pantalla.
+export const ESPACIOS = { cabeza: "Cabeza", pecho: "Pecho", piernas: "Piernas", pies: "Pies", mano: "Mano", espalda: "Espalda", fondo: "Fondo" };
 
 // "poder" (v24): lo que da cada objeto. armadura = protege cuando fallas una misión;
 // ataque, magia y suerte = más fuerza en la Torre y en los minijuegos (ver equipo.js).
@@ -127,6 +128,68 @@ export const OBJETOS = {
                        logro: { tipo: "logros", meta: 10, texto: "Conseguir 10 logros" } },
     "mar":           { nombre: "Fondo: Mar embravecido", icono: "🌊", espacio: "fondo", precio: 120, rareza: "raro" },
     "aurora":        { nombre: "Fondo: Aurora boreal", icono: "🌠", espacio: "fondo",  precio: 300, rareza: "epico", habilidad: "aurora" },
+
+    // ===== (v100) Piernas: pantalones. "aspecto" dice cómo se dibujan (dibujo-ropa.js › piernas):
+    // tela = color del pantalón, ribete = una franja al costado, placas = color de las placas de metal en los muslos.
+    "calzas-lino":        { nombre: "Calzas de lino",            icono: "👖", espacio: "piernas", precio: 50,  rareza: "comun", poder: { armadura: 2 },
+                            aspecto: { tela: "#b8a07a" } },
+    "pantalon-viajero":   { nombre: "Pantalón de viajero",       icono: "👖", espacio: "piernas", precio: 70,  rareza: "comun", poder: { armadura: 3, suerte: 1 },
+                            aspecto: { tela: "#5b4636" } },
+    "bombachos":          { nombre: "Bombachos del explorador",  icono: "👖", espacio: "piernas", precio: 140, rareza: "raro", poder: { armadura: 4, suerte: 3 },
+                            aspecto: { tela: "#3f5f4a", ribete: "#c8a040" } },
+    "calzas-arcanas":     { nombre: "Calzas de seda arcana",     icono: "👖", espacio: "piernas", precio: 160, rareza: "raro", poder: { armadura: 2, magia: 4 },
+                            aspecto: { tela: "#4b2a7a", ribete: "#e3b53c" } },
+    "pantalon-cuero":     { nombre: "Pantalón de cuero curtido", icono: "👖", espacio: "piernas", precio: 180, rareza: "raro", poder: { armadura: 7 },
+                            aspecto: { tela: "#6a4528", ribete: "#3a2416" } },
+    "quijotes-acero":     { nombre: "Quijotes de acero",         icono: "👖", espacio: "piernas", precio: 390, rareza: "epico", poder: { armadura: 12 }, habilidad: "arraigo",
+                            aspecto: { tela: "#2e2a3a", placas: "#a9b3c4" } },
+    "grebas-sombra":      { nombre: "Grebas de la sombra",       icono: "👖", espacio: "piernas", precio: 420, rareza: "epico", poder: { armadura: 6, suerte: 5 }, habilidad: "ligereza",
+                            aspecto: { tela: "#1c1a26", placas: "#3a3550", ribete: "#7c3aed" } },
+    "grebas-baluarte":    { nombre: "Grebas del Baluarte",       icono: "👖", espacio: "piernas", rareza: "legendario", poder: { armadura: 16, ataque: 2 }, habilidad: "baluarte",
+                            aspecto: { tela: "#22304f", placas: "#e3b53c", ribete: "#e3b53c" },
+                            logro: { tipo: "perfectos", meta: 20, texto: "Tener 20 días perfectos" } },
+
+    // ===== (v100) Pies: botas. aspecto: tipo ("cuero" o "metal"), color, alto (dónde empieza la caña:
+    // 0 = en la rodilla, 1 = en el tobillo) y ribete (la vuelta de arriba).
+    "sandalias":          { nombre: "Sandalias de cuero",        icono: "🥾", espacio: "pies", precio: 40,  rareza: "comun", poder: { armadura: 1, suerte: 1 },
+                            aspecto: { tipo: "cuero", color: "#8a5a34", alto: 0.9 } },
+    "botas-camino":       { nombre: "Botas de camino",           icono: "🥾", espacio: "pies", precio: 70,  rareza: "comun", poder: { armadura: 3 },
+                            aspecto: { tipo: "cuero", color: "#5a3f28", alto: 0.55 } },
+    "botas-montana":      { nombre: "Botas de montaña",          icono: "🥾", espacio: "pies", precio: 130, rareza: "raro", poder: { armadura: 4, suerte: 2 },
+                            aspecto: { tipo: "cuero", color: "#3a2a1e", alto: 0.35, ribete: "#9a7248" } },
+    "botas-arcanas":      { nombre: "Botas del aprendiz arcano", icono: "🥾", espacio: "pies", precio: 150, rareza: "raro", poder: { armadura: 2, magia: 4 },
+                            aspecto: { tipo: "cuero", color: "#3b2266", alto: 0.35, ribete: "#e3b53c" } },
+    "escarpes-hierro":    { nombre: "Escarpes de hierro",        icono: "🥾", espacio: "pies", precio: 360, rareza: "epico", poder: { armadura: 10 }, habilidad: "zancada",
+                            aspecto: { tipo: "metal", color: "#a9b3c4", alto: 0.3 } },
+    "botas-viento":       { nombre: "Botas del viento",          icono: "🥾", espacio: "pies", precio: 410, rareza: "epico", poder: { armadura: 5, ataque: 2, suerte: 3 }, habilidad: "impulso",
+                            aspecto: { tipo: "cuero", color: "#2e5a7a", alto: 0.25, ribete: "#d9deeb" } },
+    "botas-leguas":       { nombre: "Botas de siete leguas",     icono: "🥾", espacio: "pies", rareza: "legendario", poder: { armadura: 9, suerte: 5 }, habilidad: "leguas",
+                            aspecto: { tipo: "cuero", color: "#4a2a14", alto: 0.2, ribete: "#e3b53c" },
+                            logro: { tipo: "racha", meta: 60, texto: "Lograr una racha de 60 días" } },
+    "escarpes-dragon":    { nombre: "Escarpes del Dragón",       icono: "🥾", espacio: "pies", precio: 1400, rareza: "legendario", poder: { armadura: 14, ataque: 3, magia: 2 }, habilidad: "pisada",
+                            aspecto: { tipo: "metal", color: "#3a5a90", alto: 0.2, ribete: "#e3b53c" } },
+
+    // ===== (v100) Más equipo en la tienda. Son VARIANTES de otros objetos (mismo dibujo, otro color o
+    // metal): ver dibujo-objetos.js › VARIANTES. Las capas nuevas son la capa de siempre en otro color.
+    "gorra-roja":         { nombre: "Gorra del cazador",         icono: "🧢", espacio: "cabeza",  precio: 50,  rareza: "comun", poder: { armadura: 2, suerte: 1 } },
+    "yelmo-hierro":       { nombre: "Yelmo de hierro",           icono: "🪖", espacio: "cabeza",  precio: 90,  rareza: "comun", poder: { armadura: 6 } },
+    "capucha-arcana":     { nombre: "Capucha arcana",            icono: "🥷", espacio: "cabeza",  precio: 150, rareza: "raro", poder: { armadura: 4, magia: 3 } },
+    "diadema-dorada":     { nombre: "Diadema dorada",            icono: "💠", espacio: "cabeza",  precio: 160, rareza: "raro", poder: { armadura: 2, suerte: 5 } },
+    "peto-reforzado":     { nombre: "Peto reforzado",            icono: "🦺", espacio: "pecho",   precio: 100, rareza: "comun", poder: { armadura: 6 } },
+    "cota-dorada":        { nombre: "Cota dorada",               icono: "⛓️", espacio: "pecho",   precio: 200, rareza: "raro", poder: { armadura: 8, suerte: 2 } },
+    "tunica-esmeralda":   { nombre: "Túnica esmeralda",          icono: "🔯", espacio: "pecho",   precio: 180, rareza: "raro", poder: { armadura: 3, magia: 4, suerte: 1 } },
+    "baston-roble":       { nombre: "Bastón de roble",           icono: "🪄", espacio: "mano",    precio: 70,  rareza: "comun", poder: { magia: 3 } },
+    "daga-veneno":        { nombre: "Daga de jade",              icono: "🔪", espacio: "mano",    precio: 170, rareza: "raro", poder: { ataque: 3, suerte: 5 } },
+    "martillo-ligero":    { nombre: "Martillo del herrero",      icono: "🔨", espacio: "mano",    precio: 220, rareza: "raro", poder: { ataque: 5 } },
+    "capa-gris":          { nombre: "Capa de lana gris",         icono: "🧣", espacio: "espalda", precio: 70,  rareza: "comun", poder: { armadura: 4 } },
+    "capa-azul":          { nombre: "Capa del alba",             icono: "🧣", espacio: "espalda", precio: 140, rareza: "raro", poder: { armadura: 6 } },
+    "capa-esmeralda":     { nombre: "Capa del bosque",           icono: "🧣", espacio: "espalda", precio: 150, rareza: "raro", poder: { armadura: 5, suerte: 2 } },
+    // Fondos nuevos: las pinturas de los escenarios de batalla y de la Torre ("pintura" = cuál, ver pinturas.js).
+    "fondo-alpes":        { nombre: "Fondo: Tormenta en los Alpes", icono: "🏔️", espacio: "fondo", precio: 200, rareza: "raro", pintura: "escena-fuerza" },
+    "fondo-galeria":      { nombre: "Fondo: La Gran Galería",    icono: "🖼️", espacio: "fondo",   precio: 200, rareza: "raro", pintura: "escena-intelecto" },
+    "fondo-teatro":       { nombre: "Fondo: El gran teatro",     icono: "🎭", espacio: "fondo",   precio: 200, rareza: "raro", pintura: "escena-carisma" },
+    "fondo-catedral":     { nombre: "Fondo: Catedral de noche",  icono: "🕯️", espacio: "fondo",   precio: 220, rareza: "raro", pintura: "escena-riqueza" },
+    "fondo-carceles":     { nombre: "Fondo: Las cárceles de Piranesi", icono: "⛓️", espacio: "fondo", precio: 240, rareza: "raro", pintura: "torre" },
 };
 
 // Apariencia: para que el avatar se parezca a ti (se elige en la pantalla Personaje).

@@ -43,6 +43,15 @@ export const HABILIDADES = {
     titan:      { icono: "🗿", nombre: "Titán",          texto: "Tu ataque base sube 20 %.", ataque: 1.2 },
     brasa:      { icono: "🔥", nombre: "Brasa",          texto: "Tu primer golpe o hechizo de cada piso hace 50 % más de daño.", primero: 1.5 },
     llama:      { icono: "🕯️", nombre: "Llama del Vigía", texto: "Tus hechizos de fuego hacen 50 % más y el veneno no te hace nada.", fuego: 1.5 },
+
+    // (v100) Las de los pantalones y las botas.
+    arraigo:    { icono: "🌳", nombre: "Arraigo",        texto: "Al defenderte bloqueas 10 % más del golpe.", defensa: 0.1 },
+    ligereza:   { icono: "🪶", nombre: "Ligereza",       texto: "10 % de esquivar cada golpe (se suma a Sombra, hasta el 40 %).", esquivar: 0.1 },
+    zancada:    { icono: "🥾", nombre: "Zancada",        texto: "Al subir de piso recuperas 10 % más de vida.", cura: 0.1 },
+    impulso:    { icono: "💨", nombre: "Impulso",        texto: "Tu primer golpe o hechizo de cada piso hace 25 % más de daño.", primero: 1.25 },
+    baluarte:   { icono: "🏯", nombre: "Baluarte",       texto: "Todos los golpes de las criaturas te hacen 15 % menos.", golpe: 0.85 },
+    leguas:     { icono: "🗺️", nombre: "Siete leguas",   texto: "Un hechizo más en cada piso, y al subir de piso recuperas 10 % más de vida.", mana: 1, cura: 0.1 },
+    pisada:     { icono: "🐉", nombre: "Pisada del dragón", texto: "Cada golpe crítico te devuelve 1 PM.", mana: 1 },
 };
 
 // Lo máximo que puedes esquivar sumando todo (equipo y mascota): nunca más de 40 %.

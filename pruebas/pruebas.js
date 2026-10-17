@@ -3610,9 +3610,9 @@ prueba("La Torre en el valle (v37): ninguna historia la pone en la Ciudadela", a
 // ===== Armadura de pecho y equipo nuevo (v34) =====
 
 prueba("Equipo (v34): el espacio del pecho y objetos nuevos en todos los espacios", () => {
-    igual(Object.keys(avatar.ESPACIOS), ["cabeza", "pecho", "mano", "espalda", "fondo"]);
+    igual(Object.keys(avatar.ESPACIOS), ["cabeza", "pecho", "piernas", "pies", "mano", "espalda", "fondo"]);
     const por = (espacio) => Object.keys(avatar.OBJETOS).filter((id) => avatar.OBJETOS[id].espacio === espacio);
-    igual(por("pecho"), ["peto-cuero", "cota-malla", "tunica-arcana", "coraza", "coraza-vigia", "peto-constante", "coraza-titan"]);
+    for (const id of ["peto-cuero", "cota-malla", "tunica-arcana", "coraza", "coraza-vigia", "peto-constante", "coraza-titan"]) cierto(por("pecho").includes(id), `${id} es del pecho`);
     for (const id of ["diadema", "yelmo-astado", "daga", "martillo", "escudo", "capa-cuervo", "mar", "aurora"]) cierto(avatar.OBJETOS[id], `existe ${id}`);
     // Las pinturas nuevas tienen su crédito.
     for (const id of ["mar", "aurora"]) cierto(PINTURAS_DE_FONDO[id]?.artista, `crédito de ${id}`);
@@ -6308,6 +6308,35 @@ prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no
     const cura = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "curar", cura: 5, nombre: "Regenerar" }]));
     cierto(!cura.includes("ff-atq "), "curarse no es atacar");
     cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
+});
+
+// ===== Pantalones, botas y más equipo (v100) =====
+
+prueba("Equipo (v100): todo objeto se dibuja, tiene su habilidad registrada, y hay piernas y pies de todas las rarezas", () => {
+    for (const [id, o] of Object.entries(avatar.OBJETOS)) {
+        cierto(dibujarObjeto(id).includes("<svg"), `«${id}» tiene miniatura`);
+        if (o.habilidad) cierto(habilidades.HABILIDADES[o.habilidad], `la habilidad «${o.habilidad}» de ${id} existe`);
+        cierto(avatar.ESPACIOS[o.espacio], `${id} va en una casilla que existe`);
+    }
+    for (const espacio of ["piernas", "pies"]) {
+        const prendas = Object.values(avatar.OBJETOS).filter((o) => o.espacio === espacio);
+        igual(new Set(prendas.map((o) => o.rareza)).size, 4, `${espacio}: común, raro, épico y legendario`);
+        cierto(prendas.every((o) => o.aspecto), `${espacio}: todos dicen cómo se dibujan`);
+    }
+    cierto(Object.values(avatar.OBJETOS).filter((o) => !o.logro).length >= 60, "la tienda tiene al menos 60 objetos");
+});
+
+prueba("Equipo (v100): una partida vieja recibe las casillas de piernas y pies; ponerse unas botas cambia el dibujo", () => {
+    const estado = partidaNueva();
+    delete estado.avatar.equipado.piernas;
+    delete estado.avatar.equipado.pies;
+    const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
+    igual([copia.avatar.equipado.piernas, copia.avatar.equipado.pies], [null, null]);
+    const d = avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy()));
+    const sin = dibujarAvatar(d, { batalla: true });
+    const con = dibujarAvatar({ ...d, equipado: { ...d.equipado, pies: "botas-viento", piernas: "quijotes-acero" } }, { batalla: true });
+    cierto(con.includes("#2e5a7a") || con.includes("2e5a7a"), "las botas del viento son azules");
+    cierto(con.includes("-placa-pierna)") && !sin.includes("-placa-pierna)"), "los quijotes dibujan placas en los muslos");
 });
 
 // ===== Pinturas en pixel art (v95) =====

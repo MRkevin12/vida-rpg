@@ -414,7 +414,8 @@ export function heroeDeLaTorre(niveles, equipo = {}) {
     // El entrenamiento real se nota en el combate: tu nivel de gym y, el día que entrenas, el bombeo (niveles.bombeo = true, v80).
     const fuerzaGym = 1 + bonoDeGym(niveles.gym || 1) + (niveles.bombeo ? BOMBEO : 0);
     const vidaMax = Math.round((40 + 6 * niveles.fuerza + 4 * niveles.carisma) * (gloria ? 1 + HABILIDADES.gloria.vida : 1) * fuerzaGym);
-    const mana = 2 + Math.floor(niveles.intelecto / 3) + (magia >= 8 ? 1 : 0) + (habilidades.includes("estrellas") ? HABILIDADES.estrellas.mana : 0);
+    const mana = 2 + Math.floor(niveles.intelecto / 3) + (magia >= 8 ? 1 : 0) + (habilidades.includes("estrellas") ? HABILIDADES.estrellas.mana : 0)
+        + (habilidades.includes("leguas") ? HABILIDADES.leguas.mana : 0);   // (v100) «Siete leguas»
     const pociones = 1 + Math.floor(niveles.riqueza / 2) + (gloria ? 1 : 0);
     return {
         vida: vidaMax,
@@ -474,14 +475,15 @@ function rugir(h, m) {
 
 // Cuánto te hará el golpe que prepara la criatura (con tu armadura y, en los golpes fuertes, «Presagio»).
 function danoContra(h, m) {
-    const dano = danoRecibido(h, danoPrevisto(m));
+    let dano = danoRecibido(h, danoPrevisto(m));
+    if (tiene(h, "baluarte")) dano = Math.round(dano * HABILIDADES.baluarte.golpe);   // (v100) «Baluarte»
     return m.intencion === "fuerte" && tiene(h, "presagio") ? Math.round(dano * HABILIDADES.presagio.fuerte) : dano;
 }
 
 // Cuánto te quita un golpe del monstruo (tu armadura y, si te defiendes, tu escudo lo bajan).
 export function danoRecibido(h, dano) {
     let total = Math.round(dano * (1 - (h.proteccion || 0)));
-    if (h.defendiendo) total = Math.round(total * (1 - h.defensa));
+    if (h.defendiendo) total = Math.round(total * (1 - Math.min(0.95, h.defensa + (tiene(h, "arraigo") ? HABILIDADES.arraigo.defensa : 0))));
     return total;
 }
 
@@ -723,6 +725,7 @@ export function actuar(partida, accion, opcion = null) {
         const azarCritico = azar(partida);
         const porImpetu = tiene(h, "impetu") && !piso.atacado;
         const porBrasa = tiene(h, "brasa") && !piso.atacado;   // (v74) «Brasa»: el primer golpe de cada piso hace 50 % más
+        const porImpulso = tiene(h, "impulso") && !piso.atacado;   // (v100) «Impulso»: 25 % más
         const critico = tecnica === "certero" || porImpetu || azarCritico < h.critico;
         const multiplicaCritico = (tiene(h, "desgarro") ? HABILIDADES.desgarro.critico : 1.8) + (tieneDon(h, "cazador") ? DONES.cazador : 0);
         // «Eco arcano» (don): el primer hechizo de cada piso pega el doble.
@@ -731,7 +734,7 @@ export function actuar(partida, accion, opcion = null) {
         // (v71) Reacción elemental con el hechizo del turno anterior.
         const previo = magia && m.afectado && m.afectado.turno === partida.turno - 1 ? m.afectado.elemento : null;
         const reaccion = reaccionDe(previo, elemento);
-        const extra = factorDeDano(h, m) * (eco ? 2 : 1) * (reaccion ? REACCIONES[reaccion].factor : 1) * (porBrasa ? HABILIDADES.brasa.primero : 1) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1)
+        const extra = factorDeDano(h, m) * (eco ? 2 : 1) * (reaccion ? REACCIONES[reaccion].factor : 1) * (porBrasa ? HABILIDADES.brasa.primero : 1) * (porImpulso ? HABILIDADES.impulso.primero : 1) * (magia && tiene(h, "ojo-dragon") ? HABILIDADES["ojo-dragon"].magia : 1)
             * (magia && elemento === "fuego" && tiene(h, "llama") ? HABILIDADES.llama.fuego : 1)   // «Llama del Vigía»
             * (tecnica === "quebrar" ? TECNICAS.quebrar.fuerza : 1);
         // «Quebrar» rompe su barrera y su coraza antes de pegar.
@@ -758,6 +761,10 @@ export function actuar(partida, accion, opcion = null) {
         else if (magia) h.mana -= 1;
         piso.atacado = true;
         // «Aturdir»: el primer golpe crítico de cada piso deja a la criatura sin su turno.
+        if (critico && tiene(h, "pisada") && h.mana < h.manaMax) {   // (v100) «Pisada del dragón»
+            h.mana += HABILIDADES.pisada.mana;
+            activas.push("pisada");
+        }
         const aturde = !magia && critico && tiene(h, "aturdir") && !piso.aturdio;
         if (aturde) {
             piso.aturdio = true;
@@ -777,6 +784,7 @@ export function actuar(partida, accion, opcion = null) {
         const conTecnica = tecnica ? { tecnica, nombre: TECNICAS[tecnica].nombre, rompio } : {};
         // (v63) Lo que se notó en este golpe.
         if (porImpetu) activas.push("impetu");
+        if (porImpulso) activas.push("impulso");   // (v100)
         if (porBrasa) activas.push("brasa");
         if (critico && tiene(h, "desgarro")) activas.push("desgarro");
         if (critico && tieneDon(h, "cazador")) activas.push("cazador");
@@ -911,9 +919,10 @@ export function actuar(partida, accion, opcion = null) {
         const nombre = nombreDelAtaque(m);
         const tipoEspecial = especial?.tipo || null;
         // «Sombra»: puedes esquivarlo del todo.
-        const esquivar = Math.min(ESQUIVAR_MAXIMO, tiene(h, "sombra") ? HABILIDADES.sombra.esquivar : 0);
+        const esquivar = Math.min(ESQUIVAR_MAXIMO, (tiene(h, "sombra") ? HABILIDADES.sombra.esquivar : 0) + (tiene(h, "ligereza") ? HABILIDADES.ligereza.esquivar : 0));
         if (esquivar && azar(partida) < esquivar) {
-            eventos.push({ quien: "enemigo", tipo: intencion, especial: tipoEspecial, dano: 0, nombre, esquivado: true, activas: ["sombra"] });
+            eventos.push({ quien: "enemigo", tipo: intencion, especial: tipoEspecial, dano: 0, nombre, esquivado: true,
+                           activas: ["sombra", "ligereza"].filter((clave) => tiene(h, clave)) });
             frases.push(`${sujeto} usa «${nombre}», pero lo esquivas.`);
         } else {
             const activasE = [];   // (v63) lo que se notó en este golpe de la criatura
@@ -1146,7 +1155,8 @@ export function elegirMejora(partida, clave) {
     // Con la marca «Ayuno» no recuperas nada.
     const asalto = modoDe(partida) === "asalto";
     const curaBase = asalto ? MODOS.asalto.curaEntreCombates : reglasDe(partida).curaAlSubir;   // (v65) en el asalto, 30 % entre guardianes
-    const cura = partida.marca === "ayuno" ? 0 : curaBase + (tiene(h, "regia") ? HABILIDADES.regia.cura : 0);
+    const cura = partida.marca === "ayuno" ? 0 : curaBase + (tiene(h, "regia") ? HABILIDADES.regia.cura : 0)
+        + (tiene(h, "zancada") ? HABILIDADES.zancada.cura : 0) + (tiene(h, "leguas") ? HABILIDADES.leguas.cura : 0);   // (v100)
     h.vida = Math.min(h.vidaMax, h.vida + Math.round(h.vidaMax * cura));
     h.mana = h.manaMax;
     h.veneno = 0;

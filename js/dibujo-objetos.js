@@ -14,6 +14,45 @@ const borde = (grosor = 0.8) => `stroke="${TRAZO}" stroke-width="${grosor}" stro
 // ===== Cabeza =====
 
 // Hasta qué altura tapa el pelo cada sombrero (dibujo.js recorta el pelo por encima).
+// ===== (v100) Variantes =====
+// Objetos nuevos que usan el dibujo de otro (base) con otro color o metal, así la tienda crece sin tener que
+// dibujar cada uno desde cero:
+//   tono = cuántos grados se gira el color (0–360), sat = cuánto color (1 = igual, 0 = gris),
+//   luz = más claro (> 1) o más oscuro (< 1), metal = cambiar el acero por "oro",
+//   dorar = teñir todo de oro (para lo que es plateado pero no usa el "acero": la cota de malla, la diadema).
+export const VARIANTES = {
+    "gorra-roja":       { base: "gorra", tono: 150, sat: 1.2 },
+    "yelmo-hierro":     { base: "casco", sat: 0.35, luz: 0.78 },
+    "capucha-arcana":   { base: "capucha", tono: 50, sat: 2.4, luz: 1.1 },
+    "diadema-dorada":   { base: "diadema", metal: "oro", dorar: true },
+    "peto-reforzado":   { base: "peto-cuero", sat: 0.8, luz: 0.82 },
+    "cota-dorada":      { base: "cota-malla", metal: "oro", dorar: true },
+    "tunica-esmeralda": { base: "tunica-arcana", tono: 210, sat: 1.1 },
+    "baston-roble":     { base: "baston", sat: 0.6, luz: 0.85 },
+    "daga-veneno":      { base: "daga", tono: 120, sat: 1.6 },
+    "martillo-ligero":  { base: "martillo", tono: 30, luz: 1.12 },
+};
+
+// El objeto del que se toma el dibujo (o el mismo, si no es una variante).
+export const baseDe = (id) => (id && VARIANTES[id]?.base) || id;
+
+// Le pone al dibujo de un objeto su variante: el metal (acero → oro) y un filtro de color.
+// (El filtro es SVG: feColorMatrix gira el tono y la saturación; feComponentTransfer cambia la luz.)
+export function conVariante(id, p, svg) {
+    const v = VARIANTES[id];
+    if (!v || !svg) return svg;
+    if (v.metal) svg = svg.split(`${p.id}-acero)`).join(`${p.id}-${v.metal})`);
+    if (v.tono === undefined && v.sat === undefined && v.luz === undefined && !v.dorar) return svg;
+    const filtro = `${p.id}-variante-${id}`;
+    const luz = v.luz ?? 1;
+    return `<defs><filter id="${filtro}" color-interpolation-filters="sRGB">
+                <feColorMatrix type="hueRotate" values="${v.tono || 0}"/>
+                <feColorMatrix type="saturate" values="${v.sat ?? 1}"/>
+                <feComponentTransfer><feFuncR type="linear" slope="${luz}"/><feFuncG type="linear" slope="${luz}"/><feFuncB type="linear" slope="${luz}"/></feComponentTransfer>
+                ${v.dorar ? '<feColorMatrix type="matrix" values="0.62 0.55 0.13 0 0.06  0.5 0.47 0.11 0 0.03  0.2 0.18 0.06 0 0  0 0 0 1 0"/>' : ""}
+            </filter></defs><g filter="url(#${filtro})">${svg}</g>`;
+}
+
 export const TAPA_PELO = { "gorra": 34.5, "sombrero-mago": 34.5, "casco": 38.5, "yelmo-alado": 38.5, "capucha": 36, "yelmo-astado": 38.5 };
 
 export function sombrero(id, p) {
@@ -319,6 +358,16 @@ export function arma(id, p) {
 export const COLOR_CAPA_REAL = "#4c1d95";
 export const COLOR_CAPA_FRAGUA = "#c2410c";   // (v74) la capa de la Fragua: naranja de brasa
 
+// (v100) Las capas son el mismo dibujo en otro color. oro = con el ribete dorado.
+export const CAPAS_COLOR = {
+    "capa":           { color: "#8f1d2c", oro: true },
+    "capa-real":      { color: COLOR_CAPA_REAL, oro: true },
+    "capa-fragua":    { color: COLOR_CAPA_FRAGUA, oro: true },
+    "capa-gris":      { color: "#4b5563", oro: false },
+    "capa-azul":      { color: "#1e3a8a", oro: false },
+    "capa-esmeralda": { color: "#14532d", oro: false },
+};
+
 // Capa. La del héroe es del color de su traje; la «Capa carmesí» y la «Capa real» se compran.
 export function capa(e, p, color, conOro) {
     const H = e.H;
@@ -584,13 +633,12 @@ const VISTAS = {
     "cinta-hierro": "85 28 34 20", "peto-constante": "66 56 68 56", "coraza-titan": "66 56 68 66", "capa-fragua": "58 52 84 128",
 };
 
-export function miniatura(id, p, e) {
-    const vista = VISTAS[id];
+export function miniatura(idPedido, p, e) {
+    const id = baseDe(idPedido);   // (v100) una variante se dibuja como su base, y al final se tiñe
+    const vista = VISTAS[id] || (CAPAS_COLOR[id] ? "58 52 84 128" : null);
     if (!vista) return null;
     let dibujo;
-    if (id === "capa") dibujo = capa(e, p, "#8f1d2c", true);
-    else if (id === "capa-real") dibujo = capa(e, p, COLOR_CAPA_REAL, true);
-    else if (id === "capa-fragua") dibujo = capa(e, p, COLOR_CAPA_FRAGUA, true);
+    if (CAPAS_COLOR[id]) dibujo = capa(e, p, CAPAS_COLOR[id].color, CAPAS_COLOR[id].oro);
     else if (id === "capa-cuervo") dibujo = capaCuervo(e, p);
     else if (id === "escudo") dibujo = escudo(p);
     else if (armaduraDePecho(id, e, p)) dibujo = armaduraDePecho(id, e, p);
@@ -599,5 +647,5 @@ export function miniatura(id, p, e) {
     else if (INCLINACION[id] !== undefined) dibujo = `<g transform="rotate(${["baston", "lanza-dragon", "baculo-arcano", "martillo"].includes(id) ? 20 : 32})">${arma(id, p)}</g>`;
     else dibujo = sombrero(id, p);
     if (id === "capucha") dibujo = `<path d="M89.8 40.4 C91.4 32.6 95.4 29.2 100 29 C104.6 29.2 108.6 32.6 110.2 40.4 L110.6 54 Q100 63 89.4 54 Z" fill="#0b0816"/>${dibujo}`;
-    return { vista, dibujo };
+    return { vista, dibujo: conVariante(idPedido, p, dibujo) };
 }

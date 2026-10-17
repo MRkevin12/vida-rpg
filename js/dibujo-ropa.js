@@ -29,20 +29,38 @@ export function piernas(d, e, p) {
                       fill="none" stroke="${TRAZO}" stroke-width=".5" opacity=".45"/>`;
     }).join("");
 
+    // (v100) Los pantalones que llevas puestos: una franja de color al costado (ribete) y placas de metal en los muslos.
+    const ropa = p.ropaPiernas;
+    const ribete = ropa?.ribete ? lados.map((l, i) => {
+        const lado = i === 0 ? -1 : 1;   // la franja va por fuera
+        const desvio = (r) => lado * r * 0.72;
+        return `<path d="M${l.cadera[0] + desvio(e.muslo)} ${l.cadera[1] + 2} L${l.rodilla[0] + desvio(e.rodilla)} ${l.rodilla[1]} L${l.tobillo[0] + desvio(e.tobillo)} ${l.tobillo[1] - 4}"
+                      fill="none" stroke="${ropa.ribete}" stroke-width="1.6" stroke-linecap="round" opacity=".9"/>`;
+    }).join("") : "";
+    const placas = ropa?.placas ? lados.map((l) => {
+        const plancha = capsula(l.cadera[0], l.cadera[1] + 4, e.muslo + 0.6, l.rodilla[0], l.rodilla[1] - 3.5, e.rodilla + 0.4);
+        const [rx, ry] = l.rodilla;
+        return `${silueta([plancha], p.m("placa-pierna"), 0.8, "")}
+                <path d="M${l.cadera[0] - 1.6} ${l.cadera[1] + 7} L${rx - 1.4} ${ry - 6}" stroke="#fff" stroke-width=".9" opacity=".35" stroke-linecap="round"/>
+                <path d="M${l.cadera[0] - e.muslo} ${(l.cadera[1] + ry) / 2} Q${(l.cadera[0] + rx) / 2} ${(l.cadera[1] + ry) / 2 + 2} ${l.cadera[0] + e.muslo} ${(l.cadera[1] + ry) / 2}" fill="none" stroke="${TRAZO}" stroke-width=".6" opacity=".5"/>`;
+    }).join("") : "";
+
     return `${silueta(pantalon, p.m("pantalon"), 0.85, p.m("tejido"))}
             <path d="M100 112 L${e.piernaIzq.rodilla[0] + 5} 143 L${e.piernaDer.rodilla[0] - 5} 143 Z" fill="${TRAZO}" opacity=".3"/>
-            ${arrugas}
+            ${arrugas}${ribete}${placas}
             ${lados.map((l) => bota(l, e, p)).join("")}`;
 }
 
 function bota(pierna, e, p) {
     const s = pierna.punta;                    // -1: la punta mira a la izquierda; 1: a la derecha
     const [ax] = pierna.tobillo;
-    const armadura = p.etapa >= 2;
-    const alto = [0.72, 0.28, 0.14, 0.14][p.etapa];        // dónde empieza la bota (0 = rodilla, 1 = tobillo)
+    // (v100) Si llevas unas botas puestas, mandan ellas: de cuero o de metal, y su altura.
+    const puestas = p.ropaPies;
+    const armadura = puestas ? puestas.tipo === "metal" : p.etapa >= 2;
+    const alto = puestas?.alto ?? [0.72, 0.28, 0.14, 0.14][p.etapa];   // dónde empieza la bota (0 = rodilla, 1 = tobillo)
     const arriba = entre(pierna.rodilla, pierna.tobillo, alto);
     const radioArriba = e.rodilla - (e.rodilla - e.tobillo) * alto + 0.8;
-    const material = armadura ? p.m("acero") : p.m("bota");
+    const material = armadura ? (puestas ? p.m("bota-metal") : p.m("acero")) : p.m("bota");
 
     const cana = capsula(...arriba, radioArriba, ...pierna.tobillo, e.tobillo + 0.7);
     const pie = `M${ax - 4.5 * s} 169 L${ax - 4.9 * s} 178.5 Q${ax - 5 * s} 181.4 ${ax - 2.5 * s} 181.4 L${ax + 9.6 * s} 181.4
@@ -59,7 +77,7 @@ function bota(pierna, e, p) {
                            fill="${p.etapa === 3 ? p.m("oro") : p.m("acero")}" ${borde(0.75)}/>
                      <path d="M${rx - 3.6} ${ry - 2.6} Q${rx} ${ry - 5.2} ${rx + 2.2} ${ry - 3.6}" fill="none" stroke="#fff" stroke-width=".8" opacity=".5" stroke-linecap="round"/>
                      <circle cx="${rx}" cy="${ry + 0.4}" r="1.1" fill="${p.m("oro")}" stroke="${TRAZO}" stroke-width=".4"/>`;
-    } else if (p.etapa === 1) {
+    } else if (p.etapa === 1 || puestas) {
         // Bota alta de cuero: vuelta en la parte de arriba y una correa con hebilla.
         const [bx, by] = arriba;
         const ra = radioArriba + 0.9;
@@ -69,6 +87,11 @@ function bota(pierna, e, p) {
                      <rect x="${ax - 1.3}" y="165.9" width="2.6" height="2.4" rx=".5" fill="${p.m("acero")}" stroke="${TRAZO}" stroke-width=".4"/>`;
     } else {
         detalles += `<path d="M${ax - 4.2} 167.6 Q${ax} 169.6 ${ax + 4.2} 167.6" fill="none" stroke="${p.cueroClaro}" stroke-width="1"/>`;
+    }
+    // (v100) El ribete de las botas: una franja de color arriba, en la boca de la caña.
+    if (puestas?.ribete) {
+        const [bx, by] = arriba;
+        detalles += `<path d="M${bx - radioArriba - 0.4} ${by + 0.8} Q${bx} ${by + 3} ${bx + radioArriba + 0.4} ${by + 0.8}" fill="none" stroke="${puestas.ribete}" stroke-width="1.7" stroke-linecap="round"/>`;
     }
     return `${silueta([cana, pie], material, 0.8, armadura ? "" : p.m("grano"))}${detalles}`;
 }

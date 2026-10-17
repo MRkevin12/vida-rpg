@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v100 — Pantalones, botas y una tienda de equipo mucho más grande
+- `avatar.js`: `ESPACIOS` suma `piernas` y `pies`; 34 objetos nuevos (8 pantalones, 8 botas con `aspecto`, 10 variantes de cabeza/pecho/mano, 3 capas de color, 5 fondos con `pintura`). `datos.js`: `version` 28 y `equipado.piernas` / `equipado.pies` (completar() los agrega a las copias viejas).
+- Dibujo: `crearPaleta` toma el color del pantalón y de las botas; `dibujo-ropa.js › piernas` dibuja ribete y placas en los muslos, y `bota` usa el tipo (cuero/metal), el alto y el ribete de las botas puestas. `dibujo-objetos.js`: `VARIANTES` + `baseDe` + `conVariante` (filtro SVG: hueRotate, saturate, brillo, `dorar` y `metal` acero → oro) y `CAPAS_COLOR`. Las miniaturas de pantalones y botas son unas piernas de muestra encuadradas.
+- Torre (`torre.js` + `habilidades.js`): arraigo (+10 % de bloqueo al defenderte), ligereza (+10 % de esquivar, se suma a Sombra), zancada (+10 % de vida al subir), impulso (primer golpe +25 %), baluarte (−15 % a todos los golpes), leguas (+1 PM y +10 % de vida al subir) y pisada (cada crítico da 1 PM).
+- Tienda: submenú `filtro-equipo` (rejilla de 4: Todo y las 7 casillas, con «tuyos/total»), orden por rareza y precio. Héroe › Equipo: 7 casillas en rejilla de 4. Las pestañas de `.selector` ya no se cortan con «…» (pasan a dos líneas). Íconos nuevos 👖 y 🥾. 2 pruebas nuevas; 302 pruebas.
+
 ## v99 — Arreglos de tus fotos
 - Tarjetas de objetos: en flex/grid un elemento no se encoge por debajo de su contenido mínimo sin `min-width: 0`; con la letra de pixel (o el texto agrandado del teléfono) `li.objeto` quedaba más ancho que la lista. `estilos-pixel.css`: `min-width: 0` en los hijos de `.lista`, `.panel`, `.bloque`, `.pantalla` y en `.objeto-info`; el botón no se encoge; las pestañas de `.selector` recortan con «…». `poderDe` envuelve cada par («🛡️ +8») por separado para que pueda saltar de línea entre ellos. Reproducido con WebKit a 340–393 px y texto al 130 %.
 - iOS: `app.js › arreglarVistaTrasTeclado()`: al `focusout` de un campo y cuando `visualViewport` vuelve al alto de la ventana, `scrollBy(0, 1)` y `scrollBy(0, -1)` para que iOS recoloque lo fijo (cabecera sticky y pestañas fixed). 300 pruebas.

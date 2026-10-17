@@ -17,7 +17,7 @@ import { APARIENCIA, APARIENCIA_INICIAL, CLASES, OBJETOS } from "./avatar.js";
 import { nuevoId, mate, metal, piel as materialPiel, tejido, grano, halo, aclarar, oscurecer, mezclar, pivote, SOMBRA } from "./dibujo-base.js";
 import { esqueleto, cuello, cara, lentes, barba, pelo } from "./dibujo-cuerpo.js";
 import { piernas, torso, bufanda, brazo, hombreras } from "./dibujo-ropa.js";
-import { sombrero, arma, capa, capaCuervo, escudo, alas, alasDragon, armaduraDePecho, libro, miniatura, INCLINACION, TAPA_PELO, COLOR_CAPA_REAL, COLOR_CAPA_FRAGUA } from "./dibujo-objetos.js";
+import { sombrero, arma, capa, capaCuervo, escudo, alas, alasDragon, armaduraDePecho, libro, miniatura, INCLINACION, TAPA_PELO, baseDe, conVariante, CAPAS_COLOR } from "./dibujo-objetos.js";
 import { piernasDesnudas, torsoDesnudo, brazoDesnudo, calzoncillos, escenaDeGimnasio } from "./dibujo-gym.js";
 import { fondo, ambiente, aura, llamas, resplandor, noche, escenario } from "./dibujo-escenas.js";
 import { cuerpoMascota, dibujarMascota } from "./dibujo-mascota.js";
@@ -47,15 +47,21 @@ function crearPaleta(d) {
     // El novato viste lino sin teñir (con un toque del color elegido, si hay).
     const tela = etapa === 0 ? (elegido ? mezclar("#a8946c", elegido, 0.35) : "#a8946c") : traje;
     const acero = etapa === 3 ? "#66718f" : "#a9b3c4";   // la leyenda lleva acero oscuro, azulado
+    // (v100) Pantalones y botas que llevas puestos (su "aspecto", ver avatar.js).
+    const ropaPiernas = OBJETOS[d.equipado?.piernas]?.aspecto || null;
+    const ropaPies = OBJETOS[d.equipado?.pies]?.aspecto || null;
 
     const colores = {
         piel: materialPiel(`${id}-piel`, piel.color),
         pelo: mate(`${id}-pelo`, pelo, 0.3, 0.45),
         tela: mate(`${id}-tela`, tela, 0.2, 0.48),
         lino: mate(`${id}-lino`, "#d9cfb8", 0.2, 0.4),
-        pantalon: mate(`${id}-pantalon`, etapa === 0 ? "#5c4a3a" : "#2e2a3a", 0.14, 0.5),
+        pantalon: mate(`${id}-pantalon`, ropaPiernas?.tela || (etapa === 0 ? "#5c4a3a" : "#2e2a3a"), 0.14, 0.5),
         cuero: mate(`${id}-cuero`, "#6a4528", 0.25, 0.5),
-        bota: mate(`${id}-bota`, etapa === 0 ? "#5a3f28" : "#3a2a1e", 0.2, 0.5),
+        bota: mate(`${id}-bota`, ropaPies?.tipo === "cuero" ? ropaPies.color : (etapa === 0 ? "#5a3f28" : "#3a2a1e"), 0.2, 0.5),
+        // (v100) El metal de unas botas de metal y el de las placas de unos pantalones.
+        "bota-metal": metal(`${id}-bota-metal`, ropaPies?.tipo === "metal" ? ropaPies.color : acero),
+        "placa-pierna": metal(`${id}-placa-pierna`, ropaPiernas?.placas || acero),
         acero: metal(`${id}-acero`, acero),
         oro: metal(`${id}-oro`, "#e3b53c"),
         bufanda: mate(`${id}-bufanda`, elegido ? aclarar(elegido, 0.12) : mezclar(d.clase.color, d.clase.oscuro, 0.4), 0.25, 0.45),
@@ -84,6 +90,8 @@ function crearPaleta(d) {
         oroPlano: "#e3b53c",
         oroClaro: "#f8e08e",
         oroOscuro: "#8a6212",
+        ropaPiernas,   // (v100) ver dibujo-ropa.js › piernas y bota
+        ropaPies,
     };
 }
 
@@ -100,7 +108,14 @@ function crearPaleta(d) {
 //   "encima"  lo que oscurece la escena entera (cansado, dormido, caído)
 //   "todo"    todo junto (lo de siempre)
 export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = false, capa: parte = "todo" } = {}) {
-    d = { ...d, apariencia: { ...APARIENCIA_INICIAL, ...d.apariencia } };
+    // (v100) "puesto" = los objetos de verdad (con sus variantes); en "d" quedan los de base, que son los que se dibujan.
+    const puesto = { ...(d.equipado || {}) };
+    const fondoPuesto = OBJETOS[puesto.fondo]?.pintura || puesto.fondo;
+    d = {
+        ...d,
+        apariencia: { ...APARIENCIA_INICIAL, ...d.apariencia },
+        equipado: { ...puesto, cabeza: baseDe(puesto.cabeza), pecho: baseDe(puesto.pecho), mano: baseDe(puesto.mano), fondo: fondoPuesto },
+    };
     const p = crearPaleta(d);
     const e = esqueleto(d);
     const dormido = d.animo === "dormido";
@@ -117,12 +132,11 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
 
     // --- Espalda: alas, capa comprada, escudo o la capa del héroe ---
     let espalda = "";
+    const capaPuesta = CAPAS_COLOR[d.equipado.espalda];   // (v100) todas las capas de color
     if (d.equipado.espalda === "alas") espalda = alas(p);
     else if (d.equipado.espalda === "alas-dragon") espalda = alasDragon(p);
-    else if (d.equipado.espalda === "capa") espalda = pivote(100, 62, "capa", capa(e, p, "#8f1d2c", true));
-    else if (d.equipado.espalda === "capa-real") espalda = pivote(100, 62, "capa", capa(e, p, COLOR_CAPA_REAL, true));
+    else if (capaPuesta) espalda = pivote(100, 62, "capa", capa(e, p, capaPuesta.color, capaPuesta.oro));
     else if (d.equipado.espalda === "capa-cuervo") espalda = pivote(100, 62, "capa", capaCuervo(e, p));
-    else if (d.equipado.espalda === "capa-fragua") espalda = pivote(100, 62, "capa", capa(e, p, COLOR_CAPA_FRAGUA, true));
     else if (d.equipado.espalda === "escudo") espalda = escudo(p);
     else if (p.etapa >= 2) espalda = pivote(100, 62, "capa", capa(e, p, p.capa, p.etapa === 3));
 
@@ -130,7 +144,7 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     const armaId = d.equipado.mano;
     const [mx, my] = e.der.mano;
     const enMano = armaId
-        ? `<g transform="translate(${mx} ${my})"><g class="arma-giro"><g transform="rotate(${INCLINACION[armaId]})">${arma(armaId, p)}</g></g></g>`
+        ? `<g transform="translate(${mx} ${my})"><g class="arma-giro"><g transform="rotate(${INCLINACION[armaId]})">${conVariante(puesto.mano, p, arma(armaId, p))}</g></g></g>`
         : "";
     // El brazo va detrás del torso y la mano con el arma delante; los dos pivotes giran igual.
     const derecho = brazo("der", d, e, p, enMano, Boolean(armaId));
@@ -170,14 +184,14 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         cuello(e, p),
         torso(d, e, p),
         // La armadura de pecho (v34) va encima de la ropa de la etapa.
-        d.equipado.pecho ? armaduraDePecho(d.equipado.pecho, e, p) : "",
+        d.equipado.pecho ? conVariante(puesto.pecho, p, armaduraDePecho(d.equipado.pecho, e, p)) : "",
         // La cabeza le hace sombra al pecho (la luz viene de arriba).
         `<ellipse cx="101" cy="62.6" rx="${e.fem ? 8 : 9.5}" ry="3.6" fill="${p.m("ao")}"/>`,
         izquierdo.frente,
         manoDerecha,
         bufanda(d, e, p),
         hombreras(d, e, p),
-        `<g${giro}>${cara(d, e, p)}${barba(d, p)}${recortar(cabello.frente)}${d.rasgos.intelecto >= 1 ? lentes(p) : ""}${sombrero(d.equipado.cabeza, p)}</g>`,
+        `<g${giro}>${cara(d, e, p)}${barba(d, p)}${recortar(cabello.frente)}${d.rasgos.intelecto >= 1 ? lentes(p) : ""}${conVariante(puesto.cabeza, p, sombrero(d.equipado.cabeza, p))}</g>`,
         "</g>",
         estela,
         "</g>",
@@ -252,7 +266,7 @@ export function dibujarAvatarGym(d) {
 const MUESTRA = {
     etapa: { clave: "heroe" }, clave: "aprendiz", clase: CLASES.aprendiz, animo: "normal",
     rasgos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 },
-    equipado: { cabeza: null, pecho: null, mano: null, espalda: null, fondo: null },
+    equipado: { cabeza: null, pecho: null, piernas: null, pies: null, mano: null, espalda: null, fondo: null },
     apariencia: APARIENCIA_INICIAL,
 };
 
@@ -263,7 +277,14 @@ export function dibujarObjeto(id) {
     const abrir = (vista) => `<svg class="objeto-svg" viewBox="${vista}" role="img" aria-label="${objeto.nombre}" xmlns="http://www.w3.org/2000/svg">`;
 
     if (objeto.espacio === "fondo") {
-        return `${abrir("0 0 200 200")}${fondo({ ...MUESTRA, equipado: { fondo: id }, clase: CLASES.carisma }, p)}</svg>`;
+        return `${abrir("0 0 200 200")}${fondo({ ...MUESTRA, equipado: { fondo: objeto.pintura || id }, clase: CLASES.carisma }, p)}</svg>`;
+    }
+    // (v100) Pantalones y botas: unas piernas de muestra con la prenda puesta, encuadradas.
+    if (objeto.espacio === "piernas" || objeto.espacio === "pies") {
+        const conPrenda = { ...MUESTRA, equipado: { ...MUESTRA.equipado, [objeto.espacio]: id } };
+        const pp = crearPaleta(conPrenda);
+        const vista = objeto.espacio === "piernas" ? "72 104 56 80" : "74 154 52 32";
+        return `${abrir(vista)}<defs>${pp.defs}</defs>${piernas(conPrenda, esqueleto(conPrenda), pp)}</svg>`;
     }
     const mini = miniatura(id, p, esqueleto(MUESTRA));
     return mini ? `${abrir(mini.vista)}<defs>${p.defs}</defs>${mini.dibujo}</svg>` : "";

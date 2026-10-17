@@ -2754,6 +2754,36 @@ const TRIGO = [
     "......y.......",
 ];
 
+const PANTALON = [
+    "bbbbbbbbbbbb",
+    "bnyynnnnnnnb",
+    "bBbbbbbbbbbn",
+    "bBbbbbbbbbbn",
+    "bBbbbn.bbbbn",
+    "bBbbn..nbbbn",
+    "bBbbn..nbbbn",
+    "bBbbn..nbbbn",
+    "bBbbn..nbbbn",
+    "bBbbn..nbbbn",
+    "bBbbn..nbbbn",
+    "nnnn....nnnn",
+];
+
+const BOTA = [
+    "...tttttt.....",
+    "...tTTttm.....",
+    "...tTttmm.....",
+    "...tTttmm.....",
+    "...yyyyyy.....",
+    "...tTttmm.....",
+    "...tTttmm.....",
+    "...tTtttmmm...",
+    "..tTtttttttmm.",
+    ".tTtttttttttm.",
+    ".mmmmmmmmmmmmm",
+    "..xxxxxxxxxxx.",
+];
+
 // ---------- La lista: nombre del ícono → su dibujo ----------
 export const ICONOS = {
     corazon: CORAZON,
@@ -2958,6 +2988,8 @@ export const ICONOS = {
     diez: DIEZ,
     cien: CIEN,
     trigo: TRIGO,
+    pantalon: PANTALON,
+    bota: BOTA,
 };
 
 // Qué emoji se cambia por qué ícono. (El "️" invisible que llevan algunos emojis da igual:
@@ -3009,6 +3041,7 @@ export const EMOJIS = {
     "🚫": "prohibido", "🗑": "papelera", "🪧": "cartel", "🤚": "mano", "🍺": "jarra", "⚓": "ancla",
     "🪚": "sierra", "👂": "oreja", "📥": "bandeja", "🚀": "cohete", "🌋": "volcan", "🔟": "diez",
     "💯": "cien", "🌾": "trigo", "🌌": "chispas", "🔯": "estrella",
+    "👖": "pantalon", "🥾": "bota", "👢": "bota",
 };
 
 // ---------- De dibujo a SVG ----------

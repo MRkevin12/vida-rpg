@@ -4438,11 +4438,28 @@ function tarjetaPocion(estado, v) {
 }
 
 // Equipamiento para tu avatar. Se compra con gemas 💎 (desde la v32), como las mascotas.
-function tiendaDelAvatar(estado, cerrada, evento) {
+// (v100) Las casillas del submenú de la tienda, con su ícono.
+const ICONO_ESPACIO = { todo: "⚔️", cabeza: "🪖", pecho: "🦺", piernas: "👖", pies: "🥾", mano: "🗡️", espalda: "🧣", fondo: "🏰" };
+const ORDEN_RAREZA = ["comun", "raro", "epico", "legendario"];
+
+// filtro = la casilla elegida en el submenú ("todo", "cabeza", "pecho"…).
+function tiendaDelAvatar(estado, cerrada, evento, filtro = "todo") {
     const gemas = estado.personaje.gemas || 0;
-    const enVenta = Object.entries(avatar.OBJETOS)
-        .filter(([, o]) => !o.logro)
-        .sort(([, a], [, b]) => a.precio - b.precio);
+    const todos = Object.entries(avatar.OBJETOS).filter(([, o]) => !o.logro);
+    const elegido = filtro in avatar.ESPACIOS ? filtro : "todo";
+    // Dentro de cada casilla: primero lo común, después lo raro, lo épico y lo legendario; y de más barato a más caro.
+    const enVenta = todos
+        .filter(([, o]) => elegido === "todo" || o.espacio === elegido)
+        .sort(([, a], [, b]) => ORDEN_RAREZA.indexOf(a.rareza) - ORDEN_RAREZA.indexOf(b.rareza) || a.precio - b.precio);
+    const cuantos = (espacio) => todos.filter(([, o]) => espacio === "todo" || o.espacio === espacio).length;
+    const tuyos = (espacio) => todos.filter(([id, o]) => (espacio === "todo" || o.espacio === espacio) && estado.avatar.comprados.includes(id)).length;
+    const submenu = `
+        <div class="selector selector-rejilla" role="group" aria-label="Qué equipo ver">
+            ${["todo", ...Object.keys(avatar.ESPACIOS)].map((espacio) => `
+                <button type="button" data-accion="filtro-equipo" data-espacio="${espacio}" aria-pressed="${espacio === elegido}">
+                    <span aria-hidden="true">${ICONO_ESPACIO[espacio]}</span> ${espacio === "todo" ? "Todo" : avatar.ESPACIOS[espacio]}
+                    <small>${tuyos(espacio)}/${cuantos(espacio)}</small></button>`).join("")}
+        </div>`;
 
     const lista = enVenta.map(([id, o]) => {
         const tuyo = estado.avatar.comprados.includes(id);
@@ -4468,6 +4485,7 @@ function tiendaDelAvatar(estado, cerrada, evento) {
            puedes cambiarlo en tu Héroe. 🛡️ sube tu armadura (te protege al fallar una misión);
            ⚔️ ataque, 🔮 magia y 🍀 suerte cuentan en la Torre y en los minijuegos.
            Lo <b>épico</b> y lo <b>legendario</b> tiene además una habilidad especial en la Torre.</p>
+        ${submenu}
         <ul class="lista">${lista}</ul>`;
 }
 
@@ -4558,7 +4576,7 @@ export function pantallaTienda(estado, ctx) {
             ${recompensas.length ? `<ul class="lista">${lista}</ul>` : vacio("Crea tu primera recompensa. Ej: «Ver un capítulo de mi serie» por 50 monedas.")}
             ${plegable(`Historial de canjes (${canjes.length})`, `<ul class="historial">${historial}</ul>`, canjes.length)}`,
         equipo: () => `
-            ${tiendaDelAvatar(estado, cerrada, ctx.evento)}
+            ${tiendaDelAvatar(estado, cerrada, ctx.evento, ctx.subvista?.tiendaEquipo || "todo")}
             <p class="nota">🏅 Los objetos legendarios de logro no se venden: se ganan. Los ves en
                <button type="button" class="enlace enlace-en-linea" data-accion="subvista" data-pantalla="personaje" data-vista="equipo">tu Héroe › Equipo</button>.</p>`,
         mascotas: () => tiendaDeMascotas(estado, cerrada, ctx),

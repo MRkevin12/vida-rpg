@@ -2628,6 +2628,12 @@ const ACCIONES = {
     jugar: (boton) => jugarMinijuego(boton.dataset.juego),
 
     // Elegir una sección de una pantalla larga (ej: Tienda › Mascotas). Si es de otra pantalla, se va a ella.
+    // (v100) En la Tienda › Equipo: ver solo una casilla (cabeza, pecho, piernas…) o todo.
+    "filtro-equipo": (boton) => {
+        subvista.tiendaEquipo = boton.dataset.espacio;
+        sonar("cursor");
+        dibujarPantalla({ mantenerScroll: true });
+    },
     subvista: (boton) => {
         const { pantalla, vista } = boton.dataset;
         subvista[pantalla] = vista;

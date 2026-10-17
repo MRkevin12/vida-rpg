@@ -907,11 +907,38 @@ body {
     padding-inline: 12px;
 }
 
-/* Las pestañas de una pantalla (Equipo · Mascotas · Aspecto · Historia): si no caben, se achica la letra. */
+/* Las pestañas de una pantalla (Equipo · Mascotas · Aspecto · Historia): si no caben en una línea,
+   el ícono y la palabra se acomodan en dos (nunca se cortan con «…»). */
 .selector button {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding-inline: 6px;
+    white-space: normal;
+    padding-inline: 4px;
+    line-height: 1.15;
+}
+
+
+/* (v100) El submenú de la Tienda › Equipo: botones en rejilla de 4 (no caben 8 en una fila). */
+.selector.selector-rejilla {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 10px 0 12px;
+}
+
+.selector-rejilla button {
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+    min-height: 52px;
+    padding: 6px 2px;
+    font-size: 0.78rem;
+    white-space: normal;
+}
+
+.selector-rejilla button small {
+    font-size: 0.68rem;
+    color: var(--texto-suave);
+}
+
+.selector-rejilla button[aria-pressed="true"] small {
+    color: var(--oro);
 }

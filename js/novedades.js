@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 99;
+export const VERSION_APP = 100;
 
 export const NOVEDADES = [
+    {
+        version: 100,
+        titulo: "Pantalones, botas y una tienda mucho más grande",
+        cambios: [
+            "👖 Dos casillas nuevas en tu equipo: Piernas (pantalones) y Pies (botas), con 16 prendas de todas las calidades —comunes, raras, épicas y legendarias— que se ven en tu héroe.",
+            "🛒 La tienda de equipo pasa de 30 a 64 objetos: cascos, armaduras, armas, capas y 5 fondos nuevos con pinturas clásicas.",
+            "🗂️ En Tienda › Equipo hay un menú para ver solo cascos, armaduras, pantalones, botas, armas, capas o fondos (y cuántos ya tienes de cada uno).",
+            "⚔️ 7 habilidades nuevas para la Torre: Arraigo, Ligereza, Zancada, Impulso, Baluarte, Siete leguas y Pisada del dragón.",
+            "🏅 Dos legendarios nuevos se ganan: las Grebas del Baluarte (20 días perfectos) y las Botas de siete leguas (racha de 60 días).",
+        ],
+    },
     {
         version: 99,
         titulo: "Arreglos de tus fotos",

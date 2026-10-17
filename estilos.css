@@ -2468,7 +2468,7 @@ textarea:focus {
 
 .espacios {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));   /* cabeza, pecho (v34), mano, espalda y fondo */
+    grid-template-columns: repeat(4, minmax(0, 1fr));   /* (v100) 7 casillas: cabeza, pecho, piernas, pies, mano, espalda y fondo */
     gap: 6px;
     margin: 12px 0 4px;
 }

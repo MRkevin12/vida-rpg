@@ -47,6 +47,7 @@ const AMBIENTE = {
     aldea: "luciernagas", camino: "polvo", fortaleza: "brasas", cumbre: "nieve",
     bosque: "luciernagas", castillo: "brasas", galaxia: "estrellas", salon: "polvo",
     mar: "nieve", aurora: "estrellas",   // (v34) la espuma del mar y las estrellas de la noche polar
+    "escena-fuerza": "nieve", "escena-intelecto": "polvo", "escena-carisma": "polvo", "escena-riqueza": "brasas", torre: "polvo",   // (v100) los fondos nuevos
 };
 // color, tamaño (radio mínimo y máximo), cuánto dura cada vuelta (segundos) y en qué franja nacen (y).
 const PARTICULAS = {
