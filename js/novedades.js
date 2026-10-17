@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 101;
+export const VERSION_APP = 102;
 
 export const NOVEDADES = [
+    {
+        version: 102,
+        titulo: "Mucho más para personalizar tu héroe",
+        cambios: [
+            "🎨 Aspecto con 36 opciones nuevas: 3 tonos de piel, 2 rostros (severo y ojeroso), 4 colores de ojos, 6 de pelo, 4 peinados (trenza, en punta, raya al lado, moño), 4 barbas (perilla, patillas, larga y corta) y 6 colores de traje.",
+            "⚔️ Categoría nueva, Marcas: cicatriz en el ojo o en la mejilla, pintura de guerra, una runa en la frente o un lunar.",
+            "💍 Categoría nueva, Complementos: parche, pendiente de oro, cinta en la frente, dos aros o una venda.",
+        ],
+    },
     {
         version: 101,
         titulo: "Insignias",

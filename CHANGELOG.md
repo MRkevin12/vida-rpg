@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v102 — Mucho más para personalizar tu héroe
+- `avatar.js › APARIENCIA`: piel +3 (porcelana, oliva, ébano), rostro +2 (severo, cansado), ojos +4, pelo +6, peinado +4, barba +4, traje +6; categorías nuevas `marca` y `complemento` (y en `APARIENCIA_INICIAL` y `datos.js`). La pantalla de Aspecto se arma sola con los datos (`TITULOS_APARIENCIA` suma «Marcas» y «Complementos»).
+- `dibujo-cuerpo.js`: `ROSTROS` suma severo y cansado (con ojeras), `marcaDeCara`, `complemento(d, p)` (va sobre el pelo de adelante y bajo los lentes y el sombrero), 4 barbas y 4 peinados nuevos (la trenza y el moño tienen capa de atrás).
+- Pruebas: el aspecto de la gente del valle puede omitir campos (usa el inicial); el conteo de peinados del dibujo se calcula. 303 pruebas.
+
 ## v101 — Insignias
 - **`js/insignias.js` (nuevo):** `INSIGNIAS` (33, con grado, ícono, `cuenta` y `meta`), `datosDeInsignias` (misiones, mejor racha, nivel, días perfectos, jefes, principales, récord de la Torre, sesiones y nivel de gym, días de diario, voces, pergaminos, mascotas, cofres, objetos, canjes), `progresoInsignia` y `ganadas`.
 - **`js/dibujo-insignias.js` (nuevo):** `dibujarInsignia(id, { bloqueada })`: 24 × 28 puntos, forma por grado calculada punto a punto, cinta de dos colores y el ícono de iconos.js en el centro; `insigniaEnElPecho` para el avatar.

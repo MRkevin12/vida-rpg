@@ -101,6 +101,8 @@ const ROSTROS = {
     decidido: { cejas: [38.5, 38.1, 39.5], ojo: 2.0, grosor: 1.3 },
     amable:   { cejas: [39.7, 37.5, 38.5], ojo: 2.8, grosor: 1.05, sonrie: true },
     curtido:  { cejas: [38.9, 38.4, 39.5], ojo: 2.1, grosor: 1.45, cicatriz: true },
+    severo:   { cejas: [38.6, 38.4, 38.8], ojo: 1.9, grosor: 1.4 },    // (v102)
+    cansado:  { cejas: [39.6, 38.6, 39.2], ojo: 1.9, grosor: 1.1 },    // (v102) ojeroso
 };
 
 function formaCabeza(e) {
@@ -190,13 +192,62 @@ export function cara(d, e, p) {
         <g fill="${p.pielSombra}" opacity=".3"><ellipse cx="96.2" cy="40.4" rx="3.3" ry="1.7"/><ellipse cx="103.8" cy="40.4" rx="3.3" ry="1.7"/></g>
         <g fill="#c4584a" opacity=".13"><ellipse cx="93.8" cy="46.4" rx="2.5" ry="1.4"/><ellipse cx="106.2" cy="46.4" rx="2.5" ry="1.4"/></g>
         <ellipse cx="100" cy="52.6" rx="2.2" ry=".8" fill="${p.pielSombra}" opacity=".35"/>
-        ${pecas}${cicatriz}${curita}
+        ${pecas}${cicatriz}${curita}${d.apariencia.rostro === "cansado" ? `<g fill="${p.pielSombra}" opacity=".55"><ellipse cx="96.2" cy="44" rx="2.6" ry=".9"/><ellipse cx="103.8" cy="44" rx="2.6" ry=".9"/></g>` : ""}
+        ${marcaDeCara(d.apariencia.marca, p)}
         ${cejaIzq}<g transform="translate(200 0) scale(-1 1)">${cejaIzq}</g>
         <g class="ojos">${ojoIzq}<g transform="translate(200 0) scale(-1 1)">${ojoIzq}</g>${brillos}</g>
         <!-- nariz -->
         <path d="M100.4 42.6 L99.3 46.3 Q100.1 47.1 101.3 46.7" fill="none" stroke="${p.pielSombra}" stroke-width=".85" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M99.5 42.4 L98.9 45.4" stroke="#fff" stroke-width=".6" opacity=".14" stroke-linecap="round"/>
         ${boca}${labioInferior}`;
+}
+
+// (v102) Las marcas de la cara: cicatrices, pintura de guerra, una runa o un lunar.
+function marcaDeCara(marca, p) {
+    const claro = "#e9c9b0";
+    switch (marca) {
+        case "cicatriz":   // atraviesa el ojo izquierdo, de la ceja a la mejilla
+            return `<path d="M94.4 36.4 L97.6 47.2" stroke="${claro}" stroke-width="1" stroke-linecap="round" opacity=".9"/>
+                    <path d="M94.4 36.4 L97.6 47.2" stroke="${p.pielSombra}" stroke-width=".35" stroke-linecap="round"/>
+                    <path d="M95 39 L96.4 38.6 M96 42.6 L97.4 42.2 M96.8 45.4 L98 45" stroke="${p.pielSombra}" stroke-width=".3"/>`;
+        case "mejilla":    // una línea en la mejilla derecha
+            return `<path d="M104.6 45.6 L108.2 47.8" stroke="${claro}" stroke-width=".9" stroke-linecap="round"/>
+                    <path d="M104.6 45.6 L108.2 47.8" stroke="${p.pielSombra}" stroke-width=".3" stroke-linecap="round"/>`;
+        case "guerra":     // dos franjas oscuras bajo los ojos
+            return `<g fill="#1a1428" opacity=".85"><path d="M92.2 44.6 L97.6 44.2 L97.2 45.6 L92.6 46 Z"/><path d="M107.8 44.6 L102.4 44.2 L102.8 45.6 L107.4 46 Z"/>
+                    <path d="M99.4 30.6 L100.6 30.6 L100.4 36.4 L99.6 36.4 Z"/></g>`;
+        case "runa":       // un signo azul que brilla en la frente
+            return `<path d="M100 31.2 L100 36 M98.2 32.4 L100 34 L101.8 32.4" fill="none" stroke="#5ad0ff" stroke-width=".7" stroke-linecap="round"/>
+                    <path d="M100 31.2 L100 36" stroke="#5ad0ff" stroke-width="2" opacity=".2"/>`;
+        case "lunar":
+            return `<circle cx="104.8" cy="48.6" r=".55" fill="#3a2418"/>`;
+        default:
+            return "";
+    }
+}
+
+// (v102) Los complementos: parche, pendientes, cinta, aros o venda. Van encima del pelo de adelante.
+export function complemento(d, p) {
+    switch (d.apariencia.complemento) {
+        case "parche":
+            return `<path d="M90.6 36.4 L109.4 34.2" stroke="${TRAZO}" stroke-width=".7"/>
+                    <path d="M93.2 39.2 Q96.4 37.6 99.2 39.4 L98.8 43.2 Q96.2 45 93.6 43.4 Z" fill="#1a1414" stroke="${TRAZO}" stroke-width=".5"/>`;
+        case "pendiente":
+            return `<circle cx="90.2" cy="47.6" r="1.1" fill="${p.m("oro")}" stroke="${TRAZO}" stroke-width=".35"/>
+                    <path d="M90.2 48.6 L90.2 50.6" stroke="${p.oroPlano}" stroke-width=".6"/><circle cx="90.2" cy="51.2" r=".7" fill="#e8384f"/>`;
+        case "cinta":
+            return `<path d="M89.8 35.6 Q100 32.4 110.2 35.6 L110 37.8 Q100 34.8 90 37.8 Z" fill="${p.borde}" stroke="${TRAZO}" stroke-width=".55"/>
+                    <path d="M109.8 36.6 L113.6 40 L112.4 41 M110 37 L112 42.4" stroke="${p.borde}" stroke-width="1" stroke-linecap="round"/>`;
+        case "aros":
+            return `<g fill="none" stroke="${p.oroPlano}" stroke-width=".7"><circle cx="90.1" cy="47" r="1.1"/><circle cx="109.9" cy="47" r="1.1"/>
+                    <circle cx="90.4" cy="44.6" r=".6"/></g>`;
+        case "venda":
+            return `<path d="M89.6 33.6 Q100 29.8 110.4 33.6 L110.6 37 Q100 33.2 89.4 37 Z" fill="#e8e0cc" stroke="${TRAZO}" stroke-width=".5"/>
+                    <path d="M93 33.2 L95 36.2 M99 31.8 L100.4 35 M105 32.6 L106.4 35.8" stroke="#bdb39a" stroke-width=".45"/>
+                    <path d="M106 33 Q107.2 34.4 106.4 35.6" stroke="#a83a3a" stroke-width=".9" opacity=".7" fill="none"/>`;
+        default:
+            return "";
+    }
 }
 
 // Un tono rosado para los labios, a partir del color de la piel.
@@ -226,6 +277,14 @@ export function barba(d, p) {
         candado: `<path d="M95.9 48.9 Q100 46.9 104.1 48.9 L103.7 52.4 Q100 56 96.3 52.4 Z" fill="${color}"/>`,
         completa: `<path d="M90.7 43 C91 48.6 93.4 52.8 96.5 54.7 Q100 56.6 103.5 54.7 C106.6 52.8 109 48.6 109.3 43 C108.2 46.6 106.4 48.3 104 48.7 Q100 47 96 48.7 C93.6 48.3 91.8 46.6 90.7 43 Z" fill="${color}"/>
                    <path d="M93 49.5 Q94.5 52 96.6 53.3 M107 49.5 Q105.5 52 103.4 53.3" fill="none" stroke="${p.peloLuz}" stroke-width=".5" opacity=".6"/>`,
+        // (v102)
+        perilla: `<path d="M98.4 52 Q100 51.2 101.6 52 L101.2 56.4 Q100 57.4 98.8 56.4 Z" fill="${color}"/>
+                  <path d="M96.6 49 Q100 47.6 103.4 49 Q101.8 49.8 100 49.2 Q98.2 49.8 96.6 49 Z" fill="${color}"/>`,
+        patillas: `<path d="M90.6 41 L91.2 48.4 Q92.4 49.6 93 48 L92.4 41.6 Z M109.4 41 L108.8 48.4 Q107.6 49.6 107 48 L107.6 41.6 Z" fill="${color}"/>`,
+        larga: `<path d="M90.7 43 C90.6 52 93.6 60.6 100 63.4 C106.4 60.6 109.4 52 109.3 43 C108.2 46.6 106.4 48.3 104 48.7 Q100 47 96 48.7 C93.6 48.3 91.8 46.6 90.7 43 Z" fill="${color}"/>
+                <path d="M94.4 52 Q96 58 99 61.4 M105.6 52 Q104 58 101 61.4 M100 55 L100 62" fill="none" stroke="${p.peloLuz}" stroke-width=".5" opacity=".55"/>`,
+        corta: `<path d="M91.2 45 C91.8 49.6 94 52.8 96.8 54.2 Q100 55.4 103.2 54.2 C106 52.8 108.2 49.6 108.8 45 C107.6 47.8 106 49 104 49.2 Q100 47.8 96 49.2 C94 49 92.4 47.8 91.2 45 Z" fill="${color}" opacity=".75"/>
+                <path d="M96 49 Q100 47.4 104 49 Q102 49.8 100 49.2 Q98 49.8 96 49 Z" fill="${color}"/>`,
     };
     if (formas[d.apariencia.barba]) return formas[d.apariencia.barba];
     // Rostro curtido sin barba: una sombra de barba de varios días.
@@ -308,6 +367,40 @@ export function pelo(d, p) {
                 frente: `<path d="M90.5 39.6 C89.8 33 92.6 29.6 96 28.8 L104 28.8 C107.4 29.6 110.2 33 109.5 39.6 C108.8 36 107 34 104.8 33.4 L95.2 33.4 C93 34 91.2 36 90.5 39.6 Z" fill="${p.pelo}" opacity=".7"/>
                          <path d="M92.6 35.4 C91.8 29.4 95.6 24.4 101.8 23.6 C106.6 23 109.8 25.4 110.4 28.5 C108.4 27.5 106.6 27.7 105.4 28.7 C107.7 30 109 32.3 109 35.2 C106 32.8 101.5 32.5 97.7 33.4 C95.5 34 93.8 34.6 92.6 35.4 Z" fill="${color}" ${borde}/>
                          ${brillo("M95.4 30 Q98.4 26.2 103 25.4", 0.9)}${brillo("M97.4 31.6 Q100.4 29.4 104 29.4", 0.6)}${mechones("M94.6 32.4 Q98.6 27.2 105.6 26.2", "M96.8 33.4 Q101.6 30.6 107.6 31.8", "M99 31.6 Q103 28.4 108.8 28.6")}`,
+            };
+
+        // (v102) Trenza: el pelo recogido atrás en una trenza que cae por la espalda.
+        case "trenza": {
+            const eslabones = [0, 1, 2, 3, 4, 5].map((i) => `<ellipse cx="${i % 2 ? 108.4 : 109.6}" cy="${40 + i * 5.2}" rx="2.6" ry="3.2" fill="${color}" ${borde}/>`).join("");
+            return {
+                atras: `${eslabones}<rect x="107.6" y="69.6" width="3.2" height="2" rx=".6" fill="${p.borde}" stroke="${TRAZO}" stroke-width=".5"/>`,
+                frente: `<path d="M90.3 40.6 C89.2 32.4 92.8 27.6 100 27.4 C107.2 27.6 110.8 32.4 109.7 40.6 C108.8 36 105.6 32.8 100 32.4 C94.4 32.8 91.2 36 90.3 40.6 Z" fill="${color}" ${borde}/>
+                         ${brillo("M93.6 32 Q96.4 29.4 100 29.1")}${mechones("M92.4 37 Q95 31.6 100 30.4", "M100.6 30.4 Q105.6 31.2 108.4 36.6")}`,
+            };
+        }
+        // (v102) En punta: mechones cortos y levantados.
+        case "puntas":
+            return {
+                atras: "",
+                frente: `<path d="M90.4 40.2 L89 33.4 L92.2 34.4 L91.8 28.8 L95.4 31.2 L96.4 25.6 L99.6 30 L101.6 24.6 L103.6 29.8 L106.8 25.8 L107 31.4 L110.6 29.4 L109.4 34.6 L111 35.4 L109.6 40.2 C108.8 36.4 105.6 33.6 100 33.2 C94.4 33.6 91.2 36.4 90.4 40.2 Z" fill="${color}" ${borde}/>
+                         ${brillo("M94.6 31.6 L95.8 27.6", 0.7)}${brillo("M100.4 30 L101.4 26.6", 0.7)}${mechones("M93 36.6 Q96 33 99.6 32.2", "M101 32.2 Q105 33 107.6 36.4")}`,
+            };
+        // (v102) Raya al lado: corto y peinado hacia un lado, con un mechón que cae sobre la frente.
+        case "lado":
+            return {
+                atras: "",
+                frente: `<path d="M90.2 40.6 C89 32.6 92.4 27.4 100 27.2 C107.6 27.4 111 32.6 109.8 40.6 C109 36.6 107.6 34.4 105.6 33.4 C101 33.4 96.8 35.2 93.6 38.8 C92.2 39.2 91 39.8 90.2 40.6 Z" fill="${color}" ${borde}/>
+                         <path d="M93.6 38.8 Q99 33.6 105.6 33.4 Q100 36 97.8 40.4 Q95.6 39.4 93.6 38.8 Z" fill="${color}" ${borde}/>
+                         <path d="M96 28.4 L95.2 33.2" stroke="${oscurecer(p.pelo, 0.4)}" stroke-width=".55"/>
+                         ${brillo("M98 29.4 Q102.4 28.6 106.4 31.4")}${mechones("M97 32 Q101.6 30 107.6 33.4", "M94.6 37.2 Q99 34 104.6 33.8")}`,
+            };
+        // (v102) Moño: el pelo recogido en un moño alto.
+        case "mono":
+            return {
+                atras: `<circle cx="100" cy="24.4" r="5.4" fill="${color}" ${borde}/>${brillo("M97 21.6 Q99.6 20 102.2 21", 0.7)}${mechones("M96.2 25 Q100 22 103.8 25")}`,
+                frente: `<path d="M90.3 40.8 C89.2 32.4 92.8 27.7 100 27.5 C107.2 27.7 110.8 32.4 109.7 40.8 C108.8 36 105.6 32.9 100 32.5 C94.4 32.9 91.2 36 90.3 40.8 Z" fill="${color}" ${borde}/>
+                         <path d="M95.4 28.6 Q100 27.2 104.6 28.6 L104.2 30 Q100 28.8 95.8 30 Z" fill="${p.borde}" stroke="${TRAZO}" stroke-width=".5"/>
+                         ${brillo("M93.6 32 Q96.4 29.4 100 29.1")}${mechones("M92.4 37 Q95 31.6 100 30.4", "M100.6 30.4 Q105.6 31.2 108.4 36.6")}`,
             };
 
         default:           // "corto": corto, peinado de lado

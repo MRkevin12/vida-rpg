@@ -1886,10 +1886,10 @@ prueba("Voces: los datos de la aldea (lugares, fondos y personas) están complet
         const d = voces.describirPersona(id);
         const svg = dibujarAvatar(d, { batalla: true, sinEfectos: true });
         cierto(typeof svg === "string" && svg.startsWith("<svg") && !/undefined|NaN/.test(svg), `${id}: se dibuja`);
-        cierto(Object.keys(avatar.APARIENCIA).every((campo) => avatar.APARIENCIA[campo][p.aspecto[campo]]), `${id}: su aspecto usa opciones que existen`);
+        cierto(Object.keys(avatar.APARIENCIA).every((campo) => avatar.APARIENCIA[campo][p.aspecto[campo] ?? avatar.APARIENCIA_INICIAL[campo]]), `${id}: su aspecto usa opciones que existen`);
     }
     for (const [id, p] of Object.entries(voces.INVITADOS)) {
-        cierto(Object.keys(avatar.APARIENCIA).every((campo) => avatar.APARIENCIA[campo][p.aspecto[campo]]), `${id}: su aspecto usa opciones que existen`);
+        cierto(Object.keys(avatar.APARIENCIA).every((campo) => avatar.APARIENCIA[campo][p.aspecto[campo] ?? avatar.APARIENCIA_INICIAL[campo]]), `${id}: su aspecto usa opciones que existen`);
     }
     // Todos los textos de las conversaciones: sin dobles espacios ni espacios al final (se ven mal en pantalla).
     for (const [id, escena] of Object.entries(voces.ESCENAS)) {
@@ -4401,7 +4401,7 @@ prueba("Dibujo: el avatar se dibuja en todas las etapas, clases, cuerpos y peina
             }
         }
     }
-    igual(dibujados, 4 * 6 * 2 * 8);
+    igual(dibujados, 4 * 6 * 2 * Object.keys(avatar.APARIENCIA.peinado).length);   // etapas × clases × cuerpos × peinados
 });
 
 prueba("Dibujo: cada opción de apariencia, ánimo, rasgo y objeto se dibuja bien", () => {

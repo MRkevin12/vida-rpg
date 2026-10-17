@@ -15,7 +15,7 @@
 
 import { APARIENCIA, APARIENCIA_INICIAL, CLASES, OBJETOS } from "./avatar.js";
 import { nuevoId, mate, metal, piel as materialPiel, tejido, grano, halo, aclarar, oscurecer, mezclar, pivote, SOMBRA } from "./dibujo-base.js";
-import { esqueleto, cuello, cara, lentes, barba, pelo } from "./dibujo-cuerpo.js";
+import { esqueleto, cuello, cara, lentes, barba, pelo, complemento } from "./dibujo-cuerpo.js";
 import { piernas, torso, bufanda, brazo, hombreras } from "./dibujo-ropa.js";
 import { sombrero, arma, capa, capaCuervo, escudo, alas, alasDragon, armaduraDePecho, libro, miniatura, INCLINACION, TAPA_PELO, baseDe, conVariante, CAPAS_COLOR } from "./dibujo-objetos.js";
 import { piernasDesnudas, torsoDesnudo, brazoDesnudo, calzoncillos, escenaDeGimnasio } from "./dibujo-gym.js";
@@ -193,7 +193,7 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         bufanda(d, e, p),
         hombreras(d, e, p),
         d.insignia ? insigniaEnElPecho(d.insignia) : "",   // (v101) la insignia que llevas, prendida en el pecho
-        `<g${giro}>${cara(d, e, p)}${barba(d, p)}${recortar(cabello.frente)}${d.rasgos.intelecto >= 1 ? lentes(p) : ""}${conVariante(puesto.cabeza, p, sombrero(d.equipado.cabeza, p))}</g>`,
+        `<g${giro}>${cara(d, e, p)}${barba(d, p)}${recortar(cabello.frente)}${complemento(d, p)}${d.rasgos.intelecto >= 1 ? lentes(p) : ""}${conVariante(puesto.cabeza, p, sombrero(d.equipado.cabeza, p))}</g>`,
         "</g>",
         estela,
         "</g>",

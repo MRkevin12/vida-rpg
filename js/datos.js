@@ -104,7 +104,8 @@ export function estadoInicial() {
         maestro: { leidas: 0 },               // cuántos capítulos de las memorias de Aurelio ya leíste (ver memorias.js)
         // Cómo se ve tu avatar (las opciones están en avatar.js → APARIENCIA).
         apariencia: { cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
-                      pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase" },
+                      pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase",
+                      marca: "ninguna", complemento: "ninguno" },   // (v102) marca y complemento
         // Sonido, golpe con timing, eventos del día y música de fondo (pista elegida y volumen de 0 a 1).
         ajustes: { sonido: true, golpe: true, eventos: true, musica: true, pista: "epica", volumen: 0.6, cinematicas: true, esencial: false, esencialAlAbrir: true,
                    animo: "bien", preguntarAnimo: true,

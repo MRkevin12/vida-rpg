@@ -4279,8 +4279,7 @@ export function pantallaBiblioteca(estado) {
 // Los colores se eligen con círculos de color; lo demás, con botones de texto.
 const TITULOS_APARIENCIA = {
     cuerpo: "Cuerpo", piel: "Tono de piel", rostro: "Rostro", ojos: "Color de ojos",
-    pelo: "Color de pelo", peinado: "Peinado", barba: "Barba", traje: "Color del traje",
-};
+    pelo: "Color de pelo", peinado: "Peinado", barba: "Barba", traje: "Color del traje", marca: "Marcas", complemento: "Complementos" };
 
 function seccionApariencia(estado, ctx) {
     const grupos = Object.entries(avatar.APARIENCIA).map(([campo, opciones]) => {
@@ -4297,7 +4296,7 @@ function seccionApariencia(estado, ctx) {
         const muchas = Object.keys(opciones).length > 4;
         return `
             <div class="apariencia-grupo">
-                <span class="apariencia-titulo">${TITULOS_APARIENCIA[campo]} <small>${opciones[elegida].nombre}</small></span>
+                <span class="apariencia-titulo">${TITULOS_APARIENCIA[campo]} <small>${(opciones[elegida] || Object.values(opciones)[0]).nombre}</small></span>
                 <div class="${conColor ? "muestras" : `selector ${muchas ? "selector-rejilla" : ""}`}" role="group" aria-label="${TITULOS_APARIENCIA[campo]}">${botones}</div>
             </div>`;
     }).join("");

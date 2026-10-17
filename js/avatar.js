@@ -205,12 +205,18 @@ export const APARIENCIA = {
         canela: { nombre: "Canela", color: "#bd8454", sombra: "#93603a" },
         morena: { nombre: "Morena", color: "#8f5c3c", sombra: "#6c4128" },
         oscura: { nombre: "Oscura", color: "#5e3b27", sombra: "#402618" },
+        // (v102)
+        porcelana: { nombre: "Porcelana", color: "#f8dfc9", sombra: "#d4a98a" },
+        oliva:     { nombre: "Oliva",     color: "#c79d6e", sombra: "#9c7348" },
+        ebano:     { nombre: "Ébano",     color: "#422819", sombra: "#2a1810" },
     },
     rostro: {
         sereno:   { nombre: "Sereno" },
         decidido: { nombre: "Decidido" },
         amable:   { nombre: "Amable" },
         curtido:  { nombre: "Curtido" },
+        severo:   { nombre: "Severo" },     // (v102) cejas bajas y rectas
+        cansado:  { nombre: "Ojeroso" },    // (v102) ojeras de tanto estudiar
     },
     ojos: {
         cafe:  { nombre: "Café",  color: "#5b3a1e" },
@@ -218,6 +224,11 @@ export const APARIENCIA = {
         verde: { nombre: "Verde", color: "#3f8f5a" },
         azul:  { nombre: "Azul",  color: "#3b82c4" },
         gris:  { nombre: "Gris",  color: "#7b8794" },
+        // (v102)
+        ambar:   { nombre: "Ámbar",   color: "#c9821a" },
+        violeta: { nombre: "Violeta", color: "#7c4ab8" },
+        negro:   { nombre: "Negro",   color: "#1c1410" },
+        hielo:   { nombre: "Hielo",   color: "#9fd6ea" },
     },
     pelo: {
         negro:   { nombre: "Negro",         color: "#16110e" },
@@ -226,6 +237,13 @@ export const APARIENCIA = {
         rubio:   { nombre: "Rubio",         color: "#b8924a" },
         rojizo:  { nombre: "Rojizo",        color: "#8a3b1c" },
         cano:    { nombre: "Canoso",        color: "#9a9aa0" },
+        // (v102)
+        platino:  { nombre: "Platino",        color: "#d9cfae" },
+        blanco:   { nombre: "Blanco",         color: "#e6e3dc" },
+        cobrizo:  { nombre: "Cobrizo",        color: "#b0542a" },
+        azabache: { nombre: "Negro azulado",  color: "#1b2340" },
+        ceniza:   { nombre: "Ceniza",         color: "#6e6a64" },
+        vino:     { nombre: "Vino",           color: "#5a1a2a" },
     },
     peinado: {
         corto:    { nombre: "Corto" },
@@ -236,12 +254,22 @@ export const APARIENCIA = {
         largo:    { nombre: "Largo" },
         recogido: { nombre: "Coleta" },
         calvo:    { nombre: "Calvo" },
+        // (v102)
+        trenza:   { nombre: "Trenza" },
+        puntas:   { nombre: "En punta" },
+        lado:     { nombre: "Raya al lado" },
+        mono:     { nombre: "Moño" },
     },
     barba: {
         ninguna:  { nombre: "Sin barba" },
         bigote:   { nombre: "Bigote" },
         candado:  { nombre: "Candado" },
         completa: { nombre: "Barba" },
+        // (v102)
+        perilla:  { nombre: "Perilla" },
+        patillas: { nombre: "Patillas" },
+        larga:    { nombre: "Barba larga" },
+        corta:    { nombre: "Barba corta" },
     },
     // Color del traje. "clase" no tiene color propio: usa el de tu clase.
     traje: {
@@ -252,12 +280,38 @@ export const APARIENCIA = {
         violeta:   { nombre: "Violeta",   color: "#6d28d9" },
         negro:     { nombre: "Negro",     color: "#2a2a34" },
         blanco:    { nombre: "Blanco",    color: "#c9ced8" },
+        // (v102)
+        dorado:    { nombre: "Dorado",    color: "#a87412" },
+        borgona:   { nombre: "Borgoña",   color: "#5c1022" },
+        oliva:     { nombre: "Oliva",     color: "#4d5a24" },
+        cielo:     { nombre: "Cielo",     color: "#3a8ad0" },
+        acero:     { nombre: "Gris acero", color: "#4a5568" },
+        cobre:     { nombre: "Cobre",     color: "#9a4a1c" },
+    },
+    // (v102) Marcas de la cara (dibujo-cuerpo.js › cara).
+    marca: {
+        ninguna:   { nombre: "Ninguna" },
+        cicatriz:  { nombre: "Cicatriz en el ojo" },
+        mejilla:   { nombre: "Cicatriz en la mejilla" },
+        guerra:    { nombre: "Pintura de guerra" },
+        runa:      { nombre: "Runa en la frente" },
+        lunar:     { nombre: "Lunar" },
+    },
+    // (v102) Complementos (dibujo-cuerpo.js › complemento). Van encima de la cara y debajo del sombrero.
+    complemento: {
+        ninguno:   { nombre: "Ninguno" },
+        parche:    { nombre: "Parche" },
+        pendiente: { nombre: "Pendiente de oro" },
+        cinta:     { nombre: "Cinta en la frente" },
+        aros:      { nombre: "Dos aros" },
+        venda:     { nombre: "Venda en la cabeza" },
     },
 };
 
 export const APARIENCIA_INICIAL = {
     cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
     pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase",
+    marca: "ninguna", complemento: "ninguno",   // (v102)
 };
 
 // 7. Mascota: crece con las misiones diarias que completas (desde que la adoptaste: ver mascota.js).
