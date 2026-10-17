@@ -674,7 +674,7 @@ img.figura-pixel { aspect-ratio: 54 / 72; }
     pointer-events: none;
 }
 
-.vuela {
+.vuelo {
     position: fixed;
     font-size: 24px;
     line-height: 1;
@@ -682,7 +682,7 @@ img.figura-pixel { aspect-ratio: 54 / 72; }
     will-change: transform, opacity;
 }
 
-.vuela.chispa-xp {
+.vuelo.chispa-xp {
     font-size: 16px;
     filter: drop-shadow(0 0 4px rgba(255, 228, 90, 0.9));
 }

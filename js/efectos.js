@@ -55,7 +55,7 @@ export function volar(nombreIcono, cuantos, destino, { clase = "" } = {}) {
     const caja = capa();
     for (let i = 0; i < cuantos; i++) {
         const cosa = document.createElement("span");
-        cosa.className = `vuela ${clase}`;
+        cosa.className = `vuelo ${clase}`;
         cosa.innerHTML = icono(nombreIcono);
         cosa.style.left = `${desde.x}px`;
         cosa.style.top = `${desde.y}px`;

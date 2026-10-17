@@ -3592,6 +3592,32 @@ body:has(#deshacer:not([hidden])) .aviso {
 .torre-caja {
     max-height: 100%;
     overflow-y: auto;
+    /* Las filas miden lo que mide su contenido: si la pantalla es baja, la caja se desliza en vez de
+       aplastar la escena encima de los comandos (pasaba en iPhone chicos y con «Habilidades» abiertas). */
+    grid-auto-rows: max-content;
+    align-content: start;
+    overscroll-behavior: contain;
+}
+
+.torre-caja > * {
+    min-width: 0;
+}
+
+/* Teléfonos angostos: comandos y fichas un poco más compactos para que quepan sin cortarse. */
+@media (max-width: 420px) {
+    .ff-comando {
+        grid-template-columns: 20px minmax(0, 1fr) auto;
+        padding-right: 2px;
+    }
+
+    .ff-comando small {
+        font-size: 0.62rem;
+    }
+
+    .ff-comando-nombre {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
 }
 
 .torre-rendirse {

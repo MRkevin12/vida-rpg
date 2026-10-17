@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v114 — Batallas que caben en el teléfono
+- `js/vistas.js`: la pestaña Aurelio de Hoy va al final.
+- `estilos-pixel.css` + `js/efectos.js`: la clase de las monedas voladoras pasa de `.vuela` a `.vuelo`; chocaba con `.vuela` de las criaturas voladoras (quedaban `position: fixed`, fuera de la escena).
+- `estilos.css`: `.torre-caja` con `grid-auto-rows: max-content` (la escena ya no se aplasta sobre los comandos) y comandos más compactos en ≤ 420 px.
+
 ## v113 — Héroe más grande
 - `estilos.css`: `.ficha` y `.ficha .ficha-avatar` pasan de 116 px a 168 px (la columna del avatar también).
 - `js/retratos.js`: `LADO_DIORAMA` 108 → 144 puntos (diorama del héroe).
