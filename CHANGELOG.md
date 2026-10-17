@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v130 — Voz Dora (Kokoro)
+- `herramientas/generar-voces-kokoro.py`: genera los audios con Kokoro (`ef_dora`, `lang=es-419`, Apache-2.0). `locutor/dora/` (360 audios, 2,6 MB). Registrada en `locutor.js › VOCES`.
+- Límite: no hay voz colombiana libre de calidad; `es-419` es neutro. Para colombiano real: Azure (de pago por encima del nivel gratis) o grabar a una persona.
+
 ## v129 — Concentración en una pantalla y «Ya terminé»
 - CSS: en `body.run-concentracion` la carrera es un panel de alto `100dvh` con el mapa flexible, sin deslizar. El mapa SVG usa `preserveAspectRatio="none"` para que el héroe y la criatura queden donde van aunque el cuadro sea más bajo.
 - `vistaEnVivo` ya no trae el formulario de guardar: `vistaTerminar` sale con «Ya terminé» (`runTerminando`), que pausa sin contar (`alternarPausaCarrera(…, { contar: false })`); «Todavía no» reanuda.

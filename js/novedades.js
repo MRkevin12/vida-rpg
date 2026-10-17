@@ -4,9 +4,14 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 129;
+export const VERSION_APP = 130;
 
 export const NOVEDADES = [
+    {
+        version: 130,
+        titulo: "Nueva voz más fluida",
+        cambios: ["🎙️ Nueva voz grabada «Dora»: suena más natural y fluida que las anteriores (español latinoamericano neutro; no es acento colombiano). Elígela en Voz de la carrera."],
+    },
     {
         version: 129,
         titulo: "Concentración en una sola pantalla",

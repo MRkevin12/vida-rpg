@@ -11,6 +11,7 @@ import { TEXTOS } from "./frases.js";
 
 export const PREFIJO = "pack:";   // en running.voz: «pack:ald» = la voz grabada «ald»
 export const VOCES = {
+    dora:   { nombre: "Dora · femenina, fluida (grabada)", licencia: "Kokoro v1.0 (voz ef_dora), Apache 2.0; acento latinoamericano neutro, no colombiano" },
     ald:    { nombre: "Ald · mexicano (grabada)",    licencia: "es_MX-ald-medium, dominio público (Unlicense)" },
     claude: { nombre: "Claude · mexicana (grabada)", licencia: "es_MX-claude-high, Apache 2.0" },
 };
