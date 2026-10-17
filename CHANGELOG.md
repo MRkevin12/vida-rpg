@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v133 — vistas.js dividido por pantalla
+- `vistas.js` (4780 líneas, 310 KB) se partió en 14 archivos `vistas-*.js` (comun, hoy, diario, progreso, aventuras, mapa, historia, arcade, torre, enfoque, ajustes, inicio, heroe, tienda; el más grande ~960 líneas). El código de cada función no cambió.
+- `vistas.js` queda como índice (`export * from …`): `app.js` y las pruebas siguen usando `vistas.algo`. Las piezas compartidas (`esc`, `barra`, `vacio`, `plegable`, `barraDeVida`…) están en `vistas-comun.js`.
+- `vistas-gym.js`, `vistas-running.js` y `vistas-voces.js` importan `esc` de `vistas-comun.js` (se acabó el ciclo con `vistas.js`). Los 14 archivos nuevos están en `ARCHIVOS` de `sw.js`.
+
 ## v132 — Km por zona ajustable
 - `running.kmPorZona` (1–10, por defecto 2; antes fijo en 3) con − / + en Tus metas. La carrera en curso guarda `kmPorZona` y la carrera terminada también (las viejas dibujan con 3). `zonaDelKm`, `criaturaDelKm` y `mapaDeCarrera` reciben el valor.
 

@@ -7,7 +7,7 @@
 import * as voces from "./voces.js";
 import { plural } from "./juego.js";
 import { fichasDisponibles } from "./arcade.js";
-import { esc } from "./vistas.js";
+import { esc } from "./vistas-comun.js";
 import { rutaPintura } from "./pinturas.js";
 import { fechaCorta } from "./fechas.js";
 

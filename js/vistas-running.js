@@ -8,7 +8,7 @@ import * as running from "./running.js";
 import * as ruta from "./ruta.js";
 import * as encuentros from "./encuentros.js";
 import { mapaDeCarrera, mapaDePista } from "./dibujo-carrera.js";
-import { esc, selectorSecciones } from "./vistas.js";
+import { esc, selectorSecciones } from "./vistas-comun.js";
 import { plural } from "./juego.js";
 import { fechaCorta, lunesDe } from "./fechas.js";
 

@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v132";
+const VERSION = "vida-rpg-v133";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
@@ -103,7 +103,21 @@ const ARCHIVOS = [
     "./js/cronica.js",
     "./js/dibujo-mapa.js",
     "./js/vida.js",
-    "./js/vistas.js",
+    "./js/vistas.js",   // (v133) reúne los vistas-*.js de abajo
+    "./js/vistas-comun.js",
+    "./js/vistas-hoy.js",
+    "./js/vistas-diario.js",
+    "./js/vistas-progreso.js",
+    "./js/vistas-aventuras.js",
+    "./js/vistas-mapa.js",
+    "./js/vistas-historia.js",
+    "./js/vistas-arcade.js",
+    "./js/vistas-torre.js",
+    "./js/vistas-enfoque.js",
+    "./js/vistas-ajustes.js",
+    "./js/vistas-inicio.js",
+    "./js/vistas-heroe.js",
+    "./js/vistas-tienda.js",
     "./js/iconos.js",
     "./js/retratos.js",
     "./js/efectos.js",

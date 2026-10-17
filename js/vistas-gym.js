@@ -13,7 +13,7 @@ import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { retratoPixel, cuerpoGymPixel, pixelarEnVivo } from "./retratos.js";
 import { dibujarMovimiento } from "./dibujo-ejercicios.js";
 import { plural } from "./juego.js";
-import { esc, selectorSecciones } from "./vistas.js";
+import { esc, selectorSecciones } from "./vistas-comun.js";
 import { fechaCorta, sumarDias, lunesDe, diaDeSemana, DIAS_LETRAS, hoy as hoyDeHoy } from "./fechas.js";
 
 const barra = (porcentaje, clase = "") => `<div class="barra ${clase}"><div class="barra-relleno" style="width: ${porcentaje}%"></div></div>`;

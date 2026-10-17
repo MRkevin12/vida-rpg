@@ -4,9 +4,14 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 132;
+export const VERSION_APP = 133;
 
 export const NOVEDADES = [
+    {
+        version: 133,
+        titulo: "Orden por dentro",
+        cambios: ["🗂️ Nada cambia en lo que ves: por dentro, el archivo que dibuja las pantallas (más de 4700 líneas) se dividió en 14 archivos, uno por pantalla. Así es más fácil de entender y de mejorar."],
+    },
     {
         version: 132,
         titulo: "Elige cuándo cambia el paisaje",
