@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v125 — Tu música mientras corres
+- `app.js`: `enCarrera()` (carrera en curso o pantalla Running). `sonar()` y `ponerMusica()` no hacen nada ahí; `anunciarKilometro` ya no toca el sonido del juego; `decir()` depende solo de `running.avisoKm`.
+- La notificación de la carrera va `silent: true` (sin sonido del iPhone).
+- Al empezar/cancelar/terminar se llama a `ponerMusica()` para apagar o devolver la música del juego.
+
 ## v124 — Voz de la carrera elegible
 - `running.voz` (identificador de la voz), `acciones.cambiarVozRunning`, lista `[data-running-voz]` llenada en `app.js` con `speechSynthesis.getVoices()` (solo español; México y Colombia primero) y botón «Probar la voz».
 

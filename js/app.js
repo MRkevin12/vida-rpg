@@ -314,7 +314,7 @@ async function mostrarNotificacionCarrera({ sonando = false } = {}) {
         await cerrarNotificacionCarrera();
         await registroSW.showNotification(titulo, {
             body: cuerpo, icon: "./iconos/icono-192.png", badge: "./iconos/icono-192.png",
-            tag: "carrera", renotify: sonando, silent: !sonando, data: { tipo: "carrera", id: null },
+            tag: "carrera", renotify: false, silent: true, data: { tipo: "carrera", id: null },
         });
     } catch (error) { /* sin permiso o sin soporte: la carrera sigue igual */ }
     mostrandoNotificacion = false;
@@ -474,14 +474,12 @@ function anunciarKilometro(numero, segundos, resueltos = [], nuevo = null) {
     const sigue = nuevo ? `Aparece ${nuevo.jefe ? "un jefe: " : nuevo.emboscada ? "una emboscada: " : ""}${encuentros.nombreDe(nuevo)}. ${encuentros.pistaDe(nuevo)}` : "";
     avisar(`🏃 Km ${numero}: ${running.textoSegundos(segundos)}${fin ? ` · ${fin}` : ""}`);
     if (document.visibilityState === "hidden") mostrarNotificacionCarrera({ sonando: true });   // (v120) también fuera de la app
-    if (!estado.ajustes.sonido) return;
-    sonido.sonar(pelea && pelea.resultado !== "vencida" ? "fallo" : "logro");
     decir(`Kilómetro ${numero}. ${running.textoParaVoz(segundos)}. ${fin} ${sigue}`);
 }
 
 // (v119) La voz de la carrera (si está encendida en Running › Progreso y el sonido está activado).
 function decir(texto, { forzar = false } = {}) {
-    if (!forzar && (!estado.ajustes.sonido || estado.running.avisoKm === false)) return;
+    if (!forzar && estado.running.avisoKm === false) return;   // (v125) la voz solo depende de su interruptor, no del sonido del juego
     if (!("speechSynthesis" in window)) return;
     try {
         const voz = new SpeechSynthesisUtterance(texto.replace(/\s+/g, " ").trim());
@@ -1265,7 +1263,14 @@ function voz(criatura, momento) {
     if (estado.ajustes.sonido) sonido.sonarVoz(criatura, momento);
 }
 
+// (v125) Mientras corres (o estás en la pantalla de Running) no suena nada del juego: ni efectos ni música de fondo,
+// para que escuches tu música. Solo queda la voz de los kilómetros (si la tienes encendida en Running › Progreso).
+function enCarrera() {
+    return Boolean(estado.running?.encurso) || pantallaActual === "running";
+}
+
 function sonar(nombre) {
+    if (enCarrera()) return;
     if (estado.ajustes.sonido) sonido.sonar(nombre);
 }
 
@@ -1274,7 +1279,7 @@ function sonar(nombre) {
 // (el navegador solo deja empezar a sonar después de uno) y al cambiar algo en Ajustes.
 function ponerMusica() {
     const a = estado.ajustes;
-    if (!a.musica || document.visibilityState !== "visible") {
+    if (!a.musica || document.visibilityState !== "visible" || enCarrera()) {   // (v125) en la carrera, la música es la tuya
         musica.detener();
         return;
     }
@@ -3459,7 +3464,7 @@ const ACCIONES = {
         gpsProblema = null;
         if (gps) iniciarGps();
         mantenerPantallaDespierta(true);
-        sonar("completar");
+        ponerMusica();   // (v125) empieza la carrera: se calla la música del juego
     },
     "run-pausa": () => {
         ejecutar(() => acciones.alternarPausaCarrera(estado), { mantenerScroll: true });
@@ -3471,6 +3476,7 @@ const ACCIONES = {
         cerrarNotificacionCarrera();
         detenerGps();
         mantenerPantallaDespierta(false);
+        ponerMusica();   // (v125) se acabó la carrera: vuelve la música del juego
     },
     "run-meta": (boton) => ejecutar(() => acciones.cambiarMetaKm(estado, estado.running.metaKm + Number(boton.dataset.delta)), { mantenerScroll: true }),
     "run-probar-voz": () => decir("Kilómetro 3. 5 minutos 12 segundos. ¡Venciste al esqueleto! Aparece un jefe: mantén el ritmo.", { forzar: true }),
@@ -3649,6 +3655,7 @@ const FORMULARIOS = {
         cerrarNotificacionCarrera();
         detenerGps();
         mantenerPantallaDespierta(false);
+        ponerMusica();   // (v125) se acabó la carrera
         subvista.running = "correr";
         sonar("completar");
         dibujarPantalla();

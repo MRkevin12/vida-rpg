@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 124;
+export const VERSION_APP = 125;
 
 export const NOVEDADES = [
+    {
+        version: 125,
+        titulo: "Tu música mientras corres",
+        cambios: [
+            "🎵 Mientras corres (y en la pantalla de Running) no suena nada del juego: ni la música de fondo ni los sonidos. Escuchas tu música. La notificación de la carrera tampoco suena.",
+            "🔊 La voz de los kilómetros sigue si la tienes encendida (Running › Progreso › Tus metas), aunque tengas el sonido del juego apagado.",
+        ],
+    },
     {
         version: 124,
         titulo: "Elige la voz de tu carrera",
