@@ -879,3 +879,39 @@ body {
 .apariencia-previa .figura-pixel {
     width: 108px;
 }
+
+
+/* =====================================================================
+   (v99) Arreglo: nada se sale de su caja, aunque la letra sea más grande
+   ===================================================================== */
+/* En flex y grid, un elemento no se encoge por debajo de su "contenido mínimo" (la palabra más larga +
+   el botón) salvo que tenga min-width: 0. Con la letra de pixel —o el texto agrandado en el teléfono—
+   las tarjetas de objetos quedaban más anchas que la lista y el botón «Equipar» se cortaba. */
+.lista > *,
+.panel > *,
+.bloque > *,
+.pantalla > *,
+.objeto-info,
+.objeto-info > * {
+    min-width: 0;
+}
+
+.objeto-info b,
+.objeto-info .mini,
+.habilidad-objeto {
+    overflow-wrap: anywhere;
+}
+
+.objeto > .boton {
+    flex-shrink: 0;
+    padding-inline: 12px;
+}
+
+/* Las pestañas de una pantalla (Equipo · Mascotas · Aspecto · Historia): si no caben, se achica la letra. */
+.selector button {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-inline: 6px;
+}

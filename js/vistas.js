@@ -2358,7 +2358,8 @@ function textoRareza(objeto) {
 // Lo que da un objeto, para ponerlo al final de su línea. Ej: " · 🛡️ +12 · 🍀 +4" (o nada).
 function poderDe(objeto) {
     const texto = equipo.textoPoder(objeto.poder);
-    return texto ? ` · <span class="poder-objeto">${texto}</span>` : "";
+    // (v99) Cada par («🛡️ +8», «🔮 +4») va junto, pero entre uno y otro sí puede saltar de línea.
+    return texto ? ` · ${texto.split(" · ").map((parte) => `<span class="poder-objeto">${parte}</span>`).join(" · ")}` : "";
 }
 
 // La habilidad de la Torre de un objeto épico o legendario (v26), en su propia línea (o nada).

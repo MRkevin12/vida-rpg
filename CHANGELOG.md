@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v99 — Arreglos de tus fotos
+- Tarjetas de objetos: en flex/grid un elemento no se encoge por debajo de su contenido mínimo sin `min-width: 0`; con la letra de pixel (o el texto agrandado del teléfono) `li.objeto` quedaba más ancho que la lista. `estilos-pixel.css`: `min-width: 0` en los hijos de `.lista`, `.panel`, `.bloque`, `.pantalla` y en `.objeto-info`; el botón no se encoge; las pestañas de `.selector` recortan con «…». `poderDe` envuelve cada par («🛡️ +8») por separado para que pueda saltar de línea entre ellos. Reproducido con WebKit a 340–393 px y texto al 130 %.
+- iOS: `app.js › arreglarVistaTrasTeclado()`: al `focusout` de un campo y cuando `visualViewport` vuelve al alto de la ventana, `scrollBy(0, 1)` y `scrollBy(0, -1)` para que iOS recoloque lo fijo (cabecera sticky y pestañas fixed). 300 pruebas.
+
 ## v98 — Pequeños arreglos
 - Revisión completa en Chromium y WebKit (todas las pantallas y sus pestañas, 11 pantallas sueltas, todas las ventanas, los 3 minijuegos y 6 turnos de la Torre): 0 errores de JavaScript, 0 archivos que no cargan, 0 imágenes rotas, 0 emojis sueltos, 0 desbordes.
 - `app.js › pinturasEnPixel`: el redibujado final espera (cada 2 s) si hay un campo de texto con el cursor. `minijuegos.js`: se quitan las capas de texto viejas al empezar. `retratos.js`: los retratos terminados pierden la clase `cargando`.

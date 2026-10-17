@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 98;
+export const VERSION_APP = 99;
 
 export const NOVEDADES = [
+    {
+        version: 99,
+        titulo: "Arreglos de tus fotos",
+        cambios: [
+            "🛠️ En Héroe › Equipo (y en la Tienda), las tarjetas de objetos ya no se salen de la pantalla ni cortan el botón «Equipar».",
+            "🛠️ La barra de pestañas y la cabecera vuelven a su lugar después de escribir algo (al cerrar el teclado, iOS a veces las dejaba a media pantalla).",
+        ],
+    },
     {
         version: 98,
         titulo: "Pequeños arreglos",

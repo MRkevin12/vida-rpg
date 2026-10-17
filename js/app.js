@@ -130,6 +130,7 @@ function avatarActual() {
 function iniciar() {
     vigilarIconos();             // (v91) los emojis de la página se vuelven íconos en pixel art
     fx.recordarToques();    // (v94) de donde tocas salen las monedas que ganas
+    arreglarVistaTrasTeclado();  // (v99) iOS: la cabecera y las pestañas vuelven a su lugar al cerrar el teclado
     pinturasEnPixel();           // (v95) los jefes y los fondos en pixel art, en segundo plano
     datos.pedirAlmacenamientoPersistente();
     registrarServiceWorker();
@@ -1303,6 +1304,24 @@ function animarEntrada(nombre) {
 
 
 // ===== Animaciones y celebraciones =====
+
+// (v99) Un fallo conocido de iOS (Safari y Chrome): al cerrar el teclado, a veces la parte visible de la página
+// queda "corrida" y lo que va fijo a la pantalla (la cabecera y la barra de pestañas) aparece a media pantalla.
+// Remedio: cuando el teclado se cierra (o la parte visible vuelve a medir lo mismo que la ventana), se mueve el
+// scroll 1 punto y se regresa: eso obliga a iOS a recolocar todo.
+function arreglarVistaTrasTeclado() {
+    const reacomodar = () => setTimeout(() => {
+        window.scrollBy(0, 1);
+        window.scrollBy(0, -1);
+    }, 80);
+    document.addEventListener("focusout", (evento) => {
+        if (evento.target.matches?.("input, textarea, select")) reacomodar();
+    });
+    const vista = window.visualViewport;
+    if (vista) vista.addEventListener("resize", () => {
+        if (vista.height >= window.innerHeight - 2 && (vista.offsetTop || vista.pageTop !== window.scrollY)) reacomodar();
+    });
+}
 
 // (v95) Todas las pinturas (los 20 jefes y los fondos) pasan a pixel art, en segundo plano y una por una.
 // La primera vez tarda unos segundos; después salen del caché al instante. Los retratos de jefe que ya están
