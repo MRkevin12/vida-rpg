@@ -11850,3 +11850,31 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     text-align: right;
     color: var(--texto-suave);
 }
+
+
+/* ===== (v117) La barra de la carrera en curso (visible en todas las pantallas) ===== */
+.run-flotante {
+    position: fixed;
+    right: 12px;
+    bottom: calc(var(--alto-pestanas) + env(safe-area-inset-bottom) + 8px);
+    left: 12px;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    max-width: 616px;
+    margin: 0 auto;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    color: #fff;
+    background: linear-gradient(180deg, #3350c8, #1c2e96);
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+    font-variant-numeric: tabular-nums;
+}
+
+.run-flotante[hidden] {
+    display: none;
+}

@@ -28,6 +28,7 @@ import * as vistasVoces from "./vistas-voces.js";
 import * as vistasGym from "./vistas-gym.js";
 import * as vistasRunning from "./vistas-running.js";   // (v109) la pestaña Running
 import * as running from "./running.js";
+import * as ruta from "./ruta.js";
 import * as vocesModulo from "./voces.js";
 import * as vida from "./vida.js";
 import * as gym from "./gym.js";
@@ -80,6 +81,7 @@ let pantallaDeDespierta = null;  // (v109) el «wake lock»: la pantalla no se a
 let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
 let paginaLibro = "portada";     // en «Tu libro»: "portada", "indice" o el número de un capítulo
 let problemaAvisos = null;       // si las notificaciones se cortaron: "bloqueadas" o "desconectadas"
+let regionRuta = null;           // (v117) en Running › Mapa: la región que miras (null = donde vas)
 let regionMapa = null;           // en el mapa: la región que miras (null = donde vas)
 let maestroVista = { modo: "inicio", respuesta: "" };   // la conversación con el Maestro
 let memoriasDesde = null;   // cuántas memorias de Aurelio habías leído al abrirlas (las demás se marcan «Nuevo»)
@@ -266,7 +268,21 @@ function revisarAlAbrir() {
 
 // Reloj del modo enfoque: cada segundo cambia solo el texto del tiempo y el anillo
 // (sin redibujar la pantalla). Al llegar a 0, entrega el premio.
+// (v117) Mientras corres, una barra pegada arriba de las pestañas muestra el tiempo, los km y el ritmo en TODAS las pantallas
+// (menos en Running, que ya lo muestra grande). Tocarla te lleva a la carrera. Una página web no puede seguir mostrándose con
+// el teléfono bloqueado o con otra app abierta: eso lo impide iOS. Por eso la pantalla se mantiene encendida mientras corres.
+function actualizarBarraRun() {
+    const barra = $("#run-barra");
+    if (!barra) return;
+    const en = estado.running?.encurso;
+    barra.hidden = !en || pantallaActual === "running";
+    if (barra.hidden) return;
+    const tiempo = running.tiempoDeEncurso(en, Date.now());
+    barra.innerHTML = `<b>🏃 ${running.textoTiempo(tiempo)}</b>${en.gps ? `<span>${running.textoKm(en.distancia / 1000)}</span><span>${running.textoRitmo(running.ritmoEnVivo(en, Date.now()))}</span>` : ""}${en.pausadoDesde ? "<span>⏸ en pausa</span>" : ""}`;
+}
+
 function tictac() {
+    actualizarBarraRun();
     // (v109) El running en vivo: el cronómetro, la distancia y el ritmo se actualizan solos (sin redibujar).
     if (estado.running.encurso && pantallaActual === "running") {
         const en = estado.running.encurso;
@@ -621,7 +637,10 @@ async function pintarMapa() {
     const caja = $(".mapa-pixel");
     if (!caja) return;
     const region = Number(caja.dataset.region);
-    const datos = mapa.datosParaDibujar(estado, region, campana.estadoCampanas(estado));
+    // (v117) En Running › Mapa se dibuja con TUS kilómetros; en el mapa del reino, con tus pasos.
+    const datos = caja.dataset.ruta
+        ? ruta.datosParaDibujar(estado.running, running.kmTotales(estado.running.carreras), region)
+        : mapa.datosParaDibujar(estado, region, campana.estadoCampanas(estado));
     const a = avatarActual();
     const [imagen, heroe, compania] = await Promise.all([
         sprites.spriteDeMapa(datos),
@@ -1278,6 +1297,7 @@ function contextoActual(efectos = {}) {
         paginaLibro,
         problemaAvisos,
         regionMapa,
+        regionRuta,
         subvista,                                           // la sección elegida en Progreso, Tienda y Héroe
         agruparHoy,
         pergaminoId: pergaminoActual,
@@ -1299,7 +1319,8 @@ function dibujarPantalla(efectos = {}) {
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
-    if (pantallaActual === "mapa") pintarMapa();              // la imagen del mapa (pixel art) llega un instante después
+    if (pantallaActual === "mapa" || (pantallaActual === "running" && $(".mapa-pixel"))) pintarMapa();   // la imagen del mapa (pixel art) llega un instante después
+    actualizarBarraRun();
     if (pantallaActual === "arcade") pintarPortadas();        // la portada de la Mazmorra (pixel art)
     if (pantallaActual === "voces") pintarRetratosVoces($("#pantalla-voces"));   // las caras de la aldea (pixel art)
     if (pantallaActual === "libro") conectarHojear();         // pasar las páginas deslizando
@@ -3164,6 +3185,10 @@ const ACCIONES = {
     // El mapa del reino.
     "reclamar-lugar": (boton) => ejecutar(() => acciones.reclamarLugar(estado, boton.dataset.id)),
     "reclamar-todo": () => ejecutar(() => acciones.reclamarTodo(estado)),
+    "run-region": (boton) => {   // (v117) la Ruta del Corredor: ver otra región
+        regionRuta = Number(boton.dataset.region);
+        dibujarPantalla();
+    },
     "mapa-region": (boton) => {
         regionMapa = Number(boton.dataset.region);
         dibujarPantalla();

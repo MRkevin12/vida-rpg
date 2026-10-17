@@ -876,7 +876,7 @@ export function pantallaGolpe(g) {
 // tarda un instante: aquí solo va su lugar (#mapa-imagen), con tu héroe y tu mascota encima.
 
 // Dónde va algo del lienzo del mapa, en % (para ponerlo encima de la imagen).
-const enElMapa = (p) => `left: ${((p.x / mapa.LIENZO.ancho) * 100).toFixed(2)}%; top: ${((p.y / mapa.LIENZO.alto) * 100).toFixed(2)}%`;
+export const enElMapa = (p) => `left: ${((p.x / mapa.LIENZO.ancho) * 100).toFixed(2)}%; top: ${((p.y / mapa.LIENZO.alto) * 100).toFixed(2)}%`;
 
 // (v86) Rótulos sobre el mapa: el nombre de cada señor (dorado si ya cayó), «Inicio», la fortaleza y la Torre.
 function etiquetasDelMapa(senores, puntos, tramo, alcanzado) {

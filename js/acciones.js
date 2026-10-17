@@ -37,6 +37,7 @@ import * as libros from "./libros.js";
 import * as gym from "./gym.js";
 import * as fragua from "./fragua.js";
 import * as gymAurelio from "./gym-aurelio.js";
+import * as ruta from "./ruta.js";
 import * as running from "./running.js";   // (v109) el running
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
@@ -2405,15 +2406,22 @@ export function terminarCarrera(estado, { km = "", minutos = "", nota = "" } = {
         en.pausadoDesde = null;
     }
     const medido = en.distancia / 1000 >= running.MIN_GPS_KM ? Math.round((en.distancia / 1000) * 100) / 100 : "";
+    // (v117) Con GPS, la distancia y el tiempo son LOS DEL GPS y el cronómetro: no se pueden cambiar (así es justo).
+    // Solo la nota es tuya. Si el GPS casi no midió nada, no hay carrera que guardar: se cancela.
+    if (en.gps) {
+        if (medido === "") throw new Error("El GPS midió menos de 50 m, así que no hay carrera que guardar. Cancélala e inténtalo otra vez.");
+        km = "";
+        minutos = "";
+    }
     const kmFinal = String(km).trim() !== "" ? km : medido;
     if (String(kmFinal).trim() === "") throw new Error("No hay distancia: anota los kilómetros que corriste.");
     const minutosFinal = String(minutos).trim() !== "" ? minutos : Math.max(1, Math.round(running.tiempoDeEncurso(en) / 60000));
     const fecha = aTexto(new Date(en.inicio));
     const resultado = guardarCarrera(estado, {
         fecha, km: kmFinal, minutos: minutosFinal, tipo: en.tipo, origen: en.gps ? "gps" : "manual", nota,
-        // (v116) el recorrido y los parciales solo existen si el GPS midió esa distancia (si la corregiste mucho, no encajarían)
-        traza: en.gps && medido !== "" && String(km).trim() === "" ? running.simplificarTraza(en.traza) : null,
-        parciales: en.gps && medido !== "" && String(km).trim() === "" ? running.parcialesDe(en.marcas) : null,
+        // (v116) el recorrido y los parciales solo existen en las carreras con GPS
+        traza: en.gps ? running.simplificarTraza(en.traza) : null,
+        parciales: en.gps ? running.parcialesDe(en.marcas) : null,
     });
     estado.running.encurso = null;
     return resultado;
@@ -2461,6 +2469,18 @@ export function guardarCarrera(estado, valores) {
         r.hitos.push(hito.id);
         ganar(estado, { gemas: hito.gemas });
         celebraciones.push({ icono: hito.icono, etiqueta: "¡Hito de kilómetros!", titulo: hito.titulo, detalle: `${hito.texto} +${hito.gemas} 💎` });
+    }
+    // (v117) La Ruta del Corredor: cada kilómetro completo que sumas avanza por el mapa del reino y da su premio.
+    const avance = ruta.cobrar(r, kmAhora);
+    if (avance) {
+        ganar(estado, { gemas: avance.gemas, xp: avance.xp, atributo: "fuerza" });
+        for (const lugar of avance.especiales.slice(-4)) {
+            const info = mapa.LUGARES[lugar.tipo];
+            const nombre = lugar.tipo === "fortaleza" ? `Fin de ${mapa.nombreRegion(lugar.region)}` : info.nombre;
+            celebraciones.push({ pequena: true, icono: info.icono, titulo: `Km ${lugar.km}: ${nombre}`, detalle: ruta.textoDePremio(ruta.PREMIOS[lugar.tipo]) });
+        }
+        const km = avance.hasta - avance.desde + 1;
+        celebraciones.push({ pequena: true, icono: "🗺️", titulo: `Ruta del Corredor: ${km === 1 ? "1 km más" : `${km} km más`} (km ${avance.hasta})`, detalle: ruta.textoDePremio({ gemas: avance.gemas, xp: avance.xp }) });
     }
     // La meta semanal: al cumplirla por primera vez esa semana, se cobra.
     const lunes = lunesDe(fecha);

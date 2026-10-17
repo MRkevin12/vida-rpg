@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 116;
+export const VERSION_APP = 117;
 
 export const NOVEDADES = [
+    {
+        version: 117,
+        titulo: "La Ruta del Corredor",
+        cambios: [
+            "🗺️ Running tiene un Mapa: tus kilómetros recorren el reino, como si corrieras de verdad por sus regiones. Cada km es un lugar nuevo.",
+            "🎁 Cada kilómetro da un premio (💎 y XP de Fuerza); los tesoros, santuarios, guaridas y la fortaleza del final dan más. Se cobra al guardar la carrera.",
+            "🔒 Con GPS, la distancia y el tiempo ya no se pueden cambiar: se guarda lo que midió el teléfono. Solo puedes agregar una nota.",
+            "⏱️ Mientras corres, una barra con el tiempo, los km y el ritmo te sigue por todas las pantallas de la app.",
+        ],
+    },
     {
         version: 116,
         titulo: "Running a otro nivel",

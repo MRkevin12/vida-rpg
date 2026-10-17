@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v117 — La Ruta del Corredor
+- `js/ruta.js` (nuevo, en `sw.js`): cada km es un lugar del mapa del reino (`mapa.js`); `PREMIOS`, `lugarDeKm`, `posicion`, `proximoEspecial`, `datosParaDibujar`, `cobrar` (`running.rutaCobrada`).
+- `acciones.guardarCarrera` cobra los km nuevos; `terminarCarrera`: con GPS ignora km y minutos escritos (solo vale el GPS y el cronómetro; si midió < 50 m, no se guarda).
+- Running › Mapa (`seccionMapa`, reutiliza `dibujarMapa` y `pintarMapa`). Barra flotante `#run-barra` con la carrera en curso en todas las pantallas.
+
 ## v116 — Running: recorrido, parciales, voz y predicciones
 - `js/running.js`: `simplificarTraza`, `parcialesDe`, `analisisDeParciales`, `textoSegundos`, `textoParaVoz`, `prediccionesDe` (Riegel), `avisoKm` en `runningInicial`.
 - `js/acciones.js`: la carrera en vivo guarda `traza` y `marcas` (tiempo de cada km); `registrarPuntoCarrera` devuelve `kmNuevo`; las carreras con GPS guardan `traza` y `parciales` (no si corriges los km a mano); `cambiarAvisoKm`.

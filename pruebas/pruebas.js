@@ -71,6 +71,7 @@ import * as gymAurelio from "../js/gym-aurelio.js";
 import { esqueleto } from "../js/dibujo-cuerpo.js";
 import * as vistasGym from "../js/vistas-gym.js";
 import * as running from "../js/running.js";
+import * as ruta from "../js/ruta.js";
 import * as vistasRunning from "../js/vistas-running.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -2846,9 +2847,9 @@ prueba("Running: la meta semanal se cobra una vez por semana y borrar una carrer
     estado.running.metaKm = 10;
     acciones.guardarCarrera(estado, { km: "10", minutos: "60", tipo: "suave", fecha: hoy() });
     igual(estado.running.semanasCobradas, [lunesDe(hoy())], "la meta de la semana quedó cobrada");
-    igual(estado.personaje.gemas, 25, "15 de la meta + 10 del hito de 10 km");
+    igual(estado.personaje.gemas, 50, "15 de la meta + 10 del hito de 10 km + 25 de la Ruta del Corredor (km 1 a 10)");
     acciones.guardarCarrera(estado, { km: "2", minutos: "15", tipo: "suave", fecha: hoy() });
-    igual(estado.personaje.gemas, 25, "otra carrera esa semana no vuelve a cobrar la meta");
+    igual(estado.personaje.gemas, 59, "otra carrera esa semana no vuelve a cobrar la meta (solo +9 de la Ruta: km 11 y 12)");
     const xpAntes = estado.personaje.xp;
     acciones.borrarCarrera(estado, 1);
     cierto(estado.personaje.xp < xpAntes, "al borrar, se quita el XP de esa carrera");
@@ -2888,13 +2889,45 @@ prueba("Running: cada kilómetro del GPS anota su tiempo, y la carrera guarda re
     const carrera = estado.running.carreras[0];
     cierto(carrera.traza.length >= 2, "la carrera con GPS guarda su recorrido");
     igual(carrera.parciales.length, 2, "y los parciales de sus 2 km");
-    // Si corriges los km a mano, el recorrido y los parciales ya no encajan: no se guardan.
+    // (v117) Con GPS los km y los minutos NO se pueden cambiar: aunque escribas otros, vale lo que midió el GPS.
     acciones.empezarCarrera(estado, "suave", { gps: true });
     estado.running.encurso.inicio = Date.now() - 10 * 60000;
-    acciones.terminarCarrera(estado, { km: "3" });
-    igual(estado.running.carreras[1].traza, undefined);
+    debeFallar(() => acciones.terminarCarrera(estado, { km: "3" }), "menos de 50 m");
+    estado.running.encurso.distancia = 2500;   // el GPS midió 2,5 km
+    acciones.terminarCarrera(estado, { km: "9", minutos: "5", nota: "con lluvia" });
+    const segunda = estado.running.carreras.find((c) => c.nota === "con lluvia");
+    igual([segunda.km, segunda.minutos], [2.5, 10], "valen los del GPS, no los que escribiste");
     acciones.cambiarAvisoKm(estado, false);
     igual(estado.running.avisoKm, false);
+});
+
+prueba("Ruta del Corredor: cada km es un lugar del reino con su premio, y se cobra una sola vez", () => {
+    igual(ruta.lugarDeKm(1), { region: 0, lugar: 1, tipo: "camino" });
+    igual(ruta.lugarDeKm(5).tipo, "tesoro");
+    igual(ruta.lugarDeKm(7).tipo, "guarida");
+    igual(ruta.lugarDeKm(25).tipo, "fortaleza");
+    igual(ruta.lugarDeKm(26), { region: 1, lugar: 1, tipo: "camino" }, "después de la fortaleza empieza la región siguiente");
+    igual(ruta.posicion(7.4), { km: 7, region: 0, enRegion: 7, faltaKm: 0.6 });
+    igual(ruta.proximoEspecial(1.5).km, 5);
+    const r = { rutaCobrada: 0 };
+    const primera = ruta.cobrar(r, 5.9);   // km 1 a 5: 4 caminos (1 💎) + un tesoro (10 💎)
+    igual([primera.desde, primera.hasta, primera.gemas, primera.xp], [1, 5, 14, 0]);
+    igual(primera.especiales.map((e) => e.tipo), ["tesoro"]);
+    igual(ruta.cobrar(r, 5.99), null, "lo ya cobrado no se cobra otra vez");
+    igual(ruta.cobrar(r, 10.2).hasta, 10);
+    const dibujo = ruta.datosParaDibujar(r, 7.5, 0);
+    igual([dibujo.alcanzado, dibujo.lugares[5].reclamado, dibujo.lugares[12].libre, dibujo.regionLibre], [7, true, false, false]);
+});
+
+prueba("Ruta del Corredor: al guardar una carrera se cobran los km nuevos (gemas y XP de Fuerza)", () => {
+    const estado = partidaNueva();
+    const gemas = estado.personaje.gemas;
+    const r = acciones.guardarCarrera(estado, { km: "5,3", minutos: "30", tipo: "suave" });
+    igual(estado.running.rutaCobrada, 5);
+    igual(estado.personaje.gemas - gemas, 14, "4 caminos + 1 tesoro");
+    cierto(r.celebraciones.some((c) => /Ruta del Corredor/.test(c.titulo)), "avisa del avance");
+    acciones.guardarCarrera(estado, { km: "1", minutos: "6", tipo: "suave" });
+    igual(estado.running.rutaCobrada, 6, "5,3 + 1 = 6,3 km: un lugar más");
 });
 
 prueba("Running: las predicciones parten de tu mejor carrera reciente (Riegel) y ignoran la caminata", () => {

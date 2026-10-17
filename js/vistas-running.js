@@ -5,14 +5,16 @@
 // la pantalla (así no se cierra el teclado ni se pierde la posición).
 
 import * as running from "./running.js";
-import { esc, selectorSecciones } from "./vistas.js";
+import * as ruta from "./ruta.js";
+import * as mapa from "./mapa.js";
+import { esc, selectorSecciones, enElMapa } from "./vistas.js";
 import { plural } from "./juego.js";
 import { fechaCorta, lunesDe } from "./fechas.js";
 
 const barra = (porcentaje, clase = "") => `<div class="barra ${clase}"><div class="barra-relleno" style="width: ${Math.min(100, porcentaje)}%"></div></div>`;
 
 // Las secciones de la pantalla (como en el Gimnasio).
-export const SECCIONES_RUNNING = [["correr", "🏃 Correr"], ["progreso", "📈 Progreso"], ["historial", "📜 Historial"]];
+export const SECCIONES_RUNNING = [["correr", "🏃 Correr"], ["mapa", "🗺️ Mapa"], ["progreso", "📈 Progreso"], ["historial", "📜 Lista"]];
 
 // ctx = { hoy, ahora, subvista, tipo, gps: bool (la carrera usa GPS), gpsProblema: null | "permiso" | "senal" }
 export function pantallaRunning(estado, ctx) {
@@ -33,6 +35,7 @@ export function pantallaRunning(estado, ctx) {
             ${tarjetaSugerencia(estado, ctx)}
             ${panelEmpezar(ctx)}
             ${formularioManual(ctx)}`,
+        mapa: () => seccionMapa(estado, ctx),
         progreso: () => `
             ${tarjetaRango(estado)}
             ${tarjetaSemanas(estado, ctx)}
@@ -80,11 +83,13 @@ function vistaEnVivo(estado, ctx) {
         </section>
         <form data-form="running-terminar" class="panel formulario">
             <h2 class="titulo-juego">🏁 Terminar y guardar</h2>
-            <p class="nota">Si dejas un campo vacío, se usa lo que midió ${en.gps ? "el GPS" : "el cronómetro"}. Puedes corregirlo.</p>
+            ${en.gps
+                ? '<p class="nota">🔒 Se guarda <b>exactamente</b> lo que midió el GPS y el cronómetro: la distancia y el tiempo no se pueden cambiar, para que todas tus carreras sean justas. Solo puedes agregar una nota.</p>'
+                : `<p class="nota">Si dejas un campo vacío, se usa lo que marcó el cronómetro.</p>
             <label class="formulario-grupo"><span>Kilómetros</span>
-                <input type="text" name="km" inputmode="decimal" placeholder="${en.gps ? "Lo que midió el GPS" : "Ej: 5,2"}" autocomplete="off"></label>
+                <input type="text" name="km" inputmode="decimal" placeholder="Ej: 5,2" autocomplete="off"></label>
             <label class="formulario-grupo"><span>Minutos</span>
-                <input type="text" name="minutos" inputmode="numeric" placeholder="Lo que marcó el cronómetro" autocomplete="off"></label>
+                <input type="text" name="minutos" inputmode="numeric" placeholder="Lo que marcó el cronómetro" autocomplete="off"></label>`}
             <label class="formulario-grupo"><span>Nota (opcional)</span>
                 <input type="text" name="nota" maxlength="60" placeholder="Ej: con el perro" autocomplete="off"></label>
             <button type="submit" class="boton boton-principal boton-ancho">✅ Guardar carrera</button>
@@ -150,6 +155,57 @@ function detalleDeCarrera(c) {
             ${htmlParciales(c.parciales)}
             ${analisis ? `<p class="mini texto-suave">Mejor: km ${analisis.mejorKm} (${running.textoSegundos(analisis.mejor)}) · Más lento: km ${analisis.peorKm} (${running.textoSegundos(analisis.peor)}).<br>${reparto}</p>` : ""}
         </details>`;
+}
+
+// ===== La Ruta del Corredor (v117) =====
+// Un mapa hipotético: tus kilómetros recorren el reino (el mismo mapa de Aventuras). Cada km es un lugar y da un premio.
+function seccionMapa(estado, ctx) {
+    const r = estado.running;
+    const km = running.kmTotales(r.carreras);
+    const pos = ruta.posicion(km);
+    const region = Math.min(ctx.regionRuta ?? pos.region, pos.region);
+    const tramo = mapa.tramoDe(region);
+    const datosRegion = mapa.REGIONES[tramo];
+    const dibujo = ruta.datosParaDibujar(r, km, region);
+    const puntos = mapa.puntosDelCamino();
+    const aqui = region === pos.region ? puntos[pos.enRegion] : null;
+    const progresoRegion = region < pos.region ? 100 : ((pos.enRegion + (km - pos.km)) / mapa.LUGARES_POR_REGION) * 100;
+    const siguiente = ruta.proximoEspecial(km);
+    const infoSiguiente = siguiente && mapa.LUGARES[siguiente.tipo];
+
+    const tarjetas = Object.entries(ruta.PREMIOS).filter(([tipo]) => tipo !== "memorial").map(([tipo, premio]) => {
+        const lugar = mapa.LUGARES[tipo];
+        return `<li><span>${lugar.icono || "👣"} ${tipo === "camino" ? "Cada km" : lugar.nombre}</span><b>${ruta.textoDePremio(premio)}</b></li>`;
+    }).join("");
+
+    return `
+        <section class="panel mapa-cabecera">
+            <div class="mapa-navegar">
+                <button type="button" class="boton-icono" data-accion="run-region" data-region="${region - 1}" ${region > 0 ? "" : "disabled"} aria-label="Región anterior">‹</button>
+                <div><p class="etiqueta">Tu ruta · región ${region + 1}</p><h3 class="mapa-region">${esc(mapa.nombreRegion(region))}</h3>
+                     <p class="mapa-lema">${esc(datosRegion.lema)}</p></div>
+                <button type="button" class="boton-icono" data-accion="run-region" data-region="${region + 1}" ${region < pos.region ? "" : "disabled"} aria-label="Región siguiente">›</button>
+            </div>
+            <div class="mapa-datos">
+                <div><b>${dibujo.alcanzado}/${mapa.LUGARES_POR_REGION}</b><span>📍 Km aquí</span></div>
+                <div><b>${running.textoKm(km)}</b><span>🏃 En total</span></div>
+            </div>
+            ${barra(Math.round(progresoRegion), "barra-mini")}
+            <p class="nota">${region === pos.region
+                ? `Te ${pos.faltaKm === 1 ? "falta 1 km" : `faltan ${running.textoKm(pos.faltaKm)}`} para el siguiente lugar.${siguiente ? ` Próximo botín grande: ${infoSiguiente.icono} ${siguiente.tipo === "fortaleza" ? "el fin de la región" : infoSiguiente.nombre}, a ${running.textoKm(siguiente.faltaKm)} (${ruta.textoDePremio(ruta.PREMIOS[siguiente.tipo])}).` : ""}`
+                : "Región recorrida."}</p>
+        </section>
+        <div class="mapa-pixel" data-region="${region}" data-ruta="1">
+            <img class="mapa-imagen" id="mapa-imagen" alt="Mapa de tu ruta por ${esc(mapa.nombreRegion(region))}">
+            ${aqui ? `<img class="mapa-heroe" id="mapa-heroe" alt="${esc(estado.personaje.nombre)}" style="${enElMapa(aqui)}">
+                      <img class="mapa-mascota" id="mapa-mascota" alt="" style="${enElMapa({ x: aqui.x + 13, y: aqui.y + 2 })}">` : ""}
+        </div>
+        <section class="panel">
+            <h3 class="subtitulo">🎁 Lo que da cada lugar</h3>
+            <ul class="run-prediccion">${tarjetas}</ul>
+            <p class="nota">Es un mapa imaginario: cada kilómetro que corres (con GPS o anotado) te hace avanzar un lugar por el reino y te da su premio al terminar la carrera.
+               Al llegar a la fortaleza del final empieza la región siguiente.</p>
+        </section>`;
 }
 
 // ===== Empezar una carrera =====
