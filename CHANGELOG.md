@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v97 — «Aspecto» en pixel art
+- `vistas.js`: `apariencia-previa` usa `figuraPixel` (54 × 72, al doble exacto: 108 px). Era lo último que quedaba en vector (aparte del ícono de la app, que es la imagen del usuario). 300 pruebas.
+
 ## v96 — Todo en pixel art: letra, dibujos, minijuegos e íconos
 - `retratos.js`: `pixelarEnVivo(svg, paso)` sirve para cualquier dibujo (el filtro cubre su viewBox; se exporta), `pixelEstatico(svg, ancho, alto)` (imagen fija; la clave quita los ids que cambian, ver `nuevoId`) y `cuerpoGymPixel(d)` (62 × 72, con ojos; encuadre `gym`).
 - En vivo (siguen animados): la mascota grande (72 → 44 puntos), el escenario de la campaña, el cofre, el sello, la firma (trazo más grueso), el anillo del reloj de Enfoque y el del descanso del gym, los ejercicios (60 puntos) y la escena de carga (filtro escrito en index.html). Fijos: los objetos (32 × 32) y el retrato pequeño de la mascota. Se probó aplicar el filtro desde CSS (`filter: url(#…)`): en WebKit los elementos desaparecen, por eso va dentro de cada SVG.

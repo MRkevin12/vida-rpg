@@ -874,3 +874,8 @@ body {
 .titulo-juego {
     text-shadow: 1px 0 0 currentColor, 0 2px 0 var(--tinta);
 }
+
+/* (v97) La vista previa de «Aspecto» también en pixel art, al doble exacto (54 → 108 px): cada punto, 2 × 2. */
+.apariencia-previa .figura-pixel {
+    width: 108px;
+}

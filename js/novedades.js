@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 96;
+export const VERSION_APP = 97;
 
 export const NOVEDADES = [
+    {
+        version: 97,
+        titulo: "«Aspecto» en pixel art",
+        cambios: [
+            "🎨 En Héroe › Aspecto, la vista previa de tu héroe ahora es pixel art: ves exactamente cómo saldrá en el juego.",
+        ],
+    },
     {
         version: 96,
         titulo: "Todo en pixel art",
