@@ -1050,3 +1050,130 @@ body {
     height: 112px;
     margin: 0 auto;
 }
+
+
+/* =====================================================================
+   El vínculo con tu mascota (v103)
+   ===================================================================== */
+.vinculo {
+    display: grid;
+    gap: 6px;
+    margin: 10px 0;
+    padding: 10px 12px;
+    background: rgba(236, 72, 153, 0.07);
+    border: 2px solid rgba(236, 72, 153, 0.35);
+    border-radius: var(--esquina);
+}
+
+.vinculo-titulo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 0;
+}
+
+.barra-vinculo .barra-relleno {
+    background: linear-gradient(90deg, #db2777, #f472b6);
+}
+
+.cuidados {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.cuidado {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    min-height: 62px;
+    padding: 6px 2px;
+    font-size: 0.8rem;
+    color: var(--texto);
+    background: linear-gradient(180deg, #221a3d 0 50%, #1b1432 50% 100%);
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
+    box-shadow: 0 0 0 1px var(--tinta), 0 3px 0 var(--tinta);
+    cursor: pointer;
+}
+
+.cuidado > span {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.cuidado small {
+    font-size: 0.68rem;
+    color: #f9a8d4;
+}
+
+.cuidado.hecho {
+    border-color: rgba(52, 211, 153, 0.5);
+}
+
+.cuidado.hecho small {
+    color: var(--verde);
+}
+
+.cuidado:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.cuidado:active:not(:disabled) {
+    transform: translateY(2px);
+}
+
+/* Lo que hace al cuidarla o al pedirle un truco (la animación va en el marco del dibujo). */
+.mascota-dibujo.juega { animation: mascota-juega 0.7s steps(6); }
+.mascota-dibujo.cepillado { animation: mascota-cepillado 0.8s steps(8); }
+.mascota-dibujo.entrena { animation: mascota-entrena 0.6s steps(6); }
+.mascota-dibujo.truco-sentarse { animation: truco-sentarse 0.9s steps(6); }
+.mascota-dibujo.truco-saludar { animation: truco-saludar 0.9s steps(8); }
+.mascota-dibujo.truco-rugir { animation: truco-rugir 0.8s steps(10); }
+.mascota-dibujo.truco-vuelta { animation: truco-vuelta 0.9s steps(12); }
+
+@keyframes mascota-juega {
+    25% { transform: translateY(-14px); }
+    50% { transform: translateY(0); }
+    75% { transform: translateY(-7px); }
+}
+
+@keyframes mascota-cepillado {
+    0%, 100% { filter: none; }
+    50% { filter: brightness(1.5) drop-shadow(0 0 6px #fff7c2); }
+}
+
+@keyframes mascota-entrena {
+    30% { transform: translateX(-8px) scale(1.04); }
+    60% { transform: translateX(10px); }
+}
+
+@keyframes truco-sentarse {
+    40%, 70% { transform: scaleY(0.85) translateY(6px); }
+}
+
+@keyframes truco-saludar {
+    25%, 75% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+}
+
+@keyframes truco-rugir {
+    0%, 100% { transform: none; filter: none; }
+    20%, 60% { transform: scale(1.12) translateX(-3px); filter: brightness(1.3); }
+    40%, 80% { transform: scale(1.12) translateX(3px); }
+}
+
+@keyframes truco-vuelta {
+    0% { transform: translateY(0) rotate(0); }
+    50% { transform: translateY(-24px) rotate(180deg); }
+    100% { transform: translateY(0) rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mascota-dibujo[class*="truco-"],
+    .mascota-dibujo.juega,
+    .mascota-dibujo.entrena {
+        animation: none;
+    }
+}

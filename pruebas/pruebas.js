@@ -56,6 +56,7 @@ import { ICONOS, EMOJIS, icono, iconizar } from "../js/iconos.js";
 import * as retratos from "../js/retratos.js";
 import * as fx from "../js/efectos.js";
 import * as insigniasModulo from "../js/insignias.js";
+import * as mascotaModulo from "../js/mascota.js";
 import { dibujarInsignia } from "../js/dibujo-insignias.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
@@ -6310,6 +6311,37 @@ prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no
     const cura = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "curar", cura: 5, nombre: "Regenerar" }]));
     cierto(!cura.includes("ff-atq "), "curarse no es atacar");
     cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
+});
+
+// ===== Cuidar a la mascota (v103) =====
+
+prueba("Mascota (v103): cada cuidado suma una vez al día, el huevo no juega, y explorar es una vez al día", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.cuidarMascota(estado, "jugar"), "huevo");
+    igual(acciones.cuidarMascota(estado, "acariciar").puntos, 2);
+    igual(acciones.cuidarMascota(estado, "acariciar").repetido, true, "acariciar otra vez ya no suma");
+    igual(mascotaModulo.vinculoDe(estado, "dragon"), 2);
+    debeFallar(() => acciones.explorarConMascota(estado), "huevo");
+    for (let i = 0; i < 12; i++) marcarEn(estado, crearMision(estado, { nombre: `M${i}` }), hoy());   // ya nació (10 misiones)
+    acciones.cuidarMascota(estado, "jugar");
+    acciones.cuidarMascota(estado, "cepillar");
+    acciones.cuidarMascota(estado, "entrenar");
+    igual(mascotaModulo.vinculoDe(estado, "dragon"), 2 + 3 + 2 + 3);
+    const r = acciones.explorarConMascota(estado, () => 0.1);   // sale gemas
+    igual(r.hallazgo.tipo, "gemas");
+    debeFallar(() => acciones.explorarConMascota(estado), "Hoy ya salió");
+    igual(mascotaModulo.vinculoDe(estado, "dragon"), 12, "explorar suma 2");
+    igual(mascotaModulo.nivelDeVinculo(12).nombre, "Conocido");
+    igual(mascotaModulo.trucosDe(12).map((t) => t.id), ["sentarse"]);
+});
+
+prueba("Mascota (v103): el vínculo la hace pelear más en la Torre", () => {
+    const estado = partidaNueva();
+    for (let i = 0; i < 55; i++) marcarEn(estado, crearMision(estado, { nombre: `M${i}` }), hoy());
+    const m = avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())).mascota;
+    const antes = mascotaModulo.mascotaDeBatalla(estado, m, hoy()).potencia;
+    estado.mascota.vinculo = { dragon: 140 };   // alma gemela
+    igual(mascotaModulo.mascotaDeBatalla(estado, m, hoy()).potencia, Math.round(antes * 1.16 * 100) / 100);
 });
 
 // ===== Insignias (v101) =====

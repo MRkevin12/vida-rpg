@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 102;
+export const VERSION_APP = 103;
 
 export const NOVEDADES = [
+    {
+        version: 103,
+        titulo: "Cuida a tu mascota",
+        cambios: [
+            "💗 Cada mascota tiene un vínculo contigo, de «Desconocido» a «Alma gemela». Con más vínculo pelea hasta 16 % más fuerte en la Torre.",
+            "🎲 Cuatro cuidados cada día: acariciar, jugar, cepillar y entrenar. Cada uno sube el vínculo y tu mascota reacciona con una animación.",
+            "🧭 Una vez al día puedes mandarla a explorar: vuelve con gemas, una ficha del arcade, hierbas que te curan… o solo con ganas de verte.",
+            "🐾 Al subir el vínculo aprende trucos: sentarse, saludar, rugir y dar una vuelta en el aire.",
+        ],
+    },
     {
         version: 102,
         titulo: "Mucho más para personalizar tu héroe",

@@ -4394,14 +4394,16 @@ function seccionMascota(estado, m, ctx) {
             </div>
             <p class="mini">${habilidadDeMascota(m.especie)}</p>
             <p class="mini texto-suave">🗼 En la Torre ${enLaTorre}.</p>
+            ${panelDeVinculo(estado, m, ctx)}
             <div class="mascota-acciones">
-                <button type="button" class="boton boton-secundario" data-accion="acariciar-dragon">🤚 Acariciar</button>
                 <button type="button" class="boton ${comio ? "boton-secundario" : "boton-oro"}" data-accion="alimentar-dragon" ${comio ? "disabled" : ""}>
                     🍖 ${comio ? "Ya comió hoy" : `Alimentar · 💎 ${mascota.COMIDA.precio}`}</button>
+                ${botonExplorar(estado, m, ctx)}
             </div>
-            <p class="mini mascota-frase" id="mascota-frase">${comio
-                ? `${esc(m.nombre)} comió hoy y está de buen ánimo.`
-                : `Acarícialo, o dale de comer una vez al día (+${mascota.COMIDA.cura} ❤️ para ti).`}</p>
+            <p class="mini mascota-frase" id="mascota-frase">${estado.mascota.exploraciones?.[ctx.hoy]?.especie === m.especie
+                ? esc(estado.mascota.exploraciones[ctx.hoy].texto)
+                : comio ? `${esc(m.nombre)} comió hoy y está de buen ánimo.`
+                : `Cuídalo cada día: sube su vínculo contigo. Comer le da ánimo (+${mascota.COMIDA.cura} ❤️ para ti).`}</p>
             <form class="form-linea" data-form="mascota">
                 <input type="text" name="nombre" maxlength="20" required autocomplete="off" placeholder="Nuevo nombre" aria-label="Nombre de la mascota">
                 <button type="submit" class="boton boton-chico">Renombrar</button>
@@ -4410,6 +4412,40 @@ function seccionMascota(estado, m, ctx) {
             ${otras ? `<h3 class="subtitulo">Tus otras mascotas</h3><ul class="lista">${otras}</ul>` : ""}
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="subvista" data-pantalla="tienda" data-vista="mascotas">🐾 Adoptar en la tienda</button>
         </section>`;
+}
+
+// (v103) El vínculo con tu mascota: su nivel, los cuidados de hoy y los trucos que aprendió.
+function panelDeVinculo(estado, m, ctx) {
+    const puntos = mascota.vinculoDe(estado, m.especie);
+    const v = mascota.nivelDeVinculo(puntos);
+    const hechos = mascota.cuidadosDeHoy(estado, m.especie, ctx.hoy);
+    const huevo = m.etapa.clave === "huevo";
+    const cuidados = Object.entries(mascota.CUIDADOS).map(([tipo, c]) => {
+        const hecho = hechos.includes(tipo);
+        const imposible = huevo && !c.huevo;
+        // Acariciar se puede repetir (te responde), pero suma una sola vez al día.
+        const apagado = imposible || (hecho && tipo !== "acariciar");
+        return `<button type="button" class="cuidado ${hecho ? "hecho" : ""}" data-accion="cuidar-mascota" data-tipo="${tipo}" ${apagado ? "disabled" : ""}
+                        title="${c.texto}"><span aria-hidden="true">${hecho ? "✅" : c.icono}</span>${c.nombre}<small>${hecho ? "hoy ✓" : imposible ? "al nacer" : `+${c.puntos}`}</small></button>`;
+    }).join("");
+    const trucos = mascota.trucosDe(puntos);
+    const proximo = mascota.TRUCOS.find((t) => t.nivel > v.indice);
+    return `
+        <div class="vinculo">
+            <p class="vinculo-titulo"><span>💗 Vínculo: <b>${v.nombre}</b></span><small>${v.siguiente ? `${puntos} / ${v.siguiente.desde}` : "al máximo"}</small></p>
+            ${barra(v.porcentaje, "barra-mini barra-vinculo")}
+            <p class="mini texto-suave">${v.bono ? `Pelea ${Math.round(v.bono * 100)} % más en la Torre. ` : ""}${v.siguiente ? `Siguiente: ${v.siguiente.nombre}${proximo ? ` (aprende «${proximo.nombre}»)` : ""}.` : "Nada los separa."}</p>
+            <div class="cuidados">${cuidados}</div>
+            ${trucos.length ? `<p class="mini">Trucos: ${trucos.map((t) => `<button type="button" class="chip" data-accion="truco-mascota" data-truco="${t.id}">${t.icono} ${t.nombre}</button>`).join(" ")}</p>` : ""}
+        </div>`;
+}
+
+// (v103) Mandarla a explorar (una vez al día).
+function botonExplorar(estado, m, ctx) {
+    const hoyFue = estado.mascota.exploraciones?.[ctx.hoy];
+    const huevo = m.etapa.clave === "huevo";
+    return `<button type="button" class="boton ${hoyFue || huevo ? "boton-secundario" : "boton-principal"}" data-accion="explorar-mascota" ${hoyFue || huevo ? "disabled" : ""}>
+                🧭 ${hoyFue ? "Ya exploró hoy" : huevo ? "Explorar (al nacer)" : "Explorar"}</button>`;
 }
 
 // Objetos que no se compran: solo se ganan con logros.

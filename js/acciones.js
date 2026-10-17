@@ -1674,6 +1674,53 @@ export function abrirCofre(estado, azar = Math.random) {
 }
 
 
+// ===== (v103) Cuidar a tu mascota =====
+
+// Un cuidado (acariciar, jugar, cepillar, entrenar): cada uno, una vez al día por mascota. Sube el vínculo.
+export function cuidarMascota(estado, tipo) {
+    const cuidado = mascota.CUIDADOS[tipo];
+    if (!cuidado) throw new Error("Ese cuidado no existe.");
+    const fecha = hoy();
+    const especie = mascota.especieActiva(estado);
+    const nombre = mascota.nombreDe(estado, especie);
+    const etapa = avatar.etapaSegun(avatar.ETAPAS_MASCOTA, mascota.totalDe(estado, especie)).clave;
+    if (etapa === "huevo" && !cuidado.huevo) throw new Error(`${nombre} todavía es un huevo: espera a que nazca.`);
+    const hechos = mascota.cuidadosDeHoy(estado, especie, fecha);
+    if (hechos.includes(tipo)) return { repetido: true, nombre };   // acariciar otra vez se puede, pero ya no suma
+    if (estado.mascota.cuidados?.fecha !== fecha) estado.mascota.cuidados = { fecha, hechos: {} };
+    estado.mascota.cuidados.hechos[especie] = [...hechos, tipo];
+    const antes = mascota.nivelDeVinculo(mascota.vinculoDe(estado, especie));
+    estado.mascota.vinculo ||= {};
+    estado.mascota.vinculo[especie] = mascota.vinculoDe(estado, especie) + cuidado.puntos;
+    const despues = mascota.nivelDeVinculo(estado.mascota.vinculo[especie]);
+    const celebraciones = [];
+    if (despues.indice > antes.indice) {
+        const truco = mascota.TRUCOS.find((t) => t.nivel === despues.indice);
+        celebraciones.push({ icono: "🐾", etiqueta: `Vínculo con ${nombre}`, titulo: despues.nombre,
+                             detalle: truco ? `Aprendió un truco: ${truco.nombre}.` : `Ahora pelea ${Math.round(despues.bono * 100)} % más fuerte en la Torre.` });
+    }
+    return { celebraciones, nombre, puntos: cuidado.puntos };
+}
+
+// Explorar: una vez al día, tu mascota sale y vuelve con algo.
+export function explorarConMascota(estado, azar = Math.random) {
+    const fecha = hoy();
+    const especie = mascota.especieActiva(estado);
+    const nombre = mascota.nombreDe(estado, especie);
+    const etapa = avatar.etapaSegun(avatar.ETAPAS_MASCOTA, mascota.totalDe(estado, especie)).clave;
+    if (etapa === "huevo") throw new Error(`${nombre} todavía es un huevo: no puede salir.`);
+    estado.mascota.exploraciones ||= {};
+    if (estado.mascota.exploraciones[fecha]) throw new Error("Hoy ya salió a explorar. Mañana puede volver a salir.");
+    const hallazgo = mascota.explorar(nombre, azar);
+    estado.mascota.exploraciones[fecha] = { especie, tipo: hallazgo.tipo, cantidad: hallazgo.cantidad, texto: hallazgo.texto };
+    if (hallazgo.tipo === "gemas") ganar(estado, { gemas: hallazgo.cantidad });
+    if (hallazgo.tipo === "fichas") estado.arcade.extra = (estado.arcade.extra || 0) + hallazgo.cantidad;
+    estado.mascota.vinculo ||= {};
+    estado.mascota.vinculo[especie] = mascota.vinculoDe(estado, especie) + mascota.VINCULO_EXPLORAR;
+    return { hallazgo };
+}
+
+
 // ===== Tu dragón =====
 
 export function alimentarDragon(estado) {

@@ -3025,6 +3025,34 @@ const ACCIONES = {
         if (dibujo) reproducirAnimacion(dibujo, "acariciado");
         sonar("ronroneo");
     },
+    // (v103) Los cuidados de cada día: acariciar, jugar, cepillar y entrenar. Suben el vínculo.
+    "cuidar-mascota": (boton) => {
+        const tipo = boton.dataset.tipo;
+        const resultado = ejecutar(() => acciones.cuidarMascota(estado, tipo), { mantenerScroll: true });
+        if (!resultado) return;
+        const cuidado = mascota.CUIDADOS[tipo];
+        const frase = tipo === "acariciar" ? mascota.fraseAlAcariciar(estado, avatarActual().mascota, hoy())
+            : `${resultado.nombre}: ${cuidado.texto}`;
+        $("#mascota-frase").textContent = resultado.repetido ? frase : `${frase} (+${resultado.puntos} de vínculo)`;
+        const dibujo = $(".mascota-dibujo");
+        if (dibujo) reproducirAnimacion(dibujo, { acariciar: "acariciado", jugar: "juega", cepillar: "cepillado", entrenar: "entrena" }[tipo]);
+        sonar(tipo === "acariciar" ? "ronroneo" : "cursor");
+    },
+    "explorar-mascota": () => {
+        const resultado = ejecutar(() => acciones.explorarConMascota(estado), { mantenerScroll: true });
+        if (!resultado) return;
+        $("#mascota-frase").textContent = resultado.hallazgo.texto;
+        sonar(resultado.hallazgo.tipo === "nada" ? "cursor" : "cofre");
+    },
+    // (v103) Un truco: solo se ve (no cambia nada de la partida).
+    "truco-mascota": (boton) => {
+        const truco = mascota.TRUCOS.find((t) => t.id === boton.dataset.truco);
+        if (!truco) return;
+        $("#mascota-frase").textContent = truco.frase.replace("{n}", avatarActual().mascota.nombre);
+        const dibujo = $(".mascota-dibujo");
+        if (dibujo) reproducirAnimacion(dibujo, truco.animacion);
+        sonar(truco.id === "rugir" ? "retumbo" : "cursor");
+    },
     "alimentar-dragon": () => {
         if (ejecutar(() => acciones.alimentarDragon(estado))) sonar("moneda");
     },

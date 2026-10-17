@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v103 — Cuida a tu mascota
+- `mascota.js`: `CUIDADOS`, `VINCULO` (5 niveles con bono), `TRUCOS`, `vinculoDe`, `nivelDeVinculo`, `cuidadosDeHoy`, `trucosDe`, `explorar` (tabla de hallazgos con peso) y `curaDeExploracion`. `mascotaDeBatalla` multiplica la potencia por (1 + bono del vínculo).
+- `acciones.js`: `cuidarMascota(estado, tipo)` (una vez al día por mascota; el huevo solo acaricia y cepilla; celebración al subir de nivel) y `explorarConMascota` (gemas, fichas, vida —`vida.js` la suma— o nada; +2 de vínculo). `datos.js`: `version` 30 y `mascota.vinculo`, `mascota.cuidados`, `mascota.exploraciones`.
+- Pantalla: panel de vínculo con barra, 4 botones de cuidado, trucos aprendidos y botón Explorar; animaciones CSS (juega, cepillado, entrena y los 4 trucos). 2 pruebas nuevas; 305 pruebas.
+
 ## v102 — Mucho más para personalizar tu héroe
 - `avatar.js › APARIENCIA`: piel +3 (porcelana, oliva, ébano), rostro +2 (severo, cansado), ojos +4, pelo +6, peinado +4, barba +4, traje +6; categorías nuevas `marca` y `complemento` (y en `APARIENCIA_INICIAL` y `datos.js`). La pantalla de Aspecto se arma sola con los datos (`TITULOS_APARIENCIA` suma «Marcas» y «Complementos»).
 - `dibujo-cuerpo.js`: `ROSTROS` suma severo y cansado (con ojeras), `marcaDeCara`, `complemento(d, p)` (va sobre el pelo de adelante y bajo los lentes y el sombrero), 4 barbas y 4 peinados nuevos (la trenza y el moño tienen capa de atrás).

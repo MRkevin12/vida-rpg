@@ -16,7 +16,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 29,   // 28 (v100): equipado.piernas y equipado.pies · 29 (v101): insignias
+        version: 30,   // 28 (v100): equipado.piernas y equipado.pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -89,6 +89,9 @@ export function estadoInicial() {
             nombre: "Chispa", // el nombre del dragón, tu primera mascota
             comidas: [],      // los días en que comió la que te acompañaba
             activa: "dragon", // la que te acompaña
+            vinculo: {},      // (v103) puntos de vínculo de cada una: { dragon: 37 }
+            cuidados: null,   // (v103) los cuidados de hoy: { fecha, hechos: { dragon: ["jugar"] } }
+            exploraciones: {}, // (v103) lo que trajo al explorar cada día: { fecha: { especie, tipo, cantidad, texto } }
             adoptadas: {},    // las que adoptaste en la Tienda: { fenix: { nombre, desde (fecha) } }
         },
         arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, minas: null, laberinto: null, fragua: null, diaria: { fecha: null, mejor: 0, cobrado: false }, extra: 0, bestiario: {}, bazar: [], despertar: false, retos: {} },   // fichas gastadas, mejor
@@ -164,7 +167,8 @@ function completar(guardado) {
             comprados: avatar.comprados || [],
             equipado: { ...base.avatar.equipado, ...avatar.equipado },
         },
-        mascota: { ...base.mascota, ...guardado.mascota, adoptadas: { ...guardado.mascota?.adoptadas } },
+        mascota: { ...base.mascota, ...guardado.mascota, adoptadas: { ...guardado.mascota?.adoptadas },
+                   vinculo: { ...guardado.mascota?.vinculo }, exploraciones: { ...guardado.mascota?.exploraciones } },
         pergaminos: { leidos: { ...guardado.pergaminos?.leidos } },
         insignias: { vistas: guardado.insignias?.vistas || null, puesta: guardado.insignias?.puesta || null },   // (v101)
         libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio }, orrin: { ...base.libros.orrin, ...guardado.libros?.orrin } },

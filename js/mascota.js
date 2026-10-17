@@ -129,7 +129,10 @@ export function mascotaDeBatalla(estado, m, fecha) {
         etapa: m.etapa.clave,
         alimentada,
         triste: m.triste,
-        potencia: potenciaDe(m.etapa.clave, { alimentada, triste: m.triste }),
+        // (v103) El vínculo le suma hasta 16 % (si ya pelea).
+        potencia: Math.round(potenciaDe(m.etapa.clave, { alimentada, triste: m.triste })
+            * (1 + nivelDeVinculo(estado.mascota?.vinculo?.[m.especie] || 0).bono) * 100) / 100,
+        vinculo: nivelDeVinculo(estado.mascota?.vinculo?.[m.especie] || 0).nombre,
     };
 }
 
@@ -209,4 +212,85 @@ export function fraseAlAcariciar(estado, mascota, fecha, azar = Math.random) {
     // Si ya salió del huevo y hoy no comió, a veces lo dice.
     if (!comioHoy(estado, fecha) && azar() < 0.4) return `${frase} ${elegir(FRASES.hambre)}`;
     return frase;
+}
+
+
+// ===== (v103) El vínculo: cuidarla cada día =====
+// Cada mascota tiene su vínculo contigo (puntos). Sube con los CUIDADOS de cada día (cada uno una vez al día)
+// y con las exploraciones. Con más vínculo aprende trucos y pelea un poco más fuerte en la Torre.
+//
+// Lo que se guarda (estado.mascota):
+//   vinculo       = { dragon: 37, fenix: 5 }                       los puntos de cada una
+//   cuidados      = { fecha: "AAAA-MM-DD", hechos: { dragon: ["jugar", "cepillar"] } }   solo los de HOY
+//   exploraciones = { "AAAA-MM-DD": { especie, tipo, cantidad, texto } }                  una por día
+
+export const CUIDADOS = {
+    acariciar: { nombre: "Acariciar", icono: "🤚", puntos: 2, huevo: true,  texto: "Una caricia. Siempre funciona." },
+    jugar:     { nombre: "Jugar",     icono: "🎲", puntos: 3, huevo: false, texto: "Le lanzas algo y lo trae de vuelta." },
+    cepillar:  { nombre: "Cepillar",  icono: "🪶", puntos: 2, huevo: true,  texto: "Le limpias las escamas (o las plumas, o el cascarón)." },
+    entrenar:  { nombre: "Entrenar",  icono: "⚔️", puntos: 3, huevo: false, texto: "Practican juntos un ataque." },
+};
+
+// Los niveles del vínculo. bono = cuánto más pelea en la Torre.
+export const VINCULO = [
+    { nombre: "Desconocido", desde: 0,   bono: 0 },
+    { nombre: "Conocido",    desde: 12,  bono: 0.04 },
+    { nombre: "Compañero",   desde: 35,  bono: 0.08 },
+    { nombre: "Amigo fiel",  desde: 75,  bono: 0.12 },
+    { nombre: "Alma gemela", desde: 140, bono: 0.16 },
+];
+
+// Los trucos: se aprenden con el vínculo (nivel = el índice en VINCULO). animacion = clase CSS del dibujo.
+export const TRUCOS = [
+    { id: "sentarse", nombre: "Sentarse",       icono: "🐾", nivel: 1, animacion: "truco-sentarse", frase: "{n} se sienta, muy derecho, y te mira esperando." },
+    { id: "saludar",  nombre: "Saludar",        icono: "🤚", nivel: 2, animacion: "truco-saludar",  frase: "{n} levanta una garra y la mueve. ¡Te está saludando!" },
+    { id: "rugir",    nombre: "Rugido",         icono: "💥", nivel: 3, animacion: "truco-rugir",    frase: "{n} suelta un rugido que hace temblar la ventana." },
+    { id: "vuelta",   nombre: "Vuelta en el aire", icono: "🌀", nivel: 4, animacion: "truco-vuelta", frase: "{n} da una vuelta completa en el aire y aterriza con estilo." },
+];
+
+export const VINCULO_EXPLORAR = 2;   // puntos de vínculo por explorar
+
+export const vinculoDe = (estado, especie) => estado.mascota?.vinculo?.[especie] || 0;
+
+// El nivel del vínculo: { indice, nombre, bono, puntos, siguiente (o null), porcentaje hasta el siguiente }.
+export function nivelDeVinculo(puntos) {
+    let indice = 0;
+    VINCULO.forEach((v, i) => { if (puntos >= v.desde) indice = i; });
+    const actual = VINCULO[indice], siguiente = VINCULO[indice + 1] || null;
+    const porcentaje = siguiente ? Math.round((100 * (puntos - actual.desde)) / (siguiente.desde - actual.desde)) : 100;
+    return { indice, ...actual, puntos, siguiente, porcentaje };
+}
+
+// Los cuidados que ya le diste HOY a esa mascota.
+export function cuidadosDeHoy(estado, especie, fecha) {
+    const c = estado.mascota?.cuidados;
+    return c?.fecha === fecha ? c.hechos?.[especie] || [] : [];
+}
+
+export const trucosDe = (puntos) => TRUCOS.filter((t) => nivelDeVinculo(puntos).indice >= t.nivel);
+
+// ===== Explorar =====
+// Una vez al día la mandas a explorar y vuelve con algo. Los premios son pequeños: es un regalo, no un trabajo.
+const HALLAZGOS = [
+    { tipo: "gemas",  min: 3, max: 9, peso: 45, texto: "{n} vuelve con {c} gemas brillando en el hocico." },
+    { tipo: "fichas", min: 1, max: 1, peso: 20, texto: "{n} encontró una ficha del arcade entre unas raíces." },
+    { tipo: "vida",   min: 4, max: 8, peso: 20, texto: "{n} te trae unas hierbas que curan: +{c} de vida." },
+    { tipo: "nada",   min: 0, max: 0, peso: 15, texto: "{n} vuelve cansado y sin nada… pero muy contento de verte." },
+];
+const LUGARES = ["el bosque", "las ruinas del valle", "la orilla del río", "las colinas", "una cueva cercana", "el viejo camino real"];
+
+export function explorar(nombre, azar = Math.random) {
+    const total = HALLAZGOS.reduce((s, h) => s + h.peso, 0);
+    let r = azar() * total, hallazgo = HALLAZGOS[0];
+    for (const h of HALLAZGOS) { if ((r -= h.peso) < 0) { hallazgo = h; break; } }
+    const cantidad = hallazgo.min + Math.floor(azar() * (hallazgo.max - hallazgo.min + 1));
+    const lugar = LUGARES[Math.floor(azar() * LUGARES.length)];
+    return { tipo: hallazgo.tipo, cantidad, lugar,
+             texto: `Exploró ${lugar}. ${hallazgo.texto.replace("{n}", nombre).replace("{c}", cantidad)}` };
+}
+
+// La vida que te curan las hierbas que trajo hoy (vida.js la suma, como la comida).
+export function curaDeExploracion(estado, fecha) {
+    const e = estado.mascota?.exploraciones?.[fecha];
+    return e?.tipo === "vida" ? e.cantidad : 0;
 }

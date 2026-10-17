@@ -21,6 +21,7 @@
 // Como juego.js, este archivo no dibuja ni guarda nada: solo calcula.
 
 import * as juego from "./juego.js";
+import { curaDeExploracion } from "./mascota.js";   // (v103)
 import { eventoDelDia, factorPremio, factorCura } from "./eventos.js";
 import { sumarDias, diaDeSemana, lunesDe } from "./fechas.js";
 import { ARMADURA, armaduraMaxima, factorArmadura } from "./equipo.js";
@@ -110,6 +111,7 @@ function curacionDelDia(estado, fecha, mapas) {
     if (estado.diario[fecha]) cura += VIDA.diario;
     if (estado.cofres?.[fecha]?.tipo === "pocion") cura += estado.cofres[fecha].cantidad;   // la poción del cofre
     cura += (estado.mascota?.comidas || []).filter((f) => f === fecha).length * VIDA.comidaDragon;
+    cura += curaDeExploracion(estado, fecha);   // (v103) las hierbas que trajo tu mascota al explorar
     return cura;
 }
 
