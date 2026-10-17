@@ -210,8 +210,15 @@ export function fuenteDe(id) {
     return COMMONS + CREDITOS[id].archivo;
 }
 
+// (v95) Las versiones en pixel art de los jefes (app.js › pinturasEnPixel las pone aquí cuando están listas).
+const enPixel = new Map();
+export function ponerImagenPixel(id, direccion) {
+    enPixel.set(id, direccion);
+}
+
+// La imagen del jefe: su versión en pixel art si ya está lista; si no, la pintura de siempre.
 export function imagenDe(id) {
-    return `jefes/${id}.jpg`;
+    return enPixel.get(id) || `jefes/${id}.jpg`;
 }
 
 // Cómo se ve el jefe según la vida que le queda.

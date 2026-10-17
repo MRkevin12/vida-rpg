@@ -789,3 +789,14 @@ img.figura-pixel { aspect-ratio: 54 / 72; }
         animation: none;
     }
 }
+
+
+/* (v95) Las pinturas en pixel art (pixel-pintura.js) y cualquier imagen hecha en el teléfono (data:image/png)
+   se agrandan sin suavizar; también los fondos pintados con CSS (la Torre, el ánimo, la aldea). */
+img[src^="data:image/png"],
+.torre-portada,
+.animo-fondo,
+.voces-lugar,
+.voces-escena {
+    image-rendering: pixelated;
+}

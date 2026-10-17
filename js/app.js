@@ -39,7 +39,7 @@ import * as rituales from "./rituales.js";
 import * as mascota from "./mascota.js";
 import * as mapa from "./mapa.js";
 import { eventoDelDia } from "./eventos.js";
-import { PINTURAS, fuentePintura } from "./pinturas.js";
+import { PINTURAS, fuentePintura, ponerPinturaPixel } from "./pinturas.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import * as minijuegos from "./minijuegos.js";
 import * as sonido from "./sonido.js";
@@ -53,6 +53,7 @@ import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { vigilarIconos } from "./iconos.js";
 import { retratoPixel, figuraPixel, dioramaPixel } from "./retratos.js";
 import * as fx from "./efectos.js";   // fx = "efectos especiales", como en el cine (v94)
+import { prepararPinturas } from "./pixel-pintura.js";   // (v95) las pinturas en pixel art
 import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, relojLargo, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
 
 
@@ -129,6 +130,7 @@ function avatarActual() {
 function iniciar() {
     vigilarIconos();             // (v91) los emojis de la página se vuelven íconos en pixel art
     fx.recordarToques();    // (v94) de donde tocas salen las monedas que ganas
+    pinturasEnPixel();           // (v95) los jefes y los fondos en pixel art, en segundo plano
     datos.pedirAlmacenamientoPersistente();
     registrarServiceWorker();
     rellenarOpciones();
@@ -1301,6 +1303,26 @@ function animarEntrada(nombre) {
 
 
 // ===== Animaciones y celebraciones =====
+
+// (v95) Todas las pinturas (los 20 jefes y los fondos) pasan a pixel art, en segundo plano y una por una.
+// La primera vez tarda unos segundos; después salen del caché al instante. Los retratos de jefe que ya están
+// en pantalla se cambian solos; para los fondos se redibuja la pantalla una vez, al final.
+function pinturasEnPixel() {
+    const jefes = Object.keys(campana.CREDITOS).map((id) => ({
+        clave: `jefe-${id}`, direccion: `jefes/${id}.jpg`, ancho: 96, alto: 120,
+        listo: (url) => {
+            campana.ponerImagenPixel(id, url);
+            for (const img of document.querySelectorAll(`img[src="jefes/${id}.jpg"]`)) img.src = url;
+        },
+    }));
+    // Los fondos cuadrados a 128 × 128, los escenarios de batalla (16:9) a 192 × 108 y la Torre (3:4) a 120 × 160.
+    const medidas = (id) => (id.startsWith("escena-") ? [192, 108] : id === "torre" ? [120, 160] : [128, 128]);
+    const fondos = Object.keys(PINTURAS).map((id) => ({
+        clave: `fondo-${id}`, direccion: `fondos/${id}.jpg`, ancho: medidas(id)[0], alto: medidas(id)[1],
+        listo: (url) => ponerPinturaPixel(id, url),
+    }));
+    prepararPinturas([...jefes, ...fondos]).then(() => { if (estado?.personaje) refrescar(); });
+}
 
 // (v94) Cuántas monedas, gemas y XP tienes ahora (para comparar antes y después de una acción).
 function bolsa() {

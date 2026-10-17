@@ -72,7 +72,8 @@ import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujar
 import { PISTAS } from "../js/musica.js";
 import * as musicaModulo from "../js/musica.js";
 import * as sonidoModulo from "../js/sonido.js";
-import { PINTURAS as PINTURAS_DE_FONDO } from "../js/pinturas.js";
+import { PINTURAS as PINTURAS_DE_FONDO, rutaPintura, ponerPinturaPixel } from "../js/pinturas.js";
+import { pixelarPintura } from "../js/pixel-pintura.js";
 import { partidaDemo } from "./demo.js";
 
 
@@ -6307,6 +6308,38 @@ prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no
     const cura = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "curar", cura: 5, nombre: "Regenerar" }]));
     cierto(!cura.includes("ff-atq "), "curarse no es atacar");
     cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
+});
+
+// ===== Pinturas en pixel art (v95) =====
+
+prueba("Pinturas: un jefe en pixel art mide 96 × 120 y usa como mucho 24 colores", async () => {
+    const url = await pixelarPintura("../jefes/medusa.jpg", 96, 120, { colores: 24, clave: "prueba-medusa" });
+    cierto(url?.startsWith("data:image/png"), "sale una imagen");
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    igual([img.naturalWidth, img.naturalHeight], [96, 120]);
+    const lienzo = document.createElement("canvas");
+    lienzo.width = 96; lienzo.height = 120;
+    const g = lienzo.getContext("2d");
+    g.drawImage(img, 0, 0);
+    const puntos = g.getImageData(0, 0, 96, 120).data;
+    const colores = new Set();
+    for (let i = 0; i < puntos.length; i += 4) colores.add(`${puntos[i]},${puntos[i + 1]},${puntos[i + 2]}`);
+    cierto(colores.size <= 24 && colores.size >= 8, `usa ${colores.size} colores`);
+});
+
+prueba("Pinturas: la campaña y los fondos usan la versión en pixel art cuando está lista", () => {
+    igual(campana.imagenDe("hidra"), "jefes/hidra.jpg", "antes: la pintura");
+    campana.ponerImagenPixel("hidra", "data:image/png;base64,AA");
+    igual(campana.imagenDe("hidra"), "data:image/png;base64,AA");
+    igual(rutaPintura("mar"), "fondos/mar.jpg");
+    ponerPinturaPixel("mar", "data:image/png;base64,BB");
+    igual(rutaPintura("mar"), "data:image/png;base64,BB");
+    // Se deja como estaba, para no molestar a las otras pruebas.
+    campana.ponerImagenPixel("hidra", null);
+    ponerPinturaPixel("mar", null);
+    igual(rutaPintura("mar"), "fondos/mar.jpg");
 });
 
 // ===== Recompensas que vuelan (v94) =====

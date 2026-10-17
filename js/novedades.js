@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 94;
+export const VERSION_APP = 95;
 
 export const NOVEDADES = [
+    {
+        version: 95,
+        titulo: "Los jefes y los paisajes, en pixel art",
+        cambios: [
+            "🐉 Los 20 jefes ahora son pixel art: las mismas pinturas clásicas, redibujadas punto por punto con una paleta propia y tramado, como en los RPG de antes.",
+            "🏞️ Los paisajes de tu héroe, los escenarios de batalla, la portada de la Torre y los lugares del valle también están en pixel art.",
+            "⚡ La primera vez tarda unos segundos (se hace en segundo plano); después queda guardado en el teléfono y sale al instante.",
+        ],
+    },
     {
         version: 94,
         titulo: "Recompensas que se sienten",

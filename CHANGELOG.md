@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v95 — Los jefes y los paisajes en pixel art
+- **`js/pixel-pintura.js` (nuevo):** `pixelarPintura(direccion, ancho, alto, { colores, tramado, contraste, saturacion, filo })`: achica en dos saltos, sube contraste y color, afila, saca una paleta de k colores con k-medias (10 vueltas, inicio fijo) y pinta cada punto con tramado de Bayer 4 × 4. `prepararPinturas(lista)` las hace una por una (con un respiro entre cada una) y las guarda en Cache Storage (`pixel-pinturas-v1`, no se borra al actualizar).
+- `campana.imagenDe(id)` y `rutaPintura(id)` devuelven la versión en pixel art si ya está (`ponerImagenPixel` / `ponerPinturaPixel`). `app.js › pinturasEnPixel()`: 20 jefes a 96 × 120 y los fondos (128 × 128, escenarios 192 × 108, Torre 120 × 160), 24 colores; al final se redibuja la pantalla.
+- CSS: toda imagen `data:image/png` y los fondos pintados con CSS se agrandan con `image-rendering: pixelated`; también las `<image>` de los SVG de fondo.
+- Se probó antes dibujar 5 jefes a mano en SVG: quedaban planos, como máscaras. Se descartó por esta forma, que conserva las pinturas. 2 pruebas nuevas; 300 pruebas.
+
 ## v94 — Recompensas que se sienten (el reino en pixel art, parte 4)
 - **`js/efectos.js` (nuevo, en app.js se importa como `fx`):** `recordarToques()` (dónde tocaste por última vez), `volar(icono, cuantos, destino)` (Web Animations API: abanico hacia arriba y caída en el destino, que da un saltito con la clase `recibe`), `cuantosPara(cantidad, paso, maximo)`, `contar(elemento, desde, hasta)` (requestAnimationFrame) y `confeti(contenedor)`.
 - `app.js`: `bolsa()` guarda monedas, gemas y XP antes de cada acción y `recompensar(antes)` hace volar lo ganado después de `refrescar`. Las celebraciones de nivel y de jefe agregan la clase `epica` (rayos con `repeating-conic-gradient` y máscara, destello y marco dorado) y confeti.

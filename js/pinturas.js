@@ -44,9 +44,15 @@ export const PINTURAS = {
                  archivo: "Giovanni Battista Piranesi - The Drawbridge, plate VII from the series Carceri d'Invenzione - Google Art Project.jpg" },
 };
 
-// La imagen recortada que usa la app.
+// (v95) Su versión en pixel art (pixel-pintura.js la pone aquí cuando está lista).
+const enPixel = new Map();
+export function ponerPinturaPixel(id, direccion) {
+    enPixel.set(id, direccion);
+}
+
+// La imagen que usa la app: en pixel art si ya está hecha; si no, la pintura recortada de fondos/.
 export function rutaPintura(id) {
-    return `fondos/${id}.jpg`;
+    return enPixel.get(id) || `fondos/${id}.jpg`;
 }
 
 // La página de la obra en Wikimedia Commons.

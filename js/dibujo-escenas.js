@@ -32,7 +32,7 @@ export function fondo(d, p) {
                     <stop offset="1" stop-color="#0b0816" stop-opacity=".7"/></linearGradient>
                 ${halo(`${id}-clase`, d.clase.color, 0.26)}
             </defs>
-            <image href="${rutaPintura(pintura)}" width="200" height="200" preserveAspectRatio="xMidYMid slice"/>
+            <image style="image-rendering: pixelated" href="${rutaPintura(pintura)}" width="200" height="200" preserveAspectRatio="xMidYMid slice"/>
             <rect width="200" height="200" fill="#0b0816" opacity=".12"/>
             <rect width="200" height="200" fill="url(#${id}-vineta)"/>
             <rect y="128" width="200" height="72" fill="url(#${id}-piso)"/>
@@ -139,7 +139,7 @@ export function escenario(categoria, id) {
                 <defs><radialGradient id="${id}-v" cx="50%" cy="44%" r="72%">
                     <stop offset=".3" stop-color="#0b0816" stop-opacity=".12"/>
                     <stop offset="1" stop-color="#0b0816" stop-opacity=".78"/></radialGradient></defs>
-                <image href="${rutaPintura(`escena-${categoria}`)}" width="320" height="180" preserveAspectRatio="xMidYMid slice"/>
+                <image style="image-rendering: pixelated" href="${rutaPintura(`escena-${categoria}`)}" width="320" height="180" preserveAspectRatio="xMidYMid slice"/>
                 <rect width="320" height="180" fill="url(#${id}-v)"/>
             </svg>`;
 }
