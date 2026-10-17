@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v92 — Batallas con ambiente (el reino en pixel art, parte 2)
+- `vistas.js`: `AMBIENTES` (zona → polvo, brasas, lluvia, viento, oro, burbujas, esporas, ceniza, latido, reflejos o llama azul), `ambienteFF(zona)` (16 partículas detrás de los personajes, con `azarFijo` para que no salten al redibujar) y `frenteFF(zona)` (bruma del suelo, luz que parpadea y esquinas oscuras, z-index 2).
+- `chispasFF(clase, cuando, cuantas)`: cuadritos que salen del impacto (golpe, crítico, fuego, hielo, rayo, garra de la mascota, herida en tu héroe, y 14 violetas al caer la criatura). `spriteFF` tiene una capa más, `.ff-retro`, para el retroceso al recibir un golpe. El crítico agrega `ff-golpe-critico` (destello y la sala se acerca).
+- `estilos-pixel.css`: todo lo anterior + «¡Victoria!» con degradado y contorno con `drop-shadow`. Con «Reducir movimiento» no hay partículas ni chispas.
+- Arreglo: `.ff-globo.aviso` heredaba `right`, `bottom` y `width` del aviso flotante `.aviso` y se estiraba hasta tapar a la criatura (intenciones «furia» y «curar»).
+- 1 prueba nueva (todas las zonas tienen ambiente; la escena dibuja capas y chispas). 295 pruebas. Revisado también en WebKit.
+
 ## v91 — El reino, en pixel art (parte 1: íconos, letra y paneles)
 - **`js/iconos.js` (nuevo):** 115 íconos en pixel art dibujados como filas de letras (cada letra es un color de `PALETA`; el contorno oscuro lo agrega `aTrazos`). Algunos se hacen con reglas (`pintar`: monedas, relojes, esferas) o se combinan (`encima`, `espejo`, `recolor`). `EMOJIS` dice qué emoji se cambia por qué ícono.
 - `vigilarIconos()` (se llama al principio de `iniciar()`): un `MutationObserver` cambia cada emoji de la lista por su `<svg class="pxi">` en cuanto aparece en la página, antes de pintarse. `vistas.js` no cambió. No toca `<option>`, `<textarea>`, dibujos SVG ni lo que esté dentro de `.con-emojis`. Ojo: la pregunta «¿hay alguno?» usa `HAY_ALGUNO` (sin `g`); con la `g`, `lastIndex` hacía que `matchAll` se saltara el emoji y la página se quedaba en un ciclo infinito.

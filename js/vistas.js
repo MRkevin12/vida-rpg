@@ -2845,13 +2845,53 @@ const barraTorre = (titulo, detalle = "") => `
     </div>`;
 
 // Una imagen en pixel art. talla = cuántos puntos mide de ancho (el CSS la agranda).
+// Va en tres capas, cada una con su propia animación: ff-figura (se mece en reposo), ff-paso (lo que hace:
+// avanzar, embestir…) y ff-retro (v92: el retroceso al recibir un golpe). Así no se pisan entre ellas.
 const spriteFF = (direccion, nombre, talla, tinte = "") => `
-    <span class="ff-figura"${tinte ? ` style="filter: ${tinte}"` : ""}><span class="ff-paso">
+    <span class="ff-figura"${tinte ? ` style="filter: ${tinte}"` : ""}><span class="ff-paso"><span class="ff-retro">
         <img class="ff-sprite" src="${direccion || ""}" alt="${esc(nombre)}" style="--talla: ${talla}" draggable="false">
-    </span></span>`;
+    </span></span></span>`;
 
 // El fondo de la escena: la sala de esa zona.
 const salaFF = (direccion) => (direccion ? `<img class="ff-sala" src="${direccion}" alt="" draggable="false">` : "");
+
+// (v92) El ambiente de cada zona: partículas que flotan (polvo, brasas, lluvia…), luz y bruma.
+// Es solo dibujo (CSS): no cambia nada de la batalla. Las zonas que no estén aquí usan "polvo".
+export const AMBIENTES = {
+    cripta: "polvo", biblioteca: "polvo", galerias: "polvo", silencio: "polvo",
+    fragua: "brasas", hornos: "brasas", yunque: "brasas",
+    cima: "lluvia", nubes: "viento",
+    corona: "oro", veta: "oro", tesoreria: "oro",
+    cisterna: "burbujas", raices: "esporas", santuario: "ceniza", abismo: "latido",
+    pasillos: "reflejos", ecos: "reflejos", corazon: "llama-azul",
+};
+
+// Un número "al azar" entre 0 y 1, pero siempre el mismo para (i, n): así la escena no cambia
+// cada vez que se redibuja (si cambiara, las partículas saltarían de lugar en cada turno).
+const azarFijo = (i, n) => {
+    const x = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+};
+
+// Atrás (detrás de los personajes): las partículas. Cada una con su lugar (--x, --y), su tamaño
+// en puntos (--s), cuánto tarda en dar la vuelta (--t) y en qué momento de la vuelta empieza (--d).
+const ambienteFF = (zonaId) => {
+    const tipo = AMBIENTES[zonaId] || "polvo";
+    const puntos = Array.from({ length: 16 }, (_, i) =>
+        `<i style="--x: ${(azarFijo(i, 1) * 100).toFixed(1)}%; --y: ${(azarFijo(i, 2) * 100).toFixed(1)}%; ` +
+        `--s: ${1 + Math.floor(azarFijo(i, 3) * 2)}; --t: ${(4 + azarFijo(i, 4) * 5).toFixed(2)}s; --d: ${(-azarFijo(i, 5) * 9).toFixed(2)}s"></i>`).join("");
+    return `<div class="ff-ambiente ff-amb-${tipo}" aria-hidden="true">${puntos}</div>`;
+};
+
+// Adelante (encima de los personajes): la bruma del suelo, la luz que parpadea y las esquinas oscuras.
+const frenteFF = (zonaId) => `<div class="ff-frente ff-amb-${AMBIENTES[zonaId] || "polvo"}" aria-hidden="true"></div>`;
+
+// (v92) Chispas al recibir un golpe: 8 cuadritos que salen disparados del punto del impacto.
+// clase = de qué color (fuego, hielo, rayo, critico, herida, muerte…); cuando = en qué milisegundo del turno;
+// cuantas = cuántos cuadritos (repartidos en círculo: 360° / cuantas entre uno y otro, con un poco de azar).
+const chispasFF = (clase, cuando, cuantas = 8) => `<span class="ff-chispas ${clase}" style="--cuando: ${cuando}ms" aria-hidden="true">${
+    Array.from({ length: cuantas }, (_, i) => `<i style="--a: ${Math.round(i * (360 / cuantas) + azarFijo(i, 7) * 30)}deg; --l: ${(0.7 + azarFijo(i, 8) * 0.6).toFixed(2)}"></i>`).join("")
+}</span>`;
 
 // Las criaturas «ancestrales» (después del piso 20) son las mismas, de otro color.
 const tinteDeVuelta = (vuelta) => (vuelta ? `hue-rotate(${(vuelta * 140) % 360}deg) saturate(1.2)` : "");
@@ -3140,6 +3180,9 @@ export function pantallaTorre(t) {
             <span class="ff-sombra"></span>
             ${spriteFF(t.sprites.enemigo, m.nombre, criatura.talla || 96, tinteDeVuelta(m.vuelta))}
             ${efecto}${arco}${efectoMascota}${fxEnemigo}${avisoCritico}
+            ${tuyo?.dano ? chispasFF(tuyo.critico ? "critico" : tuyo.tipo === "hechizo" ? tuyo.elemento : "golpe", 280) : ""}
+            ${mio?.dano ? chispasFF(mio.elemento || "garra", TURNO_MASCOTA + 100) : ""}
+            ${cayo ? chispasFF("muerte", suyo?.reflejo ? 1250 : 750, 14) : ""}
             ${tuyo?.dano ? numeroFF(tuyo.dano, tuyo.critico ? "critico" : "", 300) : ""}
             ${mio?.dano ? numeroFF(mio.dano, "de-mascota", TURNO_MASCOTA + 120) : ""}
             ${suyo?.reflejo ? numeroFF(suyo.reflejo, "de-mascota", TURNO_ENEMIGO + 350) : ""}
@@ -3193,6 +3236,7 @@ export function pantallaTorre(t) {
             ${tuyo?.mana ? numeroFF("+1 PM", "pm", 150) : ""}
             ${curaDeMascota ? numeroFF(curaDeMascota, "cura", TURNO_MASCOTA + 100) : ""}
             ${mio?.tipo === "mana" ? numeroFF("+1 PM", "pm", TURNO_MASCOTA + 100) : ""}
+            ${tePego ? chispasFF(golpeFuerte ? "herida fuerte" : "herida", TURNO_ENEMIGO + 230) : ""}
             ${tePego ? numeroFF(tePego.dano, "", TURNO_ENEMIGO + 250) : ""}
             ${suyo?.sello ? numeroFF(`−${suyo.sello} PM`, "pm", TURNO_ENEMIGO + 500) : ""}
             ${veneno ? numeroFF(`${veneno.dano} ☠️`, "veneno", TURNO_ENEMIGO + 700) : ""}
@@ -3201,8 +3245,8 @@ export function pantallaTorre(t) {
         </div>`;
 
     const escena = `
-        <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""} ${especial === "descarga" || (golpeFuerte && pega && !esquivaste && ["golpe", "mordida"].includes(ataques.estiloDe(m.id))) ? "ff-sacude" : ""} ${tuyo?.tipo === "voluntad" ? "ff-destella" : ""}">
-            ${salaFF(t.sprites.sala)}${carteles}${enemigo}${heroe}${mascotaHtml}${fxAtaque}${bannerEspecial}
+        <div class="ff-escena ${tuyo?.elemento === "rayo" ? "relampago" : ""} ${especial === "descarga" || (golpeFuerte && pega && !esquivaste && ["golpe", "mordida"].includes(ataques.estiloDe(m.id))) ? "ff-sacude" : ""} ${tuyo?.tipo === "voluntad" ? "ff-destella" : ""} ${tuyo?.critico ? "ff-golpe-critico" : ""}">
+            ${salaFF(t.sprites.sala)}${ambienteFF(zona.id)}${carteles}${enemigo}${heroe}${mascotaHtml}${frenteFF(zona.id)}${fxAtaque}${bannerEspecial}
             <div class="ff-hud ff-hud-enemigo">
                 <b>${m.guardian ? "👑 " : ""}${esc(m.nombre)}</b>
                 ${vidaEncima(m.vida, m.vidaMax, antesEnemigo, 300, "de-enemigo")}

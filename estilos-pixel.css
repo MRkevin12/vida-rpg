@@ -253,3 +253,301 @@ body {
         animation: none;
     }
 }
+
+
+/* =====================================================================
+   Batallas de la Torre (v92): ambiente, chispas, retroceso y críticos
+   ===================================================================== */
+
+/* --- El ambiente de cada zona ---
+   .ff-ambiente va DETRÁS de los personajes (las partículas) y .ff-frente DELANTE (bruma, luz y esquinas
+   oscuras). Cada zona elige un tipo (vistas.js › AMBIENTES) y el tipo pone sus colores con variables:
+   --amb (color de las partículas), --brillo (su resplandor), --luz (la luz de arriba), --bruma (la del suelo). */
+.ff-ambiente,
+.ff-frente {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.ff-frente {
+    z-index: 2;   /* encima de los personajes; debajo de los efectos (3), los números (4) y las barras (5) */
+    background:
+        radial-gradient(ellipse 75% 70% at 50% 45%, transparent 60%, rgba(4, 2, 10, 0.5) 100%),
+        linear-gradient(to top, var(--bruma, rgba(150, 140, 210, 0.16)) 0, transparent 26%);
+}
+
+/* La luz de arriba, que parpadea como una antorcha. */
+.ff-frente::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--luz-x, 50%) var(--luz-y, 8%), var(--luz, rgba(255, 196, 120, 0.13)), transparent 48%);
+    animation: amb-antorcha 2.6s steps(5) infinite;
+}
+
+/* Bancos de bruma que se arrastran por el suelo. */
+.ff-frente::after {
+    content: "";
+    position: absolute;
+    left: -30%;
+    width: 160%;
+    bottom: -4%;
+    height: 24%;
+    background:
+        radial-gradient(ellipse 18% 60% at 20% 70%, var(--bruma, rgba(150, 140, 210, 0.16)), transparent),
+        radial-gradient(ellipse 22% 55% at 55% 80%, var(--bruma, rgba(150, 140, 210, 0.16)), transparent),
+        radial-gradient(ellipse 16% 50% at 85% 75%, var(--bruma, rgba(150, 140, 210, 0.16)), transparent);
+    animation: amb-bruma 18s linear infinite alternate;
+}
+
+/* Una partícula: un cuadrito de 1 o 2 puntos de pixel art. */
+.ff-ambiente i {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: calc(var(--px) * var(--s));
+    height: calc(var(--px) * var(--s));
+    background: var(--amb, rgba(255, 236, 200, 0.75));
+    box-shadow: 0 0 calc(var(--px) * 2) var(--brillo, transparent);
+    opacity: 0;
+    animation: amb-flotar var(--t) steps(30) var(--d) infinite;
+}
+
+@keyframes amb-antorcha {
+    0%, 100% { opacity: 1; }
+    20% { opacity: 0.75; }
+    45% { opacity: 0.95; }
+    70% { opacity: 0.7; }
+}
+
+@keyframes amb-bruma {
+    from { transform: translateX(0); }
+    to { transform: translateX(18%); }
+}
+
+/* Polvo y esporas: suben despacio, meciéndose. */
+@keyframes amb-flotar {
+    0% { opacity: 0; transform: translate(0, 0); }
+    15%, 80% { opacity: 0.85; }
+    50% { transform: translate(calc(var(--px) * 5), calc(var(--px) * -12)); }
+    100% { opacity: 0; transform: translate(calc(var(--px) * -2), calc(var(--px) * -26)); }
+}
+
+/* Brasas, burbujas y llama azul: nacen abajo y suben toda la escena. */
+@keyframes amb-subir {
+    0% { opacity: 0; transform: translate(0, 0); }
+    10% { opacity: 1; }
+    40% { transform: translate(calc(var(--px) * 4), calc(var(--px) * -55)); }
+    70% { transform: translate(calc(var(--px) * -3), calc(var(--px) * -95)); opacity: 0.8; }
+    100% { opacity: 0; transform: translate(calc(var(--px) * 2), calc(var(--px) * -140)); }
+}
+
+/* Lluvia: cae en diagonal, rápido. */
+@keyframes amb-caer {
+    from { opacity: 0.8; transform: translate(0, 0); }
+    to { opacity: 0.8; transform: translate(calc(var(--px) * -28), calc(var(--px) * 150)); }
+}
+
+/* Ceniza: cae despacio, de lado a lado. */
+@keyframes amb-ceniza {
+    0% { opacity: 0; transform: translate(0, 0); }
+    15%, 85% { opacity: 0.7; }
+    50% { transform: translate(calc(var(--px) * 6), calc(var(--px) * 40)); }
+    100% { opacity: 0; transform: translate(calc(var(--px) * -4), calc(var(--px) * 80)); }
+}
+
+/* Viento: rayas que cruzan de izquierda a derecha. */
+@keyframes amb-viento {
+    from { opacity: 0.55; transform: translateX(0); }
+    to { opacity: 0.55; transform: translateX(calc(var(--px) * 260)); }
+}
+
+/* Oro y reflejos: brillan en su lugar, como destellos. */
+@keyframes amb-titilar {
+    0%, 70%, 100% { opacity: 0; transform: scale(0.6); }
+    80% { opacity: 1; transform: scale(1.4); }
+    90% { opacity: 0.6; transform: scale(1); }
+}
+
+/* Relámpago lejano (Cima de la tormenta). */
+@keyframes amb-relampago {
+    0%, 91%, 93%, 100% { opacity: 0; }
+    92%, 94% { opacity: 1; }
+}
+
+/* Latido (Corazón del Abismo): las esquinas oscuras laten. */
+@keyframes amb-latido {
+    0%, 60%, 100% { opacity: 1; }
+    10%, 30% { opacity: 0.55; }
+}
+
+/* Los tipos de ambiente */
+.ff-amb-polvo { --amb: rgba(255, 236, 200, 0.7); }
+
+.ff-amb-brasas { --amb: #ffc061; --brillo: rgba(255, 110, 20, 0.9); --luz: rgba(255, 120, 40, 0.2); --luz-y: 100%; --bruma: rgba(255, 96, 24, 0.22); }
+.ff-amb-brasas i,
+.ff-amb-llama-azul i,
+.ff-amb-burbujas i { top: auto; bottom: -3%; animation-name: amb-subir; }
+
+.ff-amb-llama-azul { --amb: #8fe3ff; --brillo: rgba(40, 140, 255, 0.9); --luz: rgba(80, 160, 255, 0.2); --luz-y: 70%; --bruma: rgba(60, 130, 255, 0.2); }
+
+.ff-amb-burbujas { --amb: transparent; --luz: rgba(80, 220, 230, 0.12); --bruma: rgba(40, 180, 190, 0.22); }
+.ff-amb-burbujas i { box-shadow: inset 0 0 0 calc(var(--px) * 0.6) rgba(180, 245, 255, 0.75); width: calc(var(--px) * (var(--s) + 2)); height: calc(var(--px) * (var(--s) + 2)); }
+
+.ff-amb-lluvia { --amb: rgba(200, 220, 255, 0.85); --luz: transparent; --bruma: rgba(120, 140, 200, 0.2); }
+.ff-amb-lluvia i { top: -12%; width: var(--px); height: calc(var(--px) * 9); animation-name: amb-caer; animation-duration: calc(var(--t) / 6); animation-timing-function: linear; }
+.ff-amb-lluvia.ff-frente::before { background: rgba(225, 235, 255, 0.35); animation: amb-relampago 7s steps(1) infinite; }
+
+.ff-amb-viento { --amb: rgba(255, 255, 255, 0.4); --luz: rgba(255, 255, 255, 0.08); --bruma: rgba(230, 236, 255, 0.24); }
+.ff-amb-viento i { left: -25%; width: calc(var(--px) * (6 + var(--s) * 4)); height: var(--px); animation-name: amb-viento; animation-duration: calc(var(--t) / 2.5); animation-timing-function: linear; }
+
+.ff-amb-oro { --amb: #ffe27a; --brillo: rgba(255, 200, 60, 0.8); --luz: rgba(255, 210, 90, 0.16); --bruma: rgba(255, 190, 60, 0.12); }
+.ff-amb-oro i,
+.ff-amb-reflejos i { animation-name: amb-titilar; }
+
+.ff-amb-reflejos { --amb: #e6fbff; --brillo: rgba(160, 230, 255, 0.8); --luz: rgba(190, 230, 255, 0.12); --bruma: rgba(170, 220, 255, 0.12); }
+
+.ff-amb-esporas { --amb: #b4ff86; --brillo: rgba(100, 255, 120, 0.7); --luz: rgba(120, 255, 140, 0.08); --bruma: rgba(60, 200, 90, 0.2); }
+
+.ff-amb-ceniza { --amb: rgba(200, 180, 230, 0.65); --luz: rgba(180, 110, 255, 0.14); --bruma: rgba(120, 60, 180, 0.2); }
+.ff-amb-ceniza i { top: -6%; animation-name: amb-ceniza; }
+
+.ff-amb-latido { --amb: #ff4d6d; --brillo: rgba(255, 40, 80, 0.7); --luz: rgba(255, 40, 80, 0.1); --bruma: rgba(160, 20, 60, 0.26); }
+.ff-amb-latido.ff-frente { animation: amb-latido 1.6s steps(4) infinite; }
+
+/* (v92, arreglo) El globo de intención con la clase "aviso" (la criatura se enfurece o se cura) heredaba
+   right, bottom y width de los mensajes .aviso de la app, y se estiraba hasta tapar a la criatura. */
+.ff-globo {
+    right: auto;
+    bottom: auto;
+    width: auto;
+}
+
+/* --- Chispas al recibir un golpe --- */
+.ff-chispas {
+    position: absolute;
+    left: 50%;
+    top: 45%;
+    z-index: 4;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    --chispa: #fffbe6;
+    --chispa-luz: rgba(255, 220, 120, 0.8);
+    --lejos: 20;
+}
+
+.ff-chispas i {
+    position: absolute;
+    left: calc(var(--px) * -1);
+    top: calc(var(--px) * -1);
+    width: calc(var(--px) * 2);
+    height: calc(var(--px) * 2);
+    background: var(--chispa);
+    box-shadow: 0 0 calc(var(--px) * 2) var(--chispa-luz);
+    opacity: 0;
+    animation: ff-chispa 0.45s steps(6) var(--cuando) forwards;   /* forwards (no both): durante la espera no se ven */
+}
+
+@keyframes ff-chispa {
+    0% { opacity: 1; transform: rotate(var(--a)) translateX(0) scale(1.6); }
+    60% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(var(--a)) translateX(calc(var(--px) * var(--lejos) * var(--l))) scale(0.5); }
+}
+
+.ff-chispas.critico { --chispa: #ffe45a; --chispa-luz: rgba(255, 180, 0, 0.95); --lejos: 32; }
+.ff-chispas.critico i { width: calc(var(--px) * 3); height: calc(var(--px) * 3); }
+.ff-chispas.fuego { --chispa: #ffb347; --chispa-luz: rgba(255, 80, 0, 0.9); }
+.ff-chispas.hielo { --chispa: #d6f6ff; --chispa-luz: rgba(80, 200, 255, 0.9); }
+.ff-chispas.rayo { --chispa: #fff6a0; --chispa-luz: rgba(255, 240, 80, 0.95); --lejos: 26; }
+.ff-chispas.garra { --chispa: #ffe2a8; --chispa-luz: rgba(255, 190, 90, 0.7); top: 60%; }
+.ff-chispas.herida { --chispa: #ff8a8a; --chispa-luz: rgba(255, 40, 60, 0.8); top: 40%; }
+.ff-chispas.herida.fuerte { --lejos: 30; }
+
+/* Al caer, la criatura estalla en cuadritos violetas que suben un poco (más lentos y más lejos). */
+.ff-chispas.muerte { --chispa: #c9a2ff; --chispa-luz: rgba(140, 70, 255, 0.9); --lejos: 34; top: 55%; }
+.ff-chispas.muerte i { width: calc(var(--px) * 3); height: calc(var(--px) * 3); animation-duration: 0.9s; animation-timing-function: steps(9); }
+
+/* «¡Victoria!» en oro de tres tonos con contorno de pixel. (Con background-clip: text, text-shadow taparía el
+   degradado: por eso el contorno va con filter: drop-shadow, que se dibuja alrededor de las letras ya pintadas.) */
+.ff-victoria {
+    color: transparent;
+    background: linear-gradient(180deg, #fffbe0 0 32%, #ffe45a 32% 62%, #f5a524 62% 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: none;
+    filter:
+        drop-shadow(2px 0 0 #2a1200) drop-shadow(-2px 0 0 #2a1200)
+        drop-shadow(0 2px 0 #2a1200) drop-shadow(0 -2px 0 #2a1200)
+        drop-shadow(0 4px 0 rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px rgba(255, 170, 30, 0.7));
+}
+
+/* --- Retroceso: quien recibe el golpe se va un poco para atrás --- */
+.ff-retro {
+    display: block;
+}
+
+.ff-enemigo.golpeado .ff-retro {
+    animation: ff-retroceso 0.36s steps(4) 0.3s;
+}
+
+.ff-enemigo.golpeado-mascota .ff-retro {
+    animation: ff-retroceso 0.36s steps(4) 0.52s;
+}
+
+.ff-enemigo.golpeado.golpeado-mascota .ff-retro {
+    animation: ff-retroceso 0.36s steps(4) 0.3s, ff-retroceso 0.36s steps(4) 0.52s;
+}
+
+.ff-heroe.herido .ff-retro {
+    animation: ff-retroceso-heroe 0.36s steps(4) 0.9s;
+}
+
+@keyframes ff-retroceso {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(calc(var(--px) * -7)); }
+    60% { transform: translateX(calc(var(--px) * -3)); }
+}
+
+@keyframes ff-retroceso-heroe {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(calc(var(--px) * 6)); }
+    60% { transform: translateX(calc(var(--px) * 2)); }
+}
+
+/* --- Golpe crítico: un destello y la sala se acerca un instante --- */
+.ff-golpe-critico .ff-frente {
+    animation: ff-flash-critico 0.4s steps(3) 0.28s;
+}
+
+.ff-golpe-critico .ff-sala {
+    animation: ff-acercar 0.4s steps(3) 0.28s;
+}
+
+@keyframes ff-flash-critico {
+    0% { background-color: rgba(255, 240, 190, 0.45); }
+    100% { background-color: transparent; }
+}
+
+@keyframes ff-acercar {
+    0%, 100% { transform: scale(1); }
+    35% { transform: scale(1.04); }
+}
+
+/* Quien prefiere menos movimiento: sin partículas, sin chispas y sin sacudidas (la bruma y la luz quedan quietas). */
+@media (prefers-reduced-motion: reduce) {
+    .ff-ambiente,
+    .ff-chispas {
+        display: none;
+    }
+
+    .ff-frente,
+    .ff-frente::before,
+    .ff-frente::after,
+    .ff-retro,
+    .ff-golpe-critico .ff-sala {
+        animation: none !important;
+    }
+}

@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 91;
+export const VERSION_APP = 92;
 
 export const NOVEDADES = [
+    {
+        version: 92,
+        titulo: "Batallas con ambiente",
+        cambios: [
+            "🔥 Cada zona de la Torre y de las mazmorras tiene su ambiente: polvo en la Cripta, brasas en la Fragua, lluvia y relámpagos en la Cima, burbujas en las Cisternas, esporas en el Bosque de raíces…",
+            "💥 Los golpes sacan chispas del color del ataque, y quien recibe el golpe retrocede un paso.",
+            "⭐ El golpe crítico ilumina la sala, y la criatura vencida estalla en cuadritos.",
+            "🏆 «¡Victoria!» en oro con contorno de pixel.",
+            "🛠️ Arreglo: el globo que dice lo que hará la criatura ya no tapa la escena cuando se enfurece o se cura.",
+        ],
+    },
     {
         version: 91,
         titulo: "El reino, en pixel art",

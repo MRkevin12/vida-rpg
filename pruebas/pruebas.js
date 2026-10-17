@@ -6307,6 +6307,25 @@ prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no
     cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
 });
 
+// ===== Batallas con ambiente (v92) =====
+
+prueba("Batalla: cada zona de cada lugar tiene su ambiente, y la escena dibuja partículas, bruma y chispas al golpear", () => {
+    for (const sitio of Object.values(bestiario.LUGARES)) {
+        for (const zona of sitio.zonas) cierto(vistas.AMBIENTES[zona.id], `la zona «${zona.id}» (${sitio.id}) no tiene ambiente`);
+    }
+    const estado = partidaNueva();
+    acciones.empezarTorre(estado, 11);
+    const imagenes = { heroe: "data:image/png;base64,AA", enemigo: "data:image/png;base64,BB", sala: "data:image/png;base64,CC" };
+    const t = (eventos) => ({ partida: estado.arcade.torre, nombre: "Prueba", sprites: imagenes, eventos, menu: "principal", ultimo: "atacar",
+                              bestiario: estado.arcade.bestiario, resultado: null, fichas: 2 });
+    const quieta = vistas.pantallaTorre(t([]));
+    cierto(quieta.includes("ff-ambiente ff-amb-polvo") && quieta.includes("ff-frente"), "la Cripta tiene polvo y bruma");
+    cierto(!quieta.includes("ff-chispas"), "sin turno no hay chispas");
+    const golpe = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "atacar", dano: 9, critico: true }, { quien: "enemigo", tipo: "golpe", dano: 4, nombre: "Mordisco" }]));
+    cierto(golpe.includes("ff-chispas critico") && golpe.includes("ff-golpe-critico"), "el crítico saca chispas doradas y destello");
+    cierto(golpe.includes("ff-chispas herida"), "si la criatura te pega, también saltan chispas en tu héroe");
+});
+
 // ===== Íconos en pixel art (v91) =====
 
 prueba("Íconos: cada emoji de la lista tiene su dibujo, que cabe en 14 × 14 y solo usa colores de la paleta", () => {
