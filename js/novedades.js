@@ -4,9 +4,14 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 120;
+export const VERSION_APP = 121;
 
 export const NOVEDADES = [
+    {
+        version: 121,
+        titulo: "Una sola notificación al correr",
+        cambios: ["🔔 La notificación de tu carrera ahora es siempre una sola: cada actualización reemplaza a la anterior y no se acumulan."],
+    },
     {
         version: 120,
         titulo: "Modo concentración al correr",

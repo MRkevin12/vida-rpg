@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v121 — Una sola notificación de la carrera
+- `mostrarNotificacionCarrera` cierra cualquier notificación de carrera antes de mostrar la nueva y no permite llamadas cruzadas.
+
 ## v120 — Modo concentración y notificación de la carrera
 - `body.run-concentracion` (CSS) oculta cabecera, pestañas y avisos mientras hay una carrera; `running.concentracion` (activado por defecto) y botón `run-concentracion`.
 - `app.js`: `mostrarNotificacionCarrera` / `cerrarNotificacionCarrera` (etiqueta «carrera», se reemplaza sin sonar; suena al cumplir un km con la app fuera).

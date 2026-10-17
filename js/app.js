@@ -290,25 +290,30 @@ function textoNotificacionCarrera(en) {
     };
 }
 
+let mostrandoNotificacion = false;   // evita que dos llamadas seguidas creen dos notificaciones
 async function mostrarNotificacionCarrera({ sonando = false } = {}) {
     const en = estado.running?.encurso;
     if (!en || !registroSW || !("Notification" in window) || Notification.permission !== "granted") return;
     // Con la app a la vista no hace falta: se cierra la de antes.
     if (document.visibilityState === "visible" && !sonando) return cerrarNotificacionCarrera();
-    if (!sonando && Date.now() - ultimaNotificacionCarrera < 10000) return;
+    if (mostrandoNotificacion || (!sonando && Date.now() - ultimaNotificacionCarrera < 10000)) return;
+    mostrandoNotificacion = true;
     ultimaNotificacionCarrera = Date.now();
     const { titulo, cuerpo } = textoNotificacionCarrera(en);
     try {
+        // UNA sola notificación: antes de mostrar la nueva se cierra cualquiera que siga puesta (el iPhone a veces no reemplaza por la etiqueta).
+        await cerrarNotificacionCarrera();
         await registroSW.showNotification(titulo, {
             body: cuerpo, icon: "./iconos/icono-192.png", badge: "./iconos/icono-192.png",
             tag: "carrera", renotify: sonando, silent: !sonando, data: { tipo: "carrera", id: null },
         });
     } catch (error) { /* sin permiso o sin soporte: la carrera sigue igual */ }
+    mostrandoNotificacion = false;
 }
 
 async function cerrarNotificacionCarrera() {
     try {
-        for (const n of (await registroSW?.getNotifications({ tag: "carrera" })) || []) n.close();
+        for (const n of (await registroSW?.getNotifications()) || []) if (n.data?.tipo === "carrera" || n.tag === "carrera") n.close();
     } catch (error) { /* nada que cerrar */ }
 }
 
