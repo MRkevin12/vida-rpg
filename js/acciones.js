@@ -2369,7 +2369,7 @@ export function empezarCarrera(estado, tipo, { gps = false, objetivo = "" } = {}
 }
 
 // Pausa o reanuda el cronómetro. Al reanudar se olvida el último punto del GPS: si no, sumaría el camino de la pausa.
-export function alternarPausaCarrera(estado, ahora = Date.now()) {
+export function alternarPausaCarrera(estado, ahora = Date.now(), { contar = true } = {}) {
     const en = entrenamientoRunning(estado);
     if (en.pausadoDesde) {
         en.pausas.push({ desde: en.pausadoDesde, hasta: ahora });
@@ -2378,7 +2378,7 @@ export function alternarPausaCarrera(estado, ahora = Date.now()) {
         return { pausada: false };
     }
     en.pausadoDesde = ahora;
-    if (en.kmActual) en.kmActual.pausas += 1;   // (v119) a los fantasmas y a los jefes no les gusta que te detengas
+    if (en.kmActual && contar) en.kmActual.pausas += 1;   // (v119) a los fantasmas y a los jefes no les gusta que te detengas
     return { pausada: true };
 }
 

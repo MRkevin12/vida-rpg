@@ -17,7 +17,7 @@ const barra = (porcentaje, clase = "") => `<div class="barra ${clase}"><div clas
 // Las secciones de la pantalla (como en el Gimnasio).
 export const SECCIONES_RUNNING = [["correr", "🏃 Correr"], ["progreso", "📈 Progreso"], ["historial", "📜 Historial"]];
 
-// ctx = { hoy, ahora, subvista, tipo, gps: bool (la carrera usa GPS), gpsProblema: null | "permiso" | "senal" }
+// ctx = { hoy, ahora, subvista, tipo, gps: bool (la carrera usa GPS), gpsProblema: null | "permiso" | "senal", terminando: bool (tocaste «Ya terminé») }
 export function pantallaRunning(estado, ctx) {
     const r = estado.running;
     const kmSemana = running.kmDeLaSemana(r.carreras, lunesDe(ctx.hoy));
@@ -66,6 +66,9 @@ function vistaEnVivo(estado, ctx) {
     const pausada = Boolean(en.pausadoDesde);
     const tiempo = running.tiempoDeEncurso(en, ctx.ahora);
     const ritmo = running.ritmoEnVivo(en, ctx.ahora);
+    // (v129) «Terminar y guardar» solo aparece cuando tocas «Ya terminé».
+    if (ctx.terminando) return vistaTerminar(estado, ctx, tiempo);
+    const concentrado = estado.running.concentracion !== false;
     return `
         <section class="panel run-vivo ${pausada ? "pausada" : ""}">
             <p class="etiqueta">${tipo.icono} ${esc(tipo.nombre)}${pausada ? " · en pausa" : ""}</p>
@@ -79,19 +82,32 @@ function vistaEnVivo(estado, ctx) {
                 <img class="run-pelea-sprite" alt="" data-run-criatura="">
                 <div data-run-encuentro>${htmlEncuentro(en, ctx.ahora)}</div>
             </div>
-            <p class="mini texto-suave">🎯 Objetivo: ${running.textoSegundos(en.objetivo)} /km ${en.objetivoPropio ? "(el tuyo)" : "(tu promedio)"} · las criaturas son un extra: el premio por km no cambia.</p>` : ""}
+            <p class="mini texto-suave run-objetivo">🎯 Objetivo: ${running.textoSegundos(en.objetivo)} /km ${en.objetivoPropio ? "(el tuyo)" : "(tu promedio)"} · las criaturas son un extra: el premio por km no cambia.</p>` : ""}
             <p class="nota" data-run-ruta>${textoRutaEnVivo(estado, en)}</p>` : ""}
             <p class="nota" data-run-gps>${textoGps(en, ctx.gpsProblema)}</p>
             <div class="run-parciales-vivo" data-run-parciales data-n="${(en.marcas || []).length}">${htmlParciales(running.parcialesDe(en.marcas))}</div>
             <div class="run-botones">
                 <button type="button" class="boton ${pausada ? "boton-principal" : "boton-secundario"}" data-accion="run-pausa">${pausada ? "▶ Seguir" : "⏸ Pausar"}</button>
-                <button type="button" class="boton boton-secundario" data-accion="run-cancelar">✖ Cancelar</button>
+                <button type="button" class="boton boton-principal" data-accion="run-terminar-abrir">🏁 Ya terminé</button>
             </div>
-            <button type="button" class="boton boton-chico boton-secundario boton-ancho run-concentracion-boton" data-accion="run-concentracion" aria-pressed="${estado.running.concentracion !== false}">
-                🎯 Modo concentración: ${estado.running.concentracion !== false ? "activado (tocar para salir)" : "apagado (tocar para activar)"}</button>
-        </section>
-        <form data-form="running-terminar" class="panel formulario">
+            <div class="run-botones run-botones-chicos">
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="run-cancelar">✖ Cancelar</button>
+                <button type="button" class="boton boton-chico boton-secundario run-concentracion-boton" data-accion="run-concentracion" aria-pressed="${concentrado}">
+                    🎯 ${concentrado ? "Salir" : "Concentrar"}</button>
+            </div>
+        </section>`;
+}
+
+// (v129) Lo que sale al tocar «Ya terminé»: la carrera queda en pausa (el reloj se detiene) y se guarda con una nota opcional.
+function vistaTerminar(estado, ctx, tiempo) {
+    const en = estado.running.encurso;
+    return `
+        <form data-form="running-terminar" class="panel formulario run-terminar">
             <h2 class="titulo-juego">🏁 Terminar y guardar</h2>
+            <div class="run-datos">
+                <div><small>Tiempo</small><b>${running.textoTiempo(tiempo)}</b></div>
+                <div><small>Distancia</small><b>${running.textoKm(en.distancia / 1000)}</b></div>
+            </div>
             ${en.gps
                 ? '<p class="nota">🔒 Se guarda <b>exactamente</b> lo que midió el GPS y el cronómetro: la distancia y el tiempo no se pueden cambiar, para que todas tus carreras sean justas. Solo puedes agregar una nota.</p>'
                 : `<p class="nota">Si dejas un campo vacío, se usa lo que marcó el cronómetro.</p>
@@ -102,6 +118,7 @@ function vistaEnVivo(estado, ctx) {
             <label class="formulario-grupo"><span>Nota (opcional)</span>
                 <input type="text" name="nota" maxlength="60" placeholder="Ej: con el perro" autocomplete="off"></label>
             <button type="submit" class="boton boton-principal boton-ancho">✅ Guardar carrera</button>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="run-terminar-cerrar">▶ Todavía no: seguir corriendo</button>
         </form>`;
 }
 

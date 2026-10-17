@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v129 — Concentración en una pantalla y «Ya terminé»
+- CSS: en `body.run-concentracion` la carrera es un panel de alto `100dvh` con el mapa flexible, sin deslizar. El mapa SVG usa `preserveAspectRatio="none"` para que el héroe y la criatura queden donde van aunque el cuadro sea más bajo.
+- `vistaEnVivo` ya no trae el formulario de guardar: `vistaTerminar` sale con «Ya terminé» (`runTerminando`), que pausa sin contar (`alternarPausaCarrera(…, { contar: false })`); «Todavía no» reanuda.
+
 ## v128 — Voces grabadas y frases de motivación
 - Motivo: el iPhone solo entrega a las webs unas pocas voces de fábrica (en el iPhone del usuario: 68 en total, 1 es-ES y 1 es-MX); las descargadas en Ajustes no salen.
 - `herramientas/generar-voces.py` + `lista-de-clips.mjs`: generan `locutor/<voz>/*.mp3` (360 audios por voz, MP3 mono 32 kb/s) con Piper. Voces: es_MX-ald-medium (Unlicense) y es_MX-claude-high (Apache-2.0). No hay voz colombiana libre.

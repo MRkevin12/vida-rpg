@@ -81,7 +81,7 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
     const zonaFinal = zonaDelKm(Math.floor(km) + 1);
     if (!lista.length) {
         return {
-            svg: `<svg class="run-mapa-svg" viewBox="0 0 ${ancho} ${alto}" shape-rendering="crispEdges" role="img" aria-label="Mapa de tu carrera">
+            svg: `<svg class="run-mapa-svg" viewBox="0 0 ${ancho} ${alto}" shape-rendering="crispEdges" preserveAspectRatio="none" role="img" aria-label="Mapa de tu carrera">
                 <rect width="${ancho}" height="${alto}" fill="${zonaFinal.suelo[0]}"/>
                 <text x="160" y="124" text-anchor="middle" fill="#eef2ff" font-size="13">Buscando señal del GPS…</text></svg>`,
             aqui: null, zona: zonaFinal,
@@ -160,7 +160,7 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
 
     const [sx, sy] = puntos[0];
     const [ex, ey] = puntos[puntos.length - 1];
-    const svg = `<svg class="run-mapa-svg" viewBox="0 0 ${ancho} ${alto}" shape-rendering="crispEdges" role="img" aria-label="Mapa de tu carrera">
+    const svg = `<svg class="run-mapa-svg" viewBox="0 0 ${ancho} ${alto}" shape-rendering="crispEdges" preserveAspectRatio="none" role="img" aria-label="Mapa de tu carrera">
         ${suelo.join("")}${rioSvg}${agua.join("")}${decorado.join("")}
         <polyline points="${camino}" fill="none" stroke="#3b2a1a" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>
         <polyline points="${camino}" fill="none" stroke="#d2b074" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/>

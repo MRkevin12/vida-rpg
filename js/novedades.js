@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 128;
+export const VERSION_APP = 129;
 
 export const NOVEDADES = [
+    {
+        version: 129,
+        titulo: "Concentración en una sola pantalla",
+        cambios: [
+            "🎯 En modo concentración todo cabe en la pantalla sin deslizar: tiempo, distancia, ritmo, mapa, criatura y botones.",
+            "🏁 «Terminar y guardar» ya no aparece mientras corres: sale cuando tocas «Ya terminé», que además detiene el reloj. Si te arrepientes, «Todavía no: seguir corriendo» lo reanuda.",
+        ],
+    },
     {
         version: 128,
         titulo: "Voces grabadas y frases de ánimo",

@@ -84,6 +84,8 @@ let pantallaDeDespierta = null;  // (v109) el «wake lock»: la pantalla no se a
 let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
 let paginaLibro = "portada";     // en «Tu libro»: "portada", "indice" o el número de un capítulo
 let problemaAvisos = null;       // si las notificaciones se cortaron: "bloqueadas" o "desconectadas"
+let runTerminando = false;       // (v129) en la carrera en vivo: tocaste «Ya terminé» y se ve el formulario de guardar
+let pausoParaTerminar = false;   // y la carrera estaba corriendo: la pausamos nosotros (si te arrepientes, se reanuda)
 let regionMapa = null;           // en el mapa: la región que miras (null = donde vas)
 let maestroVista = { modo: "inicio", respuesta: "" };   // la conversación con el Maestro
 let memoriasDesde = null;   // cuántas memorias de Aurelio habías leído al abrirlas (las demás se marcan «Nuevo»)
@@ -1501,6 +1503,7 @@ function contextoActual(efectos = {}) {
         gymVista,
         tipo: runTipo,                                      // (v109) el tipo de carrera elegido
         gpsProblema,
+        terminando: runTerminando,
         fraseGym,
         resumenGym,
         paginaLibro,
@@ -1525,6 +1528,7 @@ function dibujarPantalla(efectos = {}) {
     document.body.classList.toggle("modo-normal", estado.ajustes.animo === "normal");    // (v49) menú sencillo
     // (v120) Modo concentración: mientras corres, la pantalla de Running se queda solo con lo importante.
     document.body.classList.toggle("run-concentracion", pantallaActual === "running" && Boolean(estado.running.encurso) && estado.running.concentracion !== false);
+    document.body.classList.toggle("run-terminando", runTerminando && Boolean(estado.running.encurso));   // (v129)
     const contenedor = $(`#pantalla-${pantallaActual}`);
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
@@ -3541,6 +3545,8 @@ const ACCIONES = {
         const objetivo = $("#run-objetivo")?.value || "";
         const empezada = ejecutar(() => acciones.empezarCarrera(estado, runTipo, { gps, objetivo }), { mantenerScroll: true });
         if (!empezada) return;
+        runTerminando = false;
+        pausoParaTerminar = false;
         const primera = estado.running.encurso?.encuentros?.[0];
         locutor.despertar();   // el audio solo arranca tras un toque
         hablar(frases.anuncioDeInicio(primera));
@@ -3556,6 +3562,8 @@ const ACCIONES = {
     "run-cancelar": () => {
         if (!confirm("¿Cancelar la carrera? Se pierde lo que corriste y no da premio.")) return;
         ejecutar(() => acciones.cancelarCarrera(estado));
+        runTerminando = false;
+        pausoParaTerminar = false;
         cerrarNotificacionCarrera();
         detenerGps();
         mantenerPantallaDespierta(false);
@@ -3566,6 +3574,22 @@ const ACCIONES = {
     "run-ver-voces": () => verTodasLasVoces(),
     "run-probar-voz": () => { locutor.despertar(); hablar(frases.anuncioDePrueba(), { forzar: true }); },
     "run-descargar-voz": () => descargarVozGrabada(),
+    "run-terminar-abrir": () => {   // (v129) «Ya terminé»: se detiene el reloj y aparece el formulario
+        if (!estado.running.encurso) return;
+        if (!estado.running.encurso.pausadoDesde) {
+            ejecutar(() => acciones.alternarPausaCarrera(estado, Date.now(), { contar: false }), { mantenerScroll: true });
+            pausoParaTerminar = true;
+        }
+        runTerminando = true;
+        dibujarPantalla();
+        window.scrollTo(0, 0);
+    },
+    "run-terminar-cerrar": () => {   // «Todavía no»: vuelve a correr
+        if (pausoParaTerminar && estado.running.encurso?.pausadoDesde) ejecutar(() => acciones.alternarPausaCarrera(estado, Date.now(), { contar: false }), { mantenerScroll: true });
+        pausoParaTerminar = false;
+        runTerminando = false;
+        dibujarPantalla();
+    },
     "run-concentracion": () => ejecutar(() => acciones.cambiarConcentracion(estado, estado.running.concentracion === false), { mantenerScroll: true }),
     "run-aviso-km": () => ejecutar(() => acciones.cambiarAvisoKm(estado, estado.running.avisoKm === false), { mantenerScroll: true }),
     "run-borrar": (boton) => {
@@ -3738,6 +3762,8 @@ const FORMULARIOS = {
     "running-terminar"(valores) {
         const fin = ejecutar(() => acciones.terminarCarrera(estado, valores));
         if (!fin) return false;
+        runTerminando = false;
+        pausoParaTerminar = false;
         cerrarNotificacionCarrera();
         detenerGps();
         mantenerPantallaDespierta(false);

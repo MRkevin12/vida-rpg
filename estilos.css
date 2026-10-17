@@ -12071,3 +12071,101 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     font-style: italic;
     color: #ffe58a !important;
 }
+
+
+/* ===== (v129) Modo concentración en UNA pantalla: todo cabe sin deslizar ===== */
+.run-concentracion:not(.run-terminando) {
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+.run-concentracion:not(.run-terminando) .contenido {
+    padding: calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px);
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
+    margin: 0;
+    padding: 10px 12px;
+    overflow: hidden;
+}
+
+.run-concentracion:not(.run-terminando) .run-tiempo {
+    margin: 0;
+    font-size: clamp(2.6rem, 15vw, 4.4rem);
+    line-height: 1;
+}
+
+.run-concentracion:not(.run-terminando) .run-datos {
+    gap: 8px;
+    margin: 0;
+}
+
+.run-concentracion:not(.run-terminando) .run-datos > div {
+    padding: 6px 10px;
+}
+
+.run-concentracion:not(.run-terminando) .run-datos b {
+    font-size: 1.3rem;
+}
+
+.run-concentracion:not(.run-terminando) .run-mapa-vivo {
+    flex: 1 1 auto;   /* se queda con el espacio que sobra (el dibujo se estira un poco, nunca más de ~90 % del ancho de alto) */
+    min-height: 110px;
+    max-height: calc((100vw - 24px) * 0.9);
+    margin: 0;
+    aspect-ratio: auto;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea {
+    grid-template-columns: 52px minmax(0, 1fr);
+    margin: 0;
+    padding: 6px 8px;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea-sprite {
+    width: 52px;
+    height: 52px;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea-texto small {
+    font-size: 0.66rem;
+}
+
+.run-concentracion .run-objetivo,
+.run-concentracion .run-parciales-vivo {
+    display: none;
+}
+
+.run-concentracion:not(.run-terminando) [data-run-gps] {
+    margin: 0;
+    font-size: 0.7rem;
+}
+
+.run-botones-chicos {
+    margin-top: 6px;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones {
+    margin-top: auto;   /* los botones se pegan al fondo y el mapa se queda con lo que sobra */
+}
+
+.run-concentracion:not(.run-terminando) .run-botones .boton {
+    min-height: 50px;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones-chicos {
+    margin-top: 0;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones-chicos .boton {
+    min-height: 40px;
+    font-size: 0.8rem;
+}
+
+.run-terminar .run-datos {
+    margin-bottom: 8px;
+}
