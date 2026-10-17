@@ -87,6 +87,8 @@ function vistaEnVivo(estado, ctx) {
                 <button type="button" class="boton ${pausada ? "boton-principal" : "boton-secundario"}" data-accion="run-pausa">${pausada ? "▶ Seguir" : "⏸ Pausar"}</button>
                 <button type="button" class="boton boton-secundario" data-accion="run-cancelar">✖ Cancelar</button>
             </div>
+            <button type="button" class="boton boton-chico boton-secundario boton-ancho run-concentracion-boton" data-accion="run-concentracion" aria-pressed="${estado.running.concentracion !== false}">
+                🎯 Modo concentración: ${estado.running.concentracion !== false ? "activado (tocar para salir)" : "apagado (tocar para activar)"}</button>
         </section>
         <form data-form="running-terminar" class="panel formulario">
             <h2 class="titulo-juego">🏁 Terminar y guardar</h2>

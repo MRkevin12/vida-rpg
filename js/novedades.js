@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 119;
+export const VERSION_APP = 120;
 
 export const NOVEDADES = [
+    {
+        version: 120,
+        titulo: "Modo concentración al correr",
+        cambios: [
+            "🎯 Mientras corres, la pantalla se queda solo con lo importante: tiempo grande, km, ritmo, mapa y la criatura. Sin cabecera ni pestañas. Se apaga con el botón de abajo.",
+            "🔔 Si sales de la app con una carrera en curso, aparece una notificación con tu tiempo, km, ritmo y la criatura del km, y se actualiza mientras el teléfono deje la app despierta. Al cumplir un km vuelve a sonar.",
+        ],
+    },
     {
         version: 119,
         titulo: "Criaturas en tus carreras",

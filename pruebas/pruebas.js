@@ -2993,6 +2993,13 @@ prueba("Criaturas de la carrera: en una carrera con GPS aparecen, se deciden al 
     debeFallar(() => acciones.empezarCarrera(estado, "suave", { gps: true, objetivo: "rápido" }), "ritmo objetivo");
 });
 
+prueba("Modo concentración: viene activado y se puede apagar", () => {
+    const estado = partidaNueva();
+    igual(estado.running.concentracion, true);
+    acciones.cambiarConcentracion(estado, false);
+    igual(estado.running.concentracion, false);
+});
+
 prueba("Mapa de la carrera: dibuja zonas, río y banderas con el color de cada pelea", () => {
     const traza = Array.from({ length: 40 }, (_, i) => [4.6 + i * 0.0003, -74.08 + Math.sin(i / 5) * 0.001]);
     const { svg, aqui, zona } = mapaDeCarrera({ traza, banderas: [traza[10], traza[20]], encuentros: [{ km: 1, resultado: "vencida" }, { km: 2, resultado: "escapo" }], km: 4.2 });

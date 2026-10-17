@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v120 — Modo concentración y notificación de la carrera
+- `body.run-concentracion` (CSS) oculta cabecera, pestañas y avisos mientras hay una carrera; `running.concentracion` (activado por defecto) y botón `run-concentracion`.
+- `app.js`: `mostrarNotificacionCarrera` / `cerrarNotificacionCarrera` (etiqueta «carrera», se reemplaza sin sonar; suena al cumplir un km con la app fuera).
+
 ## v119 — Criaturas en tus carreras y mapa por zonas
 - `js/encuentros.js` (nuevo): zonas cada 3 km, tipos de criatura (normal, veloz, acorazada, fantasma), jefe cada 5 km, emboscadas, `resolver` con el ritmo objetivo (o `objetivoPromedio`), botín extra, `comoVa` en vivo y `resumen`.
 - `js/dibujo-carrera.js` (nuevo): `mapaDeCarrera` con suelo por zona, río con puentes, lagos (hielo, lava, oasis) y paisaje por zona; banderas del color de cada pelea.

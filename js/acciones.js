@@ -2587,6 +2587,11 @@ export function cambiarMetaKm(estado, km) {
     estado.running.metaKm = Math.round(numeroEntre(km, running.META_KM_MIN, running.META_KM_MAX, "La meta"));
 }
 
+// (v120) El modo concentración de la carrera: una pantalla limpia, solo con lo que importa mientras corres.
+export function cambiarConcentracion(estado, encendido) {
+    estado.running.concentracion = Boolean(encendido);
+}
+
 // (v116) La voz que dice tu tiempo cada kilómetro.
 export function cambiarAvisoKm(estado, encendido) {
     estado.running.avisoKm = Boolean(encendido);

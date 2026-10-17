@@ -67,6 +67,7 @@ export function runningInicial() {
         semanasCobradas: [],   // los lunes de las semanas cuya meta ya cobraste
         mision: null,          // la misión diaria que se marca sola al guardar una carrera (id), o null
         rutaCobrada: 0,        // (v117) hasta qué kilómetro de la Ruta del Corredor (ruta.js) ya cobraste el premio
+        concentracion: true,   // (v120) pantalla limpia mientras corres
         avisoKm: true,         // (v116) la voz que dice tu tiempo cada kilómetro (solo con GPS)
     };
 }

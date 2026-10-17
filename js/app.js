@@ -275,6 +275,43 @@ async function ponerHeroeEnMapaVivo() {
     for (const img of document.querySelectorAll(".run-mapa-heroe")) img.src = heroeDeCarrera;
 }
 
+// (v120) La notificación de tu carrera: con la app en segundo plano, el centro de notificaciones muestra tu tiempo, km, ritmo y la pelea
+// del km, y se va actualizando (misma etiqueta = se reemplaza sin sonar). IMPORTANTE: iOS congela una web cuando se bloquea la pantalla
+// o se abre otra app, así que se actualiza mientras la app siga «despierta» (unos segundos o minutos) y se queda con lo último.
+// Una notificación que cambia sola con el teléfono bloqueado (como las de Nike o Strava) solo la pueden hacer las apps nativas.
+let ultimaNotificacionCarrera = 0;
+function textoNotificacionCarrera(en) {
+    const ahora = Date.now();
+    const pelea = en.encuentros?.find((e) => !e.resultado);
+    const linea = pelea ? `\n⚔️ ${encuentros.nombreDe(pelea)}${pelea.jefe ? " (jefe)" : ""} · objetivo ${running.textoSegundos(en.objetivo)} /km` : "";
+    return {
+        titulo: `🏃 ${running.textoTiempo(running.tiempoDeEncurso(en, ahora))}${en.pausadoDesde ? " · en pausa" : ""}`,
+        cuerpo: en.gps ? `📍 ${running.textoKm(en.distancia / 1000)} · ${running.textoRitmo(running.ritmoEnVivo(en, ahora))}${linea}` : "Cronómetro en marcha",
+    };
+}
+
+async function mostrarNotificacionCarrera({ sonando = false } = {}) {
+    const en = estado.running?.encurso;
+    if (!en || !registroSW || !("Notification" in window) || Notification.permission !== "granted") return;
+    // Con la app a la vista no hace falta: se cierra la de antes.
+    if (document.visibilityState === "visible" && !sonando) return cerrarNotificacionCarrera();
+    if (!sonando && Date.now() - ultimaNotificacionCarrera < 10000) return;
+    ultimaNotificacionCarrera = Date.now();
+    const { titulo, cuerpo } = textoNotificacionCarrera(en);
+    try {
+        await registroSW.showNotification(titulo, {
+            body: cuerpo, icon: "./iconos/icono-192.png", badge: "./iconos/icono-192.png",
+            tag: "carrera", renotify: sonando, silent: !sonando, data: { tipo: "carrera", id: null },
+        });
+    } catch (error) { /* sin permiso o sin soporte: la carrera sigue igual */ }
+}
+
+async function cerrarNotificacionCarrera() {
+    try {
+        for (const n of (await registroSW?.getNotifications({ tag: "carrera" })) || []) n.close();
+    } catch (error) { /* nada que cerrar */ }
+}
+
 // (v119) La imagen de la criatura del km: en la tarjeta de la pelea y en el mapa. Se pixela una vez por criatura.
 const criaturasDeCarrera = {};
 async function ponerCriaturasDeCarrera() {
@@ -302,6 +339,7 @@ function actualizarBarraRun() {
 
 function tictac() {
     actualizarBarraRun();
+    if (estado.running?.encurso) mostrarNotificacionCarrera();   // (v120) con la app en segundo plano, actualiza la notificación
     // (v109) El running en vivo: el cronómetro, la distancia y el ritmo se actualizan solos (sin redibujar).
     if (estado.running.encurso && pantallaActual === "running") {
         const en = estado.running.encurso;
@@ -421,6 +459,7 @@ function anunciarKilometro(numero, segundos, resueltos = [], nuevo = null) {
     const fin = !pelea ? "" : pelea.resultado === "vencida" ? `¡Venciste a ${encuentros.nombreDe(pelea)}!` : `${encuentros.nombreDe(pelea)} escapó.`;
     const sigue = nuevo ? `Aparece ${nuevo.jefe ? "un jefe: " : nuevo.emboscada ? "una emboscada: " : ""}${encuentros.nombreDe(nuevo)}. ${encuentros.pistaDe(nuevo)}` : "";
     avisar(`🏃 Km ${numero}: ${running.textoSegundos(segundos)}${fin ? ` · ${fin}` : ""}`);
+    if (document.visibilityState === "hidden") mostrarNotificacionCarrera({ sonando: true });   // (v120) también fuera de la app
     if (!estado.ajustes.sonido) return;
     sonido.sonar(pelea && pelea.resultado !== "vencida" ? "fallo" : "logro");
     decir(`Kilómetro ${numero}. ${running.textoParaVoz(segundos)}. ${fin} ${sigue}`);
@@ -452,6 +491,8 @@ async function mantenerPantallaDespierta(encendida) {
 }
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible" && estado.running?.encurso) mantenerPantallaDespierta(true);
+    // (v120) Al salir de la app con una carrera en curso, la notificación aparece al instante.
+    if (document.visibilityState === "hidden" && estado.running?.encurso) { ultimaNotificacionCarrera = 0; mostrarNotificacionCarrera(); }
 });
 
 let registroSW = null;   // para poder pedirle al teléfono que busque actualizaciones
@@ -1353,6 +1394,8 @@ function contextoActual(efectos = {}) {
 function dibujarPantalla(efectos = {}) {
     document.body.classList.toggle("modo-esencial", Boolean(estado.ajustes.esencial));   // (v46) esconde pestañas y secciones
     document.body.classList.toggle("modo-normal", estado.ajustes.animo === "normal");    // (v49) menú sencillo
+    // (v120) Modo concentración: mientras corres, la pantalla de Running se queda solo con lo importante.
+    document.body.classList.toggle("run-concentracion", pantallaActual === "running" && Boolean(estado.running.encurso) && estado.running.concentracion !== false);
     const contenedor = $(`#pantalla-${pantallaActual}`);
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
@@ -3381,10 +3424,12 @@ const ACCIONES = {
     "run-cancelar": () => {
         if (!confirm("¿Cancelar la carrera? Se pierde lo que corriste y no da premio.")) return;
         ejecutar(() => acciones.cancelarCarrera(estado));
+        cerrarNotificacionCarrera();
         detenerGps();
         mantenerPantallaDespierta(false);
     },
     "run-meta": (boton) => ejecutar(() => acciones.cambiarMetaKm(estado, estado.running.metaKm + Number(boton.dataset.delta)), { mantenerScroll: true }),
+    "run-concentracion": () => ejecutar(() => acciones.cambiarConcentracion(estado, estado.running.concentracion === false), { mantenerScroll: true }),
     "run-aviso-km": () => ejecutar(() => acciones.cambiarAvisoKm(estado, estado.running.avisoKm === false), { mantenerScroll: true }),
     "run-borrar": (boton) => {
         if (!confirm("¿Borrar esta carrera? Se le quita el XP y las monedas que dio.")) return;
@@ -3556,6 +3601,7 @@ const FORMULARIOS = {
     "running-terminar"(valores) {
         const fin = ejecutar(() => acciones.terminarCarrera(estado, valores));
         if (!fin) return false;
+        cerrarNotificacionCarrera();
         detenerGps();
         mantenerPantallaDespierta(false);
         subvista.running = "correr";
