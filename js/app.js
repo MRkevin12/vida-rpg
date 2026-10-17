@@ -282,12 +282,21 @@ async function ponerHeroeEnMapaVivo() {
 let ultimaNotificacionCarrera = 0;
 function textoNotificacionCarrera(en) {
     const ahora = Date.now();
+    const tiempo = running.textoTiempo(running.tiempoDeEncurso(en, ahora));
+    if (!en.gps) return { titulo: `🏃 ${tiempo}${en.pausadoDesde ? "  ⏸ en pausa" : ""}`, cuerpo: "⏱ Cronómetro en marcha" };
+    // Una barrita de 10 cuadritos: ▰▰▰▱▱▱▱▱▱▱
+    const barra = (parte) => "▰".repeat(Math.round(Math.min(1, Math.max(0, parte)) * 10)) + "▱".repeat(10 - Math.round(Math.min(1, Math.max(0, parte)) * 10));
+    const km = en.distancia / 1000;
+    const lineas = [`⚡ ${running.textoRitmo(running.ritmoEnVivo(en, ahora))}${en.objetivo ? `   🎯 ${running.textoSegundos(en.objetivo)} /km` : ""}`];
     const pelea = en.encuentros?.find((e) => !e.resultado);
-    const linea = pelea ? `\n⚔️ ${encuentros.nombreDe(pelea)}${pelea.jefe ? " (jefe)" : ""} · objetivo ${running.textoSegundos(en.objetivo)} /km` : "";
-    return {
-        titulo: `🏃 ${running.textoTiempo(running.tiempoDeEncurso(en, ahora))}${en.pausadoDesde ? " · en pausa" : ""}`,
-        cuerpo: en.gps ? `📍 ${running.textoKm(en.distancia / 1000)} · ${running.textoRitmo(running.ritmoEnVivo(en, ahora))}${linea}` : "Cronómetro en marcha",
-    };
+    if (pelea) {
+        const marcas = en.marcas || [];
+        const va = encuentros.comoVa(pelea, (running.tiempoDeEncurso(en, ahora) - (marcas.at(-1) || 0)) / 1000, en.distancia - marcas.length * 1000, en.objetivo);
+        const estadoPelea = { bien: "✅", justo: "⚖️", lento: "🐢" }[va.vas];
+        lineas.push(`${pelea.jefe ? "👑" : "⚔️"} ${encuentros.nombreDe(pelea)}  ${estadoPelea}`);
+        lineas.push(`❤️ ${barra(va.vida)}  ·  km ${pelea.km}`);
+    }
+    return { titulo: `🏃 ${tiempo}   📍 ${running.textoKm(km)}${en.pausadoDesde ? "   ⏸" : ""}`, cuerpo: lineas.join("\n") };
 }
 
 let mostrandoNotificacion = false;   // evita que dos llamadas seguidas creen dos notificaciones

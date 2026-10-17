@@ -4,9 +4,14 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 122;
+export const VERSION_APP = 123;
 
 export const NOVEDADES = [
+    {
+        version: 123,
+        titulo: "Notificación de carrera más bonita",
+        cambios: ["🔔 La notificación muestra tu tiempo y km arriba, el ritmo con tu objetivo, la criatura del km con su estado (✅ ganando, ⚖️ parejo, 🐢 se escapa) y su barra de vida."],
+    },
     {
         version: 122,
         titulo: "Menos avisos al correr",

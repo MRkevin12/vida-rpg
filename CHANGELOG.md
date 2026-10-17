@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v123 — Notificación de la carrera más clara
+- `textoNotificacionCarrera`: título con tiempo y km; cuerpo con ritmo/objetivo, criatura con su estado y barra de vida (▰▱).
+
 ## v122 — Notificación de la carrera cada 30 s
 - Antes cada 10 s; con la v120 se acumulaban en el iPhone. Desde la v121 se cierra la anterior antes de mostrar la nueva.
 
