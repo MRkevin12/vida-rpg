@@ -110,15 +110,46 @@ export function retocarPuntos(puntos, ancho, alto, { niveles = 14, contorno = tr
     return puntos;
 }
 
+// (v93) Un SVG que se pinta como imagen NO puede cargar archivos de afuera (por seguridad, el navegador
+// los ignora). Las pinturas de los fondos (<image href="fondos/aldea.jpg">) saldrían en blanco. Por eso,
+// antes de pintar, cada una se lee y se mete DENTRO del SVG como "data:…" (el archivo convertido a texto).
+const incrustadas = new Map();   // dirección → su versión "data:…"
+function leerComoTexto(direccion) {
+    if (!incrustadas.has(direccion)) {
+        incrustadas.set(direccion, fetch(direccion).then((r) => (r.ok ? r.blob() : null)).then((blob) => (blob ? new Promise((listo) => {
+            const lector = new FileReader();
+            lector.onload = () => listo(lector.result);
+            lector.onerror = () => listo(null);
+            lector.readAsDataURL(blob);
+        }) : null)).catch(() => null));
+    }
+    return incrustadas.get(direccion);
+}
+
+async function incrustarImagenes(svg) {
+    const externas = [...new Set([...svg.matchAll(/<image[^>]*?\shref="(?!data:)([^"]+)"/g)].map((m) => m[1]))];
+    for (const direccion of externas) {
+        const texto = await leerComoTexto(direccion);
+        if (texto) svg = svg.split(`href="${direccion}"`).join(`href="${texto}"`);
+    }
+    return svg;
+}
+
+// (v93) ¿Ya se hizo la imagen de esa clave? Devuelve su dirección al instante (o null si todavía no).
+// Sirve para pintar el HTML sin esperar: si ya está hecha, se usa; si no, se pide y se pone después.
+export const yaPixelado = (clave) => guardados.get(clave) || null;
+
 // svg: el dibujo (texto). ancho × alto: el tamaño en puntos.
 // opciones: { clave (para guardar el resultado), niveles (colores por canal), contorno,
-//             sombra (todo en sombras), espejo (dado vuelta, como en un espejo) }
+//             sombra (todo en sombras), espejo (dado vuelta, como en un espejo),
+//             puntos (v93: [{ x, y, color: [r, g, b] }, …] que se pintan al final, encima de todo;
+//                     así se "estampan" los ojos, que al achicar el dibujo se perderían) }
 // Devuelve la dirección de la imagen (se usa en <img src="…">), o null si no se pudo.
 export async function pixelar(svg, ancho, alto, opciones = {}) {
-    const { clave = null, contorno = true, espejo = false } = opciones;
+    const { clave = null, contorno = true, espejo = false, puntos = [] } = opciones;
     if (clave && guardados.has(clave)) return guardados.get(clave);
 
-    const imagen = await cargarImagen(direccionDeSvg(svg, ancho, alto));
+    const imagen = await cargarImagen(direccionDeSvg(await incrustarImagenes(svg), ancho, alto));
     if (!imagen) return null;
     const lienzo = document.createElement("canvas");
     lienzo.width = ancho;
@@ -137,6 +168,10 @@ export async function pixelar(svg, ancho, alto, opciones = {}) {
     try {
         const datos = g.getImageData(0, 0, ancho, alto);
         retocarPuntos(datos.data, ancho, alto, opciones);
+        for (const { x, y, color } of puntos) {
+            if (x < 0 || y < 0 || x >= ancho || y >= alto) continue;
+            datos.data.set([...color, 255], (y * ancho + x) * 4);
+        }
         g.putImageData(datos, 0, 0);
         direccion = lienzo.toDataURL("image/png");
     } catch {

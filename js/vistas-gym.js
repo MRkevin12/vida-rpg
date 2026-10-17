@@ -10,6 +10,7 @@ import * as avatar from "./avatar.js";
 import * as gymAurelio from "./gym-aurelio.js";
 import { describirMaestro } from "./maestro.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
+import { retratoPixel } from "./retratos.js";
 import { dibujarMovimiento } from "./dibujo-ejercicios.js";
 import { plural } from "./juego.js";
 import { esc, selectorSecciones } from "./vistas.js";
@@ -489,7 +490,7 @@ function vistaDeLista(estado, ctx) {
 function burbujaDeAurelio(ctx) {
     if (!ctx.fraseGym) return "";
     return `<div class="gym-aurelio" role="status">
-                <span class="gym-aurelio-retrato" aria-hidden="true">${dibujarAvatar(describirMaestro(), { mini: true })}</span>
+                <span class="gym-aurelio-retrato" aria-hidden="true">${retratoPixel(describirMaestro())}</span>
                 <p><b>Aurelio</b>${esc(ctx.fraseGym.texto)}</p>
             </div>`;
 }
@@ -590,7 +591,7 @@ function tarjetaHitos(estado) {
 // ===== (v79) El consejo del día, el reto de la semana y tu evolución =====
 function consejoDelDia(ctx) {
     return `<div class="gym-aurelio gym-consejo">
-                <span class="gym-aurelio-retrato" aria-hidden="true">${dibujarAvatar(describirMaestro(), { mini: true })}</span>
+                <span class="gym-aurelio-retrato" aria-hidden="true">${retratoPixel(describirMaestro())}</span>
                 <p><b>Consejo de Aurelio</b>${esc(gymAurelio.consejoDelDia(ctx.hoy))}</p>
             </div>`;
 }

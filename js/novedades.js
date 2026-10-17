@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 92;
+export const VERSION_APP = 93;
 
 export const NOVEDADES = [
+    {
+        version: 93,
+        titulo: "Tu héroe y Aurelio, en pixel art",
+        cambios: [
+            "🧙 Tu héroe y el Maestro Aurelio se ven en pixel art en toda la app: la cabecera, la tarjeta del héroe, la campaña, el arcade y los consejos.",
+            "👀 Las caras ahora tienen ojos: antes, al achicar el dibujo, se perdían (también en la Torre y en Las Voces del Valle). El Reflejo sombrío tiene ojos rojos.",
+            "🔥 La tarjeta del héroe es un pequeño escenario: el paisaje en pixel art, tus llamas y partículas que se mueven, y tu héroe y tu mascota respirando.",
+            "🎨 En «Aspecto» el dibujo sigue siendo grande y detallado, para que veas bien lo que eliges.",
+        ],
+    },
     {
         version: 92,
         titulo: "Batallas con ambiente",

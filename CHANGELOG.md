@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v93 — Tu héroe y Aurelio en pixel art (el reino en pixel art, parte 3)
+- **`js/retratos.js` (nuevo):** `retratoPixel(d)` (32 × 32, cabecera y Aurelio), `figuraPixel(d, { efectos })` (54 × 72, campaña, arcade, robo y Aurelio de pie) y `dioramaPixel(d)` (72 × 72 por capas). Devuelven el `<img>` al instante: si la imagen ya está hecha, con ella; si no, vacío con `data-pixel` y se completa al terminar `pixelar`.
+- `rasgosEnPixeles(d, encuadre, ancho, alto)`: dónde caen los ojos (cabeza ×1,12 alrededor de (100, 58.5)) y qué puntos estampar (pupila de 1 punto; en retratos grandes 2 puntos con brillo). Se usa también en `sprites.js` (héroe, Aurelio, la gente del valle y el Reflejo, con ojos rojos y al revés).
+- `dibujarAvatar(d, { capa })`: `fondo`, `detras` (partículas, aura, llamas), `figura` (héroe, sombra y mascota), `encima` (cansado, dormido) o `todo`. El diorama pixela el fondo y la figura; la capa de atrás sigue animada y se ve en pixel art con un filtro SVG de mosaico (`pixelarEnVivo`: feFlood + feTile + feComposite + feMorphology).
+- `pixel.js`: `yaPixelado(clave)` (sin esperar), opción `puntos` (se pintan al final) e `incrustarImagenes`: las pinturas `<image href>` se meten en el SVG como `data:` (un SVG cargado como imagen no puede leer archivos de afuera; el fondo salía vacío).
+- 2 pruebas nuevas (ojos simétricos y dentro de la imagen; las capas suman el dibujo completo). 297 pruebas. Revisado en Chromium y WebKit.
+
 ## v92 — Batallas con ambiente (el reino en pixel art, parte 2)
 - `vistas.js`: `AMBIENTES` (zona → polvo, brasas, lluvia, viento, oro, burbujas, esporas, ceniza, latido, reflejos o llama azul), `ambienteFF(zona)` (16 partículas detrás de los personajes, con `azarFijo` para que no salten al redibujar) y `frenteFF(zona)` (bruma del suelo, luz que parpadea y esquinas oscuras, z-index 2).
 - `chispasFF(clase, cuando, cuantas)`: cuadritos que salen del impacto (golpe, crítico, fuego, hielo, rayo, garra de la mascota, herida en tu héroe, y 14 violetas al caer la criatura). `spriteFF` tiene una capa más, `.ff-retro`, para el retroceso al recibir un golpe. El crítico agrega `ff-golpe-critico` (destello y la sala se acerca).

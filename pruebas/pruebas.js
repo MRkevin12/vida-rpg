@@ -53,6 +53,7 @@ import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "../js/novedades.js";
 import { ICONOS, EMOJIS, icono, iconizar } from "../js/iconos.js";
+import * as retratos from "../js/retratos.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
@@ -6305,6 +6306,33 @@ prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no
     const cura = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "curar", cura: 5, nombre: "Regenerar" }]));
     cierto(!cura.includes("ff-atq "), "curarse no es atacar");
     cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
+});
+
+// ===== El héroe en pixel art (v93) =====
+
+prueba("Retratos: los ojos caen dentro de la imagen, a la misma altura y simétricos; dormido no se estampan", () => {
+    const d = { animo: "normal" };
+    for (const [encuadre, ancho, alto] of [["batalla", 54, 72], ["mini", 32, 32], ["mini", 30, 30], ["completo", 72, 72]]) {
+        const puntos = retratos.rasgosEnPixeles(d, encuadre, ancho, alto);
+        cierto(puntos.length >= 2, `${encuadre} ${ancho}: hay ojos`);
+        cierto(puntos.every((p) => p.x >= 0 && p.x < ancho && p.y >= 0 && p.y < alto), `${encuadre} ${ancho}: dentro de la imagen`);
+        const pupilas = puntos.filter((p) => p.color[0] < 100);
+        const [izq, der] = [Math.min(...pupilas.map((p) => p.x)), Math.max(...pupilas.map((p) => p.x))];
+        cierto(der - izq >= 2 && der - izq <= 9, `${encuadre} ${ancho}: separación razonable (${der - izq})`);
+        igual(new Set(pupilas.filter((p) => p.y === pupilas[0].y).map((p) => p.x)).size, 2, `${encuadre} ${ancho}: dos ojos a la misma altura`);
+    }
+    igual(retratos.rasgosEnPixeles({ animo: "dormido" }, "batalla", 54, 72), []);
+});
+
+prueba("Avatar por capas: «todo» es la suma de fondo, detrás, figura y encima", () => {
+    const estado = partidaNueva();
+    const d = avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy()));
+    const sinIds = (svg) => svg.replace(/av\d+/g, "av").replace(/<svg[^>]*>|<\/svg>|<defs>[\s\S]*?<\/defs>/g, "").replace(/\s+/g, "");
+    const partes = ["fondo", "detras", "figura", "encima"].map((capa) => sinIds(dibujarAvatar(d, { capa })));
+    cierto(partes[0].includes("<image"), "el fondo lleva la pintura");
+    cierto(partes[2].includes('class="pj"'), "la figura lleva al héroe");
+    cierto(!partes[2].includes("<image"), "la figura no lleva la pintura");
+    igual(partes.join("").length, sinIds(dibujarAvatar(d)).length, "nada se pierde ni se repite");
 });
 
 // ===== Batallas con ambiente (v92) =====

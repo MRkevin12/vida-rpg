@@ -35,6 +35,7 @@ import * as equipo from "./equipo.js";
 import { precioConEvento } from "./eventos.js";
 import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
+import { retratoPixel, figuraPixel, dioramaPixel } from "./retratos.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
@@ -602,7 +603,7 @@ function seccionDiario(estado, ctx, fecha, esAyer) {
 function palabrasDelMaestro(texto) {
     return `
         <div class="maestro-dice">
-            <span class="maestro-dice-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { mini: true })}</span>
+            <span class="maestro-dice-retrato" aria-hidden="true">${retratoPixel(maestro.describirMaestro())}</span>
             <p><b>${maestro.NOMBRE}</b>${esc(texto)}</p>
         </div>`;
 }
@@ -623,7 +624,7 @@ function tarjetaMaestro(ctx) {
     }
     return `
         <section class="maestro-tarjeta">
-            <div class="maestro-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { mini: true })}</div>
+            <div class="maestro-retrato" aria-hidden="true">${retratoPixel(maestro.describirMaestro())}</div>
             <div class="maestro-habla">
                 <span class="etiqueta">${maestro.NOMBRE}</span>
                 <p class="maestro-texto">${esc(maestro.saludo(c))}</p>
@@ -737,7 +738,7 @@ export function dialogoMaestro(ctx, m) {
         if (!c.cerrado) opciones += opcion("ritual-abrir", "🌙 Cerrar el día");
     }
     return `
-        <div class="maestro-dialogo-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { batalla: true })}</div>
+        <div class="maestro-dialogo-retrato" aria-hidden="true">${figuraPixel(maestro.describirMaestro())}</div>
         <p class="etiqueta">${maestro.NOMBRE}</p>
         <p class="maestro-burbuja">${esc(texto)}</p>
         <div class="maestro-opciones">${opciones}</div>
@@ -1709,7 +1710,7 @@ function tarjetaHeroe(estado, ctx, { conRivales = true } = {}) {
     return `
         <section class="panel heroe-hoy">
             <button type="button" class="heroe ${ctx.recienHecha ? "atacar" : ""}" data-accion="ir" data-pantalla="personaje">
-                <span class="heroe-avatar">${dibujarAvatar(a)}</span>
+                <span class="heroe-avatar">${dioramaPixel(a)}</span>
                 <span class="heroe-info">
                     <span class="etiqueta">${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</span>
                     <span class="heroe-animo">${textoAnimo(a, ctx)}</span>
@@ -2396,7 +2397,7 @@ function tarjetaCampana(c, ctx) {
             <!-- Escena de batalla: tu avatar contra el jefe -->
             <div class="escena">
                 <div class="escena-fondo">${dibujarEscenario(c.categoria)}</div>
-                <div class="escena-heroe ${golpeado ? "atacar" : ""}">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
+                <div class="escena-heroe ${golpeado ? "atacar" : ""}">${figuraPixel(ctx.avatar, { alt: "Tu héroe", efectos: true })}</div>
                 <span class="escena-vs">VS</span>
                 <div class="escena-jefe">${retratoJefe(jefe, visual, "", dano)}</div>
             </div>
@@ -2621,7 +2622,7 @@ export function pantallaArcade(estado, ctx) {
         ${["mazmorra", "minas", "laberinto", "fragua"].map((lugar) => tarjetaMazmorra(estado, caido, fichas, ctx.hoy, lugar)).join("")}
         ${panelBazar(estado, caido)}
         <section class="panel arcade-cabecera">
-            <div class="arcade-heroe">${dibujarAvatar(ctx.avatar, { batalla: true })}</div>
+            <div class="arcade-heroe">${figuraPixel(ctx.avatar, { alt: "Tu héroe" })}</div>
             <div>
                 <h2 class="titulo-juego">Arcade del héroe</h2>
                 <p class="fichas">🎟️ ${plural(fichas, "ficha", "fichas")}</p>
@@ -3836,7 +3837,7 @@ export function pantallaAnimo(nombre, hora, dia) {
         <div class="animo-caja">
             <p class="animo-marca">VIDA RPG</p>
             <div class="animo-maestro">
-                <div class="animo-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { batalla: true })}</div>
+                <div class="animo-retrato" aria-hidden="true">${figuraPixel(maestro.describirMaestro())}</div>
                 <div class="animo-burbuja">
                     <p class="animo-saludo">${saludo}, ${esc(nombre)}.</p>
                     <p class="animo-cita">«${esc(cita.texto)}»</p>
@@ -3938,7 +3939,7 @@ export function pantallaPersonaje(estado, ctx) {
 
     return `
         <section class="panel ficha">
-            <div class="ficha-avatar">${dibujarAvatar(a)}</div>
+            <div class="ficha-avatar">${dioramaPixel(a)}</div>
             <h2 class="titulo-juego">${esc(estado.personaje.nombre)}</h2>
             <p class="etiqueta">Nivel ${a.nivel} · ${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</p>
             <p class="heroe-animo">${textoAnimo(a, ctx)}</p>
@@ -4050,7 +4051,7 @@ export function pantallaMemorias(estado, ctx) {
     return `
         ${encabezado("🧙 Memorias", "personaje", "Héroe")}
         <section class="cronica memorias">
-            <div class="memorias-retrato" aria-hidden="true">${dibujarAvatar(maestro.describirMaestro(), { batalla: true })}</div>
+            <div class="memorias-retrato" aria-hidden="true">${figuraPixel(maestro.describirMaestro())}</div>
             <h2 class="cronica-titulo">Memorias de Aurelio</h2>
             <p class="cronica-sub">${todo
                 ? "Ya te lo contó todo. Lo demás lo estás escribiendo tú."

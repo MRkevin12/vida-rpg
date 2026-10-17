@@ -551,3 +551,111 @@ body {
         animation: none !important;
     }
 }
+
+
+/* =====================================================================
+   El héroe y Aurelio en pixel art (v93): retratos, figuras y diorama
+   ===================================================================== */
+
+/* Toda imagen hecha con pixel.js se agranda sin suavizar: cada punto queda como un cuadrito. */
+img.pixel {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Mientras se hace la imagen (un instante) el <img> está vacío, pero guarda su lugar: el navegador saca
+   la proporción de sus atributos width y height. */
+img.retrato-pixel { aspect-ratio: 1; }
+img.figura-pixel { aspect-ratio: 54 / 72; }
+
+/* El diorama: cuatro capas del mismo tamaño, una encima de otra. */
+.diorama {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+}
+
+.diorama > * {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.diorama-detras svg,
+.diorama-encima svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* El héroe respira: sube un punto y vuelve (un punto = el ancho entre los puntos del diorama). */
+.diorama-figura {
+    animation: diorama-respira 2.4s steps(1) infinite;
+}
+
+@keyframes diorama-respira {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(calc(-100% / var(--lado))); }
+}
+
+/* Al celebrar, el héroe salta dos veces. */
+.celebrando .diorama-figura {
+    animation: diorama-salta 0.6s steps(4) 2;
+}
+
+@keyframes diorama-salta {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(calc(-600% / var(--lado))); }
+}
+
+/* La figura con sus llamas o su aura detrás (la campaña). */
+.figura-con-efectos {
+    position: relative;
+}
+
+.figura-efectos {
+    position: absolute;
+    inset: 0;
+}
+
+.figura-efectos svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.figura-con-efectos .figura-pixel {
+    position: relative;
+}
+
+/* La figura de cuerpo entero (campaña, arcade, Aurelio de pie) también respira. */
+.figura-pixel {
+    animation: figura-respira 2.2s steps(1) infinite;
+}
+
+@keyframes figura-respira {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(calc(-100% / 72)); }
+}
+
+/* En la campaña, cuando el héroe golpea al jefe: un paso adelante y vuelve. */
+.atacar .figura-pixel {
+    animation: figura-ataca 0.5s steps(5);
+}
+
+@keyframes figura-ataca {
+    0%, 100% { transform: translateX(0); }
+    40%, 60% { transform: translateX(calc(1800% / 54)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .diorama-figura,
+    .figura-pixel {
+        animation: none;
+    }
+}

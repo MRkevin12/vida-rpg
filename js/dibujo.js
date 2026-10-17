@@ -93,7 +93,13 @@ function crearPaleta(d) {
 // mini = true: solo cabeza y hombros, para la cabecera de la app
 // batalla = true: sin fondo ni mascota, para pelear contra un jefe
 // sinEfectos = true: además sin aura, fuego ni brillo (para los minijuegos)
-export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = false } = {}) {
+// capa (v93) = solo una parte del dibujo completo, para armar el retrato en pixel art por capas (retratos.js):
+//   "fondo"   el paisaje (sin nada que se mueva)
+//   "detras"  lo que va entre el paisaje y el héroe: partículas, aura, llamas y resplandor (se anima)
+//   "figura"  el héroe, su sombra en el suelo y la mascota
+//   "encima"  lo que oscurece la escena entera (cansado, dormido, caído)
+//   "todo"    todo junto (lo de siempre)
+export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = false, capa: parte = "todo" } = {}) {
     d = { ...d, apariencia: { ...APARIENCIA_INICIAL, ...d.apariencia } };
     const p = crearPaleta(d);
     const e = esqueleto(d);
@@ -139,15 +145,18 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     // --- Brazo izquierdo: con Intelecto 6+ lleva el libro de hechizos ---
     const izquierdo = brazo("izq", d, e, p, d.rasgos.intelecto >= 2 ? libro(e.izq.mano, p) : "");
 
-    const capas = [
-        `<defs>${p.defs}${recorte}</defs>`,
-        // El retrato pequeño lleva un fondo liso: a ese tamaño el paisaje no se distingue.
+    // El retrato pequeño lleva un fondo liso: a ese tamaño el paisaje no se distingue.
+    const capaFondo = [
         batalla ? "" : mini ? `<rect x="60" width="80" height="80" fill="${oscurecer(d.clase.oscuro, 0.5)}"/><circle cx="100" cy="40" r="36" fill="${p.m("gema-luz")}"/>` : fondo(d, p),
+    ];
+    const capaDetras = [
         // El aire del fondo: partículas que flotan y rayos de luz (solo en el dibujo completo).
         batalla || mini ? "" : ambiente(d, p),
         p.etapa === 3 && !sinEfectos ? aura(p) : "",
         d.animo === "llamas" && !sinEfectos ? llamas(p) : "",
         d.animo === "feliz" && !sinEfectos ? resplandor(p) : "",
+    ];
+    const capaFigura = [
         // Sombra en el suelo: una amplia y suave, y otra más oscura justo bajo los pies.
         mini ? "" : `<ellipse cx="100" cy="183.4" rx="34" ry="6" fill="${p.m("suelo")}"/>
                      <ellipse cx="101" cy="181.8" rx="19" ry="2.6" fill="${p.m("ao")}"/>`,
@@ -172,12 +181,22 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         "</g>",
         estela,
         "</g>",
+    ];
+    const capaEncima = [
         // Cansado, dormido o caído: la escena se oscurece.
         dormido && !batalla ? noche() : "",
         d.animo === "cansado" && !batalla ? '<rect width="200" height="200" fill="#0b0816" opacity=".3"/>' : "",
         caido && !batalla ? '<rect width="200" height="200" fill="#0b0816" opacity=".5"/>' : "",
-        mini || batalla ? "" : `<g transform="translate(160 165)">${cuerpoMascota(d.mascota)}</g>`,
     ];
+    const mascota = mini || batalla ? "" : `<g transform="translate(160 165)">${cuerpoMascota(d.mascota)}</g>`;
+    const partes = {
+        todo: [...capaFondo, ...capaDetras, ...capaFigura, ...capaEncima, mascota],
+        fondo: capaFondo,
+        detras: capaDetras,
+        figura: [...capaFigura, mascota],
+        encima: capaEncima,
+    };
+    const capas = [`<defs>${p.defs}${recorte}</defs>`, ...(partes[parte] || partes.todo)];
 
     // El encuadre completo recorta un poco los bordes para que la figura se vea más grande.
     const vista = mini ? "75 11 50 50" : batalla ? "32.5 6 135 180" : "6 2 188 188";

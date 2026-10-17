@@ -51,6 +51,7 @@ import { VERSION_APP, NOVEDADES, novedadesPorVer } from "./novedades.js";
 import { calcularResumen, semanaPorMostrar } from "./resumen.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { vigilarIconos } from "./iconos.js";
+import { retratoPixel, figuraPixel, dioramaPixel } from "./retratos.js";
 import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, relojLargo, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
 
 
@@ -1009,7 +1010,7 @@ function mostrarRobo(robo, alCerrar = null) {
     }
     alCerrarRobo = alCerrar;
     roboDesde = Date.now();
-    $("#robo-caja").innerHTML = vistas.pantallaRobo(robo, dibujarAvatar(avatarActual(), { batalla: true, sinEfectos: true }));
+    $("#robo-caja").innerHTML = vistas.pantallaRobo(robo, figuraPixel(avatarActual(), { alt: "Tu héroe" }));
     $("#robo").hidden = false;
     $("#robo").scrollTop = 0;
     sonar("robo");
@@ -1116,7 +1117,7 @@ function actualizarCabecera(subioNivel) {
     const nivel = juego.calcularNivel(personaje.xp);
 
     // Array.from separa bien los emojis (si el nombre empieza con uno).
-    $("#cab-avatar").innerHTML = dibujarAvatar(avatarActual(), { mini: true });
+    $("#cab-avatar").innerHTML = retratoPixel(avatarActual(), { alt: "Tu héroe" });
     $("#cab-nombre").textContent = personaje.nombre;
     $("#cab-xp").textContent = `${nivel.xpEnNivel} / ${nivel.xpNecesaria} XP`;
     $("#cab-monedas").textContent = personaje.monedas;
@@ -1353,7 +1354,7 @@ function siguienteCelebracion() {
         $("#cel-icono").innerHTML = `<div class="cel-cuerpos"><figure>${cuerpo(celebracion.cuerpo.antes)}<figcaption>Antes</figcaption></figure>
             <span aria-hidden="true">➜</span><figure>${cuerpo(celebracion.cuerpo.despues)}<figcaption>Ahora</figcaption></figure></div>`;
     } else if (celebracion.avatar) {
-        $("#cel-icono").innerHTML = `<div class="cel-avatar celebrando">${dibujarAvatar(avatarActual())}</div>`;
+        $("#cel-icono").innerHTML = `<div class="cel-avatar celebrando">${dioramaPixel(avatarActual())}</div>`;
     } else if (celebracion.imagen) {
         $("#cel-icono").innerHTML = `<figure class="retrato derrotado cel-jefe"><img src="${celebracion.imagen}" alt=""></figure>`;
     } else {
