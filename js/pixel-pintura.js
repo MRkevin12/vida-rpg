@@ -73,11 +73,14 @@ function paletaDe(datos, k) {
 }
 
 // El color de la paleta más parecido (distancia "pesada": el ojo nota más el verde que el azul).
+// (v134) Se llama cientos de miles de veces por pintura: por eso no usa [pr, pg, pb] = … (crea una lista en cada
+// vuelta) ni ** (potencia): con restas y multiplicaciones simples es varias veces más rápido y da lo mismo.
 function masCercano(paleta, r, g, b) {
     let mejor = 0, menor = Infinity;
     for (let j = 0; j < paleta.length; j++) {
-        const [pr, pg, pb] = paleta[j];
-        const d = 2 * (r - pr) ** 2 + 4 * (g - pg) ** 2 + 3 * (b - pb) ** 2;
+        const color = paleta[j];
+        const dr = r - color[0], dg = g - color[1], db = b - color[2];
+        const d = 2 * dr * dr + 4 * dg * dg + 3 * db * db;
         if (d < menor) { menor = d; mejor = j; }
     }
     return mejor;

@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 133;
+export const VERSION_APP = 134;
 
 export const NOVEDADES = [
+    {
+        version: 134,
+        titulo: "Más orden por dentro",
+        cambios: [
+            "⚡ Las pestañas abren más rápido: Héroe y Aventuras tardan cerca de un 40 % menos.",
+            "⏳ La pantalla de carga al abrir la app dura 5 segundos (antes 4), con sus frases una por segundo.",
+            "🗂️ Por dentro: el «director» de la app (más de 4100 líneas) se dividió en 14 archivos, uno por tema (running, gym, Torre, diario…). Así cada parte es más fácil de entender y de mejorar.",
+        ],
+    },
     {
         version: 133,
         titulo: "Orden por dentro",

@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v134 — app.js dividido por tema
+- `app.js` (4159 líneas) queda como director (~900 líneas): estado, `ui`, arranque, `ejecutar`, dibujar, `cambiarPantalla`, `tictac`, respaldo y eventos. El resto pasa a 13 archivos `app-*.js`: running, gym, pin, torre, historias, efectos, dialogos, gestos, maestro, diario, version, botones y formularios.
+- Cada archivo exporta sus botones como `ACCIONES_<TEMA>` (y `FORMULARIOS_<TEMA>`); `app.js` los junta en `ACCIONES` / `FORMULARIOS`.
+- Las variables que cambian desde varios archivos (`diaVisto`, `fraseGym`, `descansoGym`, `paginaLibro`…) pasan al objeto `ui` de `app.js` (un módulo no puede reasignar el `let` de otro). Las de un solo tema viven en su archivo.
+- Verificado: mismas 181 acciones, 28 formularios y 149 funciones; una secuencia de 54 toques da la misma pantalla y los mismos datos que antes.
+- Pantalla de carga: `CARGA_DURACION` = 5000 ms (antes 4000; v86) en `app.js`, y `DURACION` = 5000 en el script de `index.html`, con las 5 frases una por segundo. La escena (CSS) no cambia: el destello termina a los 4 s y el último cuadro se queda 1 s.
+- Más rápido (medido con CPU ×4): `animarEntrada` ya no fuerza una medición de toda la pantalla (`offsetWidth`) salvo para reiniciar la animación → ir a Héroe 1648 → 980 ms, Aventuras 671 → 416 ms. `desdeTexto` lee con `slice` (sin `split`/`map`). `masCercano` (pixel-pintura) sin desestructurar ni `**`. Mismos resultados (comprobado con 4000 fechas y 2 millones de colores).
+
 ## v133 — vistas.js dividido por pantalla
 - `vistas.js` (4780 líneas, 310 KB) se partió en 14 archivos `vistas-*.js` (comun, hoy, diario, progreso, aventuras, mapa, historia, arcade, torre, enfoque, ajustes, inicio, heroe, tienda; el más grande ~960 líneas). El código de cada función no cambió.
 - `vistas.js` queda como índice (`export * from …`): `app.js` y las pruebas siguen usando `vistas.algo`. Las piezas compartidas (`esc`, `barra`, `vacio`, `plegable`, `barraDeVida`…) están en `vistas-comun.js`.

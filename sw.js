@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v133";
+const VERSION = "vida-rpg-v134";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
@@ -27,7 +27,20 @@ const ARCHIVOS = [
     "./estilos.css",
     "./estilos-pixel.css",
     "./manifest.json",
-    "./js/app.js",
+    "./js/app.js",   // (v134) junta los app-*.js de abajo
+    "./js/app-running.js",
+    "./js/app-gym.js",
+    "./js/app-pin.js",
+    "./js/app-torre.js",
+    "./js/app-historias.js",
+    "./js/app-efectos.js",
+    "./js/app-dialogos.js",
+    "./js/app-gestos.js",
+    "./js/app-maestro.js",
+    "./js/app-diario.js",
+    "./js/app-version.js",
+    "./js/app-botones.js",
+    "./js/app-formularios.js",
     "./js/acciones.js",
     "./js/arcade.js",
     "./js/avisos.js",

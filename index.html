@@ -105,10 +105,10 @@
                 "Cada 7 días seguidos ganas un escudo para tu racha.",
                 "Cuando cae un jefe, su guarida del reino tiene botín.",
             ];
-            // Las frases cambian cada 800 ms: 5 etapas en los 4 segundos.
+            // Las frases cambian cada segundo: 5 etapas en los 5 segundos.
             var frases = ["Despertando a tu héroe…", "Encendiendo las antorchas…", "Consultando al Maestro Aurelio…",
                           "Encendiendo la Llama de la Torre…", "¡Se abren las puertas del reino!"];
-            var DURACION = 4000;
+            var DURACION = 5000;
             var reloj = null;
             // (Re)inicia el texto, el porcentaje y el consejo. app.js lo vuelve a llamar después de la clave.
             window.reiniciarCarga = function () {
@@ -118,7 +118,7 @@
                 function pintar() {
                     if (!document.body.contains(carga)) return clearInterval(reloj);
                     var t = Math.min(1, (Date.now() - inicio) / (DURACION - 550));
-                    document.getElementById("carga-texto").textContent = frases[Math.min(frases.length - 1, Math.floor((Date.now() - inicio) / 800))];
+                    document.getElementById("carga-texto").textContent = frases[Math.min(frases.length - 1, Math.floor((Date.now() - inicio) / 1000))];
                     document.getElementById("carga-pct").textContent = Math.round(100 * (1 - Math.pow(1 - t, 2))) + " %";
                 }
                 pintar();

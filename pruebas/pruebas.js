@@ -2572,7 +2572,7 @@ prueba("Pantalla de carga (v85): dura 4 segundos con su escena, y con PIN va des
     cierto(pagina.includes("8000") && pagina.indexOf('id="carga"') < pagina.indexOf('id="bloqueo"'), "va antes que todo, con su seguro de 8 segundos");
     cierto(pagina.includes('classList.add("espera")') && pagina.includes("reiniciarCarga"), "con PIN guardado se deja en espera y se puede reiniciar");
     const app = await (await fetch("../js/app.js", { cache: "no-store" })).text();
-    cierto(app.includes("const CARGA_DURACION = 4000;"), "dura 4 segundos");
+    cierto(app.includes("const CARGA_DURACION = 5000;"), "dura 5 segundos");
     cierto(/pedirPinParaEntrar\(entrarConCarga\)/.test(app) && /correrCarga\(entrarAlJuego, \{ completa: true \}\)/.test(app), "primero la clave y después la carga");
     const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
     cierto(css.includes(".carga.espera { display: none; }"), "la espera la esconde");

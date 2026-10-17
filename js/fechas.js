@@ -33,8 +33,13 @@ export function aTexto(fecha) {
 
 // "AAAA-MM-DD" -> objeto Date (a la medianoche local)
 export function desdeTexto(texto) {
+    // (v134) Se llama miles de veces (la racha y la vida se calculan día por día): leer cada parte con slice
+    // es varias veces más rápido que split + map. Si el texto no tiene la forma exacta, se usa el camino largo.
+    if (texto.length === 10) {
+        return new Date(+texto.slice(0, 4), +texto.slice(5, 7) - 1, +texto.slice(8, 10)); // los meses van de 0 a 11
+    }
     const [anio, mes, dia] = texto.split("-").map(Number);
-    return new Date(anio, mes - 1, dia); // en JavaScript los meses van de 0 a 11
+    return new Date(anio, mes - 1, dia);
 }
 
 // La fecha de hoy como texto.
