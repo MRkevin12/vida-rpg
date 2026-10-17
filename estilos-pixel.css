@@ -1,0 +1,255 @@
+/* estilos-pixel.css — El tema pixel art de Vida RPG (v91).
+ *
+ * Va DESPUÉS de estilos.css: cuando dos reglas pesan lo mismo, gana la que se lee al final.
+ * Así este archivo cambia el aspecto sin reescribir los otros 10 000 renglones.
+ *
+ * Las ideas del pixel art que se repiten aquí:
+ *   - Bordes duros: sombras SIN desenfoque ("0 4px 0" en vez de "0 10px 30px").
+ *   - Contorno oscuro de 2 px alrededor de todo, como los sprites (box-shadow "0 0 0 2px").
+ *   - Luz de arriba: una franja clara arriba (inset 0 2px) y una oscura abajo (inset 0 -3px).
+ *   - Letra de cuadritos (DotGothic16) para títulos, números y botones.
+ *   - Íconos dibujados punto por punto (js/iconos.js), con la clase .pxi.
+ */
+
+:root {
+    --tinta: #06040d;                  /* el contorno de todo: violeta casi negro */
+    --borde: #3a2e68;                  /* el borde de los paneles, un poco más claro que antes */
+    --luz-arriba: rgba(255, 255, 255, 0.07);
+    --sombra-abajo: rgba(0, 0, 0, 0.38);
+
+    /* Un remache dorado de 3 × 3 puntos para las esquinas de los paneles. */
+    --remache: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 3' shape-rendering='crispEdges'%3E%3Cpath fill='%239a5212' d='M0 1h3v1H0zM1 0h1v3H1z'/%3E%3Cpath fill='%23ffcb3d' d='M1 0h1v1H1zM0 1h1v1H0z'/%3E%3Cpath fill='%23fff3a6' d='M1 1h1v1H1z'/%3E%3C/svg%3E");
+}
+
+/* ===== Los íconos ===== */
+/* Miden un poco más que una letra y bajan un poco para quedar alineados con el texto.
+   width/height con !important: algunas reglas viejas ponen "svg { width: 100% }" en sus cajas. */
+svg.pxi {
+    display: inline-block;
+    width: 1.25em !important;
+    height: 1.25em !important;
+    max-width: none;
+    vertical-align: -0.26em;
+    flex: none;
+    stroke: none;
+    overflow: visible;
+}
+
+/* ===== Fondo: cielo de noche con estrellas de un punto ===== */
+body {
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' shape-rendering='crispEdges'%3E%3Cg fill='%23ffffff'%3E%3Crect x='7' y='11' width='1' height='1' opacity='.55'/%3E%3Crect x='61' y='5' width='1' height='1' opacity='.35'/%3E%3Crect x='38' y='40' width='1' height='1' opacity='.45'/%3E%3Crect x='83' y='31' width='1' height='1' opacity='.3'/%3E%3Crect x='20' y='70' width='1' height='1' opacity='.4'/%3E%3Crect x='70' y='78' width='1' height='1' opacity='.5'/%3E%3Crect x='52' y='60' width='1' height='1' opacity='.25'/%3E%3Crect x='90' y='88' width='1' height='1' opacity='.3'/%3E%3C/g%3E%3Cg fill='%23c4b5fd' opacity='.5'%3E%3Crect x='29' y='19' width='1' height='1'/%3E%3Crect x='77' y='52' width='1' height='1'/%3E%3Crect x='12' y='45' width='1' height='1'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 192px 192px,
+        radial-gradient(circle at 15% 0%, rgba(139, 92, 246, 0.2), transparent 45%),
+        radial-gradient(circle at 100% 40%, rgba(34, 211, 238, 0.07), transparent 40%),
+        var(--fondo);
+    background-attachment: fixed;
+}
+
+/* ===== Paneles: marco con contorno, luz arriba y remaches dorados ===== */
+.panel {
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
+    background:
+        var(--remache) top 5px left 5px / 6px 6px no-repeat,
+        var(--remache) top 5px right 5px / 6px 6px no-repeat,
+        var(--remache) bottom 5px left 5px / 6px 6px no-repeat,
+        var(--remache) bottom 5px right 5px / 6px 6px no-repeat,
+        linear-gradient(180deg, var(--panel-claro), var(--panel));
+    box-shadow:
+        inset 0 2px 0 var(--luz-arriba),
+        inset 0 -3px 0 var(--sombra-abajo),
+        0 0 0 2px var(--tinta),
+        0 6px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Las ventanas (diálogos): el mismo marco, más marcado. */
+.dialogo {
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
+    background:
+        var(--remache) top 6px left 6px / 6px 6px no-repeat,
+        var(--remache) top 6px right 6px / 6px 6px no-repeat,
+        var(--remache) bottom 6px left 6px / 6px 6px no-repeat,
+        var(--remache) bottom 6px right 6px / 6px 6px no-repeat,
+        linear-gradient(180deg, var(--panel-claro), var(--panel));
+    box-shadow:
+        inset 0 2px 0 var(--luz-arriba),
+        inset 0 -3px 0 var(--sombra-abajo),
+        0 0 0 2px var(--tinta),
+        0 0 0 4px rgba(139, 92, 246, 0.25),
+        0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ===== Títulos y números con letra de pixel ===== */
+.titulo-juego {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 0 var(--tinta);
+}
+
+/* ===== Botones: dos tonos (la mitad de arriba iluminada), contorno y un escalón abajo ===== */
+.boton {
+    border-radius: var(--esquina);
+    font-family: var(--letra-titulo);
+    font-weight: 600;
+    font-size: 1.02rem;
+    letter-spacing: 0.02em;
+}
+
+.boton:active {
+    transform: translateY(2px);
+}
+
+.boton-principal {
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(30, 8, 70, 0.6);
+    background: linear-gradient(180deg, #a383ff 0 50%, #8b5cf6 50% 100%);
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.35),
+        inset 0 -3px 0 rgba(40, 10, 90, 0.55),
+        0 0 0 2px var(--tinta),
+        0 4px 0 var(--tinta);
+}
+
+.boton-principal:active {
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.35),
+        inset 0 -3px 0 rgba(40, 10, 90, 0.55),
+        0 0 0 2px var(--tinta),
+        0 2px 0 var(--tinta);
+}
+
+.boton-secundario {
+    background: linear-gradient(180deg, #221a3d 0 50%, #1b1432 50% 100%);
+    border: 2px solid var(--borde);
+    box-shadow: inset 0 2px 0 var(--luz-arriba), 0 0 0 2px var(--tinta), 0 3px 0 var(--tinta);
+}
+
+.boton-chico {
+    border-width: 2px;
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.3) 0 50%, rgba(139, 92, 246, 0.2) 50% 100%);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px var(--tinta), 0 3px 0 var(--tinta);
+}
+
+.boton-oro {
+    color: #2a1600;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    background: linear-gradient(180deg, #ffe17a 0 50%, #fbbf24 50% 100%);
+    border-color: #9a5212;
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -3px 0 rgba(154, 82, 18, 0.55),
+        0 0 0 2px var(--tinta),
+        0 4px 0 var(--tinta);
+}
+
+.boton-peligro {
+    text-shadow: 0 2px 0 rgba(80, 0, 20, 0.5);
+    background: linear-gradient(180deg, #fb5c78 0 50%, #e11d48 50% 100%);
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -3px 0 rgba(90, 0, 20, 0.5),
+        0 0 0 2px var(--tinta),
+        0 4px 0 var(--tinta);
+}
+
+/* El botón de las misiones: un cuadro (casilla de juego), no un círculo. */
+.boton-check {
+    border-radius: var(--esquina);
+    box-shadow: inset 0 2px 0 var(--luz-arriba), 0 0 0 2px var(--tinta);
+}
+
+/* ===== Barras: borde de tinta, franja de luz y cortes cada pocos puntos (como un medidor de juego) ===== */
+.barra {
+    border-color: var(--tinta);
+    border-radius: 2px;
+    background: #120d22;
+    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+.barra-relleno {
+    border-radius: 0;
+}
+
+.barra-relleno::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0 2px, transparent 2px calc(100% - 2px), rgba(0, 0, 0, 0.25) calc(100% - 2px)),
+        repeating-linear-gradient(90deg, transparent 0 7px, rgba(6, 4, 13, 0.32) 7px 9px);
+    pointer-events: none;
+}
+
+/* ===== Cabecera ===== */
+.cabecera {
+    background: rgba(9, 6, 19, 0.92);
+    border-bottom: 2px solid var(--borde);
+    box-shadow: 0 2px 0 var(--tinta);
+}
+
+.avatar {
+    border-radius: var(--esquina);
+    box-shadow: 0 0 0 2px var(--tinta), 0 0 0 4px #9a5212, 0 0 0 6px var(--tinta);
+}
+
+.cab-monedas {
+    text-shadow: 0 2px 0 var(--tinta);
+}
+
+/* El botón de Ajustes con su engranaje. */
+.boton-icono-pixel {
+    font-size: 20px;
+    line-height: 1;
+}
+
+/* ===== Barra de pestañas ===== */
+.pestanas {
+    background: rgba(9, 6, 19, 0.96);
+    border-top: 2px solid var(--borde);
+    box-shadow: 0 -2px 0 var(--tinta);
+}
+
+.pestana {
+    font-family: var(--letra-titulo);
+    font-size: 0.74rem;
+    letter-spacing: 0.02em;
+}
+
+/* Los íconos de las pestañas: en gris las que no están elegidas, a todo color la elegida. */
+.pestana-icono {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 32px;
+    font-size: 24px;
+    line-height: 1;
+    border-radius: var(--esquina);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.pestana-icono svg.pxi {
+    filter: grayscale(1) brightness(0.72);
+    transition: filter 0.2s;
+    vertical-align: 0;
+}
+
+.pestana[aria-current="page"] {
+    color: var(--oro);
+}
+
+.pestana[aria-current="page"] .pestana-icono {
+    background: linear-gradient(180deg, #2d2350 0 50%, #251c44 50% 100%);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), 0 0 0 2px var(--tinta), 0 0 0 4px rgba(251, 191, 36, 0.35);
+}
+
+.pestana[aria-current="page"] .pestana-icono svg.pxi {
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.45));
+    animation: pestana-salta 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pestana[aria-current="page"] .pestana-icono svg.pxi {
+        animation: none;
+    }
+}

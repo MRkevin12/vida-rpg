@@ -7,6 +7,15 @@
 
 /* Fuente de videojuego incluida en la app (funciona sin internet).
    Un archivo por grosor: 700 (negrita) y 800 (extra negrita). */
+/* (v91) DotGothic16 (licencia OFL, fuentes/OFL-dotgothic16.txt): la letra de los títulos y los números,
+   hecha de cuadritos como en los RPG clásicos. El archivo trae solo las letras latinas (con ñ y tildes). */
+@font-face {
+    font-family: "DotGothic16";
+    src: url("fuentes/dotgothic16.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+}
+
 @font-face {
     font-family: "Orbitron";
     src: url("fuentes/orbitron-700.woff2") format("woff2");
@@ -39,7 +48,9 @@
     --verde: #34d399;
     --rojo: #fb7185;
 
-    --radio: 18px;
+    --radio: 6px;            /* (v91) esquinas casi rectas, como en pixel art */
+    --esquina: 4px;          /* (v91) la de casi todo lo demás (antes 10–22 px y las píldoras 999 px) */
+    --letra-titulo: "DotGothic16", "Orbitron", sans-serif;   /* (v91) letra de pixel para títulos y números */
     --celda: 15px;           /* tamaño de cada cuadrito del calendario */
     --alto-pestanas: 64px;
 }
@@ -112,7 +123,7 @@ button {
 }
 
 .titulo-juego {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: 0.03em;
@@ -137,7 +148,7 @@ button {
     text-align: center;
     color: var(--texto-suave);
     border: 1px dashed var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .titulo-seccion {
@@ -201,7 +212,7 @@ button {
 }
 
 .bloqueo-icono {
-    border-radius: 18px;
+    border-radius: var(--esquina);
     box-shadow: 0 0 26px rgba(139, 92, 246, 0.5);
 }
 
@@ -248,7 +259,7 @@ button {
     width: 72px;
     height: 72px;
     padding: 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.6rem;
     font-weight: 700;
     background: rgba(255, 255, 255, 0.04);
@@ -295,8 +306,8 @@ button {
     overflow: hidden;
     border: none;
     cursor: pointer;
-    border-radius: 13px;
-    font-family: "Orbitron", sans-serif;
+    border-radius: var(--esquina);
+    font-family: var(--letra-titulo);
     font-size: 1.3rem;
     font-weight: 800;
     color: #fff;
@@ -325,7 +336,7 @@ button {
 
 .cab-nivel {
     flex-shrink: 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--texto-suave);
@@ -356,7 +367,7 @@ button {
     display: grid;
     justify-items: end;
     flex-shrink: 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--oro);
@@ -377,7 +388,7 @@ button {
     overflow: hidden;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .barra-relleno {
@@ -527,7 +538,7 @@ button {
     min-height: 44px;
     padding: 12px 18px;
     border: none;
-    border-radius: 12px;
+    border-radius: var(--esquina);
     font-weight: 700;
     letter-spacing: 0.01em;
     cursor: pointer;
@@ -589,7 +600,7 @@ button {
     place-items: center;
     padding: 0;
     border: none;
-    border-radius: 10px;
+    border-radius: var(--esquina);
     background: transparent;
     color: var(--texto-suave);
     cursor: pointer;
@@ -644,7 +655,7 @@ button {
     font-weight: 600;
     background: var(--panel);
     border: 1px solid var(--borde);
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .chip-racha {
@@ -664,11 +675,11 @@ button {
     font-weight: 600;
     color: var(--color-atributo);
     border: 1px solid var(--color-atributo);
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .contador {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.5rem;
     font-weight: 800;
     color: var(--cian);
@@ -699,7 +710,7 @@ button {
     background: var(--hundido);
     border: 1px solid var(--borde);
     border-left: 4px solid var(--color-dificultad);
-    border-radius: 14px;
+    border-radius: var(--esquina);
     transition: background 0.3s, border-color 0.3s, transform 0.2s;
 }
 
@@ -820,7 +831,7 @@ button {
     font-variant-numeric: tabular-nums;
     background: var(--panel);
     border: 1px solid var(--borde);
-    border-radius: 999px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -860,7 +871,7 @@ button {
     font-size: 0.85rem;
     background: rgba(251, 191, 36, 0.08);
     border: 1px solid rgba(251, 191, 36, 0.35);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 /* Texto "+25 XP" que sube y desaparece */
@@ -869,7 +880,7 @@ button {
     top: 50%;
     right: 50px;
     z-index: 2;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-weight: 800;
     color: var(--oro);
     text-shadow: 0 0 10px rgba(251, 191, 36, 0.7);
@@ -904,11 +915,11 @@ button {
     padding: 12px 4px;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .racha-numero {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.25rem;
     font-weight: 800;
 }
@@ -1023,7 +1034,7 @@ button.celda {
     padding: 10px 12px;
     font-size: 0.85rem;
     background: var(--hundido);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .cal-detalle strong::first-letter {
@@ -1044,7 +1055,7 @@ button.celda {
     background: var(--hundido);
     border: 1px solid var(--borde);
     border-top: 3px solid var(--color-atributo);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .atributo-cabecera {
@@ -1064,7 +1075,7 @@ button.celda {
 }
 
 .atributo-nivel {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.85rem;
     font-weight: 800;
     color: var(--color-atributo);
@@ -1186,7 +1197,7 @@ button.celda {
 
 .sello {
     margin-top: 6px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.8rem;
     font-weight: 700;
     color: var(--texto-suave);
@@ -1212,7 +1223,7 @@ button.celda {
 
 .campana-numero {
     margin-left: auto;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.8rem;
     font-weight: 700;
     color: var(--color-atributo);
@@ -1220,7 +1231,7 @@ button.celda {
 
 .jefe-nombre {
     margin-top: 8px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.05rem;
     font-weight: 700;
 }
@@ -1234,7 +1245,7 @@ button.celda {
 
 .campana-victoria {
     margin: 8px 0 2px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.1rem;
     font-weight: 800;
     color: var(--oro);
@@ -1253,7 +1264,7 @@ button.celda {
         radial-gradient(ellipse at 50% 100%, rgba(251, 113, 133, 0.22), transparent 60%),
         linear-gradient(180deg, #1b1033, #120a24);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .escena-heroe {
@@ -1271,7 +1282,7 @@ button.celda {
 
 .escena-vs {
     padding: 0 4px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.1rem;
     font-weight: 800;
     color: var(--rojo);
@@ -1417,7 +1428,7 @@ button.celda {
     inset: 0;
     display: grid;
     place-items: center;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-weight: 800;
 }
 
@@ -1451,7 +1462,7 @@ button.celda {
 /* Aviso de Partida+ en la tarjeta de la campaña */
 .ronda {
     margin-top: 4px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.82rem;
     font-weight: 700;
     color: var(--oro);
@@ -1478,7 +1489,7 @@ button.celda {
     text-align: left;
     background: var(--hundido);
     border: 1px solid rgba(251, 113, 133, 0.35);
-    border-radius: 14px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -1582,7 +1593,7 @@ button.celda {
     padding: 12px 6px 12px 12px;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .logro.desbloqueado {
@@ -1622,7 +1633,7 @@ button.celda {
 }
 
 .saldo-numero {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 2rem;
     font-weight: 800;
     color: var(--oro);
@@ -1636,7 +1647,7 @@ button.celda {
     padding: 12px 6px 12px 14px;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .recompensa.alcanzable {
@@ -1698,7 +1709,7 @@ textarea {
     color: var(--texto);
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
     -webkit-appearance: none;
     appearance: none;
 }
@@ -1804,7 +1815,7 @@ textarea:focus {
     font-weight: 600;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
     transition: border-color 0.2s, background 0.2s;
 }
 
@@ -1885,7 +1896,7 @@ textarea:focus {
     padding: 4px;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .selector button {
@@ -1896,7 +1907,7 @@ textarea:focus {
     color: var(--texto-suave);
     background: transparent;
     border: none;
-    border-radius: 9px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -1926,7 +1937,7 @@ textarea:focus {
     appearance: none;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 999px;
+    border-radius: var(--esquina);
     cursor: pointer;
     transition: background 0.2s;
 }
@@ -1978,7 +1989,7 @@ textarea:focus {
     padding: 12px;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .ficha-etiqueta {
@@ -2225,7 +2236,7 @@ textarea:focus {
     color: var(--texto);
     background: linear-gradient(180deg, var(--panel-claro), var(--panel));
     border: 1px solid var(--borde);
-    border-radius: 20px;
+    border-radius: var(--esquina);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
@@ -2275,7 +2286,7 @@ textarea:focus {
 }
 
 .horarios b {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-variant-numeric: tabular-nums;
 }
 
@@ -2342,7 +2353,7 @@ textarea:focus {
     flex: 0 0 112px;
     display: block;
     overflow: hidden;
-    border-radius: 16px;
+    border-radius: var(--esquina);
 }
 
 .heroe-info {
@@ -2373,7 +2384,7 @@ textarea:focus {
     width: min(240px, 70vw);
     margin-bottom: 6px;
     overflow: hidden;
-    border-radius: 22px;
+    border-radius: var(--esquina);
     box-shadow: 0 0 30px rgba(139, 92, 246, 0.35);
 }
 
@@ -2395,7 +2406,7 @@ textarea:focus {
     color: var(--texto-suave);
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .etapas small {
@@ -2426,7 +2437,7 @@ textarea:focus {
     background: var(--hundido);
     border: 1px solid var(--borde);
     border-top: 3px solid var(--color-atributo);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .rasgo-titulo {
@@ -2436,7 +2447,7 @@ textarea:focus {
 }
 
 .rasgo-titulo b {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.78rem;
     color: var(--color-atributo);
 }
@@ -2470,7 +2481,7 @@ textarea:focus {
     text-align: center;
     background: var(--hundido);
     border: 1px dashed var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .objeto {
@@ -2480,7 +2491,7 @@ textarea:focus {
     padding: 10px 12px;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .objeto.puesto {
@@ -2526,14 +2537,14 @@ textarea:focus {
     flex: 0 0 110px;
     padding: 6px;
     background: radial-gradient(circle, rgba(34, 211, 238, 0.18), transparent 70%);
-    border-radius: 16px;
+    border-radius: var(--esquina);
 }
 
 .cel-avatar {
     width: 150px;
     margin: 0 auto;
     overflow: hidden;
-    border-radius: 20px;
+    border-radius: var(--esquina);
 }
 
 /* --- Animaciones del avatar --- */
@@ -2837,7 +2848,7 @@ textarea:focus {
     overflow: hidden;
     background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.1), transparent 70%), var(--panel);
     border: 1.5px solid var(--rareza, var(--borde));
-    border-radius: 13px;
+    border-radius: var(--esquina);
     box-shadow: inset 0 0 14px -6px var(--rareza, transparent);
 }
 
@@ -2974,7 +2985,7 @@ textarea:focus {
     top: 14%;
     left: 50%;
     z-index: 3;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.35rem;
     font-weight: 800;
     color: #fff;
@@ -3047,7 +3058,7 @@ textarea:focus {
 
 .fichas {
     margin: 4px 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.3rem;
     font-weight: 800;
     color: #c4b5fd;
@@ -3100,7 +3111,7 @@ textarea:focus {
 }
 
 .minijuego-marcador {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--oro);
@@ -3113,7 +3124,7 @@ textarea:focus {
     height: min(58vh, 430px);
     background: #120a24;
     border: 1px solid var(--borde);
-    border-radius: 16px;
+    border-radius: var(--esquina);
     touch-action: none;   /* el dedo mueve el juego, no la página */
     -webkit-user-select: none;
     user-select: none;
@@ -3130,7 +3141,7 @@ textarea:focus {
     text-align: center;
     background: rgba(18, 10, 36, 0.94);
     border: 1px solid rgba(251, 191, 36, 0.45);
-    border-radius: 16px;
+    border-radius: var(--esquina);
     animation: entrar-celebracion 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -3139,7 +3150,7 @@ textarea:focus {
 }
 
 .minijuego-puntos {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 2rem;
     font-weight: 800;
     color: #fff;
@@ -3233,7 +3244,7 @@ textarea:focus {
     font-weight: 600;
     background: var(--panel-claro);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
 }
 
@@ -3358,7 +3369,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     padding: 12px 14px;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .bienvenida-lista span {
@@ -3385,7 +3396,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     color: var(--texto);
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -3528,7 +3539,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     inset: 0;
     display: grid;
     place-items: center;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 2.6rem;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
@@ -3567,7 +3578,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     position: absolute;
     left: 16px;
     bottom: 12px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.3rem;
     font-weight: 800;
     text-shadow: 0 2px 10px #000;
@@ -3606,7 +3617,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-shadow: 1px 1px 0 rgba(0, 0, 20, 0.85);
     background: linear-gradient(180deg, #3350c8 0%, #1c2e96 38%, #0a1258 100%);
     border: 2px solid #f1f3ff;
-    border-radius: 9px;
+    border-radius: var(--esquina);
     /* una línea oscura por dentro y otra por fuera del borde blanco */
     box-shadow: inset 0 0 0 1px #060a3a, 0 0 0 1px #060a3a, 0 3px 10px rgba(0, 0, 0, 0.45);
 }
@@ -3643,7 +3654,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 .ff-puntos {
     margin: 4px 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.7rem;
     font-weight: 800;
     text-align: center;
@@ -3661,7 +3672,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     container-type: inline-size;
     background: #0b0816;
     border: 2px solid #f1f3ff;
-    border-radius: 9px;
+    border-radius: var(--esquina);
     box-shadow: 0 0 0 1px #060a3a;
 }
 
@@ -4091,7 +4102,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     top: 28%;
     left: 50%;
     z-index: 4;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.3rem;
     font-weight: 800;
     color: #fff;
@@ -4412,7 +4423,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 .ff-zona-titulo {
     margin: 10px 0 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.95rem;
 }
 
@@ -4476,7 +4487,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font-size: 0.72rem;
     color: #b9c6ff;
     background: rgba(5, 7, 42, 0.6);
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .ff-elemento.ff-debil {
@@ -4510,7 +4521,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-align: center;
     background: linear-gradient(180deg, var(--panel-claro), var(--panel));
     border: 1px solid rgba(251, 191, 36, 0.5);
-    border-radius: 22px;
+    border-radius: var(--esquina);
     box-shadow: 0 0 50px rgba(251, 191, 36, 0.3);
     animation: entrar-celebracion 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -4532,7 +4543,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 .celebracion-titulo {
     margin-top: 6px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.6rem;
     font-weight: 800;
     overflow-wrap: anywhere;
@@ -4560,7 +4571,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font-weight: 600;
     background: var(--panel-claro);
     border: 1px solid var(--borde);
-    border-radius: 999px;
+    border-radius: var(--esquina);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
@@ -4585,7 +4596,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font-weight: 600;
     background: var(--panel-claro);
     border: 1px solid rgba(251, 191, 36, 0.55);
-    border-radius: 16px;
+    border-radius: var(--esquina);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
     animation: bajar 0.3s ease-out;
 }
@@ -4730,7 +4741,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .vida-numero {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.85rem;
     font-variant-numeric: tabular-nums;
 }
@@ -4759,7 +4770,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font-size: 0.85rem;
     background: rgba(107, 100, 136, 0.16);
     border: 1px solid rgba(251, 113, 133, 0.45);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .aviso-caido > b {
@@ -4816,7 +4827,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     padding: 0;
     font-size: 0.66rem;
     background: var(--muestra, var(--hundido));
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .pildora-color input:checked + span {
@@ -4881,7 +4892,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     color: var(--texto-suave);
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 10px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -4928,7 +4939,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     background: var(--hundido);
     border: 1px solid var(--borde);
     border-left: 4px solid var(--color-animo, var(--borde));
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .entrada-cabecera {
@@ -4998,7 +5009,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     color: var(--texto);
     background: linear-gradient(135deg, rgba(122, 20, 20, 0.22), rgba(21, 16, 42, 0.9));
     border: 1px solid rgba(200, 50, 58, 0.45);
-    border-radius: 14px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -5554,7 +5565,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     line-height: 1.5;
     background: var(--hundido);
     border: 1px solid rgba(192, 132, 252, 0.4);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .maestro-opciones {
@@ -5581,7 +5592,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font-size: 0.88rem;
     background: rgba(251, 191, 36, 0.07);
     border: 1px solid rgba(251, 191, 36, 0.35);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .evento-dia .etiqueta {
@@ -5602,7 +5613,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font-size: 0.88rem;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .cofre-cerrado {
@@ -5693,7 +5704,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .relampago-reloj {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-weight: 700;
     color: var(--cian);
     font-variant-numeric: tabular-nums;
@@ -5737,7 +5748,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     background: linear-gradient(180deg, var(--panel-claro), var(--hundido));
     border: 1px solid var(--borde);
     border-top: 4px solid var(--color-dificultad);
-    border-radius: 18px;
+    border-radius: var(--esquina);
     touch-action: pan-y;
     transition: transform 0.2s, border-color 0.2s;
     cursor: grab;
@@ -5803,7 +5814,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     height: 22px;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .golpe-zona {
@@ -5839,7 +5850,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 .golpe-resultado {
     margin: 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-weight: 800;
     color: var(--texto-suave);
 }
@@ -5901,7 +5912,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     line-height: 1.1;
     background: var(--hundido);
     border: 1.5px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -5948,7 +5959,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     overflow: hidden;
     background: #14101e;
     border: 2px solid #f1f3ff;
-    border-radius: 9px;
+    border-radius: var(--esquina);
     box-shadow: 0 0 0 1px #060a3a, 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
@@ -6020,7 +6031,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     padding: 10px 12px;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
     scroll-margin-top: calc(var(--alto-cabecera, 0px) + 12px);
 }
 
@@ -6058,7 +6069,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font-size: 1.8rem;
     background: var(--panel);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 /* La Crónica: un pergamino con letra de libro. */
@@ -6071,7 +6082,7 @@ body:has(#deshacer:not([hidden])) .aviso {
         radial-gradient(ellipse at 50% 20%, rgba(255, 252, 240, 0.55), transparent 60%),
         linear-gradient(180deg, #efe2c4, #e2cda2);
     border: 1px solid #b89b6a;
-    border-radius: 10px;
+    border-radius: var(--esquina);
     box-shadow: inset 0 0 40px rgba(110, 72, 28, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
     color-scheme: light;
 }
@@ -6240,7 +6251,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-align: center;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .poder-equipo small {
@@ -6348,7 +6359,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     width: 124%;
     height: 5px;
     background: linear-gradient(90deg, transparent, #fff 35%, #fb7185 65%, transparent);
-    border-radius: 999px;
+    border-radius: var(--esquina);
     box-shadow: 0 0 14px #e11d48;
     transform: rotate(-28deg) scaleX(0);
     opacity: 0;
@@ -6381,7 +6392,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     position: absolute;
     left: 50%;
     z-index: 3;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.3rem;
     font-weight: 800;
     white-space: nowrap;
@@ -6512,7 +6523,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 .pestana svg {
     box-sizing: content-box;
     padding: 3px 14px;
-    border-radius: 999px;
+    border-radius: var(--esquina);
     transition: background 0.2s;
 }
 
@@ -6529,7 +6540,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-color: rgba(60, 48, 112, 0.9);
-    border-radius: 14px;
+    border-radius: var(--esquina);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
@@ -6744,7 +6755,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     white-space: nowrap;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
     cursor: pointer;
     list-style: none;
 }
@@ -6786,7 +6797,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .acceso b {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.95rem;
 }
 
@@ -6859,11 +6870,11 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-align: center;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .numeros b {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.05rem;
     font-variant-numeric: tabular-nums;
 }
@@ -6911,7 +6922,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-align: left;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 14px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -6963,7 +6974,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     grid-row: span 3;
     width: 116px;
     margin: 0;
-    border-radius: 18px;
+    border-radius: var(--esquina);
 }
 
 .ficha > .ficha-vida,
@@ -7092,7 +7103,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 .carga-titulo {
     margin: 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.9rem;
     font-weight: 800;
     letter-spacing: 0.14em;
@@ -7119,7 +7130,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     overflow: hidden;
     background: rgba(255, 255, 255, 0.07);
     border: 1px solid rgba(60, 48, 112, 0.9);
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .carga-barra span {
@@ -7293,7 +7304,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     left: 12px;
     z-index: 2;
     margin: 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.15rem;
     font-weight: 800;
     color: #fff;
@@ -7349,7 +7360,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 .ff-lugar-titulo {
     margin: 14px 0 0;
     padding-bottom: 4px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.05rem;
     border-bottom: 1px solid rgba(241, 243, 255, 0.25);
 }
@@ -7374,7 +7385,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     padding: 10px 12px;
     background: rgba(192, 132, 252, 0.08);
     border: 1px solid rgba(192, 132, 252, 0.3);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .maestro-dice-retrato {
@@ -7470,7 +7481,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     letter-spacing: 0.04em;
     color: #fff;
     background: #8f1d1d;
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .memoria-leccion {
@@ -7490,7 +7501,7 @@ body:has(#deshacer:not([hidden])) .aviso {
    ===================================================================== */
 
 .saldo-gemas {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.95rem;
     font-weight: 700;
     color: #a5f3fc;
@@ -7519,7 +7530,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     padding: 8px 10px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .provision.llevada {
@@ -7556,7 +7567,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     height: 18px;
     margin: 0 -6px;
     background: linear-gradient(180deg, #a06a35 0%, #6b3f1c 45%, #3d220c 100%);
-    border-radius: 9px;
+    border-radius: var(--esquina);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.55);
 }
 
@@ -7758,12 +7769,12 @@ body:has(#deshacer:not([hidden])) .aviso {
     padding: 12px 14px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(251, 191, 36, 0.45);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .saga-acto h3 {
     margin: 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.1rem;
 }
 
@@ -7989,7 +8000,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     color: #fff;
     background: rgba(0, 0, 0, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.45);
-    border-radius: 999px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -8182,7 +8193,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     top: 8%;
     margin: 0;
     padding: 0 6%;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: clamp(1rem, 5.2cqw, 1.9rem);
     font-weight: 800;
     line-height: 1.25;
@@ -8242,7 +8253,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font-size: 0.84rem;
     color: var(--texto-suave);
     border: 1px dashed var(--borde);
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .voces-tecnica small {
@@ -8305,7 +8316,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     padding: 10px;
     background: rgba(0, 0, 0, 0.38);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .voces-busto {
@@ -8313,7 +8324,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     width: 72px;
     height: 72px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    border-radius: var(--esquina);
     image-rendering: pixelated;
 }
 
@@ -8377,7 +8388,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     background-position: center;
     background-size: cover;
     border: 1px solid var(--borde);
-    border-radius: 16px;
+    border-radius: var(--esquina);
 }
 
 .voces-barra {
@@ -8418,7 +8429,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     padding: 4px 10px;
     font-size: 0.8rem;
     background: rgba(0, 0, 0, 0.62);
-    border-radius: 999px;
+    border-radius: var(--esquina);
     animation: voces-aparece 0.4s ease-out;
 }
 
@@ -8459,13 +8470,13 @@ body:has(#deshacer:not([hidden])) .aviso {
     padding: 14px 16px;
     background: rgba(15, 10, 40, 0.92);
     border: 2px solid rgba(255, 255, 255, 0.7);
-    border-radius: 12px;
+    border-radius: var(--esquina);
     animation: voces-aparece 0.35s ease-out;
 }
 
 .voces-nombre {
     margin: 0 0 4px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.78rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -8499,7 +8510,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-align: left;
     background: rgba(139, 92, 246, 0.18);
     border: 1px solid rgba(139, 92, 246, 0.55);
-    border-radius: 12px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -8533,7 +8544,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 .voces-final-titulo {
     margin: 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.1rem;
     text-align: center;
 }
@@ -8623,12 +8634,12 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-align: center;
     background: color-mix(in srgb, var(--acento) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--acento) 55%, transparent);
-    border-radius: 12px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
 .esencial-dato b {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 1.05rem;
     color: var(--acento);
 }
@@ -8645,7 +8656,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     background: color-mix(in srgb, var(--acento) 5%, transparent);
     border: 1px solid color-mix(in srgb, var(--acento) 30%, transparent);
     border-left: 5px solid var(--acento);
-    border-radius: 14px;
+    border-radius: var(--esquina);
 }
 
 .esencial-grupo .titulo-juego {
@@ -8716,7 +8727,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 .animo-marca {
     margin: 0;
     text-align: center;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-weight: 800;
     letter-spacing: 0.3em;
     color: #e9d5ff;
@@ -8738,7 +8749,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     text-align: center;
     background: rgba(15, 10, 30, 0.7);
     border: 1px solid rgba(192, 132, 252, 0.45);
-    border-radius: 16px;
+    border-radius: var(--esquina);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
 }
@@ -8770,7 +8781,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font: inherit;
     background: rgba(15, 10, 30, 0.75);
     border: 1px solid var(--borde);
-    border-radius: 16px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -8797,7 +8808,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font: inherit;
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.28), rgba(15, 10, 30, 0.85));
     border: 1.5px solid rgba(167, 139, 250, 0.7);
-    border-radius: 16px;
+    border-radius: var(--esquina);
     box-shadow: 0 0 14px rgba(139, 92, 246, 0.3);
     cursor: pointer;
 }
@@ -8812,7 +8823,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     font-weight: 700;
     color: #1e1033;
     background: #c4b5fd;
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 
@@ -8833,7 +8844,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(60, 48, 112, 0.9);
-    border-radius: 16px;
+    border-radius: var(--esquina);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
@@ -8847,7 +8858,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     color: var(--texto-suave);
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: var(--esquina);
     cursor: pointer;
 }
 
@@ -8897,7 +8908,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     background: var(--hundido, rgba(0, 0, 0, 0.25));
     border: 1px solid var(--borde);
     border-left: 4px solid var(--color-attr);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .rival-fila .rival-retrato {
@@ -8905,7 +8916,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     width: 56px;
     height: 56px;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: var(--esquina);
 }
 
 .rival-fila .rival-retrato img {
@@ -8943,7 +8954,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     background: var(--hundido, rgba(0, 0, 0, 0.25));
     border: 1px solid var(--borde);
     border-left: 4px solid var(--color-attr);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .destacada-titulo {
@@ -9279,13 +9290,13 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     color: #4a2c0a;
     background: rgba(212, 163, 64, 0.2);
     border: 1px solid rgba(139, 94, 20, 0.55);
-    border-radius: 10px;
+    border-radius: var(--esquina);
 }
 
 .rollo-moraleja span {
     display: block;
     margin-bottom: 6px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.7rem;
     font-style: normal;
     letter-spacing: 0.28em;
@@ -9320,7 +9331,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     list-style: none;
     background: var(--hundido, rgba(0, 0, 0, 0.25));
     border: 1px dashed var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
     opacity: 0.7;
 }
 
@@ -9389,7 +9400,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     place-items: center;
     width: 20px;
     height: 20px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.7rem;
     font-weight: 800;
     color: #0a1258;
@@ -9478,7 +9489,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 .ff-especial-icono { font-size: 1.7rem; }
 .ff-especial-texto { display: grid; min-width: 0; }
-.ff-especial-texto b { font-family: "Orbitron", sans-serif; font-size: 0.82rem; color: var(--esp, #ffd84a); }
+.ff-especial-texto b { font-family: var(--letra-titulo); font-size: 0.82rem; color: var(--esp, #ffd84a); }
 .ff-especial-texto small { font-size: 0.72rem; font-weight: 600; line-height: 1.25; }
 
 .ff-especial-veneno { --esp: #7dff6a; }
@@ -9967,7 +9978,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     left: 50%;
     z-index: 7;
     margin: 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: clamp(1.4rem, 9cqw, 2.4rem);
     font-weight: 800;
     letter-spacing: 0.06em;
@@ -10023,7 +10034,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     text-shadow: none;
     background: linear-gradient(180deg, #f6e3b4 0%, #e9c983 100%);
     border: 3px solid #8b5e14;
-    border-radius: 10px;
+    border-radius: var(--esquina);
     box-shadow: inset 0 0 0 2px #fff3c8, 0 0 0 2px #2a1a06, 0 6px 14px rgba(0, 0, 0, 0.5);
     cursor: pointer;
     animation: carta-entra 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -10069,7 +10080,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     font-weight: 800;
     color: #fff;
     background: #6b4a14;
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .ff-carta.tipo-ofensiva .ff-carta-tipo { background: #b8323c; }
@@ -10315,7 +10326,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .novela-texto p:first-child::first-letter {
     float: left;
     margin: 0.05em 0.1em 0 0;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 2.6em;
     line-height: 0.85;
     color: #8b2a1a;
@@ -10331,7 +10342,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .novela-libro {
     margin: 14px 0 4px;
     padding-bottom: 4px;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.8rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -10466,7 +10477,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     font-weight: 800;
     color: #0a1258;
     background: #cfd8ff;
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .ff-hab-fila small {
@@ -10585,7 +10596,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     display: flex; align-items: center; gap: 12px;
     margin: 0 0 12px; padding: 10px 12px;
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(251, 191, 36, 0.08));
-    border: 1px solid rgba(245, 158, 11, 0.45); border-radius: 14px;
+    border: 1px solid rgba(245, 158, 11, 0.45); border-radius: var(--esquina);
 }
 .gym-hoy-icono { font-size: 1.7rem; line-height: 1; }
 .gym-hoy-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
@@ -10600,13 +10611,13 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-avatar svg { width: 100%; height: auto; display: block; }
 .gym-nivel { flex: 1; min-width: 0; }
 .gym-nivel-numero { margin: 2px 0 0; font-size: 1.15rem; }
-.gym-nivel-numero b { font-family: "Orbitron", sans-serif; color: var(--gym-2); font-size: 1.5rem; }
+.gym-nivel-numero b { font-family: var(--letra-titulo); color: var(--gym-2); font-size: 1.5rem; }
 .barra-gym .barra-relleno { background: linear-gradient(90deg, var(--gym), var(--gym-2)); box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
-.gym-bono { margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.07); font-size: 0.85rem; line-height: 1.45; }
+.gym-bono { margin: 0 0 14px; padding: 10px 12px; border-radius: var(--esquina); border: 1px solid rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.07); font-size: 0.85rem; line-height: 1.45; }
 
 /* La semana */
 .gym-semana { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.gym-dia { display: grid; gap: 2px; justify-items: center; padding: 6px 0; border: 1px solid var(--borde); border-radius: 10px; background: var(--hundido); }
+.gym-dia { display: grid; gap: 2px; justify-items: center; padding: 6px 0; border: 1px solid var(--borde); border-radius: var(--esquina); background: var(--hundido); }
 .gym-dia small { color: var(--texto-suave); font-size: 0.7rem; }
 .gym-dia span { min-height: 1.4em; font-size: 1.1rem; color: var(--texto-suave); }
 .gym-dia.hecho { border-color: var(--gym); background: rgba(245, 158, 11, 0.14); }
@@ -10615,25 +10626,25 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 /* Elegir rutina */
 .gym-rutinas { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
-.gym-rutina { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--borde); border-radius: 14px; background: var(--hundido); }
+.gym-rutina { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--borde); border-radius: var(--esquina); background: var(--hundido); }
 .gym-rutina.toca { border-color: var(--gym); background: rgba(245, 158, 11, 0.1); }
 .gym-rutina.hecha { opacity: 0.6; }
 .gym-rutina-chica { justify-content: space-between; padding: 6px 10px; }
 .gym-rutina-icono { font-size: 1.6rem; }
 .gym-rutina-texto { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .gym-rutina-texto small { color: var(--texto-suave); font-size: 0.76rem; }
-.gym-toca { font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--gym); color: #1b0b10; vertical-align: middle; }
+.gym-toca { font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: var(--esquina); background: var(--gym); color: #1b0b10; vertical-align: middle; }
 
 /* El entrenamiento en curso */
 .gym-sesion { display: grid; gap: 12px; }
 .gym-descanso {
     position: sticky; top: calc(var(--alto-cabecera, 72px) + 6px); z-index: 5;
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    padding: 10px 14px; border-radius: 14px; font-size: 1.05rem;
+    padding: 10px 14px; border-radius: var(--esquina); font-size: 1.05rem;
     background: rgba(13, 10, 28, 0.96); border: 1px solid var(--gym-2); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
-.gym-descanso b { font-family: "Orbitron", sans-serif; color: var(--gym-2); font-size: 1.3rem; }
-.gym-ejercicio { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--borde); border-radius: 14px; background: var(--hundido); }
+.gym-descanso b { font-family: var(--letra-titulo); color: var(--gym-2); font-size: 1.3rem; }
+.gym-ejercicio { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--borde); border-radius: var(--esquina); background: var(--hundido); }
 .gym-ejercicio.completo { border-color: var(--verde); }
 .gym-ejercicio h3 { margin: 0; font-size: 1rem; }
 .gym-ejercicio p { margin: 0; }
@@ -10643,8 +10654,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-n { align-self: center; text-align: center; color: var(--texto-suave); font-weight: 700; }
 .gym-serie label { display: grid; gap: 2px; }
 .gym-serie label span { font-size: 0.7rem; color: var(--texto-suave); }
-.gym-serie input { width: 100%; min-height: 44px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
-.gym-ok { min-height: 44px; border-radius: 12px; font-size: 1.3rem; border: 2px solid var(--borde); background: var(--panel); color: var(--texto-suave); cursor: pointer; }
+.gym-serie input { width: 100%; min-height: 44px; font-size: 16px; text-align: center; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+.gym-ok { min-height: 44px; border-radius: var(--esquina); font-size: 1.3rem; border: 2px solid var(--borde); background: var(--panel); color: var(--texto-suave); cursor: pointer; }
 .gym-ok[aria-pressed="true"] { background: var(--verde); border-color: var(--verde); color: #062b1c; }
 .gym-serie.hecha input { opacity: 0.65; }
 .gym-mas { display: flex; gap: 8px; }
@@ -10653,11 +10664,11 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-musculos { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
 .gym-musculo { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; }
 .gym-musculo .barra { grid-column: 1 / -1; margin-top: 2px; height: 9px; }
-.gym-musculo-nivel { font-family: "Orbitron", sans-serif; font-size: 0.8rem; color: var(--gym-2); }
+.gym-musculo-nivel { font-family: var(--letra-titulo); font-size: 0.8rem; color: var(--gym-2); }
 
 /* Hitos e historial */
 .gym-hitos { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
-.gym-hito { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--borde); background: var(--hundido); opacity: 0.65; }
+.gym-hito { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--hundido); opacity: 0.65; }
 .gym-hito.logrado { opacity: 1; border-color: var(--gym-2); background: rgba(251, 191, 36, 0.08); }
 .gym-hito > span:nth-child(2) { flex: 1; display: grid; }
 .gym-hito small { color: var(--texto-suave); font-size: 0.76rem; }
@@ -10968,16 +10979,16 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-record > span { display: grid; min-width: 0; }
 .gym-meta-ej { display: flex !important; align-items: center; justify-content: space-between; gap: 8px; }
 .gym-peso-actual { margin: 4px 0; font-size: 1.1rem; }
-.gym-peso-actual b { font-family: "Orbitron", sans-serif; color: var(--verde); font-size: 1.4rem; }
+.gym-peso-actual b { font-family: var(--letra-titulo); color: var(--verde); font-size: 1.4rem; }
 
 .campo-gym { display: grid; gap: 6px; margin: 10px 0; }
-.campo-gym select { min-height: 44px; font-size: 16px; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); padding: 0 10px; }
+.campo-gym select { min-height: 44px; font-size: 16px; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--panel); color: var(--texto); padding: 0 10px; }
 
 .gym-extras { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
 
 /* Lecturas de la Fragua */
 .gym-lecturas { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
-.gym-lectura { border: 1px solid var(--borde); border-radius: 12px; background: var(--hundido); padding: 10px 12px; }
+.gym-lectura { border: 1px solid var(--borde); border-radius: var(--esquina); background: var(--hundido); padding: 10px 12px; }
 .gym-lectura.cerrada { display: flex; gap: 10px; align-items: center; opacity: 0.6; }
 .gym-lectura.cerrada span:last-child { display: grid; }
 .gym-lectura small { font-size: 0.76rem; color: var(--texto-suave); }
@@ -10992,7 +11003,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 10px 12px; min-height: 52px;
     text-align: left; color: var(--texto); cursor: pointer;
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(251, 191, 36, 0.08));
-    border: 1px solid rgba(245, 158, 11, 0.45); border-radius: 14px; font: inherit;
+    border: 1px solid rgba(245, 158, 11, 0.45); border-radius: var(--esquina); font: inherit;
 }
 .ficha-gym-icono { font-size: 1.6rem; }
 .ficha-gym-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
@@ -11021,7 +11032,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-cuadro.hoy { outline: 2px solid var(--gym-2); outline-offset: 1px; }
 
 /* ===== v74: la meta que se marca, el cuerpo sin ropa, el IMC y la armadura por constancia ===== */
-.gym-avatar { flex: 0 0 132px; width: 132px; border-radius: 14px; overflow: hidden; border: 1px solid var(--borde); background: #150f2a; }
+.gym-avatar { flex: 0 0 132px; width: 132px; border-radius: var(--esquina); overflow: hidden; border: 1px solid var(--borde); background: #150f2a; }
 .gym-avatar svg { width: 100%; height: auto; display: block; }
 .gym-fisico { margin: 0 0 4px; }
 .gym-marcar { margin: 10px 0 6px; min-height: 48px; }
@@ -11030,9 +11041,9 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 .gym-imc { margin: 8px 0 10px; }
 .gym-imc-numero { margin: 0 0 6px; font-size: 1rem; }
-.gym-imc-numero b { font-family: "Orbitron", sans-serif; font-size: 1.6rem; }
+.gym-imc-numero b { font-family: var(--letra-titulo); font-size: 1.6rem; }
 .gym-imc-numero span { color: var(--texto-suave); }
-.gym-imc-escala { position: relative; display: flex; height: 12px; border-radius: 999px; overflow: visible; margin: 8px 0 10px; }
+.gym-imc-escala { position: relative; display: flex; height: 12px; border-radius: var(--esquina); overflow: visible; margin: 8px 0 10px; }
 .gym-imc-escala i { display: block; height: 100%; }
 .gym-imc-escala i:first-child { border-radius: 999px 0 0 999px; }
 .gym-imc-escala i:nth-child(4) { border-radius: 0 999px 999px 0; }
@@ -11040,7 +11051,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .form-linea + .form-linea { margin-top: 8px; }
 
 .gym-piezas { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
-.gym-pieza { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--borde); background: var(--hundido); opacity: 0.7; }
+.gym-pieza { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--hundido); opacity: 0.7; }
 .gym-pieza.ganada { opacity: 1; border-color: var(--gym-2); background: rgba(251, 191, 36, 0.08); }
 .gym-pieza > span:last-child { display: grid; }
 .gym-pieza small { color: var(--texto-suave); font-size: 0.76rem; }
@@ -11054,19 +11065,19 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 /* v76: el avatar del gimnasio, grande y con el gimnasio de fondo */
 .gym-heroe-grande { display: grid; grid-template-columns: 1fr; gap: 10px; justify-items: center; text-align: center; padding-top: 14px; }
-.gym-heroe-grande .gym-avatar { flex: none; width: min(100%, 340px); border-radius: 16px; border-color: rgba(251, 191, 36, 0.35); box-shadow: 0 0 24px rgba(122, 98, 200, 0.35); }
+.gym-heroe-grande .gym-avatar { flex: none; width: min(100%, 340px); border-radius: var(--esquina); border-color: rgba(251, 191, 36, 0.35); box-shadow: 0 0 24px rgba(122, 98, 200, 0.35); }
 .gym-heroe-grande .gym-nivel { width: 100%; }
 .gym-heroe-grande .gym-nivel-numero { font-size: 1.3rem; }
 .gym-heroe-grande .barra { margin-left: auto; margin-right: auto; }
 
 /* v76: el entrenamiento se siente como estar en el gym */
 .gym-chips { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.gym-chips li { padding: 6px 12px; border-radius: 999px; background: var(--hundido); border: 1px solid var(--borde); font-size: 0.9rem; }
-.gym-chips b { font-family: "Orbitron", sans-serif; color: var(--gym-2); }
+.gym-chips li { padding: 6px 12px; border-radius: var(--esquina); background: var(--hundido); border: 1px solid var(--borde); font-size: 0.9rem; }
+.gym-chips b { font-family: var(--letra-titulo); color: var(--gym-2); }
 .gym-calentar { margin: 2px 0 6px; }
 .gym-tecnica { color: #a5f3fc; }
 .gym-aurelio {
-    display: flex; gap: 10px; align-items: center; margin: 8px 0; padding: 10px 12px; border-radius: 14px;
+    display: flex; gap: 10px; align-items: center; margin: 8px 0; padding: 10px 12px; border-radius: var(--esquina);
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(34, 211, 238, 0.08)); border: 1px solid rgba(167, 139, 250, 0.5);
     animation: gym-aurelio-entra 0.4s ease-out;
 }
@@ -11082,7 +11093,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-heroe:not(.gym-heroe-grande) .gym-avatar { flex: 0 0 96px; width: 96px; }
 
 /* v77: las figuras que hacen cada ejercicio */
-.gym-demo { float: right; width: 108px; margin: 0 0 6px 10px; border-radius: 10px; overflow: hidden; }
+.gym-demo { float: right; width: 108px; margin: 0 0 6px 10px; border-radius: var(--esquina); overflow: hidden; }
 .gym-demo-svg { display: block; width: 100%; height: auto; }
 .gym-ejercicio.actual { border-color: var(--gym-2); box-shadow: 0 0 14px rgba(251, 191, 36, 0.25); }
 .gym-ejercicio::after { content: ""; display: block; clear: both; }
@@ -11098,22 +11109,22 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-foco { text-align: center; }
 .gym-foco .titulo-seccion { text-align: left; }
 .gym-foco .gym-chips { justify-content: center; }
-.gym-foco-demo { width: min(78%, 280px); margin: 8px auto 4px; border-radius: 14px; overflow: hidden; }
+.gym-foco-demo { width: min(78%, 280px); margin: 8px auto 4px; border-radius: var(--esquina); overflow: hidden; }
 .gym-foco-nombre { margin: 4px 0 0; font-size: 1.25rem; }
 .gym-foco-serie { margin: 2px 0 4px; font-size: 1.05rem; }
-.gym-foco-serie b { font-family: "Orbitron", sans-serif; color: var(--gym-2); font-size: 1.5rem; }
+.gym-foco-serie b { font-family: var(--letra-titulo); color: var(--gym-2); font-size: 1.5rem; }
 .gym-foco .gym-pista, .gym-foco .gym-tecnica { margin: 2px 0; text-align: left; font-size: 0.82rem; }
 .gym-stepper { display: grid; grid-template-columns: 1fr 60px auto 60px; align-items: center; gap: 10px; margin: 10px 0; }
 .gym-stepper-nombre { text-align: left; color: var(--texto-suave); font-size: 0.9rem; }
 .gym-mas-menos {
-    min-height: 56px; border-radius: 16px; font-size: 2rem; font-weight: 700; line-height: 1; cursor: pointer;
+    min-height: 56px; border-radius: var(--esquina); font-size: 2rem; font-weight: 700; line-height: 1; cursor: pointer;
     color: var(--texto); background: var(--panel-claro); border: 2px solid var(--borde);
 }
 .gym-mas-menos:active { background: var(--gym); color: #1b0b10; border-color: var(--gym); }
-.gym-stepper-valor { min-width: 96px; font-family: "Orbitron", sans-serif; font-size: 2.1rem; color: var(--gym-2); }
+.gym-stepper-valor { min-width: 96px; font-family: var(--letra-titulo); font-size: 2.1rem; color: var(--gym-2); }
 .gym-stepper-valor small { font-size: 0.9rem; color: var(--texto-suave); margin-left: 3px; }
 .gym-foco-grande { min-height: 64px; font-size: 1.25rem; margin: 8px 0; }
-.gym-foco-listo { font-size: 1.6rem; margin: 18px 0; font-family: "Orbitron", sans-serif; color: var(--gym-2); }
+.gym-foco-listo { font-size: 1.6rem; margin: 18px 0; font-family: var(--letra-titulo); color: var(--gym-2); }
 .gym-foco-pie { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .gym-foco-descanso { position: relative; width: 200px; margin: 6px auto; }
 .gym-foco-descanso svg { display: block; width: 100%; height: auto; }
@@ -11121,17 +11132,17 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-anillo { fill: none; stroke: var(--gym-2); stroke-width: 9; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6)); }
 .gym-foco-descanso-texto { position: absolute; inset: 0; display: grid; place-content: center; }
 .gym-foco-descanso-texto small { color: var(--texto-suave); }
-.gym-foco-descanso-texto b { font-family: "Orbitron", sans-serif; font-size: 2.6rem; color: var(--gym-2); }
+.gym-foco-descanso-texto b { font-family: var(--letra-titulo); font-size: 2.6rem; color: var(--gym-2); }
 .gym-foco-siguiente { margin: 2px 0 6px; }
 
 /* v79: consejo del día, reto de la semana y evolución */
 .gym-consejo { margin: 0 0 12px; }
-.gym-reto { margin: 12px 0 4px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(167, 139, 250, 0.5); background: rgba(139, 92, 246, 0.1); }
+.gym-reto { margin: 12px 0 4px; padding: 10px 12px; border-radius: var(--esquina); border: 1px solid rgba(167, 139, 250, 0.5); background: rgba(139, 92, 246, 0.1); }
 .gym-reto.cobrado { border-color: var(--verde); background: rgba(52, 211, 153, 0.08); }
 .gym-reto-texto { margin: 2px 0 4px; font-weight: 600; }
 .gym-evolucion { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; }
 .gym-foto { flex: 0 0 150px; margin: 0; scroll-snap-align: start; text-align: center; }
-.gym-foto-cuerpo { border-radius: 12px; overflow: hidden; border: 1px solid var(--borde); background: #150f2a; }
+.gym-foto-cuerpo { border-radius: var(--esquina); overflow: hidden; border: 1px solid var(--borde); background: #150f2a; }
 .gym-foto.ahora .gym-foto-cuerpo { border-color: var(--gym-2); box-shadow: 0 0 14px rgba(251, 191, 36, 0.35); }
 .gym-foto-cuerpo svg { display: block; width: 100%; height: auto; }
 .gym-foto figcaption { margin-top: 4px; display: grid; }
@@ -11143,17 +11154,17 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 /* v82: tu cuerpo cambió (antes y ahora), peso objetivo y medidas */
 .cel-cuerpos { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .cel-cuerpos figure { margin: 0; width: 132px; }
-.cel-cuerpos figure svg { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.4); }
+.cel-cuerpos figure svg { display: block; width: 100%; height: auto; border-radius: var(--esquina); border: 1px solid rgba(251, 191, 36, 0.4); }
 .cel-cuerpos figure:last-child svg { box-shadow: 0 0 16px rgba(251, 191, 36, 0.55); }
 .cel-cuerpos figcaption { font-size: 0.8rem; margin-top: 3px; opacity: 0.85; }
 .cel-cuerpos > span { font-size: 1.6rem; color: var(--gym-2); }
 .gym-metapeso { margin: 8px 0; }
 .gym-medidas { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
-.gym-medida { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--hundido); border: 1px solid var(--borde); }
+.gym-medida { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: var(--esquina); background: var(--hundido); border: 1px solid var(--borde); }
 .gym-medida > span:nth-child(2) { flex: 1; text-align: right; }
 .gym-campos-medida { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
 .gym-campo-medida { display: grid; gap: 3px; font-size: 0.8rem; color: var(--texto-suave); }
-.gym-campo-medida input { min-height: 44px; font-size: 16px; text-align: center; border-radius: 10px; border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+.gym-campo-medida input { min-height: 44px; font-size: 16px; text-align: center; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
 
 /* v84: el contador de la meta del gym en dorado (como el resto del gym), y el «Toca hoy» sin estirarse */
 #pantalla-gym .contador { color: var(--gym-2); }
@@ -11309,7 +11320,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 }
 
 .carga-texto { display: flex; align-items: baseline; justify-content: center; gap: 8px; }
-.carga-texto b { min-width: 3.2em; text-align: left; font-family: "Orbitron", sans-serif; font-size: 0.78rem; color: var(--cian); font-variant-numeric: tabular-nums; }
+.carga-texto b { min-width: 3.2em; text-align: left; font-family: var(--letra-titulo); font-size: 0.78rem; color: var(--cian); font-variant-numeric: tabular-nums; }
 
 /* La escena de abajo: montañas que se deslizan, la Torre que se enciende y el héroe que camina hacia ella. */
 .carga-escena {
@@ -11452,7 +11463,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     margin-top: 3px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
+    border-radius: var(--esquina);
 }
 
 .reino-barra i {
@@ -11497,11 +11508,11 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     text-align: center;
     background: var(--hundido);
     border: 1px solid var(--borde);
-    border-radius: 12px;
+    border-radius: var(--esquina);
 }
 
 .mapa-datos b {
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--letra-titulo);
     font-size: 0.95rem;
     color: var(--oro);
     font-variant-numeric: tabular-nums;
@@ -11525,7 +11536,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     color: #f1f3ff;
     background: rgba(10, 7, 22, 0.78);
     border: 1px solid rgba(241, 243, 255, 0.45);
-    border-radius: 999px;
+    border-radius: var(--esquina);
     transform: translate(-50%, 0);
     pointer-events: none;
     white-space: nowrap;

@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 90;
+export const VERSION_APP = 91;
 
 export const NOVEDADES = [
+    {
+        version: 91,
+        titulo: "El reino, en pixel art",
+        cambios: [
+            "🎨 Nuevo aspecto: la app entera se ve como un juego de rol clásico, en pixel art.",
+            "🛡️ Los emojis se cambiaron por 115 íconos dibujados punto por punto: se ven iguales en cualquier teléfono.",
+            "📜 Títulos y números con letra de cuadritos, paneles con marco y remaches dorados, botones con relieve y barras de medidor.",
+            "⚔️ Las pestañas de abajo tienen íconos nuevos: la elegida se ilumina y las demás quedan en gris.",
+        ],
+    },
     {
         version: 90,
         titulo: "Aurelio te dice con quién hablar hoy",

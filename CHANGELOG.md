@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v91 — El reino, en pixel art (parte 1: íconos, letra y paneles)
+- **`js/iconos.js` (nuevo):** 115 íconos en pixel art dibujados como filas de letras (cada letra es un color de `PALETA`; el contorno oscuro lo agrega `aTrazos`). Algunos se hacen con reglas (`pintar`: monedas, relojes, esferas) o se combinan (`encima`, `espejo`, `recolor`). `EMOJIS` dice qué emoji se cambia por qué ícono.
+- `vigilarIconos()` (se llama al principio de `iniciar()`): un `MutationObserver` cambia cada emoji de la lista por su `<svg class="pxi">` en cuanto aparece en la página, antes de pintarse. `vistas.js` no cambió. No toca `<option>`, `<textarea>`, dibujos SVG ni lo que esté dentro de `.con-emojis`. Ojo: la pregunta «¿hay alguno?» usa `HAY_ALGUNO` (sin `g`); con la `g`, `lastIndex` hacía que `matchAll` se saltara el emoji y la página se quedaba en un ciclo infinito.
+- **Letra:** DotGothic16 (OFL, `fuentes/dotgothic16.woff2`, solo latín) en lugar de Orbitron para títulos y números: `--letra-titulo` en `:root` (las 63 reglas usan la variable). Se probaron Pixelify Sans (su 5 parece S) y Tiny5 (su 8 parece $).
+- **Esquinas:** 128 `border-radius` de 9–24 px y 999 px pasan a `var(--esquina)` (4 px); `--radio` baja a 6 px. Los círculos (50 %) siguen igual.
+- **`estilos-pixel.css` (nuevo, va después de `estilos.css`):** cielo con estrellas de un punto, `.panel` y `.dialogo` con contorno de tinta, luz arriba y remaches dorados en las esquinas; botones de dos tonos con relieve y escalón al tocar; casillas de misión cuadradas; barras con cortes de medidor; cabecera y pestañas con íconos pixel (gris las no elegidas). Las pestañas y Ajustes de `index.html` usan emojis que se vuelven íconos.
+- 3 pruebas nuevas (íconos completos y dentro de 14 × 14, cambio de emojis, archivos del service worker). 294 pruebas.
+
 ## v90 — Aurelio te dice con quién hablar hoy
 - `voces.pistaDeHoy(estado, fecha)` (función pura): la primera persona disponible hoy (la conversación a medias tiene prioridad) o `null`.
 - En la pestaña Aurelio de Hoy, «Tu día» muestra `lineaDeVoces`: una línea tocable que lleva a Las Voces del Valle. Con prueba nueva (una pista cada día y ninguna si todos ya hablaron hoy).

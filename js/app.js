@@ -50,6 +50,7 @@ import * as nube from "./nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "./novedades.js";
 import { calcularResumen, semanaPorMostrar } from "./resumen.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
+import { vigilarIconos } from "./iconos.js";
 import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, relojLargo, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
 
 
@@ -124,6 +125,7 @@ function avatarActual() {
 // cuando el HTML ya está cargado.
 
 function iniciar() {
+    vigilarIconos();             // (v91) los emojis de la página se vuelven íconos en pixel art
     datos.pedirAlmacenamientoPersistente();
     registrarServiceWorker();
     rellenarOpciones();

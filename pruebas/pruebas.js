@@ -52,6 +52,7 @@ import * as vistas from "../js/vistas.js";
 import * as arcade from "../js/arcade.js";
 import * as nube from "../js/nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "../js/novedades.js";
+import { ICONOS, EMOJIS, icono, iconizar } from "../js/iconos.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
@@ -6305,6 +6306,42 @@ prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no
     cierto(!cura.includes("ff-atq "), "curarse no es atacar");
     cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
 });
+
+// ===== Íconos en pixel art (v91) =====
+
+prueba("Íconos: cada emoji de la lista tiene su dibujo, que cabe en 14 × 14 y solo usa colores de la paleta", () => {
+    for (const [emoji, nombre] of Object.entries(EMOJIS)) cierto(ICONOS[nombre], `${emoji} → «${nombre}» no tiene dibujo`);
+    for (const [nombre, filas] of Object.entries(ICONOS)) {
+        cierto(filas.length >= 1 && filas.length <= 14, `«${nombre}» tiene ${filas.length} filas`);
+        cierto(filas.every((fila) => fila.length <= 14), `«${nombre}» tiene una fila de más de 14 puntos`);
+        const svg = icono(nombre);
+        cierto(svg.startsWith("<svg") && svg.includes("<path"), `«${nombre}» se dibuja`);
+        cierto(!svg.includes("#f0f"), `«${nombre}» usa una letra que no está en la paleta`);
+    }
+    igual(icono("no-existe"), "");
+});
+
+prueba("Íconos: los emojis se cambian por su dibujo (con y sin el «️» invisible), y no dentro de un <option>", () => {
+    const caja = document.createElement("div");
+    caja.innerHTML = "<b>💪 Fuerza</b> ⚔️ y ⚔ <i>🛡️🛡️</i> <select><option>🔥 Fuego</option></select> 🦄";
+    iconizar(caja);
+    igual([...caja.querySelectorAll("svg.pxi")].map((s) => s.dataset.icono), ["brazo", "espadas", "espadas", "escudo", "escudo"]);
+    igual(caja.querySelector("b").textContent, " Fuerza", "el texto de alrededor se queda");
+    igual(caja.querySelector("option").textContent, "🔥 Fuego", "en un <option> solo cabe texto");
+    cierto(caja.textContent.includes("🦄"), "un emoji sin dibujo se queda como está");
+    iconizar(caja);   // otra vez: ya no hay nada que cambiar
+    igual(caja.querySelectorAll("svg.pxi").length, 5);
+});
+
+prueba("Service worker: guarda todos los archivos de la app (y existen), incluidos los del tema pixel", async () => {
+    const texto = await (await fetch("../sw.js", { cache: "no-store" })).text();
+    const archivos = [...texto.match(/const ARCHIVOS = \[([\s\S]*?)\];/)[1].matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]);
+    for (const nombre of ["js/iconos.js", "estilos-pixel.css", "fuentes/dotgothic16.woff2"]) cierto(archivos.includes(nombre), `falta ${nombre} en ARCHIVOS`);
+    const faltan = [];
+    for (const nombre of archivos.filter(Boolean)) if (!(await fetch("../" + nombre, { method: "HEAD", cache: "no-store" })).ok) faltan.push(nombre);
+    igual(faltan, [], "archivos que no existen");
+});
+
 
 // ===== Ejecutar todo y mostrar el resultado =====
 
