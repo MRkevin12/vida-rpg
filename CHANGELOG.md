@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v110 — El running en Hoy
+- `js/vistas-running.js › tarjetaRunningHoy`: en Hoy, la tarjeta del running (igual que la del gimnasio): qué toca correr hoy con su km, lo que ya corriste, o la carrera en curso. No sale en el modo esencial ni al ver ayer.
+- `js/vistas.js`: la tarjeta se coloca justo debajo de la del gimnasio.
+- 321 pruebas (1 nueva).
+
 ## v109 — Pestaña Running
 - Pestaña nueva **🏃 Running** (entre Progreso y Aventuras; la barra ahora tiene 6 pestañas, en el modo normal 5).
 - `js/running.js` (reglas puras): tipos de carrera (trote suave, intervalos, ritmo fuerte, tirada larga, caminata) con bono de XP, rangos de corredor según los km de tu vida, hitos de kilómetros (10, maratón, 100, 250, 500, 1000) con gemas, meta semanal de km y racha de semanas, récords (distancia, mejor ritmo desde 3 km, tiempo, semana), sugerencia del día y el GPS (distancia de haversine, filtro de precisión, de quietud y de saltos).

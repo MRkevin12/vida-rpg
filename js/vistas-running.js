@@ -305,3 +305,37 @@ function tarjetaHistorial(estado) {
             ${carreras.length > 60 ? '<p class="mini texto-suave">Se muestran las 60 más recientes.</p>' : ""}
         </section>`;
 }
+
+// ===== La tarjeta de Hoy =====
+// Qué te toca correr hoy, lo que ya corriste, o la carrera que llevas en curso. Usa las mismas clases que la del gimnasio.
+export function tarjetaRunningHoy(estado, ctx) {
+    const r = estado.running;
+    if (r.encurso) {
+        const tipo = running.TIPOS[r.encurso.tipo] || running.TIPOS.suave;
+        return `
+        <div class="gym-hoy gym-hoy-activo">
+            <span class="gym-hoy-icono" aria-hidden="true">${tipo.icono}</span>
+            <span class="gym-hoy-texto"><b>Corriendo: ${esc(tipo.nombre)}</b><small>Tu carrera sigue en marcha.</small></span>
+            <button type="button" class="boton boton-chico boton-principal" data-accion="ir" data-pantalla="running">Seguir</button>
+        </div>`;
+    }
+    const km = running.kmDeLaSemana(r.carreras, lunesDe(ctx.hoy));
+    const hechasHoy = r.carreras.filter((c) => c.fecha === ctx.hoy);
+    if (hechasHoy.length) {
+        const total = hechasHoy.reduce((suma, c) => suma + c.km, 0);
+        return `
+        <div class="gym-hoy gym-hoy-hecho">
+            <span class="gym-hoy-icono" aria-hidden="true">✅</span>
+            <span class="gym-hoy-texto"><b>Hoy corriste ${running.textoKm(total)}</b><small>Semana: ${running.textoKm(km)} de ${r.metaKm} km.</small></span>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="running">Ver</button>
+        </div>`;
+    }
+    const sugerida = running.sugerencia(r.carreras, r.metaKm, ctx.hoy);
+    const tipo = running.TIPOS[sugerida.tipo];
+    return `
+        <div class="gym-hoy">
+            <span class="gym-hoy-icono" aria-hidden="true">${tipo.icono}</span>
+            <span class="gym-hoy-texto"><b>Running: hoy toca ${esc(tipo.nombre)} · ${running.textoKm(sugerida.km)}</b><small>Semana: ${running.textoKm(km)} de ${r.metaKm} km</small></span>
+            <button type="button" class="boton boton-chico boton-principal" data-accion="ir" data-pantalla="running">Correr</button>
+        </div>`;
+}

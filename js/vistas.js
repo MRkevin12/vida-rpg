@@ -44,6 +44,7 @@ import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
 import * as voces from "./voces.js";
 import { tarjetaGymHoy } from "./vistas-gym.js";
+import { tarjetaRunningHoy } from "./vistas-running.js";   // (v110) la tarjeta del running en Hoy
 import * as ataques from "./ataques.js";
 import * as gymReglas from "./gym.js";
 import { fechaLegible, fechaCorta, MESES_CORTOS, DIAS_LETRAS, DIAS_CORTOS, desdeTexto, diaDeSemana,
@@ -307,6 +308,7 @@ export function pantallaHoy(estado, ctx) {
         ${esencial ? "" : `${avisoNotificaciones(ctx)}
         ${avisoDescanso(estado, ctx)}`}
         ${esAyer ? "" : tarjetaGymHoy(estado, ctx)}
+        ${esAyer || esencial ? "" : tarjetaRunningHoy(estado, ctx)}
         ${!esAyer && vista === "misiones" ? destacadasDeHoy(estado) : ""}
         ${pestanasHoy}
         ${contenido}`;

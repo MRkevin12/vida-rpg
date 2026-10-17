@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 109;
+export const VERSION_APP = 110;
 
 export const NOVEDADES = [
+    {
+        version: 110,
+        titulo: "El running en Hoy",
+        cambios: [
+            "🏃 La pestaña Hoy te dice qué toca correr hoy (tipo y km), y si ya corriste, cuánto.",
+            "📡 Si tienes una carrera en curso, Hoy te lleva a ella con un botón «Seguir».",
+        ],
+    },
     {
         version: 109,
         titulo: "Nueva pestaña: Running",

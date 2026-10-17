@@ -2861,6 +2861,16 @@ prueba("Running: la pausa de una carrera en vivo olvida el último punto del GPS
     igual(estado.running.encurso.ultimo, null, "al seguir, el punto de referencia se borra");
 });
 
+prueba("Running: la tarjeta de Hoy dice qué toca correr, lo que ya corriste o la carrera en curso", () => {
+    const estado = partidaNueva();
+    const ctx = { hoy: hoy() };
+    cierto(vistasRunning.tarjetaRunningHoy(estado, ctx).includes("hoy toca"), "sin carreras: te toca correr");
+    acciones.guardarCarrera(estado, { km: "3", minutos: "20", tipo: "suave", fecha: hoy() });
+    cierto(vistasRunning.tarjetaRunningHoy(estado, ctx).includes("Hoy corriste"), "ya corriste hoy");
+    acciones.empezarCarrera(estado, "suave", { gps: false });
+    cierto(vistasRunning.tarjetaRunningHoy(estado, ctx).includes("Corriendo"), "con una carrera en curso");
+});
+
 prueba("Running: los datos guardados de una versión anterior tienen el running vacío", () => {
     const vieja = datos.desdeRespaldo(JSON.stringify({ version: 31, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] }));
     igual(vieja.running.carreras, [], "sin carreras");
