@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 89;
+export const VERSION_APP = 90;
 
 export const NOVEDADES = [
+    {
+        version: 90,
+        titulo: "Aurelio te dice con quién hablar hoy",
+        cambios: [
+            "🗣️ En la pestaña Aurelio de Hoy, en «Tu día», el Maestro te dice si hoy hay alguien esperándote en el valle (o si dejaste una conversación a medias). Toca la línea y vas directo a Las Voces del Valle.",
+        ],
+    },
     {
         version: 89,
         titulo: "Las cinemáticas del reino vuelven a moverse",

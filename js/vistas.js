@@ -314,7 +314,7 @@ function panelDelDia(estado, ctx) {
     // Si tu objetivo de la saga es firmar el pacto, la invitación al pacto sobra (la fila de la saga ya lo dice).
     const pactoSobra = !estado.pacto && s.actos[s.indice]?.id === "juramento";
     const filas = [lineaDeSaga(estado, ctx, s), avisoEvento(ctx), tarjetaCofre(estado, ctx), tarjetaRelampago(ctx),
-                   pactoSobra ? "" : lineaDelPacto(estado, ctx), tarjetaDesafio(estado, ctx)]
+                   pactoSobra ? "" : lineaDelPacto(estado, ctx), lineaDeVoces(estado, ctx), tarjetaDesafio(estado, ctx)]
         .filter(Boolean);
     return `
         <section class="panel panel-dia" aria-label="Tu día">
@@ -1166,6 +1166,21 @@ function lineaDelPacto(estado, ctx) {
             <span class="pacto-linea-icono" aria-hidden="true">📜</span>
             <span><b>Día ${c.dia} de tu pacto</b>${c.porcentaje === null ? "" : ` · ${c.porcentaje} % honrado`}
                 <span class="mini pacto-cita">${texto}</span></span>
+        </button>`;
+}
+
+// (v90) Aurelio te avisa si hoy hay alguien con quien hablar en el valle. Toca la línea para ir a las Voces.
+function lineaDeVoces(estado, ctx) {
+    const pista = voces.pistaDeHoy(estado, ctx.hoy);
+    if (!pista) return "";
+    const frase = pista.enCurso
+        ? `${pista.nombre} te espera: dejaste una conversación a medias en ${pista.lugar}.`
+        : `Hoy ${pista.nombre} está en ${pista.lugar}. Hay una conversación esperándote.`;
+    return `
+        <button type="button" class="pacto-linea" data-accion="ir" data-pantalla="voces">
+            <span class="pacto-linea-icono" aria-hidden="true">🗣️</span>
+            <span><b>Las Voces del Valle</b>
+                <span class="mini pacto-cita">🧙 Aurelio: «${esc(frase)}»</span></span>
         </button>`;
 }
 

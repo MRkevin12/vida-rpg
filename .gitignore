@@ -12,3 +12,6 @@ servidor/node_modules/
 
 # Dependencias de las pruebas automáticas (se instalan en GitHub, no se suben).
 node_modules/
+
+# Notas largas para Claude (detalle por versión): solo en tu compu.
+notas/

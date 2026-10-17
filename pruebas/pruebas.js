@@ -1651,6 +1651,17 @@ prueba("Voces: la agenda del día (quién está, con quién se puede hablar y po
     const domingo = Array.from({ length: 7 }, (_, n) => dia(n)).find((f) => diaDeSemana(f) === 6);
     cierto(voces.motivoBloqueo(e3, "maren-1", domingo).includes("no está"), "Maren no trabaja los domingos");
     cierto(voces.progreso(e3).total >= 6 && voces.progreso(e3).hechas === 0);
+
+    // (v90) La pista de Aurelio en Hoy: hay alguien libre casi cualquier día y, si ya hablaste con todos hoy, no hay pista.
+    conLaAldeaAbierta(() => {
+        const e4 = partidaNueva();
+        for (let n = 0; n < 7; n++) {
+            const pista = voces.pistaDeHoy(e4, dia(n));
+            cierto(pista && typeof pista.nombre === "string" && pista.lugar, `${dia(n)}: debería haber una pista`);
+        }
+        for (const id of Object.keys(voces.PERSONAS)) e4.voces.ultima[id] = hoy();
+        igual(voces.pistaDeHoy(e4, hoy()), null, "si todos ya hablaron hoy, no hay pista");
+    });
 });
 
 prueba("Voces: elegir cambia la confianza, lo bloqueado no se puede elegir y la conversación decide su final", () => {

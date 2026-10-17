@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v90 — Aurelio te dice con quién hablar hoy
+- `voces.pistaDeHoy(estado, fecha)` (función pura): la primera persona disponible hoy (la conversación a medias tiene prioridad) o `null`.
+- En la pestaña Aurelio de Hoy, «Tu día» muestra `lineaDeVoces`: una línea tocable que lleva a Las Voces del Valle. Con prueba nueva (una pista cada día y ninguna si todos ya hablaron hoy).
+
 ## v89 — Las cinemáticas del reino se animan también con «Reducir movimiento»
 - La regla global de `prefers-reduced-motion` ahora también se salta `#cine` (antes el héroe no caminaba y la cámara no se movía: se midió con `reducedMotion: "reduce"`), y `.mapa-heroe` / `.mapa-mascota` recuperan su paseo. Se quitó también el bloque propio de las cinemáticas que ponía `animation: none` a `.cine-mundo`, `.cine-late` y `.cine-camina` (solo queda oculto `.cine-destello`).
 - `revisarCines("mapa")`: la fila va en orden de historia (en cada región: llegada → señores → fortaleza) y caben 3 por visita (antes: la región nueva primero y la fortaleza al final, y solo 2; la escena de la fortaleza podía salir varias visitas después de pasarla). 291 pruebas.

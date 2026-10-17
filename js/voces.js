@@ -142,6 +142,16 @@ export function agendaDelDia(estado, fecha) {
     }));
 }
 
+// La pista que Aurelio da en Hoy: la primera persona que puedes ver hoy (la que está a medias tiene prioridad).
+// Devuelve { nombre, lugar, enCurso } o null si hoy no hay nadie disponible.
+export function pistaDeHoy(estado, fecha) {
+    const lugares = agendaDelDia(estado, fecha);
+    const todas = lugares.flatMap((l) => l.personas.map((p) => ({ ...p, lugar: l.lugar })));
+    const elegida = todas.find((p) => p.enCurso) || todas.find((p) => p.escenaId && !p.motivo);
+    if (!elegida) return null;
+    return { nombre: elegida.persona.nombre, lugar: elegida.lugar.nombre, enCurso: elegida.enCurso };
+}
+
 // ¿Ya recuperaste todas las voces? (todas las conversaciones hechas, con el final que sea menos «mal»). Cuando pasa por
 // primera vez, se cuenta el epílogo de la aldea (EPILOGO) y se paga una vez (estado.voces.epilogo guarda el día).
 export const aldeaLibre = (estado) => Object.keys(ESCENAS).every((id) => estado.voces.hechas[id]);
