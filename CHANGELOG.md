@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v104 — Hoy más ordenado
+- `vistas.js › pantallaHoy`: `destacadasDeHoy` solo se dibuja con la vista `misiones` (antes, en todas menos `importantes`); `aurelio` va primero en `secciones` (la vista por defecto sigue siendo `misiones`). Prueba del modo esencial actualizada. 305 pruebas.
+
 ## v103 — Cuida a tu mascota
 - `mascota.js`: `CUIDADOS`, `VINCULO` (5 niveles con bono), `TRUCOS`, `vinculoDe`, `nivelDeVinculo`, `cuidadosDeHoy`, `trucosDe`, `explorar` (tabla de hallazgos con peso) y `curaDeExploracion`. `mascotaDeBatalla` multiplica la potencia por (1 + bono del vínculo).
 - `acciones.js`: `cuidarMascota(estado, tipo)` (una vez al día por mascota; el huevo solo acaricia y cepilla; celebración al subir de nivel) y `explorarConMascota` (gemas, fichas, vida —`vida.js` la suma— o nada; +2 de vínculo). `datos.js`: `version` 30 y `mascota.vinculo`, `mascota.cuidados`, `mascota.exploraciones`.

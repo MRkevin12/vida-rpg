@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 103;
+export const VERSION_APP = 104;
 
 export const NOVEDADES = [
+    {
+        version: 104,
+        titulo: "Hoy más ordenado",
+        cambios: [
+            "🎯 Las misiones principales ya no aparecen arriba de todas las secciones de Hoy: solo en la pestaña Misiones (y completas en Principales).",
+            "🧙 La pestaña Aurelio pasa a ser la primera de Hoy.",
+        ],
+    },
     {
         version: 103,
         titulo: "Cuida a tu mascota",

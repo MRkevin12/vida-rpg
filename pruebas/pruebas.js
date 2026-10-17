@@ -4497,7 +4497,8 @@ prueba("Modo esencial: Hoy muestra solo tus misiones en tres grupos, la Tienda s
     // Completo (v52): Hoy en pestañas y la primera es Aurelio, con tu héroe, tus rivales y «Tu día».
     const completo = vistas.pantallaHoy(estado, ctx());
     sano(completo, "Hoy completo");
-    cierto(completo.indexOf('data-vista="aurelio"') > completo.indexOf('data-vista="diario"'), "la pestaña Aurelio va la última (v54)");
+    cierto(completo.indexOf('data-vista="aurelio"') < completo.indexOf('data-vista="misiones"'), "la pestaña Aurelio va la primera (v104)");
+    cierto(!vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "metas" } }).includes('destacada-titulo'), "las principales solo salen con la pestaña Misiones (v104)");
     cierto(completo.includes("⚔️ Misiones diarias") && !completo.includes('aria-label="Tu día"'), "Hoy abre en las misiones");
     const aurelio = vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "aurelio" } });
     cierto(aurelio.includes('aria-label="Tu día"') && aurelio.includes('aria-label="Tus rivales"') && aurelio.includes("heroe-hoy"), "Aurelio: héroe, rivales y «Tu día»");
