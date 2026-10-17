@@ -288,11 +288,13 @@ function tarjetaHistorial(estado) {
     if (!carreras.length) return '<p class="vacio">Aún no hay carreras. Empieza en la pestaña Correr: con GPS o anotando una que ya hiciste.</p>';
     const filas = carreras.map((c, indice) => ({ c, indice })).reverse().slice(0, 60).map(({ c, indice }) => {
         const tipo = running.TIPOS[c.tipo] || running.TIPOS.suave;
+        const comparacion = running.comparacionDe(carreras, c);
         return `
             <li class="run-fila">
                 <span class="run-fila-icono" aria-hidden="true">${tipo.icono}</span>
                 <span class="run-fila-texto"><b>${running.textoKm(c.km)} · ${esc(tipo.nombre)}</b>
                     <small>${fechaCorta(c.fecha)} · ${running.textoDuracion(c.minutos)} · ${running.textoRitmo(running.ritmoDeCarrera(c))} · ${c.origen === "gps" ? "📡 GPS" : "✍️ a mano"}</small>
+                    ${comparacion ? `<small class="run-comp">${running.textoComparacion(comparacion)}</small>` : ""}
                     ${c.nota ? `<small>“${esc(c.nota)}”</small>` : ""}
                 </span>
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="run-borrar" data-indice="${indice}" aria-label="Borrar esta carrera">🗑</button>

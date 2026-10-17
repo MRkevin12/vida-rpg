@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v111 — Comparar con tu anterior
+- `js/running.js › comparacionDe(carreras, carrera)`: la última carrera antes que sea del mismo tipo y de hasta un 25 % más o menos de distancia. `textoComparacion` la dice en el Historial (▼ más rápida / ▲ más lenta, en s/km).
+- `js/vistas-running.js`: cada fila del Historial muestra esa comparación.
+- 322 pruebas (1 nueva).
+
 ## v110 — El running en Hoy
 - `js/vistas-running.js › tarjetaRunningHoy`: en Hoy, la tarjeta del running (igual que la del gimnasio): qué toca correr hoy con su km, lo que ya corriste, o la carrera en curso. No sale en el modo esencial ni al ver ayer.
 - `js/vistas.js`: la tarjeta se coloca justo debajo de la del gimnasio.

@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 110;
+export const VERSION_APP = 111;
 
 export const NOVEDADES = [
+    {
+        version: 111,
+        titulo: "Tu progreso al correr",
+        cambios: [
+            "⚡ Cada carrera del Historial dice si fue más rápida o más lenta que tu anterior parecida (mismo tipo y distancia).",
+        ],
+    },
     {
         version: 110,
         titulo: "El running en Hoy",

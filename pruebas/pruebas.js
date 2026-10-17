@@ -2871,6 +2871,19 @@ prueba("Running: la tarjeta de Hoy dice qué toca correr, lo que ya corriste o l
     cierto(vistasRunning.tarjetaRunningHoy(estado, ctx).includes("Corriendo"), "con una carrera en curso");
 });
 
+prueba("Running: cada carrera se compara con tu anterior parecida (mismo tipo y distancia de hasta un 25 %)", () => {
+    const a = carreraDe(5, 30, "suave", sumarDias(hoy(), -2));
+    const b = carreraDe(5.2, 27, "suave", hoy());
+    const otroTipo = carreraDe(5, 25, "intervalos", sumarDias(hoy(), -1));
+    const lejana = carreraDe(10, 50, "suave", sumarDias(hoy(), -1));
+    const c = running.comparacionDe([a, b, otroTipo, lejana], b);
+    igual(c.anterior, a, "la anterior del mismo tipo y distancia parecida");
+    igual(c.segundosPorKm, Math.round((27 / 5.2 - 30 / 5) * 60), "cuántos segundos por km cambió el ritmo");
+    cierto(running.textoComparacion(c).startsWith("▼") && running.textoComparacion(c).includes("más rápida"), "más rápida se dice con ▼");
+    igual(running.comparacionDe([a], a), null, "la primera carrera no tiene con qué compararse");
+    igual(running.textoComparacion({ anterior: a, segundosPorKm: 0 }), "Mismo ritmo que tu anterior de este tipo", "mismo ritmo");
+});
+
 prueba("Running: los datos guardados de una versión anterior tienen el running vacío", () => {
     const vieja = datos.desdeRespaldo(JSON.stringify({ version: 31, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] }));
     igual(vieja.running.carreras, [], "sin carreras");

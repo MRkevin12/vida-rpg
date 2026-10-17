@@ -238,3 +238,25 @@ export function avanzar(en, punto) {
     if (segundos > 0 && metros / segundos > SALTO_MAX_MS) return { distancia: en.distancia, ultimo: punto };   // salto raro
     return { distancia: en.distancia + metros, ultimo: punto };
 }
+
+// ===== Comparar con tu carrera anterior =====
+// La última carrera parecida a esta: mismo tipo y una distancia de hasta un 25 % más o menos. Devuelve
+// { anterior, segundosPorKm } (negativo = esta fue más rápida), o null si no hay ninguna parecida antes.
+export function comparacionDe(carreras, carrera) {
+    const antes = ordenar(carreras).filter((c) => c !== carrera && c.tipo === carrera.tipo
+        && Math.abs(c.km - carrera.km) <= carrera.km * 0.25
+        && (c.fecha < carrera.fecha || (c.fecha === carrera.fecha && (c.creada || 0) < (carrera.creada || 0))));
+    const anterior = antes[antes.length - 1];
+    if (!anterior) return null;
+    return { anterior, segundosPorKm: Math.round((ritmoDeCarrera(carrera) - ritmoDeCarrera(anterior)) * 60) };
+}
+
+// -18 -> "▼ 0:18 /km más rápida que tu anterior de este tipo"; 0 -> "Mismo ritmo que la anterior"
+export function textoComparacion(comparacion) {
+    const s = Math.abs(comparacion.segundosPorKm);
+    if (s === 0) return "Mismo ritmo que tu anterior de este tipo";
+    const texto = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")} /km`;
+    return comparacion.segundosPorKm < 0
+        ? `▼ ${texto} más rápida que tu anterior de este tipo`
+        : `▲ ${texto} más lenta que tu anterior de este tipo`;
+}
