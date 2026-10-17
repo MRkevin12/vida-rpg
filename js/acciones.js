@@ -2350,7 +2350,7 @@ export function empezarCarrera(estado, tipo, { gps = false } = {}) {
     const r = estado.running;
     if (r.encurso) throw new Error("Ya tienes una carrera en curso: termínala o cancélala primero.");
     if (!running.TIPOS[tipo]) throw new Error("Ese tipo de carrera no existe.");
-    r.encurso = { inicio: Date.now(), pausas: [], pausadoDesde: null, tipo, gps: Boolean(gps), distancia: 0, ultimo: null, precision: null };
+    r.encurso = { inicio: Date.now(), pausas: [], pausadoDesde: null, tipo, gps: Boolean(gps), distancia: 0, ultimo: null, precision: null, traza: [], marcas: [] };
 }
 
 // Pausa o reanuda el cronómetro. Al reanudar se olvida el último punto del GPS: si no, sumaría el camino de la pausa.
@@ -2371,10 +2371,24 @@ export function registrarPuntoCarrera(estado, punto) {
     const en = estado.running.encurso;
     if (!en || !en.gps || en.pausadoDesde) return null;
     const { distancia, ultimo } = running.avanzar(en, punto);
+    // (v116) Cada punto aceptado va al recorrido, y cada kilómetro completo anota su tiempo (para los parciales y la voz).
+    if (ultimo && ultimo !== en.ultimo) {
+        en.traza = en.traza || [];
+        en.traza.push([ultimo.lat, ultimo.lon]);
+        // Para no crecer sin fin en carreras largas: si pasa de 600 puntos, se queda con la mitad (uno sí, uno no).
+        if (en.traza.length > 600) en.traza = en.traza.filter((_, i) => i % 2 === 0 || i === en.traza.length - 1);
+    }
     en.distancia = distancia;
     en.ultimo = ultimo;
     en.precision = punto.precision;
-    return { distancia };
+    en.marcas = en.marcas || [];
+    let kmNuevo = null;
+    while (distancia >= (en.marcas.length + 1) * 1000) {
+        en.marcas.push(running.tiempoDeEncurso(en, Date.now()));
+        kmNuevo = en.marcas.length;
+    }
+    const parciales = running.parcialesDe(en.marcas);
+    return { distancia, kmNuevo, segundos: kmNuevo ? parciales[parciales.length - 1] : null };
 }
 
 export function cancelarCarrera(estado) {
@@ -2397,6 +2411,9 @@ export function terminarCarrera(estado, { km = "", minutos = "", nota = "" } = {
     const fecha = aTexto(new Date(en.inicio));
     const resultado = guardarCarrera(estado, {
         fecha, km: kmFinal, minutos: minutosFinal, tipo: en.tipo, origen: en.gps ? "gps" : "manual", nota,
+        // (v116) el recorrido y los parciales solo existen si el GPS midió esa distancia (si la corregiste mucho, no encajarían)
+        traza: en.gps && medido !== "" && String(km).trim() === "" ? running.simplificarTraza(en.traza) : null,
+        parciales: en.gps && medido !== "" && String(km).trim() === "" ? running.parcialesDe(en.marcas) : null,
     });
     estado.running.encurso = null;
     return resultado;
@@ -2417,6 +2434,11 @@ export function guardarCarrera(estado, valores) {
     const xp = running.xpDeCarrera(km, valores.tipo);
     const monedas = running.monedasDeCarrera(km);
     const carrera = { fecha, km, minutos, tipo: valores.tipo, origen: valores.origen === "gps" ? "gps" : "manual", nota, xp, monedas, creada: Date.now() };
+    // (v116) Recorrido (lista de [lat, lon]) y parciales (segundos de cada kilómetro), si vienen y son válidos.
+    const traza = running.simplificarTraza(valores.traza);
+    if (traza.length >= 2) carrera.traza = traza;
+    const parciales = (Array.isArray(valores.parciales) ? valores.parciales : []).filter((s) => Number.isFinite(s) && s > 0).slice(0, 100);
+    if (parciales.length) carrera.parciales = parciales;
     r.carreras = running.ordenar([...r.carreras, carrera]);
     ganar(estado, { xp, monedas, atributo: "fuerza" });
 
@@ -2473,6 +2495,11 @@ export function borrarCarrera(estado, indice) {
 // Tu meta semanal de kilómetros.
 export function cambiarMetaKm(estado, km) {
     estado.running.metaKm = Math.round(numeroEntre(km, running.META_KM_MIN, running.META_KM_MAX, "La meta"));
+}
+
+// (v116) La voz que dice tu tiempo cada kilómetro.
+export function cambiarAvisoKm(estado, encendido) {
+    estado.running.avisoKm = Boolean(encendido);
 }
 
 // La misión que se marca sola al guardar una carrera (o ninguna).

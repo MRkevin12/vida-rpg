@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v116 — Running: recorrido, parciales, voz y predicciones
+- `js/running.js`: `simplificarTraza`, `parcialesDe`, `analisisDeParciales`, `textoSegundos`, `textoParaVoz`, `prediccionesDe` (Riegel), `avisoKm` en `runningInicial`.
+- `js/acciones.js`: la carrera en vivo guarda `traza` y `marcas` (tiempo de cada km); `registrarPuntoCarrera` devuelve `kmNuevo`; las carreras con GPS guardan `traza` y `parciales` (no si corriges los km a mano); `cambiarAvisoKm`.
+- `js/vistas-running.js`: `htmlParciales`, `trazoSvg`, detalle desplegable en el historial, tarjeta «Lo que podrías correr», botón de la voz.
+- `js/app.js`: `anunciarKilometro` (sonido + aviso + `speechSynthesis` en español).
+
 ## v115 — Alarma en las tareas
 - Las tareas tienen `aviso` (hora «HH:MM», opcional). `acciones.crearTarea/editarTarea` la validan; sin fecha, la alarma es para hoy.
 - `js/avisos.js`: `avisosDeTareas` las manda al servidor como si fueran misiones con aviso (día de la semana de la tarea y «saltarHasta» el día anterior); el texto sale de `textosDeTareas`. Sin cambios en el Worker. Tope total de 30 avisos.

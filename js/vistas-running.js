@@ -38,6 +38,7 @@ export function pantallaRunning(estado, ctx) {
             ${tarjetaSemanas(estado, ctx)}
             ${tarjetaRecords(estado)}
             ${tarjetaRitmos(estado)}
+            ${tarjetaPredicciones(estado)}
             ${tarjetaHitos(estado)}
             ${tarjetaAjustes(estado)}`,
         historial: () => tarjetaHistorial(estado),
@@ -71,6 +72,7 @@ function vistaEnVivo(estado, ctx) {
                 <div><small>Ritmo</small><b data-run-ritmo>${running.textoRitmo(ritmo)}</b></div>
             </div>
             <p class="nota" data-run-gps>${textoGps(en, ctx.gpsProblema)}</p>
+            <div class="run-parciales-vivo" data-run-parciales data-n="${(en.marcas || []).length}">${htmlParciales(running.parcialesDe(en.marcas))}</div>
             <div class="run-botones">
                 <button type="button" class="boton ${pausada ? "boton-principal" : "boton-secundario"}" data-accion="run-pausa">${pausada ? "▶ Seguir" : "⏸ Pausar"}</button>
                 <button type="button" class="boton boton-secundario" data-accion="run-cancelar">✖ Cancelar</button>
@@ -87,6 +89,67 @@ function vistaEnVivo(estado, ctx) {
                 <input type="text" name="nota" maxlength="60" placeholder="Ej: con el perro" autocomplete="off"></label>
             <button type="submit" class="boton boton-principal boton-ancho">✅ Guardar carrera</button>
         </form>`;
+}
+
+// ===== Recorrido y parciales (v116) =====
+// Cada kilómetro, con una barra: más larga = más rápido. El más rápido va en verde y el más lento en ámbar.
+// Se usa en la carrera en vivo y en el detalle del historial. app.js lo vuelve a escribir al cumplir un kilómetro.
+export function htmlParciales(parciales) {
+    if (!parciales || !parciales.length) return "";
+    const mejor = Math.min(...parciales);
+    const peor = Math.max(...parciales);
+    const filas = parciales.slice(-12).map((s, i, lista) => {
+        const numero = parciales.length - lista.length + i + 1;
+        const ancho = peor === mejor ? 100 : Math.round(45 + ((peor - s) / (peor - mejor)) * 55);
+        const clase = parciales.length > 1 && s === mejor ? "mejor" : parciales.length > 1 && s === peor ? "peor" : "";
+        return `<li class="run-parcial ${clase}"><span>km ${numero}</span><span class="run-parcial-barra"><i style="width: ${ancho}%"></i></span><b>${running.textoSegundos(s)}</b></li>`;
+    }).join("");
+    return `<ul class="run-parciales">${filas}</ul>`;
+}
+
+// El recorrido como un dibujito: la línea del camino con un punto verde (salida) y uno rojo (llegada).
+// Las coordenadas se ajustan al cuadro; la longitud se corrige con el coseno de la latitud para que no se estire.
+export function trazoSvg(traza) {
+    if (!traza || traza.length < 2) return "";
+    const ancho = 300;
+    const alto = 170;
+    const margen = 12;
+    const lats = traza.map((p) => p[0]);
+    const latMedia = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const k = Math.cos((latMedia * Math.PI) / 180);
+    const x = traza.map((p) => p[1] * k);
+    const y = traza.map((p) => -p[0]);
+    const [x0, x1, y0, y1] = [Math.min(...x), Math.max(...x), Math.min(...y), Math.max(...y)];
+    const escala = Math.min((ancho - margen * 2) / (x1 - x0 || 1e-6), (alto - margen * 2) / (y1 - y0 || 1e-6));
+    const dx = (ancho - (x1 - x0) * escala) / 2;
+    const dy = (alto - (y1 - y0) * escala) / 2;
+    const puntos = traza.map((_, i) => [(x[i] - x0) * escala + dx, (y[i] - y0) * escala + dy]);
+    const [salida, llegada] = [puntos[0], puntos[puntos.length - 1]];
+    return `
+        <svg class="run-trazo" viewBox="0 0 ${ancho} ${alto}" role="img" aria-label="Dibujo del recorrido de la carrera">
+            <polyline points="${puntos.map((q) => `${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(" ")}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="${salida[0].toFixed(1)}" cy="${salida[1].toFixed(1)}" r="5" fill="#4ade80" stroke="#0b0816" stroke-width="1.5"/>
+            <circle cx="${llegada[0].toFixed(1)}" cy="${llegada[1].toFixed(1)}" r="5" fill="#f87171" stroke="#0b0816" stroke-width="1.5"/>
+        </svg>`;
+}
+
+// El detalle de una carrera con GPS: su recorrido, sus parciales y cómo repartiste el esfuerzo.
+function detalleDeCarrera(c) {
+    if (!c.traza && !c.parciales) return "";
+    const analisis = running.analisisDeParciales(c.parciales);
+    const reparto = !analisis ? "" : Math.abs(analisis.diferencia) < 5
+        ? "Ritmo muy parejo de principio a fin. 👌"
+        : analisis.diferencia < 0
+            ? `Acabaste ${running.textoSegundos(-analisis.diferencia)} /km más rápido de lo que empezaste. 🔥`
+            : `Acabaste ${running.textoSegundos(analisis.diferencia)} /km más lento de lo que empezaste: la próxima, sal un poco más suave.`;
+    return `
+        <details class="run-detalle">
+            <summary>🗺️ Ver recorrido${c.parciales?.length ? ` y ${plural(c.parciales.length, "parcial", "parciales")}` : ""}</summary>
+            ${trazoSvg(c.traza)}
+            ${c.traza ? '<p class="mini texto-suave">Verde: salida · Rojo: llegada</p>' : ""}
+            ${htmlParciales(c.parciales)}
+            ${analisis ? `<p class="mini texto-suave">Mejor: km ${analisis.mejorKm} (${running.textoSegundos(analisis.mejor)}) · Más lento: km ${analisis.peorKm} (${running.textoSegundos(analisis.peor)}).<br>${reparto}</p>` : ""}
+        </details>`;
 }
 
 // ===== Empezar una carrera =====
@@ -242,6 +305,21 @@ function tarjetaRitmos(estado) {
         </section>`;
 }
 
+// (v116) Lo que podrías correr en distancias que quizá nunca has probado, según tu mejor carrera reciente.
+function tarjetaPredicciones(estado) {
+    const p = running.prediccionesDe(estado.running.carreras);
+    if (!p) return "";
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">🔮 Lo que podrías correr</h2>
+            <ul class="run-prediccion">
+                ${p.tiempos.map((t) => `<li><span>${t.nombre}</span><b>${running.textoDuracion(t.minutos)}</b><small>${running.textoRitmo(t.minutos / t.km)}</small></li>`).join("")}
+            </ul>
+            <p class="mini texto-suave">Estimado a partir de tu carrera del ${fechaCorta(p.base.fecha)} (${running.textoKm(p.base.km)} en ${running.textoDuracion(p.base.minutos)}).
+               Es una guía: las distancias largas hay que entrenarlas.</p>
+        </section>`;
+}
+
 function tarjetaHitos(estado) {
     const total = running.kmTotales(estado.running.carreras);
     const filas = running.HITOS.map((h) => {
@@ -278,6 +356,11 @@ function tarjetaAjustes(estado) {
                 <select data-running-mision>
                     <option value="">Ninguna</option>${opciones}
                 </select></label>
+            <div class="run-meta">
+                <span>🔊 Voz cada kilómetro (con GPS)</span>
+                <button type="button" class="boton boton-chico ${r.avisoKm !== false ? "boton-principal" : "boton-secundario"}" data-accion="run-aviso-km"
+                        aria-pressed="${r.avisoKm !== false}">${r.avisoKm !== false ? "Sí" : "No"}</button>
+            </div>
             ${misiones.length ? "" : '<p class="mini texto-suave">Crea una misión (ej: «Correr») en Hoy para que se marque sola.</p>'}
         </section>`;
 }
@@ -296,6 +379,7 @@ function tarjetaHistorial(estado) {
                     <small>${fechaCorta(c.fecha)} · ${running.textoDuracion(c.minutos)} · ${running.textoRitmo(running.ritmoDeCarrera(c))} · ${c.origen === "gps" ? "📡 GPS" : "✍️ a mano"}</small>
                     ${comparacion ? `<small class="run-comp">${running.textoComparacion(comparacion)}</small>` : ""}
                     ${c.nota ? `<small>“${esc(c.nota)}”</small>` : ""}
+                    ${detalleDeCarrera(c)}
                 </span>
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="run-borrar" data-indice="${indice}" aria-label="Borrar esta carrera">🗑</button>
             </li>`;

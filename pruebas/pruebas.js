@@ -2854,6 +2854,59 @@ prueba("Running: la meta semanal se cobra una vez por semana y borrar una carrer
     cierto(estado.personaje.xp < xpAntes, "al borrar, se quita el XP de esa carrera");
 });
 
+prueba("Running: el recorrido se simplifica, los parciales salen de las marcas de cada km y se analiza el reparto del esfuerzo", () => {
+    const largo = Array.from({ length: 500 }, (_, i) => [4.6 + i * 0.00001, -74.08 + i * 0.00001]);
+    const corto = running.simplificarTraza(largo);
+    igual(corto.length, running.MAX_TRAZA, "se queda con el máximo");
+    igual(corto[0], [4.6, -74.08], "conserva la salida");
+    igual(corto[corto.length - 1], [4.60499, -74.07501], "conserva la llegada");
+    igual(running.simplificarTraza([[Number.NaN, 3], "x"]), [], "ignora lo que no son coordenadas");
+    igual(running.parcialesDe([300000, 612000, 900000]), [300, 312, 288]);
+    igual(running.textoSegundos(312), "5:12");
+    igual(running.textoParaVoz(312), "5 minutos 12 segundos");
+    igual(running.textoParaVoz(301), "5 minutos 1 segundo");
+    igual(running.analisisDeParciales([300]), null, "con un solo km no hay análisis");
+    const a = running.analisisDeParciales([320, 310, 300, 290]);
+    igual([a.mejor, a.peor, a.mejorKm, a.peorKm, a.diferencia], [290, 320, 4, 1, -20], "acabó más rápido: diferencia negativa");
+});
+
+prueba("Running: cada kilómetro del GPS anota su tiempo, y la carrera guarda recorrido y parciales", () => {
+    const estado = partidaNueva();
+    acciones.empezarCarrera(estado, "suave", { gps: true });
+    const en = estado.running.encurso;
+    en.inicio = Date.now() - 12 * 60000;
+    // Un paso de unos 111 m hacia el norte cada vez (0,001° de latitud), a ~18 s cada uno (6 m/s): sin saltos raros.
+    let kms = [];
+    for (let i = 0; i <= 25; i++) {
+        const r = acciones.registrarPuntoCarrera(estado, { lat: 4.6 + i * 0.001, lon: -74.08, precision: 5, t: en.inicio + i * 18000 });
+        if (r?.kmNuevo) kms.push(r.kmNuevo);
+    }
+    igual(kms, [1, 2], "avisa en el km 1 y en el 2");
+    igual(en.marcas.length, 2);
+    cierto(en.traza.length >= 25, "guarda los puntos del recorrido");
+    acciones.terminarCarrera(estado, {});
+    const carrera = estado.running.carreras[0];
+    cierto(carrera.traza.length >= 2, "la carrera con GPS guarda su recorrido");
+    igual(carrera.parciales.length, 2, "y los parciales de sus 2 km");
+    // Si corriges los km a mano, el recorrido y los parciales ya no encajan: no se guardan.
+    acciones.empezarCarrera(estado, "suave", { gps: true });
+    estado.running.encurso.inicio = Date.now() - 10 * 60000;
+    acciones.terminarCarrera(estado, { km: "3" });
+    igual(estado.running.carreras[1].traza, undefined);
+    acciones.cambiarAvisoKm(estado, false);
+    igual(estado.running.avisoKm, false);
+});
+
+prueba("Running: las predicciones parten de tu mejor carrera reciente (Riegel) y ignoran la caminata", () => {
+    igual(running.prediccionesDe([]), null);
+    igual(running.prediccionesDe([carreraDe(5, 20, "caminata")]), null, "una caminata no predice nada");
+    const p = running.prediccionesDe([carreraDe(5, 30), carreraDe(5, 25), carreraDe(10, 70)]);
+    igual(p.base.minutos, 25, "toma la mejor");
+    igual(p.tiempos[0].minutos, 25, "5 km = lo mismo que hizo");
+    cierto(p.tiempos[1].minutos > 50 && p.tiempos[1].minutos < 55, "10 km son poco más del doble");
+    cierto(p.tiempos[3].minutos > p.tiempos[2].minutos, "el maratón tarda más que la media");
+});
+
 prueba("Running: una carrera en vivo se guarda con el cronómetro y los km que escribes", () => {
     const estado = partidaNueva();
     acciones.empezarCarrera(estado, "tempo", { gps: false });

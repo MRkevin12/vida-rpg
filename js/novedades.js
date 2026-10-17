@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 115;
+export const VERSION_APP = 116;
 
 export const NOVEDADES = [
+    {
+        version: 116,
+        titulo: "Running a otro nivel",
+        cambios: [
+            "🗺️ Las carreras con GPS guardan su recorrido: en el historial lo ves dibujado, con la salida y la llegada.",
+            "⏱️ Parciales por kilómetro: barras con cada km, el más rápido y el más lento, y si acabaste más fuerte de lo que empezaste.",
+            "🔊 Cada kilómetro suena un aviso y una voz dice tu tiempo (se apaga en Progreso → Tus metas).",
+            "🔮 En Progreso, «Lo que podrías correr»: tu tiempo estimado en 5 km, 10 km, media maratón y maratón.",
+        ],
+    },
     {
         version: 115,
         titulo: "Alarma en las tareas",

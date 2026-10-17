@@ -279,6 +279,13 @@ function tictac() {
         if (ritmo) ritmo.textContent = running.textoRitmo(running.ritmoEnVivo(en, ahora));
         const aviso = document.querySelector("[data-run-gps]");
         if (aviso) aviso.textContent = vistasRunning.textoGps(en, gpsProblema);
+        // (v116) Los parciales de la carrera: solo se reescriben cuando cambian.
+        const parciales = document.querySelector("[data-run-parciales]");
+        const marcasAhora = (en.marcas || []).length;
+        if (parciales && parciales.dataset.n !== String(marcasAhora)) {
+            parciales.innerHTML = vistasRunning.htmlParciales(running.parcialesDe(en.marcas));
+            parciales.dataset.n = String(marcasAhora);
+        }
     }
     // (v76) El tiempo que llevas entrenando.
     for (const reloj of document.querySelectorAll("[data-gym-inicio]")) {
@@ -341,7 +348,11 @@ function iniciarGps() {
         const { latitude, longitude, accuracy } = posicion.coords;
         const punto = { lat: latitude, lon: longitude, precision: accuracy, t: posicion.timestamp };
         gpsProblema = null;   // llegó una posición: la señal volvió (aunque estés en pausa)
-        if (acciones.registrarPuntoCarrera(estado, punto)) datos.guardar(estado);
+        const avance = acciones.registrarPuntoCarrera(estado, punto);
+        if (avance) {
+            datos.guardar(estado);
+            if (avance.kmNuevo) anunciarKilometro(avance.kmNuevo, avance.segundos);
+        }
     }, (error) => {
         // 1 = no nos dieron permiso (ya no se puede: se deja de escuchar).
         // 2 y 3 = señal perdida o tardía: es pasajero, así que el GPS sigue escuchando y se reanuda solo.
@@ -352,6 +363,19 @@ function iniciarGps() {
             gpsProblema = "senal";
         }
     }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
+}
+
+// (v116) Cada kilómetro: un sonido, un aviso en pantalla y, si está activada la voz, tu tiempo hablado.
+function anunciarKilometro(numero, segundos) {
+    avisar(`🏃 Kilómetro ${numero}: ${running.textoSegundos(segundos)}`);
+    if (!estado.ajustes.sonido) return;
+    sonido.sonar("logro");
+    if (estado.running.avisoKm === false || !("speechSynthesis" in window)) return;
+    try {
+        const voz = new SpeechSynthesisUtterance(`Kilómetro ${numero}. ${running.textoParaVoz(segundos)}.`);
+        voz.lang = "es-ES";
+        speechSynthesis.speak(voz);
+    } catch (error) { /* sin voz en este teléfono: queda el sonido */ }
 }
 
 function detenerGps() {
@@ -3298,6 +3322,7 @@ const ACCIONES = {
         mantenerPantallaDespierta(false);
     },
     "run-meta": (boton) => ejecutar(() => acciones.cambiarMetaKm(estado, estado.running.metaKm + Number(boton.dataset.delta)), { mantenerScroll: true }),
+    "run-aviso-km": () => ejecutar(() => acciones.cambiarAvisoKm(estado, estado.running.avisoKm === false), { mantenerScroll: true }),
     "run-borrar": (boton) => {
         if (!confirm("¿Borrar esta carrera? Se le quita el XP y las monedas que dio.")) return;
         ejecutar(() => acciones.borrarCarrera(estado, Number(boton.dataset.indice)), { mantenerScroll: true });

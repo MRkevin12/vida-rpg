@@ -66,6 +66,7 @@ export function runningInicial() {
         hitos: [],             // ids de los hitos de kilómetros ya cobrados
         semanasCobradas: [],   // los lunes de las semanas cuya meta ya cobraste
         mision: null,          // la misión diaria que se marca sola al guardar una carrera (id), o null
+        avisoKm: true,         // (v116) la voz que dice tu tiempo cada kilómetro (solo con GPS)
     };
 }
 
@@ -237,6 +238,77 @@ export function avanzar(en, punto) {
     const segundos = (punto.t - en.ultimo.t) / 1000;
     if (segundos > 0 && metros / segundos > SALTO_MAX_MS) return { distancia: en.distancia, ultimo: punto };   // salto raro
     return { distancia: en.distancia + metros, ultimo: punto };
+}
+
+// ===== Recorrido y parciales por kilómetro (v116) =====
+export const MAX_TRAZA = 120;   // puntos que se guardan del recorrido de cada carrera con GPS
+
+// Deja como mucho `max` puntos del recorrido (siempre el primero y el último) para no llenar la memoria del teléfono.
+// puntos = [[lat, lon], …]; devuelve la lista con 5 decimales (≈ 1 m).
+export function simplificarTraza(puntos, max = MAX_TRAZA) {
+    const lista = (puntos || []).filter((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+    const redondo = (p) => [Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5];
+    if (lista.length <= max) return lista.map(redondo);
+    const salida = [];
+    for (let i = 0; i < max; i++) salida.push(redondo(lista[Math.round((i * (lista.length - 1)) / (max - 1))]));
+    return salida;
+}
+
+// Los tiempos acumulados (ms) en cada marca de kilómetro -> los segundos que costó cada kilómetro.
+// [300000, 612000] -> [300, 312]
+export function parcialesDe(marcas) {
+    let antes = 0;
+    return (marcas || []).map((ms) => {
+        const segundos = Math.max(1, Math.round((ms - antes) / 1000));
+        antes = ms;
+        return segundos;
+    });
+}
+
+// 312 -> "5:12"
+export function textoSegundos(segundos) {
+    const s = Math.round(segundos);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+// 312 -> "5 minutos 12 segundos" (para que lo diga la voz)
+export function textoParaVoz(segundos) {
+    const s = Math.round(segundos);
+    const m = Math.floor(s / 60);
+    const resto = s % 60;
+    return `${m ? `${m} ${m === 1 ? "minuto" : "minutos"}` : ""}${m && resto ? " " : ""}${resto || !m ? `${resto} ${resto === 1 ? "segundo" : "segundos"}` : ""}`;
+}
+
+// Qué tal repartiste tu esfuerzo: el km más rápido y el más lento, y si la segunda mitad fue más rápida (negativo = «split negativo»).
+// Con menos de 2 kilómetros no hay nada que analizar (null).
+export function analisisDeParciales(parciales) {
+    if (!parciales || parciales.length < 2) return null;
+    const mejor = Math.min(...parciales);
+    const peor = Math.max(...parciales);
+    const mitad = Math.floor(parciales.length / 2);
+    const suma = (lista) => lista.reduce((a, b) => a + b, 0);
+    const primera = suma(parciales.slice(0, mitad)) / mitad;
+    const segunda = suma(parciales.slice(parciales.length - mitad)) / mitad;
+    return {
+        mejor, peor, mejorKm: parciales.indexOf(mejor) + 1, peorKm: parciales.indexOf(peor) + 1,
+        promedio: Math.round(suma(parciales) / parciales.length),
+        diferencia: Math.round(segunda - primera),   // segundos por km: negativo = acabaste más rápido de lo que empezaste
+    };
+}
+
+// ===== ¿Qué tiempo podrías hacer? (v116) =====
+// Fórmula de Riegel: T2 = T1 × (D2 / D1)^1,06. Parte de tu mejor carrera reciente de 3 km o más (hasta 25 km),
+// llevada a 5 km para compararlas entre sí. Solo cuentan carreras suaves, de tempo, intervalos o largas (no la caminata).
+export const DISTANCIAS_PREDICCION = [["5 km", 5], ["10 km", 10], ["Media maratón", 21.0975], ["Maratón", 42.195]];
+export function prediccionesDe(carreras) {
+    const validas = ordenar(carreras).filter((c) => c.tipo !== "caminata" && c.km >= DISTANCIA_RITMO && c.km <= 25).slice(-30);
+    if (!validas.length) return null;
+    const equivalente = (c) => c.minutos * (5 / c.km) ** 1.06;   // minutos que costarían 5 km con ese esfuerzo
+    const base = validas.reduce((mejor, c) => (equivalente(c) < equivalente(mejor) ? c : mejor));
+    return {
+        base,
+        tiempos: DISTANCIAS_PREDICCION.map(([nombre, km]) => ({ nombre, km, minutos: Math.round(base.minutos * (km / base.km) ** 1.06) })),
+    };
 }
 
 // ===== Comparar con tu carrera anterior =====

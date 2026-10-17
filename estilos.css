@@ -11768,3 +11768,85 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     padding: 8px 0;
     border-bottom: 1px solid var(--borde);
 }
+
+
+/* ===== (v116) Running: recorrido, parciales por kilómetro y predicciones ===== */
+.run-detalle {
+    margin-top: 6px;
+}
+
+.run-detalle summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--cian);
+}
+
+.run-trazo {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin: 8px 0 2px;
+    background: rgba(8, 6, 20, 0.7);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.run-parciales {
+    display: grid;
+    gap: 3px;
+    margin: 8px 0 4px;
+    padding: 0;
+    list-style: none;
+}
+
+.run-parcial {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr 3rem;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+}
+
+.run-parcial b {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.run-parcial-barra {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.run-parcial-barra i {
+    display: block;
+    height: 100%;
+    background: var(--cian);
+}
+
+.run-parcial.mejor .run-parcial-barra i { background: #4ade80; }
+.run-parcial.peor .run-parcial-barra i { background: #fbbf24; }
+
+.run-parciales-vivo:empty {
+    display: none;
+}
+
+.run-prediccion {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.run-prediccion li {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.run-prediccion small {
+    min-width: 4.2rem;
+    text-align: right;
+    color: var(--texto-suave);
+}
