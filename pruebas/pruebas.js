@@ -111,6 +111,12 @@ async function debeFallarAsync(funcion, texto) {
 }
 
 // La función debe fallar con un mensaje que contenga "texto".
+// (v105) El arcade se ve por secciones: para revisarlo entero, se juntan las cuatro.
+function arcadeCompleto(estado, ctx) {
+    return ["torre", "mazmorras", "minijuegos", "bazar"]
+        .map((seccion) => vistas.pantallaArcade(estado, { ...ctx, subvista: { ...ctx.subvista, arcade: seccion } })).join("");
+}
+
 function debeFallar(funcion, texto) {
     try {
         funcion();
@@ -1022,7 +1028,7 @@ prueba("Torre (pantalla): batalla, menú de magia, botín, final y bestiario se 
     sano(html, "el bestiario");
     cierto(html.includes("Murciélago de cripta") && html.includes("vencido ×1") && html.includes("⚡ débil"), "lo que conoces");
     cierto(!html.includes("Dragón de la tormenta") && html.includes("???") && html.includes("Piso 20 · Guardián"), "lo que no, en sombras");
-    sano(vistas.pantallaArcade(estado, { vida: vida.calcularVida(estado, hoy()), avatar: avatarDePrueba() }), "la tarjeta del Arcade");
+    sano(arcadeCompleto(estado, { vida: vida.calcularVida(estado, hoy()), avatar: avatarDePrueba() }), "la tarjeta del Arcade");
 });
 
 
@@ -2069,11 +2075,11 @@ prueba("Mazmorra (pantalla): tarjeta cerrada y abierta, batalla, historia, besti
     const estado = partidaNueva();
     const ctx = () => ({ vida: vida.calcularVida(estado, hoy()), avatar: avatarDePrueba() });
     const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
-    let html = vistas.pantallaArcade(estado, ctx());
+    let html = arcadeCompleto(estado, ctx());
     sano(html, "el arcade (cerrada)");
     cierto(html.includes("Mazmorra del Abismo") && html.includes("0 de 20 pisos") && !html.includes('data-lugar="mazmorra"'), "cerrada");
     estado.arcade.records.torre = 20;
-    html = vistas.pantallaArcade(estado, ctx());
+    html = arcadeCompleto(estado, ctx());
     sano(html, "el arcade (abierta)");
     cierto(html.includes("Bajar a la mazmorra") && html.includes('data-accion="torre-abrir" data-lugar="mazmorra"') &&
            html.includes('data-accion="historia-abrir" data-lugar="torre"'), "abierta, con su historia");
@@ -2444,7 +2450,7 @@ prueba("Pantallas: el reino, la tienda de mascotas y la Torre con mascota y habi
     html = vistas.pantallaTienda(estado, { ...ctx, subvista: { tienda: "equipo" } });
     cierto(html.includes("Ojo del dragón"), "las habilidades en el equipo de la tienda");
     sano(vistas.pantallaPersonaje(estado, ctx), "el personaje");
-    sano(vistas.pantallaArcade(estado, ctx), "el arcade");
+    sano(arcadeCompleto(estado, ctx), "el arcade");
 
     // La Torre: con el «Ojo del dragón» el menú de magia ya sabe el punto débil.
     acciones.empezarTorre(estado, 7);
@@ -3854,7 +3860,7 @@ prueba("Monedas y gemas: las copias viejas empiezan sin gemas, y el arcade y la 
     copia.personaje.gemas = 120;
     copia.arcade.bazar = ["pocion"];
     const ctx = { vida: vida.calcularVida(copia, hoy()), avatar: avatarDePrueba(), evento: null, subvista: { tienda: "mascotas" } };
-    let html = vistas.pantallaArcade(copia, ctx);
+    let html = arcadeCompleto(copia, ctx);
     cierto(!/undefined|NaN/.test(html) && html.includes("💎 Bazar") && html.includes("💎 120") && html.includes("✓ La llevas") &&
            html.includes('data-accion="comprar-provision" data-clave="afilar"'), "el bazar en el Arcade");
     cierto(!html.includes("🪙 y"), "el arcade ya no promete monedas");
@@ -5297,12 +5303,12 @@ prueba("Mazmorras nuevas (pantallas): tarjetas en el Arcade (cerradas con lo que
         rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {},
     });
     const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(html), `${que} no tiene huecos`);
-    let html = vistas.pantallaArcade(estado, ctx());
+    let html = arcadeCompleto(estado, ctx());
     sano(html, "el arcade cerrado");
     igual(html.split("mazmorra-cerrada").length - 1, 4, "las cuatro mazmorras cerradas");
     cierto(html.includes("Minas de la Codicia") && html.includes("Laberinto de los Ecos") && html.includes("Baja 10 sótanos") && html.includes("Baja 10 niveles"), "dicen qué falta");
     estado.arcade.records = { torre: 20, mazmorra: 12, minas: 11, laberinto: 11 };
-    html = vistas.pantallaArcade(estado, ctx());
+    html = arcadeCompleto(estado, ctx());
     sano(html, "el arcade abierto");
     igual(html.split("mazmorra-cerrada").length - 1, 0, "todas abiertas");
     for (const lugar of ["mazmorra", "minas", "laberinto"]) {
@@ -6108,7 +6114,7 @@ prueba("Gym (v80): el bombeo del día que entrenas y el contador de repeticiones
     acciones.empezarTorre(estado, 4, "torre");
     cierto(estado.arcade.torre.heroe.ataque > antes, `con bombeo el héroe pega más (${estado.arcade.torre.heroe.ataque} > ${antes})`);
     const ctx = { hoy: hoy(), fechaVista: hoy(), ahora: Date.now() };
-    cierto(vistas.pantallaArcade(estado, { ...ctx, avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), vida: vida.calcularVida(estado, hoy()), info: juego.resumen(estado, hoy()),
+    cierto(arcadeCompleto(estado, { ...ctx, avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), vida: vida.calcularVida(estado, hoy()), info: juego.resumen(estado, hoy()),
                                            maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null, rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {} }).includes("Bombeo:"), "la tarjeta de la Torre lo cuenta");
 
     // El contador: el primer toque empieza de cero, cada toque suma uno y marcar la serie lo apaga.

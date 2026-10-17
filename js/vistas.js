@@ -2620,24 +2620,39 @@ export function pantallaArcade(estado, ctx) {
             </div>
         </article>`;
 
+    // (v105) El arcade, ordenado: arriba tu héroe con tus fichas y el reto del día; abajo, un menú con cuatro secciones
+    // (la Torre, las mazmorras, los minijuegos y el bazar) y solo se ve una a la vez.
+    const MAZMORRAS = ["mazmorra", "minas", "laberinto", "fragua"];
+    const abiertas = MAZMORRAS.filter((lugar) => torre.lugarAbierto(torre.arcadeConGym(estado), lugar)).length;
+    const enCurso = MAZMORRAS.filter((lugar) => estado.arcade[lugar]).length;
+    const vista = ctx.subvista?.arcade || "torre";
+    const secciones = {
+        torre: () => tarjetaTorre,
+        mazmorras: () => `
+            <p class="nota">Cada mazmorra se abre al llegar lejos en la anterior. Llevas <b>${abiertas} de ${MAZMORRAS.length}</b> abiertas.</p>
+            ${MAZMORRAS.map((lugar) => tarjetaMazmorra(estado, caido, fichas, ctx.hoy, lugar)).join("")}`,
+        minijuegos: () => `
+            <p class="nota">Partidas cortas: cada una cuesta 1 ficha y da gemas 💎 y XP según tus puntos
+               (máx. ${arcade.MAX_GEMAS} 💎 y ${arcade.MAX_XP} XP).</p>
+            ${fichas || caido ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
+            ${tarjetas}`,
+        bazar: () => panelBazar(estado, caido),
+    };
     return `
         ${encabezado("🕹️ Arcade", "aventuras", "Aventuras")}
         ${caido ? avisoCaido(ctx.vida, "El arcade está cerrado") : ""}
-        ${tarjetaReto(estado, ctx)}
-        ${tarjetaTorre}
-        ${["mazmorra", "minas", "laberinto", "fragua"].map((lugar) => tarjetaMazmorra(estado, caido, fichas, ctx.hoy, lugar)).join("")}
-        ${panelBazar(estado, caido)}
         <section class="panel arcade-cabecera">
             <div class="arcade-heroe">${figuraPixel(ctx.avatar, { alt: "Tu héroe" })}</div>
             <div>
                 <h2 class="titulo-juego">Arcade del héroe</h2>
                 <p class="fichas">🎟️ ${plural(fichas, "ficha", "fichas")}</p>
-                <p class="nota">Ganas <b>1 ficha</b> por cada misión diaria completada. Cada partida da gemas 💎 y XP
-                   según tus puntos (máx. ${arcade.MAX_GEMAS} 💎 y ${arcade.MAX_XP} XP).</p>
+                <p class="mini texto-suave">Ganas <b>1 ficha</b> por cada misión diaria completada.</p>
+                <p class="mini">🗼 Récord en la Torre: <b>${recordTorre}</b> · ⛓️ ${abiertas}/${MAZMORRAS.length} mazmorras${enCurso ? ` · ${plural(enCurso, "partida", "partidas")} a medias` : ""}</p>
             </div>
         </section>
-        ${fichas || caido ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
-        ${tarjetas}`;
+        ${tarjetaReto(estado, ctx)}
+        ${selectorSecciones("arcade", [["torre", `🗼 Torre${partida ? " ·" : ""}`], ["mazmorras", "⛓️ Mazmorras"], ["minijuegos", "🕹️ Minijuegos"], ["bazar", "🛒 Bazar"]], vista)}
+        ${(secciones[vista] || secciones.torre)()}`;
 }
 
 

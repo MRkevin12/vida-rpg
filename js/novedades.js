@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 104;
+export const VERSION_APP = 105;
 
 export const NOVEDADES = [
+    {
+        version: 105,
+        titulo: "Arcade ordenado",
+        cambios: [
+            "🕹️ El arcade ahora tiene un menú: 🗼 Torre · ⛓️ Mazmorras · 🕹️ Minijuegos · 🛒 Bazar. Ves una sección a la vez, sin tener que bajar tanto.",
+            "🎟️ Arriba siempre está tu héroe con tus fichas, tu récord en la Torre y cuántas mazmorras tienes abiertas, y debajo el reto del día.",
+        ],
+    },
     {
         version: 104,
         titulo: "Hoy más ordenado",

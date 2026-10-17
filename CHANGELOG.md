@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v105 — Arcade ordenado
+- `vistas.js › pantallaArcade`: cabecera (héroe, fichas, récord, mazmorras abiertas y partidas a medias) + `tarjetaReto` + `selectorSecciones("arcade", …)` con `torre`, `mazmorras`, `minijuegos` y `bazar` (`ctx.subvista.arcade`, por defecto `torre`). Pruebas: `arcadeCompleto()` junta las cuatro secciones. 305 pruebas.
+
 ## v104 — Hoy más ordenado
 - `vistas.js › pantallaHoy`: `destacadasDeHoy` solo se dibuja con la vista `misiones` (antes, en todas menos `importantes`); `aurelio` va primero en `secciones` (la vista por defecto sigue siendo `misiones`). Prueba del modo esencial actualizada. 305 pruebas.
 
