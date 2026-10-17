@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v119 — Criaturas en tus carreras y mapa por zonas
+- `js/encuentros.js` (nuevo): zonas cada 3 km, tipos de criatura (normal, veloz, acorazada, fantasma), jefe cada 5 km, emboscadas, `resolver` con el ritmo objetivo (o `objetivoPromedio`), botín extra, `comoVa` en vivo y `resumen`.
+- `js/dibujo-carrera.js` (nuevo): `mapaDeCarrera` con suelo por zona, río con puentes, lagos (hielo, lava, oasis) y paisaje por zona; banderas del color de cada pelea.
+- `acciones.js`: la carrera con GPS guarda `objetivo`, `encuentros` y `kmActual` (500 m, 800 m, pausas); se decide cada pelea al cumplir el km; `terminarCarrera` da el botín y guarda las peleas.
+- `vistas-running.js` + `app.js`: ritmo objetivo al empezar, tarjeta de la pelea en vivo, criatura en el mapa, voz, criaturas en el historial.
+
 ## v118 — Mapa propio de la carrera en tiempo real
 - Se quita la sección «Mapa» (mapa del reino) de Running. `ruta.js` queda solo con los premios por km.
 - `vistas-running.js`: `mapaPixel`, `htmlMapaVivo`, `textoRutaEnVivo`: mapa SVG en pixel art (césped, árboles, camino, banderas por km) que se ajusta al recorrido; el héroe va encima (`ponerHeroeEnMapaVivo` en app.js). `tictac` lo redibuja cuando llega un punto nuevo.

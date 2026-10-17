@@ -11911,3 +11911,103 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .run-mapa-heroe:not([src]) {
     visibility: hidden;
 }
+
+
+/* ===== (v119) Criaturas en la carrera y el mapa por zonas ===== */
+.run-mapa-zona {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    color: #fff;
+    background: rgba(11, 8, 22, 0.75);
+    border: 1px solid rgba(241, 243, 255, 0.6);
+    border-radius: var(--esquina);
+    pointer-events: none;
+}
+
+.run-mapa-criatura {
+    position: absolute;
+    width: 11%;
+    image-rendering: pixelated;
+    transform: translate(-50%, -88%);
+    pointer-events: none;
+    animation: mapa-paso 0.7s steps(1) infinite;
+    filter: drop-shadow(0 0 3px rgba(248, 113, 113, 0.8));
+}
+
+.run-mapa-criatura.jefe {
+    width: 15%;
+    filter: drop-shadow(0 0 4px rgba(192, 132, 252, 0.95));
+}
+
+.run-mapa-criatura:not([src]) {
+    visibility: hidden;
+}
+
+.run-pelea {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    margin: 8px 0;
+    padding: 8px;
+    background: linear-gradient(180deg, #3350c8 0%, #1c2e96 38%, #0a1258 100%);
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+}
+
+.run-pelea-sprite {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.run-pelea-sprite:not([src]) {
+    visibility: hidden;
+}
+
+.run-pelea-texto {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.run-pelea-texto b small {
+    font-weight: 500;
+    color: #b9c6ff;
+}
+
+.run-pelea-texto small {
+    font-size: 0.72rem;
+    color: #dfe5ff;
+}
+
+.run-pelea-vida .barra-relleno { background: #f87171; }
+.run-pelea-vida.bien .barra-relleno { background: #4ade80; }
+.run-pelea-vida.justo .barra-relleno { background: #fbbf24; }
+
+.run-pelea-aviso {
+    color: #fbbf24 !important;
+}
+
+.run-criaturas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 4px 0 8px;
+    padding: 0;
+    list-style: none;
+}
+
+.run-criaturas li {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.run-criaturas li.vencida { color: #4ade80; border-color: rgba(74, 222, 128, 0.5); }
+.run-criaturas li.escapo { color: var(--texto-suave); }

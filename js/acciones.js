@@ -38,6 +38,7 @@ import * as gym from "./gym.js";
 import * as fragua from "./fragua.js";
 import * as gymAurelio from "./gym-aurelio.js";
 import * as ruta from "./ruta.js";
+import * as encuentros from "./encuentros.js";   // (v119) criaturas en tus carreras
 import * as running from "./running.js";   // (v109) el running
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
@@ -2347,11 +2348,24 @@ function entrenamientoRunning(estado) {
 }
 
 // Empieza una carrera en vivo. gps: true = el teléfono mide la distancia (la pantalla pide el permiso).
-export function empezarCarrera(estado, tipo, { gps = false } = {}) {
+export function empezarCarrera(estado, tipo, { gps = false, objetivo = "" } = {}) {
     const r = estado.running;
     if (r.encurso) throw new Error("Ya tienes una carrera en curso: termínala o cancélala primero.");
     if (!running.TIPOS[tipo]) throw new Error("Ese tipo de carrera no existe.");
-    r.encurso = { inicio: Date.now(), pausas: [], pausadoDesde: null, tipo, gps: Boolean(gps), distancia: 0, ultimo: null, precision: null, traza: [], marcas: [], puntosKm: [] };
+    if (String(objetivo).trim() && !encuentros.leerObjetivo(objetivo)) throw new Error("Escribe el ritmo objetivo como minutos:segundos por km (ej: 6:30), entre 2:30 y 20:00.");
+    const inicio = Date.now();
+    r.encurso = { inicio, pausas: [], pausadoDesde: null, tipo, gps: Boolean(gps), distancia: 0, ultimo: null, precision: null, traza: [], marcas: [], puntosKm: [] };
+    // (v119) Con GPS, cada km trae una criatura. El ritmo objetivo es el que escribiste o, si no, tu promedio.
+    if (gps) {
+        const propio = encuentros.leerObjetivo(objetivo);
+        Object.assign(r.encurso, {
+            objetivo: propio || encuentros.objetivoPromedio(r.carreras),
+            objetivoPropio: Boolean(propio),
+            encuentros: [encuentros.criaturaDelKm(inicio, 1)],
+            kmActual: { mitad: null, t800: null, pausas: 0 },   // lo que hace falta para decidir la pelea del km
+        });
+        bestiario.anotarEncuentro(estado.arcade.bestiario, r.encurso.encuentros[0].id);
+    }
 }
 
 // Pausa o reanuda el cronómetro. Al reanudar se olvida el último punto del GPS: si no, sumaría el camino de la pausa.
@@ -2364,6 +2378,7 @@ export function alternarPausaCarrera(estado, ahora = Date.now()) {
         return { pausada: false };
     }
     en.pausadoDesde = ahora;
+    if (en.kmActual) en.kmActual.pausas += 1;   // (v119) a los fantasmas y a los jefes no les gusta que te detengas
     return { pausada: true };
 }
 
@@ -2383,14 +2398,47 @@ export function registrarPuntoCarrera(estado, punto) {
     en.ultimo = ultimo;
     en.precision = punto.precision;
     en.marcas = en.marcas || [];
+    // (v119) Cuándo pasaste los 500 m y los 800 m de este km (para las criaturas acorazadas y las veloces).
+    const resueltos = [];
+    if (en.kmActual) {
+        const base = en.marcas.length * 1000;
+        const desdeKm = running.tiempoDeEncurso(en, Date.now()) - (en.marcas[en.marcas.length - 1] || 0);
+        if (en.kmActual.mitad === null && distancia >= base + 500) en.kmActual.mitad = desdeKm;
+        if (en.kmActual.t800 === null && distancia >= base + 800) en.kmActual.t800 = desdeKm;
+    }
     let kmNuevo = null;
     while (distancia >= (en.marcas.length + 1) * 1000) {
         en.marcas.push(running.tiempoDeEncurso(en, Date.now()));
         (en.puntosKm = en.puntosKm || []).push([Math.round(punto.lat * 1e5) / 1e5, Math.round(punto.lon * 1e5) / 1e5]);   // dónde estabas (para la bandera del mapa)
         kmNuevo = en.marcas.length;
+        // (v119) Se decide la pelea de este km y aparece la criatura del siguiente.
+        const pelea = en.encuentros?.find((e) => e.km === kmNuevo && !e.resultado);
+        if (pelea) {
+            const segundos = running.parcialesDe(en.marcas).at(-1);
+            const k = en.kmActual;
+            const vencida = encuentros.resolver(pelea, {
+                segundos,
+                mitad: k.mitad === null ? NaN : k.mitad / 1000,
+                ultimos200: k.t800 === null ? NaN : segundos - k.t800 / 1000,
+                pausas: k.pausas,
+            }, en.objetivo, Boolean(mascota.especieActiva(estado)));
+            pelea.resultado = vencida ? "vencida" : "escapo";
+            pelea.segundos = segundos;
+            if (vencida) bestiario.anotarVictoria(estado.arcade.bestiario, pelea.id);
+            resueltos.push(pelea);
+        }
+        if (en.encuentros) {
+            const siguiente = encuentros.criaturaDelKm(en.inicio, kmNuevo + 1);
+            en.encuentros.push(siguiente);
+            bestiario.anotarEncuentro(estado.arcade.bestiario, siguiente.id);
+            en.kmActual = { mitad: null, t800: null, pausas: 0 };
+        }
     }
     const parciales = running.parcialesDe(en.marcas);
-    return { distancia, kmNuevo, segundos: kmNuevo ? parciales[parciales.length - 1] : null };
+    return {
+        distancia, kmNuevo, segundos: kmNuevo ? parciales[parciales.length - 1] : null,
+        resueltos, nuevo: kmNuevo && en.encuentros ? en.encuentros.at(-1) : null,
+    };
 }
 
 export function cancelarCarrera(estado) {
@@ -2425,6 +2473,24 @@ export function terminarCarrera(estado, { km = "", minutos = "", nota = "" } = {
         parciales: en.gps ? running.parcialesDe(en.marcas) : null,
         puntosKm: en.gps ? en.puntosKm : null,
     });
+    // (v119) Las criaturas de la carrera: un extra que no toca el premio por km. La del km que quedó a medias se va.
+    if (en.encuentros) {
+        const peleas = en.encuentros.filter((e) => e.resultado);
+        const total = encuentros.resumen(peleas);
+        resultado.carrera.encuentros = peleas.map(({ km, id, clase, jefe, emboscada, resultado: fin }) => ({ km, id, clase, jefe, emboscada, resultado: fin }));
+        resultado.carrera.objetivo = en.objetivo;
+        if (total.total) {
+            if (total.gemas || total.xp) ganar(estado, { gemas: total.gemas, xp: total.xp, atributo: "fuerza" });
+            resultado.celebraciones.push({
+                icono: total.vencidas === total.total ? "🏆" : "⚔️",
+                etiqueta: "Criaturas de la carrera",
+                titulo: `Venciste ${total.vencidas} de ${total.total}${total.jefes ? ` · ${total.jefes === 1 ? "1 jefe" : `${total.jefes} jefes`}` : ""}`,
+                detalle: [total.gemas ? `+${total.gemas} 💎` : "", total.xp ? `+${total.xp} XP de 💪 Fuerza` : "",
+                          total.escaparon.length ? `Escaparon: ${total.escaparon.slice(0, 3).join(", ")}${total.escaparon.length > 3 ? "…" : ""}` : "¡Ninguna escapó!"]
+                    .filter(Boolean).join(" · "),
+            });
+        }
+    }
     estado.running.encurso = null;
     return resultado;
 }

@@ -72,6 +72,8 @@ import { esqueleto } from "../js/dibujo-cuerpo.js";
 import * as vistasGym from "../js/vistas-gym.js";
 import * as running from "../js/running.js";
 import * as ruta from "../js/ruta.js";
+import * as encuentros from "../js/encuentros.js";
+import { mapaDeCarrera } from "../js/dibujo-carrera.js";
 import * as vistasRunning from "../js/vistas-running.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -2926,6 +2928,81 @@ prueba("Ruta del Corredor: al guardar una carrera se cobran los km nuevos (gemas
     cierto(r.celebraciones.some((c) => /Ruta del Corredor/.test(c.titulo)), "avisa del avance");
     acciones.guardarCarrera(estado, { km: "1", minutos: "6", tipo: "suave" });
     igual(estado.running.rutaCobrada, 6, "5,3 + 1 = 6,3 km: un lugar más");
+});
+
+prueba("Criaturas de la carrera: el ritmo objetivo se lee, o sale de tu promedio", () => {
+    igual(encuentros.leerObjetivo("6:30"), 390);
+    igual(encuentros.leerObjetivo("6"), 360);
+    igual(encuentros.leerObjetivo("5,45"), 345);
+    igual(encuentros.leerObjetivo(""), null);
+    igual(encuentros.leerObjetivo("1:00"), null, "más rápido que 2:30 no es un ritmo de correr");
+    igual(encuentros.objetivoPromedio([]), encuentros.OBJETIVO_INICIAL);
+    igual(encuentros.objetivoPromedio([carreraDe(5, 30), carreraDe(5, 35), carreraDe(2, 30, "caminata")]), 390, "6:30 /km, sin la caminata");
+});
+
+prueba("Criaturas de la carrera: cada 5 km un jefe, la zona cambia cada 3 km y siempre sale la misma criatura", () => {
+    const jefe = encuentros.criaturaDelKm(123456, 5);
+    cierto(jefe.jefe, "el km 5 es de un jefe");
+    cierto(bestiario.CRIATURAS[jefe.id].guardian, "el jefe es un guardián");
+    igual(encuentros.criaturaDelKm(123456, 2), encuentros.criaturaDelKm(123456, 2), "misma carrera y km: misma criatura");
+    igual(encuentros.zonaDelKm(1).id, "pradera");
+    igual(encuentros.zonaDelKm(4).id, "bosque");
+    igual(encuentros.zonaDelKm(19).id, "pradera", "después de las 6 zonas, vuelven a empezar");
+    for (let km = 1; km <= 20; km++) cierto(bestiario.CRIATURAS[encuentros.criaturaDelKm(99, km).id], `criatura válida en el km ${km}`);
+});
+
+prueba("Criaturas de la carrera: se vencen con el ritmo y la condición de su tipo", () => {
+    const base = { km: 1, id: "esqueleto", jefe: false, emboscada: false };
+    const objetivo = 360;
+    cierto(encuentros.resolver({ ...base, clase: "normal" }, { segundos: 365, pausas: 0 }, objetivo), "normal: dentro del margen del 3 %");
+    cierto(!encuentros.resolver({ ...base, clase: "normal" }, { segundos: 380, pausas: 0 }, objetivo), "normal: muy lento, escapa");
+    cierto(encuentros.resolver({ ...base, clase: "normal" }, { segundos: 375, pausas: 0 }, objetivo, true), "con tu dragón hay un 2 % más de margen");
+    cierto(encuentros.resolver({ ...base, clase: "rapida" }, { segundos: 370, ultimos200: 70, pausas: 0 }, objetivo), "veloz: últimos 200 m a 5:50");
+    cierto(!encuentros.resolver({ ...base, clase: "rapida" }, { segundos: 350, ultimos200: 80, pausas: 0 }, objetivo), "veloz: frenaste al final");
+    cierto(encuentros.resolver({ ...base, clase: "pesada" }, { segundos: 360, mitad: 178, pausas: 0 }, objetivo), "acorazada: mitades parejas");
+    cierto(!encuentros.resolver({ ...base, clase: "pesada" }, { segundos: 360, mitad: 150, pausas: 0 }, objetivo), "acorazada: saliste muy rápido");
+    cierto(!encuentros.resolver({ ...base, clase: "fantasma" }, { segundos: 350, pausas: 1 }, objetivo), "fantasma: si pausas, se esfuma");
+    cierto(!encuentros.resolver({ ...base, jefe: true, clase: "normal" }, { segundos: 365, pausas: 0 }, objetivo), "el jefe no tiene margen");
+    cierto(encuentros.resolver({ ...base, emboscada: true, clase: "normal" }, { segundos: 340, pausas: 0 }, objetivo), "emboscada: ritmo de tempo");
+    const r = encuentros.resumen([{ ...base, resultado: "vencida" }, { ...base, jefe: true, resultado: "vencida" }, { ...base, resultado: "escapo" }]);
+    igual([r.vencidas, r.total, r.jefes, r.gemas, r.xp], [2, 3, 1, 12, 15]);
+});
+
+prueba("Criaturas de la carrera: en una carrera con GPS aparecen, se deciden al cumplir cada km y dan botín extra", () => {
+    const estado = partidaNueva();
+    acciones.empezarCarrera(estado, "suave", { gps: true, objetivo: "20:00" });   // objetivo lentísimo: se vence todo lo que no pida más
+    const en = estado.running.encurso;
+    igual(en.objetivo, 1200);
+    igual(en.encuentros.length, 1, "la primera criatura aparece al empezar");
+    debeFallar(() => acciones.empezarCarrera(estado, "suave", { gps: true }), "Ya tienes");
+    en.inicio = Date.now() - 20 * 60000;
+    let resueltos = [];
+    for (let i = 0; i <= 25; i++) {
+        const r = acciones.registrarPuntoCarrera(estado, { lat: 4.6 + i * 0.001, lon: -74.08, precision: 5, t: en.inicio + i * 18000 });
+        if (r?.resueltos?.length) resueltos = resueltos.concat(r.resueltos);
+    }
+    igual(resueltos.length, 2, "se decidieron las peleas del km 1 y del 2");
+    igual(en.encuentros.length, 3, "y ya está la del km 3");
+    cierto(estado.arcade.bestiario[en.encuentros[0].id], "la criatura queda en tu bestiario");
+    const gemas = estado.personaje.gemas;
+    const fin = acciones.terminarCarrera(estado, { nota: "x" });
+    const carrera = estado.running.carreras.at(-1);
+    igual(carrera.encuentros.length, 2, "se guardan las 2 peleas terminadas");
+    cierto(fin.celebraciones.some((c) => c.etiqueta === "Criaturas de la carrera"), "hay resumen al terminar");
+    cierto(estado.personaje.gemas >= gemas, "el botín de las criaturas se suma");
+    debeFallar(() => acciones.empezarCarrera(estado, "suave", { gps: true, objetivo: "rápido" }), "ritmo objetivo");
+});
+
+prueba("Mapa de la carrera: dibuja zonas, río y banderas con el color de cada pelea", () => {
+    const traza = Array.from({ length: 40 }, (_, i) => [4.6 + i * 0.0003, -74.08 + Math.sin(i / 5) * 0.001]);
+    const { svg, aqui, zona } = mapaDeCarrera({ traza, banderas: [traza[10], traza[20]], encuentros: [{ km: 1, resultado: "vencida" }, { km: 2, resultado: "escapo" }], km: 4.2 });
+    dibujoSano(svg.trim(), "mapa de la carrera");
+    cierto(!new DOMParser().parseFromString(svg, "image/svg+xml").querySelector("parsererror"), "el mapa se puede leer como imagen");
+    cierto(svg.includes("#4ade80") && svg.includes("#8a8a96"), "bandera verde (vencida) y gris (escapó)");
+    cierto(svg.includes("#2f6fb8"), "tiene un río");
+    igual(zona.id, "bosque", "a los 4,2 km vas por el bosque");
+    cierto(aqui.x > 0 && aqui.x < 100, "tu héroe queda dentro del mapa");
+    cierto(mapaDeCarrera({ traza: [] }).svg.includes("Buscando señal"), "sin puntos, espera al GPS");
 });
 
 prueba("Running: las predicciones parten de tu mejor carrera reciente (Riegel) y ignoran la caminata", () => {

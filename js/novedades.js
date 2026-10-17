@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 118;
+export const VERSION_APP = 119;
 
 export const NOVEDADES = [
+    {
+        version: 119,
+        titulo: "Criaturas en tus carreras",
+        cambios: [
+            "⚔️ Al correr con GPS, cada kilómetro aparece una criatura: la vences si corres ese km a tu ritmo objetivo. Cada 5 km, un jefe; a veces, una emboscada.",
+            "⚡🛡️👻 Hay criaturas veloces (acelera los últimos 200 m), acorazadas (ritmo parejo) y fantasmas (no te detengas). Tu dragón te da un poco de margen.",
+            "🎯 Antes de salir puedes poner tu ritmo objetivo; si no, se usa tu promedio. La voz te avisa qué criatura aparece y si la venciste.",
+            "🗺️ El mapa de la carrera tiene zonas que cambian cada 3 km (pradera, bosque, pantano, desierto, nieve y tierras del abismo), ríos con puentes y lagos.",
+            "🎁 El botín de las criaturas es un extra: el premio por km no cambia. Al terminar ves cuántas venciste, y quedan en tu bestiario.",
+        ],
+    },
     {
         version: 118,
         titulo: "Tu mapa en tiempo real",

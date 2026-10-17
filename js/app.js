@@ -29,6 +29,7 @@ import * as vistasGym from "./vistas-gym.js";
 import * as vistasRunning from "./vistas-running.js";   // (v109) la pestaña Running
 import * as running from "./running.js";
 import * as ruta from "./ruta.js";
+import * as encuentros from "./encuentros.js";   // (v119) criaturas en tus carreras
 import * as vocesModulo from "./voces.js";
 import * as vida from "./vida.js";
 import * as gym from "./gym.js";
@@ -274,6 +275,18 @@ async function ponerHeroeEnMapaVivo() {
     for (const img of document.querySelectorAll(".run-mapa-heroe")) img.src = heroeDeCarrera;
 }
 
+// (v119) La imagen de la criatura del km: en la tarjeta de la pelea y en el mapa. Se pixela una vez por criatura.
+const criaturasDeCarrera = {};
+async function ponerCriaturasDeCarrera() {
+    const pelea = estado.running.encurso?.encuentros?.find((e) => !e.resultado);
+    if (!pelea) return;
+    if (!criaturasDeCarrera[pelea.id]) criaturasDeCarrera[pelea.id] = await sprites.spriteDeMonstruo(pelea.id, avatarActual());
+    const src = criaturasDeCarrera[pelea.id];
+    const tarjeta = document.querySelector("[data-run-criatura]");
+    if (tarjeta && tarjeta.dataset.runCriatura !== pelea.id) { tarjeta.src = src; tarjeta.dataset.runCriatura = pelea.id; }
+    for (const img of document.querySelectorAll(".run-mapa-criatura")) if (img.src !== src) img.src = src;
+}
+
 // (v117) Mientras corres, una barra pegada arriba de las pestañas muestra el tiempo, los km y el ritmo en TODAS las pantallas
 // (menos en Running, que ya lo muestra grande). Tocarla te lleva a la carrera. Una página web no puede seguir mostrándose con
 // el teléfono bloqueado o con otra app abierta: eso lo impide iOS. Por eso la pantalla se mantiene encendida mientras corres.
@@ -305,12 +318,16 @@ function tictac() {
         const caja = document.querySelector("[data-run-mapa]");
         const firma = `${(en.traza || []).length}:${(en.puntosKm || []).length}`;
         if (caja && caja.dataset.n !== firma) {
-            caja.innerHTML = vistasRunning.htmlMapaVivo(en.traza, en.puntosKm);
+            caja.innerHTML = vistasRunning.htmlMapaVivo(en.traza, en.puntosKm, vistasRunning.opcionesDelMapa(en));
             caja.dataset.n = firma;
             ponerHeroeEnMapaVivo();
             const textoRuta = document.querySelector("[data-run-ruta]");
             if (textoRuta) textoRuta.textContent = vistasRunning.textoRutaEnVivo(estado, en);
         }
+        // (v119) La pelea del km: el texto cada segundo; la imagen de la criatura solo cuando cambia.
+        const pelea = document.querySelector("[data-run-encuentro]");
+        if (pelea) pelea.innerHTML = vistasRunning.htmlEncuentro(en, ahora);
+        ponerCriaturasDeCarrera();
         // (v116) Los parciales de la carrera: solo se reescriben cuando cambian.
         const parciales = document.querySelector("[data-run-parciales]");
         const marcasAhora = (en.marcas || []).length;
@@ -383,7 +400,7 @@ function iniciarGps() {
         const avance = acciones.registrarPuntoCarrera(estado, punto);
         if (avance) {
             datos.guardar(estado);
-            if (avance.kmNuevo) anunciarKilometro(avance.kmNuevo, avance.segundos);
+            if (avance.kmNuevo) anunciarKilometro(avance.kmNuevo, avance.segundos, avance.resueltos, avance.nuevo);
         }
     }, (error) => {
         // 1 = no nos dieron permiso (ya no se puede: se deja de escuchar).
@@ -398,13 +415,22 @@ function iniciarGps() {
 }
 
 // (v116) Cada kilómetro: un sonido, un aviso en pantalla y, si está activada la voz, tu tiempo hablado.
-function anunciarKilometro(numero, segundos) {
-    avisar(`🏃 Kilómetro ${numero}: ${running.textoSegundos(segundos)}`);
+function anunciarKilometro(numero, segundos, resueltos = [], nuevo = null) {
+    // (v119) La pelea del km que terminó y la criatura que aparece.
+    const pelea = resueltos.at(-1);
+    const fin = !pelea ? "" : pelea.resultado === "vencida" ? `¡Venciste a ${encuentros.nombreDe(pelea)}!` : `${encuentros.nombreDe(pelea)} escapó.`;
+    const sigue = nuevo ? `Aparece ${nuevo.jefe ? "un jefe: " : nuevo.emboscada ? "una emboscada: " : ""}${encuentros.nombreDe(nuevo)}. ${encuentros.pistaDe(nuevo)}` : "";
+    avisar(`🏃 Km ${numero}: ${running.textoSegundos(segundos)}${fin ? ` · ${fin}` : ""}`);
     if (!estado.ajustes.sonido) return;
-    sonido.sonar("logro");
-    if (estado.running.avisoKm === false || !("speechSynthesis" in window)) return;
+    sonido.sonar(pelea && pelea.resultado !== "vencida" ? "fallo" : "logro");
+    decir(`Kilómetro ${numero}. ${running.textoParaVoz(segundos)}. ${fin} ${sigue}`);
+}
+
+// (v119) La voz de la carrera (si está encendida en Running › Progreso y el sonido está activado).
+function decir(texto) {
+    if (!estado.ajustes.sonido || estado.running.avisoKm === false || !("speechSynthesis" in window)) return;
     try {
-        const voz = new SpeechSynthesisUtterance(`Kilómetro ${numero}. ${running.textoParaVoz(segundos)}.`);
+        const voz = new SpeechSynthesisUtterance(texto.replace(/\s+/g, " ").trim());
         voz.lang = "es-ES";
         speechSynthesis.speak(voz);
     } catch (error) { /* sin voz en este teléfono: queda el sonido */ }
@@ -1331,7 +1357,7 @@ function dibujarPantalla(efectos = {}) {
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
-    if (pantallaActual === "running" && $("[data-run-mapa]")) ponerHeroeEnMapaVivo();   // (v118) tu héroe sobre el mapa de la carrera
+    if (pantallaActual === "running" && $("[data-run-mapa]")) { ponerHeroeEnMapaVivo(); ponerCriaturasDeCarrera(); }   // (v118–v119) héroe y criatura sobre el mapa
     if (pantallaActual === "mapa") pintarMapa();   // la imagen del mapa (pixel art) llega un instante después
     actualizarBarraRun();
     if (pantallaActual === "arcade") pintarPortadas();        // la portada de la Mazmorra (pixel art)
@@ -3338,8 +3364,11 @@ const ACCIONES = {
     },
     "run-empezar": (boton) => {
         const gps = boton.dataset.gps === "1";
-        const empezada = ejecutar(() => acciones.empezarCarrera(estado, runTipo, { gps }), { mantenerScroll: true });
+        const objetivo = $("#run-objetivo")?.value || "";
+        const empezada = ejecutar(() => acciones.empezarCarrera(estado, runTipo, { gps, objetivo }), { mantenerScroll: true });
         if (!empezada) return;
+        const primera = estado.running.encurso?.encuentros?.[0];
+        if (primera) decir(`Aparece ${encuentros.nombreDe(primera)}. ${encuentros.pistaDe(primera)}`);
         gpsProblema = null;
         if (gps) iniciarGps();
         mantenerPantallaDespierta(true);

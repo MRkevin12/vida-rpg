@@ -6,6 +6,8 @@
 
 import * as running from "./running.js";
 import * as ruta from "./ruta.js";
+import * as encuentros from "./encuentros.js";
+import { mapaDeCarrera } from "./dibujo-carrera.js";
 import { esc, selectorSecciones } from "./vistas.js";
 import { plural } from "./juego.js";
 import { fechaCorta, lunesDe } from "./fechas.js";
@@ -32,7 +34,7 @@ export function pantallaRunning(estado, ctx) {
         correr: () => `
             ${tarjetaSemana(estado, ctx)}
             ${tarjetaSugerencia(estado, ctx)}
-            ${panelEmpezar(ctx)}
+            ${panelEmpezar(ctx, estado)}
             ${formularioManual(ctx)}`,
         progreso: () => `
             ${tarjetaRango(estado)}
@@ -72,7 +74,12 @@ function vistaEnVivo(estado, ctx) {
                 <div><small>Distancia</small><b data-run-km>${running.textoKm(en.distancia / 1000)}</b></div>
                 <div><small>Ritmo</small><b data-run-ritmo>${running.textoRitmo(ritmo)}</b></div>
             </div>
-            ${en.gps ? `<div class="run-mapa-vivo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm)}</div>
+            ${en.gps ? `<div class="run-mapa-vivo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm, opcionesDelMapa(en))}</div>
+            ${en.encuentros ? `<div class="run-pelea">
+                <img class="run-pelea-sprite" alt="" data-run-criatura="">
+                <div data-run-encuentro>${htmlEncuentro(en, ctx.ahora)}</div>
+            </div>
+            <p class="mini texto-suave">🎯 Objetivo: ${running.textoSegundos(en.objetivo)} /km ${en.objetivoPropio ? "(el tuyo)" : "(tu promedio)"} · las criaturas son un extra: el premio por km no cambia.</p>` : ""}
             <p class="nota" data-run-ruta>${textoRutaEnVivo(estado, en)}</p>` : ""}
             <p class="nota" data-run-gps>${textoGps(en, ctx.gpsProblema)}</p>
             <div class="run-parciales-vivo" data-run-parciales data-n="${(en.marcas || []).length}">${htmlParciales(running.parcialesDe(en.marcas))}</div>
@@ -114,7 +121,7 @@ export function htmlParciales(parciales) {
 
 // El detalle de una carrera con GPS: su recorrido, sus parciales y cómo repartiste el esfuerzo.
 function detalleDeCarrera(c) {
-    if (!c.traza && !c.parciales) return "";
+    if (!c.traza && !c.parciales && !c.encuentros) return "";
     const analisis = running.analisisDeParciales(c.parciales);
     const reparto = !analisis ? "" : Math.abs(analisis.diferencia) < 5
         ? "Ritmo muy parejo de principio a fin. 👌"
@@ -124,103 +131,60 @@ function detalleDeCarrera(c) {
     return `
         <details class="run-detalle">
             <summary>🗺️ Ver recorrido${c.parciales?.length ? ` y ${plural(c.parciales.length, "parcial", "parciales")}` : ""}</summary>
-            ${c.traza ? `<div class="run-mapa-vivo">${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false })}</div>
-            <p class="mini texto-suave">Cuadro verde: salida · rojo: llegada · banderas: cada km</p>` : ""}
+            ${c.traza ? `<div class="run-mapa-vivo">${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km })}</div>
+            <p class="mini texto-suave">Cuadro verde: salida · rojo: llegada · banderas: cada km (verde: criatura vencida, morada: jefe vencido, gris: escapó)</p>` : ""}
+            ${criaturasDeCarrera(c)}
             ${htmlParciales(c.parciales)}
             ${analisis ? `<p class="mini texto-suave">Mejor: km ${analisis.mejorKm} (${running.textoSegundos(analisis.mejor)}) · Más lento: km ${analisis.peorKm} (${running.textoSegundos(analisis.peor)}).<br>${reparto}</p>` : ""}
         </details>`;
 }
 
-// ===== El mapa de tu carrera (v118) =====
-// Un mapa propio, dibujado en pixel art con lo que va midiendo el GPS: el camino que corres, una bandera en cada kilómetro y
-// tu héroe en el punto donde estás. Se ajusta solo para que quepa todo el recorrido. No usa internet ni mapas de nadie.
-const LIENZO = { ancho: 320, alto: 240, margen: 30, minMetros: 160 };
-
-// Un número entre 0 y 1 que siempre sale igual para la misma casilla (así los árboles no «bailan» al redibujar).
-const azar = (i, j) => {
-    const x = Math.sin(i * 127.1 + j * 311.7) * 43758.5453;
-    return x - Math.floor(x);
-};
-
-function proyectar(traza) {
-    const lat0 = traza.reduce((s, p) => s + p[0], 0) / traza.length;
-    const k = Math.cos((lat0 * Math.PI) / 180) * 111320;
-    const metros = traza.map((p) => [p[1] * k, -p[0] * 110540]);
-    const xs = metros.map((m) => m[0]);
-    const ys = metros.map((m) => m[1]);
-    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-    const cx = (x0 + x1) / 2;
-    const cy = (y0 + y1) / 2;
-    const ancho = Math.max(x1 - x0, LIENZO.minMetros);
-    const alto = Math.max(y1 - y0, LIENZO.minMetros * 0.75);
-    const escala = Math.min((LIENZO.ancho - LIENZO.margen * 2) / ancho, (LIENZO.alto - LIENZO.margen * 2) / alto);
-    const aPantalla = (p) => [LIENZO.ancho / 2 + (p[1] * k - cx) * escala, LIENZO.alto / 2 + (-p[0] * 110540 - cy) * escala];
-    return { aPantalla, escala };
+// ===== El mapa de tu carrera (v118; zonas, ríos, lagos y criaturas en la v119) =====
+// El dibujo está en dibujo-carrera.js. Encima van tu héroe y la criatura del km (sus imágenes las pone app.js: son pixel art
+// y tardan un instante) y el nombre de la zona donde vas.
+export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null } = {}) {
+    const { svg, aqui, zona } = mapaDeCarrera({ traza, banderas, encuentros: peleas, km });
+    const enMapa = (x, y) => `left: ${Math.min(96, Math.max(4, x)).toFixed(2)}%; top: ${Math.min(96, Math.max(10, y)).toFixed(2)}%`;
+    return `${svg}
+        <span class="run-mapa-zona">${esc(zona.nombre)}</span>
+        ${heroe && aqui ? `<img class="run-mapa-heroe" alt="" style="${enMapa(aqui.x, aqui.y)}">` : ""}
+        ${heroe && aqui && criatura ? `<img class="run-mapa-criatura ${criatura.jefe ? "jefe" : ""}" alt="" data-criatura="${criatura.id}" style="${enMapa(aqui.x + (aqui.x > 70 ? -12 : 12), aqui.y - 2)}">` : ""}`;
 }
 
-function arbol(x, y, t) {
-    return `<rect x="${x - 1}" y="${y + 3 * t}" width="${2 * t}" height="${3 * t}" fill="#5a3a1e"/>
-        <rect x="${x - 3 * t}" y="${y}" width="${6 * t}" height="${3 * t}" fill="#2f7a3a"/>
-        <rect x="${x - 2 * t}" y="${y - 3 * t}" width="${4 * t}" height="${3 * t}" fill="#3f9a4a"/>
-        <rect x="${x - t}" y="${y - 5 * t}" width="${2 * t}" height="${2 * t}" fill="#58b862"/>`;
+// Lo que el mapa en vivo necesita de la carrera en curso.
+export const opcionesDelMapa = (en) => ({ encuentros: en.encuentros || [], km: en.distancia / 1000, criatura: en.encuentros?.find((e) => !e.resultado) || null });
+
+// ===== La pelea del km (v119) =====
+// La criatura del km en curso: qué pide, cuánta vida le queda (baja a medida que avanzas en el km) y cómo vas con tu ritmo.
+// app.js lo reescribe cada segundo (data-run-encuentro). La imagen va aparte (data-run-criatura) para que no parpadee.
+export function htmlEncuentro(en, ahora = Date.now()) {
+    const pelea = en.encuentros?.find((e) => !e.resultado);
+    if (!pelea) return "";
+    const marcas = en.marcas || [];
+    const segundosEnKm = (running.tiempoDeEncurso(en, ahora) - (marcas.at(-1) || 0)) / 1000;
+    const metrosEnKm = en.distancia - marcas.length * 1000;
+    const va = encuentros.comoVa(pelea, segundosEnKm, metrosEnKm, en.objetivo);
+    const clase = encuentros.CLASES[pelea.clase];
+    const etiqueta = pelea.jefe ? "👑 Jefe" : pelea.emboscada ? "⚠️ Emboscada" : `${clase.icono} ${clase.nombre}`;
+    const estado = { bien: "✅ vas ganando", justo: "⚖️ muy parejo", lento: "🐢 se te escapa: acelera un poco" }[va.vas];
+    const anterior = en.encuentros.filter((e) => e.resultado).at(-1);
+    return `
+        <div class="run-pelea-texto">
+            <b>${esc(encuentros.nombreDe(pelea))} <small>${etiqueta} · km ${pelea.km}</small></b>
+            <small>${esc(encuentros.pistaDe(pelea))}</small>
+            <div class="barra barra-mini run-pelea-vida ${va.vas}"><div class="barra-relleno" style="width: ${Math.round(va.vida * 100)}%"></div></div>
+            <small>${va.proyeccion ? `Vas a ${running.textoSegundos(va.proyeccion)} /km · objetivo ${running.textoSegundos(pelea.emboscada ? en.objetivo * encuentros.EMBOSCADA_RITMO : en.objetivo)} · ${estado}` : "Empieza a correr: la pelea dura este kilómetro."}</small>
+            ${encuentros.demasiadoRapido(va.proyeccion, en.objetivo) ? '<small class="run-pelea-aviso">Tranquilo: vas mucho más rápido que tu objetivo. Cuida tus piernas.</small>' : ""}
+            ${anterior ? `<small class="texto-suave">Km ${anterior.km}: ${anterior.resultado === "vencida" ? `venciste a ${esc(encuentros.nombreDe(anterior))} ✓` : `${esc(encuentros.nombreDe(anterior))} escapó`}</small>` : ""}
+        </div>`;
 }
 
-// traza = [[lat, lon], …]; banderas = [[lat, lon], …] (uno por kilómetro). Devuelve { svg, aqui: { x, y } en % } o solo el svg vacío.
-export function mapaPixel(traza, banderas = []) {
-    const base = `<svg class="run-mapa-svg" viewBox="0 0 ${LIENZO.ancho} ${LIENZO.alto}" shape-rendering="crispEdges" role="img" aria-label="Mapa de tu carrera">
-        <defs><pattern id="run-cesped" width="16" height="16" patternUnits="userSpaceOnUse">
-            <rect width="16" height="16" fill="#2a6a38"/><rect width="8" height="8" fill="#2e7040"/><rect x="8" y="8" width="8" height="8" fill="#2e7040"/>
-            <rect x="3" y="11" width="1" height="2" fill="#3f9a4a"/><rect x="11" y="4" width="1" height="2" fill="#3f9a4a"/></pattern></defs>
-        <rect width="${LIENZO.ancho}" height="${LIENZO.alto}" fill="url(#run-cesped)"/>`;
-    const lista = (traza || []).filter((p) => Array.isArray(p));
-    if (lista.length < 1) {
-        return { svg: `${base}<text x="160" y="124" text-anchor="middle" fill="#eef2ff" font-size="13">Buscando señal del GPS…</text></svg>`, aqui: null };
-    }
-    const { aPantalla, escala } = proyectar(lista);
-    const puntos = lista.map(aPantalla);
-    const camino = puntos.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-
-    // El paisaje: árboles y piedras en una cuadrícula de unos 40 m; se saltan los que caerían sobre el camino.
-    const paso = 40;
-    const t = Math.max(1.2, Math.min(2.2, escala * 4));
-    const decorado = [];
-    const [ancho, alto] = [LIENZO.ancho, LIENZO.alto];
-    const centro = puntos[Math.floor(puntos.length / 2)];
-    const lado = Math.max(8, paso * escala);
-    for (let y = lado / 2; y < alto; y += lado) {
-        for (let x = lado / 2; x < ancho; x += lado) {
-            const i = Math.round((x - centro[0]) / lado);
-            const j = Math.round((y - centro[1]) / lado);
-            const r = azar(i, j);
-            if (r > 0.25) continue;
-            const px = x + (azar(j, i) - 0.5) * lado * 0.6;
-            const py = y + (azar(i + 9, j) - 0.5) * lado * 0.6;
-            if (puntos.some((p) => Math.abs(p[0] - px) < lado * 0.55 && Math.abs(p[1] - py) < lado * 0.55)) continue;
-            decorado.push(r < 0.19 ? arbol(px, py, t) : `<rect x="${px - 2}" y="${py}" width="${4 * t}" height="${2 * t}" fill="#8a8a96"/>`);
-        }
-    }
-    // Las banderas de cada kilómetro.
-    const marcas = (banderas || []).map((b, n) => {
-        const [x, y] = aPantalla(b);
-        return `<rect x="${x.toFixed(1)}" y="${(y - 14).toFixed(1)}" width="1.6" height="14" fill="#2a2030"/>
-            <rect x="${(x + 1.6).toFixed(1)}" y="${(y - 14).toFixed(1)}" width="11" height="7" fill="#fbbf24" stroke="#2a2030" stroke-width=".8"/>
-            <text x="${(x + 7).toFixed(1)}" y="${(y - 8.2).toFixed(1)}" text-anchor="middle" font-size="6" fill="#2a2030" font-weight="700">${n + 1}</text>`;
-    }).join("");
-    const [sx, sy] = puntos[0];
-    const [ex, ey] = puntos[puntos.length - 1];
-    const svg = `${base}${decorado.join("")}
-        <polyline points="${camino}" fill="none" stroke="#3b2a1a" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>
-        <polyline points="${camino}" fill="none" stroke="#d2b074" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/>
-        <rect x="${(sx - 4).toFixed(1)}" y="${(sy - 4).toFixed(1)}" width="8" height="8" fill="#4ade80" stroke="#0b0816" stroke-width="1.2"/>
-        ${marcas}
-        <rect x="${(ex - 3).toFixed(1)}" y="${(ey - 3).toFixed(1)}" width="6" height="6" fill="#f87171" stroke="#0b0816" stroke-width="1.2"/></svg>`;
-    return { svg, aqui: { x: (ex / LIENZO.ancho) * 100, y: (ey / LIENZO.alto) * 100 } };
-}
-
-// La caja del mapa: el dibujo y, encima, tu héroe (su imagen la pone app.js: es pixel art y tarda un instante).
-export function htmlMapaVivo(traza, banderas, { heroe = true } = {}) {
-    const { svg, aqui } = mapaPixel(traza, banderas);
-    return `${svg}${heroe && aqui ? `<img class="run-mapa-heroe" alt="" style="left: ${aqui.x.toFixed(2)}%; top: ${aqui.y.toFixed(2)}%">` : ""}`;
+// Las criaturas de una carrera guardada, para el historial.
+function criaturasDeCarrera(c) {
+    if (!c.encuentros?.length) return "";
+    const vencidas = c.encuentros.filter((e) => e.resultado === "vencida").length;
+    return `<p class="mini">⚔️ Criaturas: ${vencidas} de ${c.encuentros.length} vencidas${c.objetivo ? ` · objetivo ${running.textoSegundos(c.objetivo)} /km` : ""}</p>
+        <ul class="run-criaturas">${c.encuentros.map((e) => `<li class="${e.resultado}">${e.jefe ? "👑 " : ""}km ${e.km} · ${esc(encuentros.nombreDe(e))} ${e.resultado === "vencida" ? "✓" : "✗"}</li>`).join("")}</ul>`;
 }
 
 // Lo que dice debajo del mapa: en qué kilómetro de tu ruta vas y cuál es el próximo botín grande.
@@ -235,7 +199,8 @@ export function textoRutaEnVivo(estado, en) {
 }
 
 // ===== Empezar una carrera =====
-function panelEmpezar(ctx) {
+function panelEmpezar(ctx, estado) {
+    const promedio = encuentros.objetivoPromedio(estado.running.carreras);
     const tipo = running.TIPOS[ctx.tipo] || running.TIPOS.suave;
     const chips = Object.entries(running.TIPOS).map(([clave, t]) => `
         <button type="button" class="run-tipo ${clave === ctx.tipo ? "elegido" : ""}" data-accion="run-tipo" data-tipo="${clave}" aria-pressed="${clave === ctx.tipo}">
@@ -245,6 +210,10 @@ function panelEmpezar(ctx) {
             <h2 class="titulo-juego">▶ Empezar una carrera</h2>
             <div class="run-tipos" role="group" aria-label="Tipo de carrera">${chips}</div>
             <p class="nota">${esc(tipo.texto)}${tipo.bono ? ` Suma +${tipo.bono} XP de bono.` : ""}</p>
+            <label class="formulario-grupo"><span>🎯 Ritmo objetivo (opcional, min:seg por km)</span>
+                <input type="text" id="run-objetivo" inputmode="decimal" placeholder="Tu promedio: ${running.textoSegundos(promedio)}" autocomplete="off"></label>
+            <p class="mini texto-suave">Con GPS, cada kilómetro aparece una criatura: la vences si corres ese km a tu ritmo objetivo (cada 5 km, un jefe).
+               Si lo dejas vacío, se usa tu promedio. Es un extra: el premio por km no cambia.</p>
             <div class="run-botones">
                 <button type="button" class="boton boton-principal" data-accion="run-empezar" data-gps="1">📡 Empezar con GPS</button>
                 <button type="button" class="boton boton-secundario" data-accion="run-empezar" data-gps="0">⏱ Solo cronómetro</button>
