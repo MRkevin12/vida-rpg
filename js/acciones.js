@@ -37,6 +37,7 @@ import * as libros from "./libros.js";
 import * as gym from "./gym.js";
 import * as fragua from "./fragua.js";
 import * as gymAurelio from "./gym-aurelio.js";
+import * as running from "./running.js";   // (v109) el running
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -2323,4 +2324,154 @@ export function cambiarAjusteGym(estado, clave, valor) {
         if (!gym.DESCANSOS.includes(seg)) throw new Error("Ese descanso no existe.");
         estado.gym.descanso = seg;
     } else throw new Error("Ese ajuste no existe.");
+}
+
+
+// ===== El running (v109) =====
+// Las reglas están en running.js. Aquí se guarda la carrera en vivo, se anotan las carreras a mano y se cobran los premios.
+
+// Los km y los minutos que escribes: con coma o con punto, dentro de un rango.
+const kmValido = (valor) => numeroEntre(valor, running.MIN_KM, running.MAX_KM, "La distancia");
+const minutosValidos = (valor) => Math.round(numeroEntre(valor, 1, running.MAX_MINUTOS, "El tiempo"));
+
+function entrenamientoRunning(estado) {
+    if (!estado.running.encurso) throw new Error("No tienes ninguna carrera en curso.");
+    return estado.running.encurso;
+}
+
+// Empieza una carrera en vivo. gps: true = el teléfono mide la distancia (la pantalla pide el permiso).
+export function empezarCarrera(estado, tipo, { gps = false } = {}) {
+    const r = estado.running;
+    if (r.encurso) throw new Error("Ya tienes una carrera en curso: termínala o cancélala primero.");
+    if (!running.TIPOS[tipo]) throw new Error("Ese tipo de carrera no existe.");
+    r.encurso = { inicio: Date.now(), pausas: [], pausadoDesde: null, tipo, gps: Boolean(gps), distancia: 0, ultimo: null, precision: null };
+}
+
+// Pausa o reanuda el cronómetro. Al reanudar se olvida el último punto del GPS: si no, sumaría el camino de la pausa.
+export function alternarPausaCarrera(estado, ahora = Date.now()) {
+    const en = entrenamientoRunning(estado);
+    if (en.pausadoDesde) {
+        en.pausas.push({ desde: en.pausadoDesde, hasta: ahora });
+        en.pausadoDesde = null;
+        en.ultimo = null;
+        return { pausada: false };
+    }
+    en.pausadoDesde = ahora;
+    return { pausada: true };
+}
+
+// Un punto nuevo del GPS. Si no estás corriendo (o estás en pausa), se ignora. No lanza error: llega sola.
+export function registrarPuntoCarrera(estado, punto) {
+    const en = estado.running.encurso;
+    if (!en || !en.gps || en.pausadoDesde) return null;
+    const { distancia, ultimo } = running.avanzar(en, punto);
+    en.distancia = distancia;
+    en.ultimo = ultimo;
+    en.precision = punto.precision;
+    return { distancia };
+}
+
+export function cancelarCarrera(estado) {
+    entrenamientoRunning(estado);
+    estado.running.encurso = null;
+}
+
+// Termina la carrera en vivo y la guarda. km y minutos son lo que escribes en el formulario; si los dejas vacíos,
+// se usa lo que midió el GPS y lo que marcó el cronómetro.
+export function terminarCarrera(estado, { km = "", minutos = "", nota = "" } = {}) {
+    const en = entrenamientoRunning(estado);
+    if (en.pausadoDesde) {
+        en.pausas.push({ desde: en.pausadoDesde, hasta: Date.now() });
+        en.pausadoDesde = null;
+    }
+    const medido = en.distancia / 1000 >= running.MIN_GPS_KM ? Math.round((en.distancia / 1000) * 100) / 100 : "";
+    const kmFinal = String(km).trim() !== "" ? km : medido;
+    if (String(kmFinal).trim() === "") throw new Error("No hay distancia: anota los kilómetros que corriste.");
+    const minutosFinal = String(minutos).trim() !== "" ? minutos : Math.max(1, Math.round(running.tiempoDeEncurso(en) / 60000));
+    const fecha = aTexto(new Date(en.inicio));
+    const resultado = guardarCarrera(estado, {
+        fecha, km: kmFinal, minutos: minutosFinal, tipo: en.tipo, origen: en.gps ? "gps" : "manual", nota,
+    });
+    estado.running.encurso = null;
+    return resultado;
+}
+
+// Anota una carrera (hoy o ayer). Da XP de 💪 Fuerza y monedas, y avisa de récords, rangos, hitos y la meta semanal.
+export function guardarCarrera(estado, valores) {
+    const r = estado.running;
+    const fecha = valores.fecha || hoy();
+    if (fecha !== hoy() && fecha !== sumarDias(hoy(), -1)) throw new Error("Solo puedes anotar la carrera de hoy o de ayer.");
+    const km = kmValido(valores.km);
+    const minutos = minutosValidos(valores.minutos);
+    if (!running.TIPOS[valores.tipo]) throw new Error("Ese tipo de carrera no existe.");
+    const nota = String(valores.nota || "").trim().slice(0, 60);
+    const antes = [...r.carreras];
+    const rangoAntes = running.rangoDe(running.kmTotales(antes)).nombre;
+    const semanaAntes = running.kmDeLaSemana(antes, lunesDe(fecha));
+    const xp = running.xpDeCarrera(km, valores.tipo);
+    const monedas = running.monedasDeCarrera(km);
+    const carrera = { fecha, km, minutos, tipo: valores.tipo, origen: valores.origen === "gps" ? "gps" : "manual", nota, xp, monedas, creada: Date.now() };
+    r.carreras = running.ordenar([...r.carreras, carrera]);
+    ganar(estado, { xp, monedas, atributo: "fuerza" });
+
+    const tipo = running.TIPOS[carrera.tipo];
+    const celebraciones = [{
+        icono: tipo.icono, etiqueta: carrera.origen === "gps" ? "¡Carrera en vivo guardada!" : "Carrera guardada",
+        titulo: `${running.textoKm(km)} · ${tipo.nombre}`,
+        detalle: `${running.textoRitmo(running.ritmoDeCarrera(carrera))} · ${running.textoDuracion(minutos)} · +${xp} XP de 💪 Fuerza${monedas ? ` · +${monedas} 🪙` : ""}`,
+    }];
+    for (const record of running.recordsBatidos(antes, carrera)) {
+        celebraciones.push({ icono: "📈", etiqueta: "¡Récord personal!", titulo: record.titulo, detalle: record.detalle });
+    }
+    const kmAhora = running.kmTotales(r.carreras);
+    const rangoAhora = running.rangoDe(kmAhora);
+    if (rangoAhora.nombre !== rangoAntes) {
+        celebraciones.push({ icono: rangoAhora.icono, etiqueta: "¡Nuevo rango de corredor!", titulo: rangoAhora.nombre,
+                             detalle: `Llevas ${running.textoKm(kmAhora)} corridos en tu vida.` });
+    }
+    for (const hito of running.hitosNuevos(r, kmAhora)) {
+        r.hitos.push(hito.id);
+        ganar(estado, { gemas: hito.gemas });
+        celebraciones.push({ icono: hito.icono, etiqueta: "¡Hito de kilómetros!", titulo: hito.titulo, detalle: `${hito.texto} +${hito.gemas} 💎` });
+    }
+    // La meta semanal: al cumplirla por primera vez esa semana, se cobra.
+    const lunes = lunesDe(fecha);
+    const semanaAhora = running.kmDeLaSemana(r.carreras, lunes);
+    if (semanaAntes < r.metaKm && semanaAhora >= r.metaKm && !r.semanasCobradas.includes(lunes)) {
+        r.semanasCobradas.push(lunes);
+        ganar(estado, { gemas: running.PREMIO_META_SEMANA.gemas, xp: running.PREMIO_META_SEMANA.xp, atributo: "fuerza" });
+        celebraciones.push({ icono: "🎯", etiqueta: "¡Meta semanal cumplida!", titulo: `${running.textoKm(semanaAhora)} esta semana`,
+                             detalle: `+${running.PREMIO_META_SEMANA.gemas} 💎 · +${running.PREMIO_META_SEMANA.xp} XP de 💪 Fuerza` });
+    }
+    // Si elegiste una misión (ej: «Correr»), se marca sola ese día.
+    const mision = r.mision && estado.misiones.find((m) => m.id === r.mision && !m.archivadaEn);
+    if (mision) {
+        try {
+            completarMision(estado, mision.id, fecha);
+            celebraciones.push({ pequena: true, icono: "✅", titulo: `Misión «${mision.nombre}» marcada` });
+        } catch (error) {
+            // ya estaba marcada, o no tocaba ese día: no pasa nada
+        }
+    }
+    return { carrera, celebraciones };
+}
+
+// Borra una carrera equivocada y le quita lo que había dado (los hitos y las metas ya cobradas se quedan).
+export function borrarCarrera(estado, indice) {
+    const carrera = estado.running.carreras[indice];
+    if (!carrera) throw new Error("Esa carrera no existe.");
+    estado.running.carreras.splice(indice, 1);
+    ganar(estado, { xp: -carrera.xp, monedas: -carrera.monedas, atributo: "fuerza" });
+}
+
+// Tu meta semanal de kilómetros.
+export function cambiarMetaKm(estado, km) {
+    estado.running.metaKm = Math.round(numeroEntre(km, running.META_KM_MIN, running.META_KM_MAX, "La meta"));
+}
+
+// La misión que se marca sola al guardar una carrera (o ninguna).
+export function cambiarMisionRunning(estado, valor) {
+    const id = valor === "" || valor === null ? null : Number(valor);
+    if (id !== null && !estado.misiones.some((m) => m.id === id && !m.archivadaEn)) throw new Error("Esa misión no existe.");
+    estado.running.mision = id;
 }

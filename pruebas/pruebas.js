@@ -70,6 +70,8 @@ import { dibujarMovimiento, LISTA_DE_MOVIMIENTOS } from "../js/dibujo-ejercicios
 import * as gymAurelio from "../js/gym-aurelio.js";
 import { esqueleto } from "../js/dibujo-cuerpo.js";
 import * as vistasGym from "../js/vistas-gym.js";
+import * as running from "../js/running.js";
+import * as vistasRunning from "../js/vistas-running.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
 import { PISTAS } from "../js/musica.js";
@@ -2713,6 +2715,157 @@ prueba("Bienvenida: todas las plantillas crean misiones y premios válidos", () 
     acciones.aplicarBienvenida(estado, { misiones: PLANTILLAS_MISIONES.map((p) => p.id), recompensas: PLANTILLAS_RECOMPENSAS.map((r) => r.id) });
     igual([estado.misiones.length, estado.recompensas.length], [PLANTILLAS_MISIONES.length, PLANTILLAS_RECOMPENSAS.length]);
     igual(new Set(PLANTILLAS_MISIONES.map((p) => p.id)).size, PLANTILLAS_MISIONES.length, "ids distintos");
+});
+
+// ===== El running (v109) =====
+// Carrera de prueba: km, minutos, tipo y fecha (hoy por defecto).
+const carreraDe = (km, minutos, tipo = "suave", fecha = hoy()) => ({ fecha, km, minutos, tipo, origen: "manual", nota: "", xp: 0, monedas: 0, creada: 1 });
+
+prueba("Running: el ritmo, las duraciones y los kilómetros se leen como en el teléfono", () => {
+    igual(running.ritmoDe(5, 27.5), 5.5, "el ritmo (min/km)");
+    igual(running.textoRitmo(5.5), "5:30 /km", "5,5 min/km");
+    igual(running.textoRitmo(5.999), "6:00 /km", "un ritmo de 5,999 se redondea a 6:00");
+    igual(running.textoRitmo(0), "—", "sin distancia no hay ritmo");
+    igual(running.textoKm(12.3), "12,3 km", "los km con coma");
+    igual(running.textoKm(10), "10 km", "los km enteros sin decimales");
+    igual(running.textoTiempo(3725000), "1:02:05", "el cronómetro con horas");
+    igual(running.textoTiempo(65000), "1:05", "el cronómetro sin horas");
+    igual(running.textoDuracion(75), "1 h 15 min", "la duración de la carrera");
+});
+
+prueba("Running: el XP y las monedas de una carrera (kilómetros + bono del tipo)", () => {
+    igual(running.xpDeCarrera(5, "intervalos"), 75, "10 base + 50 por km + 15 de intervalos");
+    igual(running.xpDeCarrera(5, "suave"), 60, "sin bono en trote suave");
+    igual(running.monedasDeCarrera(5), 10, "2 monedas por km");
+});
+
+prueba("Running: el rango de corredor sube con los km totales de tu vida", () => {
+    igual(running.rangoDe(0).nombre, "Paso de aprendiz", "empiezas como aprendiz");
+    igual(running.rangoDe(49.9).nombre, "Mensajero del valle", "antes de 50 km");
+    igual(running.rangoDe(50).nombre, "Correo del reino", "a los 50 km");
+});
+
+prueba("Running: la racha cuenta las semanas seguidas que cumpliste la meta (la semana actual no la rompe)", () => {
+    const lunes = lunesDe(hoy());
+    const semanaPasada = sumarDias(lunes, -7);
+    const carreras = [
+        carreraDe(10, 60, "suave", semanaPasada),
+        carreraDe(10, 60, "suave", sumarDias(semanaPasada, -7)),
+        carreraDe(6, 40, "suave", lunes),   // esta semana aún no llega a la meta: no rompe la racha
+    ];
+    igual(running.rachaSemanal(carreras, 10, hoy()), 2, "dos semanas seguidas");
+    igual(running.rachaSemanal([carreraDe(3, 20, "suave", semanaPasada)], 10, hoy()), 0, "sin meta cumplida, sin racha");
+});
+
+prueba("Running: los récords y los que una carrera nueva bate (la primera carrera no es récord)", () => {
+    igual(running.recordsBatidos([], carreraDe(5, 30)), [], "la primera carrera no bate nada");
+    const antes = [carreraDe(5, 30)];
+    const nueva = carreraDe(10, 70);
+    const batidos = running.recordsBatidos(antes, nueva).map((r) => r.clave);
+    igual(batidos, ["distancia", "tiempo"], "más km y más tiempo");
+    igual(running.recordsBatidos(antes, carreraDe(4, 20)).map((r) => r.clave), ["ritmo"], "4 km en 20 min es mejor ritmo (5 min/km)");
+    igual(running.records(antes).mejorRitmo.km, 5, "el mejor ritmo cuenta desde 3 km");
+});
+
+prueba("Running: los hitos de kilómetros se cobran una sola vez", () => {
+    const r = running.runningInicial();
+    igual(running.hitosNuevos(r, 45).map((h) => h.id), ["km10", "km42"], "con 45 km: 10 km y la maratón");
+    r.hitos.push("km10");
+    igual(running.hitosNuevos(r, 45).map((h) => h.id), ["km42"], "el de 10 km ya se cobró");
+});
+
+prueba("Running: la sugerencia de hoy sigue tu última carrera", () => {
+    const hoyTexto = hoy();
+    igual(running.sugerencia([], 10, hoyTexto).tipo, "suave", "sin carreras: empiezas suave");
+    const intensa = [carreraDe(5, 30, "intervalos", sumarDias(hoyTexto, -1))];
+    igual(running.sugerencia(intensa, 10, hoyTexto).km, 3, "después de intervalos, recuperas con 3 km");
+    const hace5 = [carreraDe(5, 30, "suave", sumarDias(hoyTexto, -5))];
+    igual(running.sugerencia(hace5, 10, hoyTexto).km, 2, "si pasaron varios días, vuelves con calma");
+});
+
+prueba("Running: el GPS ignora los puntos imprecisos, el ruido quieto y los saltos; suma el movimiento real", () => {
+    const a = { lat: 0, lon: 0, precision: 5, t: 0 };
+    igual(Math.round(running.metrosEntre(a, { lat: 0.0009, lon: 0 })), 100, "0,0009° de latitud son unos 100 m");
+    let en = { distancia: 0, ultimo: null };
+    const primero = running.avanzar(en, a);
+    en = { distancia: primero.distancia, ultimo: primero.ultimo };
+    igual(en.ultimo, a, "el primer punto solo marca el inicio");
+    const impreciso = running.avanzar(en, { lat: 0.001, lon: 0, precision: 80, t: 30000 });
+    igual(impreciso.distancia, 0, "un punto con precisión de 80 m se ignora");
+    const quieto = running.avanzar(en, { lat: 0.000001, lon: 0, precision: 5, t: 30000 });
+    igual(quieto.distancia, 0, "moverse 0,1 m (quieto) no suma");
+    const caminando = running.avanzar(en, { lat: 0.0009, lon: 0, precision: 5, t: 30000 });
+    igual(Math.round(caminando.distancia), 100, "100 m en 30 s suman 100 m");
+    const salto = running.avanzar(en, { lat: 0.009, lon: 0, precision: 5, t: 1000 });   // 1 km en 1 s: un salto del GPS
+    igual(salto.distancia, 0, "un salto imposible no suma");
+});
+
+prueba("Running: el cronómetro no cuenta las pausas", () => {
+    igual(running.tiempoDeEncurso({ inicio: 0, pausas: [{ desde: 60000, hasta: 90000 }], pausadoDesde: null }, 120000), 90000, "30 s de pausa cerrada");
+    igual(running.tiempoDeEncurso({ inicio: 0, pausas: [], pausadoDesde: 100000 }, 120000), 100000, "pausa abierta: cuenta hasta que pausaste");
+});
+
+prueba("Running: anotar una carrera da XP de Fuerza, monedas y valida los datos", () => {
+    const estado = partidaNueva();
+    const xpAntes = estado.personaje.xp;
+    const fuerzaAntes = estado.atributos.fuerza;
+    const { carrera, celebraciones } = acciones.guardarCarrera(estado, { km: "5,2", minutos: "30", tipo: "suave", fecha: hoy() });
+    igual(carrera.xp, 62, "10 + 52 por los 5,2 km");
+    igual(estado.personaje.xp - xpAntes, 62, "el XP del personaje");
+    igual(estado.atributos.fuerza - fuerzaAntes, 62, "el XP de Fuerza");
+    igual(estado.personaje.monedas, 10, "2 monedas por km");
+    cierto(celebraciones.length >= 1, "hay una celebración");
+    debeFallar(() => acciones.guardarCarrera(estado, { km: "0", minutos: "30", tipo: "suave", fecha: hoy() }), "debe estar entre");
+    debeFallar(() => acciones.guardarCarrera(estado, { km: "5", minutos: "30", tipo: "magia", fecha: hoy() }), "Ese tipo de carrera no existe");
+    debeFallar(() => acciones.guardarCarrera(estado, { km: "5", minutos: "30", tipo: "suave", fecha: sumarDias(hoy(), -3) }), "hoy o de ayer");
+    igual(estado.running.carreras.length, 1, "las mal anotadas no se guardan");
+});
+
+prueba("Running: la meta semanal se cobra una vez por semana y borrar una carrera le quita su XP", () => {
+    const estado = partidaNueva();
+    estado.running.metaKm = 10;
+    acciones.guardarCarrera(estado, { km: "10", minutos: "60", tipo: "suave", fecha: hoy() });
+    igual(estado.running.semanasCobradas, [lunesDe(hoy())], "la meta de la semana quedó cobrada");
+    igual(estado.personaje.gemas, 25, "15 de la meta + 10 del hito de 10 km");
+    acciones.guardarCarrera(estado, { km: "2", minutos: "15", tipo: "suave", fecha: hoy() });
+    igual(estado.personaje.gemas, 25, "otra carrera esa semana no vuelve a cobrar la meta");
+    const xpAntes = estado.personaje.xp;
+    acciones.borrarCarrera(estado, 1);
+    cierto(estado.personaje.xp < xpAntes, "al borrar, se quita el XP de esa carrera");
+});
+
+prueba("Running: una carrera en vivo se guarda con el cronómetro y los km que escribes", () => {
+    const estado = partidaNueva();
+    acciones.empezarCarrera(estado, "tempo", { gps: false });
+    debeFallar(() => acciones.empezarCarrera(estado, "suave", { gps: false }), "Ya tienes una carrera en curso");
+    estado.running.encurso.inicio = Date.now() - 30 * 60000;   // como si llevaras 30 minutos
+    acciones.registrarPuntoCarrera(estado, { lat: 0, lon: 0, precision: 5, t: Date.now() });
+    igual(estado.running.encurso.distancia, 0, "sin GPS no se miden metros");
+    debeFallar(() => acciones.terminarCarrera(estado, {}), "No hay distancia");
+    acciones.terminarCarrera(estado, { km: "4" });
+    const carrera = estado.running.carreras[0];
+    igual(carrera.km, 4, "los km que escribiste");
+    igual(carrera.minutos, 30, "los minutos del cronómetro");
+    igual(carrera.origen, "manual", "sin GPS, la carrera es manual");
+    igual(estado.running.encurso, null, "la carrera en vivo se cierra");
+});
+
+prueba("Running: la pausa de una carrera en vivo olvida el último punto del GPS (no suma el camino de la pausa)", () => {
+    const estado = partidaNueva();
+    acciones.empezarCarrera(estado, "suave", { gps: true });
+    acciones.registrarPuntoCarrera(estado, { lat: 0, lon: 0, precision: 5, t: 0 });
+    acciones.alternarPausaCarrera(estado);
+    cierto(estado.running.encurso.pausadoDesde, "quedó en pausa");
+    igual(acciones.registrarPuntoCarrera(estado, { lat: 0.01, lon: 0, precision: 5, t: 1000 }), null, "en pausa no se mide");
+    acciones.alternarPausaCarrera(estado);
+    igual(estado.running.encurso.ultimo, null, "al seguir, el punto de referencia se borra");
+});
+
+prueba("Running: los datos guardados de una versión anterior tienen el running vacío", () => {
+    const vieja = datos.desdeRespaldo(JSON.stringify({ version: 31, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [] }));
+    igual(vieja.running.carreras, [], "sin carreras");
+    igual(vieja.running.metaKm, 10, "meta de 10 km por semana");
+    igual(vieja.running.encurso, null, "sin carrera en curso");
 });
 
 prueba("Novedades: la última es la versión actual y solo se muestran las que no viste", () => {

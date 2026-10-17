@@ -2,6 +2,15 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v109 — Pestaña Running
+- Pestaña nueva **🏃 Running** (entre Progreso y Aventuras; la barra ahora tiene 6 pestañas, en el modo normal 5).
+- `js/running.js` (reglas puras): tipos de carrera (trote suave, intervalos, ritmo fuerte, tirada larga, caminata) con bono de XP, rangos de corredor según los km de tu vida, hitos de kilómetros (10, maratón, 100, 250, 500, 1000) con gemas, meta semanal de km y racha de semanas, récords (distancia, mejor ritmo desde 3 km, tiempo, semana), sugerencia del día y el GPS (distancia de haversine, filtro de precisión, de quietud y de saltos).
+- `js/acciones.js` (final): `empezarCarrera`, `alternarPausaCarrera`, `registrarPuntoCarrera`, `terminarCarrera`, `guardarCarrera` (XP y monedas de 💪 Fuerza; avisa de récords, rangos, hitos y la meta semanal, que se cobra una vez por semana), `borrarCarrera`, `cambiarMetaKm`, `cambiarMisionRunning`.
+- `js/vistas-running.js`: correr en vivo (cronómetro, distancia, ritmo, pausa, cancelar y terminar con los km corregibles), empezar con GPS o solo cronómetro, anotar una carrera de hoy o de ayer, y tres secciones: Correr, Progreso (rango, km por semana, récords, ritmo, hitos, metas) e Historial (borrar).
+- GPS: en `app.js` (`iniciarGps`, `detenerGps`). Un fallo pasajero del GPS (código 2 o 3) no detiene la carrera: se reanuda solo. Solo el permiso denegado (código 1) la detiene. La pantalla no se apaga mientras corres (wake lock, si el teléfono lo permite).
+- Datos: `estado.running` (versión 32). Las partidas anteriores empiezan con el running vacío.
+- 320 pruebas (14 nuevas del running).
+
 ## v108 — Pergaminos e historias ilustrados
 - `retratos.js › ilustracion(fondo, { actores, titulo, clase })`: una pintura (`pintura:…`, en pixel art) o una sala de la Torre (misma clave que `spriteDeSala`) con figuras de pie encima, marco de oro y viñeta; `clase: "miniatura"` para la lista de Historia.
 - `vistas.js`: ilustración en los pergaminos (su `escena.fondo`), en la portada y los capítulos de los libros largos (`ilustracionDeLibro`: Casio en la cima, Orrin en el abismo) y en las Memorias; miniaturas en `seccionHistoria`; `conCapitular()` pone la letra capitular (y apaga la `::first-letter` roja de antes).

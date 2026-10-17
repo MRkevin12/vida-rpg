@@ -4,9 +4,21 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 108;
+export const VERSION_APP = 109;
 
 export const NOVEDADES = [
+    {
+        version: 109,
+        titulo: "Nueva pestaña: Running",
+        cambios: [
+            "🏃 Una pestaña nueva para correr: Hoy, Progreso, Running, Aventuras, Héroe y Tienda.",
+            "📡 Empieza una carrera en vivo: el cronómetro corre y, con GPS, el teléfono mide los metros mientras la app esté abierta. Puedes pausar, cancelar o terminar y corregir los km.",
+            "✍️ O anota una carrera que ya hiciste (hoy o ayer), con su tipo: trote suave, intervalos, ritmo fuerte, tirada larga o caminata.",
+            "🧭 Cada día te sugiere qué correr según tu última carrera y tu meta semanal de km.",
+            "💪 Cada kilómetro da XP de Fuerza y monedas. Cumplir tu meta de la semana da gemas, y los hitos (10 km, una maratón, 100, 250, 500 y 1000 km) también.",
+            "📈 Tus récords (la carrera más larga, el mejor ritmo, lo que más tiempo corriste), tus 12 semanas, tu ritmo a lo largo del tiempo y tu rango de corredor.",
+        ],
+    },
     {
         version: 108,
         titulo: "Pergaminos e historias ilustrados",

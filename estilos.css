@@ -488,7 +488,7 @@ button {
     left: 0;
     z-index: 5;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);   /* (v109) 6 pestañas: Hoy, Progreso, Running, Aventuras, Héroe, Tienda */
     max-width: 640px;
     margin: 0 auto;
     padding-bottom: env(safe-area-inset-bottom);
@@ -8601,7 +8601,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 /* (v49) Ánimo «normal»: sin Aventuras (quedan Hoy, Progreso, Héroe y Tienda). */
 .modo-normal:not(.modo-esencial) .pestanas {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);   /* (v109) sin Aventuras: Hoy, Progreso, Running, Héroe y Tienda */
 }
 
 .modo-normal:not(.modo-esencial) .pestana[data-pantalla="aventuras"] {
@@ -11564,3 +11564,181 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 .mapa-leyenda-lista li { display: flex; gap: 10px; align-items: baseline; }
 .mapa-leyenda-lista li > span { flex: 0 0 1.6em; text-align: center; }
+
+/* ===== El running (v109): la pestaña Running (js/vistas-running.js) ===== */
+.run-vivo.pausada .run-tiempo { opacity: 0.55; }
+
+.run-tiempo {
+    margin: 4px 0;
+    font-family: var(--letra-titulo, inherit);
+    font-size: 3.2rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.run-tiempo-chico { font-size: 1.05rem; margin: 6px 0; }
+
+.run-datos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.run-datos > div {
+    padding: 10px;
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+    background: var(--hundido);
+}
+
+.run-datos small,
+.run-fila-texto small,
+.run-lista small { display: block; color: var(--texto-suave); }
+
+.run-datos b {
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.run-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.run-botones .boton { flex: 1 1 140px; }
+
+.run-tipos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.run-tipo {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 999px;
+    background: var(--hundido);
+    color: var(--texto);
+    font: inherit;
+    cursor: pointer;
+}
+
+.run-tipo[aria-pressed="true"] {
+    border-color: var(--cian);
+    background: rgba(34, 211, 238, 0.14);
+}
+
+.run-campos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+/* Las barras de las 12 semanas: cada columna tiene la barra y el número del día; la línea punteada es la meta. */
+.run-barras {
+    position: relative;
+    display: flex;
+    gap: 6px;
+    margin: 12px 0 4px;
+}
+
+.run-barras::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(18px + 100px * var(--meta, 0));
+    border-top: 2px dashed rgba(251, 191, 36, 0.7);
+    pointer-events: none;
+}
+
+.run-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+}
+
+.run-barra {
+    width: 100%;
+    height: 100px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.run-barra i {
+    display: block;
+    width: 100%;
+    min-height: 2px;
+    border-radius: 3px 3px 0 0;
+    background: var(--violeta);
+}
+
+.run-col.actual .run-barra i { background: var(--cian); }
+
+.run-col small {
+    height: 18px;
+    line-height: 18px;
+    font-size: 0.7rem;
+    color: var(--texto-suave);
+}
+
+.run-ritmos {
+    width: 100%;
+    height: auto;
+    margin-top: 8px;
+}
+
+.run-lista {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.run-lista li {
+    display: grid;
+    grid-template-columns: 2rem 1fr auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.run-valor { font-variant-numeric: tabular-nums; }
+
+.run-hito:not(.cobrado) { opacity: 0.6; }
+
+.run-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.run-meta-botones {
+    display: flex;
+    gap: 8px;
+}
+
+.run-historial {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.run-fila {
+    display: grid;
+    grid-template-columns: 2rem 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--borde);
+}

@@ -26,6 +26,8 @@ import * as pergaminos from "./pergaminos.js";
 import * as libros from "./libros.js";
 import * as vistasVoces from "./vistas-voces.js";
 import * as vistasGym from "./vistas-gym.js";
+import * as vistasRunning from "./vistas-running.js";   // (v109) la pestaña Running
+import * as running from "./running.js";
 import * as vocesModulo from "./voces.js";
 import * as vida from "./vida.js";
 import * as gym from "./gym.js";
@@ -71,6 +73,10 @@ let fraseGym = null;               // (v76) lo último que te dijo Aurelio en el
 let resumenGym = null;             // (v76) el entrenamiento que acabas de terminar (para mostrar su resumen)
 let gymVista = null;               // (v75) la vista previa del cuerpo en el gimnasio: { fisico, corp } o null
 let descansoGym = null;          // (v66) el descanso entre series del gym: { fin, total } (milisegundos), o null
+let runTipo = "suave";           // (v109) el tipo de carrera que vas a empezar en la pestaña Running
+let seguimientoGps = null;       // (v109) el id del seguimiento de posición del GPS mientras corres, o null
+let gpsProblema = null;          // (v109) por qué no hay GPS: "permiso" o "senal", o null
+let pantallaDeDespierta = null;  // (v109) el «wake lock»: la pantalla no se apaga mientras corres
 let renovandoPacto = false;      // en «Tu pacto»: true mientras vuelves a firmarlo
 let paginaLibro = "portada";     // en «Tu libro»: "portada", "indice" o el número de un capítulo
 let problemaAvisos = null;       // si las notificaciones se cortaron: "bloqueadas" o "desconectadas"
@@ -81,7 +87,7 @@ let ritual = null;               // el ritual de la noche en curso: { paso, cola
 let golpe = null;                // el golpe con timing en curso
 let alCerrarRobo = null;         // qué hacer cuando se cierre la escena del robo de vida
 // Las secciones elegidas en las pantallas largas (el selector de arriba): solo se ve una a la vez.
-const subvista = { progreso: "numeros", tienda: "recompensas", personaje: "equipo", gym: "entrenar" };
+const subvista = { progreso: "numeros", tienda: "recompensas", personaje: "equipo", gym: "entrenar", running: "correr" };
 let agruparHoy = "atributo";   // (v51) en Hoy, las misiones se agrupan por "atributo" o por "momento"
 let campanaVista = null;         // en Aventuras: qué campaña de jefes se ve (null = la del jefe más cerca de caer)
 let roboDesde = 0;               // cuándo se abrió (para no cerrarla con el mismo toque)
@@ -108,6 +114,7 @@ const DIBUJAR = {
     diario: vistas.pantallaDiario,
     pacto: vistas.pantallaPacto,
     gym: vistasGym.pantallaGym,
+    running: vistasRunning.pantallaRunning,
     libro: vistas.pantallaLibro,
     mapa: vistas.pantallaMapa,
     memorias: vistas.pantallaMemorias,
@@ -138,6 +145,7 @@ function iniciar() {
     rellenarOpciones();
     conectarEventos();
     setInterval(tictac, 1000);   // reloj del modo enfoque
+    if (estado.running.encurso?.gps) { iniciarGps(); mantenerPantallaDespierta(true); }   // (v109) la carrera sigue donde iba
 
     if (!estado.personaje) {
         correrCarga(() => { $("#crear-personaje").hidden = false; });
@@ -259,6 +267,19 @@ function revisarAlAbrir() {
 // Reloj del modo enfoque: cada segundo cambia solo el texto del tiempo y el anillo
 // (sin redibujar la pantalla). Al llegar a 0, entrega el premio.
 function tictac() {
+    // (v109) El running en vivo: el cronómetro, la distancia y el ritmo se actualizan solos (sin redibujar).
+    if (estado.running.encurso && pantallaActual === "running") {
+        const en = estado.running.encurso;
+        const ahora = Date.now();
+        const tiempo = document.querySelector("[data-run-tiempo]");
+        if (tiempo) tiempo.textContent = running.textoTiempo(running.tiempoDeEncurso(en, ahora));
+        const km = document.querySelector("[data-run-km]");
+        if (km) km.textContent = running.textoKm(en.distancia / 1000);
+        const ritmo = document.querySelector("[data-run-ritmo]");
+        if (ritmo) ritmo.textContent = running.textoRitmo(running.ritmoEnVivo(en, ahora));
+        const aviso = document.querySelector("[data-run-gps]");
+        if (aviso) aviso.textContent = vistasRunning.textoGps(en, gpsProblema);
+    }
     // (v76) El tiempo que llevas entrenando.
     for (const reloj of document.querySelectorAll("[data-gym-inicio]")) {
         const t = Math.max(0, Math.floor((Date.now() - Number(reloj.dataset.gymInicio)) / 1000));
@@ -312,6 +333,45 @@ function tictac() {
 }
 
 // El service worker guarda los archivos en el teléfono para que la app funcione sin internet.
+// ===== El running: GPS y pantalla encendida (v109) =====
+// El GPS del teléfono manda puntos mientras la app esté abierta. Cada punto suma metros a la carrera (ver running.js).
+function iniciarGps() {
+    if (!navigator.geolocation || seguimientoGps !== null) return;
+    seguimientoGps = navigator.geolocation.watchPosition((posicion) => {
+        const { latitude, longitude, accuracy } = posicion.coords;
+        const punto = { lat: latitude, lon: longitude, precision: accuracy, t: posicion.timestamp };
+        gpsProblema = null;   // llegó una posición: la señal volvió (aunque estés en pausa)
+        if (acciones.registrarPuntoCarrera(estado, punto)) datos.guardar(estado);
+    }, (error) => {
+        // 1 = no nos dieron permiso (ya no se puede: se deja de escuchar).
+        // 2 y 3 = señal perdida o tardía: es pasajero, así que el GPS sigue escuchando y se reanuda solo.
+        if (error.code === 1) {
+            gpsProblema = "permiso";
+            detenerGps();
+        } else {
+            gpsProblema = "senal";
+        }
+    }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
+}
+
+function detenerGps() {
+    if (seguimientoGps !== null) navigator.geolocation?.clearWatch(seguimientoGps);
+    seguimientoGps = null;
+}
+
+// La pantalla no se apaga mientras corres (si el teléfono lo permite). Al volver a la app, se pide de nuevo.
+async function mantenerPantallaDespierta(encendida) {
+    try {
+        if (encendida && !pantallaDeDespierta) pantallaDeDespierta = await navigator.wakeLock?.request("screen");
+        else if (!encendida && pantallaDeDespierta) { await pantallaDeDespierta.release(); pantallaDeDespierta = null; }
+    } catch (error) {
+        pantallaDeDespierta = null;   // sin permiso o sin soporte: la carrera sigue igual
+    }
+}
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && estado.running?.encurso) mantenerPantallaDespierta(true);
+});
+
 let registroSW = null;   // para poder pedirle al teléfono que busque actualizaciones
 
 function registrarServiceWorker() {
@@ -1187,6 +1247,8 @@ function contextoActual(efectos = {}) {
         renovandoPacto,
         descanso: descansoGym,
         gymVista,
+        tipo: runTipo,                                      // (v109) el tipo de carrera elegido
+        gpsProblema,
         fraseGym,
         resumenGym,
         paginaLibro,
@@ -3209,6 +3271,37 @@ const ACCIONES = {
     "gym-meta": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "meta", estado.gym.metaSemanal + Number(boton.dataset.delta)), { mantenerScroll: true }),
     "gym-descanso": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "descanso", boton.dataset.segundos), { mantenerScroll: true }),
 
+    // El running (v109). Ver running.js, vistas-running.js y el final de acciones.js.
+    "run-tipo": (boton) => {
+        runTipo = boton.dataset.tipo;
+        sonar("cursor");
+        dibujarPantalla({ mantenerScroll: true });
+    },
+    "run-empezar": (boton) => {
+        const gps = boton.dataset.gps === "1";
+        const empezada = ejecutar(() => acciones.empezarCarrera(estado, runTipo, { gps }), { mantenerScroll: true });
+        if (!empezada) return;
+        gpsProblema = null;
+        if (gps) iniciarGps();
+        mantenerPantallaDespierta(true);
+        sonar("completar");
+    },
+    "run-pausa": () => {
+        ejecutar(() => acciones.alternarPausaCarrera(estado), { mantenerScroll: true });
+        sonar("cursor");
+    },
+    "run-cancelar": () => {
+        if (!confirm("¿Cancelar la carrera? Se pierde lo que corriste y no da premio.")) return;
+        ejecutar(() => acciones.cancelarCarrera(estado));
+        detenerGps();
+        mantenerPantallaDespierta(false);
+    },
+    "run-meta": (boton) => ejecutar(() => acciones.cambiarMetaKm(estado, estado.running.metaKm + Number(boton.dataset.delta)), { mantenerScroll: true }),
+    "run-borrar": (boton) => {
+        if (!confirm("¿Borrar esta carrera? Se le quita el XP y las monedas que dio.")) return;
+        ejecutar(() => acciones.borrarCarrera(estado, Number(boton.dataset.indice)), { mantenerScroll: true });
+    },
+
     "ver-pacto": () => {
         $("#dialogo-ajustes").close();
         cambiarPantalla("pacto");
@@ -3363,6 +3456,24 @@ const FORMULARIOS = {
         const ok = ejecutar(() => acciones.anotarPesoGym(estado, valores.kg), { mantenerScroll: true });
         if (ok) formulario.reset();
         return ok;
+    },
+    // El running (v109): anotar una carrera que ya hiciste, o terminar la que llevas en vivo.
+    "running-manual"(valores, formulario) {
+        const fecha = valores.fecha === "ayer" ? sumarDias(hoy(), -1) : hoy();
+        const ok = ejecutar(() => acciones.guardarCarrera(estado, { ...valores, fecha }), { mantenerScroll: true });
+        if (ok) { formulario.reset(); sonar("completar"); }
+        return ok;
+    },
+    "running-terminar"(valores) {
+        const fin = ejecutar(() => acciones.terminarCarrera(estado, valores));
+        if (!fin) return false;
+        detenerGps();
+        mantenerPantallaDespierta(false);
+        subvista.running = "correr";
+        sonar("completar");
+        dibujarPantalla();
+        window.scrollTo(0, 0);
+        return true;
     },
     enfoque(valores) {
         const resultado = ejecutar(() => acciones.empezarEnfoque(estado, valores));
@@ -3578,6 +3689,11 @@ function conectarEventos() {
         // Gimnasio: el peso y las repeticiones se guardan al cambiarlos, sin redibujar (así no se cierra el teclado).
         if (evento.target.matches?.("[data-gym-mision]")) {
             ejecutar(() => acciones.cambiarAjusteGym(estado, "mision", evento.target.value), { mantenerScroll: true });
+            return;
+        }
+        // (v109) La misión que se marca sola al guardar una carrera.
+        if (evento.target.matches?.("[data-running-mision]")) {
+            ejecutar(() => acciones.cambiarMisionRunning(estado, evento.target.value), { mantenerScroll: true });
             return;
         }
         const campo = evento.target.dataset?.gym;
