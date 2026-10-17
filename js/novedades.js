@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 106;
+export const VERSION_APP = 107;
 
 export const NOVEDADES = [
+    {
+        version: 107,
+        titulo: "Cinemáticas más largas",
+        cambios: [
+            "🎬 Las cinemáticas tienen más escenas: al entrar a cada zona de la Torre y las mazmorras, antes y después de cada guardián, al llegar a cada región del reino, contra los señores, en las fortalezas, el arcade, la aldea y los pergaminos.",
+            "🧙 Aurelio habla más en ellas, y cada historia tiene un cierre.",
+        ],
+    },
     {
         version: 106,
         titulo: "Un diario más vivo",

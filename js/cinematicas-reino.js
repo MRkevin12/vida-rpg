@@ -74,6 +74,13 @@ export function cinematicaDeRegion(region, nombre) {
         { fondo, actores: [tu(50, { anim: "cine-camina" })], camara: "derecha", ambiente, titulo: nombreRegion, texto: datos.lema, ms: 3800, sonido: "campana" },
         { fondo, actores: [aurelio(26, { anim: "cine-flota" }), tu(72)], camara: "quieto", ambiente, texto: `Aurelio: «${AURELIO_EN_REGION[datos.paisaje]}»`, ms: 5200, sonido: "cursor" },
         { fondo, actores: [tu(60)], camara: "zoom", foco: "60% 60%", ambiente, texto: habitantes, ms: 4200 },
+        // (v107)
+        { fondo, actores: [tu(40, { anim: "cine-camina" })], camara: "izquierda", ambiente, efecto: "oscuro",
+          texto: "A lo lejos, en las guaridas, cuatro señores esperan. Cada uno gobierna una parte de lo que te cuesta.", ms: 4800, sonido: "retumbo" },
+        { fondo, actores: [aurelio(26), tu(72)], camara: "quieto", ambiente,
+          texto: "Aurelio: «No tienes que vencerlos hoy, {n}. Solo cumplir lo de hoy. Lo demás llega solo.»", ms: 5000, sonido: "cursor" },
+        { fondo, actores: [tu(50, { anim: "cine-camina" })], camara: "arriba", ambiente: "chispas", efecto: "destello", titulo: "El viaje sigue",
+          texto: "Cada misión que cumples es un paso por este camino.", ms: 4000, sonido: "logro" },
     ], nombre);
 }
 
@@ -87,10 +94,16 @@ export function cinematicaDeSenor(senor, region, atributo, nombre) {
     return armar("senor", [
         { fondo, actores: [{ ...jefeActor, anim: "cine-flota" }, tu(74)], camara: "zoom", foco: "40% 55%", efecto: "oscuro", ambiente: "niebla",
           titulo: jefe.nombre, texto: jefe.texto, ms: 4600, sonido: "retumbo" },
+        // (v107)
+        { fondo, actores: [{ ...jefeActor, anim: "cine-late" }, tu(74)], camara: "zoom", foco: "70% 55%", efecto: "temblor", ambiente: "niebla",
+          texto: `«${jefe.titulo}», ruge. Lleva mucho tiempo ganándole a {n}. Hoy no.`, ms: 4400, sonido: "retumbo" },
         { fondo, actores: [{ ...jefeActor, anim: "cine-cae" }, tu(74)], camara: "zoom", foco: "40% 55%", efecto: "destello",
           texto: `${jefe.nombre} cae. {n} lo venció con ${atributo.icono} ${atributo.nombre}: ${jefe.titulo.toLowerCase()}.`, ms: 3800, sonido: "victoria" },
         { fondo, actores: [tu(56)], camara: "izquierda", ambiente: "chispas", titulo: "Guarida liberada",
           texto: "La cueva queda vacía y, entre las piedras, brilla lo que el señor guardaba. Es botín de {n}.", ms: 4000, sonido: "logro" },
+        // (v107)
+        { fondo, actores: [aurelio(26, { anim: "cine-flota" }), tu(72)], camara: "quieto", ambiente: "chispas",
+          texto: `Aurelio: «No lo venciste con un golpe, {n}: lo venciste con días. Así se vencen los señores como este.»`, ms: 5200, sonido: "cursor" },
     ], nombre);
 }
 
@@ -111,6 +124,11 @@ export function cinematicaDeFortaleza(region, nombre) {
           texto: "Los cuatro señores cayeron. Las puertas de la fortaleza, selladas desde hace siglos, empiezan a abrirse.", ms: 4400, sonido: "retumbo" },
         { fondo: "pintura:fortaleza", actores: [tu(60)], camara: "zoom", foco: "50% 50%", efecto: "destello",
           texto: "Dentro hay un tesoro que nadie tocó, y un camino que sigue hacia la región siguiente.", ms: 4200, sonido: "logro" },
+        // (v107)
+        { fondo: "pintura:fortaleza", actores: [aurelio(26, { anim: "cine-flota" }), tu(72)], camara: "quieto", ambiente: "chispas",
+          texto: "Aurelio: «Los muros que nadie abrió en siglos los abriste tú, sin ariete: con constancia.»", ms: 5200, sonido: "cursor" },
+        { fondo: "pintura:fortaleza", actores: [tu(50, { anim: "cine-camina" })], camara: "derecha", efecto: "destello", titulo: "Región liberada",
+          texto: "Desde lo alto de la muralla se ve la región siguiente. {n} ya sabe el camino.", ms: 4400, sonido: "victoria" },
     ], nombre);
 }
 
@@ -127,6 +145,9 @@ export function cinematicaDeArcade(nombre) {
           texto: "Aurelio: «Correr, atrapar monedas, acertar el golpe… Cada ficha que ganas con tus misiones es un turno aquí.»", ms: 5400, sonido: "cursor" },
         { fondo, actores: [aurelio(26), tu(72)], camara: "derecha", efecto: "destello",
           texto: "Aurelio: «Y si te sientes listo, la Torre te espera arriba. Sube con calma, {n}.»", ms: 4400, sonido: "logro" },
+        // (v107)
+        { fondo, actores: [tu(50)], camara: "zoom", foco: "50% 70%", efecto: "oscuro", ambiente: "niebla",
+          texto: "Bajo el suelo del arcade se oye algo: las mazmorras. Se abren solo para quien llega lejos.", ms: 4800, sonido: "retumbo" },
     ], nombre);
 }
 
@@ -140,6 +161,9 @@ export function cinematicaDeVoces(nombre) {
           texto: "Aurelio: «Cuando la Llama se apagó, la Sombra de la Voz no mató a nadie: les quitó la voz a todos.»", ms: 5400, sonido: "cursor" },
         { fondo, actores: [aurelio(26), tu(72)], camara: "zoom", foco: "70% 60%",
           texto: "Aurelio: «Nadie dice lo que de verdad siente. No los vencerás con una espada, {n}: los ayudarás a decirlo.»", ms: 5400, sonido: "logro" },
+        // (v107)
+        { fondo, actores: [tu(50, { anim: "cine-camina" })], camara: "derecha", ambiente: "niebla",
+          texto: "Cada día alguien te espera para hablar. Escucha antes de responder: ahí está el truco.", ms: 4600, sonido: "cursor" },
     ], nombre);
 }
 
@@ -154,6 +178,9 @@ export function cinematicaDeVoz(persona, nombre) {
           texto: `Por fin lo dice, con su propia voz. ${persona.voz} se aleja sin hacer ruido.`, ms: 4600, sonido: "logro" },
         { fondo, actores: [{ quien: persona.id, x: 40 }, tu(66)], camara: "quieto", ambiente: "chispas",
           texto: "En la aldea alguien levanta la vista: se oye una voz que hacía mucho que no se oía.", ms: 4200 },
+        // (v107)
+        { fondo, actores: [aurelio(26, { anim: "cine-flota" }), tu(72)], camara: "quieto", ambiente: "chispas",
+          texto: "Aurelio: «Escuchar también es una forma de valor, {n}. Hoy lo usaste.»", ms: 4800, sonido: "logro" },
     ], nombre);
 }
 
@@ -165,6 +192,11 @@ export function cinematicaDelEpilogo(nombre) {
           texto: "La plaza, la fragua y la posada, tan calladas, de pronto no lo están.", ms: 4400, sonido: "campana" },
         { fondo, actores: [aurelio(26, { anim: "cine-flota" }), tu(72)], camara: "quieto", ambiente: "chispas", efecto: "destello",
           texto: "Aurelio: «Esto no lo logró ninguna espada. Lo lograste tú, escuchando.»", ms: 5000, sonido: "logro" },
+        // (v107)
+        { fondo, actores: [tu(50)], camara: "zoom", foco: "50% 55%", ambiente: "chispas",
+          texto: "Alguien canta en la posada. Otro discute por el precio del pan. Suena a vida.", ms: 4600, sonido: "cursor" },
+        { fondo, actores: [tu(50, { anim: "cine-camina" })], camara: "arriba", efecto: "destello", titulo: "Las Voces del Valle",
+          texto: "La aldea ya no necesita a {n}. Y eso, justamente, es la victoria.", ms: 4800, sonido: "victoria" },
     ], nombre);
 }
 
@@ -182,6 +214,9 @@ export function cinematicaDePergamino(p, nombre) {
           titulo: "Moraleja", texto: `Aurelio: «${p.moraleja}»`, ms: 5600, sonido: "logro" },
         { fondo, actores: [tu(60)], camara: "arriba", efecto: "oscuro", ambiente: "niebla",
           texto: p.presagio, ms: 6200, sonido: "retumbo" },
+        // (v107)
+        { fondo, actores: [tu(50)], camara: "quieto", ambiente: "chispas",
+          texto: "{n} enrolla el pergamino con cuidado. Hay cosas que se leen una vez y se recuerdan siempre.", ms: 4600, sonido: "cursor" },
     ], nombre);
 }
 

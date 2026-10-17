@@ -95,19 +95,34 @@ export function cinematicaDe(tipo, partida, nombre) {
         tomas = [
             { fondo, actores: [{ quien: "heroe", x: 50, anim: "cine-camina" }], camara: "arriba", titulo: zona.nombre,
               texto: SUBTITULO[fondo] || "", ms: 3400, sonido: "campana" },
+            // (v107) Lo que se ve al entrar, y un paso más.
+            { fondo, actores: [{ quien: "heroe", x: 64 }], camara: "derecha", texto: zona.texto || "", ms: 4400 },
+            { fondo, actores: [{ quien: "heroe", x: 40, anim: "cine-camina" }], camara: "zoom", foco: "40% 60%", efecto: "oscuro",
+              texto: sitio.id === "torre" ? "{n} aprieta el paso. Cada piso que sube es uno que ya no le asusta."
+                                          : "{n} baja con cuidado. Aquí abajo cuesta más ver, pero no rendirse.", ms: 3800, sonido: "cursor" },
         ];
     } else if (tipo === "entrada") {
         tomas = [
             { fondo, actores: [el], camara: "arriba", efecto: "oscuro", texto: ENTRADA[fondo] || "", ms: 3200, sonido: "retumbo" },
             { fondo, actores: [{ ...el, anim: "cine-late" }], camara: "zoom", foco, efecto: "destello", titulo: guardianDe(criatura),
               texto: `${sitio.piso} ${partida.piso} · ${zona.nombre}`, ms: 2800, sonido: "campana" },
-            { fondo, actores: [el, tu], camara: "quieto", texto: `{n} respira hondo y da un paso al frente.`, ms: 2400, sonido: "cursor" },
+            // (v107) La guardiana o el guardián se planta, y la pelea empieza.
+            { fondo, actores: [{ ...el, anim: "cine-late" }, tu], camara: "zoom", foco: "55% 60%", efecto: "temblor",
+              texto: `${criatura.nombre} no se mueve. Lleva siglos esperando a alguien que no se rinda.`, ms: 3600, sonido: "retumbo" },
+            { fondo, actores: [el, tu], camara: "quieto", texto: `{n} respira hondo y da un paso al frente.`, ms: 2600, sonido: "cursor" },
+            { fondo, actores: [el, { ...tu, anim: "cine-late" }], camara: "zoom", foco: `${X_HEROE}% 62%`, efecto: "destello",
+              titulo: "¡A pelear!", texto: "No hace falta ganar de un golpe. Hace falta no soltar el arma.", ms: 2800, sonido: "campana" },
         ];
     } else if (tipo === "derrota") {
         tomas = [
             { fondo, actores: [{ ...el, anim: "cine-cae" }], camara: "zoom", foco, efecto: "destello", texto: DERROTA[fondo] || "",
               ms: 3000, sonido: "victoria" },
-            { fondo, actores: [{ ...tu, x: 56 }], camara: "izquierda", texto: `{n} baja el arma. El camino sigue.`, ms: 2400 },
+            // (v107) Lo que queda después, y el camino.
+            { fondo, actores: [{ ...tu, x: 56 }], camara: "zoom", foco: "56% 60%", efecto: "oscuro",
+              texto: "Por un momento, solo se oye la respiración de {n}. Le tiemblan las manos, y aun así sonríe.", ms: 3800 },
+            { fondo, actores: [{ ...tu, x: 56 }], camara: "izquierda", texto: `{n} baja el arma. El camino sigue.`, ms: 2600 },
+            { fondo, actores: [{ ...tu, x: 50, anim: "cine-camina" }], camara: "derecha", efecto: "destello", titulo: "Guardián vencido",
+              texto: "Desde algún lugar, muy abajo, una voz conocida: «Bien hecho. Ahora, el siguiente.»", ms: 4200, sonido: "logro" },
         ];
     } else if (CINE_NUEVAS.FINAL[partida.lugar]) {
         // (v64) El final de las minas y del laberinto: cuatro tomas con sus textos.

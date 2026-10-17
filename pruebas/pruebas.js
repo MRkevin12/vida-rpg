@@ -1472,7 +1472,7 @@ prueba("Cinemáticas: tomarla la borra (se ve una sola vez) y respeta Ajustes", 
 });
 
 prueba("Cinemáticas: cada zona de la Torre y la Mazmorra tiene las suyas, completas y no muy largas", () => {
-    const LIMITE = { zona: 5000, entrada: 10000, derrota: 7000, final: 25000 };
+    const LIMITE = { zona: 12000, entrada: 16000, derrota: 14000, final: 25000 };   // (v107) más largas, pero no eternas
     const CAMARAS = ["arriba", "zoom", "izquierda", "derecha", "quieto"];
     const EFECTOS = [null, "destello", "oscuro", "temblor"];
     let vistas = 0;
@@ -4793,7 +4793,7 @@ prueba("Biblioteca (pantallas): lista con candados, pergamino con moraleja y bot
     // La cinemática de cada pergamino: cuatro tomas, con la moraleja y el presagio.
     for (const p of pergaminos.todosLosPergaminos("Ana")) {
         const c = cinesReino.cinematicaDePergamino(p, "Ana");
-        igual(c.tomas.length, 4, `«${p.titulo}»: cuatro tomas`);
+        igual(c.tomas.length, 5, `«${p.titulo}»: cinco tomas (v107)`);
         cierto(c.tomas[2].texto.includes(p.moraleja) && c.tomas[3].texto === p.presagio, `«${p.titulo}»: moraleja y presagio`);
         cierto(c.tomas.every((t) => t.fondo && t.ms >= 4000 && !/\{n\}|undefined/.test(t.texto)), `«${p.titulo}»: tomas completas`);
     }

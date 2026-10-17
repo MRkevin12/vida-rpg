@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v107 — Cinemáticas más largas
+- `cinematicas.js`: zona 1 → 3 tomas (la descripción de la zona y un paso más), entrada 3 → 5 (el guardián se planta y «¡A pelear!»), derrota 2 → 4 (el respiro y «Guardián vencido»).
+- `cinematicas-reino.js`: región 3 → 6, señor 3 → 5, fortaleza 2 → 4, arcade 3 → 4, voces 3 → 4, voz 3 → 4, epílogo 2 → 4, pergamino 4 → 5. Pruebas: los límites de duración subieron (zona 12 s, entrada 16 s, derrota 14 s). 306 pruebas.
+
 ## v106 — Un diario más vivo
 - `diario.js`: `ETIQUETAS` (12), `ENERGIA`, `preguntaConSalto`, `queTeHaceBien` (etiquetas con 3+ días con ánimo: promedio y diferencia frente al resto), `PLAZOS_CARTA`, `LARGO_CARTA`, `cartasListas`; `tieneContenido` cuenta etiquetas y energía.
 - `acciones.js`: `escribirDiario` guarda `etiquetas` (filtradas y sin repetir) y `energia` (1–5) y la pregunta con salto; `escribirCarta` y `abrirCarta`. `datos.js`: `version` 31 y `cartas`.
