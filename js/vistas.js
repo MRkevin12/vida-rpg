@@ -580,12 +580,27 @@ function seccionDiario(estado, ctx, fecha, esAyer) {
             <form data-form="diario" class="formulario">
                 <input type="hidden" name="fecha" value="${fecha}">
                 <fieldset class="opciones opciones-5"><legend>¿Cómo te fue ${esAyer ? "ayer" : "hoy"}?</legend>${animos}</fieldset>
+                <!-- (v106) Energía y lo que hiciste: se guardan con un toque (sin escribir nada). -->
+                <fieldset class="energia"><legend>⚡ Tu energía</legend>
+                    ${diario.ENERGIA.map((nombre, i) => `<label class="energia-paso" title="${nombre}">
+                        <input type="radio" name="energia" value="${i + 1}" ${entrada?.energia === i + 1 ? "checked" : ""}>
+                        <span>⚡${i + 1}</span></label>`).join("")}
+                    <small class="texto-suave">${entrada?.energia ? diario.ENERGIA[entrada.energia - 1] : "Toca para marcarla"}</small>
+                </fieldset>
+                <fieldset class="etiquetas-diario"><legend>¿Qué hiciste ${esAyer ? "ayer" : "hoy"}?</legend>
+                    ${Object.entries(diario.ETIQUETAS).map(([clave, e]) => `<label class="etiqueta-diario">
+                        <input type="checkbox" name="etiquetas" value="${clave}" ${entrada?.etiquetas?.includes(clave) ? "checked" : ""}>
+                        <span>${e.icono} ${e.nombre}</span></label>`).join("")}
+                </fieldset>
+                <input type="hidden" name="salto" value="${ctx.saltoPregunta || 0}">
                 <!-- Lo escrito va plegado para que Hoy no sea tan largo: se abre al tocarlo. -->
-                <details class="diario-escribir">
+                <details class="diario-escribir" ${ctx.saltoPregunta ? "open" : ""}>
                     <summary>${entrada?.texto
                         ? `✍️ «${esc(entrada.texto.length > 60 ? `${entrada.texto.slice(0, 60)}…` : entrada.texto)}»`
-                        : `✍️ ${esc(diario.preguntaDelDia(fecha))}`}</summary>
-                    <label>${esc(diario.preguntaDelDia(fecha))}
+                        : `✍️ ${esc(diario.preguntaConSalto(fecha, ctx.saltoPregunta))}`}</summary>
+                    <p class="pregunta-diario"><b>${esc(entrada?.texto && entrada.pregunta && !ctx.saltoPregunta ? entrada.pregunta : diario.preguntaConSalto(fecha, ctx.saltoPregunta))}</b>
+                        <button type="button" class="chip" data-accion="diario-otra-pregunta">🎲 Otra pregunta</button></p>
+                    <label><span class="solo-lectores">Tu respuesta</span>
                         <textarea name="texto" rows="3" maxlength="${diario.LARGO.texto}"
                                   placeholder="Escribe lo que quieras. Una frase basta.">${esc(entrada?.texto || "")}</textarea>
                     </label>
@@ -597,6 +612,9 @@ function seccionDiario(estado, ctx, fecha, esAyer) {
                 </details>
             </form>
             ${entrada?.animo ? palabrasDelMaestro(maestro.respuestaAlDiario(entrada.animo, fecha)) : ""}
+            ${diario.cartasListas(estado, ctx.hoy).length ? `<button type="button" class="pacto-linea carta-lista" data-accion="ir" data-pantalla="diario">
+                <span class="pacto-linea-icono" aria-hidden="true">✉️</span><span><b>Tienes una carta de tu pasado</b>
+                <span class="mini">Ya se puede abrir. Está en tu diario.</span></span></button>` : ""}
         </section>`;
 }
 
@@ -1419,6 +1437,8 @@ export function pantallaDiario(estado, ctx) {
         ${calendarioDeAnimo(estado, ctx)}
         ${seccionLoQueDice(estado)}
         ${seccionRecuerdos(estado, ctx)}
+        ${seccionQueTeHaceBien(estado)}
+        ${seccionCartas(estado, ctx)}
 
         <section class="panel">
             <div class="titulo-seccion">
@@ -1495,6 +1515,56 @@ function tarjetaEntrada(fecha, e) {
 }
 
 // Lo que tu diario dice de ti: tu ánimo y tus misiones, y tu mejor día de la semana.
+// (v106) Qué te hace bien: tu ánimo los días con cada etiqueta, frente a los demás.
+function seccionQueTeHaceBien(estado) {
+    const lista = diario.queTeHaceBien(estado);
+    const titulo = '<h2 class="titulo-juego">🌱 Qué te hace bien</h2>';
+    if (!lista.length) {
+        return `<section class="panel">${titulo}<p class="nota">Marca en tu diario <b>qué hiciste</b> cada día (ejercicio, estudio, familia…)
+            y cómo te fue. Con 3 días de una misma etiqueta, aquí verás cuáles te suben el ánimo.</p></section>`;
+    }
+    const filas = lista.map((x) => {
+        const e = diario.ETIQUETAS[x.clave];
+        const signo = x.diferencia > 0 ? "sube" : x.diferencia < 0 ? "baja" : "igual";
+        const ancho = Math.min(100, Math.abs(x.diferencia) * 40);
+        return `<li class="bien-fila ${signo}">
+                    <span>${e.icono} <b>${e.nombre}</b> <small class="texto-suave">${plural(x.dias, "día", "días")}</small></span>
+                    <span class="bien-barra"><i style="width: ${ancho}%"></i></span>
+                    <small>${x.diferencia > 0 ? "+" : ""}${coma(x.diferencia)}</small>
+                </li>`;
+    }).join("");
+    const mejor = lista[0];
+    return `<section class="panel">${titulo}
+        ${mejor.diferencia > 0 ? `<p class="nota">Los días de <b>${diario.ETIQUETAS[mejor.clave].nombre.toLowerCase()}</b> te sientes mejor que el resto. Vale la pena repetirlo.</p>` : ""}
+        <ul class="bien-lista">${filas}</ul>
+        <p class="mini texto-suave">La cifra es cuánto cambia tu ánimo (de 1 a 5) esos días, frente a los demás.</p>
+    </section>`;
+}
+
+// (v106) Cartas a tu yo futuro: escribirlas, las selladas y las que ya se pueden leer.
+function seccionCartas(estado, ctx) {
+    const cartas = [...(estado.cartas || [])].sort((a, b) => a.abrir.localeCompare(b.abrir));
+    const fila = (c) => {
+        if (c.abiertaEn) return `<li class="carta abierta"><p class="mini texto-suave">✉️ Escrita el ${fechaLegible(c.escrita)}</p><p class="carta-texto">${esc(c.texto)}</p></li>`;
+        if (c.abrir <= ctx.hoy) return `<li class="carta lista"><span>✉️ <b>Carta del ${fechaLegible(c.escrita)}</b><small>¡Ya se puede abrir!</small></span>
+                <button type="button" class="boton boton-chico boton-oro" data-accion="abrir-carta" data-id="${c.id}">Abrir</button></li>`;
+        return `<li class="carta sellada"><span>🔒 <b>Sellada</b><small>Se abre el ${fechaLegible(c.abrir)} · faltan ${plural(diasEntre(ctx.hoy, c.abrir), "día", "días")}</small></span></li>`;
+    };
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">✉️ Cartas a tu yo futuro</h2>
+            <p class="nota">Escríbete una carta: qué esperas, qué te preocupa, qué quieres recordar. Queda <b>sellada</b> hasta el día que elijas.</p>
+            <form data-form="carta" class="formulario">
+                <textarea name="texto" rows="3" maxlength="${diario.LARGO_CARTA}" required placeholder="Querido yo del futuro…"></textarea>
+                <div class="form-linea">
+                    <select name="dias" aria-label="Cuándo se abre">${diario.PLAZOS_CARTA.map((d) => `<option value="${d}">Abrir en ${d === 365 ? "1 año" : d >= 30 ? `${Math.round(d / 30)} ${d >= 60 ? "meses" : "mes"}` : `${d} días`}</option>`).join("")}</select>
+                    <button type="submit" class="boton boton-chico boton-oro">Sellar</button>
+                </div>
+            </form>
+            ${cartas.length ? `<ul class="lista cartas">${cartas.map(fila).join("")}</ul>` : ""}
+        </section>`;
+}
+
 function seccionLoQueDice(estado) {
     const d = diario.loQueDiceTuDiario(estado);
     const titulo = '<h2 class="titulo-juego">🔎 Lo que dice tu diario</h2>';

@@ -41,8 +41,8 @@ export function preguntaDelDia(fecha) {
 }
 
 // ¿La entrada tiene algo escrito o un ánimo? (una vacía se borra)
-export function tieneContenido({ animo, texto, gratitud }) {
-    return Boolean(animo || texto || gratitud);
+export function tieneContenido({ animo, texto, gratitud, etiquetas = [], energia = null }) {
+    return Boolean(animo || texto || gratitud || etiquetas.length || energia);   // (v106) también etiquetas y energía
 }
 
 // Racha del diario: días seguidos escribiendo. Hoy sin escribir todavía no la rompe.
@@ -163,3 +163,51 @@ export function diarioComoTexto(estado, nombre) {
     lineas.push(plural(Object.keys(estado.diario).length, "entrada", "entradas"));
     return lineas.join("\n");
 }
+
+
+// ===== (v106) Un diario más interactivo =====
+
+// ¿Qué hiciste hoy? Etiquetas que se marcan con un toque. El ícono es un emoji (iconos.js lo dibuja en pixel art).
+export const ETIQUETAS = {
+    ejercicio:   { icono: "🏃", nombre: "Ejercicio" },
+    estudio:     { icono: "📚", nombre: "Estudio" },
+    trabajo:     { icono: "💻", nombre: "Trabajo" },
+    familia:     { icono: "💗", nombre: "Familia" },
+    amigos:      { icono: "💬", nombre: "Amigos" },
+    naturaleza:  { icono: "🌿", nombre: "Naturaleza" },
+    lectura:     { icono: "📖", nombre: "Lectura" },
+    creatividad: { icono: "🎨", nombre: "Crear" },
+    musica:      { icono: "🎵", nombre: "Música" },
+    comida:      { icono: "🍀", nombre: "Comí sano" },
+    descanso:    { icono: "🌙", nombre: "Dormí bien" },
+    pantallas:   { icono: "📱", nombre: "Mucha pantalla" },
+};
+
+// La energía del día, de 1 (sin fuerzas) a 5 (a tope).
+export const ENERGIA = ["Sin fuerzas", "Baja", "Normal", "Buena", "A tope"];
+
+// Otra pregunta: la del día, corrida "salto" lugares (salto 0 = la del día).
+export function preguntaConSalto(fecha, salto = 0) {
+    const dias = Math.round(desdeTexto(fecha).getTime() / 86400000) + Number(salto || 0);
+    return PREGUNTAS[((dias % PREGUNTAS.length) + PREGUNTAS.length) % PREGUNTAS.length];
+}
+
+// Qué te hace bien: para cada etiqueta con 3 días o más (con ánimo), tu ánimo esos días frente a los demás.
+// Devuelve [{ clave, dias, promedio, diferencia }] de la que más te sube a la que más te baja.
+export function queTeHaceBien(estado) {
+    const conAnimo = Object.values(estado.diario).filter((e) => e.animo && ANIMOS_DIARIO[e.animo]);
+    return Object.keys(ETIQUETAS).map((clave) => {
+        const con = conAnimo.filter((e) => e.etiquetas?.includes(clave));
+        const sin = conAnimo.filter((e) => !e.etiquetas?.includes(clave));
+        if (con.length < 3 || sin.length < 1) return null;
+        const promedio = promedioAnimo(con);
+        return { clave, dias: con.length, promedio, diferencia: Math.round((promedio - promedioAnimo(sin)) * 10) / 10 };
+    }).filter(Boolean).sort((a, b) => b.diferencia - a.diferencia);
+}
+
+// ===== Cartas a tu yo futuro =====
+// Escribes una carta y eliges cuándo se abre. Hasta ese día queda sellada (no se puede leer).
+export const PLAZOS_CARTA = [7, 30, 90, 180, 365];
+export const LARGO_CARTA = 1000;
+
+export const cartasListas = (estado, hoy) => (estado.cartas || []).filter((c) => !c.abiertaEn && c.abrir <= hoy);

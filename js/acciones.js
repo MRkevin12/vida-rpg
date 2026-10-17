@@ -521,9 +521,13 @@ export function revisarEnfoque(estado, ahora = Date.now()) {
 
 // Una entrada por día (hoy o ayer): cómo te fue, tu respuesta a la pregunta del día y algo que agradeces.
 // La primera vez que escribes ese día ganas un pequeño premio (ver diario.js); si la borras, se devuelve.
-export function escribirDiario(estado, { fecha, animo, texto, gratitud }) {
+export function escribirDiario(estado, { fecha, animo, texto, gratitud, etiquetas = [], energia = null, salto = 0 }) {
     validarFecha(fecha, "Solo puedes escribir el diario de hoy o de ayer.");
     if (animo && !juego.ANIMOS_DIARIO[animo]) throw new Error("Elige cómo te fue.");
+    // (v106) Lo que hiciste (etiquetas que existen, sin repetir) y tu energía (1 a 5).
+    const marcas = [...new Set([].concat(etiquetas || []))].filter((clave) => diario.ETIQUETAS[clave]);
+    const fuerza = energia === null || energia === "" ? null : Number(energia);
+    if (fuerza !== null && !(fuerza >= 1 && fuerza <= 5)) throw new Error("La energía va de 1 a 5.");
     const frase = String(texto || "").trim();
     if (frase.length > diario.LARGO.texto) throw new Error(`El diario puede tener máximo ${diario.LARGO.texto} letras.`);
     const gracias = String(gratitud || "").trim();
@@ -532,7 +536,7 @@ export function escribirDiario(estado, { fecha, animo, texto, gratitud }) {
     }
 
     const anterior = estado.diario[fecha];
-    if (!diario.tieneContenido({ animo, texto: frase, gratitud: gracias })) {
+    if (!diario.tieneContenido({ animo, texto: frase, gratitud: gracias, etiquetas: marcas, energia: fuerza })) {
         // Vacía: se borra y se devuelve su premio.
         const p = anterior?.premio;
         if (p) ganar(estado, { xp: -p.xp, monedas: -p.monedas, atributo: p.atributo });
@@ -552,10 +556,35 @@ export function escribirDiario(estado, { fecha, animo, texto, gratitud }) {
         animo: animo || null,
         texto: frase,
         gratitud: gracias,
-        pregunta: frase ? diario.preguntaDelDia(fecha) : null,   // a qué respondiste (para leerlo después)
+        pregunta: frase ? diario.preguntaConSalto(fecha, salto) : null,   // a qué respondiste (para leerlo después; v106: puede ser «otra pregunta»)
+        etiquetas: marcas,                                       // (v106) lo que hiciste ese día
+        energia: fuerza,                                         // (v106) tu energía, de 1 a 5
         premio,                                                  // lo que dio (para devolverlo si la borras)
     };
     return { xp: nuevo ? premio.xp : 0 };
+}
+
+
+// ===== (v106) Cartas a tu yo futuro =====
+
+export function escribirCarta(estado, { texto, dias }) {
+    const carta = String(texto || "").trim();
+    if (!carta) throw new Error("Escribe algo en la carta.");
+    if (carta.length > diario.LARGO_CARTA) throw new Error(`La carta puede tener máximo ${diario.LARGO_CARTA} letras.`);
+    const plazo = Number(dias);
+    if (!diario.PLAZOS_CARTA.includes(plazo)) throw new Error("Elige cuándo se abre.");
+    estado.cartas ||= [];
+    const fecha = hoy();
+    estado.cartas.push({ id: nuevoId(estado), escrita: fecha, abrir: sumarDias(fecha, plazo), texto: carta, abiertaEn: null });
+    return { abrir: sumarDias(fecha, plazo) };
+}
+
+export function abrirCarta(estado, id) {
+    const carta = (estado.cartas || []).find((c) => c.id === Number(id));
+    if (!carta) throw new Error("Esa carta no existe.");
+    if (carta.abrir > hoy()) throw new Error("Todavía está sellada.");
+    if (!carta.abiertaEn) carta.abiertaEn = hoy();
+    return { carta };
 }
 
 

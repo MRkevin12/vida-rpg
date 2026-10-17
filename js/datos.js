@@ -16,7 +16,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 30,   // 28 (v100): equipado.piernas y equipado.pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota
+        version: 31,   // 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -76,6 +76,7 @@ export function estadoInicial() {
         // (v101) Las insignias (ver insignias.js). vistas = las que ya se celebraron (null = todavía no se miró nunca:
         // la primera vez se anotan las que ya tenías, sin festejar treinta de golpe). puesta = la que llevas en el pecho.
         insignias: { vistas: null, puesta: null },
+        cartas: [],           // (v106) cartas a tu yo futuro: [{ id, escrita, abrir, texto, abiertaEn }]
         mapa: { reclamados: [],     // lugares del mapa cuyo premio ya reclamaste ("r1-5"…)
                 cines: [] },        // (v56) las cinemáticas del reino, el arcade y la aldea que ya viste ("region-1", "senor-r1-7"…)
         pacto: null,          // tu Tratado de la Voluntad (ver pacto.js): { nombre, razon, firma (trazo SVG),
@@ -171,6 +172,7 @@ function completar(guardado) {
                    vinculo: { ...guardado.mascota?.vinculo }, exploraciones: { ...guardado.mascota?.exploraciones } },
         pergaminos: { leidos: { ...guardado.pergaminos?.leidos } },
         insignias: { vistas: guardado.insignias?.vistas || null, puesta: guardado.insignias?.puesta || null },   // (v101)
+        cartas: guardado.cartas || [],   // (v106)
         libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio }, orrin: { ...base.libros.orrin, ...guardado.libros?.orrin } },
         gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null },   // (v66)
         mapa: { reclamados: guardado.mapa?.reclamados || [], cines: guardado.mapa?.cines || [] },

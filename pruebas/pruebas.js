@@ -491,7 +491,7 @@ prueba("Enfoque: cancelar a la mitad no da premio", () => {
 prueba("Diario: guarda la frase y el ánimo de hoy o de ayer; vacío se borra", () => {
     const estado = partidaNueva();
     acciones.escribirDiario(estado, { fecha: hoy(), animo: "bien", texto: "  Buen día  " });
-    igual(estado.diario[hoy()], { animo: "bien", texto: "Buen día", gratitud: "", pregunta: diario.preguntaDelDia(hoy()),
+    igual(estado.diario[hoy()], { animo: "bien", texto: "Buen día", gratitud: "", pregunta: diario.preguntaDelDia(hoy()), etiquetas: [], energia: null,
                                   premio: diario.PREMIO_DIARIO });
     acciones.escribirDiario(estado, { fecha: hoy(), animo: "", texto: "" });
     igual(hoy() in estado.diario, false);
@@ -6318,6 +6318,33 @@ prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no
     const cura = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "curar", cura: 5, nombre: "Regenerar" }]));
     cierto(!cura.includes("ff-atq "), "curarse no es atacar");
     cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
+});
+
+// ===== Diario interactivo (v106) =====
+
+prueba("Diario (v106): etiquetas y energía se guardan solas; qué te hace bien; cartas selladas hasta su fecha", () => {
+    const estado = partidaNueva();
+    acciones.escribirDiario(estado, { fecha: hoy(), etiquetas: ["ejercicio", "inventada", "ejercicio"], energia: "4" });
+    igual(estado.diario[hoy()].etiquetas, ["ejercicio"], "sin inventadas ni repetidas");
+    igual(estado.diario[hoy()].energia, 4);
+    debeFallar(() => acciones.escribirDiario(estado, { fecha: hoy(), energia: "9" }), "1 a 5");
+    // Qué te hace bien: 3 días de ejercicio geniales, 2 sin ejercicio malos.
+    for (const [i, animo, etiquetas] of [[-1, "genial", ["ejercicio"]], [-2, "genial", ["ejercicio"]], [-3, "bien", ["ejercicio"]], [-4, "mal", []], [-5, "terrible", []]]) {
+        estado.diario[sumarDias(hoy(), i)] = { animo, texto: "", gratitud: "", etiquetas };
+    }
+    const bien = diario.queTeHaceBien(estado);
+    igual(bien[0].clave, "ejercicio");
+    cierto(bien[0].diferencia > 2, "el ejercicio sube el ánimo");
+    // Cartas
+    const r = acciones.escribirCarta(estado, { texto: "Hola, yo del futuro", dias: "30" });
+    igual(r.abrir, sumarDias(hoy(), 30));
+    debeFallar(() => acciones.abrirCarta(estado, estado.cartas[0].id), "sellada");
+    estado.cartas[0].abrir = hoy();
+    igual(diario.cartasListas(estado, hoy()).length, 1);
+    acciones.abrirCarta(estado, estado.cartas[0].id);
+    igual(estado.cartas[0].abiertaEn, hoy());
+    debeFallar(() => acciones.escribirCarta(estado, { texto: "x", dias: "3" }), "cuándo");
+    igual(diario.preguntaConSalto(hoy(), 0), diario.preguntaDelDia(hoy()));
 });
 
 // ===== Cuidar a la mascota (v103) =====

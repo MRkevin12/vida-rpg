@@ -1231,6 +1231,7 @@ function contextoDiario(fecha) {
         mesDiario: diarioVista.mes || fecha.slice(0, 7),
         diaDiario: diarioVista.dia,
         busquedaDiario: diarioVista.busqueda,
+        saltoPregunta: diarioVista.salto || 0,   // (v106) «otra pregunta»
         filtroDiario: diarioVista.filtro,
         limiteDiario: diarioVista.limite,
     };
@@ -3018,6 +3019,15 @@ const ACCIONES = {
         }
     },
     "rechazar-relampago": () => ejecutar(() => acciones.rechazarRelampago(estado)),
+    // (v106) Diario: otra pregunta (solo cambia lo que se ve) y abrir una carta del pasado.
+    "diario-otra-pregunta": () => {
+        diarioVista.salto = (diarioVista.salto || 0) + 1;
+        sonar("cursor");
+        dibujarPantalla({ mantenerScroll: true });
+    },
+    "abrir-carta": (boton) => {
+        if (ejecutar(() => acciones.abrirCarta(estado, boton.dataset.id), { mantenerScroll: true })) sonar("victoria");
+    },
     "acariciar-dragon": () => {
         const frase = mascota.fraseAlAcariciar(estado, avatarActual().mascota, hoy());
         $("#mascota-frase").textContent = frase;
@@ -3411,8 +3421,19 @@ const FORMULARIOS = {
         if (resultado) avisar("📝 Revisión guardada. ¡A por esta semana!");
         return resultado;
     },
+    // (v106) Una carta a tu yo futuro.
+    carta(valores, formulario) {
+        const resultado = ejecutar(() => acciones.escribirCarta(estado, valores), { mantenerScroll: true });
+        if (resultado) {
+            avisar(`✉️ Carta sellada: se abre el ${fechaLegible(resultado.abrir)}`);
+            sonar("logro");
+            formulario.reset();
+        }
+        return resultado;
+    },
     diario(valores) {
-        const resultado = ejecutar(() => acciones.escribirDiario(estado, valores));
+        const resultado = ejecutar(() => acciones.escribirDiario(estado, valores), { mantenerScroll: true });
+        if (resultado) diarioVista.salto = 0;
         if (resultado?.borrada) avisar("📓 Entrada borrada");
         else if (resultado) avisar(resultado.xp ? `📓 Guardado en tu diario · +${resultado.xp} XP` : "📓 Diario actualizado");
         return resultado;
@@ -3516,6 +3537,7 @@ function conectarEventos() {
         // Las casillas de los días de la semana (y las del mes) comparten nombre: las leemos todas.
         if (formulario.querySelector('input[name="dias"]')) valores.dias = datosFormulario.getAll("dias");
         if (formulario.querySelector('input[name="diasMes"]')) valores.diasMes = datosFormulario.getAll("diasMes");
+        if (formulario.querySelector('input[name="etiquetas"]')) valores.etiquetas = datosFormulario.getAll("etiquetas");   // (v106)
         valores.foco = datosFormulario.getAll("foco");   // revisión semanal: las misiones de foco marcadas
         const salioBien = FORMULARIOS[tipo](valores, formulario);
         const dialogo = formulario.closest("dialog");
@@ -3569,7 +3591,8 @@ function conectarEventos() {
             }
             return;
         }
-        if (evento.target.name === "animo" && evento.target.form?.dataset.form === "diario") evento.target.form.requestSubmit();
+        // (v106) El ánimo, la energía y las etiquetas del diario se guardan con un toque.
+        if (["animo", "energia", "etiquetas"].includes(evento.target.name) && evento.target.form?.dataset.form === "diario") evento.target.form.requestSubmit();
     });
 
     // Interruptor de sonido (Ajustes): al encenderlo suena una muestra.

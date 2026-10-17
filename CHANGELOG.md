@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v106 — Un diario más vivo
+- `diario.js`: `ETIQUETAS` (12), `ENERGIA`, `preguntaConSalto`, `queTeHaceBien` (etiquetas con 3+ días con ánimo: promedio y diferencia frente al resto), `PLAZOS_CARTA`, `LARGO_CARTA`, `cartasListas`; `tieneContenido` cuenta etiquetas y energía.
+- `acciones.js`: `escribirDiario` guarda `etiquetas` (filtradas y sin repetir) y `energia` (1–5) y la pregunta con salto; `escribirCarta` y `abrirCarta`. `datos.js`: `version` 31 y `cartas`.
+- Pantallas: en Hoy, energía y etiquetas (se envían solas al tocarlas, como el ánimo), «🎲 Otra pregunta» y el aviso de carta lista; en el diario, «Qué te hace bien» y «Cartas a tu yo futuro». 1 prueba nueva; 306 pruebas.
+
 ## v105 — Arcade ordenado
 - `vistas.js › pantallaArcade`: cabecera (héroe, fichas, récord, mazmorras abiertas y partidas a medias) + `tarjetaReto` + `selectorSecciones("arcade", …)` con `torre`, `mazmorras`, `minijuegos` y `bazar` (`ctx.subvista.arcade`, por defecto `torre`). Pruebas: `arcadeCompleto()` junta las cuatro secciones. 305 pruebas.
 

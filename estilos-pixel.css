@@ -1177,3 +1177,174 @@ body {
         animation: none;
     }
 }
+
+
+/* =====================================================================
+   Diario interactivo (v106)
+   ===================================================================== */
+.energia,
+.etiquetas-diario {
+    margin: 4px 0 0;
+    padding: 0;
+    border: none;
+}
+
+.energia legend,
+.etiquetas-diario legend {
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+}
+
+.energia {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.energia-paso,
+.etiqueta-diario {
+    position: relative;
+    cursor: pointer;
+}
+
+.energia-paso input,
+.etiqueta-diario input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.energia-paso span {
+    display: grid;
+    place-items: center;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0 4px;
+    display: flex;
+    gap: 2px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    background: var(--hundido);
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
+    filter: grayscale(1) brightness(0.8);
+}
+
+.energia-paso input:checked + span {
+    border-color: var(--oro);
+    filter: none;
+    box-shadow: 0 0 0 1px var(--tinta), 0 0 10px rgba(251, 191, 36, 0.35);
+}
+
+.energia small {
+    margin-left: 4px;
+}
+
+.etiquetas-diario {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.etiqueta-diario span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 36px;
+    padding: 4px 10px;
+    font-size: 0.82rem;
+    background: var(--hundido);
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.etiqueta-diario input:checked + span {
+    color: #fff;
+    background: rgba(52, 211, 153, 0.18);
+    border-color: var(--verde);
+}
+
+.etiqueta-diario input:focus-visible + span,
+.energia-paso input:focus-visible + span {
+    outline: 2px solid var(--cian);
+}
+
+.pregunta-diario {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin: 8px 0 4px;
+}
+
+/* Texto solo para los lectores de pantalla (no se ve, pero se lee en voz alta). */
+.solo-lectores {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.bien-lista {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.bien-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.bien-barra {
+    height: 10px;
+    background: var(--hundido);
+    border: 1px solid var(--tinta);
+}
+
+.bien-barra i {
+    display: block;
+    height: 100%;
+    background: var(--verde);
+}
+
+.bien-fila.baja .bien-barra i {
+    background: var(--rojo);
+}
+
+.carta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--hundido);
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.carta span {
+    display: grid;
+}
+
+.carta.lista {
+    border-color: var(--oro);
+}
+
+.carta.abierta {
+    display: block;
+    background: linear-gradient(180deg, #2b2340, #221a35);
+}
+
+.carta-texto {
+    white-space: pre-wrap;
+}

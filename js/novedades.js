@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 105;
+export const VERSION_APP = 106;
 
 export const NOVEDADES = [
+    {
+        version: 106,
+        titulo: "Un diario más vivo",
+        cambios: [
+            "⚡ Marca tu energía del día (1 a 5) y 🏷️ qué hiciste: ejercicio, estudio, trabajo, familia, amigos, naturaleza, lectura, música… Se guarda con un toque, sin escribir nada.",
+            "🎲 ¿No te inspira la pregunta del día? Toca «Otra pregunta».",
+            "🌱 Qué te hace bien: tu diario cruza lo que hiciste con cómo te fue, y te dice qué días te sientes mejor.",
+            "✉️ Cartas a tu yo futuro: escríbete una carta y séllala por 7 días, 1, 3 o 6 meses, o un año. Cuando llegue el día, te avisa en Hoy.",
+        ],
+    },
     {
         version: 105,
         titulo: "Arcade ordenado",
