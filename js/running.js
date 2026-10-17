@@ -69,6 +69,8 @@ export function runningInicial() {
         rutaCobrada: 0,        // (v117) hasta qué kilómetro de la Ruta del Corredor (ruta.js) ya cobraste el premio
         concentracion: true,   // (v120) pantalla limpia mientras corres
         voz: "",              // (v124) la voz elegida (su identificador); vacío = la del teléfono
+        autopausa: true,       // (v131) el reloj se detiene solo si te quedas quieto
+        vistaMapa: "seguir",   // (v131) el mapa en vivo: «seguir» (te sigue de cerca) o «todo» (todo el recorrido)
         avisoKm: true,         // (v116) la voz que dice tu tiempo cada kilómetro (solo con GPS)
     };
 }
@@ -237,11 +239,63 @@ export function avanzar(en, punto) {
     if (!punto || !(punto.precision <= PRECISION_MAX)) return { distancia: en.distancia, ultimo: en.ultimo };
     if (!en.ultimo) return { distancia: en.distancia, ultimo: punto };
     const metros = metrosEntre(en.ultimo, punto);
-    if (metros < MIN_PASO) return { distancia: en.distancia, ultimo: en.ultimo };   // quieto: no sumes el ruido
+    // (v131) El paso mínimo crece con el error de la lectura: así el baile del GPS estando quieto no suma metros. Corriendo no se
+    // pierde nada: se mide desde el último punto fijo, solo que se toman muestras más espaciadas.
+    const umbral = Math.max(MIN_PASO, Math.min(12, (punto.precisionCruda || 0) * 0.75));
+    if (metros < umbral) return { distancia: en.distancia, ultimo: en.ultimo };   // quieto: no sumes el ruido
     const segundos = (punto.t - en.ultimo.t) / 1000;
     if (segundos > 0 && metros / segundos > SALTO_MAX_MS) return { distancia: en.distancia, ultimo: punto };   // salto raro
     return { distancia: en.distancia + metros, ultimo: punto };
 }
+
+// ===== (v131) Un GPS más fino =====
+// 1) Filtro de Kalman: cada lectura del GPS trae su error (precisión, en metros). En vez de creerle a cada punto, se lleva una
+//    «posición estimada» que se mueve hacia el punto nuevo más o menos según lo confiable que sea: un punto preciso la mueve mucho;
+//    uno dudoso, poco. Así el zigzag del GPS (que inflaba los metros) se aplana.
+// 2) Los saltos imposibles (más rápido que RAPIDEZ_RARA) con un punto impreciso se descartan sin tocar el filtro.
+export const RUIDO_KALMAN = 4;        // m/s: cuánto puede moverse de verdad una persona entre dos lecturas
+export const RAPIDEZ_RARA = 15;       // m/s: más que esto desde la posición estimada es un salto del GPS
+export function filtrarPunto(filtro, punto) {
+    if (!filtro) return { filtro: { lat: punto.lat, lon: punto.lon, varianza: punto.precision ** 2, t: punto.t }, punto };
+    const dt = Math.max(0, (punto.t - filtro.t) / 1000);
+    if (punto.precision > 10 && metrosEntre(filtro, punto) / Math.max(dt, 1) > RAPIDEZ_RARA) return { filtro, punto: null };
+    const prevista = filtro.varianza + dt * RUIDO_KALMAN ** 2;
+    const k = prevista / (prevista + punto.precision ** 2);   // 0 = no le creo nada; 1 = le creo todo
+    const nuevo = { lat: filtro.lat + k * (punto.lat - filtro.lat), lon: filtro.lon + k * (punto.lon - filtro.lon), varianza: (1 - k) * prevista, t: punto.t };
+    return { filtro: nuevo, punto: { lat: nuevo.lat, lon: nuevo.lon, precision: Math.sqrt(nuevo.varianza), precisionCruda: punto.precision, t: punto.t } };
+}
+
+// Qué tan buena es la señal según la precisión de la última lectura.
+export function calidadGps(precision) {
+    if (!Number.isFinite(precision)) return null;
+    if (precision <= 8) return { nivel: "buena", icono: "🟢", texto: `buena (±${Math.round(precision)} m)` };
+    if (precision <= PRECISION_MAX) return { nivel: "regular", icono: "🟡", texto: `regular (±${Math.round(precision)} m)` };
+    return { nivel: "mala", icono: "🔴", texto: `débil (±${Math.round(precision)} m): esos puntos no se cuentan` };
+}
+
+// 3) El ritmo de AHORA (los últimos ~30 s), no el promedio de toda la carrera. recientes = [{ t, d }] (ms, metros).
+export const VENTANA_RITMO = 30000;
+export function anotarReciente(recientes, t, distancia) {
+    const lista = [...(recientes || []), { t, d: distancia }];
+    while (lista.length > 2 && t - lista[1].t > VENTANA_RITMO) lista.shift();
+    return lista.slice(-60);
+}
+export function ritmoActual(en, ahora = Date.now()) {
+    const r = en.recientes || [];
+    if (en.pausadoDesde || r.length < 2 || ahora - r.at(-1).t > 15000) return ritmoEnVivo(en, ahora);
+    const metros = r.at(-1).d - r[0].d;
+    const segundos = (r.at(-1).t - r[0].t) / 1000;
+    if (metros < 25 || segundos < 8) return ritmoEnVivo(en, ahora);
+    return segundos / 60 / (metros / 1000);
+}
+
+// 4) Pausa automática: si en AUTOPAUSA.segundos no te alejas AUTOPAUSA.metros, el reloj se detiene (desde que te quedaste quieto);
+//    vuelve solo cuando te alejas AUTOPAUSA.reanudar metros. No cuenta como pausa para los fantasmas ni para los jefes.
+export const AUTOPAUSA = { segundos: 10, metros: 8, reanudar: 15 };
+
+// ===== (v131) Modo pista =====
+export const PISTA_METROS = 400;
+export const vueltasDe = (metros, pista = PISTA_METROS) => Math.floor(metros / pista);
 
 // ===== Recorrido y parciales por kilómetro (v116) =====
 export const MAX_TRAZA = 120;   // puntos que se guardan del recorrido de cada carrera con GPS

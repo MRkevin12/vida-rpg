@@ -75,7 +75,7 @@ import * as ruta from "../js/ruta.js";
 import * as encuentros from "../js/encuentros.js";
 import * as frases from "../js/frases.js";
 import * as locutor from "../js/locutor.js";
-import { mapaDeCarrera } from "../js/dibujo-carrera.js";
+import { mapaDeCarrera, mapaDePista, puntoEnPista } from "../js/dibujo-carrera.js";
 import * as vistasRunning from "../js/vistas-running.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
@@ -3036,6 +3036,97 @@ prueba("Voces grabadas: existe el audio de cada frase en cada voz", async () => 
         }
         igual(faltan, [], `faltan audios de la voz ${voz}`);
     }
+});
+
+prueba("GPS fino: el filtro aplana el zigzag, descarta saltos y la señal se califica", () => {
+    // Quieto en un punto, con lecturas que bailan ±6 m: sin filtro sumarían metros; con filtro casi nada.
+    const en = { distancia: 0, ultimo: null };
+    let filtro = null;
+    for (let i = 0; i < 60; i++) {
+        const ruido = (i % 2 ? 1 : -1) * 0.00005;   // ~5,5 m a cada lado
+        const r = running.filtrarPunto(filtro, { lat: 4.6 + ruido, lon: -74.08, precision: 6, t: i * 1000 });
+        filtro = r.filtro;
+        const paso = running.avanzar(en, r.punto);
+        en.distancia = paso.distancia;
+        en.ultimo = paso.ultimo;
+    }
+    cierto(en.distancia < 15, `quieto suma muy poco (${Math.round(en.distancia)} m)`);
+    // Un salto de 500 m en 1 s con una lectura imprecisa: se descarta y no mueve el filtro.
+    const antes = { ...filtro };
+    const salto = running.filtrarPunto(filtro, { lat: 4.6045, lon: -74.08, precision: 20, t: 61000 });
+    igual(salto.punto, null);
+    igual(salto.filtro.lat, antes.lat);
+    igual(running.calidadGps(5).nivel, "buena");
+    igual(running.calidadGps(18).nivel, "regular");
+    igual(running.calidadGps(40).nivel, "mala");
+});
+
+prueba("GPS fino: el ritmo de ahora usa los últimos ~30 s", () => {
+    let recientes = [];
+    // 2 minutos a 5:00 /km (3,33 m/s) y luego 30 s a 4:00 /km (4,17 m/s).
+    let d = 0;
+    for (let t = 0; t <= 120000; t += 1000) { d += 3.333; recientes = running.anotarReciente(recientes, t, d); }
+    for (let t = 121000; t <= 150000; t += 1000) { d += 4.1667; recientes = running.anotarReciente(recientes, t, d); }
+    const en = { inicio: 0, pausas: [], pausadoDesde: null, distancia: d, recientes };
+    const ahora = running.ritmoActual(en, 150000);
+    cierto(Math.abs(ahora - 4) < 0.15, `el ritmo de ahora es ~4:00 /km (salió ${ahora.toFixed(2)})`);
+    cierto(running.ritmoEnVivo(en, 150000) > 4.5, "el promedio sigue siendo más lento");
+});
+
+prueba("Pausa automática: quieto 10 s se detiene el reloj (sin contar para los fantasmas) y sigue sola al moverte", () => {
+    const estado = partidaNueva();
+    acciones.empezarCarrera(estado, "suave", { gps: true });
+    const en = estado.running.encurso;
+    const t0 = Date.now() - 120000;
+    en.inicio = t0;
+    // Corre 200 m (60 lecturas de ~3,3 m por segundo)…
+    let t = t0;
+    const paso = 0.00003;
+    for (let i = 0; i <= 60; i++) { t = t0 + i * 1000; acciones.registrarPuntoCarrera(estado, { lat: 4.6 + i * paso, lon: -74.08, precision: 4, t }); }
+    const metros = en.distancia;
+    cierto(metros > 150, `midió lo corrido (${Math.round(metros)} m)`);
+    // …y se queda quieto 15 s.
+    for (let i = 1; i <= 15; i++) acciones.registrarPuntoCarrera(estado, { lat: 4.6 + 60 * paso, lon: -74.08, precision: 4, t: t + i * 1000 });
+    cierto(en.autopausa && en.pausadoDesde, "se pausó solo");
+    igual(en.kmActual.pausas, 0, "no cuenta como pausa para los fantasmas ni los jefes");
+    // Vuelve a correr: se reanuda y se cuentan los metros desde donde paró.
+    const t2 = t + 16000;
+    for (let i = 1; i <= 15; i++) acciones.registrarPuntoCarrera(estado, { lat: 4.6 + (60 + i) * paso, lon: -74.08, precision: 4, t: t2 + i * 1000 });
+    cierto(!en.autopausa && !en.pausadoDesde, "siguió solo");
+    igual(en.pausas.length, 1, "quedó anotada la pausa");
+    cierto(en.distancia > metros + 20, "los metros siguen sumando");
+    // Con la pausa automática apagada, quedarse quieto no detiene nada.
+    acciones.cambiarAutopausa(estado, false);
+    for (let i = 1; i <= 15; i++) acciones.registrarPuntoCarrera(estado, { lat: 4.6 + 75 * paso, lon: -74.08, precision: 4, t: t2 + 16000 + i * 1000 });
+    cierto(!en.pausadoDesde, "apagada, no se pausa");
+});
+
+prueba("Modo pista: la pista mide 400 m, tu héroe va en su lugar y la carrera la recuerda", () => {
+    const largo = (desde, hasta) => { let m = 0; let antes = puntoEnPista(desde); for (let x = desde + 0.5; x <= hasta; x += 0.5) { const p = puntoEnPista(x); m += Math.hypot(p[0] - antes[0], p[1] - antes[1]); antes = p; } return m; };
+    cierto(Math.abs(largo(0, 400) - 400) < 1, "una vuelta mide 400 m");
+    igual(puntoEnPista(0), puntoEnPista(400), "la vuelta termina donde empieza");
+    const { svg, zona } = mapaDePista({ metros: 1250 });
+    cierto(svg.includes("<svg") && zona.nombre.includes("3 vueltas") && zona.nombre.includes("50/400"), "dice las vueltas y lo que llevas de esta");
+    igual(running.vueltasDe(1250), 3);
+    const estado = partidaNueva();
+    acciones.empezarCarrera(estado, "suave", { gps: true, pista: true });
+    igual(estado.running.encurso.pista, 400);
+    estado.running.encurso.distancia = 1600;
+    estado.running.encurso.inicio = Date.now() - 8 * 60000;
+    acciones.terminarCarrera(estado, {});
+    igual(estado.running.carreras.at(-1).pista, 400, "la carrera guardada sabe que fue en pista");
+    acciones.empezarCarrera(estado, "suave", { gps: false, pista: true });
+    igual(estado.running.encurso.pista, null, "sin GPS no hay modo pista");
+});
+
+prueba("Mapa de la carrera: en modo «seguir» te deja en el centro y el paisaje queda fijo en el terreno", () => {
+    const traza = Array.from({ length: 80 }, (_, i) => [4.6 + i * 0.0002, -74.08]);
+    const lejos = mapaDeCarrera({ traza, km: 1.7, seguir: true, flecha: true });
+    igual([Math.round(lejos.aqui.x), Math.round(lejos.aqui.y)], [50, 50], "vas en el centro");
+    cierto(lejos.svg.includes("<polygon"), "hay una flecha hacia donde vas");
+    // Al avanzar un poco, lo que estaba a la vista sigue igual en el terreno: la mayoría del dibujo se repite.
+    const otro = mapaDeCarrera({ traza: [...traza, [4.6 + 80 * 0.0002, -74.08]], km: 1.72, seguir: true });
+    cierto(otro.svg !== lejos.svg, "el mapa se movió");
 });
 
 prueba("Modo concentración: viene activado y se puede apagar", () => {

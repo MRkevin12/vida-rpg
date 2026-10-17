@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 130;
+export const VERSION_APP = 131;
 
 export const NOVEDADES = [
+    {
+        version: 131,
+        titulo: "GPS más fino, mapa que te sigue y modo pista",
+        cambios: [
+            "📡 El GPS filtra el ruido (filtro de Kalman): estando quieto ya no suma metros fantasma y los saltos raros se descartan. Verás la calidad de la señal (🟢 buena, 🟡 regular, 🔴 débil).",
+            "⚡ El ritmo que ves es el de AHORA (últimos ~30 s), no el promedio de toda la carrera.",
+            "⏸ Pausa automática: si te quedas quieto ~10 s el reloj se detiene solo y sigue cuando vuelves a correr. Se apaga en Progreso › Tus metas.",
+            "🎯 El mapa te sigue de cerca con una flecha hacia donde vas; el botón «Ver todo» muestra todo el recorrido. El paisaje y el río quedan fijos en el terreno.",
+            "🏟️ Modo pista: al empezar elige «Pista 400 m» y verás una pista de atletismo con tus vueltas, en lugar de círculos encimados.",
+        ],
+    },
     {
         version: 130,
         titulo: "Nueva voz más fluida",

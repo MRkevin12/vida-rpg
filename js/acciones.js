@@ -2348,13 +2348,14 @@ function entrenamientoRunning(estado) {
 }
 
 // Empieza una carrera en vivo. gps: true = el teléfono mide la distancia (la pantalla pide el permiso).
-export function empezarCarrera(estado, tipo, { gps = false, objetivo = "" } = {}) {
+export function empezarCarrera(estado, tipo, { gps = false, objetivo = "", pista = false } = {}) {
     const r = estado.running;
     if (r.encurso) throw new Error("Ya tienes una carrera en curso: termínala o cancélala primero.");
     if (!running.TIPOS[tipo]) throw new Error("Ese tipo de carrera no existe.");
     if (String(objetivo).trim() && !encuentros.leerObjetivo(objetivo)) throw new Error("Escribe el ritmo objetivo como minutos:segundos por km (ej: 6:30), entre 2:30 y 20:00.");
     const inicio = Date.now();
-    r.encurso = { inicio, pausas: [], pausadoDesde: null, tipo, gps: Boolean(gps), distancia: 0, ultimo: null, precision: null, traza: [], marcas: [], puntosKm: [] };
+    r.encurso = { inicio, pausas: [], pausadoDesde: null, tipo, gps: Boolean(gps), distancia: 0, ultimo: null, precision: null, traza: [], marcas: [], puntosKm: [],
+                  pista: pista && gps ? running.PISTA_METROS : null };   // (v131) en una pista de atletismo: se dibuja la pista y se cuentan las vueltas
     // (v119) Con GPS, cada km trae una criatura. El ritmo objetivo es el que escribiste o, si no, tu promedio.
     if (gps) {
         const propio = encuentros.leerObjetivo(objetivo);
@@ -2375,6 +2376,9 @@ export function alternarPausaCarrera(estado, ahora = Date.now(), { contar = true
         en.pausas.push({ desde: en.pausadoDesde, hasta: ahora });
         en.pausadoDesde = null;
         en.ultimo = null;
+        en.filtro = null;      // (v131) el filtro empieza de nuevo donde estés
+        en.autopausa = false;
+        en.quieto = null;
         return { pausada: false };
     }
     en.pausadoDesde = ahora;
@@ -2385,8 +2389,33 @@ export function alternarPausaCarrera(estado, ahora = Date.now(), { contar = true
 // Un punto nuevo del GPS. Si no estás corriendo (o estás en pausa), se ignora. No lanza error: llega sola.
 export function registrarPuntoCarrera(estado, punto) {
     const en = estado.running.encurso;
-    if (!en || !en.gps || en.pausadoDesde) return null;
+    if (!en || !en.gps || (en.pausadoDesde && !en.autopausa)) return null;
+    en.precision = punto.precision;
+    // (v131) Los puntos muy imprecisos no se usan; los demás pasan por el filtro (ver running.filtrarPunto).
+    if (!(punto.precision <= running.PRECISION_MAX)) return null;
+    const filtrado = running.filtrarPunto(en.filtro, punto);
+    en.filtro = filtrado.filtro;
+    if (!filtrado.punto) return null;
+    punto = filtrado.punto;
+    // (v131) Pausa automática: quieto unos segundos → el reloj se detiene; te alejas → sigue solo.
+    if (estado.running.autopausa !== false) {
+        if (en.autopausa) {
+            if (running.metrosEntre(en.quieto, punto) < running.AUTOPAUSA.reanudar) return { distancia: en.distancia, autopausa: true };
+            en.pausas.push({ desde: en.pausadoDesde, hasta: punto.t });
+            en.pausadoDesde = null;
+            en.autopausa = false;
+            en.ultimo = { lat: en.quieto.lat, lon: en.quieto.lon, precision: punto.precision, t: punto.t - 1000 };   // se cuentan los metros desde donde paraste
+            en.quieto = { lat: punto.lat, lon: punto.lon, t: punto.t };
+        } else if (!en.quieto || running.metrosEntre(en.quieto, punto) > running.AUTOPAUSA.metros) {
+            en.quieto = { lat: punto.lat, lon: punto.lon, t: punto.t };
+        } else if (punto.t - en.quieto.t >= running.AUTOPAUSA.segundos * 1000 && en.distancia > 0) {
+            en.pausadoDesde = en.quieto.t;   // desde que te quedaste quieto
+            en.autopausa = true;
+            return { distancia: en.distancia, autopausa: true };
+        }
+    }
     const { distancia, ultimo } = running.avanzar(en, punto);
+    en.recientes = running.anotarReciente(en.recientes, punto.t, distancia);   // (v131) para el ritmo de ahora
     // (v116) Cada punto aceptado va al recorrido, y cada kilómetro completo anota su tiempo (para los parciales y la voz).
     if (ultimo && ultimo !== en.ultimo) {
         en.traza = en.traza || [];
@@ -2396,7 +2425,6 @@ export function registrarPuntoCarrera(estado, punto) {
     }
     en.distancia = distancia;
     en.ultimo = ultimo;
-    en.precision = punto.precision;
     en.marcas = en.marcas || [];
     // (v119) Cuándo pasaste los 500 m y los 800 m de este km (para las criaturas acorazadas y las veloces).
     const resueltos = [];
@@ -2472,6 +2500,7 @@ export function terminarCarrera(estado, { km = "", minutos = "", nota = "" } = {
         traza: en.gps ? running.simplificarTraza(en.traza) : null,
         parciales: en.gps ? running.parcialesDe(en.marcas) : null,
         puntosKm: en.gps ? en.puntosKm : null,
+        pista: en.pista || null,
     });
     // (v119) Las criaturas de la carrera: un extra que no toca el premio por km. La del km que quedó a medias se va.
     if (en.encuentros) {
@@ -2515,6 +2544,7 @@ export function guardarCarrera(estado, valores) {
     if (traza.length >= 2) carrera.traza = traza;
     const parciales = (Array.isArray(valores.parciales) ? valores.parciales : []).filter((s) => Number.isFinite(s) && s > 0).slice(0, 100);
     if (parciales.length) carrera.parciales = parciales;
+    if (valores.pista === running.PISTA_METROS) carrera.pista = running.PISTA_METROS;   // (v131) corrida en pista
     const banderas = running.simplificarTraza(valores.puntosKm, 100);
     if (banderas.length) carrera.puntosKm = banderas;
     r.carreras = running.ordenar([...r.carreras, carrera]);
@@ -2590,6 +2620,14 @@ export function cambiarMetaKm(estado, km) {
 // (v124) La voz que habla en la carrera (el identificador que da el teléfono; vacío = automática).
 export function cambiarVozRunning(estado, voz) {
     estado.running.voz = String(voz || "").slice(0, 200);
+}
+
+// (v131) La pausa automática y cómo se ve el mapa en vivo.
+export function cambiarAutopausa(estado, encendida) {
+    estado.running.autopausa = Boolean(encendida);
+}
+export function cambiarVistaMapa(estado, vista) {
+    estado.running.vistaMapa = vista === "todo" ? "todo" : "seguir";
 }
 
 // (v120) El modo concentración de la carrera: una pantalla limpia, solo con lo que importa mientras corres.

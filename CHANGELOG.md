@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v131 — GPS más fino, mapa que te sigue y modo pista
+- `running.js`: `filtrarPunto` (Kalman, `RUIDO_KALMAN` 4 m/s; descarta saltos > 15 m/s con precisión > 10 m), paso mínimo según la precisión cruda (hasta 12 m), `calidadGps`, `ritmoActual` (últimos 30 s, `anotarReciente`), `AUTOPAUSA` (10 s / 8 m, sigue a 15 m), `PISTA_METROS`, `vueltasDe`.
+- `acciones.js`: `registrarPuntoCarrera` filtra y hace la pausa automática (no cuenta para fantasmas/jefes); `empezarCarrera(…, { pista })`; la carrera guarda `pista`; `cambiarAutopausa`, `cambiarVistaMapa`.
+- `dibujo-carrera.js`: proyección en metros con modo «seguir» (ventana de 420 m), suelo, paisaje y río anclados al terreno, flecha de dirección; `mapaDePista` y `puntoEnPista` (pista de 400 m con 6 carriles, gradas y campo).
+- Vista: «Calle / Pista 400 m» al empezar, «Ritmo (ahora)», botón «Ver todo / Seguirme», interruptor de pausa automática, aviso de cada vuelta; GPS con `maximumAge: 0`.
+
 ## v130 — Voz Dora (Kokoro)
 - `herramientas/generar-voces-kokoro.py`: genera los audios con Kokoro (`ef_dora`, `lang=es-419`, Apache-2.0). `locutor/dora/` (360 audios, 2,6 MB). Registrada en `locutor.js › VOCES`.
 - Límite: no hay voz colombiana libre de calidad; `es-419` es neutro. Para colombiano real: Azure (de pago por encima del nivel gratis) o grabar a una persona.

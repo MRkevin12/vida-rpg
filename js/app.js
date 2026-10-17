@@ -77,7 +77,10 @@ let fraseGym = null;               // (v76) lo último que te dijo Aurelio en el
 let resumenGym = null;             // (v76) el entrenamiento que acabas de terminar (para mostrar su resumen)
 let gymVista = null;               // (v75) la vista previa del cuerpo en el gimnasio: { fisico, corp } o null
 let descansoGym = null;          // (v66) el descanso entre series del gym: { fin, total } (milisegundos), o null
-let runTipo = "suave";           // (v109) el tipo de carrera que vas a empezar en la pestaña Running
+let runTipo = "suave";
+let runPista = false;            // (v131) ¿vas a correr en una pista de atletismo?
+let estadoDePausaVisto = "";     // (v131) para redibujar la carrera cuando entra o sale la pausa automática
+let vueltaVista = 0;             // (v131) la última vuelta avisada en pista           // (v109) el tipo de carrera que vas a empezar en la pestaña Running
 let seguimientoGps = null;       // (v109) el id del seguimiento de posición del GPS mientras corres, o null
 let gpsProblema = null;          // (v109) por qué no hay GPS: "permiso" o "senal", o null
 let pantallaDeDespierta = null;  // (v109) el «wake lock»: la pantalla no se apaga mientras corres
@@ -291,7 +294,7 @@ function textoNotificacionCarrera(en) {
     // Una barrita de 10 cuadritos: ▰▰▰▱▱▱▱▱▱▱
     const barra = (parte) => "▰".repeat(Math.round(Math.min(1, Math.max(0, parte)) * 10)) + "▱".repeat(10 - Math.round(Math.min(1, Math.max(0, parte)) * 10));
     const km = en.distancia / 1000;
-    const lineas = [`⚡ ${running.textoRitmo(running.ritmoEnVivo(en, ahora))}${en.objetivo ? `   🎯 ${running.textoSegundos(en.objetivo)} /km` : ""}`];
+    const lineas = [`⚡ ${running.textoRitmo(running.ritmoActual(en, ahora))}${en.objetivo ? `   🎯 ${running.textoSegundos(en.objetivo)} /km` : ""}`];
     const pelea = en.encuentros?.find((e) => !e.resultado);
     if (pelea) {
         const marcas = en.marcas || [];
@@ -352,7 +355,7 @@ function actualizarBarraRun() {
     barra.hidden = !en || pantallaActual === "running";
     if (barra.hidden) return;
     const tiempo = running.tiempoDeEncurso(en, Date.now());
-    barra.innerHTML = `<b>🏃 ${running.textoTiempo(tiempo)}</b>${en.gps ? `<span>${running.textoKm(en.distancia / 1000)}</span><span>${running.textoRitmo(running.ritmoEnVivo(en, Date.now()))}</span>` : ""}${en.pausadoDesde ? "<span>⏸ en pausa</span>" : ""}`;
+    barra.innerHTML = `<b>🏃 ${running.textoTiempo(tiempo)}</b>${en.gps ? `<span>${running.textoKm(en.distancia / 1000)}</span><span>${running.textoRitmo(running.ritmoActual(en, Date.now()))}</span>` : ""}${en.pausadoDesde ? "<span>⏸ en pausa</span>" : ""}`;
 }
 
 function tictac() {
@@ -367,19 +370,23 @@ function tictac() {
         const km = document.querySelector("[data-run-km]");
         if (km) km.textContent = running.textoKm(en.distancia / 1000);
         const ritmo = document.querySelector("[data-run-ritmo]");
-        if (ritmo) ritmo.textContent = running.textoRitmo(running.ritmoEnVivo(en, ahora));
+        if (ritmo) ritmo.textContent = running.textoRitmo(running.ritmoActual(en, ahora));
         const aviso = document.querySelector("[data-run-gps]");
         if (aviso) aviso.textContent = vistasRunning.textoGps(en, gpsProblema);
         // (v118) El mapa de la carrera y el avance de la ruta: se vuelven a dibujar solo cuando llega un punto nuevo del GPS.
         const caja = document.querySelector("[data-run-mapa]");
-        const firma = `${(en.traza || []).length}:${(en.puntosKm || []).length}`;
+        const firma = `${(en.traza || []).length}:${(en.puntosKm || []).length}:${estado.running.vistaMapa}:${en.pista ? Math.round(en.distancia) : ""}`;
         if (caja && caja.dataset.n !== firma) {
-            caja.innerHTML = vistasRunning.htmlMapaVivo(en.traza, en.puntosKm, vistasRunning.opcionesDelMapa(en));
+            caja.innerHTML = vistasRunning.htmlMapaVivo(en.traza, en.puntosKm, vistasRunning.opcionesDelMapa(en, estado.running));
             caja.dataset.n = firma;
             ponerHeroeEnMapaVivo();
             const textoRuta = document.querySelector("[data-run-ruta]");
             if (textoRuta) textoRuta.textContent = vistasRunning.textoRutaEnVivo(estado, en);
         }
+        // (v131) Entró o salió la pausa automática (o una pausa): se redibuja la carrera para que los botones digan lo correcto.
+        const pausa = `${Boolean(en.pausadoDesde)}:${Boolean(en.autopausa)}`;
+        if (estadoDePausaVisto && pausa !== estadoDePausaVisto && !runTerminando) { estadoDePausaVisto = pausa; dibujarPantalla({ mantenerScroll: true }); return; }
+        estadoDePausaVisto = pausa;
         // (v119) La pelea del km: el texto cada segundo; la imagen de la criatura solo cuando cambia.
         const pelea = document.querySelector("[data-run-encuentro]");
         if (pelea) pelea.innerHTML = vistasRunning.htmlEncuentro(en, ahora);
@@ -458,6 +465,12 @@ function iniciarGps() {
             datos.guardar(estado);
             if (avance.kmNuevo) anunciarKilometro(avance.kmNuevo, avance.segundos, avance.resueltos, avance.nuevo);
             else avisarSiVasLento();
+            // (v131) En pista: aviso de cada vuelta.
+            const en = estado.running.encurso;
+            if (en?.pista) {
+                const vueltas = running.vueltasDe(en.distancia, en.pista);
+                if (vueltas > vueltaVista) { vueltaVista = vueltas; avisar(`🏟️ Vuelta ${vueltas} · ${running.textoKm(en.distancia / 1000)}`); }
+            }
         }
     }, (error) => {
         // 1 = no nos dieron permiso (ya no se puede: se deja de escuchar).
@@ -468,7 +481,7 @@ function iniciarGps() {
         } else {
             gpsProblema = "senal";
         }
-    }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
 }
 
 // (v116) Cada kilómetro: un sonido, un aviso en pantalla y, si está activada la voz, tu tiempo hablado.
@@ -1501,7 +1514,8 @@ function contextoActual(efectos = {}) {
         renovandoPacto,
         descanso: descansoGym,
         gymVista,
-        tipo: runTipo,                                      // (v109) el tipo de carrera elegido
+        tipo: runTipo,
+        pista: runPista,                                    // (v131)                                      // (v109) el tipo de carrera elegido
         gpsProblema,
         terminando: runTerminando,
         fraseGym,
@@ -3535,6 +3549,13 @@ const ACCIONES = {
     "gym-descanso": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "descanso", boton.dataset.segundos), { mantenerScroll: true }),
 
     // El running (v109). Ver running.js, vistas-running.js y el final de acciones.js.
+    "run-lugar": (boton) => {   // (v131) calle o pista
+        runPista = boton.dataset.lugar === "pista";
+        sonar("cursor");
+        dibujarPantalla({ mantenerScroll: true });
+    },
+    "run-vista-mapa": () => ejecutar(() => acciones.cambiarVistaMapa(estado, estado.running.vistaMapa === "todo" ? "seguir" : "todo"), { mantenerScroll: true }),
+    "run-autopausa": () => ejecutar(() => acciones.cambiarAutopausa(estado, estado.running.autopausa === false), { mantenerScroll: true }),
     "run-tipo": (boton) => {
         runTipo = boton.dataset.tipo;
         sonar("cursor");
@@ -3543,10 +3564,11 @@ const ACCIONES = {
     "run-empezar": (boton) => {
         const gps = boton.dataset.gps === "1";
         const objetivo = $("#run-objetivo")?.value || "";
-        const empezada = ejecutar(() => acciones.empezarCarrera(estado, runTipo, { gps, objetivo }), { mantenerScroll: true });
+        const empezada = ejecutar(() => acciones.empezarCarrera(estado, runTipo, { gps, objetivo, pista: gps && runPista }), { mantenerScroll: true });
         if (!empezada) return;
         runTerminando = false;
         pausoParaTerminar = false;
+        vueltaVista = 0;
         const primera = estado.running.encurso?.encuentros?.[0];
         locutor.despertar();   // el audio solo arranca tras un toque
         hablar(frases.anuncioDeInicio(primera));

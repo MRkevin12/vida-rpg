@@ -7,7 +7,7 @@
 import * as running from "./running.js";
 import * as ruta from "./ruta.js";
 import * as encuentros from "./encuentros.js";
-import { mapaDeCarrera } from "./dibujo-carrera.js";
+import { mapaDeCarrera, mapaDePista } from "./dibujo-carrera.js";
 import { esc, selectorSecciones } from "./vistas.js";
 import { plural } from "./juego.js";
 import { fechaCorta, lunesDe } from "./fechas.js";
@@ -52,8 +52,11 @@ export function pantallaRunning(estado, ctx) {
 // Lo que dice el aviso del GPS. app.js lo vuelve a escribir cada segundo (data-run-gps), sin redibujar la pantalla.
 export function textoGps(en, problema) {
     if (!en.gps) return "⏱ Solo cronómetro: anota la distancia al terminar.";
-    if (problema === "permiso") return "⚠️ Sin permiso de ubicación: anota la distancia al terminar.";
+    if (problema === "permiso") return "⚠️ Sin permiso de ubicación: actívalo en Ajustes del iPhone → Privacidad → Localización (para el navegador y la app).";
     if (problema === "senal") return "📡 Señal GPS perdida: se reanuda sola cuando vuelva.";
+    if (en.autopausa) return "⏸ Pausa automática: te quedaste quieto. Sigue corriendo y el reloj vuelve solo.";
+    const calidad = running.calidadGps(en.precision);   // (v131)
+    if (calidad && (en.ultimo || en.distancia)) return `${calidad.icono} Señal GPS ${calidad.texto}.`;
     if (en.ultimo || en.distancia) return "📡 GPS activo: se miden los metros mientras la app esté abierta.";
     return "📡 Buscando señal GPS… (sal a un lugar abierto si tarda)";
 }
@@ -65,19 +68,19 @@ function vistaEnVivo(estado, ctx) {
     const tipo = running.TIPOS[en.tipo];
     const pausada = Boolean(en.pausadoDesde);
     const tiempo = running.tiempoDeEncurso(en, ctx.ahora);
-    const ritmo = running.ritmoEnVivo(en, ctx.ahora);
+    const ritmo = running.ritmoActual(en, ctx.ahora);   // (v131) el de los últimos ~30 s
     // (v129) «Terminar y guardar» solo aparece cuando tocas «Ya terminé».
     if (ctx.terminando) return vistaTerminar(estado, ctx, tiempo);
     const concentrado = estado.running.concentracion !== false;
     return `
         <section class="panel run-vivo ${pausada ? "pausada" : ""}">
-            <p class="etiqueta">${tipo.icono} ${esc(tipo.nombre)}${pausada ? " · en pausa" : ""}</p>
+            <p class="etiqueta">${tipo.icono} ${esc(tipo.nombre)}${en.pista ? " · 🏟️ pista" : ""}${en.autopausa ? " · ⏸ pausa automática" : pausada ? " · en pausa" : ""}</p>
             <p class="run-tiempo" data-run-tiempo>${running.textoTiempo(tiempo)}</p>
             <div class="run-datos">
                 <div><small>Distancia</small><b data-run-km>${running.textoKm(en.distancia / 1000)}</b></div>
-                <div><small>Ritmo</small><b data-run-ritmo>${running.textoRitmo(ritmo)}</b></div>
+                <div><small>Ritmo (ahora)</small><b data-run-ritmo>${running.textoRitmo(ritmo)}</b></div>
             </div>
-            ${en.gps ? `<div class="run-mapa-vivo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm, opcionesDelMapa(en))}</div>
+            ${en.gps ? `<div class="run-mapa-vivo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm, opcionesDelMapa(en, estado.running))}</div>
             ${en.encuentros ? `<div class="run-pelea">
                 <img class="run-pelea-sprite" alt="" data-run-criatura="">
                 <div data-run-encuentro>${htmlEncuentro(en, ctx.ahora)}</div>
@@ -87,7 +90,7 @@ function vistaEnVivo(estado, ctx) {
             <p class="nota" data-run-gps>${textoGps(en, ctx.gpsProblema)}</p>
             <div class="run-parciales-vivo" data-run-parciales data-n="${(en.marcas || []).length}">${htmlParciales(running.parcialesDe(en.marcas))}</div>
             <div class="run-botones">
-                <button type="button" class="boton ${pausada ? "boton-principal" : "boton-secundario"}" data-accion="run-pausa">${pausada ? "▶ Seguir" : "⏸ Pausar"}</button>
+                <button type="button" class="boton ${pausada ? "boton-principal" : "boton-secundario"}" data-accion="run-pausa">${en.autopausa ? "▶ Seguir ya" : pausada ? "▶ Seguir" : "⏸ Pausar"}</button>
                 <button type="button" class="boton boton-principal" data-accion="run-terminar-abrir">🏁 Ya terminé</button>
             </div>
             <div class="run-botones run-botones-chicos">
@@ -150,7 +153,7 @@ function detalleDeCarrera(c) {
     return `
         <details class="run-detalle">
             <summary>🗺️ Ver recorrido${c.parciales?.length ? ` y ${plural(c.parciales.length, "parcial", "parciales")}` : ""}</summary>
-            ${c.traza ? `<div class="run-mapa-vivo">${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km })}</div>
+            ${c.traza ? `<div class="run-mapa-vivo">${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km, pista: c.pista ? { metros: c.km * 1000, largo: c.pista } : null })}</div>
             <p class="mini texto-suave">Cuadro verde: salida · rojo: llegada · banderas: cada km (verde: criatura vencida, morada: jefe vencido, gris: escapó)</p>` : ""}
             ${criaturasDeCarrera(c)}
             ${htmlParciales(c.parciales)}
@@ -161,17 +164,25 @@ function detalleDeCarrera(c) {
 // ===== El mapa de tu carrera (v118; zonas, ríos, lagos y criaturas en la v119) =====
 // El dibujo está en dibujo-carrera.js. Encima van tu héroe y la criatura del km (sus imágenes las pone app.js: son pixel art
 // y tardan un instante) y el nombre de la zona donde vas.
-export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null } = {}) {
-    const { svg, aqui, zona } = mapaDeCarrera({ traza, banderas, encuentros: peleas, km });
+export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null, seguir = false, pista = null } = {}) {
+    // (v131) En pista se dibuja la pista de atletismo; en la calle, el mapa te sigue de cerca o muestra todo el recorrido.
+    const { svg, aqui, zona } = pista
+        ? mapaDePista({ metros: pista.metros, largo: pista.largo })
+        : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe });
     const enMapa = (x, y) => `left: ${Math.min(96, Math.max(4, x)).toFixed(2)}%; top: ${Math.min(96, Math.max(10, y)).toFixed(2)}%`;
     return `${svg}
         <span class="run-mapa-zona">${esc(zona.nombre)}</span>
+        ${heroe && !pista ? `<button type="button" class="run-mapa-vista" data-accion="run-vista-mapa">${seguir ? "🗺️ Ver todo" : "🎯 Seguirme"}</button>` : ""}
         ${heroe && aqui ? `<img class="run-mapa-heroe" alt="" style="${enMapa(aqui.x, aqui.y)}">` : ""}
         ${heroe && aqui && criatura ? `<img class="run-mapa-criatura ${criatura.jefe ? "jefe" : ""}" alt="" data-criatura="${criatura.id}" style="${enMapa(aqui.x + (aqui.x > 70 ? -12 : 12), aqui.y - 2)}">` : ""}`;
 }
 
 // Lo que el mapa en vivo necesita de la carrera en curso.
-export const opcionesDelMapa = (en) => ({ encuentros: en.encuentros || [], km: en.distancia / 1000, criatura: en.encuentros?.find((e) => !e.resultado) || null });
+export const opcionesDelMapa = (en, r = {}) => ({
+    encuentros: en.encuentros || [], km: en.distancia / 1000, criatura: en.encuentros?.find((e) => !e.resultado) || null,
+    seguir: r.vistaMapa !== "todo",                                          // (v131)
+    pista: en.pista ? { metros: en.distancia, largo: en.pista } : null,      // (v131)
+});
 
 // ===== La pelea del km (v119) =====
 // La criatura del km en curso: qué pide, cuánta vida le queda (baja a medida que avanzas en el km) y cómo vas con tu ritmo.
@@ -230,6 +241,11 @@ function panelEmpezar(ctx, estado) {
             <h2 class="titulo-juego">▶ Empezar una carrera</h2>
             <div class="run-tipos" role="group" aria-label="Tipo de carrera">${chips}</div>
             <p class="nota">${esc(tipo.texto)}${tipo.bono ? ` Suma +${tipo.bono} XP de bono.` : ""}</p>
+            <div class="selector" role="group" aria-label="Dónde corres">
+                <button type="button" data-accion="run-lugar" data-lugar="calle" aria-pressed="${!ctx.pista}">🛣️ Calle</button>
+                <button type="button" data-accion="run-lugar" data-lugar="pista" aria-pressed="${Boolean(ctx.pista)}">🏟️ Pista 400 m</button>
+            </div>
+            ${ctx.pista ? '<p class="mini texto-suave">En pista se dibuja la pista de atletismo (no los círculos del GPS) y se cuentan tus vueltas. La distancia la sigue midiendo el GPS.</p>' : ""}
             <label class="formulario-grupo"><span>🎯 Ritmo objetivo (opcional, min:seg por km)</span>
                 <input type="text" id="run-objetivo" inputmode="decimal" placeholder="Tu promedio: ${running.textoSegundos(promedio)}" autocomplete="off"></label>
             <p class="mini texto-suave">Con GPS, cada kilómetro aparece una criatura: la vences si corres ese km a tu ritmo objetivo (cada 5 km, un jefe).
@@ -427,6 +443,11 @@ function tarjetaAjustes(estado) {
                 <select data-running-mision>
                     <option value="">Ninguna</option>${opciones}
                 </select></label>
+            <div class="run-meta">
+                <span>⏸ Pausa automática (si te quedas quieto)</span>
+                <button type="button" class="boton boton-chico ${r.autopausa !== false ? "boton-principal" : "boton-secundario"}" data-accion="run-autopausa"
+                        aria-pressed="${r.autopausa !== false}">${r.autopausa !== false ? "Sí" : "No"}</button>
+            </div>
             <div class="run-meta">
                 <span>🔊 Voz cada kilómetro (con GPS)</span>
                 <button type="button" class="boton boton-chico ${r.avisoKm !== false ? "boton-principal" : "boton-secundario"}" data-accion="run-aviso-km"
