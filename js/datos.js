@@ -36,7 +36,7 @@ export function estadoInicial() {
         avances: {},          // misiones con cantidad: cuánto llevas hoy y ayer, { "id|fecha": 3 }
         fallas: [],           // «Fallé»: { misionId, fecha, motivo (ver juego.MOTIVOS_FALLA), golpe (lo que te pegó el jefe) }
 
-        tareas: [],           // sueltas: { id, nombre, fecha (vence, o null = sin fecha), dificultad, atributo, creadaEn,
+        tareas: [],           // sueltas: { id, nombre, fecha (vence, o null = sin fecha), aviso (hora de alarma "18:00" o null), dificultad, atributo, creadaEn,
                               //   hechaEn, premio: { xp, monedas, atributo, dificultad } }
         enfoque: {            // modo enfoque (pomodoro)
             activo: null,     // la sesión en curso: { inicio (milisegundos), minutos, atributo }

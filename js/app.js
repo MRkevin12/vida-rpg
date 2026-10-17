@@ -1780,6 +1780,7 @@ const PREPARAR = {
         formulario.elements.fecha.value = tarea ? tarea.fecha : hoy();   // por defecto, para hoy
         if (tarea) {
             formulario.elements.nombre.value = tarea.nombre;
+            formulario.elements.aviso.value = tarea.aviso || "";
             formulario.elements.dificultad.value = tarea.dificultad;
             formulario.elements.atributo.value = valorAtributo(tarea);
         }

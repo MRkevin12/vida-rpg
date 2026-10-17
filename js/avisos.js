@@ -13,7 +13,7 @@
 import * as juego from "./juego.js";
 import * as vida from "./vida.js";
 import { preguntaDelDia } from "./diario.js";
-import { sumarDias, aTexto, lunesDe } from "./fechas.js";
+import { sumarDias, aTexto, lunesDe, diaDeSemana } from "./fechas.js";
 
 // La dirección del servidor y su llave pública. Ninguna de las dos es secreta.
 // En la compu (localhost) se usa el servidor de prueba: "npm run local" en la carpeta servidor/.
@@ -99,12 +99,25 @@ export function avisosDeMisiones(estado, hoy) {
     });
 }
 
+// Las alarmas de las tareas con hora. El servidor solo sabe de «misiones con aviso», así que cada tarea se manda igual
+// (los números de tareas y misiones nunca se repiten): suena el día de la tarea, a su hora, y se calla antes de ese día.
+// Las que ya hiciste o ya vencieron no se mandan.
+export function avisosDeTareas(estado, hoy) {
+    return estado.tareas.filter((t) => t.aviso && t.fecha && !t.hechaEn && t.fecha >= hoy).map((t) => ({
+        id: t.id,
+        hora: t.aviso,
+        dias: [diaDeSemana(t.fecha)],
+        saltarHasta: t.fecha > hoy ? sumarDias(t.fecha, -1) : null,
+    }));
+}
+
 // Lo que el servidor necesita saber de tus ajustes.
 function configuracion(estado) {
     const hoy = aTexto(new Date());
     return {
         horarios: estado.avisos.horarios.map(({ hora, dias }) => ({ hora, dias })),
-        misiones: avisosDeMisiones(estado, hoy),
+        // El servidor acepta 30 en total (servidor/worker.js › MAX_MISIONES): primero las misiones, luego las tareas que sobren.
+        misiones: [...avisosDeMisiones(estado, hoy), ...avisosDeTareas(estado, hoy)].slice(0, 30),
         zona: Intl.DateTimeFormat().resolvedOptions().timeZone,   // ej: "America/Bogota"
         avisarEnfoque: estado.avisos.enfoque,
         // En modo descanso no llegan recordatorios hasta ese día (incluido).
@@ -249,13 +262,26 @@ export function resumenParaAvisos(estado, hoy) {
             cuerpo,
             cuerpoNoche: noche.join("\n"),   // desde las 7 p. m.
             insignia: misiones.length + tareas.length,   // el numerito sobre el ícono de la app
-            porMision: textosDeMisiones(estado, fecha, hechas, i === 0 ? racha : 0),
+            porMision: { ...textosDeMisiones(estado, fecha, hechas, i === 0 ? racha : 0), ...textosDeTareas(estado, fecha) },
         };
     }
     // Los nombres, por si llega el aviso de una misión que ya hiciste sin internet (ver sw.js).
     const nombres = {};
     for (const m of estado.misiones) if (m.aviso) nombres[m.id] = m.nombre;
+    for (const t of estado.tareas) if (t.aviso) nombres[t.id] = t.nombre;
     return { dias, nombres };
+}
+
+// El texto de la alarma de cada tarea con hora que vence ese día y sigue pendiente.
+function textosDeTareas(estado, fecha) {
+    const textos = {};
+    for (const t of estado.tareas) {
+        if (!t.aviso || t.hechaEn || t.fecha !== fecha) continue;
+        const d = juego.DIFICULTADES[t.dificultad];
+        textos[t.id] = { titulo: `⏰ ${t.nombre}`, cuerpo: `Tarea para hoy.
++${d.xp} XP · +${d.monedas} monedas` };
+    }
+    return textos;
 }
 
 // El texto del aviso propio de cada misión con hora de aviso que esté pendiente ese día.

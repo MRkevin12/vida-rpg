@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v115 — Alarma en las tareas
+- Las tareas tienen `aviso` (hora «HH:MM», opcional). `acciones.crearTarea/editarTarea` la validan; sin fecha, la alarma es para hoy.
+- `js/avisos.js`: `avisosDeTareas` las manda al servidor como si fueran misiones con aviso (día de la semana de la tarea y «saltarHasta» el día anterior); el texto sale de `textosDeTareas`. Sin cambios en el Worker. Tope total de 30 avisos.
+
 ## v114 — Batallas que caben en el teléfono
 - `js/vistas.js`: la pestaña Aurelio de Hoy va al final.
 - `estilos-pixel.css` + `js/efectos.js`: la clase de las monedas voladoras pasa de `.vuela` a `.vuelo`; chocaba con `.vuela` de las criaturas voladoras (quedaban `position: fixed`, fuera de la escena).

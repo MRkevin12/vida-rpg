@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 114;
+export const VERSION_APP = 115;
 
 export const NOVEDADES = [
+    {
+        version: 115,
+        titulo: "Alarma en las tareas",
+        cambios: [
+            "⏰ Al crear o editar una tarea puedes ponerle una hora: ese día te llega una notificación si todavía no la hiciste.",
+            "📌 La hora aparece en la tarea. Sin fecha, la alarma es para hoy. Necesita las notificaciones activadas.",
+        ],
+    },
     {
         version: 114,
         titulo: "Batallas que caben en el teléfono",

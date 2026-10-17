@@ -528,9 +528,10 @@ function cuandoVence(tarea, hoy) {
     if (!tarea.fecha) return "Sin fecha";
     const dias = diasEntre(hoy, tarea.fecha);
     if (dias < 0) return `<span class="atrasada">Atrasada: vencía el ${fechaCorta(tarea.fecha)}</span>`;
-    if (dias === 0) return "Vence hoy";
-    if (dias === 1) return "Vence mañana";
-    return `Vence el ${DIAS_CORTOS[diaDeSemana(tarea.fecha)]} ${fechaCorta(tarea.fecha)}`;
+    const alarma = tarea.aviso ? ` · ⏰ ${tarea.aviso}` : "";
+    if (dias === 0) return `Vence hoy${alarma}`;
+    if (dias === 1) return `Vence mañana${alarma}`;
+    return `Vence el ${DIAS_CORTOS[diaDeSemana(tarea.fecha)]} ${fechaCorta(tarea.fecha)}${alarma}`;
 }
 
 

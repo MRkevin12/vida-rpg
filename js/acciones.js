@@ -430,11 +430,17 @@ function validarFechaTarea(fecha) {
     return fecha;
 }
 
-export function crearTarea(estado, { nombre, fecha, dificultad, atributo }) {
+// Una tarea con hora de alarma necesita un día: si no eligieron fecha, es para hoy.
+function fechaYAviso(fecha, aviso) {
+    const hora = validarAviso(aviso);
+    return { fecha: validarFechaTarea(fecha) || (hora ? hoy() : null), aviso: hora };
+}
+
+export function crearTarea(estado, { nombre, fecha, dificultad, atributo, aviso }) {
     estado.tareas.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 80),
-        fecha: validarFechaTarea(fecha),   // el día que vence (o null: sin fecha)
+        ...fechaYAviso(fecha, aviso),      // fecha: el día que vence (o null) · aviso: hora de la alarma ("18:00") o null
         dificultad: validarDificultad(dificultad),
         ...elegirAtributo(estado, atributo),
         creadaEn: hoy(),
@@ -443,10 +449,10 @@ export function crearTarea(estado, { nombre, fecha, dificultad, atributo }) {
     });
 }
 
-export function editarTarea(estado, { id, nombre, fecha, dificultad, atributo }) {
+export function editarTarea(estado, { id, nombre, fecha, dificultad, atributo, aviso }) {
     const tarea = buscar(estado.tareas, Number(id), "esa tarea");
     tarea.nombre = validarNombre(nombre, 80);
-    tarea.fecha = validarFechaTarea(fecha);
+    Object.assign(tarea, fechaYAviso(fecha, aviso));
     tarea.dificultad = validarDificultad(dificultad);
     Object.assign(tarea, elegirAtributo(estado, atributo));
 }

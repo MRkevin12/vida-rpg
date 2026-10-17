@@ -21,7 +21,7 @@ import * as voces from "../js/voces.js";
 import * as vistasVoces from "../js/vistas-voces.js";
 import { existeSonido } from "../js/sonido.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO } from "../js/resumen.js";
-import { resumenParaAvisos, avisosDeMisiones } from "../js/avisos.js";
+import { resumenParaAvisos, avisosDeMisiones, avisosDeTareas } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
 import * as bestiario from "../js/bestiario.js";
 import * as leyendas from "../js/leyendas.js";
@@ -728,6 +728,26 @@ prueba("Aviso de misión: al servidor solo le llega el número y hasta cuándo n
     acciones.completarMision(estado, gym.id);    // semana cumplida: no avisar hasta el domingo
     igual(avisosDeMisiones(estado, hoy()).map((a) => a.saltarHasta), [hoy(), sumarDias(lunesDe(hoy()), 6)]);
     cierto(!JSON.stringify(avisosDeMisiones(estado, hoy())).includes("Leer"), "el nombre no sale del teléfono");
+});
+
+prueba("Alarma de tarea: hora opcional, sin fecha es para hoy, y al servidor solo llega el número", () => {
+    const estado = partidaNueva();
+    const manana = sumarDias(hoy(), 1);
+    acciones.crearTarea(estado, { nombre: "Llamar al banco", fecha: manana, aviso: "09:30", dificultad: "normal", atributo: "carisma" });
+    acciones.crearTarea(estado, { nombre: "Sin hora", fecha: manana, dificultad: "normal", atributo: "carisma" });
+    acciones.crearTarea(estado, { nombre: "Hoy sin fecha", aviso: "20:00", dificultad: "normal", atributo: "carisma" });
+    const [banco, , hoyT] = estado.tareas;
+    igual(hoyT.fecha, hoy());
+    igual(estado.tareas[1].aviso, null);
+    igual(avisosDeTareas(estado, hoy()), [
+        { id: banco.id, hora: "09:30", dias: [diaDeSemana(manana)], saltarHasta: hoy() },
+        { id: hoyT.id, hora: "20:00", dias: [diaDeSemana(hoy())], saltarHasta: null },
+    ]);
+    cierto(!JSON.stringify(avisosDeTareas(estado, hoy())).includes("banco"), "el nombre no sale del teléfono");
+    cierto(resumenParaAvisos(estado, hoy()).dias[manana].porMision[banco.id].titulo.includes("Llamar al banco"), "el texto está en el resumen");
+    acciones.alternarTarea(estado, hoyT.id);
+    igual(avisosDeTareas(estado, hoy()).length, 1);   // la hecha ya no avisa
+    debeFallar(() => acciones.crearTarea(estado, { nombre: "x", aviso: "25:00", dificultad: "normal", atributo: "carisma" }), "hora válida");
 });
 
 prueba("Aviso de misión: el texto es solo de esa misión, y desaparece al hacerla", () => {
