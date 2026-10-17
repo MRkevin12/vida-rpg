@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v132 — Km por zona ajustable
+- `running.kmPorZona` (1–10, por defecto 2; antes fijo en 3) con − / + en Tus metas. La carrera en curso guarda `kmPorZona` y la carrera terminada también (las viejas dibujan con 3). `zonaDelKm`, `criaturaDelKm` y `mapaDeCarrera` reciben el valor.
+
 ## v131 — GPS más fino, mapa que te sigue y modo pista
 - `running.js`: `filtrarPunto` (Kalman, `RUIDO_KALMAN` 4 m/s; descarta saltos > 15 m/s con precisión > 10 m), paso mínimo según la precisión cruda (hasta 12 m), `calidadGps`, `ritmoActual` (últimos 30 s, `anotarReciente`), `AUTOPAUSA` (10 s / 8 m, sigue a 15 m), `PISTA_METROS`, `vueltasDe`.
 - `acciones.js`: `registrarPuntoCarrera` filtra y hace la pausa automática (no cuenta para fantasmas/jefes); `empezarCarrera(…, { pista })`; la carrera guarda `pista`; `cambiarAutopausa`, `cambiarVistaMapa`.

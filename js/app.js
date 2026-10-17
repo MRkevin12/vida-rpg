@@ -3555,6 +3555,7 @@ const ACCIONES = {
         dibujarPantalla({ mantenerScroll: true });
     },
     "run-vista-mapa": () => ejecutar(() => acciones.cambiarVistaMapa(estado, estado.running.vistaMapa === "todo" ? "seguir" : "todo"), { mantenerScroll: true }),
+    "run-km-zona": (boton) => ejecutar(() => acciones.cambiarKmPorZona(estado, (estado.running.kmPorZona || 2) + Number(boton.dataset.delta)), { mantenerScroll: true }),
     "run-autopausa": () => ejecutar(() => acciones.cambiarAutopausa(estado, estado.running.autopausa === false), { mantenerScroll: true }),
     "run-tipo": (boton) => {
         runTipo = boton.dataset.tipo;

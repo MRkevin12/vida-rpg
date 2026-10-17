@@ -2947,9 +2947,12 @@ prueba("Criaturas de la carrera: cada 5 km un jefe, la zona cambia cada 3 km y s
     cierto(jefe.jefe, "el km 5 es de un jefe");
     cierto(bestiario.CRIATURAS[jefe.id].guardian, "el jefe es un guardián");
     igual(encuentros.criaturaDelKm(123456, 2), encuentros.criaturaDelKm(123456, 2), "misma carrera y km: misma criatura");
-    igual(encuentros.zonaDelKm(1).id, "pradera");
-    igual(encuentros.zonaDelKm(4).id, "bosque");
-    igual(encuentros.zonaDelKm(19).id, "pradera", "después de las 6 zonas, vuelven a empezar");
+    igual(encuentros.zonaDelKm(1, 3).id, "pradera");
+    igual(encuentros.zonaDelKm(4, 3).id, "bosque");
+    igual(encuentros.zonaDelKm(19, 3).id, "pradera", "después de las 6 zonas, vuelven a empezar");
+    igual(encuentros.zonaDelKm(2).id, "pradera", "por defecto el paisaje cambia cada 2 km");
+    igual(encuentros.zonaDelKm(3).id, "bosque");
+    igual([1, 2, 3, 4].map((km) => encuentros.zonaDelKm(km, 1).id), ["pradera", "bosque", "pantano", "desierto"], "con 1 km por zona, cada km es otro paisaje");
     for (let km = 1; km <= 20; km++) cierto(bestiario.CRIATURAS[encuentros.criaturaDelKm(99, km).id], `criatura válida en el km ${km}`);
 });
 
@@ -3127,6 +3130,28 @@ prueba("Mapa de la carrera: en modo «seguir» te deja en el centro y el paisaje
     // Al avanzar un poco, lo que estaba a la vista sigue igual en el terreno: la mayoría del dibujo se repite.
     const otro = mapaDeCarrera({ traza: [...traza, [4.6 + 80 * 0.0002, -74.08]], km: 1.72, seguir: true });
     cierto(otro.svg !== lejos.svg, "el mapa se movió");
+});
+
+prueba("Km por zona: se elige (1 a 10), se queda fijo en la carrera y se guarda con ella", () => {
+    const estado = partidaNueva();
+    igual(estado.running.kmPorZona, 2);
+    acciones.cambiarKmPorZona(estado, 1);
+    igual(estado.running.kmPorZona, 1);
+    acciones.cambiarKmPorZona(estado, 0);
+    igual(estado.running.kmPorZona, 1, "no baja de 1");
+    acciones.cambiarKmPorZona(estado, 99);
+    igual(estado.running.kmPorZona, 10, "no pasa de 10");
+    acciones.cambiarKmPorZona(estado, 4);
+    acciones.empezarCarrera(estado, "suave", { gps: true });
+    igual(estado.running.encurso.kmPorZona, 4);
+    acciones.cambiarKmPorZona(estado, 1);   // cambiarlo a media carrera no la afecta
+    igual(estado.running.encurso.kmPorZona, 4);
+    estado.running.encurso.distancia = 1500;
+    estado.running.encurso.inicio = Date.now() - 9 * 60000;
+    acciones.terminarCarrera(estado, {});
+    igual(estado.running.carreras.at(-1).kmPorZona, 4, "la carrera recuerda su ajuste");
+    const mapa1 = mapaDeCarrera({ traza: Array.from({ length: 30 }, (_, i) => [4.6 + i * 0.0004, -74.08]), km: 4.5, porZona: 1 });
+    igual(mapa1.zona.id, "nieve", "con 1 km por zona, el km 5 es la quinta zona: Cumbres nevadas");
 });
 
 prueba("Modo concentración: viene activado y se puede apagar", () => {

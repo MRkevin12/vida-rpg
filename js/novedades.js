@@ -4,9 +4,14 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 131;
+export const VERSION_APP = 132;
 
 export const NOVEDADES = [
+    {
+        version: 132,
+        titulo: "Elige cuándo cambia el paisaje",
+        cambios: ["🗺️ En Running › Progreso › Tus metas ahora decides cada cuántos km cambia el paisaje del mapa (y las criaturas): de 1 a 10 km. Antes eran 3; ahora viene en 2. Vale para las carreras que empieces desde ahora."],
+    },
     {
         version: 131,
         titulo: "GPS más fino, mapa que te sigue y modo pista",

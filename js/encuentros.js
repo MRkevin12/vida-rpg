@@ -11,9 +11,11 @@
 
 import * as bestiario from "./bestiario.js";
 
-// ===== Las zonas del mapa de la carrera (cambian cada KM_POR_ZONA kilómetros) =====
+// ===== Las zonas del mapa de la carrera (cambian cada «km por zona»: lo eliges tú, por defecto KM_POR_ZONA) =====
 // suelo: los dos colores del césped en cuadritos; criaturas: de qué zona del bestiario salen.
-export const KM_POR_ZONA = 3;
+export const KM_POR_ZONA = 2;          // lo normal; se cambia en Running › Progreso › Tus metas (de KM_POR_ZONA_MIN a KM_POR_ZONA_MAX)
+export const KM_POR_ZONA_MIN = 1;
+export const KM_POR_ZONA_MAX = 10;
 export const ZONAS = [
     { id: "pradera",  nombre: "Pradera",          suelo: ["#2a6a38", "#2e7040"], detalle: "#3f9a4a", criaturas: "cripta" },
     { id: "bosque",   nombre: "Bosque de raíces", suelo: ["#1f5230", "#235836"], detalle: "#2f7a3a", criaturas: "raices" },
@@ -22,7 +24,7 @@ export const ZONAS = [
     { id: "nieve",    nombre: "Cumbres nevadas",  suelo: ["#c8d4e4", "#d2dcea"], detalle: "#eef3fa", criaturas: "cima" },
     { id: "volcan",   nombre: "Tierras del Abismo", suelo: ["#3a2a30", "#412f36"], detalle: "#6a3a3a", criaturas: "abismo" },
 ];
-export const zonaDelKm = (km) => ZONAS[Math.floor((Math.max(1, km) - 1) / KM_POR_ZONA) % ZONAS.length];
+export const zonaDelKm = (km, porZona = KM_POR_ZONA) => ZONAS[Math.floor((Math.max(1, km) - 1) / porZona) % ZONAS.length];
 
 // ===== Los tipos de criatura =====
 // Cada tipo pide algo distinto además del ritmo. margen: cuánto más lento que tu objetivo se acepta (0,05 = 5 %).
@@ -73,8 +75,8 @@ const azar = (semilla, km, extra = 0) => {
     return x - Math.floor(x);
 };
 
-export function criaturaDelKm(inicio, km) {
-    const zona = zonaDelKm(km);
+export function criaturaDelKm(inicio, km, porZona = KM_POR_ZONA) {
+    const zona = zonaDelKm(km, porZona);
     const deLaZona = Object.entries(bestiario.CRIATURAS).filter(([, c]) => c.zona === zona.criaturas && !c.espejo);
     const jefe = km % JEFE_CADA === 0;
     const candidatas = deLaZona.filter(([, c]) => Boolean(c.guardian) === jefe);

@@ -2359,10 +2359,12 @@ export function empezarCarrera(estado, tipo, { gps = false, objetivo = "", pista
     // (v119) Con GPS, cada km trae una criatura. El ritmo objetivo es el que escribiste o, si no, tu promedio.
     if (gps) {
         const propio = encuentros.leerObjetivo(objetivo);
+        const kmPorZona = r.kmPorZona || encuentros.KM_POR_ZONA;
         Object.assign(r.encurso, {
             objetivo: propio || encuentros.objetivoPromedio(r.carreras),
             objetivoPropio: Boolean(propio),
-            encuentros: [encuentros.criaturaDelKm(inicio, 1)],
+            kmPorZona,   // (v132) se queda fijo en esta carrera aunque cambies el ajuste mientras corres
+            encuentros: [encuentros.criaturaDelKm(inicio, 1, kmPorZona)],
             kmActual: { mitad: null, t800: null, pausas: 0 },   // lo que hace falta para decidir la pelea del km
         });
         bestiario.anotarEncuentro(estado.arcade.bestiario, r.encurso.encuentros[0].id);
@@ -2456,7 +2458,7 @@ export function registrarPuntoCarrera(estado, punto) {
             resueltos.push(pelea);
         }
         if (en.encuentros) {
-            const siguiente = encuentros.criaturaDelKm(en.inicio, kmNuevo + 1);
+            const siguiente = encuentros.criaturaDelKm(en.inicio, kmNuevo + 1, en.kmPorZona);
             en.encuentros.push(siguiente);
             bestiario.anotarEncuentro(estado.arcade.bestiario, siguiente.id);
             en.kmActual = { mitad: null, t800: null, pausas: 0 };
@@ -2501,6 +2503,7 @@ export function terminarCarrera(estado, { km = "", minutos = "", nota = "" } = {
         parciales: en.gps ? running.parcialesDe(en.marcas) : null,
         puntosKm: en.gps ? en.puntosKm : null,
         pista: en.pista || null,
+        kmPorZona: en.kmPorZona || null,
     });
     // (v119) Las criaturas de la carrera: un extra que no toca el premio por km. La del km que quedó a medias se va.
     if (en.encuentros) {
@@ -2544,7 +2547,8 @@ export function guardarCarrera(estado, valores) {
     if (traza.length >= 2) carrera.traza = traza;
     const parciales = (Array.isArray(valores.parciales) ? valores.parciales : []).filter((s) => Number.isFinite(s) && s > 0).slice(0, 100);
     if (parciales.length) carrera.parciales = parciales;
-    if (valores.pista === running.PISTA_METROS) carrera.pista = running.PISTA_METROS;   // (v131) corrida en pista
+    if (valores.pista === running.PISTA_METROS) carrera.pista = running.PISTA_METROS;
+    if (Number.isInteger(valores.kmPorZona) && valores.kmPorZona >= 1 && valores.kmPorZona <= 10) carrera.kmPorZona = valores.kmPorZona;   // (v132) para dibujar su mapa igual que cuando corriste   // (v131) corrida en pista
     const banderas = running.simplificarTraza(valores.puntosKm, 100);
     if (banderas.length) carrera.puntosKm = banderas;
     r.carreras = running.ordenar([...r.carreras, carrera]);
@@ -2620,6 +2624,13 @@ export function cambiarMetaKm(estado, km) {
 // (v124) La voz que habla en la carrera (el identificador que da el teléfono; vacío = automática).
 export function cambiarVozRunning(estado, voz) {
     estado.running.voz = String(voz || "").slice(0, 200);
+}
+
+// (v132) Cada cuántos kilómetros cambia el paisaje (y las criaturas) en las carreras que EMPIECES desde ahora.
+export function cambiarKmPorZona(estado, km) {
+    const n = Math.round(Number(km));
+    if (!Number.isFinite(n)) throw new Error("Escribe cuántos km.");
+    estado.running.kmPorZona = Math.min(encuentros.KM_POR_ZONA_MAX, Math.max(encuentros.KM_POR_ZONA_MIN, n));
 }
 
 // (v131) La pausa automática y cómo se ve el mapa en vivo.

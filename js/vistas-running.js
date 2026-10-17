@@ -153,7 +153,7 @@ function detalleDeCarrera(c) {
     return `
         <details class="run-detalle">
             <summary>🗺️ Ver recorrido${c.parciales?.length ? ` y ${plural(c.parciales.length, "parcial", "parciales")}` : ""}</summary>
-            ${c.traza ? `<div class="run-mapa-vivo">${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km, pista: c.pista ? { metros: c.km * 1000, largo: c.pista } : null })}</div>
+            ${c.traza ? `<div class="run-mapa-vivo">${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km, porZona: c.kmPorZona || 3, pista: c.pista ? { metros: c.km * 1000, largo: c.pista } : null })}</div>
             <p class="mini texto-suave">Cuadro verde: salida · rojo: llegada · banderas: cada km (verde: criatura vencida, morada: jefe vencido, gris: escapó)</p>` : ""}
             ${criaturasDeCarrera(c)}
             ${htmlParciales(c.parciales)}
@@ -164,11 +164,11 @@ function detalleDeCarrera(c) {
 // ===== El mapa de tu carrera (v118; zonas, ríos, lagos y criaturas en la v119) =====
 // El dibujo está en dibujo-carrera.js. Encima van tu héroe y la criatura del km (sus imágenes las pone app.js: son pixel art
 // y tardan un instante) y el nombre de la zona donde vas.
-export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null, seguir = false, pista = null } = {}) {
+export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null, seguir = false, pista = null, porZona = 3 } = {}) {
     // (v131) En pista se dibuja la pista de atletismo; en la calle, el mapa te sigue de cerca o muestra todo el recorrido.
     const { svg, aqui, zona } = pista
         ? mapaDePista({ metros: pista.metros, largo: pista.largo })
-        : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe });
+        : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe, porZona });
     const enMapa = (x, y) => `left: ${Math.min(96, Math.max(4, x)).toFixed(2)}%; top: ${Math.min(96, Math.max(10, y)).toFixed(2)}%`;
     return `${svg}
         <span class="run-mapa-zona">${esc(zona.nombre)}</span>
@@ -181,6 +181,7 @@ export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas
 export const opcionesDelMapa = (en, r = {}) => ({
     encuentros: en.encuentros || [], km: en.distancia / 1000, criatura: en.encuentros?.find((e) => !e.resultado) || null,
     seguir: r.vistaMapa !== "todo",                                          // (v131)
+    porZona: en.kmPorZona || 3,                                              // (v132)
     pista: en.pista ? { metros: en.distancia, largo: en.pista } : null,      // (v131)
 });
 
@@ -443,6 +444,14 @@ function tarjetaAjustes(estado) {
                 <select data-running-mision>
                     <option value="">Ninguna</option>${opciones}
                 </select></label>
+            <div class="run-meta">
+                <span>🗺️ El paisaje cambia cada <b>${r.kmPorZona || 2}</b> km</span>
+                <span class="run-meta-botones">
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="run-km-zona" data-delta="-1" aria-label="Menos km por zona">−</button>
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="run-km-zona" data-delta="1" aria-label="Más km por zona">+</button>
+                </span>
+            </div>
+            <p class="mini texto-suave">Con 1 km, cada kilómetro es un paisaje (y una criatura de otra zona) distinto. Vale para las carreras que empieces desde ahora.</p>
             <div class="run-meta">
                 <span>⏸ Pausa automática (si te quedas quieto)</span>
                 <button type="button" class="boton boton-chico ${r.autopausa !== false ? "boton-principal" : "boton-secundario"}" data-accion="run-autopausa"

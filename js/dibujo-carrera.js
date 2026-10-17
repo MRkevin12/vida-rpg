@@ -96,12 +96,13 @@ function lago(x, y, zona, tam) {
 // ===== El mapa =====
 // opciones = { traza: [[lat, lon]…], banderas: [[lat, lon]…] (una por km), encuentros: [{ km, resultado, jefe }…], km: lo corrido,
 //              seguir: true (te sigue de cerca) o false (todo el recorrido), flecha: dibujar hacia dónde vas }
+// porZona: cada cuántos km cambia el paisaje (las carreras viejas, sin dato, usan 3).
 // Devuelve { svg, aqui: { x, y } en % (dónde va tu héroe) o null, zona (la del final del recorrido) }.
 // El paisaje y el río están anclados al TERRENO (en metros), así no «bailan» cuando el mapa te sigue.
-export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km = 0, seguir = false, flecha = false } = {}) {
+export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km = 0, seguir = false, flecha = false, porZona = 3 } = {}) {
     const lista = (traza || []).filter((p) => Array.isArray(p) && Number.isFinite(p[0]));
     const { ancho, alto } = LIENZO;
-    const zonaFinal = zonaDelKm(Math.floor(km) + 1);
+    const zonaFinal = zonaDelKm(Math.floor(km) + 1, porZona);
     if (!lista.length) {
         return {
             svg: `<svg class="run-mapa-svg" viewBox="0 0 ${ancho} ${alto}" shape-rendering="crispEdges" preserveAspectRatio="none" role="img" aria-label="Mapa de tu carrera">
@@ -129,7 +130,7 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
         const ultimo = puntos.length - 1;
         const dUltimo = (puntos[ultimo][0] - x) ** 2 + (puntos[ultimo][1] - y) ** 2;
         if (dUltimo < mejor) { mejor = dUltimo; indice = ultimo; }
-        return { zona: zonaDelKm(Math.floor(kmDelPunto(indice)) + 1), distancia: Math.sqrt(mejor) };
+        return { zona: zonaDelKm(Math.floor(kmDelPunto(indice)) + 1, porZona), distancia: Math.sqrt(mejor) };
     };
 
     // 1) El suelo en casillas fijas al terreno (cada una mide `paso` metros) y, encima, lagos o piezas del paisaje.

@@ -69,6 +69,7 @@ export function runningInicial() {
         rutaCobrada: 0,        // (v117) hasta qué kilómetro de la Ruta del Corredor (ruta.js) ya cobraste el premio
         concentracion: true,   // (v120) pantalla limpia mientras corres
         voz: "",              // (v124) la voz elegida (su identificador); vacío = la del teléfono
+        kmPorZona: 2,          // (v132) cada cuántos km cambia el paisaje del mapa (1 a 10)
         autopausa: true,       // (v131) el reloj se detiene solo si te quedas quieto
         vistaMapa: "seguir",   // (v131) el mapa en vivo: «seguir» (te sigue de cerca) o «todo» (todo el recorrido)
         avisoKm: true,         // (v116) la voz que dice tu tiempo cada kilómetro (solo con GPS)
