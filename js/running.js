@@ -68,6 +68,7 @@ export function runningInicial() {
         mision: null,          // la misión diaria que se marca sola al guardar una carrera (id), o null
         rutaCobrada: 0,        // (v117) hasta qué kilómetro de la Ruta del Corredor (ruta.js) ya cobraste el premio
         concentracion: true,   // (v120) pantalla limpia mientras corres
+        voz: "",              // (v124) la voz elegida (su identificador); vacío = la del teléfono
         avisoKm: true,         // (v116) la voz que dice tu tiempo cada kilómetro (solo con GPS)
     };
 }

@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v124 — Voz de la carrera elegible
+- `running.voz` (identificador de la voz), `acciones.cambiarVozRunning`, lista `[data-running-voz]` llenada en `app.js` con `speechSynthesis.getVoices()` (solo español; México y Colombia primero) y botón «Probar la voz».
+
 ## v123 — Notificación de la carrera más clara
 - `textoNotificacionCarrera`: título con tiempo y km; cuerpo con ritmo/objetivo, criatura con su estado y barra de vida (▰▱).
 

@@ -4,9 +4,14 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 123;
+export const VERSION_APP = 124;
 
 export const NOVEDADES = [
+    {
+        version: 124,
+        titulo: "Elige la voz de tu carrera",
+        cambios: ["🗣️ En Running › Progreso › Tus metas puedes elegir entre las voces en español de tu teléfono (México y Colombia primero, si las tienes) y probarla. Si falta alguna, la nota te dice cómo descargarla en el iPhone."],
+    },
     {
         version: 123,
         titulo: "Notificación de carrera más bonita",

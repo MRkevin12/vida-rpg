@@ -2587,6 +2587,11 @@ export function cambiarMetaKm(estado, km) {
     estado.running.metaKm = Math.round(numeroEntre(km, running.META_KM_MIN, running.META_KM_MAX, "La meta"));
 }
 
+// (v124) La voz que habla en la carrera (el identificador que da el teléfono; vacío = automática).
+export function cambiarVozRunning(estado, voz) {
+    estado.running.voz = String(voz || "").slice(0, 200);
+}
+
 // (v120) El modo concentración de la carrera: una pantalla limpia, solo con lo que importa mientras corres.
 export function cambiarConcentracion(estado, encendido) {
     estado.running.concentracion = Boolean(encendido);

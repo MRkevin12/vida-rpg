@@ -414,6 +414,10 @@ function tarjetaAjustes(estado) {
                 <button type="button" class="boton boton-chico ${r.avisoKm !== false ? "boton-principal" : "boton-secundario"}" data-accion="run-aviso-km"
                         aria-pressed="${r.avisoKm !== false}">${r.avisoKm !== false ? "Sí" : "No"}</button>
             </div>
+            <label class="formulario-grupo"><span>🗣️ Voz de la carrera</span>
+                <select data-running-voz data-actual="${esc(r.voz || "")}"><option value="">Automática (la del teléfono)</option></select></label>
+            <button type="button" class="boton boton-chico boton-secundario boton-ancho" data-accion="run-probar-voz">🔊 Probar la voz</button>
+            <p class="mini texto-suave" data-run-voces-nota></p>
             ${misiones.length ? "" : '<p class="mini texto-suave">Crea una misión (ej: «Correr») en Hoy para que se marque sola.</p>'}
         </section>`;
 }

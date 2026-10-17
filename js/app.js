@@ -480,14 +480,43 @@ function anunciarKilometro(numero, segundos, resueltos = [], nuevo = null) {
 }
 
 // (v119) La voz de la carrera (si está encendida en Running › Progreso y el sonido está activado).
-function decir(texto) {
-    if (!estado.ajustes.sonido || estado.running.avisoKm === false || !("speechSynthesis" in window)) return;
+function decir(texto, { forzar = false } = {}) {
+    if (!forzar && (!estado.ajustes.sonido || estado.running.avisoKm === false)) return;
+    if (!("speechSynthesis" in window)) return;
     try {
         const voz = new SpeechSynthesisUtterance(texto.replace(/\s+/g, " ").trim());
-        voz.lang = "es-ES";
+        const elegida = vocesEnEspanol().find((v) => v.voiceURI === estado.running.voz);
+        if (elegida) { voz.voice = elegida; voz.lang = elegida.lang; } else voz.lang = "es-ES";
+        speechSynthesis.cancel();   // si aún hablaba la anterior, se calla
         speechSynthesis.speak(voz);
     } catch (error) { /* sin voz en este teléfono: queda el sonido */ }
 }
+
+// (v124) Las voces en español que tiene el teléfono, con su país: México y Colombia primero.
+const PAISES_VOZ = { MX: "México", CO: "Colombia", ES: "España", US: "EE. UU.", AR: "Argentina", CL: "Chile", PE: "Perú", VE: "Venezuela", UY: "Uruguay", CR: "Costa Rica", "419": "Latinoamérica" };
+function vocesEnEspanol() {
+    if (!("speechSynthesis" in window)) return [];
+    const orden = (v) => { const i = ["MX", "CO"].indexOf(v.lang.split(/[-_]/)[1]); return i === -1 ? 9 : i; };
+    return speechSynthesis.getVoices().filter((v) => /^es([-_]|$)/i.test(v.lang)).sort((x, y) => orden(x) - orden(y) || x.name.localeCompare(y.name));
+}
+const nombreDeVoz = (v) => `${v.name.replace(/\s*\(.*\)\s*$/, "")} · ${PAISES_VOZ[v.lang.split(/[-_]/)[1]] || v.lang}`;
+
+// Llena la lista de voces (se llama al dibujar Running y cuando el teléfono termina de cargarlas).
+function poblarVocesRunning() {
+    const lista = document.querySelector("[data-running-voz]");
+    if (!lista) return;
+    const voces = vocesEnEspanol();
+    lista.innerHTML = `<option value="">Automática (la del teléfono)</option>${voces.map((v) => `<option value="${v.voiceURI}">${nombreDeVoz(v)}</option>`).join("")}`;
+    lista.value = estado.running.voz || "";
+    if (lista.value !== (estado.running.voz || "")) lista.value = "";
+    const nota = document.querySelector("[data-run-voces-nota]");
+    if (!nota) return;
+    const paises = new Set(voces.map((v) => v.lang.split(/[-_]/)[1]));
+    nota.textContent = !voces.length ? "Tu teléfono no mostró voces en español todavía; prueba otra vez en unos segundos."
+        : `Voces disponibles: ${voces.length}.${paises.has("MX") ? "" : " Sin voz mexicana."}${paises.has("CO") ? "" : " Sin voz colombiana."}`
+          + (paises.has("MX") && paises.has("CO") ? "" : " Para tener más: Ajustes del iPhone → Accesibilidad → Contenido hablado → Voces → Español, y descarga las de México o Colombia.");
+}
+if ("speechSynthesis" in window) speechSynthesis.addEventListener?.("voiceschanged", poblarVocesRunning);
 
 function detenerGps() {
     if (seguimientoGps !== null) navigator.geolocation?.clearWatch(seguimientoGps);
@@ -1414,6 +1443,7 @@ function dibujarPantalla(efectos = {}) {
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
+    if (pantallaActual === "running") poblarVocesRunning();   // (v124)
     if (pantallaActual === "running" && $("[data-run-mapa]")) { ponerHeroeEnMapaVivo(); ponerCriaturasDeCarrera(); }   // (v118–v119) héroe y criatura sobre el mapa
     if (pantallaActual === "mapa") pintarMapa();   // la imagen del mapa (pixel art) llega un instante después
     actualizarBarraRun();
@@ -3443,6 +3473,7 @@ const ACCIONES = {
         mantenerPantallaDespierta(false);
     },
     "run-meta": (boton) => ejecutar(() => acciones.cambiarMetaKm(estado, estado.running.metaKm + Number(boton.dataset.delta)), { mantenerScroll: true }),
+    "run-probar-voz": () => decir("Kilómetro 3. 5 minutos 12 segundos. ¡Venciste al esqueleto! Aparece un jefe: mantén el ritmo.", { forzar: true }),
     "run-concentracion": () => ejecutar(() => acciones.cambiarConcentracion(estado, estado.running.concentracion === false), { mantenerScroll: true }),
     "run-aviso-km": () => ejecutar(() => acciones.cambiarAvisoKm(estado, estado.running.avisoKm === false), { mantenerScroll: true }),
     "run-borrar": (boton) => {
@@ -3841,6 +3872,11 @@ function conectarEventos() {
             return;
         }
         // (v109) La misión que se marca sola al guardar una carrera.
+        if (evento.target.matches?.("[data-running-voz]")) {   // (v124) la voz de la carrera
+            ejecutar(() => acciones.cambiarVozRunning(estado, evento.target.value), { mantenerScroll: true });
+            decir("Kilómetro 3. 5 minutos 12 segundos. ¡Venciste al esqueleto!", { forzar: true });
+            return;
+        }
         if (evento.target.matches?.("[data-running-mision]")) {
             ejecutar(() => acciones.cambiarMisionRunning(estado, evento.target.value), { mantenerScroll: true });
             return;
