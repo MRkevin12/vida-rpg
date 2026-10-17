@@ -7,6 +7,7 @@
 // Ninguna función de aquí guarda ni dibuja: de eso se encarga app.js.
 
 import * as juego from "./juego.js";
+import * as insignias from "./insignias.js";   // (v101)
 import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
@@ -1827,10 +1828,43 @@ function sagaDe(estado) {
     return saga.estadoDeSaga(saga.datosDeSaga(estado, campana.estadoCampanas(estado)));
 }
 
+// ===== Insignias (v101) =====
+
+// Las insignias nuevas se celebran una vez. La primera vez que se mira (partida vieja o nueva) se anotan las que ya
+// tenías, en silencio. Si se ganan varias juntas, se celebran las 2 primeras y las demás en un aviso pequeño.
+export function revisarInsignias(estado, info = juego.resumen(estado, hoy())) {
+    if (!estado.personaje) return [];
+    estado.insignias ||= { vistas: null, puesta: null };
+    const ahora = insignias.ganadas(estado, info);
+    if (!estado.insignias.vistas) {
+        estado.insignias.vistas = ahora;
+        return [];
+    }
+    const nuevas = ahora.filter((id) => !estado.insignias.vistas.includes(id));
+    estado.insignias.vistas.push(...nuevas);
+    return nuevas.map((id, i) => {
+        const insignia = insignias.POR_ID[id];
+        return i < 2
+            ? { insignia: id, etiqueta: `¡Insignia de ${insignias.GRADOS[insignia.grado].nombre.toLowerCase()}!`, titulo: insignia.nombre,
+                detalle: `${insignia.texto}. Póntela en Héroe › Insignias.` }
+            : { pequena: true, icono: "🏅", titulo: `Insignia nueva: ${insignia.nombre}` };
+    });
+}
+
+// Llevar puesta una insignia (o quitarla, si ya la llevabas). Solo se puede una que ya ganaste.
+export function ponerInsignia(estado, id) {
+    if (!insignias.POR_ID[id]) throw new Error("Esa insignia no existe.");
+    if (!insignias.ganadas(estado, juego.resumen(estado, hoy())).includes(id)) throw new Error("Todavía no ganaste esa insignia.");
+    estado.insignias ||= { vistas: null, puesta: null };
+    estado.insignias.puesta = estado.insignias.puesta === id ? null : id;
+    return {};
+}
+
 export function revisarCambios(estado, antes) {
     // Primero los jefes y los cofres: sus recompensas pueden hacerte subir de nivel.
     const celebraciones = [...sincronizarCampanas(estado, antes.dano), ...revisarDesafios(estado), ...revisarRelampago(estado)];
     const info = juego.resumen(estado, hoy());
+    celebraciones.push(...revisarInsignias(estado, info));   // (v101)
 
     const nivel = juego.calcularNivel(estado.personaje.xp).nivel;
     if (nivel > antes.nivel) {

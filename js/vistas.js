@@ -37,6 +37,8 @@ import { rutaPintura } from "./pinturas.js";
 import { dibujarAvatar, dibujarMascota, dibujarObjeto, dibujarEscenario } from "./dibujo.js";
 import { retratoPixel, figuraPixel, dioramaPixel, pixelEstatico, pixelarEnVivo } from "./retratos.js";
 import { icono } from "./iconos.js";
+import * as insignias from "./insignias.js";   // (v101)
+import { dibujarInsignia } from "./dibujo-insignias.js";
 import { calcularResumen, resumenSemana } from "./resumen.js";
 import * as resumen from "./resumen.js";
 import * as retos from "./retos.js";
@@ -3939,12 +3941,13 @@ export function pantallaPersonaje(estado, ctx) {
         mascotas: () => seccionMascota(estado, a.mascota, ctx),
         apariencia: () => seccionApariencia(estado, ctx),
         historia: () => seccionHistoria(estado, ctx),
+        insignias: () => seccionInsignias(estado, ctx),   // (v101)
     };
 
     return `
         <section class="panel ficha">
             <div class="ficha-avatar">${dioramaPixel(a)}</div>
-            <h2 class="titulo-juego">${esc(estado.personaje.nombre)}</h2>
+            <h2 class="titulo-juego">${esc(estado.personaje.nombre)}${a.insignia ? `<span class="ficha-insignia" title="${esc(insignias.POR_ID[a.insignia]?.nombre || "")}">${dibujarInsignia(a.insignia)}</span>` : ""}</h2>
             <p class="etiqueta">Nivel ${a.nivel} · ${a.etapa.nombre} · ${a.clase.icono} ${a.clase.nombre}</p>
             <p class="heroe-animo">${textoAnimo(a, ctx)}</p>
             <div class="ficha-vida">${barraDeVida(ctx.vida)}${barraDeArmadura(ctx.vida.armadura)}</div>
@@ -3953,8 +3956,38 @@ export function pantallaPersonaje(estado, ctx) {
             <ol class="etapas">${etapas}</ol>
             ${botonDeGym(estado)}
         </section>
-        ${selectorSecciones("personaje", [["equipo", "🛡️ Equipo"], ["mascotas", "🐾 Mascotas"], ["apariencia", "🎨 Aspecto"], ["historia", "📜 Historia"]], vista)}
+        ${selectorSecciones("personaje", [["equipo", "🛡️ Equipo"], ["mascotas", "🐾 Mascotas"], ["apariencia", "🎨 Aspecto"], ["insignias", "🏅 Insignias"], ["historia", "📜 Historia"]], vista)}
         ${(secciones[vista] || secciones.equipo)()}`;
+}
+
+// (v101) Las insignias: la que llevas puesta arriba, y todas en una rejilla por grado (las que faltan, en sombra y con su avance).
+function seccionInsignias(estado, ctx) {
+    const datos = insignias.datosDeInsignias(estado, ctx.info || ctx.resumen || juego.resumen(estado, ctx.hoy));
+    const lista = insignias.INSIGNIAS.map((i) => ({ ...i, ...insignias.progresoInsignia(i, datos) }));
+    const tuyas = lista.filter((i) => i.ganada).length;
+    const puesta = estado.insignias?.puesta;
+    const tarjeta = (i) => `
+        <li class="insignia ${i.ganada ? "ganada" : "bloqueada"} ${puesta === i.id ? "puesta" : ""} grado-${i.grado}">
+            <span class="insignia-dibujo">${dibujarInsignia(i.id, { bloqueada: !i.ganada })}</span>
+            <b>${i.ganada ? i.nombre : "???"}</b>
+            <small>${i.texto}</small>
+            ${i.ganada
+                ? `<button type="button" class="boton boton-chico ${puesta === i.id ? "" : "boton-oro"}" data-accion="poner-insignia" data-id="${i.id}">${puesta === i.id ? "Quitar" : "Llevar"}</button>`
+                : `<span class="insignia-avance">${barra(i.porcentaje, "barra-mini")}<small>${i.actual} / ${i.meta}</small></span>`}
+        </li>`;
+    const grupos = Object.entries(insignias.GRADOS).map(([grado, g]) => {
+        const deEste = lista.filter((i) => i.grado === grado);
+        return `<h3 class="subtitulo">${g.nombre} <small class="texto-suave">${deEste.filter((i) => i.ganada).length}/${deEste.length}</small></h3>
+                <ul class="insignias">${deEste.map(tarjeta).join("")}</ul>`;
+    }).join("");
+    return `
+        <section class="panel">
+            <div class="titulo-seccion"><h2 class="titulo-juego">🏅 Insignias</h2><span class="etiqueta">${tuyas} de ${lista.length}</span></div>
+            <p class="nota">Se ganan solas al llegar a un hito. Elige una para <b>llevarla puesta</b>: se ve en el pecho de tu héroe
+               y junto a tu nombre.</p>
+            ${puesta ? `<p class="insignia-llevas">${dibujarInsignia(puesta)}<span>Llevas <b>${insignias.POR_ID[puesta].nombre}</b><small>${insignias.POR_ID[puesta].texto}</small></span></p>` : ""}
+            ${grupos}
+        </section>`;
 }
 
 // Una fila que lleva a otra pantalla (con su icono, su nombre y una línea de detalle).

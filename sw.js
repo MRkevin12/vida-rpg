@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v100";
+const VERSION = "vida-rpg-v101";
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
 const ARCHIVOS = [
@@ -100,6 +100,8 @@ const ARCHIVOS = [
     "./js/retratos.js",
     "./js/efectos.js",
     "./js/pixel-pintura.js",
+    "./js/insignias.js",
+    "./js/dibujo-insignias.js",
     "./fuentes/orbitron-700.woff2",
     "./fuentes/orbitron-800.woff2",
     "./fuentes/dotgothic16.woff2",

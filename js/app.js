@@ -52,7 +52,8 @@ import { calcularResumen, semanaPorMostrar } from "./resumen.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { vigilarIconos } from "./iconos.js";
 import { retratoPixel, figuraPixel, dioramaPixel, cuerpoGymPixel } from "./retratos.js";
-import * as fx from "./efectos.js";   // fx = "efectos especiales", como en el cine (v94)
+import * as fx from "./efectos.js";
+import { dibujarInsignia } from "./dibujo-insignias.js";   // (v101)   // fx = "efectos especiales", como en el cine (v94)
 import { prepararPinturas } from "./pixel-pintura.js";   // (v95) las pinturas en pixel art
 import { hoy, fechaLegible, diasEntre, sumarDias, relojTexto, relojLargo, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
 
@@ -1432,6 +1433,8 @@ function siguienteCelebracion() {
         $("#cel-icono").innerHTML = `<div class="cel-avatar celebrando">${dioramaPixel(avatarActual())}</div>`;
     } else if (celebracion.imagen) {
         $("#cel-icono").innerHTML = `<figure class="retrato derrotado cel-jefe"><img src="${celebracion.imagen}" alt=""></figure>`;
+    } else if (celebracion.insignia) {   // (v101) la insignia nueva, grande
+        $("#cel-icono").innerHTML = `<div class="cel-insignia">${dibujarInsignia(celebracion.insignia)}</div>`;
     } else {
         $("#cel-icono").textContent = celebracion.icono;
     }
@@ -1443,7 +1446,7 @@ function siguienteCelebracion() {
     $("#cel-maestro").hidden = !celebracion.maestro;
     capa.hidden = false;
     // (v94) Subir de nivel y vencer a un jefe son épicos: rayos de luz, un destello y confeti.
-    const epica = celebracion.tipo === "nivel" || Boolean(celebracion.imagen);
+    const epica = celebracion.tipo === "nivel" || Boolean(celebracion.imagen) || Boolean(celebracion.insignia);
     capa.classList.remove("epica");
     if (epica) {
         void capa.offsetWidth;   // reinicia el destello si ya estaba
@@ -2628,6 +2631,10 @@ const ACCIONES = {
     jugar: (boton) => jugarMinijuego(boton.dataset.juego),
 
     // Elegir una sección de una pantalla larga (ej: Tienda › Mascotas). Si es de otra pantalla, se va a ella.
+    // (v101) Llevar puesta una insignia (o quitarla).
+    "poner-insignia": (boton) => {
+        if (ejecutar(() => acciones.ponerInsignia(estado, boton.dataset.id))) sonar("cursor");
+    },
     // (v100) En la Tienda › Equipo: ver solo una casilla (cabeza, pecho, piernas…) o todo.
     "filtro-equipo": (boton) => {
         subvista.tiendaEquipo = boton.dataset.espacio;

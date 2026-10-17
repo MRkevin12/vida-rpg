@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 100;
+export const VERSION_APP = 101;
 
 export const NOVEDADES = [
+    {
+        version: 101,
+        titulo: "Insignias",
+        cambios: [
+            "🏅 33 insignias en pixel art que se ganan solas: tu primera misión, rachas, niveles, jefes, la Torre, el gimnasio, el diario, el valle, los pergaminos…",
+            "🥇 Cuatro grados con forma propia: bronce (medalla), plata (escudo), oro (estrella) y leyenda (emblema con corona).",
+            "👕 Elige una para llevarla puesta: se ve prendida en el pecho de tu héroe y junto a tu nombre.",
+            "🎉 Ganar una insignia se celebra en grande. Las ves todas en Héroe › Insignias, con lo que te falta para cada una.",
+        ],
+    },
     {
         version: 100,
         titulo: "Pantalones, botas y una tienda mucho más grande",

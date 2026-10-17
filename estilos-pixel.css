@@ -942,3 +942,111 @@ body {
 .selector-rejilla button[aria-pressed="true"] small {
     color: var(--oro);
 }
+
+
+/* =====================================================================
+   Insignias (v101)
+   ===================================================================== */
+.insignias {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 8px;
+    margin: 6px 0 12px;
+    padding: 0;
+    list-style: none;
+}
+
+.insignia {
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 3px;
+    padding: 8px 6px;
+    text-align: center;
+    background: var(--hundido);
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.insignia b {
+    font-size: 0.82rem;
+    line-height: 1.15;
+}
+
+.insignia small {
+    font-size: 0.68rem;
+    line-height: 1.2;
+    color: var(--texto-suave);
+}
+
+.insignia-dibujo svg,
+.insignia-llevas svg,
+.ficha-insignia svg,
+.cel-insignia svg {
+    display: block;
+    image-rendering: pixelated;
+}
+
+.insignia-dibujo svg {
+    width: 48px;
+    height: 56px;
+}
+
+.insignia.bloqueada b {
+    color: var(--texto-suave);
+}
+
+.insignia.puesta {
+    border-color: var(--oro);
+    box-shadow: 0 0 0 2px var(--tinta), 0 0 14px rgba(251, 191, 36, 0.35);
+}
+
+.insignia .boton {
+    min-height: 30px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+}
+
+.insignia-avance {
+    display: grid;
+    width: 100%;
+    gap: 2px;
+}
+
+.insignia-llevas {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0 4px;
+    padding: 8px 10px;
+    background: rgba(251, 191, 36, 0.08);
+    border: 2px solid rgba(251, 191, 36, 0.45);
+    border-radius: var(--esquina);
+}
+
+.insignia-llevas svg {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 42px;
+}
+
+.insignia-llevas span {
+    display: grid;
+}
+
+.ficha-insignia {
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.ficha-insignia svg {
+    width: 22px;
+    height: 26px;
+}
+
+.cel-insignia svg {
+    width: 96px;
+    height: 112px;
+    margin: 0 auto;
+}

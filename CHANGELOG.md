@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v101 — Insignias
+- **`js/insignias.js` (nuevo):** `INSIGNIAS` (33, con grado, ícono, `cuenta` y `meta`), `datosDeInsignias` (misiones, mejor racha, nivel, días perfectos, jefes, principales, récord de la Torre, sesiones y nivel de gym, días de diario, voces, pergaminos, mascotas, cofres, objetos, canjes), `progresoInsignia` y `ganadas`.
+- **`js/dibujo-insignias.js` (nuevo):** `dibujarInsignia(id, { bloqueada })`: 24 × 28 puntos, forma por grado calculada punto a punto, cinta de dos colores y el ícono de iconos.js en el centro; `insigniaEnElPecho` para el avatar.
+- `datos.js`: `version` 29 y `insignias: { vistas, puesta }`. `acciones.revisarInsignias` (dentro de `revisarCambios`; la primera vez anota las que ya tenías sin festejar; más de 2 nuevas → avisos pequeños) y `acciones.ponerInsignia`. `describirAvatar` devuelve `insignia`; `dibujarAvatar` la prende en el pecho.
+- Héroe: pestaña nueva «Insignias» (rejilla por grado, avance de las que faltan, botón Llevar/Quitar) y la puesta junto al nombre. La celebración de insignia es «épica». 1 prueba nueva; 303 pruebas.
+
 ## v100 — Pantalones, botas y una tienda de equipo mucho más grande
 - `avatar.js`: `ESPACIOS` suma `piernas` y `pies`; 34 objetos nuevos (8 pantalones, 8 botas con `aspecto`, 10 variantes de cabeza/pecho/mano, 3 capas de color, 5 fondos con `pintura`). `datos.js`: `version` 28 y `equipado.piernas` / `equipado.pies` (completar() los agrega a las copias viejas).
 - Dibujo: `crearPaleta` toma el color del pantalón y de las botas; `dibujo-ropa.js › piernas` dibuja ribete y placas en los muslos, y `bota` usa el tipo (cuero/metal), el alto y el ribete de las botas puestas. `dibujo-objetos.js`: `VARIANTES` + `baseDe` + `conVariante` (filtro SVG: hueRotate, saturate, brillo, `dorar` y `metal` acero → oro) y `CAPAS_COLOR`. Las miniaturas de pantalones y botas son unas piernas de muestra encuadradas.

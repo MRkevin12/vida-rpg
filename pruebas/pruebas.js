@@ -55,6 +55,8 @@ import { VERSION_APP, NOVEDADES, novedadesPorVer } from "../js/novedades.js";
 import { ICONOS, EMOJIS, icono, iconizar } from "../js/iconos.js";
 import * as retratos from "../js/retratos.js";
 import * as fx from "../js/efectos.js";
+import * as insigniasModulo from "../js/insignias.js";
+import { dibujarInsignia } from "../js/dibujo-insignias.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
@@ -6308,6 +6310,25 @@ prueba("Ataques: la batalla dibuja el ataque de la criatura cuando te pega, y no
     const cura = vistas.pantallaTorre(t([{ quien: "heroe", tipo: "defender" }, { quien: "enemigo", tipo: "curar", cura: 5, nombre: "Regenerar" }]));
     cierto(!cura.includes("ff-atq "), "curarse no es atacar");
     cierto(!vistas.pantallaTorre(t([])).includes("ff-atq "), "sin turno jugado no hay ataque");
+});
+
+// ===== Insignias (v101) =====
+
+prueba("Insignias: las que ya tenías no se festejan; una nueva sí; solo te puedes poner una que ganaste", () => {
+    const estado = partidaNueva();
+    igual(acciones.revisarInsignias(estado), [], "la primera vez se anotan en silencio");
+    cierto(!estado.insignias.vistas.includes("primer-paso"), "todavía no cumpliste ninguna misión");
+    debeFallar(() => acciones.ponerInsignia(estado, "primer-paso"), "Todavía no");
+    marcarEn(estado, crearMision(estado), hoy());
+    const nuevas = acciones.revisarInsignias(estado);
+    igual(nuevas.map((c) => c.insignia), ["primer-paso"]);
+    igual(acciones.revisarInsignias(estado), [], "no se festeja dos veces");
+    acciones.ponerInsignia(estado, "primer-paso");
+    igual(avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())).insignia, "primer-paso");
+    cierto(dibujarAvatar(avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy())), { batalla: true }).includes("insignia-pecho"), "se ve en el pecho");
+    acciones.ponerInsignia(estado, "primer-paso");
+    igual(estado.insignias.puesta, null, "tocarla otra vez la quita");
+    for (const i of insigniasModulo.INSIGNIAS) cierto(dibujarInsignia(i.id).includes("<rect"), `«${i.id}» se dibuja`);
 });
 
 // ===== Pantalones, botas y más equipo (v100) =====

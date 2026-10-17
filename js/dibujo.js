@@ -21,6 +21,7 @@ import { sombrero, arma, capa, capaCuervo, escudo, alas, alasDragon, armaduraDeP
 import { piernasDesnudas, torsoDesnudo, brazoDesnudo, calzoncillos, escenaDeGimnasio } from "./dibujo-gym.js";
 import { fondo, ambiente, aura, llamas, resplandor, noche, escenario } from "./dibujo-escenas.js";
 import { cuerpoMascota, dibujarMascota } from "./dibujo-mascota.js";
+import { insigniaEnElPecho } from "./dibujo-insignias.js";   // (v101)
 
 export { dibujarMascota };
 
@@ -191,6 +192,7 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         manoDerecha,
         bufanda(d, e, p),
         hombreras(d, e, p),
+        d.insignia ? insigniaEnElPecho(d.insignia) : "",   // (v101) la insignia que llevas, prendida en el pecho
         `<g${giro}>${cara(d, e, p)}${barba(d, p)}${recortar(cabello.frente)}${d.rasgos.intelecto >= 1 ? lentes(p) : ""}${conVariante(puesto.cabeza, p, sombrero(d.equipado.cabeza, p))}</g>`,
         "</g>",
         estela,

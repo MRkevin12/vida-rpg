@@ -390,6 +390,7 @@ export function describirAvatar(estado, hoy, info) {
         animo,
         diasSinMision: diasSinMision(estado, hoy),
         equipado,
+        insignia: estado.insignias?.puesta || null,   // (v101) la insignia que llevas en el pecho (ponerInsignia revisa que sea tuya)
         apariencia: { ...APARIENCIA_INICIAL, ...estado.apariencia },
         mascota: {
             especie,                               // cuál te acompaña ("dragon", "fenix"…)
