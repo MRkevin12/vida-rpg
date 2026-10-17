@@ -11878,3 +11878,36 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .run-flotante[hidden] {
     display: none;
 }
+
+
+/* ===== (v118) El mapa de tu carrera en tiempo real ===== */
+.run-mapa-vivo {
+    position: relative;
+    margin: 10px 0 4px;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #2a6a38;
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    box-shadow: 0 0 0 1px #060a3a;
+}
+
+.run-mapa-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    font-family: var(--letra-titulo);
+}
+
+.run-mapa-heroe {
+    position: absolute;
+    width: 9%;
+    image-rendering: pixelated;
+    transform: translate(-50%, -88%);
+    pointer-events: none;
+    animation: mapa-paso 0.9s steps(1) infinite;
+}
+
+.run-mapa-heroe:not([src]) {
+    visibility: hidden;
+}

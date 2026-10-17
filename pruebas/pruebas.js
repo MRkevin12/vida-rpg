@@ -2915,8 +2915,6 @@ prueba("Ruta del Corredor: cada km es un lugar del reino con su premio, y se cob
     igual(primera.especiales.map((e) => e.tipo), ["tesoro"]);
     igual(ruta.cobrar(r, 5.99), null, "lo ya cobrado no se cobra otra vez");
     igual(ruta.cobrar(r, 10.2).hasta, 10);
-    const dibujo = ruta.datosParaDibujar(r, 7.5, 0);
-    igual([dibujo.alcanzado, dibujo.lugares[5].reclamado, dibujo.lugares[12].libre, dibujo.regionLibre], [7, true, false, false]);
 });
 
 prueba("Ruta del Corredor: al guardar una carrera se cobran los km nuevos (gemas y XP de Fuerza)", () => {

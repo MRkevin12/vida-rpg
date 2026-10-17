@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 117;
+export const VERSION_APP = 118;
 
 export const NOVEDADES = [
+    {
+        version: 118,
+        titulo: "Tu mapa en tiempo real",
+        cambios: [
+            "🗺️ Mientras corres con GPS, ves un mapa propio en pixel art: el camino que vas dibujando, una bandera en cada kilómetro y tu héroe en el punto donde estás. Se actualiza solo.",
+            "📍 Debajo te dice en qué kilómetro de tu ruta vas y cuándo llega el próximo premio.",
+            "📜 En el Historial, cada carrera con GPS muestra ese mismo mapa. Se quita el mapa del reino de Running.",
+        ],
+    },
     {
         version: 117,
         titulo: "La Ruta del Corredor",

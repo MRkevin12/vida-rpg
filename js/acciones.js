@@ -2351,7 +2351,7 @@ export function empezarCarrera(estado, tipo, { gps = false } = {}) {
     const r = estado.running;
     if (r.encurso) throw new Error("Ya tienes una carrera en curso: termínala o cancélala primero.");
     if (!running.TIPOS[tipo]) throw new Error("Ese tipo de carrera no existe.");
-    r.encurso = { inicio: Date.now(), pausas: [], pausadoDesde: null, tipo, gps: Boolean(gps), distancia: 0, ultimo: null, precision: null, traza: [], marcas: [] };
+    r.encurso = { inicio: Date.now(), pausas: [], pausadoDesde: null, tipo, gps: Boolean(gps), distancia: 0, ultimo: null, precision: null, traza: [], marcas: [], puntosKm: [] };
 }
 
 // Pausa o reanuda el cronómetro. Al reanudar se olvida el último punto del GPS: si no, sumaría el camino de la pausa.
@@ -2386,6 +2386,7 @@ export function registrarPuntoCarrera(estado, punto) {
     let kmNuevo = null;
     while (distancia >= (en.marcas.length + 1) * 1000) {
         en.marcas.push(running.tiempoDeEncurso(en, Date.now()));
+        (en.puntosKm = en.puntosKm || []).push([Math.round(punto.lat * 1e5) / 1e5, Math.round(punto.lon * 1e5) / 1e5]);   // dónde estabas (para la bandera del mapa)
         kmNuevo = en.marcas.length;
     }
     const parciales = running.parcialesDe(en.marcas);
@@ -2422,6 +2423,7 @@ export function terminarCarrera(estado, { km = "", minutos = "", nota = "" } = {
         // (v116) el recorrido y los parciales solo existen en las carreras con GPS
         traza: en.gps ? running.simplificarTraza(en.traza) : null,
         parciales: en.gps ? running.parcialesDe(en.marcas) : null,
+        puntosKm: en.gps ? en.puntosKm : null,
     });
     estado.running.encurso = null;
     return resultado;
@@ -2447,6 +2449,8 @@ export function guardarCarrera(estado, valores) {
     if (traza.length >= 2) carrera.traza = traza;
     const parciales = (Array.isArray(valores.parciales) ? valores.parciales : []).filter((s) => Number.isFinite(s) && s > 0).slice(0, 100);
     if (parciales.length) carrera.parciales = parciales;
+    const banderas = running.simplificarTraza(valores.puntosKm, 100);
+    if (banderas.length) carrera.puntosKm = banderas;
     r.carreras = running.ordenar([...r.carreras, carrera]);
     ganar(estado, { xp, monedas, atributo: "fuerza" });
 

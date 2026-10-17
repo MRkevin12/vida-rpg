@@ -52,21 +52,6 @@ export function proximoEspecial(kmTotal) {
     return null;
 }
 
-// Lo que dibujo-mapa.js necesita de una región (como mapa.datosParaDibujar, pero con TUS kilómetros).
-// Un lugar cuenta como «reclamado» o «libre» cuando ya llegaste a él.
-export function datosParaDibujar(running, kmTotal, region) {
-    const llevas = posicion(kmTotal);
-    const alcanzado = region < llevas.region ? mapa.LUGARES_POR_REGION : region === llevas.region ? llevas.enRegion : 0;
-    const lugares = {};
-    for (let n = 1; n <= mapa.LUGARES_POR_REGION; n++) {
-        const tipo = mapa.tipoDeLugar(n, region);
-        if (tipo === "camino") continue;
-        const llegaste = n <= alcanzado;
-        lugares[n] = { tipo, reclamado: llegaste, libre: llegaste };
-    }
-    return { region, alcanzado, lugares, regionLibre: alcanzado >= mapa.LUGARES_POR_REGION, torre: { pisos: 0, encendida: false } };
-}
-
 // Cobra los kilómetros nuevos: de `rutaCobrada + 1` hasta los km completos que llevas. Devuelve lo ganado:
 // { desde, hasta, gemas, xp, especiales: [{ km, tipo, region }] } o null si no hay nada nuevo.
 export function cobrar(running, kmTotal) {
