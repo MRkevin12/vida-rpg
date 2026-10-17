@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v112 — Hoy más limpio y rostro más detallado
+- Se quita la tarjeta «Misiones principales» (`destacadasDeHoy`) de la pestaña Misiones: solo vive en Principales.
+- Pestaña Aurelio: primero `panelDelDia` (Aurelio + Tu día), luego el héroe y los rivales.
+- Se quita la pestaña Running de la barra (`index.html`, `.pestanas` pasa a 5 columnas; 4 en modo normal). Se entra desde la tarjeta de Hoy; `PESTANA_DE.running = "hoy"` para que Hoy quede iluminada.
+- Diorama del héroe 72→108 puntos y cuerpo del gym 62×72→93×108: la cara tiene más detalle.
+
 ## v111 — Comparar con tu anterior
 - `js/running.js › comparacionDe(carreras, carrera)`: la última carrera antes que sea del mismo tipo y de hasta un 25 % más o menos de distancia. `textoComparacion` la dice en el Historial (▼ más rápida / ▲ más lenta, en s/km).
 - `js/vistas-running.js`: cada fila del Historial muestra esa comparación.

@@ -210,12 +210,12 @@
             </button>
         </header>
 
-        <!-- Las 6 pantallas con pestaña (Hoy, Progreso, Running, Aventuras, Héroe y Tienda) y las que se abren
-             desde ellas. app.js rellena la que esté visible. Los logros viven dentro de Progreso. -->
+        <!-- Las 5 pantallas con pestaña (Hoy, Progreso, Aventuras, Héroe y Tienda) y las que se abren
+             desde ellas (el Running se abre desde la tarjeta de Hoy, v112). app.js rellena la que esté visible. Los logros viven dentro de Progreso. -->
         <main class="contenido">
             <section id="pantalla-hoy" class="pantalla"></section>
             <section id="pantalla-progreso" class="pantalla" hidden></section>
-            <section id="pantalla-running" class="pantalla" hidden></section>
+            <section id="pantalla-running" class="pantalla" hidden></section>   <!-- (v112) sin pestaña: se abre desde Hoy -->
             <section id="pantalla-aventuras" class="pantalla" hidden></section>
             <section id="pantalla-tienda" class="pantalla" hidden></section>
             <section id="pantalla-personaje" class="pantalla" hidden></section>
@@ -243,10 +243,6 @@
             <button type="button" class="pestana" data-accion="ir" data-pantalla="progreso">
                 <span class="pestana-icono" aria-hidden="true">📈</span>
                 <span>Progreso</span>
-            </button>
-            <button type="button" class="pestana" data-accion="ir" data-pantalla="running">
-                <span class="pestana-icono" aria-hidden="true">🏃</span>
-                <span>Running</span>
             </button>
             <button type="button" class="pestana" data-accion="ir" data-pantalla="aventuras">
                 <span class="pestana-icono" aria-hidden="true">⚔️</span>

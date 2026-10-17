@@ -488,7 +488,7 @@ button {
     left: 0;
     z-index: 5;
     display: grid;
-    grid-template-columns: repeat(6, 1fr);   /* (v109) 6 pestañas: Hoy, Progreso, Running, Aventuras, Héroe, Tienda */
+    grid-template-columns: repeat(5, 1fr);   /* (v112) 5 pestañas: Hoy, Progreso, Aventuras, Héroe, Tienda (Running se abre desde Hoy) */
     max-width: 640px;
     margin: 0 auto;
     padding-bottom: env(safe-area-inset-bottom);
@@ -8601,7 +8601,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 /* (v49) Ánimo «normal»: sin Aventuras (quedan Hoy, Progreso, Héroe y Tienda). */
 .modo-normal:not(.modo-esencial) .pestanas {
-    grid-template-columns: repeat(5, 1fr);   /* (v109) sin Aventuras: Hoy, Progreso, Running, Héroe y Tienda */
+    grid-template-columns: repeat(4, 1fr);   /* (v112) sin Aventuras: Hoy, Progreso, Héroe y Tienda */
 }
 
 .modo-normal:not(.modo-esencial) .pestana[data-pantalla="aventuras"] {

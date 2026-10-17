@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 111;
+export const VERSION_APP = 112;
 
 export const NOVEDADES = [
+    {
+        version: 112,
+        titulo: "Hoy más limpio y un rostro mejor",
+        cambios: [
+            "🎯 La tarjeta de misiones principales ya no sale en Misiones: solo está en la pestaña Principales.",
+            "🧙 En la pestaña Aurelio, la tarjeta de Aurelio y «Tu día» van primero.",
+            "🏃 Se quitó la pestaña Running: se entra desde la tarjeta de Running en Hoy (botones Correr, Seguir o Ver).",
+            "🙂 El rostro de tu héroe en Héroe y en el Gimnasio tiene más detalle (más puntos de imagen).",
+        ],
+    },
     {
         version: 111,
         titulo: "Tu progreso al correr",

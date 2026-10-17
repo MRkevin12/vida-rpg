@@ -115,7 +115,8 @@ export function figuraPixel(d, { clase = "", alt = "" , efectos = false } = {}) 
 //   2. lo que va detrás del héroe, en dibujo: partículas, aura y llamas (se mueven)
 //   3. el héroe y su mascota en pixel art (respiran con CSS)
 //   4. lo que oscurece la escena (cansado, dormido)
-export const LADO_DIORAMA = 72;
+// (v112) 108 puntos de lado (antes 72): la cara del héroe tiene así la mitad de puntos más y se le ven los rasgos.
+export const LADO_DIORAMA = 108;
 export function dioramaPixel(d, { clase = "" } = {}) {
     const lado = LADO_DIORAMA;
     const base = huella(JSON.stringify(d));
@@ -157,7 +158,7 @@ export function pixelarEnVivo(svg, paso) {
 
 // (v96) Tu cuerpo en el gimnasio, en pixel art y con sus ojos. Misma densidad que la figura de batalla (≈0,4 puntos por unidad).
 export function cuerpoGymPixel(d, { clase = "" } = {}) {
-    const [ancho, alto] = [62, 72];
+    const [ancho, alto] = [93, 108];   // (v112) antes 62 × 72: más puntos = una cara con más detalle
     const clave = `gym-${huella(JSON.stringify(d))}`;
     return imagen(clave, () => pixelar(dibujarAvatarGym(d), ancho, alto, { clave, puntos: rasgosEnPixeles(d, "gym", ancho, alto) }),
         { clase: `figura-pixel cuerpo-gym-pixel ${clase}`, ancho, alto, alt: `Tu cuerpo: nivel de físico ${d.fisico || 0}` });

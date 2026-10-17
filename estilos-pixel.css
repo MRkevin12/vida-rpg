@@ -600,7 +600,7 @@ img.figura-pixel { aspect-ratio: 54 / 72; }
 
 @keyframes diorama-respira {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(calc(-100% / var(--lado))); }
+    50% { transform: translateY(calc(-150% / var(--lado))); }
 }
 
 /* Al celebrar, el héroe salta dos veces. */
@@ -610,7 +610,7 @@ img.figura-pixel { aspect-ratio: 54 / 72; }
 
 @keyframes diorama-salta {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(calc(-600% / var(--lado))); }
+    50% { transform: translateY(calc(-900% / var(--lado))); }
 }
 
 /* La figura con sus llamas o su aura detrás (la campaña). */
