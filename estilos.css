@@ -6962,7 +6962,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 /* --- Héroe: la ficha en horizontal (el avatar a la izquierda), así las secciones quedan a la vista --- */
 .ficha {
-    grid-template-columns: 116px minmax(0, 1fr);
+    grid-template-columns: 168px minmax(0, 1fr);   /* (v113) el héroe más grande para verlo mejor */
     align-items: center;
     justify-items: start;
     column-gap: 14px;
@@ -6972,7 +6972,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 .ficha .ficha-avatar {
     grid-row: span 3;
-    width: 116px;
+    width: 168px;
     margin: 0;
     border-radius: var(--esquina);
 }

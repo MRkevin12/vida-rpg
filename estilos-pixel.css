@@ -880,6 +880,19 @@ body {
     width: 108px;
 }
 
+/* (v113) Primer plano del rostro (160 × 160 puntos) al lado del cuerpo, para ver bien lo que cambias. */
+.apariencia-previa {
+    grid-auto-flow: column;
+    justify-content: center;
+    align-items: end;
+    gap: 14px;
+}
+
+.apariencia-previa .primer-plano {
+    width: 176px;
+    margin-bottom: 4px;
+}
+
 
 /* =====================================================================
    (v99) Arreglo: nada se sale de su caja, aunque la letra sea más grande

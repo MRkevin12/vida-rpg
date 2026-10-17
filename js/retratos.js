@@ -90,11 +90,14 @@ function imagen(clave, crear, { clase = "", ancho, alto, alt = "" }) {
 // --- Las imágenes ---
 
 // La cara y los hombros (la cabecera, Aurelio en los consejos). 32 × 32 puntos.
-export function retratoPixel(d, { clase = "", alt = "" } = {}) {
-    const [ancho, alto] = [32, 32];
-    const clave = `retrato-${huella(JSON.stringify(d))}`;
+// lado: los puntos por lado (32 normal; 96 en el primer plano de Apariencia, v113: con tantos puntos el dibujo ya trae
+// sus ojos bien hechos y no hace falta estamparlos).
+export function retratoPixel(d, { clase = "", alt = "", lado = 32 } = {}) {
+    const [ancho, alto] = [lado, lado];
+    const clave = `retrato-${lado === 32 ? "" : `${lado}-`}${huella(JSON.stringify(d))}`;
+    const puntos = lado > 48 ? [] : rasgosEnPixeles(d, "mini", ancho, alto);
     return imagen(clave, () => pixelar(dibujarAvatar(d, { mini: true }), ancho, alto,
-        { clave, puntos: rasgosEnPixeles(d, "mini", ancho, alto) }), { clase: `retrato-pixel ${clase}`, ancho, alto, alt });
+        { clave, puntos }), { clase: `retrato-pixel ${clase}`, ancho, alto, alt });
 }
 
 // De cuerpo entero, sin fondo (la campaña, el arcade, Aurelio de pie). Del mismo tamaño que en la Torre: 54 × 72.
@@ -115,8 +118,8 @@ export function figuraPixel(d, { clase = "", alt = "" , efectos = false } = {}) 
 //   2. lo que va detrás del héroe, en dibujo: partículas, aura y llamas (se mueven)
 //   3. el héroe y su mascota en pixel art (respiran con CSS)
 //   4. lo que oscurece la escena (cansado, dormido)
-// (v112) 108 puntos de lado (antes 72): la cara del héroe tiene así la mitad de puntos más y se le ven los rasgos.
-export const LADO_DIORAMA = 108;
+// (v113) 144 puntos de lado (antes 108): más puntos = más detalle en la cara y la ropa.
+export const LADO_DIORAMA = 144;
 export function dioramaPixel(d, { clase = "" } = {}) {
     const lado = LADO_DIORAMA;
     const base = huella(JSON.stringify(d));

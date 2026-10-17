@@ -4393,7 +4393,10 @@ function seccionApariencia(estado, ctx) {
             <h2 class="titulo-juego">Apariencia</h2>
             <p class="nota">Elige cómo se ve tu avatar. Es gratis y lo puedes cambiar cuando quieras.</p>
             <!-- vista previa: se queda a la vista mientras eliges -->
-            <div class="apariencia-previa">${figuraPixel(ctx.avatar, { alt: "Así se ve tu héroe" })}</div>
+            <div class="apariencia-previa">
+                ${figuraPixel(ctx.avatar, { alt: "Así se ve tu héroe" })}
+                ${retratoPixel(ctx.avatar, { lado: 160, clase: "primer-plano", alt: "Tu rostro de cerca" })}
+            </div>
             ${grupos}
         </section>`;
 }

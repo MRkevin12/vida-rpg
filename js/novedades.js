@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 112;
+export const VERSION_APP = 113;
 
 export const NOVEDADES = [
+    {
+        version: 113,
+        titulo: "Un héroe más grande",
+        cambios: [
+            "🦸 En Héroe, tu personaje se ve más grande (168 px) y con más detalle.",
+            "🔍 En Aspecto, el primer plano del rostro tiene más puntos (160) para ver mejor cada cambio.",
+        ],
+    },
     {
         version: 112,
         titulo: "Hoy más limpio y un rostro mejor",

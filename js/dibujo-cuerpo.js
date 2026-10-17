@@ -97,12 +97,13 @@ export function puno([x, y], p, relleno = p.m("piel")) {
 
 // Cada rostro cambia las cejas [extremo, centro, entrecejo], el alto de los ojos y la boca.
 const ROSTROS = {
+    // (v113) Diferencias más marcadas: cejas más inclinadas, ojos más grandes o más chicos y la boca (ceno = hacia abajo).
     sereno:   { cejas: [39.3, 38.1, 38.9], ojo: 2.4, grosor: 1.15 },
-    decidido: { cejas: [38.5, 38.1, 39.5], ojo: 2.0, grosor: 1.3 },
-    amable:   { cejas: [39.7, 37.5, 38.5], ojo: 2.8, grosor: 1.05, sonrie: true },
-    curtido:  { cejas: [38.9, 38.4, 39.5], ojo: 2.1, grosor: 1.45, cicatriz: true },
-    severo:   { cejas: [38.6, 38.4, 38.8], ojo: 1.9, grosor: 1.4 },    // (v102)
-    cansado:  { cejas: [39.6, 38.6, 39.2], ojo: 1.9, grosor: 1.1 },    // (v102) ojeroso
+    decidido: { cejas: [37.9, 37.9, 39.7], ojo: 1.9, grosor: 1.5, ceno: true },
+    amable:   { cejas: [40.0, 37.2, 38.2], ojo: 3.1, grosor: 1.0, sonrie: true },
+    curtido:  { cejas: [38.6, 38.2, 39.7], ojo: 2.0, grosor: 1.75, cicatriz: true },
+    severo:   { cejas: [38.1, 38.4, 39.6], ojo: 1.7, grosor: 1.6, ceno: true },    // (v102)
+    cansado:  { cejas: [40.0, 38.8, 39.2], ojo: 1.7, grosor: 1.1 },    // (v102) ojeroso
 };
 
 function formaCabeza(e) {
@@ -156,6 +157,8 @@ export function cara(d, e, p) {
     let boca;
     if (dormido || cansado) {
         boca = `<path d="M98 49.9 L102 49.9" stroke="${labios}" stroke-width=".9" stroke-linecap="round"/>`;
+    } else if (rostro.ceno && animo !== "feliz" && animo !== "llamas") {
+        boca = `<path d="M97.3 50.7 Q100 49.5 102.7 50.7" fill="none" stroke="${labios}" stroke-width="1.05" stroke-linecap="round"/>`;
     } else if (contento) {
         const curva = r.carisma >= 1 ? 52.1 : 51.4;
         boca = `<path d="M97.1 49.4 Q100 ${curva} 102.9 49.4" fill="none" stroke="${labios}" stroke-width="1" stroke-linecap="round"/>`;

@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v113 — Héroe más grande
+- `estilos.css`: `.ficha` y `.ficha .ficha-avatar` pasan de 116 px a 168 px (la columna del avatar también).
+- `js/retratos.js`: `LADO_DIORAMA` 108 → 144 puntos (diorama del héroe).
+- `js/vistas.js` + `estilos-pixel.css`: el primer plano de Aspecto pasa de 96 a 160 puntos (176 px en pantalla).
+- Rostros: cejas, ojos y boca con diferencias más marcadas (`ROSTROS` en `dibujo-cuerpo.js`; «ceño» en Decidido y Severo).
+
 ## v112 — Hoy más limpio y rostro más detallado
 - Se quita la tarjeta «Misiones principales» (`destacadasDeHoy`) de la pestaña Misiones: solo vive en Principales.
 - Pestaña Aurelio: primero `panelDelDia` (Aurelio + Tu día), luego el héroe y los rivales.
