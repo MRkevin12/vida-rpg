@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 127;
+export const VERSION_APP = 128;
 
 export const NOVEDADES = [
+    {
+        version: 128,
+        titulo: "Voces grabadas y frases de ánimo",
+        cambios: [
+            "🎙️ Dos voces mexicanas grabadas dentro de la app (Ald y Claude): suenan igual en tu iPhone aunque no tenga voces descargadas, y sin internet. Se eligen en Running › Progreso › Tus metas › Voz de la carrera.",
+            "💬 Más de 90 frases de motivación: al empezar, en cada kilómetro, cuando vences o se te escapa una criatura, cuando vas lento a mitad del km, con los jefes y al terminar. También se ven escritas en la tarjeta de la pelea.",
+            "⬇ El botón «Descargar la voz grabada» la guarda en el teléfono para usarla sin internet.",
+        ],
+    },
     {
         version: 127,
         titulo: "¿Qué voces ve tu teléfono?",

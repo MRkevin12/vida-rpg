@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v128 — Voces grabadas y frases de motivación
+- Motivo: el iPhone solo entrega a las webs unas pocas voces de fábrica (en el iPhone del usuario: 68 en total, 1 es-ES y 1 es-MX); las descargadas en Ajustes no salen.
+- `herramientas/generar-voces.py` + `lista-de-clips.mjs`: generan `locutor/<voz>/*.mp3` (360 audios por voz, MP3 mono 32 kb/s) con Piper. Voces: es_MX-ald-medium (Unlicense) y es_MX-claude-high (Apache-2.0). No hay voz colombiana libre.
+- `js/frases.js` (nuevo): números en palabras, avisos de criaturas, 90+ frases de ánimo y los constructores `anuncioDeKm/Inicio/Lento/Final/Prueba`. `js/locutor.js` (nuevo): descarga, decodifica y reproduce los audios con Web Audio; `descargar` para uso sin internet.
+- `app.js`: `hablar(piezas)` (voz grabada si la hay y está completa; si no, la del teléfono), aviso a los 500 m si vas lento, frase final, frase visible en la tarjeta de la pelea, créditos.
+- `sw.js`: `/locutor/` se guarda en una caché aparte (`locutor-vida-rpg`) que no se borra al actualizar.
+
 ## v127 — Diagnóstico de voces
 - `verTodasLasVoces`: lista todas las voces de `speechSynthesis.getVoices()` (nombre, idioma, local o en línea), el conteo por idioma y el navegador.
 

@@ -17,7 +17,8 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v127";
+const VERSION = "vida-rpg-v128";
+const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
 const ARCHIVOS = [
@@ -49,6 +50,8 @@ const ARCHIVOS = [
     "./js/running.js",
     "./js/ruta.js",
     "./js/encuentros.js",
+    "./js/frases.js",
+    "./js/locutor.js",
     "./js/dibujo-carrera.js",
     "./js/vistas-running.js",
     "./js/diario.js",
@@ -189,6 +192,18 @@ self.addEventListener("fetch", (evento) => {
     // y se guardan en una caché aparte (CACHE_MUSICA), que no se borra al actualizar la app.
     if (direccion.pathname.includes("/musica/")) {
         evento.respondWith(caches.open(CACHE_MUSICA).then(async (cache) => {
+            const guardada = await cache.match(peticion, { ignoreSearch: true });
+            if (guardada) return guardada;
+            const respuesta = await fetch(peticion);
+            if (respuesta.ok) await cache.put(peticion, respuesta.clone());
+            return respuesta;
+        }));
+        return;
+    }
+
+    // (v128) Las voces grabadas: audios cortos que no cambian. Se guardan la primera vez que se piden (o al «Descargar la voz»).
+    if (direccion.pathname.includes("/locutor/")) {
+        evento.respondWith(caches.open(CACHE_VOCES).then(async (cache) => {
             const guardada = await cache.match(peticion, { ignoreSearch: true });
             if (guardada) return guardada;
             const respuesta = await fetch(peticion);

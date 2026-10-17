@@ -177,6 +177,7 @@ export function htmlEncuentro(en, ahora = Date.now()) {
             <div class="barra barra-mini run-pelea-vida ${va.vas}"><div class="barra-relleno" style="width: ${Math.round(va.vida * 100)}%"></div></div>
             <small>${va.proyeccion ? `Vas a ${running.textoSegundos(va.proyeccion)} /km · objetivo ${running.textoSegundos(pelea.emboscada ? en.objetivo * encuentros.EMBOSCADA_RITMO : en.objetivo)} · ${estado}` : "Empieza a correr: la pelea dura este kilómetro."}</small>
             ${encuentros.demasiadoRapido(va.proyeccion, en.objetivo) ? '<small class="run-pelea-aviso">Tranquilo: vas mucho más rápido que tu objetivo. Cuida tus piernas.</small>' : ""}
+            ${en.frase ? `<small class="run-frase">“${esc(en.frase)}”</small>` : ""}
             ${anterior ? `<small class="texto-suave">Km ${anterior.km}: ${anterior.resultado === "vencida" ? `venciste a ${esc(encuentros.nombreDe(anterior))} ✓` : `${esc(encuentros.nombreDe(anterior))} escapó`}</small>` : ""}
         </div>`;
 }
@@ -420,6 +421,7 @@ function tarjetaAjustes(estado) {
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="run-probar-voz">🔊 Probar la voz</button>
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="run-buscar-voces">🔄 Buscar voces nuevas</button>
             </div>
+            <button type="button" class="boton boton-chico boton-secundario boton-ancho" data-accion="run-descargar-voz">⬇ Descargar la voz grabada (para usarla sin internet)</button>
             <button type="button" class="boton boton-chico boton-secundario boton-ancho" data-accion="run-ver-voces">🔍 Ver todas las voces que ve la app</button>
             <div class="run-voces-todas" data-run-voces-todas></div>
             <p class="mini texto-suave" data-run-voces-nota></p>

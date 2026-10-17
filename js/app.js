@@ -30,6 +30,8 @@ import * as vistasRunning from "./vistas-running.js";   // (v109) la pestaña Ru
 import * as running from "./running.js";
 import * as ruta from "./ruta.js";
 import * as encuentros from "./encuentros.js";   // (v119) criaturas en tus carreras
+import * as frases from "./frases.js";           // (v128) lo que dice la voz de la carrera
+import * as locutor from "./locutor.js";         // (v128) las voces grabadas
 import * as vocesModulo from "./voces.js";
 import * as vida from "./vida.js";
 import * as gym from "./gym.js";
@@ -453,6 +455,7 @@ function iniciarGps() {
         if (avance) {
             datos.guardar(estado);
             if (avance.kmNuevo) anunciarKilometro(avance.kmNuevo, avance.segundos, avance.resueltos, avance.nuevo);
+            else avisarSiVasLento();
         }
     }, (error) => {
         // 1 = no nos dieron permiso (ya no se puede: se deja de escuchar).
@@ -468,13 +471,36 @@ function iniciarGps() {
 
 // (v116) Cada kilómetro: un sonido, un aviso en pantalla y, si está activada la voz, tu tiempo hablado.
 function anunciarKilometro(numero, segundos, resueltos = [], nuevo = null) {
-    // (v119) La pelea del km que terminó y la criatura que aparece.
+    // (v119) La pelea del km que terminó y la criatura que aparece. (v128) Con voz grabada o la del teléfono, y una frase de ánimo.
     const pelea = resueltos.at(-1);
     const fin = !pelea ? "" : pelea.resultado === "vencida" ? `¡Venciste a ${encuentros.nombreDe(pelea)}!` : `${encuentros.nombreDe(pelea)} escapó.`;
-    const sigue = nuevo ? `Aparece ${nuevo.jefe ? "un jefe: " : nuevo.emboscada ? "una emboscada: " : ""}${encuentros.nombreDe(nuevo)}. ${encuentros.pistaDe(nuevo)}` : "";
     avisar(`🏃 Km ${numero}: ${running.textoSegundos(segundos)}${fin ? ` · ${fin}` : ""}`);
     if (document.visibilityState === "hidden") mostrarNotificacionCarrera({ sonando: true });   // (v120) también fuera de la app
-    decir(`Kilómetro ${numero}. ${running.textoParaVoz(segundos)}. ${fin} ${sigue}`);
+    hablar(frases.anuncioDeKm(numero, segundos, pelea, nuevo));
+}
+
+// (v128) A los 500 m de cada km, si vas lento para vencer a la criatura, un empujón (una sola vez por km).
+function avisarSiVasLento() {
+    const en = estado.running.encurso;
+    const k = en?.kmActual;
+    const pelea = en?.encuentros?.find((e) => !e.resultado);
+    if (!k || !pelea || k.mitad === null || k.avisoLento) return;
+    k.avisoLento = true;
+    const marcas = en.marcas || [];
+    const va = encuentros.comoVa(pelea, (running.tiempoDeEncurso(en, Date.now()) - (marcas.at(-1) || 0)) / 1000, en.distancia - marcas.length * 1000, en.objetivo);
+    if (va.vas === "lento") hablar(frases.anuncioDeLento());
+}
+
+// (v128) Dice una lista de piezas (frases.js): con la voz grabada elegida si la hay y tiene todos los audios; si no, con la del teléfono.
+// También deja la frase de ánimo a la vista en la tarjeta de la pelea.
+async function hablar(piezas, { forzar = false } = {}) {
+    const frase = piezas.find((p) => p.k && p.k.startsWith("f-"));
+    if (frase && estado.running.encurso) estado.running.encurso.frase = frase.t;
+    if (!forzar && estado.running.avisoKm === false) return;
+    const { claves, texto } = frases.resumirPiezas(piezas);
+    const voz = estado.running.voz;
+    if (locutor.esGrabada(voz) && claves && await locutor.decir(voz, claves)) return;
+    decir(texto, { forzar: true });   // la voz del teléfono (o la de reserva si faltó un audio)
 }
 
 // (v119) La voz de la carrera (si está encendida en Running › Progreso y el sonido está activado).
@@ -504,7 +530,10 @@ function poblarVocesRunning() {
     const lista = document.querySelector("[data-running-voz]");
     if (!lista) return;
     const voces = vocesEnEspanol();
-    lista.innerHTML = `<option value="">Automática (la del teléfono)</option>${voces.map((v) => `<option value="${v.voiceURI}">${nombreDeVoz(v)}</option>`).join("")}`;
+    const grabadas = Object.entries(locutor.VOCES).map(([clave, v]) => `<option value="${locutor.PREFIJO}${clave}">🎙️ ${v.nombre}</option>`).join("");
+    lista.innerHTML = `<option value="">Automática (la del teléfono)</option>
+        <optgroup label="Voces grabadas en la app (México)">${grabadas}</optgroup>
+        ${voces.length ? `<optgroup label="Voces del teléfono">${voces.map((v) => `<option value="${v.voiceURI}">${nombreDeVoz(v)}</option>`).join("")}</optgroup>` : ""}`;
     lista.value = estado.running.voz || "";
     if (lista.value !== (estado.running.voz || "")) lista.value = "";
     const nota = document.querySelector("[data-run-voces-nota]");
@@ -536,6 +565,24 @@ function verTodasLasVoces() {
     try { speechSynthesis.getVoices(); } catch (error) { /* sin voces */ }
     pintar();
     for (const espera of [500, 1500, 3000]) setTimeout(pintar, espera);   // llegan tarde
+}
+
+// (v128) Baja todos los audios de la voz grabada elegida para usarla sin internet (el service worker los guarda).
+let descargandoVoz = false;
+async function descargarVozGrabada() {
+    const voz = estado.running.voz;
+    if (!locutor.esGrabada(voz)) { avisar("🎙️ Elige primero una voz grabada en la lista"); return; }
+    if (descargandoVoz) return;
+    descargandoVoz = true;
+    const nota = document.querySelector("[data-run-voces-nota]");
+    try {
+        const { total, faltaron } = await locutor.descargar(voz, (hechos, todos) => { if (nota) nota.textContent = `⬇ Descargando la voz… ${hechos} de ${todos}`; });
+        avisar(faltaron ? `🎙️ Voz descargada, pero faltaron ${faltaron} audios de ${total}. Con internet, vuelve a intentarlo.` : "🎙️ Voz lista: ya funciona sin internet");
+    } catch (error) {
+        avisar("🎙️ No se pudo descargar la voz. Revisa tu internet.");
+    }
+    descargandoVoz = false;
+    poblarVocesRunning();
 }
 
 // (v126) El iPhone entrega la lista de voces tarde y no siempre avisa cuando bajas una nueva: se vuelve a pedir varias veces.
@@ -1807,6 +1854,7 @@ function rellenarOpciones() {
     const credito = (enlace, c) => `<p><a href="${enlace}" target="_blank" rel="noopener">${c.obra}</a> — ${c.artista}, ${c.anio}.</p>`;
     $("#creditos").innerHTML = `<h4>Jefes</h4>${Object.entries(campana.CREDITOS).map(([id, c]) => credito(campana.fuenteDe(id), c)).join("")}
         <h4>Fondos y escenarios</h4>${Object.entries(PINTURAS).map(([id, c]) => credito(fuentePintura(id), c)).join("")}
+        <h4>Voces de la carrera</h4>${Object.values(locutor.VOCES).map((v) => `<p>${v.nombre.replace(" (grabada)", "")}: ${v.licencia}. Sintetizada con Piper (MIT).</p>`).join("")}
         <h4>Música</h4>${Object.values(musica.PISTAS).map((m) => `<p><a href="${m.fuente}" target="_blank" rel="noopener">${m.obra}</a> —
             ${m.autor}; interpreta ${m.interpretes} (${m.licencia}).</p>`).join("")}`;
 
@@ -3494,7 +3542,8 @@ const ACCIONES = {
         const empezada = ejecutar(() => acciones.empezarCarrera(estado, runTipo, { gps, objetivo }), { mantenerScroll: true });
         if (!empezada) return;
         const primera = estado.running.encurso?.encuentros?.[0];
-        if (primera) decir(`Aparece ${encuentros.nombreDe(primera)}. ${encuentros.pistaDe(primera)}`);
+        locutor.despertar();   // el audio solo arranca tras un toque
+        hablar(frases.anuncioDeInicio(primera));
         gpsProblema = null;
         if (gps) iniciarGps();
         mantenerPantallaDespierta(true);
@@ -3515,7 +3564,8 @@ const ACCIONES = {
     "run-meta": (boton) => ejecutar(() => acciones.cambiarMetaKm(estado, estado.running.metaKm + Number(boton.dataset.delta)), { mantenerScroll: true }),
     "run-buscar-voces": () => buscarVocesNuevas(),
     "run-ver-voces": () => verTodasLasVoces(),
-    "run-probar-voz": () => decir("Kilómetro 3. 5 minutos 12 segundos. ¡Venciste al esqueleto! Aparece un jefe: mantén el ritmo.", { forzar: true }),
+    "run-probar-voz": () => { locutor.despertar(); hablar(frases.anuncioDePrueba(), { forzar: true }); },
+    "run-descargar-voz": () => descargarVozGrabada(),
     "run-concentracion": () => ejecutar(() => acciones.cambiarConcentracion(estado, estado.running.concentracion === false), { mantenerScroll: true }),
     "run-aviso-km": () => ejecutar(() => acciones.cambiarAvisoKm(estado, estado.running.avisoKm === false), { mantenerScroll: true }),
     "run-borrar": (boton) => {
@@ -3692,6 +3742,7 @@ const FORMULARIOS = {
         detenerGps();
         mantenerPantallaDespierta(false);
         ponerMusica();   // (v125) se acabó la carrera
+        hablar(frases.anuncioFinal());
         subvista.running = "correr";
         sonar("completar");
         dibujarPantalla();
@@ -3917,7 +3968,8 @@ function conectarEventos() {
         // (v109) La misión que se marca sola al guardar una carrera.
         if (evento.target.matches?.("[data-running-voz]")) {   // (v124) la voz de la carrera
             ejecutar(() => acciones.cambiarVozRunning(estado, evento.target.value), { mantenerScroll: true });
-            decir("Kilómetro 3. 5 minutos 12 segundos. ¡Venciste al esqueleto!", { forzar: true });
+            locutor.despertar();
+            hablar(frases.anuncioDePrueba(), { forzar: true });
             return;
         }
         if (evento.target.matches?.("[data-running-mision]")) {

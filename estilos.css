@@ -12064,3 +12064,10 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     margin-top: 8px;
     opacity: 0.8;
 }
+
+
+/* ===== (v128) Frases de ánimo ===== */
+.run-frase {
+    font-style: italic;
+    color: #ffe58a !important;
+}

@@ -73,6 +73,8 @@ import * as vistasGym from "../js/vistas-gym.js";
 import * as running from "../js/running.js";
 import * as ruta from "../js/ruta.js";
 import * as encuentros from "../js/encuentros.js";
+import * as frases from "../js/frases.js";
+import * as locutor from "../js/locutor.js";
 import { mapaDeCarrera } from "../js/dibujo-carrera.js";
 import * as vistasRunning from "../js/vistas-running.js";
 import * as equipo from "../js/equipo.js";
@@ -2991,6 +2993,49 @@ prueba("Criaturas de la carrera: en una carrera con GPS aparecen, se deciden al 
     cierto(fin.celebraciones.some((c) => c.etiqueta === "Criaturas de la carrera"), "hay resumen al terminar");
     cierto(estado.personaje.gemas >= gemas, "el botín de las criaturas se suma");
     debeFallar(() => acciones.empezarCarrera(estado, "suave", { gps: true, objetivo: "rápido" }), "ritmo objetivo");
+});
+
+prueba("Frases de la carrera: los números se dicen bien en español", () => {
+    igual(frases.numeroEnPalabras(0), "cero");
+    igual(frases.numeroEnPalabras(16), "dieciséis");
+    igual(frases.numeroEnPalabras(21), "veintiuno");
+    igual(frases.numeroEnPalabras(30), "treinta");
+    igual(frases.numeroEnPalabras(45), "cuarenta y cinco");
+    igual(frases.textoMin(1), "un minuto");
+    igual(frases.textoMin(21), "veintiún minutos");
+    igual(frases.textoSeg(31), "treinta y un segundos");
+    igual(frases.textoKm(7), "Kilómetro siete.");
+});
+
+prueba("Frases de la carrera: cada aviso tiene su audio y las frases de ánimo no se repiten seguidas", () => {
+    // Todo lo que se dice al cumplir un km existe como audio (o cae a la voz del teléfono, nunca con una clave rota).
+    const pelea = { id: "esqueleto", resultado: "vencida" };
+    for (const siguiente of [{ id: "arana", clase: "rapida" }, { id: "dragon", jefe: true, clase: "normal" }, { id: "esqueleto", emboscada: true, clase: "normal" }]) {
+        const { claves, texto } = frases.resumirPiezas(frases.anuncioDeKm(3, 312, pelea, siguiente));
+        cierto(claves.every((k) => frases.TEXTOS[k]), "todas las claves tienen texto");
+        cierto(texto.includes("Kilómetro tres.") && texto.includes("cinco minutos"), "el texto de reserva se lee completo");
+    }
+    igual(frases.resumirPiezas(frases.anuncioDeKm(80, 312, null, null)).claves, null, "un km sin audio usa la voz del teléfono");
+    let repetida = false;
+    let antes = frases.fraseDe("km", () => 0.5).k;
+    for (let i = 0; i < 50; i++) { const ahora = frases.fraseDe("km", () => 0.5).k; if (ahora === antes) repetida = true; antes = ahora; }
+    cierto(!repetida, "nunca sale la misma frase dos veces seguidas");
+    cierto(Object.keys(frases.TEXTOS).length > 300, "hay más de 300 audios definidos");
+    cierto(locutor.esGrabada("pack:ald") && !locutor.esGrabada("pack:nadie") && !locutor.esGrabada(""), "se reconocen las voces grabadas");
+});
+
+prueba("Voces grabadas: existe el audio de cada frase en cada voz", async () => {
+    for (const voz of Object.keys(locutor.VOCES)) {
+        const faltan = [];
+        const claves = Object.keys(frases.TEXTOS);
+        for (let i = 0; i < claves.length; i += 30) {
+            await Promise.all(claves.slice(i, i + 30).map(async (clave) => {
+                const r = await fetch(`../locutor/${voz}/${clave}.mp3`, { method: "HEAD" });
+                if (!r.ok) faltan.push(clave);
+            }));
+        }
+        igual(faltan, [], `faltan audios de la voz ${voz}`);
+    }
 });
 
 prueba("Modo concentración: viene activado y se puede apagar", () => {
