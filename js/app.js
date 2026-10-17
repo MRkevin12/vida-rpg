@@ -296,7 +296,7 @@ async function mostrarNotificacionCarrera({ sonando = false } = {}) {
     if (!en || !registroSW || !("Notification" in window) || Notification.permission !== "granted") return;
     // Con la app a la vista no hace falta: se cierra la de antes.
     if (document.visibilityState === "visible" && !sonando) return cerrarNotificacionCarrera();
-    if (mostrandoNotificacion || (!sonando && Date.now() - ultimaNotificacionCarrera < 10000)) return;
+    if (mostrandoNotificacion || (!sonando && Date.now() - ultimaNotificacionCarrera < 30000)) return;
     mostrandoNotificacion = true;
     ultimaNotificacionCarrera = Date.now();
     const { titulo, cuerpo } = textoNotificacionCarrera(en);

@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v122 — Notificación de la carrera cada 30 s
+- Antes cada 10 s; con la v120 se acumulaban en el iPhone. Desde la v121 se cierra la anterior antes de mostrar la nueva.
+
 ## v121 — Una sola notificación de la carrera
 - `mostrarNotificacionCarrera` cierra cualquier notificación de carrera antes de mostrar la nueva y no permite llamadas cruzadas.
 
