@@ -40,6 +40,7 @@ import * as gymAurelio from "./gym-aurelio.js";
 import * as ruta from "./ruta.js";
 import * as encuentros from "./encuentros.js";   // (v119) criaturas en tus carreras
 import * as running from "./running.js";   // (v109) el running
+import * as finanzas from "./finanzas.js";   // (v135) las cuentas de tu plata
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
 
 
@@ -2656,4 +2657,146 @@ export function cambiarMisionRunning(estado, valor) {
     const id = valor === "" || valor === null ? null : Number(valor);
     if (id !== null && !estado.misiones.some((m) => m.id === id && !m.archivadaEn)) throw new Error("Esa misión no existe.");
     estado.running.mision = id;
+}
+
+// ===== Finanzas (v135): tu plata en pesos colombianos. Las reglas y los consejos están en finanzas.js =====
+
+// Busca un elemento de una lista por su id (los ids pueden llegar como texto desde un formulario o un botón).
+function buscarFinanza(lista, id, mensaje) {
+    const elemento = lista.find((x) => String(x.id) === String(id));
+    if (!elemento) throw new Error(mensaje);
+    return elemento;
+}
+
+// Una fecha de un formulario: hoy o un día pasado (hasta 2 años atrás). No se puede anotar un día que todavía no llega.
+function fechaDeFinanzas(texto) {
+    const fecha = texto ? String(texto) : hoy();
+    if (!esFechaValida(fecha)) throw new Error("Esa fecha no es válida.");
+    if (fecha > hoy()) throw new Error("No puedes anotar un día que todavía no llega.");
+    if (fecha < sumarDias(hoy(), -730)) throw new Error("Esa fecha es muy antigua para anotarla aquí.");
+    return fecha;
+}
+
+// Da XP de Riqueza por anotar, con tope de registros al día (ver finanzas.js).
+function darXpPorRegistro(estado) {
+    const xp = estado.finanzas.xpHoy;
+    if (xp.fecha !== hoy()) { xp.fecha = hoy(); xp.n = 0; }
+    if (xp.n >= finanzas.REGISTROS_CON_XP_AL_DIA) return 0;
+    xp.n += 1;
+    ganar(estado, { xp: finanzas.XP_POR_REGISTRO, atributo: "riqueza" });
+    return finanzas.XP_POR_REGISTRO;
+}
+
+// Una fuente: el trabajo (de donde entra dinero) o una inversión/CDT (con el valor que tienes ahí).
+export function agregarFuenteFinanzas(estado, { nombre, tipo, valor = "", vence = "" }) {
+    const texto = String(nombre || "").trim();
+    if (!texto) throw new Error("Escribe el nombre de la fuente.");
+    if (texto.length > 40) throw new Error("El nombre de la fuente es muy largo (máximo 40 letras).");
+    if (!finanzas.TIPOS_FUENTE[tipo]) throw new Error("Elige qué tipo de fuente es.");
+    const tocable = finanzas.TIPOS_FUENTE[tipo].tocable;
+    let monto = 0;
+    if (!tocable) {
+        monto = finanzas.dineroDeTexto(valor);
+        if (monto === null) throw new Error("Escribe cuánto tienes ahí (en pesos).");
+    }
+    // El vencimiento de un CDT puede ser una fecha futura: solo se revisa que sea una fecha de verdad.
+    if (vence && !esFechaValida(String(vence))) throw new Error("La fecha de vencimiento no es válida.");
+    const fechaVence = vence ? String(vence) : null;
+    estado.finanzas.fuentes.push({ id: nuevoId(estado), nombre: texto, tipo, valor: monto, vence: fechaVence });
+}
+
+// Cambia lo que tienes en una inversión o CDT (el trabajo no guarda valor: lo que entra se anota como ingreso).
+export function cambiarValorFuenteFinanzas(estado, id, valor) {
+    const fuente = buscarFinanza(estado.finanzas.fuentes, id, "Esa fuente ya no existe.");
+    if (finanzas.TIPOS_FUENTE[fuente.tipo].tocable) throw new Error("El trabajo no guarda un valor: lo que entra se anota como ingreso.");
+    const monto = finanzas.dineroDeTexto(valor);
+    if (monto === null) throw new Error("Escribe cuánto tienes ahí (en pesos).");
+    fuente.valor = monto;
+}
+
+// Un ingreso: dinero que entró de una fuente que sí tocas.
+export function registrarIngresoFinanzas(estado, { monto, fecha = "", fuente = "", nota = "" }) {
+    const cantidad = finanzas.dineroDeTexto(monto);
+    if (cantidad === null) throw new Error("Escribe cuánto entró (en pesos).");
+    const origen = buscarFinanza(estado.finanzas.fuentes, fuente, "Elige de dónde entró el dinero.");
+    if (!finanzas.TIPOS_FUENTE[origen.tipo].tocable) throw new Error("Esa fuente no se toca: su plata no entra al plan.");
+    estado.finanzas.ingresos.push({
+        id: nuevoId(estado), fecha: fechaDeFinanzas(fecha), monto: cantidad, fuente: origen.id,
+        nota: String(nota || "").trim().slice(0, 60),
+    });
+    return { xp: darXpPorRegistro(estado) };
+}
+
+// Un gasto. Si va a una meta o a una deuda, cuenta en «Ahorro y deudas» (el 20 %).
+export function registrarGastoFinanzas(estado, { monto, fecha = "", concepto, categoria = "necesidad", destino = "" }) {
+    const cantidad = finanzas.dineroDeTexto(monto);
+    if (cantidad === null) throw new Error("Escribe cuánto gastaste (en pesos).");
+    const texto = String(concepto || "").trim();
+    if (!texto) throw new Error("Escribe en qué lo gastaste.");
+    if (!finanzas.SOBRES[categoria]) throw new Error("Elige a qué sobre va el gasto.");
+
+    let meta = null;
+    let deuda = null;
+    const [tipo, id] = String(destino || "").split(":");
+    if (tipo === "meta") meta = buscarFinanza(estado.finanzas.metas, id, "Esa meta ya no existe.");
+    else if (tipo === "deuda") {
+        deuda = buscarFinanza(estado.finanzas.deudas, id, "Esa deuda ya no existe.");
+        if (finanzas.saldoDeDeuda(estado, deuda) <= 0) throw new Error("Esa deuda ya está pagada.");
+    } else if (destino) throw new Error("Ese destino no existe.");
+
+    estado.finanzas.gastos.push({
+        id: nuevoId(estado), fecha: fechaDeFinanzas(fecha), monto: cantidad, concepto: texto.slice(0, 60),
+        categoria: meta || deuda ? "ahorro" : categoria,
+        destino: meta ? `meta:${meta.id}` : deuda ? `deuda:${deuda.id}` : null,
+    });
+    const premio = meta ? premiarMetaFinanzas(estado, meta) : null;
+    return { xp: darXpPorRegistro(estado), meta: premio };
+}
+
+// Cuando una meta llega a su monto, se premia una sola vez.
+function premiarMetaFinanzas(estado, meta) {
+    if (meta.premiada || finanzas.ahorradoEnMeta(estado, meta) < meta.objetivo) return null;
+    meta.premiada = true;
+    ganar(estado, { xp: finanzas.XP_META_CUMPLIDA, atributo: "riqueza" });
+    return meta.nombre;
+}
+
+// Una meta de ahorro: cuánto quieres juntar (el avance sale de los gastos que vayas a ella).
+export function agregarMetaFinanzas(estado, { nombre, objetivo }) {
+    const texto = String(nombre || "").trim();
+    if (!texto) throw new Error("Escribe el nombre de la meta.");
+    if (texto.length > 40) throw new Error("El nombre de la meta es muy largo (máximo 40 letras).");
+    const monto = finanzas.dineroDeTexto(objetivo);
+    if (monto === null) throw new Error("Escribe cuánto quieres juntar (en pesos).");
+    estado.finanzas.metas.push({ id: nuevoId(estado), nombre: texto, objetivo: monto, premiada: false });
+}
+
+// Una deuda: cuánto debes al empezar (lo que pagues después se resta solo).
+export function agregarDeudaFinanzas(estado, { nombre, saldo, cuota = "" }) {
+    const texto = String(nombre || "").trim();
+    if (!texto) throw new Error("Escribe el nombre de la deuda.");
+    if (texto.length > 40) throw new Error("El nombre de la deuda es muy largo (máximo 40 letras).");
+    const monto = finanzas.dineroDeTexto(saldo);
+    if (monto === null) throw new Error("Escribe cuánto debes (en pesos).");
+    const cuotaMensual = cuota ? finanzas.dineroDeTexto(cuota) : null;
+    if (cuota && cuotaMensual === null) throw new Error("La cuota no es válida (en pesos).");
+    estado.finanzas.deudas.push({ id: nuevoId(estado), nombre: texto, saldoInicial: monto, cuota: cuotaMensual });
+}
+
+// Borra un registro. Una fuente, meta o deuda con movimientos no se borra: así no pierdes tu historia.
+export function borrarRegistroFinanzas(estado, lista, id) {
+    const f = estado.finanzas;
+    const tieneMovimientos = {
+        fuentes: () => f.ingresos.some((i) => String(i.fuente) === String(id)),
+        metas: () => f.gastos.some((g) => g.destino === `meta:${id}`),
+        deudas: () => f.gastos.some((g) => g.destino === `deuda:${id}`),
+    };
+    if (!["fuentes", "ingresos", "gastos", "metas", "deudas"].includes(lista)) throw new Error("No sé qué quieres borrar.");
+    if (tieneMovimientos[lista]?.()) {
+        throw new Error(lista === "fuentes" ? "Esa fuente tiene ingresos anotados: no se puede borrar."
+            : "Ya tiene pagos anotados: no se puede borrar.");
+    }
+    const antes = f[lista].length;
+    f[lista] = f[lista].filter((x) => String(x.id) !== String(id));
+    if (f[lista].length === antes) throw new Error("Ese registro ya no existe.");
 }

@@ -2,6 +2,16 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v135 — Finanzas (en pesos)
+- Botón «Finanzas» debajo de Running en Hoy (`tarjetaFinanzasHoy`, como la de Running: no sale en modo esencial ni en «ayer»). Pantalla `pantalla-finanzas`, pestaña Hoy.
+- `js/finanzas.js` (reglas, sin pantalla): plan 50/30/20 (necesidades, gustos, ahorro y deudas), `dineroDeTexto`, `pesos` (es-CO, sin centavos), metas, deudas y `consejoDeAurelio`.
+- Fuentes: `trabajo` (se toca: sus ingresos entran al mes) · `inversion` y `cdt` (no se tocan: solo valor actual y vencimiento; no entran al plan, van a «Patrimonio que no tocas»).
+- Datos: `estado.finanzas` = { fuentes, ingresos, gastos, metas, deudas, xpHoy }. Versión de datos 33. Un abono a meta o deuda es un gasto con `destino` `meta:<id>` / `deuda:<id>` y cuenta en «Ahorro y deudas». Saldo de deuda y ahorro de meta se calculan (no se guardan).
+- XP al atributo **Riqueza**: 5 por registro, máx. 3 registros al día con XP; 150 al cumplir una meta (una sola vez). Borrar no da ni quita XP.
+- Acciones: `acciones.js` (sección Finanzas); botones y formularios en `js/app-finanzas.js`; dibujo en `js/vistas-finanzas.js`. Nada de esto guarda montos reales en el código.
+- Pruebas: 10 nuevas (353 en total). Verificado en Chromium con una partida de prueba inventada.
+- Sin publicar todavía.
+
 ## v134 — app.js dividido por tema
 - `app.js` (4159 líneas) queda como director (~900 líneas): estado, `ui`, arranque, `ejecutar`, dibujar, `cambiarPantalla`, `tictac`, respaldo y eventos. El resto pasa a 13 archivos `app-*.js`: running, gym, pin, torre, historias, efectos, dialogos, gestos, maestro, diario, version, botones y formularios.
 - Cada archivo exporta sus botones como `ACCIONES_<TEMA>` (y `FORMULARIOS_<TEMA>`); `app.js` los junta en `ACCIONES` / `FORMULARIOS`.

@@ -17,6 +17,7 @@ import { retratoPixel, figuraPixel, dioramaPixel, pixelarEnVivo } from "./retrat
 import { icono } from "./iconos.js";
 import { tarjetaGymHoy } from "./vistas-gym.js";
 import { tarjetaRunningHoy } from "./vistas-running.js";   // (v110) la tarjeta del running en Hoy
+import { tarjetaFinanzasHoy } from "./vistas-finanzas.js";   // (v135) la tarjeta de Finanzas, debajo de la del running
 import { fechaLegible, fechaCorta, DIAS_LETRAS, DIAS_CORTOS, diaDeSemana, diasEntre, lunesDe, relojTexto,
          relojLargo, sumarDias, hoy as fechaDeHoy } from "./fechas.js";
 import { agruparPorAtributo, vacio, plegable, esc, ICONOS, barra, botonEditar, ficha, cabeceraSeccion,
@@ -174,6 +175,7 @@ export function pantallaHoy(estado, ctx) {
         ${avisoDescanso(estado, ctx)}`}
         ${esAyer ? "" : tarjetaGymHoy(estado, ctx)}
         ${esAyer || esencial ? "" : tarjetaRunningHoy(estado, ctx)}
+        ${esAyer || esencial ? "" : tarjetaFinanzasHoy(estado, ctx)}
         ${pestanasHoy}
         ${contenido}`;
 }

@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 134;
+export const VERSION_APP = 135;
 
 export const NOVEDADES = [
+    {
+        version: 135,
+        titulo: "Finanzas",
+        cambios: [
+            "💰 Nuevo botón Finanzas debajo de Running, en Hoy. Anota tus ingresos y gastos en pesos, y mira tu plan 50/30/20: necesidades, gustos y ahorro.",
+            "🪙 Tu trabajo es la fuente que sí usas. La inversión y el CDT se anotan aparte, con lo que tienes ahí, y no entran al plan.",
+            "🌱 Metas de ahorro, 🌱 deudas con su saldo, y Aurelio te da un consejo según cómo vas este mes.",
+            "💰 Tus finanzas suman XP al atributo Riqueza, y una meta cumplida da un premio extra.",
+        ],
+    },
     {
         version: 134,
         titulo: "Más orden por dentro",

@@ -37,6 +37,7 @@ import * as campana from "./campana.js";
 import * as vistasVoces from "./vistas-voces.js";
 import * as vistasGym from "./vistas-gym.js";
 import * as vistasRunning from "./vistas-running.js";   // (v109) la pestaña Running
+import * as vistasFinanzas from "./vistas-finanzas.js";   // (v135) la pantalla Finanzas
 import * as running from "./running.js";
 import * as frases from "./frases.js";   // (v128) lo que dice la voz de la carrera
 import * as locutor from "./locutor.js";   // (v128) las voces grabadas
@@ -57,6 +58,7 @@ import { runTipo, runPista, gpsProblema, runTerminando, ponerHeroeEnMapaVivo, mo
          ponerCriaturasDeCarrera, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
          mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
 import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM } from "./app-gym.js";
+import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS } from "./app-finanzas.js";   // (v135)
 import { GRACIA_MS, cerrarTeclado, teclaPulsada, pedirPinParaEntrar, entrarConFaceId, crearPin, ACCIONES_PIN } from "./app-pin.js";
 import { pintarMapa, juegoActual, jugarMinijuego, cerrarMinijuego, ACCIONES_TORRE } from "./app-torre.js";
 import { revisarCines, capituloNovela, libroNovela, pergaminoActual, pintarRetratosVoces, pintarPortadas,
@@ -108,7 +110,7 @@ export const subvista = { progreso: "numeros", tienda: "recompensas", personaje:
 const PANTALLAS_ESENCIALES = new Set(["hoy", "tienda", "enfoque", "gym"]);
 
 // Las pantallas sin pestaña propia iluminan la pestaña de la que dependen.
-const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", gym: "hoy", running: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje", biblioteca: "personaje", novela: "personaje" };
+const PESTANA_DE = { mapa: "aventuras", arcade: "aventuras", voces: "aventuras", enfoque: "hoy", gym: "hoy", running: "hoy", finanzas: "hoy", diario: "hoy", libro: "hoy", pacto: "personaje", memorias: "personaje", pergamino: "personaje", biblioteca: "personaje", novela: "personaje" };
 
 // Atajo: $("#algo") es lo mismo que document.querySelector("#algo")
 export const $ = (selector) => document.querySelector(selector);
@@ -127,6 +129,7 @@ const DIBUJAR = {
     pacto: vistas.pantallaPacto,
     gym: vistasGym.pantallaGym,
     running: vistasRunning.pantallaRunning,
+    finanzas: vistasFinanzas.pantallaFinanzas,   // (v135)
     libro: vistas.pantallaLibro,
     mapa: vistas.pantallaMapa,
     memorias: vistas.pantallaMemorias,
@@ -707,6 +710,7 @@ export function reiniciarPartida() {
 
 export const ACCIONES = {
     ...ACCIONES_RUNNING,
+    ...ACCIONES_FINANZAS,   // (v135)
     ...ACCIONES_GYM,
     ...ACCIONES_PIN,
     ...ACCIONES_TORRE,
@@ -725,6 +729,7 @@ export const ACCIONES = {
 
 const FORMULARIOS = {
     ...FORMULARIOS_RUNNING,
+    ...FORMULARIOS_FINANZAS,   // (v135)
     ...FORMULARIOS_GYM,
     ...FORMULARIOS_MAESTRO,
     ...FORMULARIOS_DIARIO,

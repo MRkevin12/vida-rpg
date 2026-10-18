@@ -12185,3 +12185,63 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     border: 1px solid rgba(241, 243, 255, 0.7);
     border-radius: var(--esquina);
 }
+
+/* ===== (v135) Finanzas: cifras del mes, plan 50/30/20, fuentes, metas y deudas ===== */
+.fin-cifras {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    text-align: center;
+    margin: 8px 0;
+}
+
+.fin-cifras small {
+    display: block;
+    opacity: 0.75;
+}
+
+.fin-cifras b {
+    font-size: 1.05rem;
+}
+
+.fin-malo {
+    color: #fb7185;
+}
+
+.fin-sobre {
+    display: grid;
+    gap: 4px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fin-sobre-cab {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.fin-barra-mala .barra-relleno {
+    background: #fb7185;
+}
+
+.fin-fila {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+}
+
+.fin-fuente-texto,
+.fin-meta-texto {
+    display: grid;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.fin-fuente .form-linea {
+    margin-top: 4px;
+}

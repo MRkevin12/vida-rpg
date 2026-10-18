@@ -17,7 +17,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 32,   // 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running
+        version: 33,   // 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -73,6 +73,9 @@ export function estadoInicial() {
         cofres: {},           // cofre de cada día, con lo que salió: { tipo, cantidad, atributo, objeto, icono, texto }
         gym: gymInicial(),    // (v66) el gimnasio: sesiones, el entrenamiento en curso, hitos y tus ajustes (ver gym.js)
         running: runningInicial(),   // (v109) el running: carreras, la carrera en vivo, metas, hitos y la misión (ver running.js)
+        // (v135) Finanzas, en pesos. fuentes: { id, nombre, tipo, valor, vence } · ingresos y gastos: { id, fecha, monto, … }
+        //   · metas: { id, nombre, objetivo, premiada } · deudas: { id, nombre, saldoInicial, cuota }. Reglas en finanzas.js.
+        finanzas: { fuentes: [], ingresos: [], gastos: [], metas: [], deudas: [], xpHoy: { fecha: null, n: 0 } },
         libros: { casio: { marca: 0, leidos: 0, fin: null }, orrin: { marca: 0, leidos: 0, fin: null } },   // (v62) el libro largo de Historia: por dónde vas y cuándo lo terminaste
         pergaminos: { leidos: {} },   // (v57) los pergaminos de la Biblioteca prohibida que ya leíste: { id: fecha }
         // (v101) Las insignias (ver insignias.js). vistas = las que ya se celebraron (null = todavía no se miró nunca:
@@ -176,6 +179,14 @@ function completar(guardado) {
         insignias: { vistas: guardado.insignias?.vistas || null, puesta: guardado.insignias?.puesta || null },   // (v101)
         cartas: guardado.cartas || [],   // (v106)
         running: { ...base.running, ...guardado.running, carreras: guardado.running?.carreras || [], hitos: guardado.running?.hitos || [], semanasCobradas: guardado.running?.semanasCobradas || [] },   // (v109)
+        finanzas: {
+            fuentes: guardado.finanzas?.fuentes || [],
+            ingresos: guardado.finanzas?.ingresos || [],
+            gastos: guardado.finanzas?.gastos || [],
+            metas: guardado.finanzas?.metas || [],
+            deudas: guardado.finanzas?.deudas || [],
+            xpHoy: { ...base.finanzas.xpHoy, ...guardado.finanzas?.xpHoy },
+        },   // (v135)
         libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio }, orrin: { ...base.libros.orrin, ...guardado.libros?.orrin } },
         gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null },   // (v66)
         mapa: { reclamados: guardado.mapa?.reclamados || [], cines: guardado.mapa?.cines || [] },

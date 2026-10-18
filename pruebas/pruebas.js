@@ -11,6 +11,7 @@
 // siguen en verde, las reglas del juego siguen funcionando igual.
 
 import * as datos from "../js/datos.js";
+import * as finanzas from "../js/finanzas.js";   // (v135)
 import * as acciones from "../js/acciones.js";
 import * as juego from "../js/juego.js";
 import * as campana from "../js/campana.js";
@@ -7078,6 +7079,130 @@ prueba("Service worker: guarda todos los archivos de la app (y existen), incluid
     igual(faltan, [], "archivos que no existen");
 });
 
+
+// ===== Finanzas (v135): el plan 50/30/20, las fuentes, las metas, las deudas y el XP de Riqueza =====
+
+// Una partida con una fuente de trabajo (la que sí se toca). Devuelve el id de esa fuente.
+function finanzasConTrabajo(estado) {
+    acciones.agregarFuenteFinanzas(estado, { nombre: "Trabajo", tipo: "trabajo" });
+    return estado.finanzas.fuentes[0].id;
+}
+
+prueba("Finanzas: el dinero de los ingresos se pesa en pesos (1.500.000 → 1500000) y no acepta basura", () => {
+    igual(finanzas.dineroDeTexto("1.500.000"), 1500000, "con puntos");
+    igual(finanzas.dineroDeTexto("$ 80000"), 80000, "con signo de peso");
+    igual(finanzas.dineroDeTexto(""), null, "vacío");
+    igual(finanzas.dineroDeTexto("0"), null, "cero");
+    igual(finanzas.dineroDeTexto("abc"), null, "letras");
+    igual(finanzas.pesos(1500000), "$1.500.000", "formato de pesos");
+    igual(finanzas.pesos(-100000), "-$100.000", "negativo");
+});
+
+prueba("Finanzas: el plan 50/30/20 reparte lo que entra y avisa cuando un sobre se pasa", () => {
+    const estado = partidaNueva();
+    const fuente = finanzasConTrabajo(estado);
+    acciones.registrarIngresoFinanzas(estado, { monto: "1.000.000", fuente, fecha: hoy() });
+    const mes = hoy().slice(0, 7);
+    const plan = finanzas.planDelMes(estado, mes);
+    igual(plan.map((s) => s.limite), [500000, 300000, 200000], "50 / 30 / 20 de un millón");
+    acciones.registrarGastoFinanzas(estado, { monto: "600.000", concepto: "Arriendo", categoria: "necesidad", fecha: hoy() });
+    const necesidad = finanzas.planDelMes(estado, mes)[0];
+    igual([necesidad.gastado, necesidad.restante, necesidad.pasado], [600000, -100000, true], "necesidades pasadas");
+    igual(finanzas.resumenDelMes(estado, mes).sobrante, 400000, "lo que queda");
+});
+
+prueba("Finanzas: la inversión y el CDT no entran al plan ni se pueden usar como ingreso", () => {
+    const estado = partidaNueva();
+    finanzasConTrabajo(estado);
+    acciones.agregarFuenteFinanzas(estado, { nombre: "Inversión", tipo: "inversion", valor: "5.000.000" });
+    const inversion = estado.finanzas.fuentes[1];
+    debeFallar(() => acciones.registrarIngresoFinanzas(estado, { monto: "100.000", fuente: inversion.id, fecha: hoy() }), "no se toca");
+    igual(finanzas.patrimonioIntocable(estado), 5000000, "lo que tienes ahí se cuenta aparte");
+    igual(finanzas.resumenDelMes(estado, hoy().slice(0, 7)).ingresos, 0, "ni un peso de la inversión entra al mes");
+    acciones.cambiarValorFuenteFinanzas(estado, inversion.id, "5.200.000");
+    igual(estado.finanzas.fuentes[1].valor, 5200000, "se actualiza su valor");
+});
+
+prueba("Finanzas: un abono a una meta cuenta como ahorro y, al llegar al monto, da el premio una sola vez", () => {
+    const estado = partidaNueva();
+    finanzasConTrabajo(estado);
+    acciones.agregarMetaFinanzas(estado, { nombre: "Emergencia", objetivo: "300.000" });
+    const meta = estado.finanzas.metas[0];
+    const xpAntes = estado.atributos.riqueza;
+    const primero = acciones.registrarGastoFinanzas(estado, { monto: "200.000", concepto: "Ahorro", categoria: "gusto", destino: `meta:${meta.id}`, fecha: hoy() });
+    igual(estado.finanzas.gastos[0].categoria, "ahorro", "un abono va a Ahorro y deudas aunque elijas otro sobre");
+    igual(primero.meta, null, "todavía no llega");
+    const segundo = acciones.registrarGastoFinanzas(estado, { monto: "100.000", concepto: "Ahorro", categoria: "ahorro", destino: `meta:${meta.id}`, fecha: hoy() });
+    igual(segundo.meta, "Emergencia", "al llegar al monto avisa la meta");
+    igual(finanzas.ahorradoEnMeta(estado, meta), 300000, "lo ahorrado");
+    const tercero = acciones.registrarGastoFinanzas(estado, { monto: "1.000", concepto: "Extra", categoria: "ahorro", destino: `meta:${meta.id}`, fecha: hoy() });
+    igual(tercero.meta, null, "el premio no se repite");
+    cierto(estado.atributos.riqueza >= xpAntes + finanzas.XP_META_CUMPLIDA, "la meta da XP de Riqueza");
+});
+
+prueba("Finanzas: una deuda baja con cada pago y no deja pagar de más", () => {
+    const estado = partidaNueva();
+    finanzasConTrabajo(estado);
+    acciones.agregarDeudaFinanzas(estado, { nombre: "Tarjeta", saldo: "200.000", cuota: "50.000" });
+    const deuda = estado.finanzas.deudas[0];
+    acciones.registrarGastoFinanzas(estado, { monto: "50.000", concepto: "Cuota", categoria: "necesidad", destino: `deuda:${deuda.id}`, fecha: hoy() });
+    igual(finanzas.saldoDeDeuda(estado, deuda), 150000, "queda 150.000");
+    acciones.registrarGastoFinanzas(estado, { monto: "150.000", concepto: "Final", categoria: "ahorro", destino: `deuda:${deuda.id}`, fecha: hoy() });
+    igual(finanzas.saldoDeDeuda(estado, deuda), 0, "pagada");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "1.000", concepto: "De más", categoria: "ahorro", destino: `deuda:${deuda.id}`, fecha: hoy() }), "ya está pagada");
+});
+
+prueba("Finanzas: el XP de Riqueza tiene tope al día (3 registros) y no se da al borrar", () => {
+    const estado = partidaNueva();
+    const fuente = finanzasConTrabajo(estado);
+    const xp = [];
+    for (let i = 0; i < 4; i++) xp.push(acciones.registrarIngresoFinanzas(estado, { monto: "10.000", fuente, fecha: hoy() }).xp);
+    igual(xp, [5, 5, 5, 0], "cuatro registros: solo los tres primeros dan XP");
+    const antes = estado.atributos.riqueza;
+    acciones.borrarRegistroFinanzas(estado, "ingresos", estado.finanzas.ingresos[0].id);
+    igual(estado.atributos.riqueza, antes, "borrar no quita ni da XP");
+});
+
+prueba("Finanzas: no se borra una fuente con ingresos, ni una meta con abonos; sí se borra un gasto", () => {
+    const estado = partidaNueva();
+    const fuente = finanzasConTrabajo(estado);
+    acciones.registrarIngresoFinanzas(estado, { monto: "10.000", fuente, fecha: hoy() });
+    debeFallar(() => acciones.borrarRegistroFinanzas(estado, "fuentes", fuente), "ingresos anotados");
+    acciones.agregarMetaFinanzas(estado, { nombre: "Viaje", objetivo: "900.000" });
+    const meta = estado.finanzas.metas[0];
+    acciones.registrarGastoFinanzas(estado, { monto: "1.000", concepto: "Viaje", categoria: "ahorro", destino: `meta:${meta.id}`, fecha: hoy() });
+    debeFallar(() => acciones.borrarRegistroFinanzas(estado, "metas", meta.id), "pagos anotados");
+    acciones.borrarRegistroFinanzas(estado, "gastos", estado.finanzas.gastos[0].id);
+    igual(estado.finanzas.gastos.length, 0, "el gasto se borró");
+});
+
+prueba("Finanzas: no se puede anotar una fecha futura, ni un monto sin sentido, ni sin fuente de trabajo el ingreso", () => {
+    const estado = partidaNueva();
+    const fuente = finanzasConTrabajo(estado);
+    debeFallar(() => acciones.registrarIngresoFinanzas(estado, { monto: "10.000", fuente, fecha: sumarDias(hoy(), 3) }), "todavía no llega");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "", concepto: "Nada", categoria: "gusto", fecha: hoy() }), "Escribe cuánto gastaste");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "5.000", concepto: "  ", categoria: "gusto", fecha: hoy() }), "Escribe en qué");
+    debeFallar(() => acciones.registrarIngresoFinanzas(estado, { monto: "5.000", fuente: "999999", fecha: hoy() }), "Elige de dónde");
+});
+
+prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () => {
+    const estado = partidaNueva();
+    igual(finanzas.consejoDeAurelio(estado, hoy()).includes("fuente"), true, "sin fuente de ingreso");
+    const fuente = finanzasConTrabajo(estado);
+    igual(finanzas.consejoDeAurelio(estado, hoy()).includes("Todavía no entra"), true, "sin ingresos este mes");
+    acciones.registrarIngresoFinanzas(estado, { monto: "1.000.000", fuente, fecha: hoy() });
+    acciones.registrarGastoFinanzas(estado, { monto: "200.000", concepto: "Salidas", categoria: "gusto", fecha: hoy() });
+    igual(finanzas.consejoDeAurelio(estado, hoy()).includes("Tus gustos"), false, "gustos sin pasarse no dan alarma");
+    acciones.registrarGastoFinanzas(estado, { monto: "150.000", concepto: "Más salidas", categoria: "gusto", fecha: hoy() });
+    cierto(finanzas.consejoDeAurelio(estado, hoy()).includes("gustos ya se comieron"), "gustos pasados avisan");
+});
+
+prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
+    const base = datos.estadoInicial();
+    igual(base.version, 33, "versión de los datos");
+    igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
+    igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
+});
 
 // ===== Ejecutar todo y mostrar el resultado =====
 
