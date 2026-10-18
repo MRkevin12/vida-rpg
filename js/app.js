@@ -58,7 +58,7 @@ import { runTipo, runPista, gpsProblema, runTerminando, ponerHeroeEnMapaVivo, mo
          ponerCriaturasDeCarrera, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
          mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
 import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM } from "./app-gym.js";
-import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS } from "./app-finanzas.js";   // (v135)
+import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS, conectarPesos } from "./app-finanzas.js";   // (v135, v137)
 import { GRACIA_MS, cerrarTeclado, teclaPulsada, pedirPinParaEntrar, entrarConFaceId, crearPin, ACCIONES_PIN } from "./app-pin.js";
 import { pintarMapa, juegoActual, jugarMinijuego, cerrarMinijuego, ACCIONES_TORRE } from "./app-torre.js";
 import { revisarCines, capituloNovela, libroNovela, pergaminoActual, pintarRetratosVoces, pintarPortadas,
@@ -740,6 +740,7 @@ const FORMULARIOS = {
 // ===== Conectar eventos =====
 
 function conectarEventos() {
+    conectarPesos();   // (v137) los montos de Finanzas muestran los puntos de miles mientras escribes
     document.addEventListener("click", (evento) => {
         if (estado.ajustes.sonido) sonido.despertar();   // el audio solo arranca tras un toque
         if (estado.ajustes.musica) ponerMusica();

@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v137 — Montos con puntos de miles mientras escribes
+- Los 7 campos de dinero de Finanzas tienen `data-pesos`: `conectarPesos()` (app-finanzas.js) los reformatea en el evento `input` con `finanzas.agruparPesos`, y mantiene el cursor contando solo los dígitos.
+- `agruparPesos`: quita todo lo que no sea dígito, quita ceros al frente y pone un punto cada 3 cifras. Lo que se guarda sigue siendo el número (`dineroDeTexto` ya ignoraba los puntos).
+- Probado tecla por tecla en Chromium: 1 → 15 → 150 → 1.500 → 15.000 → 150.000 → 1.500.000. Pruebas: 359 en total (1 nueva).
+
 ## v136 — Finanzas con menú y Aurelio más listo
 - Menú de secciones (`SECCIONES_FINANZAS`: resumen, anotar, historial, metas, fuentes) con `subvista.finanzas`; `subvista.finanzasMes` (‹ › en Historial) y `subvista.finanzasModo` (Gasté / Entró dinero).
 - `finanzas.js`: `ritmoDelMes` (cuánto gastar al día sin tocar el 20 %, proyección), `repartoDe`, `mayoresGastos`, `gastosHormiga` (≤ $20.000), `comparacionConMesPasado`, `ingresosPorDia`, `ahorroMensualPromedio`, `mesesParaMeta`, `mesesParaDeuda`, `conceptosSugeridos`, meses (`diasDelMes`, `mesAnterior`, `mesSiguiente`).

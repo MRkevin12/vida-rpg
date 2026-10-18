@@ -7263,6 +7263,16 @@ prueba("Finanzas (v136): Aurelio ordena lo que ve, de lo más urgente a lo menos
     igual(finanzas.analisisDeAurelio(estado, "2026-10-20").at(-1).tipo, "idea", "siempre hay un consejo del día al final");
 });
 
+prueba("Finanzas (v137): al escribir, los montos llevan puntos de miles y siguen valiendo lo mismo", () => {
+    igual(finanzas.agruparPesos("1500000"), "1.500.000", "millón y medio");
+    igual(finanzas.agruparPesos("1000"), "1.000", "mil");
+    igual(finanzas.agruparPesos("999"), "999", "sin puntos por debajo de mil");
+    igual(finanzas.agruparPesos("0012"), "12", "sin ceros al frente");
+    igual(finanzas.agruparPesos("$ 80000"), "80.000", "quita el signo");
+    igual(finanzas.agruparPesos(""), "", "vacío");
+    igual(finanzas.dineroDeTexto(finanzas.agruparPesos("12345678")), 12345678, "el valor no cambia al ponerle puntos");
+});
+
 // ===== Ejecutar todo y mostrar el resultado =====
 
 const lista = document.querySelector("#lista");

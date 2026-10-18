@@ -42,6 +42,12 @@ export function pesos(cantidad) {
     return `${valor < 0 ? "-" : ""}$${formatoPesos.format(Math.abs(valor))}`;
 }
 
+// Mientras escribes, los puntos de miles se ponen solos: "1500000" → "1.500.000". Solo deja los dígitos (sin ceros al frente).
+export function agruparPesos(texto) {
+    const digitos = String(texto ?? "").replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+    return digitos.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
 // Lo que escribes en un formulario ("1.500.000", "$ 80000") → número de pesos. Si no es un monto válido, devuelve null.
 export function dineroDeTexto(texto) {
     const digitos = String(texto ?? "").replace(/\D/g, "");

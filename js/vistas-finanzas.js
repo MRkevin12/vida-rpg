@@ -196,7 +196,7 @@ function formularioGasto(estado, fecha) {
         <section class="panel">
             <form data-form="finanzas-gasto" class="formulario fin-formulario">
                 <label class="formulario-grupo fin-grande"><span>¿Cuánto gastaste?</span>
-                    <input type="text" name="monto" inputmode="numeric" required placeholder="$ 0" autocomplete="off"></label>
+                    <input type="text" name="monto" inputmode="numeric" data-pesos required placeholder="$ 0" autocomplete="off"></label>
                 <label class="formulario-grupo"><span>¿En qué?</span>
                     <input type="text" name="concepto" maxlength="60" required placeholder="Ej: mercado" list="fin-conceptos" autocomplete="off">
                     <datalist id="fin-conceptos">${sugeridos}</datalist></label>
@@ -225,7 +225,7 @@ function formularioIngreso(estado, fecha) {
         <section class="panel">
             <form data-form="finanzas-ingreso" class="formulario fin-formulario">
                 <label class="formulario-grupo fin-grande"><span>¿Cuánto entró?</span>
-                    <input type="text" name="monto" inputmode="numeric" required placeholder="$ 0" autocomplete="off"></label>
+                    <input type="text" name="monto" inputmode="numeric" data-pesos required placeholder="$ 0" autocomplete="off"></label>
                 <label class="formulario-grupo"><span>¿De dónde?</span>
                     <select name="fuente" required>${opciones}</select></label>
                 <label class="formulario-grupo"><span>Fecha</span>
@@ -319,7 +319,7 @@ function seccionMetas(estado, ctx) {
                     <label class="formulario-grupo"><span>¿Para qué?</span>
                         <input type="text" name="nombre" maxlength="40" required placeholder="Ej: fondo de emergencia"></label>
                     <label class="formulario-grupo"><span>¿Cuánto?</span>
-                        <input type="text" name="objetivo" inputmode="numeric" required placeholder="$ 0" autocomplete="off"></label>
+                        <input type="text" name="objetivo" inputmode="numeric" data-pesos required placeholder="$ 0" autocomplete="off"></label>
                 </div>
                 <button type="submit" class="boton boton-principal boton-ancho">Crear meta</button>
             </form>
@@ -332,9 +332,9 @@ function seccionMetas(estado, ctx) {
                     <input type="text" name="nombre" maxlength="40" required placeholder="Ej: tarjeta de crédito"></label>
                 <div class="fin-par">
                     <label class="formulario-grupo"><span>¿Cuánto debes hoy?</span>
-                        <input type="text" name="saldo" inputmode="numeric" required placeholder="$ 0" autocomplete="off"></label>
+                        <input type="text" name="saldo" inputmode="numeric" data-pesos required placeholder="$ 0" autocomplete="off"></label>
                     <label class="formulario-grupo"><span>Cuota al mes</span>
-                        <input type="text" name="cuota" inputmode="numeric" placeholder="$ 0 (opcional)" autocomplete="off"></label>
+                        <input type="text" name="cuota" inputmode="numeric" data-pesos placeholder="$ 0 (opcional)" autocomplete="off"></label>
                 </div>
                 <button type="submit" class="boton boton-principal boton-ancho">Agregar deuda</button>
             </form>
@@ -359,7 +359,7 @@ function seccionFuentes(estado, ctx) {
                 ${fuente.vence ? `<small class="texto-suave">Vence ${fechaCorta(fuente.vence)}${faltan !== null && faltan >= 0 ? ` · faltan ${faltan} día${faltan === 1 ? "" : "s"}` : " · ya venció"}</small>` : ""}
                 <form data-form="finanzas-valor" class="form-linea">
                     <input type="hidden" name="id" value="${esc(fuente.id)}">
-                    <input type="text" name="valor" inputmode="numeric" placeholder="Nuevo valor" aria-label="Cuánto tienes ahí (pesos)" autocomplete="off">
+                    <input type="text" name="valor" inputmode="numeric" data-pesos placeholder="Nuevo valor" aria-label="Cuánto tienes ahí (pesos)" autocomplete="off">
                     <button type="submit" class="boton boton-chico">Cambiar</button>
                 </form>`;
         }
@@ -397,7 +397,7 @@ function seccionFuentes(estado, ctx) {
                     <select name="tipo">${opciones}</select></label>
                 <div class="fin-par">
                     <label class="formulario-grupo"><span>Valor (inversión/CDT)</span>
-                        <input type="text" name="valor" inputmode="numeric" placeholder="$ 0" autocomplete="off"></label>
+                        <input type="text" name="valor" inputmode="numeric" data-pesos placeholder="$ 0" autocomplete="off"></label>
                     <label class="formulario-grupo"><span>Vence (CDT)</span>
                         <input type="date" name="vence"></label>
                 </div>

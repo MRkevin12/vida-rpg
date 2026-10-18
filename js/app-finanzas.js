@@ -11,6 +11,26 @@ import { hoy } from "./fechas.js";
 import { estado, subvista, ejecutar, dibujarPantalla } from "./app.js";
 import { avisar, sonar } from "./app-efectos.js";
 
+// (v137) Los campos de dinero (data-pesos) muestran los puntos de miles mientras escribes: 1500000 → 1.500.000.
+// El cursor se queda donde estaba, contando solo los dígitos que ya escribiste.
+export function conectarPesos() {
+    document.addEventListener("input", (evento) => {
+        const campo = evento.target;
+        if (!campo.matches?.("[data-pesos]")) return;
+        const digitosAntes = campo.value.slice(0, campo.selectionStart).replace(/\D/g, "").length;
+        const nuevo = finanzas.agruparPesos(campo.value);
+        if (nuevo === campo.value) return;
+        campo.value = nuevo;
+        let posicion = 0;
+        let contados = 0;
+        while (posicion < nuevo.length && contados < digitosAntes) {
+            if (/\d/.test(nuevo[posicion])) contados += 1;
+            posicion += 1;
+        }
+        campo.setSelectionRange(posicion, posicion);
+    });
+}
+
 // Los botones de este archivo (data-accion="…"). app.js los junta todos en ACCIONES.
 export const ACCIONES_FINANZAS = {
     // Borrar un ingreso, gasto, fuente, meta o deuda. Las fuentes, metas y deudas con movimientos no se borran.

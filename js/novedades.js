@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 136;
+export const VERSION_APP = 137;
 
 export const NOVEDADES = [
+    {
+        version: 137,
+        titulo: "Montos más fáciles de leer",
+        cambios: [
+            "🔢 Al anotar un monto en Finanzas, los puntos de miles se ponen solos mientras escribes: 1500000 se ve 1.500.000.",
+        ],
+    },
     {
         version: 136,
         titulo: "Finanzas con menú y un Aurelio más listo",
