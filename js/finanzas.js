@@ -1,4 +1,5 @@
-// finanzas.js — Las cuentas de tu plata, en pesos colombianos (v135; Aurelio más listo en la v136).
+// finanzas.js — Las cuentas de tu plata, en pesos colombianos (v135; v136 menú y Aurelio; v137 puntos de miles;
+// v138 medios de pago, transferencias, editar, fijos, límites, ahorro automático, ingresos esperados y meses en plan).
 //
 // Solo reglas y cálculos: no toca la pantalla ni guarda nada (eso es acciones.js y vistas-finanzas.js).
 //
@@ -7,7 +8,7 @@
 // Solo cuentan los ingresos de las fuentes que SÍ puedes tocar (trabajo). La inversión y el CDT
 // se anotan aparte, con su valor actual, y no entran al plan.
 
-import { hoy, MESES, diasEntre, sumarDias } from "./fechas.js";
+import { hoy, MESES, diasEntre, sumarDias, esFechaValida } from "./fechas.js";
 
 // Los tres sobres del 50/30/20.
 export const SOBRES = {
@@ -23,16 +24,26 @@ export const TIPOS_FUENTE = {
     cdt: { nombre: "CDT (no se toca)", icono: "🔒", tocable: false },
 };
 
+// (v138) Por dónde se mueve la plata. «sin medio» son los movimientos anotados antes de existir este campo.
+export const MEDIOS = {
+    efectivo: { nombre: "Efectivo", icono: "🪙" },
+    nequi: { nombre: "Nequi", icono: "📱" },
+    daviplata: { nombre: "Daviplata", icono: "📱" },
+    banco: { nombre: "Banco", icono: "🗂" },
+    otro: { nombre: "Otro", icono: "💡" },
+};
+
 // Tus finanzas suman al atributo Riqueza (💰). Cada registro da un poco de XP, con tope al día,
 // para que no se gane XP por anotar lo mismo varias veces.
 export const XP_POR_REGISTRO = 5;
 export const REGISTROS_CON_XP_AL_DIA = 3;
 export const XP_META_CUMPLIDA = 150;
+export const XP_MES_EN_PLAN = 100;   // (v138) al cerrar un mes dentro del plan (una sola vez por mes)
 
 export const MONTO_MAXIMO = 1e12;   // un billón de pesos: más que cualquier cuenta personal
-export const GASTO_HORMIGA = 20000; // (v136) un gasto de este monto o menos (que no sea ahorro) es «hormiga»
+export const GASTO_HORMIGA = 20000; // un gasto de este monto o menos (que no sea ahorro) es «hormiga»
 
-// (v136) Palabras que se sugieren al escribir en qué gastaste (además de las que ya usaste).
+// Palabras que se sugieren al escribir en qué gastaste (además de las que ya usaste).
 export const CONCEPTOS_COMUNES = ["Mercado", "Arriendo", "Servicios", "Transporte", "Comida", "Salida", "Celular", "Gym", "Ropa", "Salud"];
 
 // Formato de pesos: $1.500.000 (sin centavos, como se usa en Colombia).
@@ -54,6 +65,11 @@ export function dineroDeTexto(texto) {
     if (!digitos) return null;
     const cantidad = Number(digitos);
     return cantidad >= 1 && cantidad <= MONTO_MAXIMO ? cantidad : null;
+}
+
+// Un concepto para comparar: sin mayúsculas, sin espacios de más («Mercado » = «mercado»).
+export function normalizarConcepto(texto) {
+    return String(texto ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 // ===== Meses =====
@@ -104,15 +120,15 @@ export function patrimonioIntocable(estado) {
         .reduce((total, fuente) => total + (fuente.valor || 0), 0);
 }
 
-// Los ingresos de un mes que cuentan (solo de fuentes que tocas).
-function ingresosQueCuentan(estado, mes) {
+// Los ingresos que cuentan: de fuentes que tocas.
+function ingresosQueCuentan(estado, lista = estado.finanzas.ingresos) {
     const tocables = new Set(fuentesTocables(estado).map((fuente) => fuente.id));
-    return delMes(estado.finanzas.ingresos, mes).filter((ingreso) => tocables.has(ingreso.fuente));
+    return lista.filter((ingreso) => tocables.has(ingreso.fuente));
 }
 
 // (v136) Con ingresos por día: cuántos días te pagaron en el mes y cuánto en promedio por cada uno.
 export function ingresosPorDia(estado, mes) {
-    const lista = ingresosQueCuentan(estado, mes);
+    const lista = ingresosQueCuentan(estado, delMes(estado.finanzas.ingresos, mes));
     const dias = new Set(lista.map((ingreso) => ingreso.fecha)).size;
     const total = sumar(lista);
     return { dias, total, promedio: dias ? Math.round(total / dias) : 0 };
@@ -122,7 +138,7 @@ export function ingresosPorDia(estado, mes) {
 
 // Cuánto entró en el mes (solo de fuentes que tocas), cuánto gastaste y cuánto te queda, por sobre.
 export function resumenDelMes(estado, mes) {
-    const ingresos = sumar(ingresosQueCuentan(estado, mes));
+    const ingresos = sumar(ingresosQueCuentan(estado, delMes(estado.finanzas.ingresos, mes)));
     const gastos = delMes(estado.finanzas.gastos, mes);
     const porSobre = {};
     for (const clave of Object.keys(SOBRES)) porSobre[clave] = sumar(gastos.filter((gasto) => gasto.categoria === clave));
@@ -173,7 +189,7 @@ export function mayoresGastos(estado, mes, cuantos = 5) {
     const grupos = new Map();
     for (const gasto of delMes(estado.finanzas.gastos, mes)) {
         if (gasto.categoria === "ahorro") continue;
-        const clave = gasto.concepto.trim().toLowerCase();
+        const clave = normalizarConcepto(gasto.concepto);
         const grupo = grupos.get(clave) || { concepto: gasto.concepto.trim(), monto: 0, veces: 0 };
         grupo.monto += gasto.monto;
         grupo.veces += 1;
@@ -203,11 +219,82 @@ export function conceptosSugeridos(estado) {
     const tuyos = [...estado.finanzas.gastos].reverse().map((gasto) => gasto.concepto.trim());
     const vistos = new Set();
     return [...tuyos, ...CONCEPTOS_COMUNES].filter((concepto) => {
-        const clave = concepto.toLowerCase();
+        const clave = normalizarConcepto(concepto);
         if (!concepto || vistos.has(clave)) return false;
         vistos.add(clave);
         return true;
     }).slice(0, 20);
+}
+
+// ===== (v138) Medios de pago =====
+
+// Cuánto hay en cada medio: lo que entró, menos lo que salió, más o menos las transferencias.
+// Las transferencias entre medios no cambian el total de tu plata.
+export function saldosPorMedio(estado) {
+    const mapa = new Map();
+    const sumarA = (medio, monto) => {
+        const clave = medio || "sin";
+        mapa.set(clave, (mapa.get(clave) || 0) + monto);
+    };
+    for (const ingreso of ingresosQueCuentan(estado, estado.finanzas.ingresos)) sumarA(ingreso.medio, ingreso.monto);
+    for (const gasto of estado.finanzas.gastos) sumarA(gasto.medio, -gasto.monto);
+    for (const movimiento of estado.finanzas.transferencias) {
+        sumarA(movimiento.desde, -movimiento.monto);
+        sumarA(movimiento.hacia, movimiento.monto);
+    }
+    return [...mapa.entries()]
+        .map(([medio, saldo]) => ({
+            medio,
+            nombre: MEDIOS[medio]?.nombre || "Sin medio",
+            icono: MEDIOS[medio]?.icono || "•",
+            saldo,
+        }))
+        .sort((a, b) => b.saldo - a.saldo);
+}
+
+// ===== (v138) Gastos fijos del mes =====
+
+// Cada gasto fijo (arriendo, servicios…) con su estado este mes: pagado (el gasto) o pendiente.
+export function fijosDelMes(estado, mes) {
+    const pagados = new Map();
+    for (const gasto of delMes(estado.finanzas.gastos, mes)) {
+        if (gasto.fijo !== undefined && gasto.fijo !== null) pagados.set(String(gasto.fijo), gasto);
+    }
+    return estado.finanzas.fijos.map((fijo) => ({ ...fijo, pagado: pagados.get(String(fijo.id)) || null }));
+}
+
+// ¿Este fijo está vencido? Solo si tiene día y ya pasó sin anotarlo.
+export function fijoVencido(fijo, fecha = hoy()) {
+    return Boolean(fijo.dia && !fijo.pagado && Number(fecha.slice(8, 10)) > fijo.dia);
+}
+
+// ===== (v138) Límites por concepto =====
+
+// Cuánto llevas este mes de cada límite (los gastos con ese mismo concepto, sin contar el ahorro).
+export function limitesDelMes(estado, mes) {
+    const gastos = delMes(estado.finanzas.gastos, mes).filter((gasto) => gasto.categoria !== "ahorro");
+    return estado.finanzas.limites.map((limite) => {
+        const gastado = sumar(gastos.filter((gasto) => normalizarConcepto(gasto.concepto) === limite.clave));
+        return { ...limite, gastado, restante: limite.tope - gastado, porcentaje: porcentaje(gastado, limite.tope), pasado: gastado > limite.tope };
+    });
+}
+
+// ===== (v138) Ingresos esperados =====
+
+// Los pagos que esperas y todavía no llegaron, del más cercano al más lejano.
+export function esperadosPendientes(estado) {
+    return estado.finanzas.esperados
+        .filter((esperado) => !esperado.cobradoEn)
+        .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+}
+
+// ===== (v138) Ahorro automático =====
+
+// Lo que se aparta en la meta al entrar cada ingreso (el porcentaje que elegiste, 20 % por defecto).
+export function apartadoDe(estado, monto) {
+    const config = estado.finanzas.apartado;
+    if (!config?.metaId) return 0;
+    return Math.round((monto * config.porcentaje) / 100);
 }
 
 // ===== Metas y deudas =====
@@ -243,6 +330,43 @@ export function mesesParaDeuda(estado, deuda) {
     return falta > 0 && deuda.cuota ? Math.ceil(falta / deuda.cuota) : null;
 }
 
+// ===== (v138) Meses en plan =====
+
+// Un mes está «en plan» si entró dinero, ningún sobre se pasó, ahorraste el 20 % y ningún límite se pasó.
+export function mesEnPlan(estado, mes) {
+    if (!resumenDelMes(estado, mes).ingresos) return false;
+    if (planDelMes(estado, mes).some((sobre) => sobre.pasado)) return false;
+    if (planDelMes(estado, mes).find((sobre) => sobre.clave === "ahorro").restante > 0) return false;
+    return !limitesDelMes(estado, mes).some((limite) => limite.pasado);
+}
+
+// Los meses ya cerrados (antes del mes de hoy) que estuvieron en plan y todavía no dieron su premio.
+export function mesesPorPremiar(estado, fecha = hoy()) {
+    const todos = [...estado.finanzas.ingresos, ...estado.finanzas.gastos].map((movimiento) => mesDe(movimiento.fecha));
+    if (!todos.length) return [];
+    const primero = todos.reduce((a, b) => (a < b ? a : b));
+    const actual = mesDe(fecha);
+    const cerrados = [];
+    for (let mes = primero; mes < actual && cerrados.length < 48; mes = mesSiguiente(mes)) {
+        if (!estado.finanzas.premiosMes[mes] && mesEnPlan(estado, mes)) cerrados.push(mes);
+    }
+    return cerrados;
+}
+
+// Los últimos meses, para la gráfica: cuánto entró, cuánto gastaste y cuánto apartaste.
+export function ultimosMeses(estado, fecha = hoy(), cuantos = 6) {
+    const meses = [];
+    let mes = mesDe(fecha);
+    for (let i = 0; i < cuantos; i++) {
+        meses.unshift(mes);
+        mes = mesAnterior(mes);
+    }
+    return meses.map((m) => {
+        const r = resumenDelMes(estado, m);
+        return { mes: m, ingresos: r.ingresos, gastado: r.gastado, ahorro: r.porSobre.ahorro };
+    });
+}
+
 // ===== Aurelio =====
 
 // Los consejos de Aurelio que no dependen de tus números: uno por día.
@@ -259,7 +383,7 @@ export const CONSEJOS_DEL_DIA = [
     "Un mes bueno de trabajo no es un mes para gastar más: es un mes para adelantar tu ahorro.",
 ];
 
-// (v136) Lo que Aurelio ve en tus números, del más urgente al menos urgente.
+// Lo que Aurelio ve en tus números, del más urgente al menos urgente.
 // Cada nota: { tipo: "alerta" | "bien" | "idea", texto }. La primera es la que dice en voz alta.
 export function analisisDeAurelio(estado, fecha = hoy()) {
     const f = estado.finanzas;
@@ -283,6 +407,32 @@ export function analisisDeAurelio(estado, fecha = hoy()) {
     if (ritmo.ingresos && ritmo.dia >= 5 && ritmo.proyeccion > ritmo.ingresos) {
         nota(20, "alerta", `A este ritmo terminas el mes gastando ${pesos(ritmo.proyeccion)}, ${pesos(ritmo.proyeccion - ritmo.ingresos)} más de lo que entró.`);
     }
+    // (v138) Saldos negativos en un medio: casi siempre falta anotar un ingreso o una transferencia.
+    for (const saldo of saldosPorMedio(estado)) {
+        if (saldo.medio !== "sin" && saldo.saldo < 0) {
+            nota(12, "alerta", `En ${saldo.nombre} te quedó saldo negativo (${pesos(saldo.saldo)}). Revisa si falta anotar un ingreso o una transferencia.`);
+        }
+    }
+    // (v138) Gastos fijos: los vencidos primero, después los que faltan.
+    const pendientesFijos = fijosDelMes(estado, mes).filter((fijo) => !fijo.pagado);
+    for (const fijo of pendientesFijos.filter((x) => fijoVencido(x, fecha))) {
+        nota(13, "alerta", `Tu «${fijo.nombre}» (${pesos(fijo.monto)}) venció el día ${fijo.dia} y todavía no lo anotas.`);
+    }
+    const faltanFijos = pendientesFijos.filter((fijo) => !fijoVencido(fijo, fecha));
+    if (faltanFijos.length) {
+        const total = faltanFijos.reduce((suma, fijo) => suma + fijo.monto, 0);
+        nota(30, "idea", `Te faltan ${faltanFijos.length} gasto${faltanFijos.length === 1 ? "" : "s"} fijo${faltanFijos.length === 1 ? "" : "s"} este mes por ${pesos(total)}. Anótalos cuando los pagues.`);
+    }
+    // (v138) Límites por concepto.
+    for (const limite of limitesDelMes(estado, mes)) {
+        if (limite.pasado) nota(14, "alerta", `Te pasaste del límite de «${limite.concepto}» en ${pesos(limite.gastado - limite.tope)}.`);
+        else if (limite.porcentaje >= 80) nota(33, "idea", `Llevas el ${limite.porcentaje} % del límite de «${limite.concepto}»: quedan ${pesos(limite.restante)}.`);
+    }
+    // (v138) Ingresos esperados que ya debieron llegar.
+    for (const esperado of esperadosPendientes(estado).filter((x) => x.fecha < fecha)) {
+        const nombre = esperado.nota || fuentePorId(estado, esperado.fuente)?.nombre || "un pago";
+        nota(15, "idea", `Debió llegar ${pesos(esperado.monto)} de «${nombre}» el ${fechaTexto(esperado.fecha)}. ¿Ya te pagaron? Márcalo como cobrado.`);
+    }
     // El CDT o la inversión que vence pronto.
     for (const fuente of f.fuentes) {
         if (!fuente.vence) continue;
@@ -294,6 +444,10 @@ export function analisisDeAurelio(estado, fecha = hoy()) {
     if (ritmo.ingresos && plan.ahorro.restante > 0 && ritmo.dia >= 15) {
         nota(30, "alerta", `Llevas ${pesos(plan.ahorro.gastado)} de ${pesos(plan.ahorro.limite)} para ahorro y deudas. Aún estás a tiempo: aparta lo que falta el día que te paguen.`);
     }
+    // (v138) Ahorro automático: si todavía no lo activas, es lo que más ayuda.
+    if (ritmo.ingresos && !f.apartado?.metaId && f.metas.length) {
+        nota(31, "idea", "Activa el ahorro automático: al entrar cada pago, la app aparta tu 20 % en una meta. Así no depende de que te acuerdes.");
+    }
     const hormiga = gastosHormiga(estado, mes);
     if (hormiga.veces >= 6 && ritmo.ingresos && hormiga.monto >= ritmo.ingresos * 0.05) {
         nota(35, "idea", `Llevas ${hormiga.veces} gastos pequeños este mes que suman ${pesos(hormiga.monto)}. Eso ya es una meta de ahorro.`);
@@ -303,6 +457,10 @@ export function analisisDeAurelio(estado, fecha = hoy()) {
         nota(40, "alerta", `Vas gastando ${comparacion.cambio} % más que el mes pasado a esta misma altura.`);
     } else if (comparacion.cambio !== null && comparacion.cambio <= -15) {
         nota(40, "bien", `Vas gastando ${-comparacion.cambio} % menos que el mes pasado a esta altura. ¡Buen control!`);
+    }
+    // (v138) Mes en plan: lo que tienes que hacer para ganar el premio del mes.
+    if (ritmo.ingresos && mesEnPlan(estado, mes)) {
+        nota(41, "bien", `Este mes vas en plan. Si lo cierras así, ganas ${XP_MES_EN_PLAN} XP de Riqueza.`);
     }
     const [mayor] = mayoresGastos(estado, mes, 1);
     if (mayor && ritmo.gastado && mayor.monto >= ritmo.gastado * 0.25 && mayor.veces > 1) {
@@ -340,4 +498,20 @@ export function analisisDeAurelio(estado, fecha = hoy()) {
 // Lo que te dice Aurelio en voz alta: lo más urgente de su análisis.
 export function consejoDeAurelio(estado, fecha = hoy()) {
     return analisisDeAurelio(estado, fecha)[0].texto;
+}
+
+// (Ayudantes privados del análisis)
+function fuentePorId(estado, id) {
+    return estado.finanzas.fuentes.find((fuente) => String(fuente.id) === String(id)) || null;
+}
+
+// "2026-10-18" → "18 oct"
+function fechaTexto(fecha) {
+    const [, mes, dia] = fecha.split("-");
+    return `${Number(dia)} ${MESES[Number(mes) - 1].slice(0, 3)}`;
+}
+
+// Validación pequeña que usan las acciones (se exporta para no repetirla).
+export function esFechaDeFinanzas(texto) {
+    return esFechaValida(String(texto || ""));
 }

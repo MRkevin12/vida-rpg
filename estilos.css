@@ -12460,3 +12460,97 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 }
 
 .fin-par input { min-width: 0; }
+.fin-neutro { color: #c4bfe0; }
+
+/* ===== (v138) Finanzas: meses, medios, fijos, límites, próximos ingresos y corrección de movimientos ===== */
+.fin-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.6);
+    border-radius: var(--esquina, 4px);
+    vertical-align: middle;
+}
+
+.fin-ok { color: #34d399; }
+.fin-atrasado { border-color: rgba(251, 113, 133, 0.6); }
+.fin-atrasado .fin-ok, .fin-atrasado small.fin-sale { color: #fb7185; }
+
+/* Los últimos 6 meses: dos barras por mes (entró y gastaste) */
+.fin-meses {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    align-items: end;
+    height: 120px;
+    margin-top: 8px;
+}
+
+.fin-mes-col {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    justify-items: center;
+    height: 100%;
+    min-width: 0;
+    text-align: center;
+}
+
+.fin-mes-barras {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    width: 100%;
+    height: 100%;
+}
+
+.fin-mes-barras span {
+    width: 40%;
+    max-width: 16px;
+    min-height: 2px;
+    border-radius: 2px 2px 0 0;
+}
+
+.fin-mes-ing, .fin-punto.fin-mes-ing { background: #34d399; }
+.fin-mes-gas, .fin-punto.fin-mes-gas { background: #fb7185; }
+.fin-mes-col small { font-size: 0.7rem; opacity: 0.75; }
+
+/* Medios de pago */
+.fin-medios {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fin-medio {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--esquina, 4px);
+}
+
+.fin-medio-malo { border-left: 3px solid #fb7185; }
+
+/* Corregir un movimiento: el formulario ocupa la fila */
+.fin-editando { padding: 8px 0; }
+.fin-editar {
+    padding: 10px;
+    background: rgba(251, 191, 36, 0.06);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: var(--esquina, 4px);
+}
+
+.fin-editar .fin-par button { flex: 1; }
+
+/* Tarjetas de fijos, límites y pagos esperados: el botón de acción ocupa el ancho */
+.fin-tarjeta > .boton-chico:not(.fin-borrar) {
+    justify-self: start;
+    margin-top: 4px;
+}

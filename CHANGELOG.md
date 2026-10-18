@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v138 — Cuentas completas: medios, ahorro automático, fijos, límites, esperados, corregir y meses en plan
+- Datos: `estado.finanzas` gana `transferencias`, `fijos`, `limites`, `esperados`, `apartado` ({ metaId, porcentaje }) y `premiosMes`; cada ingreso y gasto tiene `medio` (null = sin anotar). Versión de datos 34.
+- `finanzas.js`: `MEDIOS`, `XP_MES_EN_PLAN` (100), `saldosPorMedio`, `fijosDelMes`, `fijoVencido`, `limitesDelMes`, `esperadosPendientes`, `apartadoDe`, `mesEnPlan`, `mesesPorPremiar`, `ultimosMeses`, `normalizarConcepto`; el análisis de Aurelio suma fijos vencidos, límites, saldos negativos, esperados atrasados, ahorro automático apagado y mes en plan.
+- `acciones.js` (sección Finanzas): `editarMovimientoFinanzas`, `registrarTransferenciaFinanzas`, `agregarFijoFinanzas` / `pagarFijoFinanzas` (una vez por mes), `agregarLimiteFinanzas` (sin repetir concepto), `agregarEsperadoFinanzas` / `cobrarEsperadoFinanzas`, `configurarApartadoFinanzas`. Un ingreso con apartado crea un gasto «Apartado automático» con `origen`; al borrar el ingreso se borra también. Al cerrar un mes en plan se suman 100 XP una sola vez (`cierreDeMes`).
+- Pantalla: sección nueva **Cuentas** (medios, fijos, próximos ingresos, límites); Resumen con gráfica de 6 meses y badge «✨ En plan»; Historial con ✏ para corregir (formulario en su lugar); Metas con el ahorro automático.
+- Pruebas: 370 en total (13 nuevas de v138). Verificado en Chromium con partida de prueba inventada: corregir un gasto desde la pantalla funciona.
+- Sin publicar todavía.
+
 ## v137 — Montos con puntos de miles mientras escribes
 - Los 7 campos de dinero de Finanzas tienen `data-pesos`: `conectarPesos()` (app-finanzas.js) los reformatea en el evento `input` con `finanzas.agruparPesos`, y mantiene el cursor contando solo los dígitos.
 - `agruparPesos`: quita todo lo que no sea dígito, quita ceros al frente y pone un punto cada 3 cifras. Lo que se guarda sigue siendo el número (`dineroDeTexto` ya ignoraba los puntos).

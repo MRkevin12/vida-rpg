@@ -4,9 +4,23 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 137;
+export const VERSION_APP = 138;
 
 export const NOVEDADES = [
+    {
+        version: 138,
+        titulo: "Tus cuentas completas",
+        cambios: [
+            "💳 Medios de pago: anota con qué pagas o dónde entra el dinero (efectivo, Nequi, Daviplata, banco) y mira cuánto hay en cada uno. Pasar plata de un medio a otro no cuenta como gasto.",
+            "🌱 Ahorro automático: al entrar un pago, se aparta tu porcentaje en la meta que elijas.",
+            "🔁 Gastos fijos (arriendo, servicios…): los defines una vez y los anotas con un toque cada mes.",
+            "🔥 Límites por concepto (por ejemplo, comida): te avisa al 80 % y cuando te pasas.",
+            "⏳ Próximos ingresos: anota lo que esperas (la quincena, un turno) y, cuando llega, toca «Ya llegó».",
+            "✏ Corrige cualquier ingreso o gasto desde el Historial.",
+            "✨ Un mes que cierra dentro del plan da 100 XP de Riqueza (una vez).",
+            "📈 Gráfica de los últimos 6 meses y un Aurelio que revisa todo eso.",
+        ],
+    },
     {
         version: 137,
         titulo: "Montos más fáciles de leer",
