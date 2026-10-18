@@ -4,9 +4,21 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 135;
+export const VERSION_APP = 136;
 
 export const NOVEDADES = [
+    {
+        version: 136,
+        titulo: "Finanzas con menú y un Aurelio más listo",
+        cambios: [
+            "📊 Finanzas ahora tiene menú: Resumen, Anotar, Historial, Metas y Fuentes.",
+            "💰 Arriba ves cuánto puedes gastar hoy sin tocar tu ahorro, y una barra con tus tres sobres.",
+            "💡 Aurelio analiza tu mes: te avisa si a este ritmo no te alcanza, si un sobre se pasó, si tu CDT vence pronto, tus gastos hormiga, tu mayor gasto y cómo vas frente al mes pasado.",
+            "🪙 Al anotar un ingreso te dice cómo repartirlo con el 50/30/20.",
+            "📜 Historial por días, con ‹ › para ver meses anteriores.",
+            "🎯 Metas y deudas te dicen en cuántos meses las terminas a tu ritmo.",
+        ],
+    },
     {
         version: 135,
         titulo: "Finanzas",

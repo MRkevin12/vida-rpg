@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v136 — Finanzas con menú y Aurelio más listo
+- Menú de secciones (`SECCIONES_FINANZAS`: resumen, anotar, historial, metas, fuentes) con `subvista.finanzas`; `subvista.finanzasMes` (‹ › en Historial) y `subvista.finanzasModo` (Gasté / Entró dinero).
+- `finanzas.js`: `ritmoDelMes` (cuánto gastar al día sin tocar el 20 %, proyección), `repartoDe`, `mayoresGastos`, `gastosHormiga` (≤ $20.000), `comparacionConMesPasado`, `ingresosPorDia`, `ahorroMensualPromedio`, `mesesParaMeta`, `mesesParaDeuda`, `conceptosSugeridos`, meses (`diasDelMes`, `mesAnterior`, `mesSiguiente`).
+- `analisisDeAurelio`: notas ordenadas por urgencia (sobres pasados, ritmo que no alcanza, CDT que vence en ≤ 30 días, ahorro atrasado, hormiga, comparación, mayor gasto, deudas, fondo de emergencia, metas, presupuesto diario, promedio de pagos, consejo del día). `consejoDeAurelio` = la primera.
+- Diseño: tarjeta grande «Hoy puedes gastar», barra de los 3 sobres con colores, reparto del último ingreso, «En qué se te va», sobres como fichas, monto grande, sugerencias de conceptos, historial por días con montos en verde/rojo, tarjetas de metas, deudas y fuentes. Los campos llevan `type="text"` (si no, no toman el estilo del tema).
+- 5 pruebas nuevas con fechas fijas (358 en total).
+
 ## v135 — Finanzas (en pesos)
 - Botón «Finanzas» debajo de Running en Hoy (`tarjetaFinanzasHoy`, como la de Running: no sale en modo esencial ni en «ayer»). Pantalla `pantalla-finanzas`, pestaña Hoy.
 - `js/finanzas.js` (reglas, sin pantalla): plan 50/30/20 (necesidades, gustos, ahorro y deudas), `dineroDeTexto`, `pesos` (es-CO, sin centavos), metas, deudas y `consejoDeAurelio`.
@@ -10,7 +17,7 @@ Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajust
 - XP al atributo **Riqueza**: 5 por registro, máx. 3 registros al día con XP; 150 al cumplir una meta (una sola vez). Borrar no da ni quita XP.
 - Acciones: `acciones.js` (sección Finanzas); botones y formularios en `js/app-finanzas.js`; dibujo en `js/vistas-finanzas.js`. Nada de esto guarda montos reales en el código.
 - Pruebas: 10 nuevas (353 en total). Verificado en Chromium con una partida de prueba inventada.
-- Sin publicar todavía.
+
 
 ## v134 — app.js dividido por tema
 - `app.js` (4159 líneas) queda como director (~900 líneas): estado, `ui`, arranque, `ejecutar`, dibujar, `cambiarPantalla`, `tictac`, respaldo y eventos. El resto pasa a 13 archivos `app-*.js`: running, gym, pin, torre, historias, efectos, dialogos, gestos, maestro, diario, version, botones y formularios.

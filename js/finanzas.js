@@ -1,4 +1,4 @@
-// finanzas.js — Las cuentas de tu plata, en pesos colombianos (v135).
+// finanzas.js — Las cuentas de tu plata, en pesos colombianos (v135; Aurelio más listo en la v136).
 //
 // Solo reglas y cálculos: no toca la pantalla ni guarda nada (eso es acciones.js y vistas-finanzas.js).
 //
@@ -7,7 +7,7 @@
 // Solo cuentan los ingresos de las fuentes que SÍ puedes tocar (trabajo). La inversión y el CDT
 // se anotan aparte, con su valor actual, y no entran al plan.
 
-import { hoy, MESES, diasEntre } from "./fechas.js";
+import { hoy, MESES, diasEntre, sumarDias } from "./fechas.js";
 
 // Los tres sobres del 50/30/20.
 export const SOBRES = {
@@ -30,6 +30,10 @@ export const REGISTROS_CON_XP_AL_DIA = 3;
 export const XP_META_CUMPLIDA = 150;
 
 export const MONTO_MAXIMO = 1e12;   // un billón de pesos: más que cualquier cuenta personal
+export const GASTO_HORMIGA = 20000; // (v136) un gasto de este monto o menos (que no sea ahorro) es «hormiga»
+
+// (v136) Palabras que se sugieren al escribir en qué gastaste (además de las que ya usaste).
+export const CONCEPTOS_COMUNES = ["Mercado", "Arriendo", "Servicios", "Transporte", "Comida", "Salida", "Celular", "Gym", "Ropa", "Salud"];
 
 // Formato de pesos: $1.500.000 (sin centavos, como se usa en Colombia).
 const formatoPesos = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
@@ -46,6 +50,8 @@ export function dineroDeTexto(texto) {
     return cantidad >= 1 && cantidad <= MONTO_MAXIMO ? cantidad : null;
 }
 
+// ===== Meses =====
+
 // "2026-10" → "octubre 2026"
 export function nombreDelMes(mes) {
     const [anio, numero] = mes.split("-");
@@ -55,12 +61,30 @@ export function nombreDelMes(mes) {
 // "2026-10-18" → "2026-10"
 export const mesDe = (fecha) => fecha.slice(0, 7);
 
+// Cuántos días tiene un mes ("2026-02" → 28). El día 0 del mes siguiente es el último de este.
+export function diasDelMes(mes) {
+    const [anio, numero] = mes.split("-").map(Number);
+    return new Date(anio, numero, 0).getDate();
+}
+
+// El mes de antes y el de después: "2026-01" ↔ "2025-12".
+export function mesAnterior(mes) {
+    const [anio, numero] = mes.split("-").map(Number);
+    return numero === 1 ? `${anio - 1}-12` : `${anio}-${String(numero - 1).padStart(2, "0")}`;
+}
+export function mesSiguiente(mes) {
+    const [anio, numero] = mes.split("-").map(Number);
+    return numero === 12 ? `${anio + 1}-01` : `${anio}-${String(numero + 1).padStart(2, "0")}`;
+}
+
 // Los movimientos de un mes (los que tienen una fecha de ese mes).
 export function delMes(lista, mes) {
     return lista.filter((movimiento) => mesDe(movimiento.fecha) === mes);
 }
 
 const sumar = (lista) => lista.reduce((total, elemento) => total + elemento.monto, 0);
+
+// ===== Fuentes =====
 
 // Solo las fuentes que tocas (trabajo).
 export function fuentesTocables(estado) {
@@ -74,10 +98,25 @@ export function patrimonioIntocable(estado) {
         .reduce((total, fuente) => total + (fuente.valor || 0), 0);
 }
 
+// Los ingresos de un mes que cuentan (solo de fuentes que tocas).
+function ingresosQueCuentan(estado, mes) {
+    const tocables = new Set(fuentesTocables(estado).map((fuente) => fuente.id));
+    return delMes(estado.finanzas.ingresos, mes).filter((ingreso) => tocables.has(ingreso.fuente));
+}
+
+// (v136) Con ingresos por día: cuántos días te pagaron en el mes y cuánto en promedio por cada uno.
+export function ingresosPorDia(estado, mes) {
+    const lista = ingresosQueCuentan(estado, mes);
+    const dias = new Set(lista.map((ingreso) => ingreso.fecha)).size;
+    const total = sumar(lista);
+    return { dias, total, promedio: dias ? Math.round(total / dias) : 0 };
+}
+
+// ===== El mes y el plan 50/30/20 =====
+
 // Cuánto entró en el mes (solo de fuentes que tocas), cuánto gastaste y cuánto te queda, por sobre.
 export function resumenDelMes(estado, mes) {
-    const tocables = new Set(fuentesTocables(estado).map((fuente) => fuente.id));
-    const ingresos = sumar(delMes(estado.finanzas.ingresos, mes).filter((ingreso) => tocables.has(ingreso.fuente)));
+    const ingresos = sumar(ingresosQueCuentan(estado, mes));
     const gastos = delMes(estado.finanzas.gastos, mes);
     const porSobre = {};
     for (const clave of Object.keys(SOBRES)) porSobre[clave] = sumar(gastos.filter((gasto) => gasto.categoria === clave));
@@ -96,10 +135,76 @@ export function planDelMes(estado, mes) {
     });
 }
 
+// (v136) Cómo se reparte un monto con el 50/30/20 (por ejemplo, el ingreso que acaba de entrar).
+export function repartoDe(monto) {
+    const necesidad = Math.round(monto * 0.5);
+    const gusto = Math.round(monto * 0.3);
+    return { necesidad, gusto, ahorro: monto - necesidad - gusto };
+}
+
+// (v136) El ritmo del mes: en qué día vas, cuántos quedan, hacia dónde va tu gasto y cuánto puedes gastar al día
+// en necesidades y gustos SIN tocar tu 20 % de ahorro.
+export function ritmoDelMes(estado, mes, fecha = hoy()) {
+    const resumen = resumenDelMes(estado, mes);
+    const plan = Object.fromEntries(planDelMes(estado, mes).map((sobre) => [sobre.clave, sobre]));
+    const dias = diasDelMes(mes);
+    const actual = mesDe(fecha) === mes;
+    const dia = actual ? Number(fecha.slice(8, 10)) : dias;
+    const restantes = actual ? dias - dia + 1 : 0;   // contando hoy
+    const proyeccion = actual ? Math.round((resumen.gastado / dia) * dias) : resumen.gastado;
+    const libre = Math.max(0, plan.necesidad.restante) + Math.max(0, plan.gusto.restante);
+    const porDia = restantes > 0 ? Math.floor(libre / restantes) : 0;
+    return { ...resumen, dias, dia, restantes, proyeccion, libre, porDia, actual };
+}
+
 // Porcentaje de una parte sobre un total, entre 0 y 100 (para las barras).
 export function porcentaje(parte, total) {
     return total > 0 ? Math.min(100, Math.round((parte * 100) / total)) : 0;
 }
+
+// (v136) En qué se te va la plata: los conceptos que más suman en el mes (sin contar el ahorro).
+export function mayoresGastos(estado, mes, cuantos = 5) {
+    const grupos = new Map();
+    for (const gasto of delMes(estado.finanzas.gastos, mes)) {
+        if (gasto.categoria === "ahorro") continue;
+        const clave = gasto.concepto.trim().toLowerCase();
+        const grupo = grupos.get(clave) || { concepto: gasto.concepto.trim(), monto: 0, veces: 0 };
+        grupo.monto += gasto.monto;
+        grupo.veces += 1;
+        grupos.set(clave, grupo);
+    }
+    return [...grupos.values()].sort((a, b) => b.monto - a.monto).slice(0, cuantos);
+}
+
+// (v136) Los gastos «hormiga» del mes: pequeños, pero muchos.
+export function gastosHormiga(estado, mes) {
+    const lista = delMes(estado.finanzas.gastos, mes).filter((gasto) => gasto.categoria !== "ahorro" && gasto.monto <= GASTO_HORMIGA);
+    return { veces: lista.length, monto: sumar(lista) };
+}
+
+// (v136) ¿Gastas más o menos que el mes pasado, hasta el mismo día? (cambio en %, o null si no hay con qué comparar)
+export function comparacionConMesPasado(estado, fecha = hoy()) {
+    const dia = fecha.slice(8, 10);
+    const mes = mesDe(fecha);
+    const anterior = mesAnterior(mes);
+    const ahora = sumar(delMes(estado.finanzas.gastos, mes).filter((gasto) => gasto.fecha.slice(8, 10) <= dia));
+    const antes = sumar(delMes(estado.finanzas.gastos, anterior).filter((gasto) => gasto.fecha.slice(8, 10) <= dia));
+    return { ahora, antes, cambio: antes > 0 ? Math.round(((ahora - antes) * 100) / antes) : null };
+}
+
+// Los conceptos que se sugieren al anotar un gasto: los tuyos (los más recientes primero) y los comunes.
+export function conceptosSugeridos(estado) {
+    const tuyos = [...estado.finanzas.gastos].reverse().map((gasto) => gasto.concepto.trim());
+    const vistos = new Set();
+    return [...tuyos, ...CONCEPTOS_COMUNES].filter((concepto) => {
+        const clave = concepto.toLowerCase();
+        if (!concepto || vistos.has(clave)) return false;
+        vistos.add(clave);
+        return true;
+    }).slice(0, 20);
+}
+
+// ===== Metas y deudas =====
 
 // Cuánto llevas ahorrado en una meta: la suma de los gastos que van a esa meta.
 export function ahorradoEnMeta(estado, meta) {
@@ -112,32 +217,121 @@ export function saldoDeDeuda(estado, deuda) {
     return Math.max(0, deuda.saldoInicial - pagado);
 }
 
+// (v136) Cuánto ahorras al mes, en promedio, mirando los últimos 90 días (o null si no ahorraste nada).
+export function ahorroMensualPromedio(estado, fecha = hoy()) {
+    const desde = sumarDias(fecha, -89);
+    const total = sumar(estado.finanzas.gastos.filter((gasto) => gasto.categoria === "ahorro" && gasto.fecha >= desde && gasto.fecha <= fecha));
+    return total > 0 ? Math.round(total / 3) : null;
+}
+
+// (v136) En cuántos meses cumples una meta a tu ritmo de ahorro (null si no hay ritmo o ya está cumplida).
+export function mesesParaMeta(estado, meta, fecha = hoy()) {
+    const falta = meta.objetivo - ahorradoEnMeta(estado, meta);
+    const ritmo = ahorroMensualPromedio(estado, fecha);
+    return falta > 0 && ritmo ? Math.ceil(falta / ritmo) : null;
+}
+
+// (v136) En cuántos meses terminas de pagar una deuda con su cuota (null si no tiene cuota o ya está pagada).
+export function mesesParaDeuda(estado, deuda) {
+    const falta = saldoDeDeuda(estado, deuda);
+    return falta > 0 && deuda.cuota ? Math.ceil(falta / deuda.cuota) : null;
+}
+
+// ===== Aurelio =====
+
 // Los consejos de Aurelio que no dependen de tus números: uno por día.
 export const CONSEJOS_DEL_DIA = [
     "Págate primero: aparta tu 20 % el mismo día que entra el dinero, antes de gastar.",
     "Con ingresos por día, vive con el promedio del mes, no con tu mejor día.",
     "Anota cada gasto el mismo día. A los tres días ya no te acuerdas de la mitad.",
     "El CDT y la inversión son para crecer: no los cuentes como plata para gastar.",
-    "Los gastos hormiga (el tinto, la domicilio) pesan más de lo que parece. Súmalos al final de la semana.",
+    "Los gastos hormiga (el tinto, el domicilio) pesan más de lo que parece. Súmalos al final de la semana.",
     "Antes de una compra grande, espera 48 horas. Si todavía la quieres, cómprala sin culpa.",
     "Una meta con nombre y monto se cumple más que un «ahorrar algo».",
     "Con varias deudas, paga la cuota mínima de todas y el resto a la más cara.",
     "No necesitas ser perfecto: un mes con el 20 % a medias ya es un avance.",
+    "Un mes bueno de trabajo no es un mes para gastar más: es un mes para adelantar tu ahorro.",
 ];
 
-// Lo que te dice Aurelio: primero lo que pasa con TUS números este mes; si todo va bien, un consejo del día.
-export function consejoDeAurelio(estado, fecha = hoy()) {
-    if (!fuentesTocables(estado).length) return "Anota tu fuente de ingreso para que pueda armar tu plan.";
-    const mes = mesDe(fecha);
-    const resumen = resumenDelMes(estado, mes);
-    if (!resumen.ingresos) return "Todavía no entra dinero este mes. Anótalo cuando llegue: sin números no hay plan.";
-    const plan = Object.fromEntries(planDelMes(estado, mes).map((sobre) => [sobre.clave, sobre]));
-    if (plan.necesidad.pasado) return `Tus necesidades ya pasaron el 50 % (${pesos(plan.necesidad.gastado)}). Mira qué gasto fijo puedes bajar.`;
-    if (plan.gusto.pasado) return "Tus gustos ya se comieron el 30 %. Un gusto menos esta semana y vuelves al plan.";
-    if (plan.ahorro.restante > 0 && fecha.slice(8) >= "15") {
-        return `Llevas ${pesos(plan.ahorro.gastado)} de ${pesos(plan.ahorro.limite)} para ahorro y deudas. Aún estás a tiempo: aparta lo que falta el día que te paguen.`;
+// (v136) Lo que Aurelio ve en tus números, del más urgente al menos urgente.
+// Cada nota: { tipo: "alerta" | "bien" | "idea", texto }. La primera es la que dice en voz alta.
+export function analisisDeAurelio(estado, fecha = hoy()) {
+    const f = estado.finanzas;
+    if (!fuentesTocables(estado).length) {
+        return [{ tipo: "idea", texto: "Anota tu fuente de ingreso para que pueda armar tu plan." }];
     }
-    if (plan.ahorro.restante <= 0) return "¡Ahorro del mes cumplido! Tu yo del futuro te lo agradece.";
-    const indice = diasEntre("2000-01-01", fecha) % CONSEJOS_DEL_DIA.length;
-    return CONSEJOS_DEL_DIA[indice];
+    const mes = mesDe(fecha);
+    const ritmo = ritmoDelMes(estado, mes, fecha);
+    const plan = Object.fromEntries(planDelMes(estado, mes).map((sobre) => [sobre.clave, sobre]));
+    const notas = [];
+    const nota = (prioridad, tipo, texto) => notas.push({ prioridad, tipo, texto });
+
+    if (!ritmo.ingresos) nota(2, "idea", "Todavía no entra dinero este mes. Anótalo cuando llegue: sin números no hay plan.");
+    if (ritmo.ingresos && plan.necesidad.pasado) {
+        nota(10, "alerta", `Tus necesidades ya pasaron el 50 % (${pesos(plan.necesidad.gastado)}). Mira qué gasto fijo puedes bajar.`);
+    }
+    if (ritmo.ingresos && plan.gusto.pasado) {
+        nota(11, "alerta", `Tus gustos ya se comieron el 30 % (te pasaste ${pesos(-plan.gusto.restante)}). Un gusto menos esta semana y vuelves al plan.`);
+    }
+    // A este ritmo, ¿alcanza? (desde el día 5, para que unos pocos gastos no asusten)
+    if (ritmo.ingresos && ritmo.dia >= 5 && ritmo.proyeccion > ritmo.ingresos) {
+        nota(20, "alerta", `A este ritmo terminas el mes gastando ${pesos(ritmo.proyeccion)}, ${pesos(ritmo.proyeccion - ritmo.ingresos)} más de lo que entró.`);
+    }
+    // El CDT o la inversión que vence pronto.
+    for (const fuente of f.fuentes) {
+        if (!fuente.vence) continue;
+        const faltan = diasEntre(fecha, fuente.vence);
+        if (faltan >= 0 && faltan <= 30) {
+            nota(25, "idea", `«${fuente.nombre}» vence en ${faltan === 0 ? "hoy mismo" : `${faltan} día${faltan === 1 ? "" : "s"}`}. Decide antes si lo renuevas o lo pasas a una meta.`);
+        }
+    }
+    if (ritmo.ingresos && plan.ahorro.restante > 0 && ritmo.dia >= 15) {
+        nota(30, "alerta", `Llevas ${pesos(plan.ahorro.gastado)} de ${pesos(plan.ahorro.limite)} para ahorro y deudas. Aún estás a tiempo: aparta lo que falta el día que te paguen.`);
+    }
+    const hormiga = gastosHormiga(estado, mes);
+    if (hormiga.veces >= 6 && ritmo.ingresos && hormiga.monto >= ritmo.ingresos * 0.05) {
+        nota(35, "idea", `Llevas ${hormiga.veces} gastos pequeños este mes que suman ${pesos(hormiga.monto)}. Eso ya es una meta de ahorro.`);
+    }
+    const comparacion = comparacionConMesPasado(estado, fecha);
+    if (comparacion.cambio !== null && comparacion.cambio >= 20) {
+        nota(40, "alerta", `Vas gastando ${comparacion.cambio} % más que el mes pasado a esta misma altura.`);
+    } else if (comparacion.cambio !== null && comparacion.cambio <= -15) {
+        nota(40, "bien", `Vas gastando ${-comparacion.cambio} % menos que el mes pasado a esta altura. ¡Buen control!`);
+    }
+    const [mayor] = mayoresGastos(estado, mes, 1);
+    if (mayor && ritmo.gastado && mayor.monto >= ritmo.gastado * 0.25 && mayor.veces > 1) {
+        nota(45, "idea", `Tu mayor gasto del mes es «${mayor.concepto}»: ${pesos(mayor.monto)} en ${mayor.veces} veces (${porcentaje(mayor.monto, ritmo.gastado)} % de lo gastado).`);
+    }
+    // Deudas: la que más tarda en pagarse, o la que no tiene cuota.
+    const pendientes = f.deudas.filter((deuda) => saldoDeDeuda(estado, deuda) > 0);
+    const sinCuota = pendientes.find((deuda) => !deuda.cuota);
+    if (sinCuota) nota(50, "idea", `Ponle una cuota a «${sinCuota.nombre}» para saber cuándo terminas de pagarla.`);
+    else if (pendientes.length) {
+        const larga = pendientes.map((deuda) => ({ deuda, meses: mesesParaDeuda(estado, deuda) })).sort((a, b) => b.meses - a.meses)[0];
+        nota(50, "idea", `Con la cuota de ${pesos(larga.deuda.cuota)}, «${larga.deuda.nombre}» queda pagada en ${larga.meses} mes${larga.meses === 1 ? "" : "es"}.`);
+    }
+    // ¿Tienes fondo de emergencia? Lo ideal: 3 meses de necesidades.
+    const necesidades = Math.max(resumenDelMes(estado, mes).porSobre.necesidad, resumenDelMes(estado, mesAnterior(mes)).porSobre.necesidad);
+    if (necesidades && !f.metas.some((meta) => /emergencia/i.test(meta.nombre))) {
+        nota(55, "idea", `Un fondo de emergencia de 3 meses de necesidades serían unos ${pesos(necesidades * 3)}. Créalo como meta.`);
+    }
+    // La meta más cercana a cumplirse, a tu ritmo de ahorro.
+    const conRitmo = f.metas.map((meta) => ({ meta, meses: mesesParaMeta(estado, meta, fecha) })).filter((x) => x.meses).sort((a, b) => a.meses - b.meses)[0];
+    if (conRitmo) {
+        nota(60, "bien", `A tu ritmo de ahorro, «${conRitmo.meta.nombre}» se cumple en unos ${conRitmo.meses} mes${conRitmo.meses === 1 ? "" : "es"}.`);
+    }
+    if (ritmo.ingresos && plan.ahorro.restante <= 0) nota(65, "bien", "¡Ahorro del mes cumplido! Tu yo del futuro te lo agradece.");
+    if (ritmo.ingresos && ritmo.actual && ritmo.restantes) {
+        nota(70, "idea", `Para no tocar tu ahorro, puedes gastar hasta ${pesos(ritmo.porDia)} al día lo que queda del mes.`);
+    }
+    const pagos = ingresosPorDia(estado, mes);
+    if (pagos.dias >= 2) nota(80, "idea", `Este mes te pagaron ${pagos.dias} días, en promedio ${pesos(pagos.promedio)} cada uno.`);
+
+    nota(99, "idea", CONSEJOS_DEL_DIA[diasEntre("2000-01-01", fecha) % CONSEJOS_DEL_DIA.length]);
+    return notas.sort((a, b) => a.prioridad - b.prioridad).map(({ tipo, texto }) => ({ tipo, texto }));
+}
+
+// Lo que te dice Aurelio en voz alta: lo más urgente de su análisis.
+export function consejoDeAurelio(estado, fecha = hoy()) {
+    return analisisDeAurelio(estado, fecha)[0].texto;
 }

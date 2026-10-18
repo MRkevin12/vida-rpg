@@ -7204,6 +7204,65 @@ prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () =
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
 
+// (v136) Finanzas con fechas fijas: se escriben los datos directo (sin acciones) para que no dependan del día de hoy.
+function finanzasFijas() {
+    const estado = partidaNueva();
+    estado.finanzas.fuentes.push({ id: 1, nombre: "Trabajo", tipo: "trabajo", valor: 0, vence: null });
+    estado.finanzas.ingresos.push({ id: 2, fecha: "2026-10-01", monto: 1000000, fuente: 1, nota: "" });
+    return estado;
+}
+const gastoFijo = (estado, id, fecha, monto, concepto, categoria = "necesidad", destino = null) =>
+    estado.finanzas.gastos.push({ id, fecha, monto, concepto, categoria, destino });
+
+prueba("Finanzas (v136): meses, días del mes y reparto 50/30/20 exacto", () => {
+    igual([finanzas.diasDelMes("2026-02"), finanzas.diasDelMes("2028-02"), finanzas.diasDelMes("2026-10")], [28, 29, 31], "días del mes");
+    igual([finanzas.mesAnterior("2026-01"), finanzas.mesSiguiente("2026-12")], ["2025-12", "2027-01"], "cambio de año");
+    const r = finanzas.repartoDe(333333);
+    igual(r.necesidad + r.gusto + r.ahorro, 333333, "el reparto suma justo lo que entró");
+});
+
+prueba("Finanzas (v136): cuánto puedes gastar al día sin tocar el ahorro", () => {
+    const estado = finanzasFijas();
+    gastoFijo(estado, 3, "2026-10-02", 100000, "Mercado");
+    const ritmo = finanzas.ritmoDelMes(estado, "2026-10", "2026-10-21");
+    igual([ritmo.restantes, ritmo.libre, ritmo.porDia], [11, 700000, 63636], "11 días, 700.000 libres → 63.636 al día");
+    igual(ritmo.proyeccion, Math.round((100000 / 21) * 31), "proyección del gasto al ritmo actual");
+});
+
+prueba("Finanzas (v136): mayores gastos, gastos hormiga y comparación con el mes pasado", () => {
+    const estado = finanzasFijas();
+    for (let i = 0; i < 6; i++) gastoFijo(estado, 10 + i, "2026-10-0" + (i + 2), 9000, "tinto", "gusto");
+    gastoFijo(estado, 20, "2026-10-05", 300000, "Arriendo");
+    gastoFijo(estado, 21, "2026-10-06", 50000, "Ahorro", "ahorro");
+    gastoFijo(estado, 22, "2026-09-03", 100000, "Mercado");
+    const mayores = finanzas.mayoresGastos(estado, "2026-10");
+    igual(mayores.map((g) => g.concepto), ["Arriendo", "tinto"], "el ahorro no cuenta como gasto en la lista");
+    igual(finanzas.gastosHormiga(estado, "2026-10"), { veces: 6, monto: 54000 }, "los pequeños");
+    igual(finanzas.comparacionConMesPasado(estado, "2026-10-10").cambio, 304, "404.000 contra 100.000 hasta el día 10");
+});
+
+prueba("Finanzas (v136): meses para pagar una deuda y para cumplir una meta", () => {
+    const estado = finanzasFijas();
+    estado.finanzas.deudas.push({ id: 30, nombre: "Tarjeta", saldoInicial: 200000, cuota: 60000 });
+    igual(finanzas.mesesParaDeuda(estado, estado.finanzas.deudas[0]), 4, "200.000 a 60.000 por mes");
+    estado.finanzas.metas.push({ id: 31, nombre: "Viaje", objetivo: 900000, premiada: false });
+    gastoFijo(estado, 32, "2026-10-05", 150000, "Ahorro", "ahorro", "meta:31");
+    igual(finanzas.ahorroMensualPromedio(estado, "2026-10-10"), 50000, "150.000 en 90 días = 50.000 al mes");
+    igual(finanzas.mesesParaMeta(estado, estado.finanzas.metas[0], "2026-10-10"), 15, "faltan 750.000 a 50.000 al mes");
+});
+
+prueba("Finanzas (v136): Aurelio ordena lo que ve, de lo más urgente a lo menos", () => {
+    const estado = finanzasFijas();
+    gastoFijo(estado, 40, "2026-10-03", 400000, "Salidas", "gusto");
+    const notas = finanzas.analisisDeAurelio(estado, "2026-10-20");
+    cierto(notas[0].texto.includes("Tus gustos ya se comieron"), "lo primero: el sobre que se pasó");
+    igual(notas[0].tipo, "alerta", "es una alerta");
+    cierto(notas.some((n) => n.texto.includes("al día")), "también dice cuánto puedes gastar al día");
+    estado.finanzas.fuentes.push({ id: 41, nombre: "CDT", tipo: "cdt", valor: 5000000, vence: "2026-10-30" });
+    cierto(finanzas.analisisDeAurelio(estado, "2026-10-20").some((n) => n.texto.includes("vence en 10 días")), "avisa que el CDT vence pronto");
+    igual(finanzas.analisisDeAurelio(estado, "2026-10-20").at(-1).tipo, "idea", "siempre hay un consejo del día al final");
+});
+
 // ===== Ejecutar todo y mostrar el resultado =====
 
 const lista = document.querySelector("#lista");

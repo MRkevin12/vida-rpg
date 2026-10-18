@@ -104,7 +104,7 @@ export const diarioVista = { mes: null, dia: null, busqueda: "", filtro: null, l
 let estadoDePausaVisto = "";     // (v131) para redibujar la carrera cuando entra o sale la pausa automática
 
 // Las secciones elegidas en las pantallas largas (el selector de arriba): solo se ve una a la vez.
-export const subvista = { progreso: "numeros", tienda: "recompensas", personaje: "equipo", gym: "entrenar", running: "correr" };
+export const subvista = { progreso: "numeros", tienda: "recompensas", personaje: "equipo", gym: "entrenar", running: "correr", finanzas: "resumen" };
 
 // Modo esencial (v46): las únicas pantallas que quedan a la mano. Si lo enciendes estando en otra, vuelves a Hoy.
 const PANTALLAS_ESENCIALES = new Set(["hoy", "tienda", "enfoque", "gym"]);
