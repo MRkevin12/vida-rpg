@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v140 — Running más claro: consejo de ritmo, sonidos y vibración
+- `encuentros.js`: `consejoDeRitmo(segPorKm, objetivo, emboscada)` → bien (≤ objetivo), casi (≤ +5 %), lento, rápido (< −12 % o demasiado rápido), espera.
+- `vistas-running.js`: `consejoEnVivo`, `textoConsejo`; chip `data-run-consejo` que `tictac` actualiza cada segundo (clase = color).
+- `app-running.js`: `sonarGolpes` (sonido + `navigator.vibrate`), sonido del golpe final y de la pausa.
+- Pruebas: 373 en total.
+
 ## v139 — La batalla mientras corres: pantalla dividida (mapa + batalla) y poderes por tramos de 100 m
 - `encuentros.js`: `TRAMO` (100 m), `PODERES` (tajo 8, rayo 14, llamarada +12 cada 3 tramos seguidos), `ATAQUES_CRIATURA` (lento −15, pausa −20 a la vida del héroe), `GOLPE_FINAL` / `golpeFinalDe`, `poderDelTramo` (margen 5 % por el GPS; rayo ≤ 92 % del objetivo) y `vidasDeLaBatalla` (la criatura no baja de 5 hasta el golpe final). La regla para vencer NO cambió: sigue siendo `resolver` con el km completo.
 - `acciones.js`: `anotarTramos` (el momento de cruzar cada 100 m se interpola entre dos lecturas del GPS), `en.tramo`, `kmActual.golpes` y `racha`; la pausa manual añade un ataque; al decidir el km se guardan `vida`, `vidaHeroe` y `finEn` en la pelea.

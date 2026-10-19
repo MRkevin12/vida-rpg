@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 139;
+export const VERSION_APP = 140;
 
 export const NOVEDADES = [
+    {
+        version: 140,
+        titulo: "Running más claro",
+        cambios: [
+            "🚦 Un consejo grande de ritmo arriba de la batalla: 🟢 buen ritmo, 🟡 casi, 🔴 acelera, 🔵 afloja. Se lee de reojo mientras corres.",
+            "🔊 Cada poder suena (tajo, rayo, llamarada), también cuando la criatura te ataca, al vencerla o si escapa, y al pausar.",
+            "📳 En los teléfonos que lo permiten, vibra con cada golpe (el iPhone no deja a una web vibrar).",
+        ],
+    },
     {
         version: 139,
         titulo: "La batalla mientras corres",

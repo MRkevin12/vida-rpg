@@ -314,6 +314,13 @@ function tictac() {
         const pelea = document.querySelector("[data-run-encuentro]");
         if (pelea) pelea.innerHTML = vistasRunning.htmlEncuentro(en, ahora);
         ponerCriaturasDeCarrera();
+        // (v140) El consejo de ritmo grande: cambia de color según vas.
+        const consejo = document.querySelector("[data-run-consejo]");
+        if (consejo) {
+            const c = vistasRunning.consejoEnVivo(en, ahora);
+            consejo.className = `run-consejo ${c.clave}`;
+            if (consejo.textContent !== vistasRunning.textoConsejo(c)) consejo.textContent = vistasRunning.textoConsejo(c);
+        }
         // (v139) La batalla de la pantalla dividida: solo se vuelve a dibujar cuando pasa algo (un poder, un ataque, el golpe
         // final, una criatura nueva o llega una imagen). Si se dibujara cada segundo, las animaciones empezarían de nuevo.
         const batalla = document.querySelector("[data-run-batalla]");

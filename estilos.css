@@ -12254,7 +12254,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 /* El nombre del poder (o del ataque, o del golpe final): se ve 2 segundos. */
 .run-bat-cartel {
     position: absolute;
-    top: 25%;
+    top: 35%;
     left: 50%;
     z-index: 6;
     padding: 3px 10px;
@@ -12385,6 +12385,31 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
         grid-template-rows: minmax(0, 1fr);
         min-height: 160px;
     }
+}
+
+/* ===== (v140) El consejo de ritmo grande ===== */
+.run-consejo {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    font-family: var(--letra-titulo);
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-align: center;
+    color: #fff;
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    background: #3a3550;
+}
+
+.run-consejo.bien { background: #1d7a3e; }
+.run-consejo.casi { background: #a87a0c; }
+.run-consejo.lento { background: #b3262e; }
+.run-consejo.rapido { background: #1f5fb8; }
+
+.run-concentracion:not(.run-terminando) .run-consejo {
+    margin: 0;
+    padding: 5px 8px;
+    font-size: 0.95rem;
 }
 
 /* ===== (v135–v136) Finanzas: resumen, plan 50/30/20, anotar, historial, metas y fuentes ===== */

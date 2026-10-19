@@ -82,6 +82,7 @@ function vistaEnVivo(estado, ctx) {
                 <div><small>Distancia</small><b data-run-km>${running.textoKm(en.distancia / 1000)}</b></div>
                 <div><small>Ritmo (ahora)</small><b data-run-ritmo>${running.textoRitmo(ritmo)}</b></div>
             </div>
+            ${en.gps && en.encuentros ? `<p class="run-consejo ${consejoEnVivo(en, ctx.ahora).clave}" data-run-consejo>${textoConsejo(consejoEnVivo(en, ctx.ahora))}</p>` : ""}
             ${en.gps ? `<div class="run-dividida ${en.encuentros ? "con-batalla" : ""}">
                 <div class="run-mapa-vivo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm, opcionesDelMapa(en, estado.running))}</div>
                 ${en.encuentros ? `<div class="run-batalla" data-run-batalla data-n="${firmaDeBatalla(en, ctx.ahora, ctx.spritesBatalla)}">${htmlBatalla(en, ctx.ahora, ctx.spritesBatalla)}</div>` : ""}
@@ -228,6 +229,15 @@ export function htmlEncuentro(en, ahora = Date.now()) {
             <small class="run-poderes">${Object.values(encuentros.PODERES).map((p) => `${p.icono} ${p.nombre}: ${p.texto}`).join(" · ")}</small>
         </div>`;
 }
+
+// (v140) El consejo grande de ritmo (verde / amarillo / rojo / azul) que se lee de reojo corriendo. app.js lo actualiza cada segundo.
+export const consejoEnVivo = (en, ahora = Date.now()) => {
+    const pelea = en.encuentros?.find((e) => !e.resultado);
+    const quieto = en.pausadoDesde;
+    return quieto ? { clave: "espera", icono: "⏸", texto: "En pausa" }
+        : encuentros.consejoDeRitmo(running.ritmoActual(en, ahora) * 60, en.objetivo, Boolean(pelea?.emboscada));
+};
+export const textoConsejo = (c) => `${c.icono} ${c.texto}`;
 
 // ===== (v139) La batalla mientras corres =====
 // La otra mitad de la pantalla: tu héroe contra la criatura del km, con la escena de la Torre (sala, partículas, golpes).

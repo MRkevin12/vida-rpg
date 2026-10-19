@@ -200,6 +200,17 @@ export function vidasDeLaBatalla(golpes = [], resultado = null) {
 // ¿Vas peligrosamente rápido? (más de un 25 % por encima de tu objetivo y por debajo de 3:00 /km). Solo es un aviso.
 export const demasiadoRapido = (proyeccion, objetivo) => Number.isFinite(proyeccion) && proyeccion < objetivo * 0.75 && proyeccion < 180;
 
+// (v140) El consejo de un vistazo mientras corres: tu ritmo de AHORA (s/km) contra lo que pide la pelea.
+// Devuelve { clave: "rapido" | "bien" | "casi" | "lento" | "espera", icono, texto }. Sin ritmo todavía (o en pausa): "espera".
+export function consejoDeRitmo(segundosPorKm, objetivo, emboscada = false) {
+    if (!Number.isFinite(segundosPorKm) || segundosPorKm <= 0 || !objetivo) return { clave: "espera", icono: "⏳", texto: "Empieza a correr" };
+    const meta = emboscada ? objetivo * EMBOSCADA_RITMO : objetivo;
+    if (demasiadoRapido(segundosPorKm, objetivo) || segundosPorKm < meta * 0.88) return { clave: "rapido", icono: "🔵", texto: "Muy rápido: afloja un poco" };
+    if (segundosPorKm <= meta * 1.0) return { clave: "bien", icono: "🟢", texto: "Buen ritmo: sigue así" };
+    if (segundosPorKm <= meta * 1.05) return { clave: "casi", icono: "🟡", texto: "Casi: acelera un poco" };
+    return { clave: "lento", icono: "🔴", texto: "Lento: ¡acelera!" };
+}
+
 // ===== El resumen al terminar =====
 // encuentros: los de la carrera. Devuelve { vencidas, total, gemas, xp, jefes, escaparon: [nombres] }.
 export function resumen(encuentros) {

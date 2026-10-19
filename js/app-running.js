@@ -141,6 +141,7 @@ export function iniciarGps() {
             datos.guardar(estado);
             if (avance.kmNuevo) anunciarKilometro(avance.kmNuevo, avance.segundos, avance.resueltos, avance.nuevo);
             else avisarSiVasLento();
+            if (avance.golpes?.length) sonarGolpes(avance.golpes);   // (v140)
             // (v131) En pista: aviso de cada vuelta.
             const en = estado.running.encurso;
             if (en?.pista) {
@@ -160,11 +161,21 @@ export function iniciarGps() {
     }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
 }
 
+// (v140) Cada poder de la batalla suena (y vibra, en los teléfonos que lo permiten; el iPhone no vibra desde una web).
+const SONIDO_DE_GOLPE = { tajo: "tajo", rayo: "rayo", lento: "impacto", pausa: "fallo" };
+
+function sonarGolpes(golpes) {
+    const g = golpes.at(-1);
+    sonar(g.combo ? "fuego" : SONIDO_DE_GOLPE[g.tipo] || "tajo");
+    try { navigator.vibrate?.(g.tipo === "lento" ? [60, 40, 60] : 40); } catch (error) { /* sin vibración */ }
+}
+
 // (v116) Cada kilómetro: un sonido, un aviso en pantalla y, si está activada la voz, tu tiempo hablado.
 function anunciarKilometro(numero, segundos, resueltos = [], nuevo = null) {
     // (v119) La pelea del km que terminó y la criatura que aparece. (v128) Con voz grabada o la del teléfono, y una frase de ánimo.
     const pelea = resueltos.at(-1);
     const fin = !pelea ? "" : pelea.resultado === "vencida" ? `¡Venciste a ${encuentros.nombreDe(pelea)}!` : `${encuentros.nombreDe(pelea)} escapó.`;
+    if (pelea) sonar(pelea.resultado === "vencida" ? (pelea.jefe ? "victoria" : "completar") : "fallo");   // (v140) el golpe final
     avisar(`🏃 Km ${numero}: ${running.textoSegundos(segundos)}${fin ? ` · ${fin}` : ""}`);
     if (document.visibilityState === "hidden") mostrarNotificacionCarrera({ sonando: true });   // (v120) también fuera de la app
     hablar(frases.anuncioDeKm(numero, segundos, pelea, nuevo));
@@ -347,7 +358,7 @@ export const ACCIONES_RUNNING = {
     },
     "run-pausa": () => {
         ejecutar(() => acciones.alternarPausaCarrera(estado), { mantenerScroll: true });
-        sonar("cursor");
+        sonar(estado.running.encurso?.pausadoDesde ? "fallo" : "cursor");
     },
     "run-cancelar": () => {
         if (!confirm("¿Cancelar la carrera? Se pierde lo que corriste y no da premio.")) return;

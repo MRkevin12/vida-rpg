@@ -3075,6 +3075,19 @@ prueba("Batalla mientras corres (v139): al correr se lanzan poderes, la pausa te
     }
 });
 
+prueba("Consejo de ritmo (v140): verde, amarillo, rojo y azul según tu ritmo de ahora", () => {
+    const c = (s, e) => encuentros.consejoDeRitmo(s, 360, e).clave;
+    igual(c(350), "bien");
+    igual(c(360), "bien");
+    igual(c(370), "casi", "hasta un 5 % más lento");
+    igual(c(400), "lento");
+    igual(c(300), "rapido", "más de un 12 % más rápido: afloja");
+    igual(c(350, true), "casi", "la emboscada pide un 5 % más rápido (342): a 350 solo casi");
+    igual(c(340, true), "bien");
+    igual(c(NaN), "espera");
+    igual(c(0), "espera");
+});
+
 prueba("Frases de la carrera: los números se dicen bien en español", () => {
     igual(frases.numeroEnPalabras(0), "cero");
     igual(frases.numeroEnPalabras(16), "dieciséis");
