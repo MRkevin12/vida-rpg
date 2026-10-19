@@ -2999,6 +2999,82 @@ prueba("Criaturas de la carrera: en una carrera con GPS aparecen, se deciden al 
     debeFallar(() => acciones.empezarCarrera(estado, "suave", { gps: true, objetivo: "rápido" }), "ritmo objetivo");
 });
 
+prueba("Batalla mientras corres (v139): el poder de cada tramo de 100 m y las vidas", () => {
+    const pelea = { km: 1, id: "esqueleto", clase: "normal", jefe: false, emboscada: false };
+    // Objetivo 6:00 /km → un tramo de 100 m pide 36 s.
+    igual(encuentros.poderDelTramo(pelea, 36, 360).tipo, "tajo", "a tu ritmo: tajo");
+    igual(encuentros.poderDelTramo(pelea, 37.5, 360).tipo, "tajo", "con un 5 % de margen (el GPS en 100 m no es perfecto)");
+    igual(encuentros.poderDelTramo(pelea, 33, 360).tipo, "rayo", "un 8 % más rápido: rayo");
+    igual(encuentros.poderDelTramo(pelea, 33, 360).dano, encuentros.PODERES.rayo.dano);
+    const lento = encuentros.poderDelTramo(pelea, 39, 360, 2);
+    igual([lento.tipo, lento.dano, lento.racha], ["lento", 0, 0], "lento: no pegas, la criatura te ataca y se corta la racha");
+    cierto(lento.herida > 0);
+    const combo = encuentros.poderDelTramo(pelea, 36, 360, 2);
+    cierto(combo.combo && combo.racha === 3, "el tercer tramo seguido a tu ritmo es una llamarada");
+    igual(combo.dano, encuentros.PODERES.tajo.dano + encuentros.PODERES.llamarada.dano);
+    igual(encuentros.poderDelTramo({ ...pelea, emboscada: true }, 36, 360).tipo, "lento", "la emboscada pide un 5 % más rápido");
+    igual(encuentros.poderDelTramo(pelea, 0, 360), null, "un tiempo de 0 s no sirve");
+    // La vida de la criatura no llega a 0 hasta el golpe final (manda la regla del km completo).
+    const muchos = Array.from({ length: 10 }, () => ({ dano: 30 }));
+    igual(encuentros.vidasDeLaBatalla(muchos).criatura, encuentros.VIDA_MIN);
+    igual(encuentros.vidasDeLaBatalla(muchos, "vencida").criatura, 0);
+    igual(encuentros.vidasDeLaBatalla([{ herida: 15 }, { herida: 20 }]).heroe, encuentros.VIDA - 35);
+    igual(encuentros.golpeFinalDe({ jefe: true }).nombre, "Golpe de Voluntad");
+    igual(encuentros.golpeFinalDe({ clase: "pesada" }).nombre, "Rompecorazas");
+});
+
+prueba("Batalla mientras corres (v139): al correr se lanzan poderes, la pausa te cuesta y el km termina con el golpe final", () => {
+    const real = Date.now;
+    try {
+        let reloj = real();
+        Date.now = () => reloj;   // un reloj de mentira: cada lectura del GPS llega 1 s después
+        const estado = partidaNueva();
+        acciones.empezarCarrera(estado, "suave", { gps: true, objetivo: "5:05" });   // 30,5 s por tramo; corres a ~5:00 /km
+        const en = estado.running.encurso;
+        let i = 0;
+        const correr = (segundos, paso = 0.00003) => {   // 0,00003° de latitud ≈ 3,3 m
+            let lat = 4.6 + i * 0.00003;
+            for (let s = 0; s < segundos; s++) {
+                reloj += 1000;
+                lat += paso;
+                i += paso / 0.00003;
+                acciones.registrarPuntoCarrera(estado, { lat, lon: -74.08, precision: 4, t: reloj });
+            }
+        };
+        const html0 = vistasRunning.htmlBatalla(en, reloj);
+        cierto(html0.includes("ff-escena") && html0.includes(encuentros.nombreDe(en.encuentros[0])), "la batalla muestra la criatura del km");
+        correr(100);   // ~330 m
+        const golpes = en.kmActual.golpes;
+        cierto(golpes.length >= 3, `cada 100 m, un golpe (${golpes.length})`);
+        cierto(golpes.every((g) => g.tipo === "tajo"), `a tu ritmo, todos son tajos (${golpes.map((g) => g.tipo).join(", ")})`);
+        cierto(golpes[2].combo, "el tercero seguido es una llamarada");
+        const firma = vistasRunning.firmaDeBatalla(en, reloj);
+        // Lento (la mitad de rápido): la criatura se te adelanta.
+        correr(70, 0.000015);
+        cierto(en.kmActual.golpes.some((g) => g.tipo === "lento"), "un tramo lento: te ataca");
+        cierto(vistasRunning.firmaDeBatalla(en, reloj) !== firma, "la firma cambia: la batalla se vuelve a dibujar");
+        // Una pausa: aprovecha y te ataca.
+        acciones.alternarPausaCarrera(estado, reloj);
+        igual(en.kmActual.golpes.at(-1).tipo, "pausa");
+        igual(en.kmActual.racha, 0, "la pausa corta tu racha");
+        reloj += 5000;
+        acciones.alternarPausaCarrera(estado, reloj);
+        const vidas = encuentros.vidasDeLaBatalla(en.kmActual.golpes);
+        cierto(vidas.criatura < encuentros.VIDA && vidas.heroe < encuentros.VIDA, "los dos perdieron vida");
+        // Hasta cumplir el km: se decide la pelea y empieza la siguiente.
+        correr(250);
+        const primera = en.encuentros[0];
+        cierto(primera.resultado && Number.isFinite(primera.vida) && primera.finEn, "la pelea terminada guarda su vida y cuándo acabó");
+        cierto(en.encuentros.length >= 2, "y aparece la criatura del km 2");
+        const final = vistasRunning.escenaDeBatalla(en, primera.finEn + 500);
+        cierto(final.final && final.pelea === primera, "los primeros segundos se ve el golpe final (o la huida)");
+        cierto(vistasRunning.htmlBatalla(en, primera.finEn + 500).includes("run-bat-fin"), "con su cartel de cómo terminó");
+        cierto(!vistasRunning.escenaDeBatalla(en, primera.finEn + vistasRunning.DURACION_FINAL + 1).final, "después, la criatura nueva");
+    } finally {
+        Date.now = real;
+    }
+});
+
 prueba("Frases de la carrera: los números se dicen bien en español", () => {
     igual(frases.numeroEnPalabras(0), "cero");
     igual(frases.numeroEnPalabras(16), "dieciséis");

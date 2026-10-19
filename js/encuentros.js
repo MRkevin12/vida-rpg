@@ -134,6 +134,69 @@ export function comoVa(encuentro, segundosEnKm, metrosEnKm, objetivo) {
     return { proyeccion, vas, vida };
 }
 
+// ===== (v139) La batalla mientras corres: los poderes de tu héroe =====
+// El km se parte en 10 tramos de 100 m. Cada tramo que corres a tu ritmo es un poder que tu héroe le lanza a la criatura:
+//   ⚔️ Tajo:      100 m a tu ritmo objetivo (con un 5 % de margen: en tramos tan cortos el GPS no es perfecto).
+//   ⚡ Rayo:      100 m un 8 % más rápido que tu objetivo. Pega más fuerte.
+//   🔥 Llamarada: cada 3 tramos SEGUIDOS a tu ritmo, se suma al golpe.
+// Si un tramo te sale lento, la criatura te ataca a ti (🐢); si pausas, aprovecha (⏸).
+// Al cumplir el km llega el golpe final, y ahí manda la regla de siempre (resolver): si la venciste, cae; si no, escapa.
+// Por eso su vida nunca baja de VIDA_MIN antes del final: el último golpe siempre es el del kilómetro completo.
+export const TRAMO = 100;            // metros
+export const MARGEN_TRAMO = 0.05;
+export const RAYO = 0.92;            // un tramo un 8 % más rápido que tu objetivo
+export const COMBO = 3;              // tramos seguidos para la llamarada
+export const VIDA = 100;             // la vida de la criatura y la de tu héroe en cada pelea
+export const VIDA_MIN = 5;
+
+// efecto: el dibujo del golpe en la batalla (las clases ff-tajo, ff-rayo y ff-fuego de la Torre).
+export const PODERES = {
+    tajo:      { icono: "⚔️", nombre: "Tajo",      dano: 8,  efecto: "tajo",  texto: "100 m a tu ritmo" },
+    rayo:      { icono: "⚡", nombre: "Rayo",      dano: 14, efecto: "rayo",  texto: "100 m un 8 % más rápido" },
+    llamarada: { icono: "🔥", nombre: "Llamarada", dano: 12, efecto: "fuego", texto: `${COMBO} tramos seguidos a tu ritmo` },
+};
+
+// Lo que te hace la criatura cuando no cumples (solo baja la vida de tu héroe en esta pelea: no quita premios).
+export const ATAQUES_CRIATURA = {
+    lento: { icono: "🐢", nombre: "Se te adelanta", herida: 15 },
+    pausa: { icono: "⏸", nombre: "Aprovecha tu pausa", herida: 20 },
+};
+
+// El golpe final de cada tipo de criatura: su nombre dice qué objetivo cumpliste.
+export const GOLPE_FINAL = {
+    normal:    { icono: "💥", nombre: "Golpe final" },
+    rapida:    { icono: "⚡", nombre: "Relámpago final" },   // aceleraste los últimos 200 m
+    pesada:    { icono: "🔨", nombre: "Rompecorazas" },      // ritmo parejo
+    fantasma:  { icono: "✨", nombre: "Luz sagrada" },       // sin pausas
+    emboscada: { icono: "🌀", nombre: "Contraataque" },
+    jefe:      { icono: "👑", nombre: "Golpe de Voluntad" },
+};
+export const golpeFinalDe = (e) => GOLPE_FINAL[e.jefe ? "jefe" : e.emboscada ? "emboscada" : e.clase] || GOLPE_FINAL.normal;
+
+// El poder de un tramo. segundos: lo que tardaste en esos 100 m. racha: cuántos tramos seguidos llevabas a tu ritmo.
+// Devuelve { tipo: "tajo" | "rayo" | "lento", dano, herida, combo, racha } o null si el tiempo no sirve (0 o negativo).
+export function poderDelTramo(encuentro, segundos, objetivo, racha = 0, mascota = false) {
+    if (!(segundos > 0)) return null;
+    const extra = mascota ? MARGEN_MASCOTA : 0;
+    const meta = (encuentro.emboscada ? objetivo * EMBOSCADA_RITMO : objetivo) * (TRAMO / 1000);   // los segundos que pide un tramo
+    if (segundos > meta * (1 + MARGEN_TRAMO + extra)) return { tipo: "lento", dano: 0, herida: ATAQUES_CRIATURA.lento.herida, combo: false, racha: 0 };
+    const tipo = segundos <= meta * (RAYO + extra) ? "rayo" : "tajo";
+    const nueva = racha + 1;
+    const combo = nueva % COMBO === 0;
+    return { tipo, dano: PODERES[tipo].dano + (combo ? PODERES.llamarada.dano : 0), herida: 0, combo, racha: nueva };
+}
+
+// La vida de la criatura y la de tu héroe (de 0 a VIDA) según los golpes de la pelea.
+// resultado: el de la pelea si ya se decidió ("vencida" la deja en 0).
+export function vidasDeLaBatalla(golpes = [], resultado = null) {
+    const dano = golpes.reduce((suma, g) => suma + (g.dano || 0), 0);
+    const herida = golpes.reduce((suma, g) => suma + (g.herida || 0), 0);
+    return {
+        criatura: resultado === "vencida" ? 0 : Math.max(VIDA_MIN, VIDA - dano),
+        heroe: Math.max(VIDA_MIN, VIDA - herida),
+    };
+}
+
 // ¿Vas peligrosamente rápido? (más de un 25 % por encima de tu objetivo y por debajo de 3:00 /km). Solo es un aviso.
 export const demasiadoRapido = (proyeccion, objetivo) => Number.isFinite(proyeccion) && proyeccion < objetivo * 0.75 && proyeccion < 180;
 

@@ -2366,7 +2366,8 @@ export function empezarCarrera(estado, tipo, { gps = false, objetivo = "", pista
             objetivoPropio: Boolean(propio),
             kmPorZona,   // (v132) se queda fijo en esta carrera aunque cambies el ajuste mientras corres
             encuentros: [encuentros.criaturaDelKm(inicio, 1, kmPorZona)],
-            kmActual: { mitad: null, t800: null, pausas: 0 },   // lo que hace falta para decidir la pelea del km
+            kmActual: kmActualNuevo(),   // lo que hace falta para decidir la pelea del km (y sus golpes, v139)
+            tramo: { hechos: 0, desde: 0, tAntes: 0 },   // (v139) los tramos de 100 m: cuántos van y cuándo empezó el actual (ms de carrera)
         });
         bestiario.anotarEncuentro(estado.arcade.bestiario, r.encurso.encuentros[0].id);
     }
@@ -2385,8 +2386,47 @@ export function alternarPausaCarrera(estado, ahora = Date.now(), { contar = true
         return { pausada: false };
     }
     en.pausadoDesde = ahora;
-    if (en.kmActual && contar) en.kmActual.pausas += 1;   // (v119) a los fantasmas y a los jefes no les gusta que te detengas
+    if (en.kmActual && contar) {
+        en.kmActual.pausas += 1;   // (v119) a los fantasmas y a los jefes no les gusta que te detengas
+        // (v139) Y en la batalla, la criatura aprovecha tu pausa: te ataca y se corta tu racha de tramos.
+        (en.kmActual.golpes = en.kmActual.golpes || []).push({ tipo: "pausa", dano: 0, herida: encuentros.ATAQUES_CRIATURA.pausa.herida, t: ahora });
+        en.kmActual.racha = 0;
+    }
     return { pausada: true };
+}
+
+// (v119) Lo que se mide de la pelea del km. (v139) golpes: los poderes de cada tramo y los ataques de la criatura.
+const kmActualNuevo = () => ({ mitad: null, t800: null, pausas: 0, golpes: [], racha: 0 });
+
+// (v139) Los tramos de 100 m que cruzaste con este punto del GPS: cada uno lanza un poder (o la criatura te ataca).
+// desde/hasta: la distancia antes y después del punto. El momento exacto en que cruzaste cada 100 m se calcula
+// en proporción a los metros entre el punto anterior y este (así un GPS que llega cada 1–2 s no cambia el tiempo del tramo).
+function anotarTramos(estado, en, desde, hasta) {
+    const ahora = running.tiempoDeEncurso(en, Date.now());
+    // Una carrera empezada antes de la v139 no tenía tramos: se empieza a contar desde aquí (el primer tramo no cuenta).
+    const tr = en.tramo || (en.tramo = { hechos: Math.floor(desde / encuentros.TRAMO), desde: null, tAntes: ahora });
+    tr.tAntes = Math.min(tr.tAntes, ahora);   // con la pausa automática el reloj se corrige hacia atrás
+    const golpes = [];
+    while (hasta >= (tr.hechos + 1) * encuentros.TRAMO) {
+        const borde = (tr.hechos + 1) * encuentros.TRAMO;
+        const parte = hasta > desde ? Math.min(1, Math.max(0, (borde - desde) / (hasta - desde))) : 1;
+        const cruce = tr.tAntes + (ahora - tr.tAntes) * parte;
+        tr.hechos += 1;
+        const pelea = en.encuentros?.find((e) => !e.resultado);
+        const k = en.kmActual;
+        if (pelea && k && tr.desde !== null) {
+            const poder = encuentros.poderDelTramo(pelea, (cruce - tr.desde) / 1000, en.objetivo, k.racha || 0, Boolean(mascota.especieActiva(estado)));
+            if (poder) {
+                k.racha = poder.racha;
+                const golpe = { tipo: poder.tipo, dano: poder.dano, herida: poder.herida, combo: poder.combo, tramo: tr.hechos, t: Date.now() };
+                (k.golpes = k.golpes || []).push(golpe);
+                golpes.push(golpe);
+            }
+        }
+        tr.desde = cruce;
+    }
+    tr.tAntes = ahora;
+    return golpes;
 }
 
 // Un punto nuevo del GPS. Si no estás corriendo (o estás en pausa), se ignora. No lanza error: llega sola.
@@ -2426,6 +2466,7 @@ export function registrarPuntoCarrera(estado, punto) {
         // Para no crecer sin fin en carreras largas: si pasa de 600 puntos, se queda con la mitad (uno sí, uno no).
         if (en.traza.length > 600) en.traza = en.traza.filter((_, i) => i % 2 === 0 || i === en.traza.length - 1);
     }
+    const golpes = en.kmActual ? anotarTramos(estado, en, en.distancia, distancia) : [];   // (v139) los poderes de la batalla
     en.distancia = distancia;
     en.ultimo = ultimo;
     en.marcas = en.marcas || [];
@@ -2455,6 +2496,11 @@ export function registrarPuntoCarrera(estado, punto) {
             }, en.objetivo, Boolean(mascota.especieActiva(estado)));
             pelea.resultado = vencida ? "vencida" : "escapo";
             pelea.segundos = segundos;
+            // (v139) Para la escena del golpe final: con cuánta vida quedó y cuándo terminó la pelea.
+            const vidas = encuentros.vidasDeLaBatalla(k.golpes, pelea.resultado);
+            pelea.vida = vidas.criatura;
+            pelea.vidaHeroe = vidas.heroe;
+            pelea.finEn = Date.now();
             if (vencida) bestiario.anotarVictoria(estado.arcade.bestiario, pelea.id);
             resueltos.push(pelea);
         }
@@ -2462,12 +2508,12 @@ export function registrarPuntoCarrera(estado, punto) {
             const siguiente = encuentros.criaturaDelKm(en.inicio, kmNuevo + 1, en.kmPorZona);
             en.encuentros.push(siguiente);
             bestiario.anotarEncuentro(estado.arcade.bestiario, siguiente.id);
-            en.kmActual = { mitad: null, t800: null, pausas: 0 };
+            en.kmActual = kmActualNuevo();
         }
     }
     const parciales = running.parcialesDe(en.marcas);
     return {
-        distancia, kmNuevo, segundos: kmNuevo ? parciales[parciales.length - 1] : null,
+        distancia, kmNuevo, segundos: kmNuevo ? parciales[parciales.length - 1] : null, golpes,
         resueltos, nuevo: kmNuevo && en.encuentros ? en.encuentros.at(-1) : null,
     };
 }

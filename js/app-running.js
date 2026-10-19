@@ -6,6 +6,7 @@
 import * as datos from "./datos.js";
 import * as acciones from "./acciones.js";
 import * as vistas from "./vistas.js";
+import * as vistasRunning from "./vistas-running.js";   // (v139) la batalla de la pantalla dividida
 import * as sprites from "./sprites.js";
 import * as running from "./running.js";
 import * as encuentros from "./encuentros.js";   // (v119) criaturas en tus carreras
@@ -87,17 +88,30 @@ async function cerrarNotificacionCarrera() {
     } catch (error) { /* nada que cerrar */ }
 }
 
-// (v119) La imagen de la criatura del km: en la tarjeta de la pelea y en el mapa. Se pixela una vez por criatura.
-const criaturasDeCarrera = {};
+// (v119) Las imágenes de la pelea del km. (v139) Ahora son las de la batalla de la pantalla dividida: tu héroe, la criatura
+// y la sala de su zona. Cada una se pixela UNA vez y queda guardada aquí; la batalla las usa al dibujarse
+// (vistasRunning.htmlBatalla). Cuando llega una nueva, la firma de la batalla cambia y app.js la vuelve a dibujar.
+export const spritesBatalla = { heroe: null, criaturas: {}, salas: {} };
+const pidiendo = new Set();   // las que se están pixelando (para no pedir dos veces la misma)
 
-export async function ponerCriaturasDeCarrera() {
-    const pelea = estado.running.encurso?.encuentros?.find((e) => !e.resultado);
-    if (!pelea) return;
-    if (!criaturasDeCarrera[pelea.id]) criaturasDeCarrera[pelea.id] = await sprites.spriteDeMonstruo(pelea.id, avatarActual());
-    const src = criaturasDeCarrera[pelea.id];
-    const tarjeta = document.querySelector("[data-run-criatura]");
-    if (tarjeta && tarjeta.dataset.runCriatura !== pelea.id) { tarjeta.src = src; tarjeta.dataset.runCriatura = pelea.id; }
-    for (const img of document.querySelectorAll(".run-mapa-criatura")) if (img.src !== src) img.src = src;
+async function cargarSprite(clave, guardar, pedir) {
+    if (pidiendo.has(clave)) return;
+    pidiendo.add(clave);
+    try { guardar(await pedir()); } catch (error) { /* sin imagen: la batalla se ve sin ese dibujo */ }
+    pidiendo.delete(clave);
+}
+
+export function ponerCriaturasDeCarrera() {
+    const en = estado.running.encurso;
+    if (!en?.encuentros) return;
+    // La criatura del km (y la siguiente, así ya está lista cuando aparezca) y la sala de cada una.
+    const peleas = [vistasRunning.escenaDeBatalla(en).pelea, en.encuentros.find((e) => !e.resultado)].filter(Boolean);
+    if (!spritesBatalla.heroe) cargarSprite("heroe", (src) => { spritesBatalla.heroe = src; }, () => sprites.spriteDeHeroe(avatarActual()));
+    for (const pelea of peleas) {
+        const zona = vistasRunning.zonaDeBatalla(pelea);
+        if (!spritesBatalla.criaturas[pelea.id]) cargarSprite(`c-${pelea.id}`, (src) => { spritesBatalla.criaturas[pelea.id] = src; }, () => sprites.spriteDeMonstruo(pelea.id, avatarActual()));
+        if (!spritesBatalla.salas[zona]) cargarSprite(`s-${zona}`, (src) => { spritesBatalla.salas[zona] = src; }, () => sprites.spriteDeSala(zona));
+    }
 }
 
 // (v117) Mientras corres, una barra pegada arriba de las pestañas muestra el tiempo, los km y el ritmo en TODAS las pantallas

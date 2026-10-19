@@ -55,7 +55,7 @@ import { retratoPixel } from "./retratos.js";
 import * as fx from "./efectos.js";
 import { hoy, diasEntre, sumarDias, relojTexto, relojLargo } from "./fechas.js";
 import { runTipo, runPista, gpsProblema, runTerminando, ponerHeroeEnMapaVivo, mostrarNotificacionCarrera,
-         ponerCriaturasDeCarrera, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
+         ponerCriaturasDeCarrera, spritesBatalla, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
          mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
 import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM } from "./app-gym.js";
 import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS, conectarPesos } from "./app-finanzas.js";   // (v135, v137)
@@ -314,6 +314,14 @@ function tictac() {
         const pelea = document.querySelector("[data-run-encuentro]");
         if (pelea) pelea.innerHTML = vistasRunning.htmlEncuentro(en, ahora);
         ponerCriaturasDeCarrera();
+        // (v139) La batalla de la pantalla dividida: solo se vuelve a dibujar cuando pasa algo (un poder, un ataque, el golpe
+        // final, una criatura nueva o llega una imagen). Si se dibujara cada segundo, las animaciones empezarían de nuevo.
+        const batalla = document.querySelector("[data-run-batalla]");
+        const firmaBatalla = vistasRunning.firmaDeBatalla(en, ahora, spritesBatalla);
+        if (batalla && batalla.dataset.n !== firmaBatalla) {
+            batalla.innerHTML = vistasRunning.htmlBatalla(en, ahora, spritesBatalla);
+            batalla.dataset.n = firmaBatalla;
+        }
         // (v116) Los parciales de la carrera: solo se reescriben cuando cambian.
         const parciales = document.querySelector("[data-run-parciales]");
         const marcasAhora = (en.marcas || []).length;
@@ -501,6 +509,7 @@ export function contextoActual(efectos = {}) {
         pista: runPista,                                    // (v131)                                      // (v109) el tipo de carrera elegido
         gpsProblema,
         terminando: runTerminando,
+        spritesBatalla,                                     // (v139) las imágenes de la batalla mientras corres
         fraseGym: ui.fraseGym,
         resumenGym: ui.resumenGym,
         paginaLibro: ui.paginaLibro,

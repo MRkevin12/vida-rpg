@@ -7,8 +7,10 @@
 import * as running from "./running.js";
 import * as ruta from "./ruta.js";
 import * as encuentros from "./encuentros.js";
-import { mapaDeCarrera, mapaDePista } from "./dibujo-carrera.js";
+import { mapaDeCarrera, mapaDePista, LIENZO } from "./dibujo-carrera.js";
 import { esc, selectorSecciones } from "./vistas-comun.js";
+import { spriteFF, salaFF, ambienteFF, frenteFF, chispasFF, numeroFF } from "./vistas-torre.js";   // (v139) la escena de batalla de la Torre
+import * as bestiario from "./bestiario.js";
 import { plural } from "./juego.js";
 import { fechaCorta, lunesDe } from "./fechas.js";
 
@@ -80,9 +82,11 @@ function vistaEnVivo(estado, ctx) {
                 <div><small>Distancia</small><b data-run-km>${running.textoKm(en.distancia / 1000)}</b></div>
                 <div><small>Ritmo (ahora)</small><b data-run-ritmo>${running.textoRitmo(ritmo)}</b></div>
             </div>
-            ${en.gps ? `<div class="run-mapa-vivo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm, opcionesDelMapa(en, estado.running))}</div>
+            ${en.gps ? `<div class="run-dividida ${en.encuentros ? "con-batalla" : ""}">
+                <div class="run-mapa-vivo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm, opcionesDelMapa(en, estado.running))}</div>
+                ${en.encuentros ? `<div class="run-batalla" data-run-batalla data-n="${firmaDeBatalla(en, ctx.ahora, ctx.spritesBatalla)}">${htmlBatalla(en, ctx.ahora, ctx.spritesBatalla)}</div>` : ""}
+            </div>
             ${en.encuentros ? `<div class="run-pelea">
-                <img class="run-pelea-sprite" alt="" data-run-criatura="">
                 <div data-run-encuentro>${htmlEncuentro(en, ctx.ahora)}</div>
             </div>
             <p class="mini texto-suave run-objetivo">🎯 Objetivo: ${running.textoSegundos(en.objetivo)} /km ${en.objetivoPropio ? "(el tuyo)" : "(tu promedio)"} · las criaturas son un extra: el premio por km no cambia.</p>` : ""}
@@ -164,12 +168,24 @@ function detalleDeCarrera(c) {
 // ===== El mapa de tu carrera (v118; zonas, ríos, lagos y criaturas en la v119) =====
 // El dibujo está en dibujo-carrera.js. Encima van tu héroe y la criatura del km (sus imágenes las pone app.js: son pixel art
 // y tardan un instante) y el nombre de la zona donde vas.
-export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null, seguir = false, pista = null, porZona = 3 } = {}) {
+export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null, seguir = false, pista = null, porZona = 3, recorte = false } = {}) {
     // (v131) En pista se dibuja la pista de atletismo; en la calle, el mapa te sigue de cerca o muestra todo el recorrido.
-    const { svg, aqui, zona } = pista
+    const dibujo = pista
         ? mapaDePista({ metros: pista.metros, largo: pista.largo })
         : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe, porZona });
-    const enMapa = (x, y) => `left: ${Math.min(96, Math.max(4, x)).toFixed(2)}%; top: ${Math.min(96, Math.max(10, y)).toFixed(2)}%`;
+    const { aqui, zona } = dibujo;
+    // (v139) recorte: en la pantalla dividida la caja del mapa no siempre mide 4:3. En vez de estirar el dibujo (los cuadritos se
+    // deformarían), se agranda hasta llenarla y se recortan los bordes («slice»). Entonces tu héroe se ubica con la misma cuenta:
+    // desde el centro de la caja, cada punto del dibujo mide max(ancho/320, alto/240) (cqw y cqh = 1 % del ancho y del alto de la caja).
+    const svg = recorte ? dibujo.svg.replace('preserveAspectRatio="none"', 'preserveAspectRatio="xMidYMid slice"') : dibujo.svg;
+    const escala = `max(100cqw / ${LIENZO.ancho}, 100cqh / ${LIENZO.alto})`;
+    const enMapa = (x, y) => {
+        const normal = `left: ${Math.min(96, Math.max(4, x)).toFixed(2)}%; top: ${Math.min(96, Math.max(10, y)).toFixed(2)}%`;
+        if (!recorte) return normal;
+        const [px, py] = [(x / 100) * LIENZO.ancho - LIENZO.ancho / 2, (y / 100) * LIENZO.alto - LIENZO.alto / 2];   // puntos del dibujo desde el centro
+        // La primera línea es para los teléfonos viejos que no entienden cqw (la ignoran la segunda y se quedan con la primera).
+        return `${normal}; left: calc(50% + ${px.toFixed(1)} * ${escala}); top: calc(50% + ${py.toFixed(1)} * ${escala})`;
+    };
     return `${svg}
         <span class="run-mapa-zona">${esc(zona.nombre)}</span>
         ${heroe && !pista ? `<button type="button" class="run-mapa-vista" data-accion="run-vista-mapa">${seguir ? "🗺️ Ver todo" : "🎯 Seguirme"}</button>` : ""}
@@ -177,12 +193,13 @@ export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas
         ${heroe && aqui && criatura ? `<img class="run-mapa-criatura ${criatura.jefe ? "jefe" : ""}" alt="" data-criatura="${criatura.id}" style="${enMapa(aqui.x + (aqui.x > 70 ? -12 : 12), aqui.y - 2)}">` : ""}`;
 }
 
-// Lo que el mapa en vivo necesita de la carrera en curso.
+// Lo que el mapa en vivo necesita de la carrera en curso. (v139) La criatura ya no va en el mapa: pelea en su mitad de la pantalla.
 export const opcionesDelMapa = (en, r = {}) => ({
-    encuentros: en.encuentros || [], km: en.distancia / 1000, criatura: en.encuentros?.find((e) => !e.resultado) || null,
+    encuentros: en.encuentros || [], km: en.distancia / 1000, criatura: null,
     seguir: r.vistaMapa !== "todo",                                          // (v131)
     porZona: en.kmPorZona || 3,                                              // (v132)
     pista: en.pista ? { metros: en.distancia, largo: en.pista } : null,      // (v131)
+    recorte: Boolean(en.encuentros),                                         // (v139) comparte la pantalla con la batalla
 });
 
 // ===== La pelea del km (v119) =====
@@ -208,6 +225,116 @@ export function htmlEncuentro(en, ahora = Date.now()) {
             ${encuentros.demasiadoRapido(va.proyeccion, en.objetivo) ? '<small class="run-pelea-aviso">Tranquilo: vas mucho más rápido que tu objetivo. Cuida tus piernas.</small>' : ""}
             ${en.frase ? `<small class="run-frase">“${esc(en.frase)}”</small>` : ""}
             ${anterior ? `<small class="texto-suave">Km ${anterior.km}: ${anterior.resultado === "vencida" ? `venciste a ${esc(encuentros.nombreDe(anterior))} ✓` : `${esc(encuentros.nombreDe(anterior))} escapó`}</small>` : ""}
+            <small class="run-poderes">${Object.values(encuentros.PODERES).map((p) => `${p.icono} ${p.nombre}: ${p.texto}`).join(" · ")}</small>
+        </div>`;
+}
+
+// ===== (v139) La batalla mientras corres =====
+// La otra mitad de la pantalla: tu héroe contra la criatura del km, con la escena de la Torre (sala, partículas, golpes).
+// Cada 100 m lanzas un poder según cómo corriste ese tramo (encuentros.poderDelTramo); al cumplir el km llega el golpe
+// final o la criatura escapa. app.js la vuelve a escribir SOLO cuando pasa algo (firmaDeBatalla): así cada animación
+// se ve una vez y no se reinicia cada segundo.
+export const DURACION_FINAL = 4000;   // ms que se ve el golpe final antes de que aparezca la criatura siguiente
+const RECIENTE = 2500;                // un golpe más viejo que esto ya no se anima (si se redibuja la pantalla, no se repite)
+
+// Qué se ve ahora: la pelea en curso o, los primeros segundos después de cumplir el km, el final de la anterior.
+export function escenaDeBatalla(en, ahora = Date.now()) {
+    const ultima = (en.encuentros || []).filter((e) => e.resultado).at(-1);
+    if (ultima?.finEn && ahora - ultima.finEn < DURACION_FINAL) return { pelea: ultima, final: true, golpes: [] };
+    return { pelea: en.encuentros?.find((e) => !e.resultado) || null, final: false, golpes: en.kmActual?.golpes || [] };
+}
+
+// La sala de la batalla: la de la zona del bestiario de esa criatura (cripta, raíces, cisterna…).
+export const zonaDeBatalla = (pelea) => bestiario.CRIATURAS[pelea?.id]?.zona || "cripta";
+
+// Cambia cada vez que hay que volver a dibujar la batalla. sprites = { heroe, criaturas: { id: imagen }, salas: { zona: imagen } }.
+export function firmaDeBatalla(en, ahora = Date.now(), sprites = {}) {
+    const { pelea, final, golpes } = escenaDeBatalla(en, ahora);
+    if (!pelea) return "";
+    const listas = [sprites.heroe, sprites.criaturas?.[pelea.id], sprites.salas?.[zonaDeBatalla(pelea)]].map(Boolean).join("");
+    return `${pelea.km}:${final}:${golpes.length}:${listas}`;
+}
+
+// Una barra de vida (de 0 a encuentros.VIDA) como las de la Torre.
+const vidaFF = (vida, clase) => `<span class="ff-hp ${clase} ${vida < 30 ? "grave" : ""}" aria-hidden="true">
+        <i class="ff-hp-relleno" style="width: ${vida}%"></i><b>${vida}/${encuentros.VIDA}</b></span>`;
+
+export function htmlBatalla(en, ahora = Date.now(), sprites = {}) {
+    const { pelea, final, golpes } = escenaDeBatalla(en, ahora);
+    if (!pelea) return "";
+    const criatura = bestiario.CRIATURAS[pelea.id] || {};
+    const zona = zonaDeBatalla(pelea);
+    const sala = sprites.salas?.[zona];
+    const vidas = final ? { criatura: pelea.vida ?? 0, heroe: pelea.vidaHeroe ?? encuentros.VIDA } : encuentros.vidasDeLaBatalla(golpes);
+
+    // Lo que se anima: el último golpe (si es reciente) o el final de la pelea.
+    const ultimo = golpes.at(-1);
+    const fresco = !final && ultimo && ahora - ultimo.t < RECIENTE ? ultimo : null;
+    const poder = fresco ? encuentros.PODERES[fresco.tipo] : null;              // tu héroe lanzó un poder
+    const ataque = fresco ? encuentros.ATAQUES_CRIATURA[fresco.tipo] : null;    // o la criatura te atacó
+    const vencida = final && pelea.resultado === "vencida";
+    const escapa = final && !vencida;
+    const golpeFinal = vencida ? encuentros.golpeFinalDe(pelea) : null;
+    const efectoFinal = vencida ? (pelea.jefe ? "fuego" : pelea.clase === "rapida" ? "rayo" : "tajo") : "";
+
+    // El cartel de arriba: el nombre de lo que acaba de pasar.
+    const cartel = poder ? `${poder.icono} ${poder.nombre}${fresco.combo ? ` + ${encuentros.PODERES.llamarada.icono} ${encuentros.PODERES.llamarada.nombre}` : ""}`
+        : ataque ? `${ataque.icono} ${ataque.nombre}`
+        : golpeFinal ? `${golpeFinal.icono} ${golpeFinal.nombre}`
+        : escapa ? "💨 ¡Escapó!" : "";
+
+    // ¿Acaba de llegar? (al empezar la carrera o justo después del final de la anterior): entra a la sala.
+    const anterior = (en.encuentros || []).filter((e) => e.resultado).at(-1);
+    const llega = !final && !golpes.length && ahora - (anterior?.finEn ? anterior.finEn + DURACION_FINAL : en.inicio) < RECIENTE;
+    const clasesEnemigo = [
+        criatura.vuela ? "vuela" : "",
+        llega ? "aparece" : "",
+        poder ? "golpeado" : "",
+        ataque ? "ataca" : "",
+        vencida ? "cae" : escapa ? "huye" : "",
+    ].join(" ");
+    const efectos = poder ? `<span class="ff-efecto ff-${poder.efecto}" aria-hidden="true"></span>${fresco.combo ? '<span class="ff-efecto ff-fuego" aria-hidden="true"></span>' : ""}`
+        : vencida ? `<span class="ff-efecto ff-${efectoFinal}" aria-hidden="true"></span>` : "";
+    const enemigo = `
+        <div class="ff-bando ff-enemigo ${clasesEnemigo}">
+            <span class="ff-sombra"></span>
+            ${spriteFF(sprites.criaturas?.[pelea.id], encuentros.nombreDe(pelea), criatura.talla || 96)}
+            ${efectos}
+            ${poder ? chispasFF(fresco.combo ? "critico" : fresco.tipo === "rayo" ? "rayo" : "golpe", 280) + numeroFF(fresco.dano, fresco.combo ? "critico" : "", 300) : ""}
+            ${vencida ? chispasFF("muerte", 750, 14) : ""}
+        </div>`;
+
+    const clasesHeroe = [
+        poder ? (fresco.tipo === "rayo" ? "lanza" : "ataca") : "",
+        ataque ? "herido" : "",
+        vencida ? "victoria" : "",
+    ].join(" ");
+    const heroe = `
+        <div class="ff-bando ff-heroe ${clasesHeroe}">
+            <span class="ff-sombra"></span>
+            ${spriteFF(sprites.heroe, "Tu héroe", 54)}
+            ${ataque ? chispasFF("herida", 880) + numeroFF(`−${fresco.herida}`, "", 900) : ""}
+        </div>`;
+
+    // Abajo: los 10 tramos de este km. Verde = tajo, dorado = rayo, rojo = lento; el que estás corriendo parpadea.
+    const marcas = en.marcas || [];
+    const enCurso = Math.min(9, Math.floor((en.distancia - marcas.length * 1000) / encuentros.TRAMO));
+    const tramos = final ? "" : `<ol class="run-tramos" aria-label="Tramos de 100 m de este kilómetro">${Array.from({ length: 10 }, (_, i) => {
+        const g = golpes.find((x) => x.tramo && (x.tramo - 1) % 10 === i && Math.ceil(x.tramo / 10) === pelea.km);
+        return `<li class="${g ? g.tipo : i === enCurso ? "ahora" : ""}"></li>`;
+    }).join("")}</ol>`;
+
+    return `${sala ? `<img class="run-batalla-fondo" src="${sala}" alt="" draggable="false">` : ""}
+        <div class="ff-escena run-ff ${poder && fresco.tipo === "rayo" ? "relampago" : ""} ${vencida && pelea.jefe ? "ff-sacude" : ""}">
+            ${salaFF(sala)}${ambienteFF(zona)}${enemigo}${heroe}${frenteFF(zona)}
+            ${cartel ? `<p class="ff-ventana run-bat-cartel">${esc(cartel)}</p>` : ""}
+            <div class="ff-hud ff-hud-enemigo run-bat-hud">
+                <b>${pelea.jefe ? "👑 " : ""}${esc(encuentros.nombreDe(pelea))}</b>
+                ${vidaFF(vidas.criatura, "de-enemigo")}
+            </div>
+            <div class="ff-hud run-bat-hud run-bat-hud-heroe"><b>Tú</b>${vidaFF(vidas.heroe, "de-heroe")}</div>
+            ${final ? `<p class="run-bat-fin ${vencida ? "vencida" : "escapo"}">${vencida ? `¡Vencida! +${encuentros.botinDe(pelea).gemas} 💎` : "Se escapó: la próxima, a tu ritmo"}</p>` : ""}
+            ${tramos}
         </div>`;
 }
 

@@ -157,7 +157,7 @@ const TURNO_ENEMIGO = 650;
    // y cuándo responde la criatura
 
 // Un número que salta sobre quien recibe el golpe o la cura.
-const numeroFF = (texto, clase, cuando) =>
+export const numeroFF = (texto, clase, cuando) =>
     `<span class="ff-numero ${clase}" style="animation-delay: ${cuando}ms" aria-hidden="true">${texto}</span>`;
 
 
@@ -172,14 +172,14 @@ const barraTorre = (titulo, detalle = "") => `
 // Una imagen en pixel art. talla = cuántos puntos mide de ancho (el CSS la agranda).
 // Va en tres capas, cada una con su propia animación: ff-figura (se mece en reposo), ff-paso (lo que hace:
 // avanzar, embestir…) y ff-retro (v92: el retroceso al recibir un golpe). Así no se pisan entre ellas.
-const spriteFF = (direccion, nombre, talla, tinte = "") => `
+export const spriteFF = (direccion, nombre, talla, tinte = "") => `
     <span class="ff-figura"${tinte ? ` style="filter: ${tinte}"` : ""}><span class="ff-paso"><span class="ff-retro">
         <img class="ff-sprite" src="${direccion || ""}" alt="${esc(nombre)}" style="--talla: ${talla}" draggable="false">
     </span></span></span>`;
 
 
 // El fondo de la escena: la sala de esa zona.
-const salaFF = (direccion) => (direccion ? `<img class="ff-sala" src="${direccion}" alt="" draggable="false">` : "");
+export const salaFF = (direccion) => (direccion ? `<img class="ff-sala" src="${direccion}" alt="" draggable="false">` : "");
 
 
 // (v92) El ambiente de cada zona: partículas que flotan (polvo, brasas, lluvia…), luz y bruma.
@@ -204,7 +204,7 @@ const azarFijo = (i, n) => {
 
 // Atrás (detrás de los personajes): las partículas. Cada una con su lugar (--x, --y), su tamaño
 // en puntos (--s), cuánto tarda en dar la vuelta (--t) y en qué momento de la vuelta empieza (--d).
-const ambienteFF = (zonaId) => {
+export const ambienteFF = (zonaId) => {
     const tipo = AMBIENTES[zonaId] || "polvo";
     const puntos = Array.from({ length: 16 }, (_, i) =>
         `<i style="--x: ${(azarFijo(i, 1) * 100).toFixed(1)}%; --y: ${(azarFijo(i, 2) * 100).toFixed(1)}%; ` +
@@ -214,13 +214,13 @@ const ambienteFF = (zonaId) => {
 
 
 // Adelante (encima de los personajes): la bruma del suelo, la luz que parpadea y las esquinas oscuras.
-const frenteFF = (zonaId) => `<div class="ff-frente ff-amb-${AMBIENTES[zonaId] || "polvo"}" aria-hidden="true"></div>`;
+export const frenteFF = (zonaId) => `<div class="ff-frente ff-amb-${AMBIENTES[zonaId] || "polvo"}" aria-hidden="true"></div>`;
 
 
 // (v92) Chispas al recibir un golpe: 8 cuadritos que salen disparados del punto del impacto.
 // clase = de qué color (fuego, hielo, rayo, critico, herida, muerte…); cuando = en qué milisegundo del turno;
 // cuantas = cuántos cuadritos (repartidos en círculo: 360° / cuantas entre uno y otro, con un poco de azar).
-const chispasFF = (clase, cuando, cuantas = 8) => `<span class="ff-chispas ${clase}" style="--cuando: ${cuando}ms" aria-hidden="true">${
+export const chispasFF = (clase, cuando, cuantas = 8) => `<span class="ff-chispas ${clase}" style="--cuando: ${cuando}ms" aria-hidden="true">${
     Array.from({ length: cuantas }, (_, i) => `<i style="--a: ${Math.round(i * (360 / cuantas) + azarFijo(i, 7) * 30)}deg; --l: ${(0.7 + azarFijo(i, 8) * 0.6).toFixed(2)}"></i>`).join("")
 }</span>`;
 

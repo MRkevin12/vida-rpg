@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 138;
+export const VERSION_APP = 139;
 
 export const NOVEDADES = [
+    {
+        version: 139,
+        titulo: "La batalla mientras corres",
+        cambios: [
+            "⚔️ Mientras corres con GPS, la pantalla se divide en dos: el mapa y una batalla contra la criatura del km, como en la Torre.",
+            "🎯 Cada 100 m tu héroe lanza un poder según cómo corriste ese tramo: ⚔️ Tajo (a tu ritmo), ⚡ Rayo (un 8 % más rápido) y 🔥 Llamarada (3 tramos seguidos).",
+            "🐢 Si un tramo te sale lento o pausas, la criatura te ataca. Abajo ves los 10 tramos del km en colores.",
+            "👑 Al cumplir el km llega el golpe final (Rompecorazas, Luz sagrada, Golpe de Voluntad…) o la criatura escapa. Se vence igual que antes: con el ritmo del km completo.",
+            "📱 De pie: el mapa arriba y la batalla abajo. Con el teléfono acostado: uno al lado del otro.",
+        ],
+    },
     {
         version: 138,
         titulo: "Tus cuentas completas",
