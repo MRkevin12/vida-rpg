@@ -3043,6 +3043,7 @@ prueba("Batalla mientras corres (v139): al correr se lanzan poderes, la pausa te
         };
         const html0 = vistasRunning.htmlBatalla(en, reloj);
         cierto(html0.includes("ff-escena") && html0.includes(encuentros.nombreDe(en.encuentros[0])), "la batalla muestra la criatura del km");
+        for (let w = 0; w < 20; w++) { reloj += 1000; acciones.registrarPuntoCarrera(estado, { lat: 4.6, lon: -74.08, precision: 4, t: reloj }); }   // (v140) 20 s buscando señal, quieto: no cuenta
         correr(100);   // ~330 m
         const golpes = en.kmActual.golpes;
         cierto(golpes.length >= 3, `cada 100 m, un golpe (${golpes.length})`);

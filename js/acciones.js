@@ -2367,7 +2367,7 @@ export function empezarCarrera(estado, tipo, { gps = false, objetivo = "", pista
             kmPorZona,   // (v132) se queda fijo en esta carrera aunque cambies el ajuste mientras corres
             encuentros: [encuentros.criaturaDelKm(inicio, 1, kmPorZona)],
             kmActual: kmActualNuevo(),   // lo que hace falta para decidir la pelea del km (y sus golpes, v139)
-            tramo: { hechos: 0, desde: 0, tAntes: 0 },   // (v139) los tramos de 100 m: cuántos van y cuándo empezó el actual (ms de carrera)
+            tramo: { hechos: 0, desde: null, tAntes: null },   // (v139) los tramos de 100 m: cuántos van y cuándo empezó el actual (ms de carrera)
         });
         bestiario.anotarEncuentro(estado.arcade.bestiario, r.encurso.encuentros[0].id);
     }
@@ -2404,7 +2404,10 @@ const kmActualNuevo = () => ({ mitad: null, t800: null, pausas: 0, golpes: [], r
 function anotarTramos(estado, en, desde, hasta) {
     const ahora = running.tiempoDeEncurso(en, Date.now());
     // Una carrera empezada antes de la v139 no tenía tramos: se empieza a contar desde aquí (el primer tramo no cuenta).
-    const tr = en.tramo || (en.tramo = { hechos: Math.floor(desde / encuentros.TRAMO), desde: null, tAntes: ahora });
+    const tr = en.tramo || (en.tramo = { hechos: Math.floor(desde / encuentros.TRAMO), desde: null, tAntes: null });
+    if (tr.tAntes === null) tr.tAntes = ahora;
+    // El primer tramo empieza en el primer punto del GPS, no al pulsar «Empezar»: la búsqueda de señal no cuenta como lento.
+    if (tr.desde === null && hasta > desde) tr.desde = tr.tAntes;
     tr.tAntes = Math.min(tr.tAntes, ahora);   // con la pausa automática el reloj se corrige hacia atrás
     const golpes = [];
     while (hasta >= (tr.hechos + 1) * encuentros.TRAMO) {
