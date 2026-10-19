@@ -12050,8 +12050,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 }
 
 .run-concentracion-boton {
-    margin-top: 8px;
-    opacity: 0.8;
+    opacity: 0.8;   /* (v141) sin margen arriba: así queda a la misma altura que «Cancelar» */
 }
 
 
@@ -12410,6 +12409,428 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     margin: 0;
     padding: 5px 8px;
     font-size: 0.95rem;
+}
+
+/* ===== (v141) La carrera en vivo con más píxeles: HUD de juego, barra del km y marcos en escalón =====
+   Casi todo es solo para el modo concentración (body.run-concentracion). En el modo normal solo se nota la barra del km. */
+
+/* --- La barra del km en curso: «KM 2 · criatura · 470 / 1000 m» y sus 10 tramos de 100 m --- */
+.run-km {
+    margin: 8px 0 0;
+    padding: 6px 8px 8px;
+    background: linear-gradient(180deg, #1d1747, #0c0920);
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    box-shadow: 0 0 0 1px #060a3a;
+}
+
+.run-km-cab {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 5px;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.run-km-num {
+    font-family: var(--letra-titulo);
+    font-size: 0.95rem;
+    color: var(--oro);
+    text-shadow: 0 2px 0 var(--tinta);
+}
+
+/* El nombre de la criatura: en el modo normal ya sale en su tarjeta; aquí solo en concentración. */
+.run-km-criatura {
+    display: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #dfe5ff;
+}
+
+.run-km-metros {
+    margin-left: auto;
+    color: var(--texto-suave);
+    font-variant-numeric: tabular-nums;
+}
+
+.run-km-metros b {
+    font-family: var(--letra-titulo);
+    font-size: 0.95rem;
+    color: #fff;
+}
+
+/* Los 10 tramos: cuadros con luz arriba y sombra abajo sobre una franja de tinta, como un medidor de 16 bits. */
+.run-km-tramos {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 3px;
+    margin: 0;
+    padding: 3px;
+    list-style: none;
+    background: var(--tinta);
+}
+
+.run-km-tramos li {
+    position: relative;
+    height: 12px;
+    overflow: hidden;
+    background: #2a2346;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.run-km-tramos li.hecho { background: #5b6bc4; }   /* corrido, en una carrera sin criaturas */
+.run-km-tramos li.tajo { background: #4ade80; }
+.run-km-tramos li.rayo { background: #fde047; }
+.run-km-tramos li.lento { background: #f87171; }
+
+/* La llamarada (3 tramos seguidos a tu ritmo): una franja de fuego abajo. */
+.run-km-tramos li.combo::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 4px;
+    background: #ff8a24;
+}
+
+/* El tramo que corres ahora se va llenando, y un borde blanco parpadea encima. */
+.run-km-tramos li.ahora i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: #cfd3e6;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6);
+}
+
+.run-km-tramos li.ahora::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    box-shadow: inset 0 0 0 2px #fff;
+    opacity: 0;
+    animation: run-km-ahora 1s steps(1) infinite;
+}
+
+@keyframes run-km-ahora {
+    50% { opacity: 1; }
+}
+
+/* --- El GPS en corto (en el HUD de concentración): 4 rayitas de cuadritos y dos o tres palabras --- */
+.run-hud-estado {
+    display: none;   /* en el modo normal ya están la etiqueta de arriba y el aviso largo del GPS */
+}
+
+.run-gps-corto {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.run-gps-corto > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 11 × 8 puntos: cada punto mide 4/3 px, que en el iPhone (3 píxeles por px) son 4 píxeles exactos. */
+.run-senal {
+    flex: none;
+    width: calc(44px / 3);
+    height: calc(32px / 3);
+}
+
+.run-senal .si { fill: currentColor; }
+.run-senal .no { fill: #3a3550; }
+
+.run-gps-corto.buena { color: #86ffb0; }
+.run-gps-corto.regular,
+.run-gps-corto.pausa { color: #fde047; }
+.run-gps-corto.mala { color: #ff8f8f; }
+.run-gps-corto.busca,
+.run-gps-corto.crono { color: #b9c6ff; }
+
+.run-gps-corto.busca .run-senal {
+    animation: run-busca 1.2s steps(1) infinite;
+}
+
+@keyframes run-busca {
+    50% { opacity: 0.3; }
+}
+
+/* --- Modo concentración --- */
+
+/* Un marco de píxel: borde claro de 2 px con las esquinas en escalón y contorno de tinta, como las ventanas de los
+   juegos de 16 bits. Va POR FUERA de la caja (sombras sin desenfoque: una por lado y una por esquina), así no cambia
+   su tamaño. Por eso entre caja y caja hay 12 px: 4 de cada marco y 4 de aire. */
+.run-concentracion:not(.run-terminando) #pantalla-running :is(.run-hud, .run-consejo, .run-km, .run-pelea, .run-mapa-vivo, .run-batalla) {
+    --marco: #f1f3ff;
+    border: 0;
+    border-radius: 0;
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+        0 -2px 0 var(--marco), 0 2px 0 var(--marco), -2px 0 0 var(--marco), 2px 0 0 var(--marco),
+        -2px -2px 0 var(--tinta), 2px -2px 0 var(--tinta), -2px 2px 0 var(--tinta), 2px 2px 0 var(--tinta),
+        0 -4px 0 var(--tinta), 0 4px 0 var(--tinta), -4px 0 0 var(--tinta), 4px 0 0 var(--tinta);
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo {
+    gap: 12px;
+}
+
+.run-concentracion:not(.run-terminando) .run-dividida.con-batalla {
+    gap: 12px;
+    min-height: 120px;   /* en un iPhone pequeño se encoge antes de esconder los botones */
+}
+
+/* El HUD: marco dorado, fondo con líneas de pantalla vieja, el estado arriba, el cronómetro y los dos datos. */
+.run-concentracion:not(.run-terminando) #pantalla-running .run-hud {
+    --marco: #e9b949;
+    display: grid;
+    gap: 6px;
+    padding: 6px 10px 10px;
+    background:
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 4px),
+        linear-gradient(180deg, #241b55, #0c0920);
+}
+
+.run-concentracion:not(.run-terminando) .run-hud-estado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: var(--texto-suave);
+    white-space: nowrap;
+}
+
+.run-hud-tipo {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.run-concentracion:not(.run-terminando) .run-hud .run-tiempo {
+    text-shadow: 0 3px 0 var(--tinta);
+}
+
+.run-concentracion:not(.run-terminando) .run-datos > div {
+    padding: 5px 8px 6px;
+    background: rgba(6, 4, 13, 0.55);
+    border: 0;
+    border-radius: 0;
+    box-shadow: inset 0 0 0 2px #2e2560, inset 0 -4px 0 rgba(0, 0, 0, 0.25);
+}
+
+.run-concentracion:not(.run-terminando) .run-datos small {
+    font-size: 0.68rem;
+}
+
+.run-concentracion:not(.run-terminando) .run-datos b {
+    font-family: var(--letra-titulo);
+    font-size: 1.45rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    text-shadow: 0 2px 0 var(--tinta);
+}
+
+/* La barra del km, con la criatura en la misma línea. */
+.run-concentracion:not(.run-terminando) #pantalla-running .run-km {
+    margin: 0;
+    padding: 5px 8px 7px;
+}
+
+.run-concentracion:not(.run-terminando) .run-km-criatura {
+    display: block;
+}
+
+.run-concentracion:not(.run-terminando) .run-km-tramos li {
+    height: 14px;
+}
+
+/* Los tramitos pequeños de la batalla ya no hacen falta: la barra del km los muestra más grandes (en los dos modos). */
+.run-km ~ .run-dividida .run-tramos {
+    display: none;
+}
+
+/* Lo que ya se ve en otro lado no se repite: el nombre de la criatura (barra del km), su vida (batalla), el «vas
+   ganando» (consejo de ritmo), la leyenda de los poderes y el aviso largo del GPS (HUD). */
+.run-concentracion:not(.run-terminando) :is(.run-pelea-nombre, .run-pelea-vida, .run-pelea-estado, .run-poderes, [data-run-gps]) {
+    display: none;
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-pelea {
+    padding: 6px 10px 7px;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea:has(> [data-run-encuentro]:empty) {
+    display: none;   /* entre una criatura y la siguiente no queda una caja vacía */
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea-texto {
+    gap: 2px;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea-texto small {
+    font-size: 0.7rem;
+    line-height: 1.3;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea-pista {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    color: #fff !important;
+}
+
+.run-concentracion:not(.run-terminando) :is(.run-pelea-va, .run-frase, .run-pelea-aviso) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.run-pelea-va b {
+    color: #fff;
+}
+
+/* Los rótulos del mapa, también con marco de píxel. */
+.run-concentracion:not(.run-terminando) :is(.run-mapa-zona, .run-mapa-vista) {
+    border: 0;
+    border-radius: 0;
+    box-shadow: inset 0 0 0 2px rgba(241, 243, 255, 0.75), 0 0 0 2px var(--tinta);
+}
+
+/* Los botones: grandes los de siempre y de 44 px los chicos (para el dedo, aunque vayas corriendo). */
+.run-concentracion:not(.run-terminando) .run-botones {
+    gap: 10px;
+    margin-bottom: 0;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones .boton {
+    min-height: 52px;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones-chicos .boton {
+    min-height: 44px;
+    font-size: 0.85rem;
+}
+
+/* Pantalla baja (iPhone pequeño) o acostado: el HUD en dos columnas, el cronómetro a la izquierda y los dos datos
+   a la derecha, uno sobre otro y en una sola línea (solo el ícono, sin el rótulo). */
+@media (max-height: 740px), (orientation: landscape) {
+    .run-concentracion:not(.run-terminando) #pantalla-running .run-hud {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        column-gap: 12px;
+        row-gap: 4px;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-hud-estado {
+        grid-column: 1 / -1;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-hud .run-tiempo {
+        padding: 0 4px;
+        font-size: clamp(2.3rem, 12vw, 3.3rem);
+    }
+
+    .run-concentracion:not(.run-terminando) .run-hud .run-datos {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-datos > div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 3px 8px 4px;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-datos small span {
+        display: none;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-datos b {
+        font-size: 1.2rem;
+    }
+}
+
+/* Solo cronómetro (sin GPS no hay mapa ni batalla): el HUD se queda con todo el espacio y el reloj se ve enorme. */
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo.solo-crono {
+    display: flex;
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo.solo-crono .run-hud {
+    flex: 1 1 auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo.solo-crono .run-tiempo {
+    font-size: clamp(3.4rem, 24vw, 7.5rem);
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo.solo-crono .run-datos {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+/* Teléfono acostado (pantalla muy baja): dos columnas. A la izquierda el HUD, el consejo, el km, la criatura y los
+   botones; a la derecha el mapa y la batalla, uno sobre otro. */
+@media (orientation: landscape) and (max-height: 500px) {
+    .run-concentracion:not(.run-terminando) .contenido {
+        max-width: none;
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-left: max(12px, env(safe-area-inset-left));
+    }
+
+    .run-concentracion:not(.run-terminando) #pantalla-running .run-vivo {
+        display: grid;
+        grid-template-areas:
+            "hud vista"
+            "consejo vista"
+            "km vista"
+            "pelea vista"
+            "botones vista"
+            "chicos vista";
+        grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+        gap: 10px 16px;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-hud { grid-area: hud; }
+    .run-concentracion:not(.run-terminando) .run-consejo { grid-area: consejo; }
+    .run-concentracion:not(.run-terminando) .run-km { grid-area: km; }
+    .run-concentracion:not(.run-terminando) .run-pelea { grid-area: pelea; align-self: start; max-height: 100%; overflow: hidden; }
+    .run-concentracion:not(.run-terminando) .run-dividida { grid-area: vista; min-height: 0; }
+    .run-concentracion:not(.run-terminando) .run-botones { grid-area: botones; margin: 0; }
+    .run-concentracion:not(.run-terminando) .run-botones-chicos { grid-area: chicos; }
+
+    .run-concentracion:not(.run-terminando) .run-dividida.con-batalla {
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
+        min-height: 0;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-hud .run-tiempo {
+        font-size: 2.3rem;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-botones .boton {
+        min-height: 44px;
+        font-size: 0.9rem;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-pelea-pista {
+        -webkit-line-clamp: 1;
+    }
 }
 
 /* ===== (v135–v136) Finanzas: resumen, plan 50/30/20, anotar, historial, metas y fuentes ===== */

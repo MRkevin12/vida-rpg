@@ -3089,6 +3089,50 @@ prueba("Consejo de ritmo (v140): verde, amarillo, rojo y azul según tu ritmo de
     igual(c(0), "espera");
 });
 
+prueba("Barra del km en curso (v141): metros del km, los 10 tramos pintados con su poder y una firma que cambia cada 10 m", () => {
+    const en = {
+        distancia: 1473, marcas: [300000],
+        kmActual: { golpes: [
+            { tipo: "tajo", tramo: 11 }, { tipo: "rayo", tramo: 12 }, { tipo: "tajo", tramo: 13, combo: true },
+            { tipo: "lento", tramo: 14 }, { tipo: "pausa" },   // la pausa no tiene tramo: no pinta ninguno
+        ] },
+        encuentros: [{ id: "esqueleto", km: 1, resultado: "vencida" }, { id: "esqueleto", km: 2, clase: "pesada" }],
+    };
+    const d = vistasRunning.datosDelKm(en);
+    igual([d.km, Math.round(d.metros)], [2, 473], "vas en el km 2, con 473 m");
+    const html = vistasRunning.htmlKmEnCurso(en);
+    cierto(html.includes("KM 2") && html.includes("<b>470</b> / 1000 m"), "dice el km y los metros (de 10 en 10)");
+    cierto(html.includes(encuentros.nombreDe(en.encuentros[1])), "y la criatura del km en la misma línea");
+    const clases = [...html.matchAll(/<li class="([^"]*)"/g)].map((m) => m[1]);
+    igual(clases, ["tajo", "rayo", "tajo combo", "lento", "ahora"], "los tramos corridos con su poder (la llamarada aparte) y el de ahora");
+    igual((html.match(/<li/g) || []).length, 10, "siempre 10 tramos");
+    cierto(/class="ahora"><i style="width: 73%"/.test(html), "el tramo de ahora se llena según los metros (73 de 100)");
+    // Sin criaturas, los tramos corridos van en azul («hecho»).
+    const sinPelea = vistasRunning.htmlKmEnCurso({ distancia: 250, marcas: [] });
+    igual([...sinPelea.matchAll(/<li class="([^"]*)"/g)].map((m) => m[1]), ["hecho", "hecho", "ahora"]);
+    cierto(!sinPelea.includes("run-km-criatura"));
+    // La firma: igual dentro de los mismos 10 m; cambia al avanzar, con un golpe nuevo o con otro km.
+    const firma = vistasRunning.firmaDelKm(en);
+    igual(vistasRunning.firmaDelKm({ ...en, distancia: 1476 }), firma);
+    cierto(vistasRunning.firmaDelKm({ ...en, distancia: 1481 }) !== firma, "10 m más: se redibuja");
+    cierto(vistasRunning.firmaDelKm({ ...en, kmActual: { golpes: [...en.kmActual.golpes, { tipo: "tajo", tramo: 15 }] } }) !== firma);
+});
+
+prueba("GPS en corto del modo concentración (v141): rayitas y pocas palabras para cada caso", () => {
+    const g = (en, problema = null) => vistasRunning.gpsCorto({ gps: true, ...en }, problema);
+    igual(vistasRunning.gpsCorto({ gps: false }).clave, "crono");
+    igual(g({}, "permiso").texto, "Sin permiso de GPS");
+    igual(g({}, "senal").clave, "mala");
+    igual(g({ autopausa: true, distancia: 10 }).clave, "pausa");
+    igual(g({ precision: 4, distancia: 10 }), { clave: "buena", barras: 4, texto: "GPS ±4 m" });
+    igual(g({ precision: 15, distancia: 10 }).barras, 2, "señal regular: 2 rayitas");
+    igual(g({}).clave, "busca", "sin puntos todavía: buscando");
+    const html = vistasRunning.htmlGpsCorto(g({ precision: 4, distancia: 10 }));
+    igual((html.match(/class="si"/g) || []).length, 4, "4 rayitas encendidas");
+    cierto(html.includes('shape-rendering="crispEdges"'), "dibujadas con cuadritos");
+    cierto(vistasRunning.firmaGps(g({ precision: 4, distancia: 10 })) !== vistasRunning.firmaGps(g({ precision: 15, distancia: 10 })));
+});
+
 prueba("Frases de la carrera: los números se dicen bien en español", () => {
     igual(frases.numeroEnPalabras(0), "cero");
     igual(frases.numeroEnPalabras(16), "dieciséis");

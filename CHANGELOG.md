@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v141 — Running en modo concentración con más píxeles: HUD, barra del km y marcos en escalón
+- `vistas-running.js`: el cronómetro y los datos van en `.run-hud` (con `.run-hud-estado`: tipo de carrera y GPS en corto). Nuevas: `gpsCorto`, `firmaGps`, `htmlGpsCorto` (4 rayitas en SVG con `crispEdges`), `datosDelKm`, `firmaDelKm`, `htmlKmEnCurso` (barra `data-run-kmbar`: km, criatura, metros y los 10 tramos con su poder). `htmlEncuentro` lleva clases por parte (`run-pelea-nombre`, `-pista`, `-va`, `-estado`) para esconder en concentración lo que ya se ve arriba. Clase `solo-crono` sin GPS.
+- `app.js › tictac`: actualiza la barra del km y el GPS en corto solo cuando cambia su firma; el consejo se compara con `data-n` (el emoji ya es un ícono y `textContent` no coincidía).
+- `iconos.js`: íconos nuevos `circulo-verde`, `circulo-rojo`, `circulo-azul` (🟢 🔴 🔵), `tortuga` (🐢), `fantasma` (👻) y `pausa` (⏸).
+- `estilos.css` (bloque v141): marco de píxel con esquinas en escalón (12 sombras sin desenfoque, por fuera de la caja), HUD dorado con líneas de pantalla, barra del km, HUD en dos columnas en pantallas bajas (≤ 740 px) o acostado, rejilla de dos columnas con el teléfono acostado (≤ 500 px de alto), botones chicos de 44 px; arreglado el botón «Salir/Concentrar» que quedaba 8 px más abajo que «Cancelar». Los tramitos de la batalla se esconden (la barra del km los muestra más grandes).
+- Pruebas: 375 en total (2 nuevas). Capturas en Chromium a 390×844, 375×667, 820×700 y 844×390.
+
 ## v140 — Running más claro: consejo de ritmo, sonidos y vibración
 - `encuentros.js`: `consejoDeRitmo(segPorKm, objetivo, emboscada)` → bien (≤ objetivo), casi (≤ +5 %), lento, rápido (< −12 % o demasiado rápido), espera.
 - `vistas-running.js`: `consejoEnVivo`, `textoConsejo`; chip `data-run-consejo` que `tictac` actualiza cada segundo (clase = color).

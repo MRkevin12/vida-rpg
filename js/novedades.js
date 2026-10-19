@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 140;
+export const VERSION_APP = 141;
 
 export const NOVEDADES = [
+    {
+        version: 141,
+        titulo: "Running concentrado, con más píxeles",
+        cambios: [
+            "🎯 El modo concentración tiene un tablero de juego arriba: el cronómetro, la distancia y el ritmo en un marco dorado, con el tipo de carrera y la señal del GPS en rayitas.",
+            "📏 Una barra nueva del km que estás corriendo: «KM 2 · la criatura · 470 / 1000 m» y sus 10 tramos de 100 m pintados con el poder que lanzaste (verde tajo, dorado rayo, rojo lento, franja de fuego si hubo llamarada).",
+            "🖼️ El mapa, la batalla y las tarjetas llevan marcos de píxel con las esquinas en escalón, y el consejo de ritmo, la tortuga y el fantasma ya son íconos de píxel.",
+            "🧹 Sin repetir: la tarjeta de la criatura solo dice lo que pide y cómo vas; el aviso largo del GPS y la leyenda de los poderes ya no ocupan espacio.",
+            "📱 Todo cabe en una pantalla también en un iPhone pequeño y con el teléfono acostado (el HUD a la izquierda, el mapa y la batalla a la derecha). Sin GPS, el cronómetro se ve enorme.",
+        ],
+    },
     {
         version: 140,
         titulo: "Running más claro",

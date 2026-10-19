@@ -296,6 +296,20 @@ function tictac() {
         if (ritmo) ritmo.textContent = running.textoRitmo(running.ritmoActual(en, ahora));
         const aviso = document.querySelector("[data-run-gps]");
         if (aviso) aviso.textContent = vistasRunning.textoGps(en, gpsProblema);
+        // (v141) El GPS en corto del HUD (modo concentración): sus rayitas solo se redibujan cuando cambian.
+        const gpsCorto = document.querySelector("[data-run-gps-corto]");
+        const g = vistasRunning.gpsCorto(en, gpsProblema);
+        if (gpsCorto && gpsCorto.dataset.n !== vistasRunning.firmaGps(g)) {
+            gpsCorto.className = `run-gps-corto ${g.clave}`;
+            gpsCorto.innerHTML = vistasRunning.htmlGpsCorto(g);
+            gpsCorto.dataset.n = vistasRunning.firmaGps(g);
+        }
+        // (v141) La barra del km en curso: cada 10 m, con cada poder y con cada criatura nueva.
+        const barraKm = document.querySelector("[data-run-kmbar]");
+        if (barraKm && barraKm.dataset.n !== vistasRunning.firmaDelKm(en)) {
+            barraKm.innerHTML = vistasRunning.htmlKmEnCurso(en);
+            barraKm.dataset.n = vistasRunning.firmaDelKm(en);
+        }
         // (v118) El mapa de la carrera y el avance de la ruta: se vuelven a dibujar solo cuando llega un punto nuevo del GPS.
         const caja = document.querySelector("[data-run-mapa]");
         const firma = `${(en.traza || []).length}:${(en.puntosKm || []).length}:${estado.running.vistaMapa}:${en.pista ? Math.round(en.distancia) : ""}`;
@@ -319,7 +333,11 @@ function tictac() {
         if (consejo) {
             const c = vistasRunning.consejoEnVivo(en, ahora);
             consejo.className = `run-consejo ${c.clave}`;
-            if (consejo.textContent !== vistasRunning.textoConsejo(c)) consejo.textContent = vistasRunning.textoConsejo(c);
+            // (v141) Se compara con data-n: el emoji del texto se cambia por su ícono de píxel, así que textContent ya no es igual.
+            if (consejo.dataset.n !== vistasRunning.textoConsejo(c)) {
+                consejo.textContent = vistasRunning.textoConsejo(c);
+                consejo.dataset.n = vistasRunning.textoConsejo(c);
+            }
         }
         // (v139) La batalla de la pantalla dividida: solo se vuelve a dibujar cuando pasa algo (un poder, un ataque, el golpe
         // final, una criatura nueva o llega una imagen). Si se dibujara cada segundo, las animaciones empezarían de nuevo.

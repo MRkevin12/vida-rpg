@@ -2784,6 +2784,49 @@ const BOTA = [
     "..xxxxxxxxxxx.",
 ];
 
+// (v141) Los que faltaban en la carrera en vivo: el consejo de ritmo (círculos), la criatura que se te adelanta (tortuga),
+// la clase Fantasma y la pausa.
+const CIRCULO_VERDE = recolor(CIRCULO_AMARILLO, { Y: "G", y: "g", o: "v" });
+const CIRCULO_ROJO = recolor(CIRCULO_AMARILLO, { Y: "R", y: "r", o: "d" });
+const CIRCULO_AZUL = recolor(CIRCULO_AMARILLO, { Y: "B", y: "b", o: "n" });
+
+const TORTUGA = [
+    "...tttt.......",
+    "..tTtmtt......",
+    ".tTtmttmt..GG.",
+    ".ttmtttmtt.GxG",
+    "tmtttmttmtGGGG",
+    "mmmmmmmmmmGGg.",
+    ".GGg...GGg....",
+    ".Gg....Gg.....",
+];
+
+const FANTASMA = [
+    "...wwwwww...",
+    "..wWWWWWWw..",
+    ".wWWWWWWWWw.",
+    ".wWxxWWxxWs.",
+    "wWWxxWWxxWWs",
+    "wWWWWWWWWWWs",
+    "wWWWWxxWWWWs",
+    "wWWWWxxWWWss",
+    "wWWWWWWWWsss",
+    "wWWsWWWsWWss",
+    ".ws..ws..ws.",
+];
+
+const PAUSA = [
+    "wWWw..wWWw",
+    "wWWs..wWWs",
+    "wWWs..wWWs",
+    "wWWs..wWWs",
+    "wWWs..wWWs",
+    "wWWs..wWWs",
+    "wWWs..wWWs",
+    "wWWs..wWWs",
+    "wsss..wsss",
+];
+
 // ---------- La lista: nombre del ícono → su dibujo ----------
 export const ICONOS = {
     corazon: CORAZON,
@@ -2990,6 +3033,12 @@ export const ICONOS = {
     trigo: TRIGO,
     pantalon: PANTALON,
     bota: BOTA,
+    "circulo-verde": CIRCULO_VERDE,
+    "circulo-rojo": CIRCULO_ROJO,
+    "circulo-azul": CIRCULO_AZUL,
+    tortuga: TORTUGA,
+    fantasma: FANTASMA,
+    pausa: PAUSA,
 };
 
 // Qué emoji se cambia por qué ícono. (El "️" invisible que llevan algunos emojis da igual:
@@ -3042,6 +3091,7 @@ export const EMOJIS = {
     "🪚": "sierra", "👂": "oreja", "📥": "bandeja", "🚀": "cohete", "🌋": "volcan", "🔟": "diez",
     "💯": "cien", "🌾": "trigo", "🌌": "chispas", "🔯": "estrella",
     "👖": "pantalon", "🥾": "bota", "👢": "bota",
+    "🟢": "circulo-verde", "🔴": "circulo-rojo", "🔵": "circulo-azul", "🐢": "tortuga", "👻": "fantasma", "⏸": "pausa",   // (v141)
 };
 
 // ---------- De dibujo a SVG ----------
