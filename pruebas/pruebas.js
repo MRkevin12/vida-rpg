@@ -480,11 +480,11 @@ prueba("Tareas: golpean al jefe de su atributo como una misión de su dificultad
 
 prueba("Enfoque: antes de tiempo no da nada; al terminar da lo mismo que una misión", () => {
     const estado = partidaNueva();
-    const inicio = Date.now();
-    acciones.empezarEnfoque(estado, { minutos: "25", atributo: "intelecto" }, inicio);
+    const inicio = new Date(); inicio.setHours(12, 0, 0, 0);   // a mediodía: los 25 min no cruzan medianoche (el daño cuenta por día)
+    acciones.empezarEnfoque(estado, { minutos: "25", atributo: "intelecto" }, inicio.getTime());
     debeFallar(() => acciones.empezarEnfoque(estado, { minutos: "25", atributo: "intelecto" }), "en curso");
-    igual(acciones.revisarEnfoque(estado, inicio + 24 * 60 * 1000), null, "a los 24 minutos");
-    const resultado = acciones.revisarEnfoque(estado, inicio + 25 * 60 * 1000);
+    igual(acciones.revisarEnfoque(estado, inicio.getTime() + 24 * 60 * 1000), null, "a los 24 minutos");
+    const resultado = acciones.revisarEnfoque(estado, inicio.getTime() + 25 * 60 * 1000);
     igual(resultado.celebraciones.length, 1, "celebraciones");
     igual([estado.personaje.xp, estado.personaje.monedas, estado.atributos.intelecto], [28, 11, 28]);   // normal +10 %
     igual(estado.enfoque.activo, null);
