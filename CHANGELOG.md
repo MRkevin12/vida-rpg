@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v142 — Calendario de Memento Mori: tu vida en semanas
+- `memento.js` (reglas): `calcular`, `casillasDeFila`, `cumpleanos`, `edadEn`, `leerDatos` (valida), `fraseDelDia`, `FRASES`. Una fila por año de edad (empieza en el cumpleaños) con 52 casillas; la rejilla se alarga un año si ya superaste la esperanza.
+- Datos: `estado.memento = { nacimiento, esperanza }` (versión de datos 35). La fecha de nacimiento NUNCA va en el código: solo en la partida.
+- `vistas-memento.js`: `pantallaMemento`, `tarjetaMementoHoy`, `rejillaMemento` (un solo SVG con dos patrones de casillas); `app-memento.js`: formulario y «quitar». Acciones al final de `acciones.js`.
+- Pantalla `memento` (sin pestaña: se abre desde la tarjeta de Hoy, como Finanzas).
+
 ## v141 — Running en modo concentración con más píxeles: HUD, barra del km y marcos en escalón
 - `vistas-running.js`: el cronómetro y los datos van en `.run-hud` (con `.run-hud-estado`: tipo de carrera y GPS en corto). Nuevas: `gpsCorto`, `firmaGps`, `htmlGpsCorto` (4 rayitas en SVG con `crispEdges`), `datosDelKm`, `firmaDelKm`, `htmlKmEnCurso` (barra `data-run-kmbar`: km, criatura, metros y los 10 tramos con su poder). `htmlEncuentro` lleva clases por parte (`run-pelea-nombre`, `-pista`, `-va`, `-estado`) para esconder en concentración lo que ya se ve arriba. Clase `solo-crono` sin GPS.
 - `app.js › tictac`: actualiza la barra del km y el GPS en corto solo cuando cambia su firma; el consejo se compara con `data-n` (el emoji ya es un ícono y `textContent` no coincidía).

@@ -78,6 +78,8 @@ import * as frases from "../js/frases.js";
 import * as locutor from "../js/locutor.js";
 import { mapaDeCarrera, mapaDePista, puntoEnPista } from "../js/dibujo-carrera.js";
 import * as vistasRunning from "../js/vistas-running.js";
+import * as memento from "../js/memento.js";
+import * as vistasMemento from "../js/vistas-memento.js";
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
 import { PISTAS } from "../js/musica.js";
@@ -3131,6 +3133,49 @@ prueba("GPS en corto del modo concentración (v141): rayitas y pocas palabras pa
     igual((html.match(/class="si"/g) || []).length, 4, "4 rayitas encendidas");
     cierto(html.includes('shape-rendering="crispEdges"'), "dibujadas con cuadritos");
     cierto(vistasRunning.firmaGps(g({ precision: 4, distancia: 10 })) !== vistasRunning.firmaGps(g({ precision: 15, distancia: 10 })));
+});
+
+prueba("Memento mori (v142): semanas vividas, casillas de cada fila y datos válidos", () => {
+    const m = { nacimiento: "2000-03-15", esperanza: 80 };
+    const c = memento.calcular(m, "2026-03-15");   // justo en su cumpleaños 26
+    igual([c.edad, c.semana, c.vividas, c.actual], [26, 0, 1352, 1353]);
+    igual(c.total, 4160);
+    const d = memento.calcular(m, "2026-03-22");   // una semana después
+    igual([d.edad, d.semana, d.vividas], [26, 1, 1353]);
+    igual(memento.calcular(m, "2026-03-14").edad, 25, "el día antes del cumpleaños aún tiene 25");
+    igual(memento.calcular(m, "2026-03-14").semana, 51, "y está en la última semana de ese año");
+    igual(memento.calcular({ nacimiento: null, esperanza: 80 }, "2026-03-15"), null);
+    const f = memento.casillasDeFila(26, 26, 5);
+    igual([f.vividas, f.ahora, f.futuras], [5, 1, 46]);
+    igual(memento.casillasDeFila(3, 26, 5).vividas, 52);
+    igual(memento.casillasDeFila(40, 26, 5).futuras, 52);
+    for (const fila of [0, 25, 26, 27, 79]) { const k = memento.casillasDeFila(fila, 26, 5); igual(k.vividas + k.ahora + k.futuras, 52, "cada fila suma 52"); }
+    igual(memento.cumpleanos("2000-02-29", 1), "2001-03-01", "el 29 de febrero cae el 1 de marzo en años sin 29");
+    // Quien ya pasó la esperanza: la rejilla se alarga y no quedan semanas.
+    const viejo = memento.calcular({ nacimiento: "1930-01-01", esperanza: 80 }, "2026-03-15");
+    cierto(viejo.superada && viejo.filas === 97 && viejo.diasRestantes === 0);
+    // Validación
+    igual(memento.leerDatos({ nacimiento: "2000-03-15", esperanza: "85" }, "2026-03-15"), { nacimiento: "2000-03-15", esperanza: 85 });
+    for (const [datos, texto] of [[{ nacimiento: "", esperanza: 80 }, "completa"], [{ nacimiento: "2030-01-01", esperanza: 80 }, "futuro"],
+        [{ nacimiento: "1800-01-01", esperanza: 80 }, "antigua"], [{ nacimiento: "2000-03-15", esperanza: 20 }, "entre"],
+        [{ nacimiento: "1980-01-01", esperanza: 40 }, "más que tu edad"]]) {
+        debeFallar(() => memento.leerDatos(datos, "2026-03-15"), texto);
+    }
+    cierto(memento.fraseDelDia("2026-03-15").texto, "hay una frase cada día");
+});
+
+prueba("Memento mori (v142): guardar, quitar, el dibujo de la rejilla y la tarjeta de Hoy", () => {
+    const estado = partidaNueva();
+    igual(estado.memento.nacimiento, null);
+    debeFallar(() => acciones.configurarMemento(estado, { nacimiento: "", esperanza: "80" }), "fecha");
+    acciones.configurarMemento(estado, { nacimiento: "2000-03-15", esperanza: "80" });
+    igual(estado.memento, { nacimiento: "2000-03-15", esperanza: 80 });
+    const html = vistasMemento.pantallaMemento(estado, { hoy: "2026-03-15" });
+    cierto(html.includes("mm-rejilla") && html.includes("mm-ahora") && html.includes("1.352"), "dibuja la rejilla y la semana de ahora");
+    cierto(vistasMemento.pantallaMemento(partidaNueva(), { hoy: "2026-03-15" }).includes("memento-datos"), "sin datos pide la fecha");
+    cierto(vistasMemento.tarjetaMementoHoy(estado, { hoy: "2026-03-15" }).includes("de 4.160"), "la tarjeta de Hoy muestra la semana");
+    acciones.quitarMemento(estado);
+    igual(estado.memento.nacimiento, null);
 });
 
 prueba("Frases de la carrera: los números se dicen bien en español", () => {
@@ -7333,7 +7378,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 34, "versión de los datos");
+    igual(base.version, 35, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -7535,7 +7580,7 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [34, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [35, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });

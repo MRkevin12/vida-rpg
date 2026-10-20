@@ -11,6 +11,7 @@ import * as insignias from "./insignias.js";   // (v101)
 import * as avatar from "./avatar.js";
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
+import * as memento from "./memento.js";   // (v142) el calendario de Memento Mori
 import * as desafios from "./desafios.js";
 import * as torre from "./torre.js";
 import * as bestiario from "./bestiario.js";
@@ -3009,4 +3010,15 @@ export function borrarRegistroFinanzas(estado, lista, id) {
     if (f[lista].length === antes) throw new Error("Ese registro ya no existe.");
     if (lista === "ingresos") f.gastos = f.gastos.filter((g) => String(g.origen) !== String(id));
     if (lista === "metas" && String(f.apartado.metaId) === String(id)) f.apartado = { ...f.apartado, metaId: null };
+}
+
+
+// ===== El calendario de Memento Mori (v142) =====
+// Guarda tu fecha de nacimiento y hasta qué edad cuentas vivir. No da XP: es solo para mirar y pensar.
+export function configurarMemento(estado, valores) {
+    estado.memento = memento.leerDatos(valores, hoy());
+}
+
+export function quitarMemento(estado) {
+    estado.memento = { nacimiento: null, esperanza: memento.ESPERANZA_INICIAL };
 }

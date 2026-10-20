@@ -12833,6 +12833,86 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     }
 }
 
+/* ===== (v142) Memento mori: tu vida en semanas ===== */
+.mm-frase {
+    text-align: center;
+}
+
+.mm-frase p {
+    margin: 0 0 4px;
+    font-size: 1.02rem;
+    font-style: italic;
+    line-height: 1.4;
+    color: #ffe9a8;
+}
+
+.mm-frase small {
+    color: var(--texto-suave);
+}
+
+.mm-rejilla {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 10px 0 6px;
+    font-family: var(--letra-titulo);
+}
+
+.mm-vivida { fill: #fbbf24; }
+.mm-queda { fill: #2b2748; }
+.mm-ahora { fill: #f87171; stroke: #fff; stroke-width: 0.8; animation: mm-parpadeo 1.1s steps(1) infinite; }
+.mm-edad { fill: #c9c6ee; font-size: 7px; font-weight: 700; }
+
+@keyframes mm-parpadeo {
+    50% { fill: #fff; }
+}
+
+.mm-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: 0 0 6px;
+    padding: 0;
+    list-style: none;
+    font-size: 0.78rem;
+}
+
+.mm-muestra {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 4px;
+    vertical-align: -1px;
+}
+
+.mm-muestra.vivida { background: #fbbf24; }
+.mm-muestra.queda { background: #2b2748; border: 1px solid #4a4570; }
+.mm-muestra.ahora { background: #f87171; border: 1px solid #fff; }
+
+.mm-datos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.mm-dato {
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px;
+    background: rgba(8, 6, 20, 0.6);
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.mm-dato small { color: var(--texto-suave); font-size: 0.72rem; }
+.mm-dato b { font-family: var(--letra-titulo); font-size: 1.25rem; color: #fff; }
+.mm-dato em { font-size: 0.7rem; font-style: normal; color: #b9c6ff; }
+
+@media (prefers-reduced-motion: reduce) {
+    .mm-ahora { animation: none; }
+}
+
 /* ===== (v135–v136) Finanzas: resumen, plan 50/30/20, anotar, historial, metas y fuentes ===== */
 /* Colores de cada sobre: necesidades celeste, gustos violeta, ahorro verde. Lo que entra en verde y lo que sale en rojo. */
 .fin-entra { color: #34d399; }

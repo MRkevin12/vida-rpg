@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 141;
+export const VERSION_APP = 142;
 
 export const NOVEDADES = [
+    {
+        version: 142,
+        titulo: "Memento mori",
+        cambios: [
+            "⏳ Un calendario de tu vida en semanas: cada casilla es una semana de una vida de 80 años (o los años que tú elijas).",
+            "🟨 Las semanas que ya viviste se pintan llenas, la de esta semana parpadea y las que quedan están vacías.",
+            "📊 Ves tu edad, las semanas vividas y por vivir, los días que quedan y los fines de semana que te faltan.",
+            "💬 Cada día, una frase para tener presente el tiempo. Se abre desde la tarjeta «Memento mori» de Hoy.",
+            "🔒 Tu fecha de nacimiento se guarda solo en tu teléfono y en tu copia de seguridad.",
+        ],
+    },
     {
         version: 141,
         titulo: "Running concentrado, con más píxeles",
