@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 142;
+export const VERSION_APP = 143;
 
 export const NOVEDADES = [
+    {
+        version: 143,
+        titulo: "Hoy más ordenado",
+        cambios: [
+            "🧩 Las áreas de Hoy (Gym, Running, Finanzas y Memento mori) ahora van en cuadrícula de dos columnas, en vez de una debajo de otra.",
+        ],
+    },
     {
         version: 142,
         titulo: "Memento mori",

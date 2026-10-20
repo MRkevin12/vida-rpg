@@ -174,10 +174,7 @@ export function pantallaHoy(estado, ctx) {
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
         ${esencial ? "" : `${avisoNotificaciones(ctx)}
         ${avisoDescanso(estado, ctx)}`}
-        ${esAyer ? "" : tarjetaGymHoy(estado, ctx)}
-        ${esAyer || esencial ? "" : tarjetaRunningHoy(estado, ctx)}
-        ${esAyer || esencial ? "" : tarjetaFinanzasHoy(estado, ctx)}
-        ${esAyer || esencial ? "" : tarjetaMementoHoy(estado, ctx)}
+        ${cuadriculaDeAreas(estado, ctx, { esAyer, esencial })}
         ${pestanasHoy}
         ${contenido}`;
 }
@@ -855,6 +852,17 @@ function rivalesDeHoy(estado, ctx) {
 
 
 // Si las notificaciones se cortaron en este iPhone, un aviso para reactivarlas.
+// (v143) Gym, Running, Finanzas y Memento mori: en una cuadrícula de 2 columnas (antes iban una debajo de otra y se veía amontonado).
+function cuadriculaDeAreas(estado, ctx, { esAyer, esencial }) {
+    const tarjetas = [
+        esAyer ? "" : tarjetaGymHoy(estado, ctx),
+        esAyer || esencial ? "" : tarjetaRunningHoy(estado, ctx),
+        esAyer || esencial ? "" : tarjetaFinanzasHoy(estado, ctx),
+        esAyer || esencial ? "" : tarjetaMementoHoy(estado, ctx),
+    ].filter(Boolean);
+    return tarjetas.length ? `<div class="hoy-areas" aria-label="Tus áreas">${tarjetas.join("")}</div>` : "";
+}
+
 function avisoNotificaciones(ctx) {
     if (ctx.problemaAvisos === "bloqueadas") {
         return `<div class="aviso-respaldo aviso-alerta"><span>🔕 El iPhone bloqueó las notificaciones de Vida RPG.

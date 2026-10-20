@@ -10627,6 +10627,29 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-hoy-icono { font-size: 1.7rem; line-height: 1; }
 .gym-hoy-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .gym-hoy-texto small { color: var(--texto-suave); font-size: 0.78rem; }
+/* (v143) Las áreas de Hoy en cuadrícula: cada una como una pastilla con el icono arriba y el botón abajo. */
+.hoy-areas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 0 0 14px;
+}
+
+.hoy-areas .gym-hoy {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin: 0;
+    padding: 10px;
+    min-width: 0;
+}
+
+.hoy-areas .gym-hoy-icono { font-size: 1.5rem; }
+.hoy-areas .gym-hoy-texto b { font-size: 0.82rem; line-height: 1.25; overflow-wrap: anywhere; }
+.hoy-areas .gym-hoy-texto small { font-size: 0.72rem; line-height: 1.3; }
+.hoy-areas .gym-hoy > .boton,
+.hoy-areas .gym-hoy-botones { width: 100%; }
+
 .gym-hoy-hecho { border-color: rgba(52, 211, 153, 0.45); background: rgba(52, 211, 153, 0.08); }
 .gym-hoy-activo { border-color: var(--gym-2); animation: pulso-gym 2.4s ease-in-out infinite; }
 @keyframes pulso-gym { 50% { box-shadow: 0 0 14px rgba(251, 191, 36, 0.45); } }

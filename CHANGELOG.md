@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v143 — Hoy más ordenado
+- `vistas-hoy.js`: `cuadriculaDeAreas` agrupa las tarjetas de Gym, Running, Finanzas y Memento en un `<div class="hoy-areas">`.
+- `estilos.css`: `.hoy-areas` (cuadrícula de 2 columnas) y cada tarjeta como pastilla vertical con el botón a todo el ancho.
+- Sin cambios de datos ni de reglas.
+
 ## v142 — Calendario de Memento Mori: tu vida en semanas
 - `memento.js` (reglas): `calcular`, `casillasDeFila`, `cumpleanos`, `edadEn`, `leerDatos` (valida), `fraseDelDia`, `FRASES`. Una fila por año de edad (empieza en el cumpleaños) con 52 casillas; la rejilla se alarga un año si ya superaste la esperanza.
 - Datos: `estado.memento = { nacimiento, esperanza }` (versión de datos 35). La fecha de nacimiento NUNCA va en el código: solo en la partida.
