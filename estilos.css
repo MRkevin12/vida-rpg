@@ -11985,6 +11985,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     position: absolute;
     top: 6px;
     left: 6px;
+    z-index: 3;   /* (v146) encima de la pelea */
     padding: 2px 8px;
     font-size: 0.72rem;
     color: #fff;
@@ -11994,28 +11995,9 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     pointer-events: none;
 }
 
-.run-mapa-criatura {
-    position: absolute;
-    width: 11%;
-    image-rendering: pixelated;
-    transform: translate(-50%, -88%);
-    pointer-events: none;
-    animation: mapa-paso 0.7s steps(1) infinite;
-    filter: drop-shadow(0 0 3px rgba(248, 113, 113, 0.8));
-}
-
-.run-mapa-criatura.jefe {
-    width: 15%;
-    filter: drop-shadow(0 0 4px rgba(192, 132, 252, 0.95));
-}
-
-.run-mapa-criatura:not([src]) {
-    visibility: hidden;
-}
-
 .run-pelea {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);   /* (v139) la imagen de la criatura ahora pelea en la batalla, arriba */
+    grid-template-columns: minmax(0, 1fr);   /* (v139) la imagen de la criatura pelea arriba (v146: sobre el mapa) */
     gap: 10px;
     align-items: center;
     margin: 8px 0;
@@ -12167,16 +12149,21 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     font-size: 1.3rem;
 }
 
-.run-concentracion:not(.run-terminando) .run-dividida:not(.con-batalla) .run-mapa-vivo {
-    flex: 1 1 auto;   /* se queda con el espacio que sobra (el dibujo se estira un poco, nunca más de ~90 % del ancho de alto) */
+.run-concentracion:not(.run-terminando) .run-dividida .run-mapa-vivo {
+    flex: 1 1 auto;   /* se queda con el espacio que sobra (sin criaturas el dibujo se estira un poco: nunca más de ~90 % del ancho de alto) */
     min-height: 110px;
     max-height: calc((100vw - 24px) * 0.9);
     margin: 0;
     aspect-ratio: auto;
 }
 
-/* Sin batalla (solo cronómetro no hay mapa; esto es por si acaso), la caja dividida solo envuelve al mapa. */
-.run-concentracion:not(.run-terminando) .run-dividida:not(.con-batalla) {
+/* (v146) Con criaturas la pelea va sobre el mapa: el mapa se queda con TODO lo que sobra (el dibujo no se estira: se recorta). */
+.run-concentracion:not(.run-terminando) .run-dividida.con-pelea .run-mapa-vivo {
+    max-height: none;
+}
+
+/* La caja «dividida» (v139: el mapa y la batalla) ahora solo envuelve al mapa y a sus capas. */
+.run-concentracion:not(.run-terminando) .run-dividida {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -12244,8 +12231,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     border-radius: var(--esquina);
 }
 
-/* ===== (v139) La pantalla dividida: el mapa y la batalla mientras corres =====
-   Con el teléfono de pie: el mapa arriba y la batalla abajo. Acostado o en una pantalla ancha: uno al lado del otro. */
+/* ===== (v139) La caja del mapa mientras corres =====
+   (v139–v145 tenía el mapa y, al lado, la batalla. Desde la v146 la pelea va sobre el mapa: ver el bloque v146 más abajo.) */
 .run-dividida {
     display: grid;
     gap: 6px;
@@ -12262,12 +12249,13 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 }
 
 /* container-type: size → dentro de la caja, cqw y cqh son el 1 % de su ancho y de su alto. Sirven para ubicar a tu héroe
-   sobre el mapa recortado y para que la escena de la batalla quepa entera. Por eso cada caja necesita un alto propio
-   (su aspect-ratio o la fila de la cuadrícula): con «size» el contenido ya no la estira. */
-.run-dividida.con-batalla .run-mapa-vivo {
+   y la pelea sobre el mapa recortado, y para que la escena del golpe final quepa entera. Por eso la caja necesita un alto
+   propio (su aspect-ratio o el espacio que le da el modo concentración): con «size» el contenido ya no la estira. */
+.run-dividida.con-pelea .run-mapa-vivo {
     container-type: size;
 }
 
+/* (v146) La escena de la Torre: solo en el golpe final, encima del mapa (.run-final-escena). */
 .run-batalla {
     position: relative;
     display: grid;
@@ -12419,39 +12407,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     color: #b9c6ff !important;
 }
 
-/* Acostado o en una pantalla ancha: uno al lado del otro y del mismo alto (la batalla toma el alto del mapa). */
-@media (orientation: landscape), (min-width: 700px) {
-    .run-dividida.con-batalla {
-        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);   /* (v145) el mapa ocupa más */
-    }
-
-    .run-dividida.con-batalla .run-batalla {
-        aspect-ratio: auto;
-    }
-}
-
-/* En modo concentración la caja dividida se queda con todo el espacio que sobra: mitad mapa, mitad batalla. */
-.run-concentracion:not(.run-terminando) .run-dividida.con-batalla {
-    flex: 1 1 auto;
-    grid-template-rows: minmax(0, 1.5fr) minmax(0, 1fr);   /* (v145) el mapa ocupa más */
-    min-height: 240px;
-    margin: 0;
-}
-
-.run-concentracion:not(.run-terminando) .run-dividida.con-batalla > * {
-    aspect-ratio: auto;
-}
-
 .run-concentracion:not(.run-terminando) .run-pelea .texto-suave {
     display: none;   /* lo que pasó en el km anterior ya lo cuenta la batalla */
-}
-
-@media (orientation: landscape), (min-width: 700px) {
-    .run-concentracion:not(.run-terminando) .run-dividida.con-batalla {
-        grid-template-rows: minmax(0, 1fr);
-        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);   /* (v145) el mapa ocupa más */
-        min-height: 160px;
-    }
 }
 
 /* ===== (v140) El consejo de ritmo grande ===== */
@@ -12634,7 +12591,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 /* Un marco de píxel: borde claro de 2 px con las esquinas en escalón y contorno de tinta, como las ventanas de los
    juegos de 16 bits. Va POR FUERA de la caja (sombras sin desenfoque: una por lado y una por esquina), así no cambia
    su tamaño. Por eso entre caja y caja hay 12 px: 4 de cada marco y 4 de aire. */
-.run-concentracion:not(.run-terminando) #pantalla-running :is(.run-hud, .run-consejo, .run-km, .run-pelea, .run-mapa-vivo, .run-batalla) {
+.run-concentracion:not(.run-terminando) #pantalla-running :is(.run-hud, .run-consejo, .run-km, .run-pelea, .run-mapa-vivo) {
     --marco: #f1f3ff;
     border: 0;
     border-radius: 0;
@@ -12648,11 +12605,6 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 .run-concentracion:not(.run-terminando) #pantalla-running .run-vivo {
     gap: 12px;
-}
-
-.run-concentracion:not(.run-terminando) .run-dividida.con-batalla {
-    gap: 12px;
-    min-height: 120px;   /* en un iPhone pequeño se encoge antes de esconder los botones */
 }
 
 /* El HUD: marco dorado, fondo con líneas de pantalla vieja, el estado arriba, el cronómetro y los dos datos. */
@@ -12851,7 +12803,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 }
 
 /* Teléfono acostado (pantalla muy baja): dos columnas. A la izquierda el HUD, el consejo, el km, la criatura y los
-   botones; a la derecha el mapa y la batalla, uno sobre otro. */
+   botones; a la derecha el mapa (v146: con la pelea encima). */
 @media (orientation: landscape) and (max-height: 500px) {
     .run-concentracion:not(.run-terminando) .contenido {
         max-width: none;
@@ -12881,12 +12833,6 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     .run-concentracion:not(.run-terminando) .run-botones { grid-area: botones; margin: 0; }
     .run-concentracion:not(.run-terminando) .run-botones-chicos { grid-area: chicos; }
 
-    .run-concentracion:not(.run-terminando) .run-dividida.con-batalla {
-        grid-template-rows: minmax(0, 1.5fr) minmax(0, 1fr);   /* (v145) el mapa ocupa más */
-        grid-template-columns: minmax(0, 1fr);
-        min-height: 0;
-    }
-
     .run-concentracion:not(.run-terminando) .run-hud .run-tiempo {
         font-size: 2.3rem;
     }
@@ -12898,6 +12844,444 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
     .run-concentracion:not(.run-terminando) .run-pelea-pista {
         -webkit-line-clamp: 1;
+    }
+}
+
+/* ===== (v146) La pelea sobre el mapa =====
+   La caja de la batalla de al lado ya no está: el mapa se queda con todo el espacio y la pelea pasa encima de él.
+   Dentro de la caja del mapa (.run-mapa-vivo) hay tres capas, una encima de otra:
+     .run-mapa-dibujo — el mapa (se vuelve a escribir con cada punto del GPS);
+     .run-pm          — la pelea: tu héroe, la criatura, sus vidas, los poderes que vuelan y el cartel;
+     .run-final       — la escena grande de la Torre, solo en el golpe final (unos segundos).
+   La capa de la pelea mide lo mismo que el dibujo del mapa (320 × 240 puntos agrandados hasta llenar la caja, con los
+   bordes recortados): así cada cosa se ubica con un porcentaje del dibujo, y --px es lo que mide un punto del dibujo.
+   app-running.js escribe en su style --hx, --hy (tu héroe) y --cx, --cy (la criatura). */
+.run-mapa-dibujo {
+    position: absolute;
+    inset: 0;
+}
+
+/* De pie (modo normal): el mapa cuadrado (antes era 4:3 con la batalla debajo). Acostado o en pantalla ancha: a lo ancho. */
+.run-dividida.con-pelea .run-mapa-vivo {
+    aspect-ratio: 1 / 1;
+}
+
+@media (orientation: landscape), (min-width: 700px) {
+    .run-dividida.con-pelea .run-mapa-vivo {
+        aspect-ratio: 2 / 1;
+    }
+}
+
+.run-pm {
+    --px: 1.4px;   /* los teléfonos que no entienden cqw se quedan con esto (y con la capa del tamaño de la caja) */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+@supports (width: 1cqw) {
+    .run-pm {
+        --px: calc(max(100cqw, 100cqh * 4 / 3) / 320);
+        width: max(100cqw, 100cqh * 4 / 3);
+        height: max(100cqh, 100cqw * 3 / 4);
+    }
+}
+
+.run-pm.sin-lugar {
+    visibility: hidden;   /* todavía no hay GPS: no se sabe dónde estás */
+}
+
+/* Cada uno (tu héroe y la criatura) se ubica por sus pies y mide --lado puntos de ancho. */
+.run-pm-bando {
+    position: absolute;
+    z-index: 1;
+    width: calc(var(--px) * var(--lado));
+    transform: translate(-50%, -94%);
+}
+
+.run-pm-heroe {
+    top: var(--hy);
+    left: var(--hx);
+    transform: translate(-50%, -88%);
+}
+
+/* La criatura corre a su nuevo lugar cuando cambias de dirección (en pasos, como el pixel art). */
+.run-pm-criatura {
+    top: var(--cy);
+    left: var(--cx);
+    transition: left 0.6s steps(3), top 0.6s steps(3);
+}
+
+.run-pm-criatura.vuela {
+    margin-top: calc(var(--px) * -8);   /* flota sobre el suelo */
+}
+
+.run-pm-giro,
+.run-pm-cuerpo {
+    display: block;
+}
+
+.run-pm.mira-izq .run-pm-giro {
+    transform: scaleX(-1);   /* está a tu derecha: se da vuelta para mirarte */
+}
+
+.run-pm-sprite {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+    animation: run-pm-paso 0.9s steps(1) infinite;
+}
+
+.run-pm-sprite[src=""] {
+    visibility: hidden;   /* la imagen todavía se está pixelando */
+}
+
+/* Un contorno de luz: la criatura se ve también de noche (roja; los jefes, morados). */
+.run-pm-criatura .run-pm-sprite {
+    animation-duration: 0.7s;
+    filter: drop-shadow(0 0 calc(var(--px) * 1.5) rgba(248, 113, 113, 0.85));
+}
+
+.run-pm-criatura.jefe .run-pm-sprite {
+    filter: drop-shadow(0 0 calc(var(--px) * 2) rgba(192, 132, 252, 0.95));
+}
+
+@keyframes run-pm-paso {
+    50% { transform: translateY(calc(var(--px) * -1.5)); }
+}
+
+.run-pm-sombra {
+    position: absolute;
+    right: 18%;
+    bottom: calc(var(--px) * -1.5);
+    left: 18%;
+    height: calc(var(--px) * 4);
+    background: rgba(5, 3, 12, 0.45);
+    border-radius: 50%;
+}
+
+.run-pm-criatura.vuela .run-pm-sombra {
+    right: 28%;
+    bottom: calc(var(--px) * -9);
+    left: 28%;
+}
+
+/* El nombre y la barrita de vida, sobre la cabeza. */
+.run-pm-cabeza {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    margin-bottom: calc(var(--px) * 2);
+    transform: translateX(-50%);
+}
+
+.run-pm-nombre {
+    font-size: 0.6rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #fff;
+    white-space: nowrap;
+    text-shadow: -1px 0 #05030c, 1px 0 #05030c, 0 -1px #05030c, 0 1px #05030c, 0 2px 0 #05030c;
+}
+
+.run-pm-vida {
+    position: relative;
+    display: block;
+    width: calc(var(--px) * 24);
+    min-width: 30px;
+    height: 5px;
+    background: #1a0d22;
+    box-shadow: 0 0 0 1px #05030c, 0 0 0 2px rgba(241, 243, 255, 0.55);
+}
+
+.run-pm-vida.de-heroe {
+    width: calc(var(--px) * 20);
+}
+
+/* La vida de ahora; si acaba de haber un golpe, empieza en la de antes y baja cuando pega (--pega). */
+.run-pm-vida i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--ahora);
+    background: linear-gradient(180deg, #7dff9a 0 50%, #22a34a 50%);
+    animation: run-pm-baja 0.3s steps(3) backwards;
+}
+
+.run-pm-vida.de-enemigo i { background: linear-gradient(180deg, #ff8a8a 0 50%, #d0283a 50%); }
+.run-pm-vida.grave i { background: linear-gradient(180deg, #ffd27a 0 50%, #e07a10 50%); }
+
+@keyframes run-pm-baja {
+    from { width: var(--antes); }
+}
+
+/* --- Lo que vuela: de tu héroe a la criatura (o al revés). Su duración y su momento los pone vistas-pelea-mapa.js. --- */
+.run-pm-tiro {
+    position: absolute;
+    z-index: 3;
+    top: calc(var(--hy) - var(--hm));
+    left: var(--hx);
+    width: calc(var(--px) * 13);
+    height: calc(var(--px) * 13);
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    animation: run-pm-vuela 0.42s steps(7);
+}
+
+.run-pm-tiro::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+@keyframes run-pm-vuela {
+    0% { opacity: 1; top: calc(var(--hy) - var(--hm)); left: var(--hx); }
+    99% { opacity: 1; top: calc(var(--cy) - var(--cm)); left: var(--cx); }
+    100% { opacity: 0; top: calc(var(--cy) - var(--cm)); left: var(--cx); }
+}
+
+.run-pm-tiro.de-criatura {
+    animation-name: run-pm-vuelve;
+}
+
+@keyframes run-pm-vuelve {
+    0% { opacity: 1; top: calc(var(--cy) - var(--cm)); left: var(--cx); }
+    99% { opacity: 1; top: calc(var(--hy) - var(--hm)); left: var(--hx); }
+    100% { opacity: 0; top: calc(var(--hy) - var(--hm)); left: var(--hx); }
+}
+
+/* Tajo: una media luna verde y blanca que gira. */
+.run-pm-tiro.tajo {
+    filter: drop-shadow(0 0 calc(var(--px) * 2) #4ade80);
+}
+
+.run-pm-tiro.tajo::before {
+    border: calc(var(--px) * 3) solid transparent;
+    border-top-color: #f4fff6;
+    border-right-color: #86ffb0;
+    border-radius: 50%;
+    animation: run-pm-gira 0.16s steps(4) infinite;
+}
+
+@keyframes run-pm-gira {
+    to { transform: rotate(360deg); }
+}
+
+/* Rayo: un relámpago dorado, más rápido. */
+.run-pm-tiro.rayo {
+    width: calc(var(--px) * 12);
+    height: calc(var(--px) * 18);
+    filter: drop-shadow(0 0 calc(var(--px) * 2) #ffe45a);
+}
+
+.run-pm-tiro.rayo::before {
+    background: linear-gradient(180deg, #fff, #fff7a0 55%, #ffd23c);
+    clip-path: polygon(55% 0, 100% 0, 62% 40%, 92% 40%, 18% 100%, 40% 54%, 8% 54%);
+}
+
+/* Llamarada: una bola de fuego que parpadea. */
+.run-pm-tiro.llamarada {
+    width: calc(var(--px) * 15);
+    height: calc(var(--px) * 15);
+}
+
+.run-pm-tiro.llamarada::before,
+.run-pm-tiro.de-criatura::before {
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff9c4 0 22%, #ffd23c 23% 44%, #ff7a1a 45% 66%, transparent 67%);
+    box-shadow: 0 0 calc(var(--px) * 4) rgba(255, 110, 20, 0.85);
+    animation: run-pm-late 0.2s steps(2) infinite;
+}
+
+/* Lo que te lanza la criatura: una bola oscura con brillo rojo. */
+.run-pm-tiro.de-criatura::before {
+    background: radial-gradient(circle, #ffd0dc 0 20%, #e0306a 21% 46%, #3a0a2a 47% 66%, transparent 67%);
+    box-shadow: 0 0 calc(var(--px) * 4) rgba(255, 60, 110, 0.85);
+}
+
+@keyframes run-pm-late {
+    50% { transform: scale(0.8); }
+}
+
+/* --- Lo que le pasa a cada uno --- */
+/* Tu héroe da un saltito al lanzar su poder. */
+.run-pm-heroe.lanza .run-pm-cuerpo {
+    animation: run-pm-salto 0.32s steps(3);
+}
+
+@keyframes run-pm-salto {
+    50% { transform: translateY(calc(var(--px) * -3)); }
+}
+
+/* Le pegan a tu héroe: parpadea en rojo. */
+.run-pm-heroe.herido .run-pm-cuerpo {
+    animation: run-pm-rojo 0.7s steps(1) var(--pega);
+}
+
+@keyframes run-pm-rojo {
+    0%, 34%, 68% { filter: brightness(0.75) sepia(1) saturate(9) hue-rotate(-45deg); transform: translateX(calc(var(--px) * 1.5)); }
+    17%, 51%, 85% { filter: none; transform: translateX(calc(var(--px) * -1)); }
+}
+
+/* Le pegan a la criatura: destella en blanco y retrocede. */
+.run-pm-criatura.golpeada .run-pm-cuerpo {
+    animation: run-pm-golpe 0.5s steps(1) var(--pega);
+}
+
+@keyframes run-pm-golpe {
+    0%, 40% { filter: brightness(3) saturate(0); transform: translateX(calc(var(--px) * -2.5)); }
+    20%, 60% { filter: none; transform: translateX(calc(var(--px) * -1.5)); }
+}
+
+/* La criatura te embiste (vas lento): se lanza hasta casi tocarte y vuelve. */
+.run-pm-criatura.embiste {
+    z-index: 2;
+    animation: run-pm-embiste 0.5s steps(5) var(--sale);
+}
+
+@keyframes run-pm-embiste {
+    55% {
+        top: calc(var(--cy) + (var(--hy) - var(--cy)) * 0.7);
+        left: calc(var(--cx) + (var(--hx) - var(--cx)) * 0.7);
+    }
+}
+
+/* …o aprovecha tu pausa y te lanza algo: se echa para atrás al lanzar. */
+.run-pm-criatura.dispara .run-pm-cuerpo {
+    animation: run-pm-dispara 0.3s steps(3);
+}
+
+@keyframes run-pm-dispara {
+    50% { transform: translateX(calc(var(--px) * -3)) scale(1.1); }
+}
+
+/* Una criatura nueva entra al mapa: aparece de la oscuridad. */
+.run-pm-criatura.llega .run-pm-cuerpo {
+    animation: run-pm-aparece 0.8s steps(8) backwards;
+}
+
+@keyframes run-pm-aparece {
+    0% { opacity: 0; filter: brightness(0); transform: translateY(calc(var(--px) * -18)) scale(0.4); }
+    60% { opacity: 1; filter: brightness(2.6); transform: none; }
+    100% { filter: none; }
+}
+
+/* Su nombre y su vida se ven cuando ya llegó. */
+.run-pm-criatura.llega .run-pm-cabeza {
+    animation: run-pm-nombre-entra 0.8s steps(1) backwards;
+}
+
+@keyframes run-pm-nombre-entra {
+    0%, 60% { opacity: 0; }
+}
+
+/* Los números y destellos de la Torre, a la medida del mapa. */
+.run-pm .ff-numero {
+    top: 12%;
+    font-size: 1rem;
+}
+
+.run-pm .ff-numero.critico {
+    font-size: 1.15rem;
+}
+
+.run-pm .ff-numero.herida {
+    color: #ff9a9a;
+}
+
+.run-pm .ff-efecto {
+    inset: 0;
+}
+
+.run-pm .ff-rayo {
+    inset: -70% 18% 30%;
+}
+
+/* El cartel de lo que acaba de pasar: abajo, en el centro de la caja (no tapa los rótulos de arriba). */
+.run-pm-cartel {
+    position: absolute;
+    bottom: 8px;
+    bottom: calc(50% - 50cqh + 8px);
+    left: 50%;
+    z-index: 4;
+    max-width: calc(100cqw - 16px);
+    padding: 2px 10px;
+    overflow: hidden;
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-50%);
+    animation: run-cartel 2.2s steps(1) both;
+}
+
+.run-pm-cartel.aparece {
+    background: linear-gradient(180deg, #8a3fd0 0%, #5a1f9a 45%, #2e0a5a 100%);
+    animation-duration: 2.4s;   /* todo dura menos de 2,5 s: después la capa se vuelve a escribir sin el cartel */
+}
+
+.run-pm-cartel.ataque {
+    background: linear-gradient(180deg, #d04a4a 0%, #9a1f2a 45%, #4a0a12 100%);
+}
+
+/* --- El golpe final: la escena de la Torre tapa el mapa unos segundos y se va sola --- */
+.run-final {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.run-final:empty {
+    display: none;
+}
+
+.run-final-escena {
+    position: absolute;
+    inset: 0;
+    aspect-ratio: auto;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    animation: run-final-entra 0.35s steps(5) both, run-final-sale 0.4s steps(4) forwards;
+}
+
+@keyframes run-final-entra {
+    from { opacity: 0; filter: brightness(3); transform: scale(1.15); }
+}
+
+@keyframes run-final-sale {
+    to { opacity: 0; }
+}
+
+/* Sin movimiento (Ajustes del teléfono › Accesibilidad): la regla general de la app ya deja todas las animaciones en
+   casi 0 s (nada parpadea ni se mueve). Además, aquí no vuela nada, y el cartel (como los números, ver .ff-numero) se ve
+   quieto hasta que el golpe deja de ser reciente: ahí la capa se vuelve a escribir sin él. La escena del golpe final
+   aparece y se va sin animarse. */
+@media (prefers-reduced-motion: reduce) {
+    .run-pm-tiro,
+    .run-pm .ff-chispas,
+    .run-pm .ff-efecto {
+        display: none;
+    }
+
+    .run-pm-cartel {
+        opacity: 1;
+        animation: none;
+    }
+
+    .run-pm .ff-numero {
+        transform: translateX(-50%);
     }
 }
 

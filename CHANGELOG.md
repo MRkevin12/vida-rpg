@@ -2,6 +2,15 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v146 — La pelea, sobre el mapa
+- `vistas-pelea-mapa.js` (nuevo): la pelea del km sobre el mapa de la carrera. Reglas de lugar (puras): `parteVisible(ancho, alto, margenes)` (qué parte del dibujo 320×240 se ve en la caja recortada), `lugarDeCriatura({ aqui, rumbo, metros, visible, lado })` (delante de ti a `LEJOS` = 72 puntos al empezar el km y a `CERCA` = 20 al final; sin rumbo, a un lado hacia el centro; si no cabe, del otro lado), `mezclarRumbo`, `leerPar`, `estiloDeLugar`, `ladoEnMapa`, `nombreCorto`. HTML: `firmaDeLaCapa` / `htmlCapa` (héroe y criatura con barrita de vida y nombre, proyectiles `run-pm-tiro` tajo/rayo/llamarada/de-criatura, chispas y número de la Torre, cartel) y `firmaDelFinal` / `htmlFinal` (la escena `htmlBatalla` encima del mapa durante `DURACION_FINAL`). `TIEMPOS` (sale, vuelo, rayo, llamarada).
+- `vistas-running.js`: la carrera en vivo ya no tiene `.run-batalla` aparte: `.run-dividida.con-pelea` → `.run-mapa-vivo` con tres capas (`.run-mapa-dibujo[data-run-mapa]`, `.run-pm[data-run-pm]`, `.run-final[data-run-final]`). `htmlMapaVivo` pone `data-aqui` y `data-rumbo` en el `<svg>` y, con `heroeEnCapa`, no dibuja al héroe (va en la capa); se quitó la opción `criatura` (v119, sin uso). `escenaDeBatalla` devuelve también `llega`; `RECIENTE` se exporta.
+- `dibujo-carrera.js`: `mapaDeCarrera` y `mapaDePista` devuelven `rumbo` (vector de largo 1 en el dibujo; la pista, su tangente).
+- `sprites.js`: `spriteDeMonstruoEnMapa(id, lado)` (la criatura pixelada en pequeño: 1 punto de la imagen = 1 punto del mapa).
+- `app-running.js`: `ponerPeleaEnMapa(ahora)` (escribe cada capa solo cuando cambia su firma y, cada segundo, solo las variables `--hx --hy --cx --cy` del style; el rumbo se suaviza), `spritesBatalla.heroeMapa` y `.mapa`. `app.js › tictac` y `dibujarPantalla` la llaman (ya no hay `data-run-batalla`).
+- `estilos.css`: bloque v146 (capa del tamaño del dibujo con `--px`, bandos, barritas, proyectiles, embestida, parpadeo rojo, entrada de la criatura, cartel abajo, escena final que entra y se va sola, `prefers-reduced-motion`). El mapa en vivo con criaturas mide 1:1 de pie y 2:1 acostado (modo normal) y se queda con todo el espacio en concentración. Se quitaron las reglas de reparto 1.5fr/1fr de la v145 y `.run-mapa-criatura`.
+- Pruebas: 384 (4 nuevas: lugar de la criatura y rumbo, lo que se ve y los bordes, rumbo del mapa e historial sin cambios, capa y golpe final). Sin cambios de reglas ni de datos.
+
 ## v145 — Más espacio para el mapa en la pantalla dividida
 - `estilos.css`: `grid-template-rows` / `grid-template-columns` de `.run-dividida.con-batalla` pasan de 1fr 1fr a 1.5fr 1fr (mapa 60 %, batalla 40 %) en modo concentración (de pie y acostado) y en la vista normal acostada.
 - Sin cambios de reglas ni de datos.

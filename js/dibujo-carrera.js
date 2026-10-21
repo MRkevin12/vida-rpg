@@ -163,7 +163,8 @@ function fases(reloj) {
 //              (v144) parciales: segundos de cada km (el más rápido brilla), hora: 0–24 (la luz del día), reloj: ms (las fases de
 //              las animaciones), vivo: es la carrera en curso (huellas, rastro de luz y sombra del héroe) }
 // porZona: cada cuántos km cambia el paisaje (las carreras viejas, sin dato, usan 3).
-// Devuelve { svg, aqui: { x, y } en % (dónde va tu héroe) o null, zona (la del final del recorrido) }.
+// Devuelve { svg, aqui: { x, y } en % (dónde va tu héroe) o null, rumbo: { x, y } (v146: hacia dónde corres, de largo 1,
+// en el dibujo; null si todavía no se sabe), zona (la del final del recorrido) }.
 // El paisaje y el río están anclados al TERRENO (en metros), así no «bailan» cuando el mapa te sigue.
 export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km = 0, seguir = false, flecha = false, porZona = 3,
                                 parciales = [], hora, reloj = 0, vivo = flecha } = {}) {
@@ -175,7 +176,7 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
             svg: `<svg class="run-mapa-svg" viewBox="0 0 ${ancho} ${alto}" shape-rendering="crispEdges" preserveAspectRatio="none" role="img" aria-label="Mapa de tu carrera">
                 <rect width="${ancho}" height="${alto}" fill="${zonaFinal.suelo[0]}"/>
                 <text x="160" y="124" text-anchor="middle" fill="#eef2ff" font-size="13">Buscando señal del GPS…</text></svg>`,
-            aqui: null, zona: zonaFinal,
+            aqui: null, rumbo: null, zona: zonaFinal,
         };
     }
     const momento = piezas.momentoDelDia(hora);
@@ -569,8 +570,10 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
     }).join("");
 
     // 8) (v131) Hacia dónde vas: una flechita delante de ti (con la dirección de los últimos ~15 m).
+    // (v146) Esa dirección (el rumbo) también se devuelve: la criatura del km se pone delante de ti, hacia donde corres.
     let flechaSvg = "";
-    if (flecha && n > 1) {
+    let rumbo = null;
+    if (n > 1) {
         const fin = enMetros[n - 1];
         let atras = n - 2;
         while (atras > 0 && Math.hypot(fin[0] - enMetros[atras][0], fin[1] - enMetros[atras][1]) < 15) atras -= 1;
@@ -578,10 +581,11 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
         const dy = fin[1] - enMetros[atras][1];
         const largo = Math.hypot(dx, dy);
         if (largo > 3) {
-            const [ux, uy] = [dx / largo, dy / largo];
+            const [ux, uy] = [dx / largo, dy / largo];   // en metros y en el dibujo es la misma dirección (la escala es igual en x y en y)
+            rumbo = { x: ux, y: uy };
             const punta = [ex + ux * 26, ey + uy * 26];   // una flecha alargada (punta lejos, base angosta) para que se note hacia dónde apunta
             const [b1, b2] = [[ex + ux * 12 - uy * 4, ey + uy * 12 + ux * 4], [ex + ux * 12 + uy * 4, ey + uy * 12 - ux * 4]];
-            flechaSvg = `<polygon points="${r1(punta[0])},${r1(punta[1])} ${r1(b1[0])},${r1(b1[1])} ${r1(b2[0])},${r1(b2[1])}" fill="#fbbf24" stroke="#1a1222" stroke-width="1.2"/>`;
+            if (flecha) flechaSvg = `<polygon points="${r1(punta[0])},${r1(punta[1])} ${r1(b1[0])},${r1(b1[1])} ${r1(b2[0])},${r1(b2[1])}" fill="#fbbf24" stroke="#1a1222" stroke-width="1.2"/>`;
         }
     }
 
@@ -624,7 +628,7 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
         ${hitos}
         <rect x="${r1(sx - 4)}" y="${r1(sy - 4)}" width="8" height="8" fill="#4ade80" stroke="#0b0816" stroke-width="1.2"/>
         ${flechaSvg}${vivo ? "" : `<rect x="${r1(ex - 3)}" y="${r1(ey - 3)}" width="6" height="6" fill="#f87171" stroke="#0b0816" stroke-width="1.2"/>`}</svg>`;
-    return { svg, aqui: { x: (ex / ancho) * 100, y: (ey / alto) * 100 }, zona: zonaFinal };
+    return { svg, aqui: { x: (ex / ancho) * 100, y: (ey / alto) * 100 }, rumbo, zona: zonaFinal };
 }
 
 // ===== (v144) Las reglas del paisaje por zona =====
@@ -872,7 +876,7 @@ export function puntoEnPista(m, largo = 400) {
     return [-L / 2 + R * Math.cos(t), R * Math.sin(t)];
 }
 
-// opciones = { metros: lo corrido, largo: 400, vueltas: true }. Devuelve { svg, aqui, zona: { nombre } } como mapaDeCarrera.
+// opciones = { metros: lo corrido, largo: 400, vueltas: true }. Devuelve { svg, aqui, rumbo, zona: { nombre } } como mapaDeCarrera.
 export function mapaDePista({ metros = 0, largo = 400 } = {}) {
     const { ancho, alto } = LIENZO;
     const { recta: L, borde, carril, carriles } = PISTA;
@@ -902,6 +906,10 @@ export function mapaDePista({ metros = 0, largo = 400 } = {}) {
     traza.push(aP(puntoEnPista(enVuelta, largo)));
     const avance = traza.length > 1 ? `<polyline points="${traza.map((q) => `${r1(q[0])},${r1(q[1])}`).join(" ")}" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round"/>` : "";
     const [ex, ey] = aP(puntoEnPista(metros, largo));
+    // (v146) Hacia dónde corres: de aquí al punto de la pista 2 m más adelante (en las curvas, la tangente).
+    const [sx, sy] = aP(puntoEnPista(metros + 2, largo));
+    const largoRumbo = Math.hypot(sx - ex, sy - ey) || 1;
+    const rumbo = { x: (sx - ex) / largoRumbo, y: (sy - ey) / largoRumbo };
     const vueltas = Math.floor(metros / largo);
     const svg = `<svg class="run-mapa-svg" viewBox="0 0 ${ancho} ${alto}" shape-rendering="crispEdges" preserveAspectRatio="none" role="img" aria-label="Tu carrera en la pista">
         <rect width="${ancho}" height="${alto}" fill="#2a6a38"/>
@@ -911,7 +919,7 @@ export function mapaDePista({ metros = 0, largo = 400 } = {}) {
         <path d="${estadio(borde)}" fill="#2e7a40" stroke="#f4e6e0" stroke-width="1"/>
         ${lineas}${campo}${meta}${avance}
         <rect x="${r1(ex - 3)}" y="${r1(ey - 3)}" width="6" height="6" fill="#f87171" stroke="#0b0816" stroke-width="1.2"/></svg>`;
-    return { svg, aqui: { x: (ex / ancho) * 100, y: (ey / alto) * 100 }, zona: { nombre: `🏟️ Pista · ${vueltas === 1 ? "1 vuelta" : `${vueltas} vueltas`} · ${Math.round(enVuelta)}/${largo} m` } };
+    return { svg, aqui: { x: (ex / ancho) * 100, y: (ey / alto) * 100 }, rumbo, zona: { nombre: `🏟️ Pista · ${vueltas === 1 ? "1 vuelta" : `${vueltas} vueltas`} · ${Math.round(enVuelta)}/${largo} m` } };
 }
 
 export { ZONAS, KM_POR_ZONA };

@@ -86,6 +86,12 @@ export function spriteDeHeroeEnMapa(d) {
     return pixelar(dibujarAvatar(d, { batalla: true, sinEfectos: true }), 21, 28, { clave: `heroe-mapa-${JSON.stringify(d)}` });
 }
 
+// (v146) Una criatura pequeña para el mapa de la carrera, como tu héroe en el mapa: lado = cuántos puntos mide
+// (cada punto de la imagen queda como un cuadrito del mapa; ver vistas-pelea-mapa.js › ladoEnMapa).
+export function spriteDeMonstruoEnMapa(id, lado) {
+    return pixelar(dibujarMonstruo(id), lado, lado, { clave: `monstruo-mapa-${id}-${lado}` });
+}
+
 export function spriteDeMascotaEnMapa(m) {
     const datos = { especie: m.especie, nombre: m.nombre, etapa: m.etapa, triste: Boolean(m.triste) };
     return pixelar(dibujarMascota(datos), 20, 16, { clave: `mascota-mapa-${m.especie}-${m.etapa.clave}-${datos.triste}` });

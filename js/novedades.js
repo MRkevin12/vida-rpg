@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 145;
+export const VERSION_APP = 146;
 
 export const NOVEDADES = [
+    {
+        version: 146,
+        titulo: "La pelea, sobre el mapa",
+        cambios: [
+            "🗺️ Mientras corres, la batalla ya no va en una caja aparte: el mapa ocupa todo ese espacio y la pelea pasa encima de él.",
+            "👹 La criatura del km aparece en el mapa delante de ti, hacia donde corres, y se va acercando a medida que avanzas en el km. Lleva su nombre y su barrita de vida; tu héroe también.",
+            "⚔️ Cada poder sale de tu héroe y vuela hasta ella: el tajo gira, el rayo cae rápido y la llamarada es una bola de fuego. Al pegar salen chispas y el daño, y un cartel dice qué fue.",
+            "🐢 Si vas lento, la criatura te embiste; si pausas, te lanza algo. Tu héroe parpadea en rojo y pierde vida.",
+            "💥 Al cumplir el km, la escena grande de la Torre aparece unos segundos encima del mapa con el golpe final (o la huida) y luego vuelve el mapa con la criatura nueva.",
+        ],
+    },
     {
         version: 145,
         titulo: "Más mapa",

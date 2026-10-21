@@ -78,6 +78,7 @@ import * as frases from "../js/frases.js";
 import * as locutor from "../js/locutor.js";
 import { mapaDeCarrera, mapaDePista, puntoEnPista, momentoDelDia, VENTANA_SEGUIR } from "../js/dibujo-carrera.js";
 import * as vistasRunning from "../js/vistas-running.js";
+import * as peleaMapa from "../js/vistas-pelea-mapa.js";   // (v146)
 import * as memento from "../js/memento.js";
 import * as vistasMemento from "../js/vistas-memento.js";
 import * as equipo from "../js/equipo.js";
@@ -3073,6 +3074,145 @@ prueba("Batalla mientras corres (v139): al correr se lanzan poderes, la pausa te
         cierto(final.final && final.pelea === primera, "los primeros segundos se ve el golpe final (o la huida)");
         cierto(vistasRunning.htmlBatalla(en, primera.finEn + 500).includes("run-bat-fin"), "con su cartel de cómo terminó");
         cierto(!vistasRunning.escenaDeBatalla(en, primera.finEn + vistasRunning.DURACION_FINAL + 1).final, "después, la criatura nueva");
+    } finally {
+        Date.now = real;
+    }
+});
+
+// ===== (v146) La pelea sobre el mapa =====
+const enPuntos = (lugar) => [(lugar.x / 100) * 320, (lugar.y / 100) * 240];   // de % del dibujo a puntos (320 × 240)
+
+prueba("Pelea sobre el mapa (v146): la criatura va delante de ti y se acerca a medida que avanzas en el km", () => {
+    const aqui = { x: 50, y: 50 };   // en el centro del dibujo: (160, 120)
+    const derecha = { x: 1, y: 0 };
+    const [lx, ly] = enPuntos(peleaMapa.lugarDeCriatura({ aqui, rumbo: derecha, metros: 0 }));
+    const [cx] = enPuntos(peleaMapa.lugarDeCriatura({ aqui, rumbo: derecha, metros: 950 }));
+    cierto(Math.abs(lx - 160 - peleaMapa.LEJOS) < 0.5 && Math.abs(ly - 120) < 0.5, `al empezar el km, a ${peleaMapa.LEJOS} puntos hacia donde corres (${lx}, ${ly})`);
+    cierto(cx > 160 && cx < lx, "al final del km, más cerca y todavía delante");
+    cierto(Math.abs(cx - 160 - (peleaMapa.CERCA + (peleaMapa.LEJOS - peleaMapa.CERCA) * 0.05)) < 0.5, "casi encima");
+    const [mx] = enPuntos(peleaMapa.lugarDeCriatura({ aqui, rumbo: derecha, metros: 500 }));
+    cierto(mx < lx && mx > cx, "a mitad del km, a mitad de camino");
+    const norte = enPuntos(peleaMapa.lugarDeCriatura({ aqui, rumbo: { x: 0, y: -1 }, metros: 500 }));
+    cierto(norte[1] < 120 && Math.abs(norte[0] - 160) < 0.5, "corres hacia arriba: la criatura está arriba de ti");
+    // Sin rumbo (al empezar o quieto): a un lado tuyo, hacia el centro del mapa y a una distancia razonable.
+    const quieto = enPuntos(peleaMapa.lugarDeCriatura({ aqui: { x: 80, y: 50 }, rumbo: null, metros: 0 }));
+    cierto(quieto[0] < 256, "sin rumbo y a la derecha del mapa: la criatura queda hacia el centro (a tu izquierda)");
+    const d = Math.hypot(quieto[0] - 256, quieto[1] - 120);
+    cierto(d >= peleaMapa.CERCA && d <= peleaMapa.LEJOS + 0.5, `a una distancia razonable (${d.toFixed(1)})`);
+    igual(peleaMapa.lugarDeCriatura({ aqui: null, rumbo: derecha }), null, "sin saber dónde estás, no hay lugar");
+    // El rumbo del GPS tiembla: se mezcla con el anterior.
+    const mezcla = peleaMapa.mezclarRumbo({ x: 1, y: 0 }, { x: 0, y: 1 });
+    cierto(mezcla.x > 0.6 && mezcla.y > 0.6 && Math.abs(Math.hypot(mezcla.x, mezcla.y) - 1) < 1e-9, "se mezcla con el anterior y sigue midiendo 1");
+    igual(peleaMapa.mezclarRumbo({ x: 1, y: 0 }, { x: -1, y: 0 }), { x: -1, y: 0 }, "media vuelta: se queda el nuevo");
+    igual(peleaMapa.mezclarRumbo({ x: 0, y: 1 }, null), { x: 0, y: 1 }, "sin rumbo nuevo, se queda el anterior");
+    igual(peleaMapa.leerPar("50.00,48.20"), { x: 50, y: 48.2 });
+    igual(peleaMapa.leerPar(undefined), null);
+    igual(peleaMapa.estiloDeLugar({ x: 50, y: 50 }, { x: 62.5, y: 30 }), "--hx: 50.00%; --hy: 50.00%; --cx: 62.50%; --cy: 30.00%");
+    igual(peleaMapa.nombreCorto("Araña tejedora"), "Araña");
+    igual(peleaMapa.nombreCorto("Esqueleto"), "Esqueleto");
+    cierto(peleaMapa.ladoEnMapa("esqueleto", true) > peleaMapa.ladoEnMapa("esqueleto"), "el jefe, un poco más grande");
+});
+
+prueba("Pelea sobre el mapa (v146): la criatura cabe en la parte del mapa que se ve y no se te encima", () => {
+    // Una caja alta (el teléfono de pie): se ve todo el alto del dibujo y solo una franja del ancho.
+    const alta = peleaMapa.parteVisible(366, 430);
+    cierto(alta.x0 > 0 && alta.x1 < 320 && Math.abs(alta.y0) < 0.01 && Math.abs(alta.y1 - 240) < 0.01, "caja alta: se recortan los lados");
+    cierto(Math.abs((alta.x1 - alta.x0) / (alta.y1 - alta.y0) - 366 / 430) < 0.01, "lo que se ve tiene la forma de la caja");
+    const ancha = peleaMapa.parteVisible(640, 240);
+    cierto(Math.abs(ancha.x0) < 0.01 && ancha.y0 > 0, "caja ancha (acostado): se recortan arriba y abajo");
+    const conRotulos = peleaMapa.parteVisible(366, 430, peleaMapa.MARGENES);
+    cierto(conRotulos.y0 > alta.y0 && conRotulos.y1 < alta.y1, "los rótulos de arriba y el cartel de abajo quedan libres");
+    igual(peleaMapa.parteVisible(0, 0).x1, 320, "sin medidas, todo el dibujo");
+    const lado = 32;
+    const borde = peleaMapa.lugarDeCriatura({ aqui: { x: 50, y: 50 }, rumbo: { x: 1, y: 0 }, metros: 0, visible: alta, lado });
+    const [bx, by] = enPuntos(borde);
+    cierto(bx + lado / 2 <= alta.x1 + 0.01 && bx > 160, "cabe entera en lo que se ve, delante de ti");
+    cierto(Math.hypot(bx - 160, by - 120) >= peleaMapa.CERCA, "y no se te encima");
+    // Corres hacia el borde y delante no hay lugar: se pone del otro lado.
+    const [ex] = enPuntos(peleaMapa.lugarDeCriatura({ aqui: { x: 92, y: 50 }, rumbo: { x: 1, y: 0 }, metros: 0, lado }));
+    cierto(ex < 294.4 - 50 && ex >= lado / 2, `si delante no hay lugar, se pone del otro lado (${ex.toFixed(1)})`);
+    // Arriba debe caber su cuerpo y su nombre: sus pies nunca quedan pegados al borde de arriba.
+    const [, ny] = enPuntos(peleaMapa.lugarDeCriatura({ aqui: { x: 50, y: 20 }, rumbo: { x: 0, y: -1 }, metros: 0, visible: conRotulos, lado }));
+    cierto(ny >= conRotulos.y0 + lado, `su cuerpo cabe debajo de los rótulos (${ny.toFixed(1)})`);
+});
+
+prueba("Pelea sobre el mapa (v146): el mapa dice dónde estás y hacia dónde corres (y el historial no cambia)", () => {
+    const traza = Array.from({ length: 40 }, (_, i) => [4.6 + i * 0.0003, -74.08]);   // hacia el norte
+    const { rumbo } = mapaDeCarrera({ traza, km: 1.3, seguir: true, flecha: true });
+    cierto(Math.abs(rumbo.x) < 0.01 && Math.abs(rumbo.y + 1) < 0.01, "corres al norte: el rumbo apunta hacia arriba del dibujo");
+    cierto(mapaDeCarrera({ traza, km: 1.3, flecha: false }).rumbo, "también sin flecha");
+    igual(mapaDeCarrera({ traza: [traza[0]] }).rumbo, null, "con un solo punto, todavía no hay rumbo");
+    igual(mapaDeCarrera({ traza: [] }).rumbo, null);
+    const pista = mapaDePista({ metros: 50 });   // en la recta de abajo, que se corre hacia la derecha
+    cierto(pista.rumbo.x > 0.99 && Math.abs(Math.hypot(pista.rumbo.x, pista.rumbo.y) - 1) < 1e-9, "en la pista: hacia donde sigue la pista");
+    // En vivo, con criaturas, tu héroe va en la capa de la pelea y el dibujo lleva dónde estás (data-aqui) y tu rumbo.
+    const vivo = vistasRunning.htmlMapaVivo(traza, [], { seguir: true, recorte: true, heroeEnCapa: true });
+    cierto(vivo.includes('data-aqui="50.00,50.00"') && vivo.includes('data-rumbo="0.000,-1.000"'), "el dibujo dice dónde estás y hacia dónde vas");
+    cierto(!vivo.includes("run-mapa-heroe"), "tu héroe no va en el dibujo (va en la capa)");
+    cierto(!new DOMParser().parseFromString(vivo.slice(vivo.indexOf("<svg"), vivo.indexOf("</svg>") + 6), "image/svg+xml").querySelector("parsererror"), "el dibujo sigue siendo una imagen válida");
+    cierto(vistasRunning.htmlMapaVivo(traza, [], { seguir: true }).includes("run-mapa-heroe"), "sin criaturas, tu héroe sigue en el dibujo");
+    const historial = vistasRunning.htmlMapaVivo(traza, [], { heroe: false, km: 1.3 });
+    cierto(!historial.includes("data-aqui") && !historial.includes("run-mapa-heroe") && !historial.includes("run-pm"), "en el historial: sin héroe, sin datos y sin pelea");
+    const opciones = vistasRunning.opcionesDelMapa({ distancia: 500, encuentros: [], marcas: [] });
+    cierto(opciones.heroeEnCapa && opciones.recorte, "con criaturas, el mapa en vivo deja a tu héroe para la capa");
+    cierto(!vistasRunning.opcionesDelMapa({ distancia: 500, marcas: [] }).heroeEnCapa, "sin criaturas, no");
+});
+
+prueba("Pelea sobre el mapa (v146): los poderes vuelan hasta la criatura y la capa solo se reescribe cuando pasa algo", () => {
+    const real = Date.now;
+    try {
+        const inicio = real();
+        Date.now = () => inicio;
+        const estado = partidaNueva();
+        acciones.empezarCarrera(estado, "suave", { gps: true, objetivo: "5:05" });
+        Date.now = real;
+        const en = estado.running.encurso;
+        en.kmActual = en.kmActual || { golpes: [], racha: 0 };
+        const sprites = { heroeMapa: "data:image/png;base64,h", mapa: {} };
+        // Al empezar, la criatura del km entra al mapa.
+        const llegada = peleaMapa.htmlCapa(en, inicio, sprites);
+        cierto(llegada.includes("run-pm-criatura") && llegada.includes(" llega") && llegada.includes("¡Aparece"), "la criatura entra al mapa con su aviso");
+        cierto(llegada.includes("run-pm-heroe") && llegada.includes('src="data:image/png;base64,h"'), "y tu héroe está ahí, con su imagen");
+        const firma0 = peleaMapa.firmaDeLaCapa(en, inicio, sprites);
+        igual(peleaMapa.firmaDeLaCapa(en, inicio + 1000, sprites), firma0, "un segundo después, nada que reescribir");
+        cierto(peleaMapa.firmaDeLaCapa(en, inicio + 3000, sprites) !== firma0, "cuando deja de ser reciente, se reescribe…");
+        cierto(!peleaMapa.htmlCapa(en, inicio + 3000, sprites).includes("run-pm-cartel"), "…sin el aviso");
+        cierto(peleaMapa.firmaDeLaCapa(en, inicio + 3000, { ...sprites, mapa: { [en.encuentros[0].id]: "x" } }) !== peleaMapa.firmaDeLaCapa(en, inicio + 3000, sprites), "llega la imagen de la criatura: se reescribe");
+        // Un tajo con llamarada: sale de tu héroe, vuela y pega.
+        const t = inicio + 5000;
+        const antesDelGolpe = peleaMapa.firmaDeLaCapa(en, t + 100, sprites);
+        en.kmActual.golpes.push({ tipo: "tajo", dano: 20, herida: 0, combo: true, tramo: 3, t });
+        const tajo = peleaMapa.htmlCapa(en, t + 100, sprites);
+        cierto(tajo.includes("run-pm-tiro tajo") && tajo.includes("run-pm-tiro llamarada"), "un tajo y una llamarada vuelan");
+        cierto(tajo.includes("golpeada") && tajo.includes(">20<") && tajo.includes("ff-chispas"), "la criatura recibe el golpe, con chispas y su número");
+        cierto(tajo.includes("Tajo + ") && tajo.includes("Llamarada"), "y el cartel dice qué fue");
+        igual([peleaMapa.htmlFinal(en, t + 100, sprites), peleaMapa.firmaDelFinal(en, t + 100, sprites)], ["", ""], "en medio del km no hay escena grande");
+        cierto(tajo.includes(`--antes: 100%; --ahora: ${encuentros.VIDA - 20}%`), "su vida baja de 100 a 80 cuando pega");
+        cierto(peleaMapa.firmaDeLaCapa(en, t + 100, sprites) !== antesDelGolpe, "un golpe nuevo reescribe la capa");
+        igual(peleaMapa.firmaDeLaCapa(en, t + 1100, sprites), peleaMapa.firmaDeLaCapa(en, t + 100, sprites), "y no se reescribe cada segundo mientras vuela");
+        const viejo = peleaMapa.htmlCapa(en, t + vistasRunning.RECIENTE + 10, sprites);
+        cierto(!viejo.includes("run-pm-tiro") && !viejo.includes("ff-numero") && !viejo.includes("run-pm-cartel"), "un golpe viejo ya no se anima");
+        const rayo = (en.kmActual.golpes.push({ tipo: "rayo", dano: 14, herida: 0, combo: false, tramo: 4, t: t + 20000 }), peleaMapa.htmlCapa(en, t + 20100, sprites));
+        cierto(rayo.includes("run-pm-tiro rayo") && rayo.includes(`animation-duration: ${peleaMapa.TIEMPOS.vueloRayo}ms`), "el rayo vuela más rápido");
+        // La criatura te ataca: si vas lento te embiste; si pausas, te lanza algo. Tu héroe parpadea en rojo.
+        en.kmActual.golpes.push({ tipo: "lento", dano: 0, herida: 15, combo: false, tramo: 5, t: t + 30000 });
+        const lento = peleaMapa.htmlCapa(en, t + 30100, sprites);
+        cierto(lento.includes("embiste") && lento.includes("herido") && lento.includes("−15") && !lento.includes("run-pm-tiro"), "vas lento: te embiste y pierdes 15");
+        en.kmActual.golpes.push({ tipo: "pausa", dano: 0, herida: 20, combo: false, tramo: 5, t: t + 60000 });
+        const pausa = peleaMapa.htmlCapa(en, t + 60100, sprites);
+        cierto(pausa.includes("run-pm-tiro de-criatura") && pausa.includes("dispara") && pausa.includes("−20"), "pausas: te lanza algo");
+        const vidas = encuentros.vidasDeLaBatalla(en.kmActual.golpes);
+        cierto(peleaMapa.htmlCapa(en, t + 90000, sprites).includes(`--antes: ${vidas.heroe}%; --ahora: ${vidas.heroe}%`), "las barritas son las vidas de la batalla");
+        // El golpe final: la escena grande tapa el mapa unos segundos; en el mapa solo queda tu héroe.
+        const pelea = en.encuentros.find((e) => !e.resultado);
+        Object.assign(pelea, { resultado: "vencida", vida: 0, vidaHeroe: vidas.heroe, finEn: t + 100000 });
+        const final = peleaMapa.htmlFinal(en, t + 100500, sprites);
+        cierto(final.includes("run-final-escena") && final.includes("ff-escena") && final.includes("run-bat-fin"), "al cumplir el km, la escena del golpe final");
+        cierto(!peleaMapa.htmlCapa(en, t + 100500, sprites).includes("run-pm-criatura"), "mientras, en el mapa solo queda tu héroe");
+        cierto(peleaMapa.firmaDelFinal(en, t + 100500, sprites) !== "", "la escena tiene firma (se dibuja una vez)");
+        igual(peleaMapa.firmaDelFinal(en, t + 100500, sprites), peleaMapa.firmaDelFinal(en, t + 101500, sprites), "y no se reescribe cada segundo");
+        const despues = t + 100000 + vistasRunning.DURACION_FINAL + 1;
+        igual([peleaMapa.firmaDelFinal(en, despues, sprites), peleaMapa.htmlFinal(en, despues, sprites)], ["", ""], "a los pocos segundos desaparece");
     } finally {
         Date.now = real;
     }

@@ -7,6 +7,7 @@ import * as datos from "./datos.js";
 import * as acciones from "./acciones.js";
 import * as vistas from "./vistas.js";
 import * as vistasRunning from "./vistas-running.js";   // (v139) la batalla de la pantalla dividida
+import * as peleaMapa from "./vistas-pelea-mapa.js";   // (v146) la pelea sobre el mapa
 import * as sprites from "./sprites.js";
 import * as running from "./running.js";
 import * as encuentros from "./encuentros.js";   // (v119) criaturas en tus carreras
@@ -31,8 +32,11 @@ let pausoParaTerminar = false;          // y la carrera estaba corriendo: la pau
 let heroeDeCarrera = null;
 
 export async function ponerHeroeEnMapaVivo() {
-    if (!heroeDeCarrera) heroeDeCarrera = await sprites.spriteDeHeroeEnMapa(avatarActual());
+    const nuevo = !heroeDeCarrera;
+    if (nuevo) heroeDeCarrera = await sprites.spriteDeHeroeEnMapa(avatarActual());
+    spritesBatalla.heroeMapa = heroeDeCarrera;   // (v146) con criaturas, tu héroe va en la capa de la pelea
     for (const img of document.querySelectorAll(".run-mapa-heroe")) img.src = heroeDeCarrera;
+    if (nuevo) ponerPeleaEnMapa();               // recién llegó la imagen: que se vea ya, sin esperar al próximo segundo
 }
 
 // (v120) La notificación de tu carrera: con la app en segundo plano, el centro de notificaciones muestra tu tiempo, km, ritmo y la pelea
@@ -88,10 +92,10 @@ async function cerrarNotificacionCarrera() {
     } catch (error) { /* nada que cerrar */ }
 }
 
-// (v119) Las imágenes de la pelea del km. (v139) Ahora son las de la batalla de la pantalla dividida: tu héroe, la criatura
-// y la sala de su zona. Cada una se pixela UNA vez y queda guardada aquí; la batalla las usa al dibujarse
-// (vistasRunning.htmlBatalla). Cuando llega una nueva, la firma de la batalla cambia y app.js la vuelve a dibujar.
-export const spritesBatalla = { heroe: null, criaturas: {}, salas: {} };
+// (v119) Las imágenes de la pelea del km. (v139) Las de la batalla: tu héroe, la criatura y la sala de su zona.
+// (v146) Y las del mapa: tu héroe y la criatura en pequeño (heroeMapa, mapa). Cada una se pixela UNA vez y queda guardada
+// aquí; la pelea las usa al dibujarse. Cuando llega una nueva, cambia la firma y la pelea se vuelve a dibujar.
+export const spritesBatalla = { heroe: null, criaturas: {}, salas: {}, heroeMapa: null, mapa: {} };
 const pidiendo = new Set();   // las que se están pixelando (para no pedir dos veces la misma)
 
 async function cargarSprite(clave, guardar, pedir) {
@@ -111,7 +115,57 @@ export function ponerCriaturasDeCarrera() {
         const zona = vistasRunning.zonaDeBatalla(pelea);
         if (!spritesBatalla.criaturas[pelea.id]) cargarSprite(`c-${pelea.id}`, (src) => { spritesBatalla.criaturas[pelea.id] = src; }, () => sprites.spriteDeMonstruo(pelea.id, avatarActual()));
         if (!spritesBatalla.salas[zona]) cargarSprite(`s-${zona}`, (src) => { spritesBatalla.salas[zona] = src; }, () => sprites.spriteDeSala(zona));
+        // (v146) La criatura en pequeño, para el mapa. Apenas llega, se pone (sin esperar al próximo segundo).
+        if (!spritesBatalla.mapa[pelea.id]) {
+            cargarSprite(`m-${pelea.id}`, (src) => { spritesBatalla.mapa[pelea.id] = src; ponerPeleaEnMapa(); },
+                () => sprites.spriteDeMonstruoEnMapa(pelea.id, peleaMapa.ladoEnMapa(pelea.id, pelea.jefe)));
+        }
     }
+}
+
+// ===== (v146) La pelea sobre el mapa =====
+// Tu héroe, la criatura del km, sus vidas y los poderes van en una capa encima del mapa (vistas-pelea-mapa.js); en el
+// golpe final, la escena grande de la Torre la tapa unos segundos. Se llama cada segundo (tictac en app.js) y cada vez que
+// se dibuja la pantalla. El contenido de cada capa se escribe solo cuando cambia su firma (así cada animación se ve una
+// vez); el resto del tiempo solo se mueven las posiciones (las variables --hx, --hy, --cx, --cy del style de la capa).
+let rumboSuave = null;       // hacia dónde corres, sin el temblor del GPS
+let rumboDeCarrera = null;   // de qué carrera es ese rumbo (al empezar otra, se olvida)
+
+export function ponerPeleaEnMapa(ahora = Date.now()) {
+    const en = estado.running.encurso;
+    const capa = document.querySelector("[data-run-pm]");
+    if (!en?.encuentros || !capa) return;
+    // 1) Lo que hay en cada capa: solo cuando pasa algo.
+    const firma = peleaMapa.firmaDeLaCapa(en, ahora, spritesBatalla);
+    if (capa.dataset.n !== firma) {
+        capa.innerHTML = peleaMapa.htmlCapa(en, ahora, spritesBatalla);
+        capa.dataset.n = firma;
+    }
+    const final = document.querySelector("[data-run-final]");
+    const firmaFinal = peleaMapa.firmaDelFinal(en, ahora, spritesBatalla);
+    if (final && final.dataset.n !== firmaFinal) {
+        final.innerHTML = peleaMapa.htmlFinal(en, ahora, spritesBatalla);
+        final.dataset.n = firmaFinal;
+    }
+    // 2) Dónde va cada uno. El mapa dejó escrito en su dibujo dónde estás y hacia dónde corres (data-aqui, data-rumbo).
+    const dibujo = document.querySelector("[data-run-mapa] .run-mapa-svg");
+    const aqui = peleaMapa.leerPar(dibujo?.dataset.aqui);
+    if (rumboDeCarrera !== en.inicio) { rumboSuave = null; rumboDeCarrera = en.inicio; }
+    rumboSuave = peleaMapa.mezclarRumbo(rumboSuave, peleaMapa.leerPar(dibujo?.dataset.rumbo));
+    capa.classList.toggle("sin-lugar", !aqui);   // sin GPS todavía: no se ve
+    if (!aqui) return;
+    const caja = capa.parentElement;             // la caja del mapa (.run-mapa-vivo): cuánto mide en la pantalla
+    const visible = peleaMapa.parteVisible(caja.clientWidth, caja.clientHeight, peleaMapa.MARGENES);
+    const pelea = vistasRunning.escenaDeBatalla(en, ahora).pelea;
+    const criatura = peleaMapa.lugarDeCriatura({
+        aqui, rumbo: rumboSuave, visible,
+        metros: en.distancia - (en.marcas || []).length * 1000,   // lo que llevas del km: se acerca a medida que avanzas
+        lado: pelea ? peleaMapa.ladoEnMapa(pelea.id, pelea.jefe) : 26,
+    });
+    capa.setAttribute("style", peleaMapa.estiloDeLugar(aqui, criatura));
+    // Las criaturas están dibujadas mirando a la derecha (en la Torre pelean desde la izquierda): si está a tu derecha,
+    // se da vuelta para mirarte.
+    capa.classList.toggle("mira-izq", criatura.x > aqui.x);
 }
 
 // (v117) Mientras corres, una barra pegada arriba de las pestañas muestra el tiempo, los km y el ritmo en TODAS las pantallas

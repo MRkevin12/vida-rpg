@@ -102,6 +102,8 @@ function vistaEnVivo(estado, ctx) {
     const concentrado = estado.running.concentracion !== false;
     const gps = gpsCorto(en, ctx.gpsProblema);
     // (v141) El HUD de arriba: el estado (tipo de carrera y GPS en corto, solo en concentración), el cronómetro y los dos datos.
+    // (v146) El mapa lleva encima dos capas que llena app-running.js (ponerPeleaEnMapa): la pelea (data-run-pm: tu héroe, la
+    // criatura, sus vidas y los poderes) y el golpe final (data-run-final: la escena de la Torre, solo unos segundos).
     return `
         <section class="panel run-vivo ${pausada ? "pausada" : ""} ${en.gps ? "" : "solo-crono"}">
             <p class="etiqueta">${tipo.icono} ${esc(tipo.nombre)}${en.pista ? " · 🏟️ pista" : ""}${en.autopausa ? " · ⏸ pausa automática" : pausada ? " · en pausa" : ""}</p>
@@ -118,9 +120,12 @@ function vistaEnVivo(estado, ctx) {
             </div>
             ${en.gps && en.encuentros ? `<p class="run-consejo ${consejoEnVivo(en, ctx.ahora).clave}" data-run-consejo data-n="${esc(textoConsejo(consejoEnVivo(en, ctx.ahora)))}">${textoConsejo(consejoEnVivo(en, ctx.ahora))}</p>` : ""}
             ${en.gps ? `<div class="run-km" data-run-kmbar data-n="${firmaDelKm(en)}">${htmlKmEnCurso(en)}</div>` : ""}
-            ${en.gps ? `<div class="run-dividida ${en.encuentros ? "con-batalla" : ""}">
-                <div class="run-mapa-vivo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm, opcionesDelMapa(en, estado.running))}</div>
-                ${en.encuentros ? `<div class="run-batalla" data-run-batalla data-n="${firmaDeBatalla(en, ctx.ahora, ctx.spritesBatalla)}">${htmlBatalla(en, ctx.ahora, ctx.spritesBatalla)}</div>` : ""}
+            ${en.gps ? `<div class="run-dividida ${en.encuentros ? "con-pelea" : ""}">
+                <div class="run-mapa-vivo">
+                    <div class="run-mapa-dibujo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm, opcionesDelMapa(en, estado.running))}</div>
+                    ${en.encuentros ? `<div class="run-pm" data-run-pm data-n="" aria-hidden="true"></div>
+                    <div class="run-final" data-run-final data-n="" aria-hidden="true"></div>` : ""}
+                </div>
             </div>
             ${en.encuentros ? `<div class="run-pelea">
                 <div data-run-encuentro>${htmlEncuentro(en, ctx.ahora)}</div>
@@ -203,21 +208,27 @@ function detalleDeCarrera(c) {
 }
 
 // ===== El mapa de tu carrera (v118; zonas, ríos, lagos y criaturas en la v119) =====
-// El dibujo está en dibujo-carrera.js. Encima van tu héroe y la criatura del km (sus imágenes las pone app.js: son pixel art
-// y tardan un instante) y el nombre de la zona donde vas.
+// El dibujo está en dibujo-carrera.js. Encima van tu héroe (su imagen la pone app.js: es pixel art y tarda un instante)
+// y el nombre de la zona donde vas.
 // (v144) hora: la hora del día (0–24) para la luz del mapa; reloj: la hora en ms (las animaciones siguen donde iban al
 // redibujar); parciales: los segundos de cada km (el más rápido brilla en dorado).
-export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null, seguir = false, pista = null, porZona = 3, recorte = false,
-                                                hora, reloj = 0, parciales = [] } = {}) {
+// (v146) heroeEnCapa: con criaturas, tu héroe no va aquí sino en la capa de la pelea (vistas-pelea-mapa.js), que no se
+// vuelve a escribir cada segundo. Para ubicarlo, el <svg> lleva data-aqui (dónde vas, en %) y data-rumbo (hacia dónde corres).
+export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, seguir = false, pista = null, porZona = 3, recorte = false,
+                                                hora, reloj = 0, parciales = [], heroeEnCapa = false } = {}) {
     // (v131) En pista se dibuja la pista de atletismo; en la calle, el mapa te sigue de cerca o muestra todo el recorrido.
     const dibujo = pista
         ? mapaDePista({ metros: pista.metros, largo: pista.largo })
         : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe, porZona, hora, reloj, parciales });
-    const { aqui, zona } = dibujo;
-    // (v139) recorte: en la pantalla dividida la caja del mapa no siempre mide 4:3. En vez de estirar el dibujo (los cuadritos se
+    const { aqui, rumbo, zona } = dibujo;
+    // (v139) recorte: en la carrera en vivo la caja del mapa no siempre mide 4:3. En vez de estirar el dibujo (los cuadritos se
     // deformarían), se agranda hasta llenarla y se recortan los bordes («slice»). Entonces tu héroe se ubica con la misma cuenta:
     // desde el centro de la caja, cada punto del dibujo mide max(ancho/320, alto/240) (cqw y cqh = 1 % del ancho y del alto de la caja).
-    const svg = recorte ? dibujo.svg.replace('preserveAspectRatio="none"', 'preserveAspectRatio="xMidYMid slice"') : dibujo.svg;
+    let svg = recorte ? dibujo.svg.replace('preserveAspectRatio="none"', 'preserveAspectRatio="xMidYMid slice"') : dibujo.svg;
+    if (heroe && aqui) {
+        const datos = ` data-aqui="${aqui.x.toFixed(2)},${aqui.y.toFixed(2)}"${rumbo ? ` data-rumbo="${rumbo.x.toFixed(3)},${rumbo.y.toFixed(3)}"` : ""}`;
+        svg = svg.replace("<svg ", `<svg${datos} `);
+    }
     const escala = `max(100cqw / ${LIENZO.ancho}, 100cqh / ${LIENZO.alto})`;
     const enMapa = (x, y) => {
         const normal = `left: ${Math.min(96, Math.max(4, x)).toFixed(2)}%; top: ${Math.min(96, Math.max(10, y)).toFixed(2)}%`;
@@ -229,17 +240,18 @@ export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas
     return `${svg}
         <span class="run-mapa-zona">${esc(zona.nombre)}</span>
         ${heroe && !pista ? `<button type="button" class="run-mapa-vista" data-accion="run-vista-mapa">${seguir ? "🗺️ Ver todo" : "🎯 Seguirme"}</button>` : ""}
-        ${heroe && aqui ? `<img class="run-mapa-heroe" alt="" style="${enMapa(aqui.x, aqui.y)}">` : ""}
-        ${heroe && aqui && criatura ? `<img class="run-mapa-criatura ${criatura.jefe ? "jefe" : ""}" alt="" data-criatura="${criatura.id}" style="${enMapa(aqui.x + (aqui.x > 70 ? -12 : 12), aqui.y - 2)}">` : ""}`;
+        ${heroe && aqui && !heroeEnCapa ? `<img class="run-mapa-heroe" alt="" style="${enMapa(aqui.x, aqui.y)}">` : ""}`;
 }
 
-// Lo que el mapa en vivo necesita de la carrera en curso. (v139) La criatura ya no va en el mapa: pelea en su mitad de la pantalla.
+// Lo que el mapa en vivo necesita de la carrera en curso. (v146) Con criaturas, tu héroe y la criatura pelean en una capa
+// encima del mapa (vistas-pelea-mapa.js).
 export const opcionesDelMapa = (en, r = {}, ahora = Date.now()) => ({
-    encuentros: en.encuentros || [], km: en.distancia / 1000, criatura: null,
+    encuentros: en.encuentros || [], km: en.distancia / 1000,
     seguir: r.vistaMapa !== "todo",                                          // (v131)
     porZona: en.kmPorZona || 3,                                              // (v132)
     pista: en.pista ? { metros: en.distancia, largo: en.pista } : null,      // (v131)
-    recorte: Boolean(en.encuentros),                                         // (v139) comparte la pantalla con la batalla
+    recorte: Boolean(en.encuentros),                                         // (v139) la caja no mide 4:3: se recortan los bordes
+    heroeEnCapa: Boolean(en.encuentros),                                     // (v146) tu héroe va en la capa de la pelea
     hora: horaDelDia(ahora), reloj: ahora,                                   // (v144) la luz de ahora y las fases de las animaciones
     parciales: running.parcialesDe(en.marcas),                               // (v144) tu km más rápido brilla
 });
@@ -329,18 +341,23 @@ export function htmlKmEnCurso(en) {
 }
 
 // ===== (v139) La batalla mientras corres =====
-// La otra mitad de la pantalla: tu héroe contra la criatura del km, con la escena de la Torre (sala, partículas, golpes).
+// Tu héroe contra la criatura del km, con la escena de la Torre (sala, partículas, golpes).
 // Cada 100 m lanzas un poder según cómo corriste ese tramo (encuentros.poderDelTramo); al cumplir el km llega el golpe
-// final o la criatura escapa. app.js la vuelve a escribir SOLO cuando pasa algo (firmaDeBatalla): así cada animación
-// se ve una vez y no se reinicia cada segundo.
+// final o la criatura escapa. Lo que se dibuja se vuelve a escribir SOLO cuando pasa algo (firmaDeBatalla): así cada
+// animación se ve una vez y no se reinicia cada segundo.
+// (v146) Mientras dura el km, la pelea va sobre el mapa (vistas-pelea-mapa.js); esta escena grande (htmlBatalla) solo
+// aparece encima del mapa en el golpe final, durante DURACION_FINAL.
 export const DURACION_FINAL = 4000;   // ms que se ve el golpe final antes de que aparezca la criatura siguiente
-const RECIENTE = 2500;                // un golpe más viejo que esto ya no se anima (si se redibuja la pantalla, no se repite)
+export const RECIENTE = 2500;         // un golpe más viejo que esto ya no se anima (si se redibuja la pantalla, no se repite)
 
 // Qué se ve ahora: la pelea en curso o, los primeros segundos después de cumplir el km, el final de la anterior.
+// llega: la criatura acaba de aparecer (al empezar la carrera o justo después del final de la anterior).
 export function escenaDeBatalla(en, ahora = Date.now()) {
     const ultima = (en.encuentros || []).filter((e) => e.resultado).at(-1);
-    if (ultima?.finEn && ahora - ultima.finEn < DURACION_FINAL) return { pelea: ultima, final: true, golpes: [] };
-    return { pelea: en.encuentros?.find((e) => !e.resultado) || null, final: false, golpes: en.kmActual?.golpes || [] };
+    if (ultima?.finEn && ahora - ultima.finEn < DURACION_FINAL) return { pelea: ultima, final: true, golpes: [], llega: false };
+    const golpes = en.kmActual?.golpes || [];
+    const desde = ultima?.finEn ? ultima.finEn + DURACION_FINAL : en.inicio;
+    return { pelea: en.encuentros?.find((e) => !e.resultado) || null, final: false, golpes, llega: !golpes.length && ahora - desde < RECIENTE };
 }
 
 // La sala de la batalla: la de la zona del bestiario de esa criatura (cripta, raíces, cisterna…).
@@ -359,7 +376,7 @@ const vidaFF = (vida, clase) => `<span class="ff-hp ${clase} ${vida < 30 ? "grav
         <i class="ff-hp-relleno" style="width: ${vida}%"></i><b>${vida}/${encuentros.VIDA}</b></span>`;
 
 export function htmlBatalla(en, ahora = Date.now(), sprites = {}) {
-    const { pelea, final, golpes } = escenaDeBatalla(en, ahora);
+    const { pelea, final, golpes, llega } = escenaDeBatalla(en, ahora);
     if (!pelea) return "";
     const criatura = bestiario.CRIATURAS[pelea.id] || {};
     const zona = zonaDeBatalla(pelea);
@@ -382,9 +399,7 @@ export function htmlBatalla(en, ahora = Date.now(), sprites = {}) {
         : golpeFinal ? `${golpeFinal.icono} ${golpeFinal.nombre}`
         : escapa ? "💨 ¡Escapó!" : "";
 
-    // ¿Acaba de llegar? (al empezar la carrera o justo después del final de la anterior): entra a la sala.
-    const anterior = (en.encuentros || []).filter((e) => e.resultado).at(-1);
-    const llega = !final && !golpes.length && ahora - (anterior?.finEn ? anterior.finEn + DURACION_FINAL : en.inicio) < RECIENTE;
+    // Si acaba de llegar (llega), entra a la sala.
     const clasesEnemigo = [
         criatura.vuela ? "vuela" : "",
         llega ? "aparece" : "",

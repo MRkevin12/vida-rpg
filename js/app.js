@@ -56,7 +56,7 @@ import { retratoPixel } from "./retratos.js";
 import * as fx from "./efectos.js";
 import { hoy, diasEntre, sumarDias, relojTexto, relojLargo } from "./fechas.js";
 import { runTipo, runPista, gpsProblema, runTerminando, ponerHeroeEnMapaVivo, mostrarNotificacionCarrera,
-         ponerCriaturasDeCarrera, spritesBatalla, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
+         ponerCriaturasDeCarrera, ponerPeleaEnMapa, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
          mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
 import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM } from "./app-gym.js";
 import { ACCIONES_MEMENTO, FORMULARIOS_MEMENTO } from "./app-memento.js";   // (v142)
@@ -342,14 +342,10 @@ function tictac() {
                 consejo.dataset.n = vistasRunning.textoConsejo(c);
             }
         }
-        // (v139) La batalla de la pantalla dividida: solo se vuelve a dibujar cuando pasa algo (un poder, un ataque, el golpe
-        // final, una criatura nueva o llega una imagen). Si se dibujara cada segundo, las animaciones empezarían de nuevo.
-        const batalla = document.querySelector("[data-run-batalla]");
-        const firmaBatalla = vistasRunning.firmaDeBatalla(en, ahora, spritesBatalla);
-        if (batalla && batalla.dataset.n !== firmaBatalla) {
-            batalla.innerHTML = vistasRunning.htmlBatalla(en, ahora, spritesBatalla);
-            batalla.dataset.n = firmaBatalla;
-        }
+        // (v146) La pelea sobre el mapa (y el golpe final encima): su contenido solo se vuelve a dibujar cuando pasa algo
+        // (un poder, un ataque, el golpe final, una criatura nueva o llega una imagen); cada segundo solo se mueven las
+        // posiciones, junto con el mapa. Si se dibujara cada segundo, las animaciones empezarían de nuevo.
+        ponerPeleaEnMapa(ahora);
         // (v116) Los parciales de la carrera: solo se reescriben cuando cambian.
         const parciales = document.querySelector("[data-run-parciales]");
         const marcasAhora = (en.marcas || []).length;
@@ -537,7 +533,6 @@ export function contextoActual(efectos = {}) {
         pista: runPista,                                    // (v131)                                      // (v109) el tipo de carrera elegido
         gpsProblema,
         terminando: runTerminando,
-        spritesBatalla,                                     // (v139) las imágenes de la batalla mientras corres
         fraseGym: ui.fraseGym,
         resumenGym: ui.resumenGym,
         paginaLibro: ui.paginaLibro,
@@ -568,7 +563,7 @@ export function dibujarPantalla(efectos = {}) {
 
     if (pantallaActual === "pacto") prepararLienzoFirma();   // el recuadro para firmar con el dedo
     if (pantallaActual === "running") { poblarVocesRunning(); setTimeout(poblarVocesRunning, 800); }   // (v124, v126)
-    if (pantallaActual === "running" && $("[data-run-mapa]")) { ponerHeroeEnMapaVivo(); ponerCriaturasDeCarrera(); }   // (v118–v119) héroe y criatura sobre el mapa
+    if (pantallaActual === "running" && $("[data-run-mapa]")) { ponerHeroeEnMapaVivo(); ponerCriaturasDeCarrera(); ponerPeleaEnMapa(); }   // (v118–v119, v146) héroe y pelea sobre el mapa
     if (pantallaActual === "mapa") pintarMapa();   // la imagen del mapa (pixel art) llega un instante después
     actualizarBarraRun();
     if (pantallaActual === "arcade") pintarPortadas();        // la portada de la Mazmorra (pixel art)
