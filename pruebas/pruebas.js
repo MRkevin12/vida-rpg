@@ -76,7 +76,7 @@ import * as ruta from "../js/ruta.js";
 import * as encuentros from "../js/encuentros.js";
 import * as frases from "../js/frases.js";
 import * as locutor from "../js/locutor.js";
-import { mapaDeCarrera, mapaDePista, puntoEnPista } from "../js/dibujo-carrera.js";
+import { mapaDeCarrera, mapaDePista, puntoEnPista, momentoDelDia, VENTANA_SEGUIR } from "../js/dibujo-carrera.js";
 import * as vistasRunning from "../js/vistas-running.js";
 import * as memento from "../js/memento.js";
 import * as vistasMemento from "../js/vistas-memento.js";
@@ -3351,6 +3351,61 @@ prueba("Mapa de la carrera: dibuja zonas, río y banderas con el color de cada p
     igual(zona.id, "bosque", "a los 4,2 km vas por el bosque");
     cierto(aqui.x > 0 && aqui.x < 100, "tu héroe queda dentro del mapa");
     cierto(mapaDeCarrera({ traza: [] }).svg.includes("Buscando señal"), "sin puntos, espera al GPS");
+});
+
+prueba("Mapa de la carrera (v144): la hora decide la luz (amanecer, día, atardecer, noche)", () => {
+    igual(momentoDelDia(6), "amanecer");
+    igual(momentoDelDia(12.5), "dia");
+    igual(momentoDelDia(18), "atardecer");
+    igual(momentoDelDia(22), "noche");
+    igual(momentoDelDia(3), "noche", "de madrugada también es de noche");
+    igual(momentoDelDia(undefined), "dia", "sin hora (carreras viejas), de día");
+    const traza = Array.from({ length: 40 }, (_, i) => [4.6 + i * 0.0003, -74.08 + Math.sin(i / 5) * 0.001]);
+    for (const [hora, momento] of [[6, "amanecer"], [12, "dia"], [18, "atardecer"], [23, "noche"]]) {
+        for (const seguir of [true, false]) {
+            const { svg } = mapaDeCarrera({ traza, banderas: [traza[20]], km: 2.4, seguir, flecha: true, hora, reloj: 5000, parciales: [300, 280] });
+            dibujoSano(svg.trim(), `mapa a las ${hora} h`);
+            cierto(svg.includes(`data-momento="${momento}"`), `a las ${hora} h es ${momento}`);
+            cierto(!new DOMParser().parseFromString(svg, "image/svg+xml").querySelector("parsererror"), "el mapa se puede leer como imagen");
+        }
+    }
+});
+
+prueba("Mapa de la carrera (v144): el paisaje queda fijo en el terreno y el reloj solo cambia las fases", () => {
+    const traza = Array.from({ length: 80 }, (_, i) => [4.6 + i * 0.0002, -74.08]);
+    const op = { traza, km: 1.7, seguir: true, flecha: true, hora: 13, reloj: 1000 };
+    igual(mapaDeCarrera(op).svg, mapaDeCarrera(op).svg, "lo mismo se dibuja igual");
+    // Otro reloj (del mismo vuelo de pájaros): solo cambian las fases de las animaciones (el style del <svg>).
+    const sinFases = (svg) => svg.replace(/ style="[^"]*"/, "");
+    const otro = mapaDeCarrera({ ...op, reloj: 13000 }).svg;
+    cierto(otro !== mapaDeCarrera(op).svg, "las fases cambian con el reloj");
+    igual(sinFases(otro), sinFases(mapaDeCarrera(op).svg), "y nada más");
+    // Avanzas 22 m al norte: lo que había en el terreno baja 22 m × (320 / 420) en la pantalla, pero sigue ahí.
+    const despues = mapaDeCarrera({ ...op, traza: [...traza, [4.6 + 80 * 0.0002, -74.08]] }).svg;
+    const posiciones = (svg) => [...svg.matchAll(/<use href="#[^"]+" x="(-?\d+)" y="(-?\d+)"/g)].map((m) => [Number(m[1]), Number(m[2])]);
+    const corrimiento = 0.0002 * 110540 * (320 / VENTANA_SEGUIR);
+    const antes = posiciones(mapaDeCarrera(op).svg).filter(([, y]) => y + corrimiento < 230);
+    const ahora = posiciones(despues);
+    const siguen = antes.filter(([x, y]) => ahora.some(([x2, y2]) => Math.abs(x2 - x) <= 1 && Math.abs(y2 - y - corrimiento) <= 1));
+    cierto(antes.length > 20, "hay árboles, rocas y demás");
+    cierto(siguen.length / antes.length > 0.8, `las piezas siguen en su lugar del terreno (${siguen.length} de ${antes.length})`);
+});
+
+prueba("Mapa de la carrera (v144): un mojón por km y tu km más rápido en dorado", () => {
+    const traza = Array.from({ length: 60 }, (_, i) => [4.6 + i * 0.0003, -74.08]);
+    const banderas = [traza[19], traza[39]];
+    const encuentros = [{ km: 1, resultado: "vencida", jefe: true }, { km: 2, resultado: "escapo" }];
+    const { svg } = mapaDeCarrera({ traza, banderas, encuentros, km: 2.9, parciales: [300, 280] });
+    igual((svg.match(/class="cr-hito"/g) || []).length, 2, "dos km, dos mojones");
+    cierto(svg.includes(">1</text>") && svg.includes(">2</text>"), "cada mojón lleva su número");
+    cierto(svg.includes("#c084fc") && svg.includes("#8a8a96"), "morado (jefe vencido) y gris (escapó)");
+    cierto(svg.includes("cr-rapido"), "el km 2 (el más rápido) brilla");
+    cierto(!mapaDeCarrera({ traza, banderas: [traza[19]], km: 1.5, parciales: [300] }).svg.includes("cr-rapido"), "con un solo km no hay «más rápido»");
+    // En vivo hay huellas y la sombra del héroe; en el historial, el cuadro rojo de la llegada.
+    const vivo = mapaDeCarrera({ traza, km: 2.9, flecha: true }).svg;
+    const historial = mapaDeCarrera({ traza, km: 2.9, flecha: false }).svg;
+    cierto(vivo.includes('stroke="#ffe9a8"') && !vivo.includes('fill="#f87171"'), "en vivo, el camino se ilumina detrás de ti");
+    cierto(historial.includes('fill="#f87171"') && !historial.includes('stroke="#ffe9a8"'), "en el historial, la llegada");
 });
 
 prueba("Running: las predicciones parten de tu mejor carrera reciente (Riegel) y ignoran la caminata", () => {

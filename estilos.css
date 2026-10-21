@@ -11935,6 +11935,50 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     visibility: hidden;
 }
 
+/* ===== (v144) El mapa de la carrera se mueve (árboles, pasto, agua, fuego, nieve, brasas, niebla, pájaros) =====
+   Todo va en pasos (steps): el dibujo cambia pocas veces por segundo, como el pixel art, y el teléfono trabaja poco.
+   Cada animación dura un divisor de 24 s. Las fases (--f0 … --f3) las escribe dibujo-carrera.js en el <svg> según la hora:
+   así, aunque el mapa se vuelva a dibujar cada segundo, cada animación sigue donde iba en vez de empezar de cero. */
+.run-mapa-svg .cr-mece { animation: cr-mece 2.4s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-brillo { animation: cr-brillo 1.6s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-copo { animation: cr-copo 3s steps(12) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-brasa { animation: cr-brasa 2.4s steps(12) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-niebla { animation: cr-niebla 6s steps(6) var(--f0, 0s) infinite alternate; }
+.run-mapa-svg .cr-luciernaga { animation: cr-luciernaga 3s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-mariposa { animation: cr-mariposa 2s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-corriente { animation: cr-corriente 3s steps(12) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-lava { animation: cr-lava 1.6s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-fuegoA, .run-mapa-svg .cr-alaA { animation: cr-cuadro-a 0.5s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-fuegoB, .run-mapa-svg .cr-alaB { animation: cr-cuadro-b 0.5s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-humo { animation: cr-humo 2s steps(8) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-vuelo { animation: cr-vuelo 24s steps(96) var(--f0, 0s) infinite; }
+
+/* Las fases de cada grupo (van después, para ganarle al animation-delay de arriba). */
+.run-mapa-svg .f1 { animation-delay: var(--f1, 0s); }
+.run-mapa-svg .f2 { animation-delay: var(--f2, 0s); }
+.run-mapa-svg .f3 { animation-delay: var(--f3, 0s); }
+
+@keyframes cr-mece { 0%, 55% { transform: translateX(0); } 60%, 80% { transform: translateX(1px); } 85%, 100% { transform: translateX(0); } }
+@keyframes cr-brillo { 0%, 60% { opacity: 0; } 65%, 85% { opacity: 1; } 90%, 100% { opacity: 0; } }
+@keyframes cr-copo { from { transform: translate(0, -6px); } to { transform: translate(2px, 6px); } }
+@keyframes cr-brasa { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(1px, -12px); opacity: 0; } }
+@keyframes cr-niebla { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
+@keyframes cr-luciernaga { 0%, 30% { opacity: 0; } 35%, 60% { opacity: 1; } 65%, 100% { opacity: 0; } }
+@keyframes cr-mariposa { 0% { transform: translate(0, 0); } 25% { transform: translate(1px, -1px); } 50% { transform: translate(2px, 0); } 75% { transform: translate(1px, 1px); } 100% { transform: translate(0, 0); } }
+@keyframes cr-corriente { to { stroke-dashoffset: -12; } }
+@keyframes cr-lava { 0%, 50% { opacity: 1; } 55%, 100% { opacity: 0.7; } }
+@keyframes cr-cuadro-a { 0%, 45% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes cr-cuadro-b { 0%, 45% { opacity: 0; } 50%, 100% { opacity: 1; } }
+@keyframes cr-humo { from { transform: translate(0, 0); opacity: 0.9; } to { transform: translate(1px, -8px); opacity: 0; } }
+@keyframes cr-vuelo { 0% { transform: translate(0, 0); } 50%, 100% { transform: translate(380px, -24px); } }
+
+/* Sin movimiento (Ajustes del teléfono › Accesibilidad): el mapa queda quieto y los pájaros no aparecen. */
+@media (prefers-reduced-motion: reduce) {
+    .run-mapa-svg * {
+        animation: none !important;
+    }
+}
+
 
 /* ===== (v119) Criaturas en la carrera y el mapa por zonas ===== */
 .run-mapa-zona {

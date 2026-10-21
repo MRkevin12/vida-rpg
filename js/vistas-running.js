@@ -193,8 +193,9 @@ function detalleDeCarrera(c) {
     return `
         <details class="run-detalle">
             <summary>🗺️ Ver recorrido${c.parciales?.length ? ` y ${plural(c.parciales.length, "parcial", "parciales")}` : ""}</summary>
-            ${c.traza ? `<div class="run-mapa-vivo">${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km, porZona: c.kmPorZona || 3, pista: c.pista ? { metros: c.km * 1000, largo: c.pista } : null })}</div>
-            <p class="mini texto-suave">Cuadro verde: salida · rojo: llegada · banderas: cada km (verde: criatura vencida, morada: jefe vencido, gris: escapó)</p>` : ""}
+            ${c.traza ? `<div class="run-mapa-vivo">${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km, porZona: c.kmPorZona || 3, pista: c.pista ? { metros: c.km * 1000, largo: c.pista } : null,
+                hora: horaDeCarrera(c), parciales: c.parciales || [] })}</div>
+            <p class="mini texto-suave">Cuadro verde: salida · rojo: llegada · mojones: cada km (verde: criatura vencida, morado: jefe vencido, gris: escapó) · dorado: tu km más rápido</p>` : ""}
             ${criaturasDeCarrera(c)}
             ${htmlParciales(c.parciales)}
             ${analisis ? `<p class="mini texto-suave">Mejor: km ${analisis.mejorKm} (${running.textoSegundos(analisis.mejor)}) · Más lento: km ${analisis.peorKm} (${running.textoSegundos(analisis.peor)}).<br>${reparto}</p>` : ""}
@@ -204,11 +205,14 @@ function detalleDeCarrera(c) {
 // ===== El mapa de tu carrera (v118; zonas, ríos, lagos y criaturas en la v119) =====
 // El dibujo está en dibujo-carrera.js. Encima van tu héroe y la criatura del km (sus imágenes las pone app.js: son pixel art
 // y tardan un instante) y el nombre de la zona donde vas.
-export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null, seguir = false, pista = null, porZona = 3, recorte = false } = {}) {
+// (v144) hora: la hora del día (0–24) para la luz del mapa; reloj: la hora en ms (las animaciones siguen donde iban al
+// redibujar); parciales: los segundos de cada km (el más rápido brilla en dorado).
+export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, criatura = null, seguir = false, pista = null, porZona = 3, recorte = false,
+                                                hora, reloj = 0, parciales = [] } = {}) {
     // (v131) En pista se dibuja la pista de atletismo; en la calle, el mapa te sigue de cerca o muestra todo el recorrido.
     const dibujo = pista
         ? mapaDePista({ metros: pista.metros, largo: pista.largo })
-        : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe, porZona });
+        : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe, porZona, hora, reloj, parciales });
     const { aqui, zona } = dibujo;
     // (v139) recorte: en la pantalla dividida la caja del mapa no siempre mide 4:3. En vez de estirar el dibujo (los cuadritos se
     // deformarían), se agranda hasta llenarla y se recortan los bordes («slice»). Entonces tu héroe se ubica con la misma cuenta:
@@ -230,13 +234,20 @@ export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas
 }
 
 // Lo que el mapa en vivo necesita de la carrera en curso. (v139) La criatura ya no va en el mapa: pelea en su mitad de la pantalla.
-export const opcionesDelMapa = (en, r = {}) => ({
+export const opcionesDelMapa = (en, r = {}, ahora = Date.now()) => ({
     encuentros: en.encuentros || [], km: en.distancia / 1000, criatura: null,
     seguir: r.vistaMapa !== "todo",                                          // (v131)
     porZona: en.kmPorZona || 3,                                              // (v132)
     pista: en.pista ? { metros: en.distancia, largo: en.pista } : null,      // (v131)
     recorte: Boolean(en.encuentros),                                         // (v139) comparte la pantalla con la batalla
+    hora: horaDelDia(ahora), reloj: ahora,                                   // (v144) la luz de ahora y las fases de las animaciones
+    parciales: running.parcialesDe(en.marcas),                               // (v144) tu km más rápido brilla
 });
+
+// (v144) La hora del día de un momento (en ms), como número: 18.5 = 18:30. En el historial se usa la mitad de la carrera
+// (creada es cuando se guardó, al final); las carreras sin ese dato se dibujan de día.
+export const horaDelDia = (ms) => { const d = new Date(ms); return d.getHours() + d.getMinutes() / 60; };
+const horaDeCarrera = (c) => (Number.isFinite(c.creada) ? horaDelDia(c.creada - (Number(c.minutos) || 0) * 30000) : undefined);
 
 // ===== La pelea del km (v119) =====
 // La criatura del km en curso: qué pide, cuánta vida le queda (baja a medida que avanzas en el km) y cómo vas con tu ritmo.

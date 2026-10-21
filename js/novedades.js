@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 143;
+export const VERSION_APP = 144;
 
 export const NOVEDADES = [
+    {
+        version: 144,
+        titulo: "Un mapa de carrera con vida",
+        cambios: [
+            "🌲 El mapa de tu carrera está rehecho: bosquecillos con claros, árboles de tres tamaños, arbustos, flores, hongos, troncos caídos, colinas, montañas, aldeas, torres, campamentos y ruinas.",
+            "🌅 La luz cambia con la hora: amanecer, día, atardecer y noche (de noche ves un círculo de luz a tu alrededor, ventanas encendidas y fogatas).",
+            "🌿 Se mueve: los árboles y el pasto se mecen, el agua brilla y corre, el fuego chisporrotea, pasan pájaros (de noche, murciélagos) y hay niebla en el pantano, nieve en las cumbres y brasas en el desierto y el abismo.",
+            "🪨 Cada km tiene un mojón de piedra con su número y el color de su criatura; tu km más rápido brilla en dorado y el camino se ilumina detrás de ti, con tus huellas.",
+            "🗺️ Las zonas pasan de una a otra poco a poco, y cada lugar de salida tiene su propio paisaje (tu ruta de siempre se ve siempre igual).",
+        ],
+    },
     {
         version: 143,
         titulo: "Hoy más ordenado",
