@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 144;
+export const VERSION_APP = 145;
 
 export const NOVEDADES = [
+    {
+        version: 145,
+        titulo: "Más mapa",
+        cambios: [
+            "🗺️ En la pantalla dividida, el mapa de tu carrera ahora ocupa más: 60 % del espacio (de pie y acostado), y la batalla queda con el 40 %.",
+        ],
+    },
     {
         version: 144,
         titulo: "Un mapa de carrera con vida",

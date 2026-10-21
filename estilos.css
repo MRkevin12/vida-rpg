@@ -12422,7 +12422,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 /* Acostado o en una pantalla ancha: uno al lado del otro y del mismo alto (la batalla toma el alto del mapa). */
 @media (orientation: landscape), (min-width: 700px) {
     .run-dividida.con-batalla {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);   /* (v145) el mapa ocupa más */
     }
 
     .run-dividida.con-batalla .run-batalla {
@@ -12433,7 +12433,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 /* En modo concentración la caja dividida se queda con todo el espacio que sobra: mitad mapa, mitad batalla. */
 .run-concentracion:not(.run-terminando) .run-dividida.con-batalla {
     flex: 1 1 auto;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1.5fr) minmax(0, 1fr);   /* (v145) el mapa ocupa más */
     min-height: 240px;
     margin: 0;
 }
@@ -12449,6 +12449,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 @media (orientation: landscape), (min-width: 700px) {
     .run-concentracion:not(.run-terminando) .run-dividida.con-batalla {
         grid-template-rows: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);   /* (v145) el mapa ocupa más */
         min-height: 160px;
     }
 }
@@ -12881,7 +12882,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     .run-concentracion:not(.run-terminando) .run-botones-chicos { grid-area: chicos; }
 
     .run-concentracion:not(.run-terminando) .run-dividida.con-batalla {
-        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1.5fr) minmax(0, 1fr);   /* (v145) el mapa ocupa más */
         grid-template-columns: minmax(0, 1fr);
         min-height: 0;
     }
