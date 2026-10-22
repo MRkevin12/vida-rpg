@@ -267,6 +267,7 @@ function revisarAlAbrir() {
             ...(acciones.revisarEscudosUsados(estado)?.celebraciones || []),
             ...(acciones.revisarEnfoque(estado)?.celebraciones || []),
             ...(acciones.asegurarDesafio(estado)?.celebraciones || []),
+            ...(acciones.cerrarTemporadas(estado)?.celebraciones || []),   // (v149) las metas del mes que terminó
         ];
         acciones.asegurarRetoDelDia(estado);
         return { celebraciones };

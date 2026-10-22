@@ -219,7 +219,72 @@ export function misionesParaFoco(estado, hoy) {
     return estado.misiones.filter((m) => estaActiva(m, hoy));
 }
 
-// Lo que se ve en la revisión como pista: qué misión fallaste más esa semana y por qué motivo (o null).
+// ===== Cómo te va con UNA misión (v149) =====
+// Con el historial de una misión se ve a qué hora la sueles cumplir y qué día de la semana la fallas más.
+// La hora sale de lo que se guarda al marcarla (completada.hora; las marcadas antes de la v149 no la tienen).
+
+const DIAS_PLURAL = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábados", "domingos"];
+const MINIMO_DATOS = 3;                       // con menos de 3 datos no se saca ninguna conclusión
+const MAS_FACIL = { dificil: "normal", normal: "facil" };
+
+export function analizarMision(estado, misionId) {
+    const hechas = estado.completadas.filter((c) => c.misionId === misionId);
+    const fallas = estado.fallas.filter((f) => f.misionId === misionId);
+
+    // La hora de en medio (mediana) de todas las veces que la cumpliste.
+    const horas = hechas.map((c) => c.hora).filter(Number.isInteger).sort((a, b) => a - b);
+    const horaTipica = horas.length >= MINIMO_DATOS ? horas[Math.floor(horas.length / 2)] : null;
+
+    // El día de la semana con más fallas, si de verdad destaca (al menos 3 y 40 % de todas).
+    const porDia = [0, 0, 0, 0, 0, 0, 0];
+    for (const f of fallas) porDia[diaDeSemana(f.fecha)] += 1;
+    const peor = Math.max(...porDia);
+    const diaFrecuente = peor >= MINIMO_DATOS && peor / fallas.length >= 0.4 ? porDia.indexOf(peor) : null;
+
+    const intentos = hechas.length + fallas.length;
+    return { hechas: hechas.length, fallas: fallas.length, horaTipica, diaFrecuente,
+             tasaDeFalla: intentos ? Math.round((fallas.length / intentos) * 100) : 0 };
+}
+
+const textoHora = (hora) => `${String(hora).padStart(2, "0")}:00`;
+
+// UN cambio concreto para una misión que fallas mucho (o null si no hay nada razonable que proponer).
+// tipo: "quitar-dia" (ya no toca ese día) · "aviso" (le pone una alarma) · "bajar" (la baja de dificultad).
+// Lo usa la revisión semanal; acciones.aplicarSugerencia() lo vuelve a calcular y lo aplica.
+export function sugerirCambio(mision, analisis, motivo) {
+    const sencilla = !mision.veces && !mision.diasMes;     // las metas «N veces» o del mes no tienen días fijos que quitar
+    const dia = analisis.diaFrecuente;
+    const diasQueToca = mision.dias || [0, 1, 2, 3, 4, 5, 6];
+
+    if (sencilla && dia !== null && diasQueToca.includes(dia) && diasQueToca.length > 1) {
+        return { tipo: "quitar-dia", dia,
+                 texto: `La fallas sobre todo los ${DIAS_PLURAL[dia]}. Quítala de ese día y concéntrate en los demás.`,
+                 boton: `Quitar los ${DIAS_PLURAL[dia]}` };
+    }
+    if (motivo === "olvido" && !mision.aviso) {
+        const hora = analisis.horaTipica ?? 18;
+        return { tipo: "aviso", hora: textoHora(hora),
+                 texto: analisis.horaTipica !== null
+                     ? `Se te olvida, y cuando la cumples suele ser hacia las ${analisis.horaTipica} h. Ponle un aviso a las ${textoHora(hora)}.`
+                     : `Se te olvida. Ponle un aviso a las ${textoHora(hora)} para que no se pase el día.`,
+                 boton: `Avisarme a las ${textoHora(hora)}` };
+    }
+    if (["tiempo", "energia", "ganas"].includes(motivo) && MAS_FACIL[mision.dificultad]) {
+        const nueva = MAS_FACIL[mision.dificultad];
+        return { tipo: "bajar", dificultad: nueva,
+                 texto: "Te cuesta sostenerla. Bájala de dificultad: mejor una versión más pequeña que cumplas que una grande que falles.",
+                 boton: `Pasarla a ${nueva === "facil" ? "Fácil" : "Normal"}` };
+    }
+    if (analisis.horaTipica !== null && !mision.aviso) {
+        return { tipo: "aviso", hora: textoHora(analisis.horaTipica),
+                 texto: `Cuando la cumples suele ser hacia las ${analisis.horaTipica} h. Un aviso a esa hora ayuda a no dejarla pasar.`,
+                 boton: `Avisarme a las ${textoHora(analisis.horaTipica)}` };
+    }
+    return null;
+}
+
+// Lo que se ve en la revisión como pista: qué misión fallaste más esa semana, por qué motivo, a qué hora
+// la sueles cumplir, y UN cambio concreto que proponer (o null si no hubo fallas).
 export function pistaDeFallas(estado, lunes) {
     const domingo = sumarDias(lunes, 6);
     const fallas = (estado.fallas || []).filter((f) => f.fecha >= lunes && f.fecha <= domingo);
@@ -233,11 +298,25 @@ export function pistaDeFallas(estado, lunes) {
     const [idMision, veces] = contar(fallas.map((f) => f.misionId));
     const mision = estado.misiones.find((m) => m.id === Number(idMision));
     const motivoFrecuente = contar(fallas.map((f) => f.motivo).filter((m) => MOTIVOS_FALLA[m]));   // puede no haber ninguno
+
+    let analisis = null;
+    let sugerencia = null;
+    if (mision) {
+        analisis = analizarMision(estado, mision.id);
+        // El motivo de ESTA misión (esa semana) manda; si no dijo ninguno, el de todo su historial.
+        const conMotivo = (lista) => contar(lista.filter((f) => MOTIVOS_FALLA[f.motivo]).map((f) => f.motivo));
+        const motivo = (conMotivo(fallas.filter((f) => f.misionId === mision.id)) || conMotivo(estado.fallas.filter((f) => f.misionId === mision.id)))?.[0];
+        sugerencia = mision.archivadaEn ? null : sugerirCambio(mision, analisis, motivo);
+    }
     return {
         total: fallas.length,
         mision: mision ? mision.nombre : null,
+        misionId: mision ? mision.id : null,
         veces,
         motivo: motivoFrecuente ? MOTIVOS_FALLA[motivoFrecuente[0]] : null,
+        horaTipica: analisis ? analisis.horaTipica : null,
+        diaFrecuente: analisis ? analisis.diaFrecuente : null,
+        sugerencia,
     };
 }
 

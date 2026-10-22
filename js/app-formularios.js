@@ -92,6 +92,11 @@ export const FORMULARIOS_GENERALES = {
         if (resultado) avisar("📝 Revisión guardada. ¡A por esta semana!");
         return resultado;
     },
+    temporada(valores) {
+        const resultado = ejecutar(() => acciones.elegirMetasDeTemporada(estado, valores));
+        if (resultado) avisar("🗓️ Metas del mes guardadas. ¡A por ellas!");
+        return resultado;
+    },
     logro: (valores) => ejecutar(() => (valores.id ? acciones.editarLogro(estado, valores) : acciones.crearLogro(estado, valores))),
     recompensa: (valores) => ejecutar(() => (valores.id ? acciones.editarRecompensa(estado, valores) : acciones.crearRecompensa(estado, valores))),
     atributo(valores) {

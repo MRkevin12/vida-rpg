@@ -11,6 +11,7 @@ import { dibujarEscenario } from "./dibujo.js";
 import { figuraPixel, pixelarEnVivo } from "./retratos.js";
 import { icono } from "./iconos.js";
 import * as voces from "./voces.js";
+import * as secretos from "./secretos.js";   // (v149)
 import { fechaCorta } from "./fechas.js";
 import { esc, cabeceraSeccion, vacio, plegable, barra, ICONOS, chipAtributo, botonCerrar, notaJefeEsperando,
          botonEditar, barraDeArmadura } from "./vistas-comun.js";
@@ -236,7 +237,29 @@ export function pantallaLogros(estado, ctx) {
         ${porConseguir.length ? lista(porConseguir) : vacio("No tienes logros pendientes. ¡Crea tu próxima meta!")}
 
         <h3 class="subtitulo">🏆 Salón de la fama (${conseguidos.length})</h3>
-        ${conseguidos.length ? lista(conseguidos) : vacio("Aquí aparecerán los logros que consigas.")}`;
+        ${conseguidos.length ? lista(conseguidos) : vacio("Aquí aparecerán los logros que consigas.")}
+
+        ${seccionSecretos(estado)}`;
+}
+
+
+// (v149) Los logros secretos: sin descubrir solo muestran una pista; al descubrirlos se revela qué hiciste.
+function seccionSecretos(estado) {
+    const hallados = estado.secretos || {};
+    const abiertos = secretos.SECRETOS.filter((s) => hallados[s.id]);
+    const cerrados = secretos.SECRETOS.filter((s) => !hallados[s.id]);
+    return `
+        <h3 class="subtitulo">🗝️ Secretos (${abiertos.length} de ${secretos.SECRETOS.length})</h3>
+        <p class="nota">Nadie te dice cómo se ganan: aparecen solos cuando haces algo especial. Cada uno da un premio.</p>
+        <ul class="lista secretos">
+            ${abiertos.map((s) => `
+            <li class="tarjeta secreto abierto"><span class="secreto-icono" aria-hidden="true">${s.icono}</span>
+                <div><strong>${esc(s.nombre)}</strong><br><small>${esc(s.texto)}</small><br>
+                <small class="texto-suave">Descubierto el ${fechaCorta(hallados[s.id])} · +${s.premio.gemas} 💎 · +${s.premio.xp} XP</small></div></li>`).join("")}
+            ${cerrados.map((s) => `
+            <li class="tarjeta secreto"><span class="secreto-icono" aria-hidden="true">🔒</span>
+                <div><strong>???</strong><br><small class="texto-suave">${esc(s.pista)}</small></div></li>`).join("")}
+        </ul>`;
 }
 
 

@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v148";
+const VERSION = "vida-rpg-v149";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
@@ -112,6 +112,9 @@ const ARCHIVOS = [
     "./js/pinturas.js",
     "./js/plantillas.js",
     "./js/resumen.js",
+    "./js/temporadas.js",
+    "./js/secretos.js",
+    "./js/vistas-temporada.js",
     "./js/seguridad.js",
     "./js/sonido.js",
     "./js/musica.js",

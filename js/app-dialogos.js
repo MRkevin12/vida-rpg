@@ -377,6 +377,10 @@ export const PREPARAR = {
     revision(lunes) {
         $("#revision-contenido").innerHTML = vistas.contenidoRevision(estado, lunes, hoy());
     },
+    // (v149) Las metas del mes.
+    temporada() {
+        $("#temporada-contenido").innerHTML = vistas.contenidoTemporada(estado, hoy());
+    },
     ordenar() {
         $("#ordenar-lista").innerHTML = vistas.listaOrdenar(estado);
     },

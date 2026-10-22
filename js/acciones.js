@@ -31,6 +31,8 @@ import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "./plantillas.js";
 import { PISTAS } from "./musica.js";
 import * as equipo from "./equipo.js";
 import * as resumen from "./resumen.js";
+import * as temporadas from "./temporadas.js";   // (v149) las metas del mes
+import * as secretos from "./secretos.js";         // (v149) los logros secretos
 import * as retos from "./retos.js";
 import * as voces from "./voces.js";
 import * as pergaminos from "./pergaminos.js";
@@ -316,7 +318,9 @@ export function completarMision(estado, id, fecha = hoy()) {
     // Guardamos cuánto dio (y su dificultad y atributo de ese momento), para poder
     // restarlo exacto si la desmarcas y para que editar la misión no cambie el pasado.
     estado.completadas.push({ misionId: id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad,
-                              atributoPropio: mision.atributoPropio || null, ...(esClave ? { clave: true } : {}) });
+                              atributoPropio: mision.atributoPropio || null, ...(esClave ? { clave: true } : {}),
+                              // (v149) La hora en que la marcaste (solo si es de hoy): sirve para saber a qué hora la sueles cumplir.
+                              ...(fecha === hoy() ? { hora: new Date().getHours() } : {}) });
     ganar(estado, { xp, monedas, atributo: mision.atributo });
     return { xp, forma, clave: esClave };
 }
@@ -1182,6 +1186,85 @@ function revisarDesafios(estado) {
     return celebraciones;
 }
 
+// ===== Temporadas (v149) =====
+// Cada mes eliges hasta 4 metas. Al empezar el mes siguiente se cierran: se paga el premio y queda el resumen.
+
+// Elige (o corrige) las metas de ESTE mes. Los valores vienen del formulario como meta_misiones, meta_km…;
+// lo que se deja vacío no es una meta.
+export function elegirMetasDeTemporada(estado, valores) {
+    const mes = temporadas.mesDe(hoy());
+    const metas = [];
+    for (const [tipo, info] of Object.entries(temporadas.METAS)) {
+        const texto = String(valores[`meta_${tipo}`] ?? "").trim().replace(",", ".");
+        if (!texto) continue;
+        const meta = Number(texto);
+        const tope = info.unidad === "días" ? temporadas.diasDelMes(mes) : 100000;
+        if (!Number.isFinite(meta) || meta < 1 || meta > tope) {
+            throw new Error(`La meta «${info.nombre}» debe ser un número entre 1 y ${tope}.`);
+        }
+        metas.push({ tipo, meta: tipo === "km" ? Math.round(meta * 10) / 10 : Math.round(meta) });
+    }
+    if (metas.length < 1 || metas.length > temporadas.MAX_METAS) {
+        throw new Error(`Elige entre 1 y ${temporadas.MAX_METAS} metas (deja vacías las que no quieras).`);
+    }
+    estado.temporadas[mes] = { metas, cierre: null };
+}
+
+// Al abrir la app: cierra las temporadas de meses que ya pasaron. Paga por cada meta cumplida (y el regalo
+// si cumpliste todas) y guarda el resumen para contártelo en Hoy.
+export function cerrarTemporadas(estado) {
+    const celebraciones = [];
+    const actual = temporadas.mesDe(hoy());
+    for (const mes of Object.keys(estado.temporadas).sort()) {
+        const guardada = estado.temporadas[mes];
+        if (guardada.cierre || mes >= actual) continue;
+        const info = temporadas.temporadaDe(estado, mes, hoy());
+        const premio = temporadas.premioDeTemporada(info.cumplidas, info.todas);
+        ganar(estado, premio);
+        guardada.cierre = {
+            fecha: hoy(),
+            cumplidas: info.cumplidas,
+            total: info.total,
+            todas: info.todas,
+            valores: info.metas.map((m) => ({ tipo: m.tipo, meta: m.meta, valor: m.valor })),
+            premio,
+            numeros: temporadas.numerosDelMes(estado, mes, hoy()),
+            visto: false,
+        };
+        celebraciones.push({ icono: "🗓️", etiqueta: `Temporada de ${temporadas.nombreDelMes(mes)} cerrada`,
+                             titulo: `${info.cumplidas} de ${info.total} metas`,
+                             detalle: premio.xp ? `+${premio.xp} XP · +${premio.gemas} 💎${premio.monedas ? ` · +${premio.monedas} 🪙` : ""}` : "Mira el resumen en Hoy." });
+    }
+    return { celebraciones };
+}
+
+// Cierra la tarjeta con el resumen de una temporada que ya pasó.
+export function cerrarResumenTemporada(estado, mes) {
+    const guardada = estado.temporadas[mes];
+    if (!guardada?.cierre) throw new Error("Esa temporada no está cerrada.");
+    guardada.cierre.visto = true;
+}
+
+// Revisión semanal: aplica el cambio que propuso la pista (quitar un día, poner un aviso o bajar la dificultad).
+// Se vuelve a calcular aquí, así que solo se puede aplicar lo que de verdad se propuso.
+export function aplicarSugerencia(estado, { misionId, lunes }) {
+    if (!esFechaValida(lunes) || lunesDe(lunes) !== lunes) throw new Error("Esa semana no es válida.");
+    const pista = resumen.pistaDeFallas(estado, lunes);
+    const cambio = pista?.sugerencia;
+    if (!cambio || pista.misionId !== Number(misionId)) throw new Error("Esa sugerencia ya no se puede aplicar.");
+    const mision = buscar(estado.misiones, pista.misionId, "esa misión");
+    if (cambio.tipo === "quitar-dia") {
+        const quedan = (mision.dias || [0, 1, 2, 3, 4, 5, 6]).filter((d) => d !== cambio.dia);
+        mision.dias = quedan.length === 7 ? null : quedan;
+    } else if (cambio.tipo === "aviso") {
+        mision.aviso = validarAviso(cambio.hora);
+    } else if (cambio.tipo === "bajar") {
+        mision.dificultad = validarDificultad(cambio.dificultad);
+    }
+    return { cambio: cambio.tipo, mision: mision.nombre };
+}
+
+
 // La tarjeta «Tu semana» (resumen de la semana pasada) se muestra hasta que la cierras.
 export function cerrarResumenSemanal(estado) {
     estado.semanaVista = lunesDe(hoy());
@@ -1948,11 +2031,28 @@ export function ponerInsignia(estado, id) {
     return {};
 }
 
+// ===== Secretos (v149) =====
+
+// Descubre los secretos que acabas de cumplir (ver secretos.js) y paga su premio. Se celebran los 2 primeros;
+// los demás salen en un aviso pequeño. Si ya cumplías alguno al actualizar, se descubre en la primera acción.
+function revisarSecretos(estado) {
+    estado.secretos ||= {};
+    return secretos.nuevosSecretos(estado, hoy()).map((secreto, i) => {
+        estado.secretos[secreto.id] = hoy();
+        ganar(estado, secreto.premio);
+        return i < 2
+            ? { icono: secreto.icono, etiqueta: "🗝️ ¡Secreto descubierto!", titulo: secreto.nombre,
+                detalle: `${secreto.texto} +${secreto.premio.gemas} 💎 · +${secreto.premio.xp} XP` }
+            : { pequena: true, icono: secreto.icono, titulo: `Secreto descubierto: ${secreto.nombre}` };
+    });
+}
+
 export function revisarCambios(estado, antes) {
     // Primero los jefes y los cofres: sus recompensas pueden hacerte subir de nivel.
     const celebraciones = [...sincronizarCampanas(estado, antes.dano), ...revisarDesafios(estado), ...revisarRelampago(estado)];
     const info = juego.resumen(estado, hoy());
     celebraciones.push(...revisarInsignias(estado, info));   // (v101)
+    celebraciones.push(...revisarSecretos(estado));          // (v149)
 
     const nivel = juego.calcularNivel(estado.personaje.xp).nivel;
     if (nivel > antes.nivel) {

@@ -14,6 +14,7 @@
 //   vistas-comun.js        — piezas que usan varias pantallas (esc, barras, botones)
 //   vistas-hoy.js          — la pantalla Hoy
 //   vistas-diario.js       — el diario y la revisión de la semana
+//   vistas-temporada.js    — las temporadas mensuales (v149)
 //   vistas-progreso.js     — la pestaña Progreso
 //   vistas-aventuras.js    — Aventuras: principales, jefes, logros
 //   vistas-mapa.js         — el mapa del reino y la Crónica
@@ -31,6 +32,7 @@
 export * from "./vistas-comun.js";
 export * from "./vistas-hoy.js";
 export * from "./vistas-diario.js";
+export * from "./vistas-temporada.js";
 export * from "./vistas-progreso.js";
 export * from "./vistas-aventuras.js";
 export * from "./vistas-mapa.js";

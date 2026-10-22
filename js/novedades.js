@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 148;
+export const VERSION_APP = 149;
 
 export const NOVEDADES = [
+    {
+        version: 149,
+        titulo: "Temporadas, revisión con consejos y secretos",
+        cambios: [
+            "🗓️ Temporadas: cada mes eliges hasta 4 metas (misiones, días perfectos, gym, km o diario). Cada meta cumplida da XP y 💎, y si cumples todas hay un regalo extra. Lo ves en Hoy › Aurelio.",
+            "📊 Cuando el mes termina, la app te cuenta cómo te fue: tus metas, tu mejor día, tu día más fuerte, cómo vas contra el mes anterior y un consejo para el siguiente.",
+            "📝 Revisión semanal más útil: te dice qué misión fallas más, a qué hora la sueles cumplir y te propone UN cambio concreto (quitar el día que más fallas, ponerle un aviso o bajarla de dificultad) con un botón para aplicarlo.",
+            "🗝️ Secretos: logros que nadie te explica. Solo ves una pista misteriosa en Logros; al hacer algo especial se revelan y dan premio.",
+        ],
+    },
     {
         version: 148,
         titulo: "Cofres, fogatas y tu semana",

@@ -27,6 +27,7 @@ import { fechaLegible, fechaCorta, DIAS_LETRAS, DIAS_CORTOS, diaDeSemana, diasEn
 import { agruparPorAtributo, vacio, plegable, esc, ICONOS, barra, botonEditar, ficha, cabeceraSeccion,
          textoAnimo, notaJefeEsperando } from "./vistas-comun.js";
 import { tarjetaSemana, tarjetaFoco } from "./vistas-diario.js";
+import { tarjetaTemporada } from "./vistas-temporada.js";
 import { seccionPrincipales, retratoJefe } from "./vistas-aventuras.js";
 import { sagaDe, lineaDeSaga, lineaDelPacto, lineaDeVoces } from "./vistas-historia.js";
 
@@ -162,7 +163,8 @@ export function pantallaHoy(estado, ctx) {
             ${tarjetaHeroe(estado, ctx, { conRivales: false })}
             ${resumenRivales(estado, ctx)}
             ${esAyer ? "" : tarjetaSemana(estado, ctx)}
-            ${esAyer ? "" : tarjetaFoco(estado, ctx)}`,
+            ${esAyer ? "" : tarjetaFoco(estado, ctx)}
+            ${esAyer ? "" : tarjetaTemporada(estado, ctx)}`,
         misiones: seccionMisiones,
         metas: seccionMetas,
         tareas: `<section class="bloque esencial-grupo esencial-tareas" aria-label="Tareas">${seccionTareas(estado, ctx)}</section>`,

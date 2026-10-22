@@ -23,6 +23,8 @@ import * as vistasVoces from "../js/vistas-voces.js";
 import { existeSonido } from "../js/sonido.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso } from "../js/resumen.js";
 import * as hallazgos from "../js/hallazgos.js";   // (v148)
+import * as temporadas from "../js/temporadas.js";   // (v149)
+import * as secretos from "../js/secretos.js";       // (v149)
 import { resumenParaAvisos, avisosDeMisiones, avisosDeTareas } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
 import * as bestiario from "../js/bestiario.js";
@@ -154,6 +156,9 @@ function partidaNueva() {
     // El reto del día (v40) también cambia con la fecha: se deja uno que nunca se cumple (las pruebas del reto
     // ponen el suyo).
     estado.arcade.retos[hoy()] = { tipo: "partidas", meta: 9999, mejor: 0, cobradoEn: null };
+    // (v149) Los secretos se descubren solos y pagan gemas y XP: aquí ya están todos descubiertos para no mover los números de las
+    // demás pruebas. Las pruebas de secretos empiezan con estado.secretos = {}.
+    estado.secretos = Object.fromEntries(secretos.SECRETOS.map((x) => [x.id, hoy()]));
     return estado;
 }
 
@@ -5639,7 +5644,8 @@ prueba("Partida de ejemplo: su historial respeta las reglas", () => {
         .reduce((total, n) => total + suma(Array.from({ length: n }, (_, i) => campana.premioJefe(i + 1))), 0);
     const tareas = suma(estado.tareas.filter((t) => t.premio).map((t) => t.premio));
     igual(estado.personaje.xp,
-          suma(estado.completadas) + pasos * juego.PREMIOS.submision.xp + jefes + tareas + suma(estado.enfoque.sesiones));
+          suma(estado.completadas) + pasos * juego.PREMIOS.submision.xp + jefes + tareas + suma(estado.enfoque.sesiones)
+          + Object.keys(estado.secretos).reduce((total, id) => total + secretos.POR_ID[id].premio.xp, 0));   // (v149) los secretos descubiertos
 });
 
 
@@ -7829,7 +7835,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 35, "versión de los datos");
+    igual(base.version, 36, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -8031,10 +8037,186 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [35, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [36, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });
+
+// ===== Temporadas, revisión con consejos y secretos (v149) =====
+
+prueba("Temporadas: eliges metas del mes y el avance sale del historial", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado);
+    const mes = temporadas.mesDe(hoy());
+    acciones.elegirMetasDeTemporada(estado, { meta_misiones: "5", meta_diario: "", meta_km: "" });
+    igual(estado.temporadas[mes].metas, [{ tipo: "misiones", meta: 5 }]);
+    marcarEn(estado, mision, hoy());
+    const t = temporadas.temporadaDe(estado, mes, hoy());
+    igual([t.metas[0].valor, t.metas[0].pct, t.cumplidas, t.todas], [1, 20, 0, false]);
+    igual(temporadas.temporadaDe(estado, temporadas.mesAnterior(mes), hoy()), null, "un mes sin metas no tiene temporada");
+});
+
+prueba("Temporadas: pide entre 1 y 4 metas con números válidos", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.elegirMetasDeTemporada(estado, {}), "Elige entre 1 y 4");
+    debeFallar(() => acciones.elegirMetasDeTemporada(estado, { meta_misiones: "0" }), "entre 1 y");
+    debeFallar(() => acciones.elegirMetasDeTemporada(estado, { meta_gym: "40" }), "entre 1 y");   // ningún mes tiene 40 días
+    debeFallar(() => acciones.elegirMetasDeTemporada(estado, { meta_misiones: "10", meta_perfectos: "5", meta_gym: "5", meta_km: "5", meta_diario: "5" }), "Elige entre 1 y 4");
+    acciones.elegirMetasDeTemporada(estado, { meta_km: "12,5" });
+    igual(estado.temporadas[temporadas.mesDe(hoy())].metas, [{ tipo: "km", meta: 12.5 }], "la coma vale como punto");
+});
+
+prueba("Temporadas: al pasar el mes se cierra, paga el premio y no se paga dos veces", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado);
+    const antes = temporadas.mesAnterior(temporadas.mesDe(hoy()));
+    estado.temporadas[antes] = { metas: [{ tipo: "misiones", meta: 2 }, { tipo: "km", meta: 10 }], cierre: null };
+    marcarEn(estado, mision, `${antes}-03`);
+    marcarEn(estado, mision, `${antes}-04`);
+    const xpAntes = estado.personaje.xp;
+    const gemasAntes = estado.personaje.gemas;
+    const r = acciones.cerrarTemporadas(estado);
+    const cierre = estado.temporadas[antes].cierre;
+    igual([cierre.cumplidas, cierre.total, cierre.todas], [1, 2, false]);
+    igual([estado.personaje.xp - xpAntes, estado.personaje.gemas - gemasAntes], [temporadas.PREMIO_META.xp, temporadas.PREMIO_META.gemas]);
+    igual(r.celebraciones.length, 1);
+    igual(cierre.numeros.misiones, 2);
+    acciones.cerrarTemporadas(estado);
+    igual(estado.personaje.xp - xpAntes, temporadas.PREMIO_META.xp, "no se cobra dos veces");
+    cierto(temporadas.consejoParaLaSiguiente(cierre).includes("Kilómetros"), "el consejo habla de la meta que falló");
+    acciones.cerrarResumenTemporada(estado, antes);
+    igual(estado.temporadas[antes].cierre.visto, true);
+});
+
+prueba("Temporadas: cumplir todas las metas da el regalo extra y el mes en curso no se cierra", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado);
+    const antes = temporadas.mesAnterior(temporadas.mesDe(hoy()));
+    estado.temporadas[antes] = { metas: [{ tipo: "misiones", meta: 1 }], cierre: null };
+    estado.temporadas[temporadas.mesDe(hoy())] = { metas: [{ tipo: "misiones", meta: 1 }], cierre: null };
+    marcarEn(estado, mision, `${antes}-10`);
+    const monedasAntes = estado.personaje.monedas;
+    acciones.cerrarTemporadas(estado);
+    igual(estado.temporadas[antes].cierre.todas, true);
+    igual(estado.personaje.monedas - monedasAntes, temporadas.PREMIO_TODAS.monedas);
+    igual(estado.temporadas[temporadas.mesDe(hoy())].cierre, null, "este mes sigue abierto");
+});
+
+prueba("Temporadas: los meses y sus días", () => {
+    igual(temporadas.mesAnterior("2026-01"), "2025-12");
+    igual(temporadas.mesSiguiente("2026-12"), "2027-01");
+    igual(temporadas.diasDelMes("2028-02"), 29);
+    igual(temporadas.diasTranscurridos("2026-10", "2026-10-14"), 14);
+    igual(temporadas.diasTranscurridos("2026-09", "2026-10-14"), 30);
+    igual(temporadas.diasTranscurridos("2026-11", "2026-10-14"), 0);
+});
+
+prueba("Revisión semanal: la misión guarda la hora en que la marcas (solo si es de hoy)", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado);
+    envejecer(estado, 5);
+    acciones.completarMision(estado, mision.id);
+    cierto(Number.isInteger(estado.completadas[0].hora), "hoy guarda la hora");
+    const otra = crearMision(estado, { nombre: "Otra" });
+    envejecer(estado, 5);
+    acciones.completarMision(estado, otra.id, dia(-1));
+    igual(estado.completadas[1].hora, undefined, "ayer no guarda hora: no se sabe cuándo la hiciste");
+});
+
+prueba("Revisión semanal: propone quitar el día que más fallas", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado, { nombre: "A" });
+    const lunes = sumarDias(lunesDe(hoy()), -7);
+    for (const semana of [0, -7, -14]) estado.fallas.push({ misionId: mision.id, fecha: sumarDias(lunes, semana), motivo: "ganas" });
+    const pista = pistaDeFallas(estado, lunes);
+    igual([pista.diaFrecuente, pista.sugerencia.tipo, pista.sugerencia.dia], [0, "quitar-dia", 0]);
+    acciones.aplicarSugerencia(estado, { misionId: mision.id, lunes });
+    igual(mision.dias, [1, 2, 3, 4, 5, 6]);
+    debeFallar(() => acciones.aplicarSugerencia(estado, { misionId: mision.id + 99, lunes }), "ya no se puede aplicar");
+});
+
+prueba("Revisión semanal: la hora habitual sale de las veces que la cumpliste y propone un aviso si se te olvida", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado, { nombre: "A" });
+    const lunes = sumarDias(lunesDe(hoy()), -7);
+    for (const hora of [19, 19, 20, 8]) {
+        marcarEn(estado, mision, dia(-30 - hora));
+        estado.completadas[estado.completadas.length - 1].hora = hora;
+    }
+    estado.fallas.push({ misionId: mision.id, fecha: lunes, motivo: "olvido" });
+    estado.fallas.push({ misionId: mision.id, fecha: sumarDias(lunes, 1), motivo: "olvido" });
+    const pista = pistaDeFallas(estado, lunes);
+    igual(pista.horaTipica, 19, "la hora de en medio");
+    igual([pista.sugerencia.tipo, pista.sugerencia.hora], ["aviso", "19:00"]);
+    acciones.aplicarSugerencia(estado, { misionId: mision.id, lunes });
+    igual(mision.aviso, "19:00");
+});
+
+prueba("Revisión semanal: sin tiempo ni ganas propone bajar la dificultad, y con pocos datos no inventa nada", () => {
+    const estado = partidaNueva();
+    const dura = crearMision(estado, { nombre: "Dura", dificultad: "dificil" });
+    const lunes = sumarDias(lunesDe(hoy()), -7);
+    estado.fallas.push({ misionId: dura.id, fecha: lunes, motivo: "tiempo" });
+    const pista = pistaDeFallas(estado, lunes);
+    igual([pista.sugerencia.tipo, pista.sugerencia.dificultad, pista.horaTipica, pista.diaFrecuente], ["bajar", "normal", null, null]);
+    acciones.aplicarSugerencia(estado, { misionId: dura.id, lunes });
+    igual(dura.dificultad, "normal");
+    const facil = crearMision(estado, { nombre: "Fácil", dificultad: "facil" });
+    estado.fallas = [{ misionId: facil.id, fecha: lunes, motivo: "tiempo" }];
+    igual(pistaDeFallas(estado, lunes).sugerencia, null, "una misión fácil con pocos datos: sin cambio que proponer");
+});
+
+prueba("Secretos: se descubren solos, una sola vez, y pagan su premio", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado);
+    estado.secretos = {};
+    igual(secretos.nuevosSecretos(estado, hoy()), [], "al empezar no hay ninguno");
+    marcarEn(estado, mision, hoy());
+    estado.completadas[0].hora = 4;
+    const gemasAntes = estado.personaje.gemas;
+    const celebraciones = jugar(estado, () => {});
+    cierto(celebraciones.some((c) => c.titulo === "Madrugador"), "se celebra");
+    igual(estado.secretos.madrugador, hoy());
+    igual(estado.personaje.gemas - gemasAntes, secretos.POR_ID.madrugador.premio.gemas);
+    igual(jugar(estado, () => {}).some((c) => c.titulo === "Madrugador"), false, "no se repite");
+});
+
+prueba("Secretos: las condiciones (siete en uno, cuatro caminos, doblete, honesto, domingos, año nuevo)", () => {
+    const estado = partidaNueva();
+    estado.secretos = {};
+    const nombres = ["fuerza", "intelecto", "carisma", "riqueza"];
+    const misiones = nombres.map((atributo, i) => crearMision(estado, { nombre: `M${i}`, atributo }));
+    const ids = () => secretos.nuevosSecretos(estado, hoy()).map((s) => s.id);
+    for (const m of misiones) marcarEn(estado, m, dia(-3));
+    cierto(ids().includes("cuatro-caminos"), "un atributo de cada uno el mismo día");
+    igual(ids().includes("siete-en-uno"), false, "con 4 misiones aún no");
+    for (let i = 0; i < 3; i++) marcarEn(estado, misiones[0], dia(-3));
+    cierto(ids().includes("siete-en-uno"), "7 en un día");
+    estado.gym.sesiones.push({ fecha: dia(-5) });
+    estado.running.carreras.push({ fecha: dia(-5), km: 5 });
+    cierto(ids().includes("doblete"), "gym y carrera el mismo día");
+    estado.fallas = Array.from({ length: 5 }, (_, i) => ({ misionId: 1, fecha: dia(-i), motivo: "otro" }));
+    cierto(ids().includes("honesto"), "5 fallas reconocidas");
+    const domingo = sumarDias(lunesDe(dia(-60)), 6);
+    for (const n of [0, 7, 14, 21]) marcarEn(estado, misiones[0], sumarDias(domingo, n));
+    cierto(ids().includes("domingos"), "4 domingos seguidos");
+    marcarEn(estado, misiones[0], "2025-01-01");
+    cierto(ids().includes("nuevo-ano"), "1 de enero");
+});
+
+prueba("Secretos: todos tienen pista, texto y premio, y los ids no se repiten", () => {
+    igual(new Set(secretos.SECRETOS.map((s) => s.id)).size, secretos.SECRETOS.length);
+    for (const s of secretos.SECRETOS) {
+        cierto(s.pista && s.texto && s.nombre && s.icono, `${s.id} tiene todos sus textos`);
+        cierto(s.premio.gemas > 0 && s.premio.xp > 0, `${s.id} da premio`);
+    }
+});
+
+prueba("Temporadas y secretos: las partidas viejas se completan con listas vacías", () => {
+    const base = datos.estadoInicial();
+    igual([base.temporadas, base.secretos], [{}, {}]);
+});
+
 
 // ===== Ejecutar todo y mostrar el resultado =====
 

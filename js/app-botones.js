@@ -181,6 +181,16 @@ export const ACCIONES_GENERALES = {
         ejecutar(() => acciones.cerrarResumenSemanal(estado));
         window.scrollTo(0, 0);
     },
+    // (v149) Cerrar el resumen de una temporada que ya terminó.
+    "cerrar-temporada": (boton) => ejecutar(() => acciones.cerrarResumenTemporada(estado, boton.dataset.mes)),
+    // (v149) Revisión semanal: aplicar el cambio que propuso la pista. El diálogo sigue abierto (no se borra lo que escribiste).
+    "aplicar-sugerencia": (boton) => {
+        const resultado = ejecutar(() => acciones.aplicarSugerencia(estado, { misionId: boton.dataset.id, lunes: boton.dataset.lunes }));
+        if (!resultado) return;
+        boton.disabled = true;
+        boton.textContent = "✅ Cambio aplicado";
+        avisar("🛠️ Listo: ya cambié la misión");
+    },
     "revisar-semana": () => {
         const lunes = semanaPorMostrar(estado, hoy());
         if (lunes) abrirDialogo("revision", lunes);

@@ -2,6 +2,15 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v149 — Temporadas mensuales, revisión semanal con consejos y logros secretos
+- `js/temporadas.js` (nuevo): `METAS` (misiones, días perfectos, gym, km, diario), `valorDeMeta`, `metaSugerida` (mes pasado +10 %), `temporadaDe`, `numerosDelMes`, `premioDeTemporada` (`PREMIO_META` 40 XP + 5 💎; `PREMIO_TODAS` +150 XP, 15 💎, 50 🪙), `veredicto`, `consejoParaLaSiguiente`. El avance se calcula del historial; solo se guardan las metas y el cierre.
+- `acciones.js`: `elegirMetasDeTemporada` (1 a 4 metas), `cerrarTemporadas` (se llama al abrir la app; paga una sola vez y guarda `cierre`), `cerrarResumenTemporada`, `aplicarSugerencia`, `revisarSecretos` (dentro de `revisarCambios`). `completarMision` guarda `hora` (0–23) cuando se marca el mismo día.
+- `resumen.js`: `analizarMision` (hora típica = mediana de al menos 3 marcas; día con más fallas si destaca), `sugerirCambio` (quitar día · aviso · bajar dificultad) y `pistaDeFallas` ahora devuelve `misionId`, `horaTipica`, `diaFrecuente` y `sugerencia`.
+- `js/secretos.js` (nuevo): 13 logros secretos con pista, texto y premio; `estado.secretos = { id: fecha }`. Pantalla Logros › «Secretos».
+- `js/vistas-temporada.js` (nuevo): tarjeta de Hoy (invitación, avance, resumen del mes cerrado) y la ventana «Metas del mes».
+- Datos guardados: `version` 36, `estado.temporadas` y `estado.secretos` (se completan vacíos en partidas viejas).
+- Pruebas: 409 (13 nuevas).
+
 ## v148 — Cofres, fogatas, resumen de carrera, clima, ruta fantasma, frases por edad, mapa del cuerpo y «Tu semana»
 - `js/hallazgos.js` (nuevo): `hallazgosDelKm` (cofre 60 % por km entre 150–850 m; fogata cada 2 km entre 450–900 m; azar fijo por hora de inicio), `cruzados`, `proximo`, `botinDeCofres`; `COFRE` (3 💎 + 5 XP), `CURA_FOGATA` (30), `MARGEN_FOGATA` (2 %).
 - `acciones.js`: `registrarPuntoCarrera` anota lo cruzado en `en.hallados` (la fogata suma un «golpe» que cura y marca `kmActual.fogata`) y devuelve `encontrados`; `terminarCarrera` paga los cofres y guarda `cofres`/`fogatas` en la carrera.

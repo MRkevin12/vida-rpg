@@ -13974,3 +13974,61 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     justify-self: start;
     margin-top: 4px;
 }
+
+
+/* ===== Temporadas, sugerencia de la revisión y secretos (v149) ===== */
+.temporada {
+    display: grid;
+    gap: 10px;
+    border-color: rgba(96, 165, 250, 0.45);
+}
+
+.temporada-lista {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.temporada-meta {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    font-size: 0.92rem;
+}
+
+.temporada-meta .barra,
+.temporada-meta small {
+    grid-column: 1 / -1;
+}
+
+.temporada-meta.cumplida b {
+    color: #86efac;
+}
+
+.barra-lograda .barra-relleno {
+    background: #86efac;
+}
+
+.sugerencia {
+    display: grid;
+    gap: 8px;
+}
+
+.secreto {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0.75;
+}
+
+.secreto.abierto {
+    opacity: 1;
+    border-color: rgba(251, 191, 36, 0.5);
+}
+
+.secreto-icono {
+    flex: none;
+    font-size: 1.7rem;
+}

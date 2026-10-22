@@ -406,7 +406,14 @@ export function contenidoRevision(estado, lunes, hoy) {
         </label>
         ${pista ? `<p class="nota">💡 ${plural(pista.total, "misión fallada", "misiones falladas")} esa semana` +
             (pista.mision ? `; la que más: «${esc(pista.mision)}» (${pista.veces})` : "") +
-            (pista.motivo ? `. Motivo más repetido: ${pista.motivo.icono} ${esc(pista.motivo.nombre)}` : "") + `.</p>` : ""}
+            (pista.motivo ? `. Motivo más repetido: ${pista.motivo.icono} ${esc(pista.motivo.nombre)}` : "") +
+            (pista.horaTipica !== null ? `. Cuando la cumples, suele ser hacia las ${pista.horaTipica} h` : "") + `.</p>` +
+            // (v149) Un cambio concreto, con un botón para aplicarlo. El texto sale de resumen.sugerirCambio (sin datos del usuario).
+            (pista.sugerencia ? `
+        <div class="sugerencia">
+            <p class="nota">🛠️ ${pista.sugerencia.texto}</p>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="aplicar-sugerencia" data-id="${pista.misionId}" data-lunes="${lunes}">${pista.sugerencia.boton}</button>
+        </div>` : "") : ""}
         <label>¿Qué quieres mejorar?
             <textarea name="mejorar" rows="2" maxlength="500" placeholder="Ej: dormirme antes de las 11">${esc(previa?.mejorar || "")}</textarea>
         </label>
