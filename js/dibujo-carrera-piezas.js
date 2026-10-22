@@ -10,6 +10,35 @@
 // Un número con un decimal como mucho, en texto corto («12», «3.5», «-7.2»).
 export const n1 = (v) => String(Math.round(v * 10) / 10);
 
+// El tamaño del dibujo de los mapas (la calle y, desde la v147, también la pista): 320 × 240 puntos.
+export const LIENZO = { ancho: 320, alto: 240, margen: 30, minMetros: 160 };
+
+// Un número entre 0 y 1 que siempre sale igual para la misma casilla (un «azar fijo»: no es azar de verdad, por eso el
+// mismo lugar se dibuja siempre igual).
+export const azar = (i, j, k = 0) => {
+    const x = Math.sin(i * 127.1 + j * 311.7 + k * 74.7) * 43758.5453;
+    return x - Math.floor(x);
+};
+
+// (v144) Un azar «suave»: cambia poco a poco de una casilla a la vecina. Sirve para que los árboles se junten en
+// bosquecillos con claros entre ellos y para las manchas del suelo (en vez de un tablero de ajedrez).
+export function suave(x, y, k) {
+    const i = Math.floor(x);
+    const j = Math.floor(y);
+    const curva = (t) => t * t * (3 - 2 * t);
+    const fx = curva(x - i);
+    const fy = curva(y - j);
+    const arriba = azar(i, j, k) + (azar(i + 1, j, k) - azar(i, j, k)) * fx;
+    const abajo = azar(i, j + 1, k) + (azar(i + 1, j + 1, k) - azar(i, j + 1, k)) * fx;
+    return arriba + (abajo - arriba) * fy;
+}
+
+// El tono (0–3) del cuadrito (ci, cj) del suelo: manchas grandes y suaves, otras más chicas y un poco de azar.
+export function tonoDelSuelo(ci, cj) {
+    const v = 0.68 * suave(ci / 8, cj / 8, 21) + 0.32 * suave(ci / 3, cj / 3, 22);
+    return v < 0.38 ? 0 : v < 0.5 ? 1 : v < 0.62 ? 2 : 3;
+}
+
 // ===== Cuadritos → SVG =====
 // Una lista de cuadros [x, y, ancho, alto, color]. Los cuadros SEGUIDOS del mismo color van en un solo <path> (ocupa
 // mucho menos que un <rect> por cuadro). El orden se respeta: lo último queda encima.
@@ -86,6 +115,41 @@ export function momentoDelDia(hora) {
     if (h >= 7 && h < 17) return "dia";
     if (h >= 17 && h < 19) return "atardecer";
     return "noche";
+}
+
+// (v144) Las animaciones del mapa (ver estilos.css, bloque v144) duran un divisor de 24 s y van en pasos de 1/8 s.
+// Sus fases salen del reloj: así, aunque el mapa se vuelva a dibujar cada segundo, siguen donde iban en vez de empezar de cero.
+// Hay 4 grupos (--f0 … --f3) desfasados 5/8 s, para que no se mueva todo a la vez. (v147: aquí, para la calle y la pista.)
+export const CICLO = 24;
+export function fases(reloj) {
+    const t = Math.floor((Number(reloj) || 0) / 125) / 8;
+    return [0, 1, 2, 3].map((n) => `--f${n}:${-((t + n * 0.625) % CICLO)}s`).join(";");
+}
+
+// La capa de luz de cada momento: tibia al amanecer (el sol sale por la derecha), naranja al atardecer y, de noche,
+// oscuridad con un círculo de luz alrededor de tu héroe (cx, cy). De día no hace falta. p: el prefijo de los id.
+// (v147) De noche la luz va en ANILLOS (como una antorcha en pixel art: se nota dónde termina) y, si corres (antorcha),
+// encima va un brillo tibio pequeño: así tu héroe se ve claro sobre el mapa oscuro.
+export function capaDeLuz(momento, p, cx, cy, antorcha = false) {
+    const parada = (o, color, op) => `<stop offset="${o}" stop-color="${color}" stop-opacity="${op}"/>`;
+    const capa = `<rect width="${LIENZO.ancho}" height="${LIENZO.alto}" fill="url(#${p}luz)"/>`;
+    if (momento === "amanecer") {
+        return { defs: `<linearGradient id="${p}luz" x1="1" y1="0" x2="0" y2="1">${parada(0, "#ffb27a", 0.3)}${parada(0.5, "#e88a9a", 0.12)}${parada(1, "#4a3a8a", 0.24)}</linearGradient>`, svg: capa };
+    }
+    if (momento === "atardecer") {
+        return { defs: `<linearGradient id="${p}luz" x1="0" y1="0" x2="1" y2="1">${parada(0, "#ff7a3a", 0.3)}${parada(0.45, "#c84a5a", 0.2)}${parada(1, "#24184a", 0.4)}</linearGradient>`, svg: capa };
+    }
+    if (momento === "noche") {
+        // [dónde (0 = tu héroe, 1 = a 190 puntos), qué tan oscuro]: dos paradas en el mismo lugar hacen un borde marcado.
+        const anillos = [[0, 0.04], [0.12, 0.04], [0.12, 0.2], [0.18, 0.2], [0.18, 0.38], [0.25, 0.38], [0.25, 0.52], [0.45, 0.64], [0.75, 0.74], [1, 0.78]];
+        const tibio = `<radialGradient id="${p}tibio">${parada(0, "#ffc070", 0.3)}${parada(0.55, "#ffa040", 0.14)}${parada(1, "#ff9030", 0)}</radialGradient>`;
+        return {
+            defs: `<radialGradient id="${p}luz" gradientUnits="userSpaceOnUse" cx="${n1(cx)}" cy="${n1(cy)}" r="190">${anillos.map(([o, op]) => parada(o, "#0a1030", op)).join("")}</radialGradient>`
+                + (antorcha ? tibio : ""),
+            svg: capa + (antorcha ? `<circle cx="${n1(cx)}" cy="${n1(cy)}" r="30" fill="url(#${p}tibio)"/>` : ""),
+        };
+    }
+    return { defs: "", svg: "" };
 }
 
 // La sombra de cada momento: dx = cuánto se estira hacia un lado por cada punto de alto (el sol sale por el este, a la
@@ -499,7 +563,16 @@ export function pieza(nombre, momento = "dia") {
 
 // ===== El mojón de cada kilómetro =====
 // Una piedra alta con una placa del color de la pelea de ese km y su número. x, y: donde toca el suelo.
-export function mojon(x, y, numero, color, momento) {
+// (v147) ritmo = { texto: "5:12", mejor: true/false } o null: una plaquita oscura al lado con el ritmo de ese km
+// (borde y letras doradas si fue tu km más rápido).
+export function mojon(x, y, numero, color, momento, ritmo = null) {
+    let placa = "";
+    if (ritmo?.texto) {
+        const w = Math.round(ritmo.texto.length * 4.2 + 4);
+        const borde = ritmo.mejor ? "#e9b949" : "#4a4658";
+        placa = cuadros([[5, -16, w + 2, 10, "#0e0b14"], [6, -15, w, 8, borde], [7, -14, w - 2, 6, "#1a1624"]], x, y)
+            + `<text x="${n1(x + 6 + w / 2)}" y="${n1(y - 8.8)}" text-anchor="middle" font-size="6" fill="${ritmo.mejor ? "#ffd76a" : "#ece8f6"}" font-weight="700">${ritmo.texto}</text>`;
+    }
     const c = [
         [-6, -3, 12, 3, "#0e0b14"], [-5, -19, 10, 17, "#0e0b14"], [-4, -21, 8, 2, "#0e0b14"],   // contorno oscuro (se lee sobre cualquier suelo)
         [-5, -2, 10, 2, "#3e3c4a"],
@@ -509,7 +582,7 @@ export function mojon(x, y, numero, color, momento) {
         [-1, -26, 1, 6, "#2a2030"], [0, -26, 5, 3, color], [0, -23, 5, 1, "#0e0b14"],            // un banderín arriba, del mismo color
     ];
     return `<g class="cr-hito">${sombra(10, 20, momento, x, y)}${cuadros(c, x, y)}`
-        + `<text x="${n1(x)}" y="${n1(y - 8.6)}" text-anchor="middle" font-size="${numero > 9 ? 5 : 6.2}" fill="#14101c" font-weight="700">${numero}</text></g>`;
+        + `<text x="${n1(x)}" y="${n1(y - 8.6)}" text-anchor="middle" font-size="${numero > 9 ? 5 : 6.2}" fill="#14101c" font-weight="700">${numero}</text>${placa}</g>`;
 }
 
 // ===== El relieve (colinas, dunas y montañas) =====

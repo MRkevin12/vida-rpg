@@ -40,7 +40,7 @@
     --hundido: #0d0a1c;
     --borde: #2c2352;
     --texto: #ece9fb;
-    --texto-suave: #9c95c0;
+    --texto-suave: #aea8d2;   /* (v147) un poco más claro: los textos de ayuda se leían mal sobre el fondo oscuro */
 
     --violeta: #8b5cf6;
     --cian: #22d3ee;
@@ -115,7 +115,7 @@ button {
 }
 
 .etiqueta {
-    font-size: 0.72rem;
+    font-size: 0.76rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -990,23 +990,26 @@ button {
     height: var(--celda);
     padding: 0;
     border: none;
-    border-radius: 4px;
+    border-radius: 0;   /* (v147) cuadritos de pixel art, como el resto de la app */
     background: #1d1738;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.28);
 }
 
 button.celda {
     cursor: pointer;
 }
 
-.celda.n1 { background: rgba(139, 92, 246, 0.35); }
-.celda.n2 { background: rgba(139, 92, 246, 0.6); }
-.celda.n3 { background: var(--violeta); }
-.celda.n4 { background: var(--cian); box-shadow: 0 0 6px rgba(34, 211, 238, 0.7); }
-.celda.protegido { box-shadow: inset 0 0 0 2px var(--oro); }
+/* (v147) La paleta de píxel de los íconos (iconos.js): violetas de oscuro a claro y el turquesa del día perfecto. Cada
+   cuadrito lleva luz arriba y sombra abajo (sin desenfoque), como una baldosa de pixel art. */
+.celda.n1 { background: #3f1b78; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 0 rgba(0, 0, 0, 0.3); }
+.celda.n2 { background: #7034c2; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 0 rgba(0, 0, 0, 0.3); }
+.celda.n3 { background: #b06cf0; box-shadow: inset 0 2px 0 #ead0ff, inset 0 -2px 0 #7034c2; }
+.celda.n4 { background: #3ee0d0; box-shadow: inset 0 2px 0 #ccfff6, inset 0 -2px 0 #1a9a9a; }
+.celda.protegido { box-shadow: inset 0 0 0 2px #ffcb3d, inset 0 0 0 3px #9a5212; }
 .celda.hoy { outline: 1px solid rgba(255, 255, 255, 0.6); outline-offset: 1px; }
 .celda.elegido { outline: 2px solid #fff; outline-offset: 1px; }
 .celda.antes { background: rgba(44, 35, 82, 0.35); } /* días antes de empezar a jugar */
-.celda.futuro { background: transparent; }
+.celda.futuro { background: transparent; box-shadow: none; }
 
 .cal-leyenda {
     display: flex;
@@ -1014,14 +1017,14 @@ button.celda {
     align-items: center;
     gap: 4px;
     margin-top: 8px;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     color: var(--texto-suave);
 }
 
 .cal-leyenda .celda {
     width: 12px;
     height: 12px;
-    border-radius: 3px;
+    border-radius: 0;
 }
 
 .cal-leyenda .celda.protegido {
@@ -1821,7 +1824,7 @@ textarea:focus {
 
 .pildora small {
     display: block;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 500;
     color: var(--texto-suave);
 }
@@ -2015,7 +2018,7 @@ textarea:focus {
 }
 
 .ficha-nota {
-    font-size: 0.74rem;
+    font-size: 0.8rem;
     line-height: 1.3;
     color: var(--texto-suave);
 }
@@ -2410,7 +2413,7 @@ textarea:focus {
 }
 
 .etapas small {
-    font-size: 0.68rem;
+    font-size: 0.74rem;
     font-weight: 500;
 }
 
@@ -4773,7 +4776,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .vida-estado {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: var(--color-salud);
 }
@@ -6828,7 +6831,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .acceso small {
-    font-size: 0.76rem;
+    font-size: 0.8rem;
     color: var(--texto-suave);
 }
 
@@ -6870,7 +6873,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .selector-campanas small {
-    font-size: 0.7rem;
+    font-size: 0.76rem;
     color: var(--texto-suave);
 }
 
@@ -6916,7 +6919,7 @@ body:has(#deshacer:not([hidden])) .aviso {
     gap: 2px;
     margin: 6px 0 0;
     padding: 6px 0 0;
-    font-size: 0.74rem;
+    font-size: 0.8rem;
     color: var(--texto-suave);
     list-style: none;
     border-top: 1px solid rgba(60, 48, 112, 0.6);
@@ -8283,7 +8286,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .voces-tecnica small {
-    font-size: 0.7rem;
+    font-size: 0.78rem;
 }
 
 .voces-tecnica.sabida {
@@ -8551,14 +8554,14 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .voces-etiqueta {
-    font-size: 0.74rem;
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.03em;
     color: #f9a8d4;
 }
 
 .voces-bloqueo {
-    font-size: 0.74rem;
+    font-size: 0.8rem;
     color: var(--texto-suave);
 }
 
@@ -8671,7 +8674,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .esencial-dato small {
-    font-size: 0.74rem;
+    font-size: 0.78rem;
     color: var(--texto-suave);
 }
 
@@ -8889,7 +8892,7 @@ body:has(#deshacer:not([hidden])) .aviso {
 }
 
 .hoy-tab b { font-size: 0.92rem; color: var(--texto); white-space: nowrap; }
-.hoy-tab small { font-size: 0.68rem; }
+.hoy-tab small { font-size: 0.7rem; }
 .hoy-tab[aria-pressed="true"] {
     color: var(--texto);
     background: color-mix(in srgb, var(--acento) 18%, transparent);
@@ -10626,7 +10629,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 }
 .gym-hoy-icono { font-size: 1.7rem; line-height: 1; }
 .gym-hoy-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.gym-hoy-texto small { color: var(--texto-suave); font-size: 0.78rem; }
+.gym-hoy-texto small { color: var(--texto-suave); font-size: 0.8rem; }
 /* (v143) Las áreas de Hoy en cuadrícula: cada una como una pastilla con el icono arriba y el botón abajo. */
 .hoy-areas {
     display: grid;
@@ -10645,8 +10648,24 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 }
 
 .hoy-areas .gym-hoy-icono { font-size: 1.5rem; }
-.hoy-areas .gym-hoy-texto b { font-size: 0.82rem; line-height: 1.25; overflow-wrap: anywhere; }
-.hoy-areas .gym-hoy-texto small { font-size: 0.72rem; line-height: 1.3; }
+/* (v147) Los títulos largos («Gym: hoy toca Pecho + Tríceps») bajan de línea entre palabras: solo si UNA palabra no cabe
+   se parte, con guion (hyphens, en español por el lang="es" de la página). text-wrap: balance reparte las líneas
+   parejas. El texto ocupa el espacio que sobra (flex: 1) y los botones quedan abajo: así, en las dos columnas, los
+   botones de una misma fila quedan a la misma altura aunque un título tenga más líneas que el otro. */
+.hoy-areas .gym-hoy-texto {
+    flex: 1 1 auto;
+    align-content: start;
+}
+
+.hoy-areas .gym-hoy-texto b {
+    font-size: 0.82rem;
+    line-height: 1.25;
+    overflow-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    text-wrap: balance;
+}
+.hoy-areas .gym-hoy-texto small { font-size: 0.78rem; line-height: 1.3; }
 .hoy-areas .gym-hoy > .boton,
 .hoy-areas .gym-hoy-botones { width: 100%; }
 
@@ -10667,7 +10686,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 /* La semana */
 .gym-semana { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .gym-dia { display: grid; gap: 2px; justify-items: center; padding: 6px 0; border: 1px solid var(--borde); border-radius: var(--esquina); background: var(--hundido); }
-.gym-dia small { color: var(--texto-suave); font-size: 0.7rem; }
+.gym-dia small { color: var(--texto-suave); font-size: 0.74rem; }
 .gym-dia span { min-height: 1.4em; font-size: 1.1rem; color: var(--texto-suave); }
 .gym-dia.hecho { border-color: var(--gym); background: rgba(245, 158, 11, 0.14); }
 .gym-dia.hoy { outline: 2px solid var(--gym-2); outline-offset: 1px; }
@@ -10681,8 +10700,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-rutina-chica { justify-content: space-between; padding: 6px 10px; }
 .gym-rutina-icono { font-size: 1.6rem; }
 .gym-rutina-texto { flex: 1; min-width: 0; display: grid; gap: 1px; }
-.gym-rutina-texto small { color: var(--texto-suave); font-size: 0.76rem; }
-.gym-toca { font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: var(--esquina); background: var(--gym); color: #1b0b10; vertical-align: middle; }
+.gym-rutina-texto small { color: var(--texto-suave); font-size: 0.8rem; }
+.gym-toca { font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: var(--esquina); background: var(--gym); color: #1b0b10; vertical-align: middle; }
 
 /* El entrenamiento en curso */
 .gym-sesion { display: grid; gap: 12px; }
@@ -11103,7 +11122,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-pieza { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--hundido); opacity: 0.7; }
 .gym-pieza.ganada { opacity: 1; border-color: var(--gym-2); background: rgba(251, 191, 36, 0.08); }
 .gym-pieza > span:last-child { display: grid; }
-.gym-pieza small { color: var(--texto-suave); font-size: 0.76rem; }
+.gym-pieza small { color: var(--texto-suave); font-size: 0.8rem; }
 .gym-pieza-icono { font-size: 1.5rem; }
 
 /* v75: vista previa del cuerpo en el gimnasio */
@@ -11131,7 +11150,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     animation: gym-aurelio-entra 0.4s ease-out;
 }
 .gym-aurelio p { margin: 0; line-height: 1.4; }
-.gym-aurelio p b { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #c4b5fd; }
+.gym-aurelio p b { display: block; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; color: #c4b5fd; }
 .gym-aurelio-retrato { flex: 0 0 54px; width: 54px; border-radius: 50%; overflow: hidden; border: 2px solid #8b5cf6; background: #1c1536; }
 .gym-aurelio-retrato svg { width: 100%; height: auto; display: block; }
 @keyframes gym-aurelio-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -11736,7 +11755,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .run-col small {
     height: 18px;
     line-height: 18px;
-    font-size: 0.7rem;
+    font-size: 0.74rem;
     color: var(--texto-suave);
 }
 
@@ -12019,7 +12038,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 }
 
 .run-pelea-texto small {
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     color: #dfe5ff;
 }
 
@@ -12042,7 +12061,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 .run-criaturas li {
     padding: 2px 6px;
-    font-size: 0.7rem;
+    font-size: 0.76rem;
     border: 1px solid var(--borde);
     border-radius: var(--esquina);
 }
@@ -12974,6 +12993,21 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     left: 28%;
 }
 
+/* (v147) De noche tu héroe lleva su propia luz: queda un poco en penumbra, como el mapa, pero con un contorno tibio (como
+   el de las criaturas, en dorado) y, a sus pies, en vez de sombra, el charco de luz de su antorcha. Así se distingue bien.
+   :has() mira el momento del día que dejó escrito el dibujo del mapa (data-momento). */
+.run-mapa-vivo:has(.run-mapa-svg[data-momento="noche"]) :is(.run-pm-heroe .run-pm-sprite, .run-mapa-heroe) {
+    filter: brightness(0.85) drop-shadow(0 0 calc(var(--px, 1.4px) * 1.5) rgba(255, 196, 120, 0.85));
+}
+
+.run-mapa-vivo:has(.run-mapa-svg[data-momento="noche"]) .run-pm-heroe .run-pm-sombra {
+    right: 4%;
+    left: 4%;
+    height: calc(var(--px) * 6);
+    bottom: calc(var(--px) * -2.5);
+    background: radial-gradient(closest-side, rgba(255, 210, 140, 0.5), rgba(255, 160, 60, 0.2) 65%, transparent);
+}
+
 /* El nombre y la barrita de vida, sobre la cabeza. */
 .run-pm-cabeza {
     position: absolute;
@@ -13029,8 +13063,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .run-pm-tiro {
     position: absolute;
     z-index: 3;
-    top: calc(var(--hy) - var(--hm));
-    left: var(--hx);
+    top: calc(var(--ty, var(--hy)) - var(--hm));
+    left: var(--tx, var(--hx));
     width: calc(var(--px) * 13);
     height: calc(var(--px) * 13);
     opacity: 0;
@@ -13044,8 +13078,9 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     inset: 0;
 }
 
+/* (v147) --tx, --ty: de dónde sale lo tuyo (tu héroe, o el borde de la vista si tu héroe quedó fuera; ver puntoDeTiro). */
 @keyframes run-pm-vuela {
-    0% { opacity: 1; top: calc(var(--hy) - var(--hm)); left: var(--hx); }
+    0% { opacity: 1; top: calc(var(--ty, var(--hy)) - var(--hm)); left: var(--tx, var(--hx)); }
     99% { opacity: 1; top: calc(var(--cy) - var(--cm)); left: var(--cx); }
     100% { opacity: 0; top: calc(var(--cy) - var(--cm)); left: var(--cx); }
 }
@@ -13056,8 +13091,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 @keyframes run-pm-vuelve {
     0% { opacity: 1; top: calc(var(--cy) - var(--cm)); left: var(--cx); }
-    99% { opacity: 1; top: calc(var(--hy) - var(--hm)); left: var(--hx); }
-    100% { opacity: 0; top: calc(var(--hy) - var(--hm)); left: var(--hx); }
+    99% { opacity: 1; top: calc(var(--ty, var(--hy)) - var(--hm)); left: var(--tx, var(--hx)); }
+    100% { opacity: 0; top: calc(var(--ty, var(--hy)) - var(--hm)); left: var(--tx, var(--hx)); }
 }
 
 /* Tajo: una media luna verde y blanca que gira. */
@@ -13151,8 +13186,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 @keyframes run-pm-embiste {
     55% {
-        top: calc(var(--cy) + (var(--hy) - var(--cy)) * 0.7);
-        left: calc(var(--cx) + (var(--hx) - var(--cx)) * 0.7);
+        top: calc(var(--cy) + (var(--ty, var(--hy)) - var(--cy)) * 0.7);
+        left: calc(var(--cx) + (var(--tx, var(--hx)) - var(--cx)) * 0.7);
     }
 }
 
@@ -13315,6 +13350,36 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .mm-ahora { fill: #f87171; stroke: #fff; stroke-width: 0.8; animation: mm-parpadeo 1.1s steps(1) infinite; }
 .mm-edad { fill: #c9c6ee; font-size: 7px; font-weight: 700; }
 
+/* (v147) Las etapas de la vida, del amanecer al atardecer: vividas en su color y, las que quedan, el mismo color muy apagado. */
+.mm-vivida.e-infancia, .mm-muestra.e-infancia { fill: #f6dca0; background: #f6dca0; }
+.mm-vivida.e-juventud, .mm-muestra.e-juventud { fill: #fbbf24; background: #fbbf24; }
+.mm-vivida.e-adultez, .mm-muestra.e-adultez { fill: #f39a1e; background: #f39a1e; }
+.mm-vivida.e-madurez, .mm-muestra.e-madurez { fill: #e2733e; background: #e2733e; }
+.mm-vivida.e-vejez, .mm-muestra.e-vejez { fill: #c8667e; background: #c8667e; }
+.mm-queda.e-infancia { fill: #575041; }
+.mm-queda.e-juventud { fill: #574825; }
+.mm-queda.e-adultez { fill: #553a22; }
+.mm-queda.e-madurez { fill: #52302f; }
+.mm-queda.e-vejez { fill: #452c48; }
+
+/* Las semanas en que corriste (celeste) o cumpliste una meta (verde), y la casilla que tocaste (marco blanco). */
+.mm-carrera { fill: #38bdf8; }
+.mm-meta { fill: #4ade80; }
+.mm-elegida { fill: none; stroke: #fff; stroke-width: 1.4; pointer-events: none; }
+.mm-rejilla { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+.mm-info {
+    min-height: 1.4em;
+    margin: 0 0 8px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    color: #fff;
+    background: rgba(8, 6, 20, 0.6);
+    box-shadow: inset 0 0 0 1px var(--borde);
+}
+
+.mm-etapas small { color: var(--texto-suave); font-size: 0.74rem; }
+
 @keyframes mm-parpadeo {
     50% { fill: #fff; }
 }
@@ -13340,6 +13405,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .mm-muestra.vivida { background: #fbbf24; }
 .mm-muestra.queda { background: #2b2748; border: 1px solid #4a4570; }
 .mm-muestra.ahora { background: #f87171; border: 1px solid #fff; }
+.mm-muestra.carrera { background: #38bdf8; }
+.mm-muestra.meta { background: #4ade80; }
 
 .mm-datos {
     display: grid;
@@ -13357,9 +13424,9 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     border-radius: var(--esquina);
 }
 
-.mm-dato small { color: var(--texto-suave); font-size: 0.72rem; }
+.mm-dato small { color: var(--texto-suave); font-size: 0.8rem; }
 .mm-dato b { font-family: var(--letra-titulo); font-size: 1.25rem; color: #fff; }
-.mm-dato em { font-size: 0.7rem; font-style: normal; color: #b9c6ff; }
+.mm-dato em { font-size: 0.76rem; font-style: normal; color: #b9c6ff; }
 
 @media (prefers-reduced-motion: reduce) {
     .mm-ahora { animation: none; }
@@ -13388,7 +13455,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     color: #34d399;
 }
 
-.fin-heroe small { opacity: 0.8; }
+.fin-heroe small { color: var(--texto-suave); }
 
 /* Lo demás que ve Aurelio (debajo de su globo). */
 .fin-aurelio.fin-alerta { border-color: rgba(251, 113, 133, 0.6); }
@@ -13425,7 +13492,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     text-align: center;
 }
 
-.fin-cifras small { display: block; opacity: 0.75; }
+.fin-cifras small { display: block; color: var(--texto-suave); }
 .fin-cifras b { font-size: 1.05rem; }
 
 /* La barra con los tres sobres y su leyenda. */
@@ -13447,8 +13514,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 6px;
-    font-size: 0.75rem;
-    opacity: 0.85;
+    font-size: 0.8rem;
+    opacity: 0.92;
 }
 
 .fin-punto {
@@ -13458,6 +13525,52 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     margin-right: 4px;
     border-radius: 2px;
 }
+
+/* (v147) La dona pixelada del plan 50/30/20: la dona a la izquierda y su leyenda a la derecha (una debajo de otra si no cabe). */
+.fin-dona-caja {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 16px;
+    margin: 10px 0 4px;
+}
+
+.fin-dona {
+    flex: none;
+    width: 144px;
+    height: 144px;
+    font-family: var(--letra-titulo);
+}
+
+.fin-dona-cifra { font-size: 6.4px; font-weight: 700; fill: #fff; }
+.fin-dona-texto { font-size: 3.2px; fill: var(--texto-suave); }
+
+.fin-dona-leyenda {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.85rem;
+}
+
+.fin-dona-leyenda li {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-items: center;
+    justify-content: start;
+    column-gap: 6px;
+}
+
+.fin-dona-leyenda b { font-family: var(--letra-titulo); }
+.fin-dona-leyenda small { grid-column: 2 / -1; font-size: 0.76rem; color: var(--texto-suave); }
+.fin-dona-leyenda .fin-punto { width: 10px; height: 10px; margin: 0; border-radius: 0; box-shadow: 0 0 0 1px var(--tinta, #0b0816); }
+.fin-punto.fin-dona-necesidad { background: #22d3ee; }
+.fin-punto.fin-dona-gusto { background: #c084fc; }
+.fin-punto.fin-dona-ahorro { background: #34d399; }
+.fin-punto.fin-dona-libre { background: #2b2748; box-shadow: 0 0 0 1px #4a4570; }
 
 /* Cada sobre del plan */
 .fin-sobre {
@@ -13495,7 +13608,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     border-radius: var(--esquina, 4px);
 }
 
-.fin-reparto small { font-size: 0.7rem; opacity: 0.85; }
+.fin-reparto small { font-size: 0.78rem; opacity: 0.9; }
 .fin-reparto .fin-tramo-necesidad { border-color: #22d3ee; background: rgba(34, 211, 238, 0.1); }
 .fin-reparto .fin-tramo-gusto { border-color: #c084fc; background: rgba(192, 132, 252, 0.1); }
 .fin-reparto .fin-tramo-ahorro { border-color: #34d399; background: rgba(52, 211, 153, 0.1); }
@@ -13534,7 +13647,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     white-space: nowrap;
 }
 
-.fin-fila-texto small { opacity: 0.7; }
+.fin-fila-texto small { color: var(--texto-suave); }
 .fin-borrar { min-width: 44px; }
 
 .fin-mayor {
@@ -13646,7 +13759,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     display: inline-block;
     margin-left: 6px;
     padding: 2px 8px;
-    font-size: 0.7rem;
+    font-size: 0.74rem;
     color: #34d399;
     border: 1px solid rgba(52, 211, 153, 0.6);
     border-radius: var(--esquina, 4px);
@@ -13694,7 +13807,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 
 .fin-mes-ing, .fin-punto.fin-mes-ing { background: #34d399; }
 .fin-mes-gas, .fin-punto.fin-mes-gas { background: #fb7185; }
-.fin-mes-col small { font-size: 0.7rem; opacity: 0.75; }
+.fin-mes-col small { font-size: 0.74rem; color: var(--texto-suave); }
 
 /* Medios de pago */
 .fin-medios {

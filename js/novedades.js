@@ -4,9 +4,23 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 146;
+export const VERSION_APP = 147;
 
 export const NOVEDADES = [
+    {
+        version: 147,
+        titulo: "Todo se ve mejor",
+        cambios: [
+            "🏟️ La pista de atletismo se rehízo en pixel art, como el mapa de la calle: tartán con sus carriles, gradas con público, árboles, torres de luz y un marcador con tus km y el ritmo de tu último km. Ahora se ve entera aunque tengas el teléfono de pie o acostado.",
+            "🌙 De noche, en la pista se encienden las torres de luz, y en la calle la luz alrededor de tu héroe va en anillos, con un brillo tibio: tu héroe ya no se pierde en la oscuridad.",
+            "🪨 Cada mojón del mapa dice también el ritmo de ese km (tu km más rápido, en dorado).",
+            "🎯 En «Ver todo», si tu héroe queda fuera de la parte que se ve, los poderes salen del borde del mapa y no de la nada.",
+            "⏳ Memento mori: cada etapa de la vida tiene su color, las semanas en que corriste o cumpliste una meta quedan marcadas, y si tocas una casilla ves qué semana es y sus fechas.",
+            "💰 Finanzas: una dona en pixel art con tu plan 50/30/20 del mes (lo que llevas en cada sobre y lo que queda sin gastar).",
+            "📈 El calendario de Progreso y las gráficas del gimnasio ahora son de pixel art, como el resto de la app.",
+            "🔍 Los textos de ayuda pequeños se leen mejor: son un poco más grandes y más claros. Los títulos largos de Hoy ya no se cortan.",
+        ],
+    },
     {
         version: 146,
         titulo: "La pelea, sobre el mapa",

@@ -2827,6 +2827,68 @@ const PAUSA = [
     "wsss..wsss",
 ];
 
+// ----- (v147) Los que faltaban en botones y títulos: la calle, la pista, el GPS, la tarjeta y la carta -----
+// Un camino que se pierde a lo lejos: asfalto gris, bordes oscuros, pasto a los lados y la línea del medio a trazos.
+const CAMINO = pintar(14, 13, (x, y) => {
+    const medio = 1 + y * 0.46;   // la mitad del ancho del camino en esta fila (más ancho abajo, más cerca)
+    const d = Math.abs(x - 6.5);
+    if (d > medio + 0.5) return y > 3 && d < medio + 2 ? "v" : null;
+    if (d > medio - 0.6) return "k";
+    if (d < 0.6 && y % 4 < 2 && y > 0) return "y";
+    return "S";
+});
+// Una pista de atletismo vista desde arriba: la tribuna gris, el tartán rojo y la cancha verde con franjas.
+const ESTADIO = pintar(14, 11, (x, y) => {
+    const dx = Math.max(0, Math.abs(x - 6.5) - 2.5) / 4.6;   // las rectas (sin curva) y las curvas de las puntas
+    const dy = (y - 5) / 5.6;
+    const r = Math.hypot(dx, dy);
+    if (r > 1) return null;
+    if (r > 0.8) return y < 5 ? "s" : "S";
+    if (r > 0.56) return y < 4 ? "R" : "r";
+    return x % 3 === 0 ? "v" : "g";
+});
+// Una antena con su luz arriba y las ondas de la señal a los lados (el GPS).
+const ANTENA = [
+    "......yy......",
+    "..b..yYYy..b..",
+    ".b....yy....b.",
+    ".b....kk....b.",
+    "..b...kk...b..",
+    ".....kSSk.....",
+    ".....kSSk.....",
+    "....kS..Sk....",
+    "....kSkkSk....",
+    "...kS....Sk...",
+    "...kSkkkkSk...",
+    "..kS......Sk..",
+    "..kkkkkkkkkk..",
+];
+// Una tarjeta del banco: azul, con la franja oscura, el chip dorado y unos números.
+const TARJETA = [
+    "nnnnnnnnnnnnnn",
+    "nbBbbbbbbbbbbn",
+    "nxxxxxxxxxxxxn",
+    "nxxxxxxxxxxxxn",
+    "nbbbbbbbbbbbbn",
+    "nbYyobbbbbbbbn",
+    "nbyoObbbbbbbbn",
+    "nbbbbbbBBbBBbn",
+    "nnnnnnnnnnnnnn",
+];
+// Un sobre cerrado con su sello de lacre (las cartas a tu yo futuro).
+const SOBRE = [
+    "SSSSSSSSSSSSSS",
+    "SsWWWWWWWWWWsS",
+    "SWsWWWWWWWWsWS",
+    "SWWsWWWWWWsWWS",
+    "SWWWsWWWWsWWWS",
+    "SWWWWsrrsWWWWS",
+    "SWWWWWrrWWWWWS",
+    "SWWWWWWWWWWWWS",
+    "SwwwwwwwwwwwwS",
+    "SSSSSSSSSSSSSS",
+];
+
 // ---------- La lista: nombre del ícono → su dibujo ----------
 export const ICONOS = {
     corazon: CORAZON,
@@ -3039,6 +3101,7 @@ export const ICONOS = {
     tortuga: TORTUGA,
     fantasma: FANTASMA,
     pausa: PAUSA,
+    camino: CAMINO, estadio: ESTADIO, antena: ANTENA, tarjeta: TARJETA, sobre: SOBRE,   // (v147)
 };
 
 // Qué emoji se cambia por qué ícono. (El "️" invisible que llevan algunos emojis da igual:
@@ -3092,6 +3155,7 @@ export const EMOJIS = {
     "💯": "cien", "🌾": "trigo", "🌌": "chispas", "🔯": "estrella",
     "👖": "pantalon", "🥾": "bota", "👢": "bota",
     "🟢": "circulo-verde", "🔴": "circulo-rojo", "🔵": "circulo-azul", "🐢": "tortuga", "👻": "fantasma", "⏸": "pausa",   // (v141)
+    "🛣": "camino", "🏟": "estadio", "📡": "antena", "💳": "tarjeta", "✉": "sobre", "🔄": "repetir",   // (v147)
 };
 
 // ---------- De dibujo a SVG ----------

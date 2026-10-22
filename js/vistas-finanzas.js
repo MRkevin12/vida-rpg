@@ -112,6 +112,74 @@ function barraDelPlan(plan, ingresos) {
             <div class="fin-leyenda">${plan.map((sobre) => `<span><i class="fin-punto fin-tramo-${sobre.clave}"></i>${esc(sobre.nombre)}</span>`).join("")}</div>`;
 }
 
+// ===== (v147) La dona del plan 50/30/20 =====
+// Las partes de la dona: lo que llevas gastado en cada sobre, sobre lo que entró en el mes, y lo que queda sin gastar.
+// Si gastaste más de lo que entró, la dona entera es lo gastado (y no queda nada libre). Solo calcula: no cambia nada.
+// plan = finanzas.planDelMes(…), ingresos = lo que entró. Devuelve [{ clave, nombre, valor, porcentaje, plan }…].
+export function partesDeLaDona(plan, ingresos) {
+    const gastado = plan.reduce((suma, sobre) => suma + Math.max(0, sobre.gastado), 0);
+    const total = Math.max(ingresos, gastado);
+    if (total <= 0) return [];
+    const partes = plan.map((sobre) => ({ clave: sobre.clave, nombre: sobre.nombre, valor: Math.max(0, sobre.gastado), plan: sobre.porcentaje }));
+    partes.push({ clave: "libre", nombre: "Sin gastar", valor: total - gastado, plan: null });
+    return partes.map((parte) => ({ ...parte, porcentaje: (parte.valor / total) * 100 }));
+}
+
+// La dona en pixel art: una rejilla de 36 × 36 cuadritos. Cada cuadrito del anillo grueso toma el color de la parte en la
+// que cae su ángulo (empezando arriba, en el sentido del reloj); afuera, un anillo fino con el plan (50 / 30 / 20) para
+// comparar. Los cuadritos seguidos del mismo color se juntan en una sola tira (así el dibujo pesa poco).
+const COLORES_DONA = { necesidad: "#22d3ee", gusto: "#c084fc", ahorro: "#34d399", libre: "#2b2748" };
+const COLORES_PLAN = { necesidad: "#0f6f80", gusto: "#6c3d96", ahorro: "#17775a" };
+export function donaDelPlan(partes) {
+    const N = 36;
+    const centro = N / 2;
+    // El ángulo donde termina cada parte (de 0 a 1 vuelta).
+    const tramos = (lista) => {
+        let suma = 0;
+        return lista.map(([clave, parte]) => { suma += parte; return [clave, suma]; });
+    };
+    const reales = tramos(partes.map((p) => [p.clave, p.porcentaje / 100]));
+    const delPlan = tramos(partes.filter((p) => p.plan).map((p) => [p.clave, p.plan / 100]));
+    const colorEn = (lista, vuelta, colores) => colores[(lista.find(([, hasta]) => vuelta < hasta - 1e-9) || lista[lista.length - 1])[0]];
+    const filas = [];
+    for (let y = 0; y < N; y++) {
+        let tira = null;
+        for (let x = 0; x <= N; x++) {
+            let color = null;
+            if (x < N) {
+                const [dx, dy] = [x + 0.5 - centro, y + 0.5 - centro];
+                const r = Math.hypot(dx, dy);
+                const vuelta = ((Math.atan2(dx, -dy) / (2 * Math.PI)) + 1) % 1;   // 0 arriba, 0,25 a la derecha…
+                if (r >= 9.2 && r <= 14.6) color = colorEn(reales, vuelta, COLORES_DONA);
+                else if (r >= 15.8 && r <= 17.4 && delPlan.length) color = colorEn(delPlan, vuelta, COLORES_PLAN);
+            }
+            if (tira && tira.color === color) { tira.ancho++; continue; }
+            if (tira?.color) filas.push(tira);
+            tira = color ? { x, y, ancho: 1, color } : null;
+        }
+    }
+    const porColor = new Map();
+    for (const t of filas) porColor.set(t.color, (porColor.get(t.color) || "") + `M${t.x} ${t.y}h${t.ancho}v1h${-t.ancho}z`);
+    const gastado = Math.round(100 - (partes.find((p) => p.clave === "libre")?.porcentaje || 0));
+    return `<svg class="fin-dona" viewBox="0 0 ${N} ${N}" shape-rendering="crispEdges" role="img" aria-label="Llevas gastado el ${gastado} % de lo que entró este mes">
+        ${[...porColor].map(([color, d]) => `<path fill="${color}" d="${d}"/>`).join("")}
+        <text x="${centro}" y="${centro + 0.6}" text-anchor="middle" class="fin-dona-cifra">${gastado} %</text>
+        <text x="${centro}" y="${centro + 5}" text-anchor="middle" class="fin-dona-texto">gastado</text></svg>`;
+}
+
+function bloqueDona(plan, ingresos) {
+    const partes = partesDeLaDona(plan, ingresos);
+    if (!partes.length) return "";
+    return `
+        <div class="fin-dona-caja">
+            ${donaDelPlan(partes)}
+            <ul class="fin-dona-leyenda">${partes.map((p) => `
+                <li><i class="fin-punto fin-dona-${p.clave}"></i><span>${esc(p.nombre)}</span><b>${Math.round(p.porcentaje)} %</b>${p.plan ? `<small>plan ${p.plan} %</small>` : ""}</li>`).join("")}
+            </ul>
+        </div>
+        <p class="mini texto-suave">El anillo grueso: lo que llevas gastado de lo que entró. El fino de afuera: el plan.</p>`;
+}
+
 // ===== Resumen =====
 
 function seccionResumen(estado, ctx) {
@@ -151,6 +219,7 @@ function seccionResumen(estado, ctx) {
         <section class="panel">
             <h2 class="titulo-juego">🎯 Tu plan 50/30/20</h2>
             <p class="mini texto-suave">De lo que entra: 50 % necesidades, 30 % gustos y 20 % ahorro y deudas.</p>
+            ${ritmo.ingresos ? bloqueDona(plan, ritmo.ingresos) : ""}
             ${plan.map((sobre) => `
                 <div class="fin-sobre${sobre.pasado ? " fin-pasado" : ""}">
                     <div class="fin-sobre-cab">

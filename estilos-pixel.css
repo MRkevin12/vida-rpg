@@ -831,6 +831,25 @@ img[src^="data:image/png"],
     font-family: var(--letra-titulo);
 }
 
+/* (v147) Las gráficas del gimnasio (récords y peso) con el marco de píxel del HUD de la carrera: borde dorado de 2 px con
+   las esquinas en escalón y contorno de tinta (sombras sin desenfoque, por fuera: no cambian el tamaño), y el fondo con
+   las líneas de pantalla vieja. El margen deja lugar al marco. */
+.gym-spark {
+    --marco: #e9b949;
+    max-width: calc(100% - 8px);
+    height: auto;
+    margin: 4px;
+    background:
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 4px),
+        linear-gradient(180deg, #241b55, #0c0920);
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+        0 -2px 0 var(--marco), 0 2px 0 var(--marco), -2px 0 0 var(--marco), 2px 0 0 var(--marco),
+        -2px -2px 0 var(--tinta), 2px -2px 0 var(--tinta), -2px 2px 0 var(--tinta), 2px 2px 0 var(--tinta),
+        0 -4px 0 var(--tinta), 0 4px 0 var(--tinta), -4px 0 0 var(--tinta), 4px 0 0 var(--tinta);
+}
+
 /* Los minijuegos: el mundo pintado a media resolución se agranda sin suavizar; el texto va en una capa encima. */
 .minijuego-lienzo {
     image-rendering: pixelated;
@@ -948,7 +967,7 @@ body {
 }
 
 .selector-rejilla button small {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     color: var(--texto-suave);
 }
 
@@ -987,7 +1006,7 @@ body {
 }
 
 .insignia small {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     line-height: 1.2;
     color: var(--texto-suave);
 }
@@ -1116,7 +1135,7 @@ body {
 }
 
 .cuidado small {
-    font-size: 0.68rem;
+    font-size: 0.74rem;
     color: #f9a8d4;
 }
 

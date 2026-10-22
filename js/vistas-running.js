@@ -217,8 +217,9 @@ function detalleDeCarrera(c) {
 export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, seguir = false, pista = null, porZona = 3, recorte = false,
                                                 hora, reloj = 0, parciales = [], heroeEnCapa = false } = {}) {
     // (v131) En pista se dibuja la pista de atletismo; en la calle, el mapa te sigue de cerca o muestra todo el recorrido.
+    // (v147) La pista también lleva la luz de la hora, las fases de sus animaciones, el marcador (parciales) y el rastro (vivo).
     const dibujo = pista
-        ? mapaDePista({ metros: pista.metros, largo: pista.largo })
+        ? mapaDePista({ metros: pista.metros, largo: pista.largo, hora, reloj, parciales, vivo: heroe })
         : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe, porZona, hora, reloj, parciales });
     const { aqui, rumbo, zona } = dibujo;
     // (v139) recorte: en la carrera en vivo la caja del mapa no siempre mide 4:3. En vez de estirar el dibujo (los cuadritos se

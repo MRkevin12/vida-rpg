@@ -98,10 +98,34 @@ export function leerPar(texto) {
     return texto && Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
 }
 
+// (v147) De dónde sale (y adónde llega) lo que vuela de tu lado. Casi siempre es tu héroe; pero en «Ver todo», con un
+// recorrido grande, tu héroe puede quedar en la parte recortada del mapa. Entonces el tiro sale del BORDE de lo que se ve,
+// sobre la línea que va de la criatura a ti: así nada aparece desde fuera de la vista. visible: como parteVisible
+// (la criatura siempre está dentro). Devuelve { x, y } en % del dibujo, como `aqui`.
+export function puntoDeTiro(heroe, criatura, visible = parteVisible(0, 0), margen = 4) {
+    if (!heroe || !criatura) return heroe || null;
+    const { ancho: W, alto: H } = LIENZO;
+    const [hx, hy] = [(heroe.x / 100) * W, (heroe.y / 100) * H];
+    const [cx, cy] = [(criatura.x / 100) * W, (criatura.y / 100) * H];
+    const caja = { x0: visible.x0 + margen, x1: visible.x1 - margen, y0: visible.y0 + margen, y1: visible.y1 - margen };
+    if (hx >= caja.x0 && hx <= caja.x1 && hy >= caja.y0 && hy <= caja.y1) return heroe;
+    // Se camina de la criatura (t = 0) hacia ti (t = 1) y se para donde la línea cruza el borde de la caja.
+    let t = 1;
+    const [dx, dy] = [hx - cx, hy - cy];
+    if (dx > 0 && cx + dx * t > caja.x1) t = (caja.x1 - cx) / dx;
+    if (dx < 0 && cx + dx * t < caja.x0) t = (caja.x0 - cx) / dx;
+    if (dy > 0 && cy + dy * t > caja.y1) t = (caja.y1 - cy) / dy;
+    if (dy < 0 && cy + dy * t < caja.y0) t = (caja.y0 - cy) / dy;
+    t = Math.max(0, Math.min(1, t));
+    return { x: ((cx + dx * t) / W) * 100, y: ((cy + dy * t) / H) * 100 };
+}
+
 // Lo que app-running.js escribe cada segundo en el style de la capa: dónde va tu héroe y dónde la criatura (en % del dibujo).
-export function estiloDeLugar(heroe, criatura) {
+// (v147) tiro: de dónde sale lo que vuela de tu lado (puntoDeTiro); si no se da, tu héroe.
+export function estiloDeLugar(heroe, criatura, tiro = heroe) {
     const c = criatura || heroe;
-    return `--hx: ${heroe.x.toFixed(2)}%; --hy: ${heroe.y.toFixed(2)}%; --cx: ${c.x.toFixed(2)}%; --cy: ${c.y.toFixed(2)}%`;
+    const t = tiro || heroe;
+    return `--hx: ${heroe.x.toFixed(2)}%; --hy: ${heroe.y.toFixed(2)}%; --cx: ${c.x.toFixed(2)}%; --cy: ${c.y.toFixed(2)}%; --tx: ${t.x.toFixed(2)}%; --ty: ${t.y.toFixed(2)}%`;
 }
 
 // El nombre sobre la criatura: si es largo, la primera palabra («Araña tejedora» → «Araña»).

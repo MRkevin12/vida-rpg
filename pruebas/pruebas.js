@@ -81,6 +81,7 @@ import * as vistasRunning from "../js/vistas-running.js";
 import * as peleaMapa from "../js/vistas-pelea-mapa.js";   // (v146)
 import * as memento from "../js/memento.js";
 import * as vistasMemento from "../js/vistas-memento.js";
+import * as vistasFinanzas from "../js/vistas-finanzas.js";   // (v147)
 import * as equipo from "../js/equipo.js";
 import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
 import { PISTAS } from "../js/musica.js";
@@ -3107,7 +3108,8 @@ prueba("Pelea sobre el mapa (v146): la criatura va delante de ti y se acerca a m
     igual(peleaMapa.mezclarRumbo({ x: 0, y: 1 }, null), { x: 0, y: 1 }, "sin rumbo nuevo, se queda el anterior");
     igual(peleaMapa.leerPar("50.00,48.20"), { x: 50, y: 48.2 });
     igual(peleaMapa.leerPar(undefined), null);
-    igual(peleaMapa.estiloDeLugar({ x: 50, y: 50 }, { x: 62.5, y: 30 }), "--hx: 50.00%; --hy: 50.00%; --cx: 62.50%; --cy: 30.00%");
+    // (v147) --tx, --ty: de dónde sale lo que vuela de tu lado (sin decirlo, tu héroe).
+    igual(peleaMapa.estiloDeLugar({ x: 50, y: 50 }, { x: 62.5, y: 30 }), "--hx: 50.00%; --hy: 50.00%; --cx: 62.50%; --cy: 30.00%; --tx: 50.00%; --ty: 50.00%");
     igual(peleaMapa.nombreCorto("Araña tejedora"), "Araña");
     igual(peleaMapa.nombreCorto("Esqueleto"), "Esqueleto");
     cierto(peleaMapa.ladoEnMapa("esqueleto", true) > peleaMapa.ladoEnMapa("esqueleto"), "el jefe, un poco más grande");
@@ -3546,6 +3548,133 @@ prueba("Mapa de la carrera (v144): un mojón por km y tu km más rápido en dora
     const historial = mapaDeCarrera({ traza, km: 2.9, flecha: false }).svg;
     cierto(vivo.includes('stroke="#ffe9a8"') && !vivo.includes('fill="#f87171"'), "en vivo, el camino se ilumina detrás de ti");
     cierto(historial.includes('fill="#f87171"') && !historial.includes('stroke="#ffe9a8"'), "en el historial, la llegada");
+});
+
+// ===== (v147) Mejoras gráficas =====
+prueba("Pista (v147): en pixel art, cabe entera en el centro, luz según la hora y un marcador", () => {
+    // Tu héroe va siempre por la parte del dibujo que se ve: de pie (caja cuadrada: x de 40 a 280) y acostado (y de 40 a 200).
+    for (let m = 0; m < 400; m += 10) {
+        const { aqui } = mapaDePista({ metros: m });
+        const [x, y] = [(aqui.x / 100) * 320, (aqui.y / 100) * 240];
+        cierto(x > 44 && x < 276 && y > 44 && y < 196, `a los ${m} m tu héroe se ve (${x.toFixed(0)}, ${y.toFixed(0)})`);
+    }
+    for (const [hora, momento] of [[6, "amanecer"], [12, "dia"], [18, "atardecer"], [23, "noche"]]) {
+        for (const vivo of [true, false]) {
+            const { svg } = mapaDePista({ metros: 1250, hora, reloj: 5000, vivo, parciales: [300, 305] });
+            dibujoSano(svg.trim(), `pista a las ${hora} h`);
+            cierto(svg.includes(`data-momento="${momento}"`) && !svg.includes("§"), `a las ${hora} h es ${momento} y los id llevan su prefijo`);
+            cierto(!new DOMParser().parseFromString(svg, "image/svg+xml").querySelector("parsererror"), "la pista se puede leer como imagen");
+            const elementos = (svg.match(/<[a-zA-Z]/g) || []).length;
+            cierto(svg.length < 45000 && elementos < 420, `pesa poco (${(svg.length / 1024).toFixed(1)} KB, ${elementos} elementos): se dibuja cada segundo`);
+        }
+    }
+    const noche = mapaDePista({ metros: 1250, hora: 23, vivo: true }).svg;
+    cierto(noche.includes("foco") && noche.includes("tibio"), "de noche se encienden las torres y tu héroe lleva un brillo tibio");
+    cierto(!mapaDePista({ metros: 1250, hora: 12, vivo: true }).svg.includes("tibio"), "de día, no");
+    cierto(mapaDePista({ metros: 1250, parciales: [300, 305] }).svg.includes("1,25 KM · 5:05"), "el marcador: tus km y el ritmo de tu último km");
+    cierto(mapaDePista({ metros: 250 }).svg.includes("0,25 KM · 250 M"), "antes del primer km, los metros de la vuelta");
+    cierto(mapaDePista({ metros: 1250, vivo: true }).svg.includes('stroke="#ffe9a8"'), "en vivo, la pista se ilumina detrás de ti");
+    cierto(mapaDePista({ metros: 1250 }).svg.includes('fill="#f87171"'), "en el historial, el cuadro rojo de la llegada");
+    // El mapa en vivo le pasa a la pista la hora y lo demás.
+    const vivo = vistasRunning.htmlMapaVivo([[4.6, -74.08], [4.6003, -74.08]], [], { pista: { metros: 900, largo: 400 }, hora: 22, reloj: 1000, parciales: [301] });
+    cierto(vivo.includes('data-momento="noche"') && vivo.includes("0,90 KM · 5:01"), "en vivo: con la luz de la hora y el marcador");
+});
+
+prueba("Mapa de la carrera (v147): cada mojón dice el ritmo de su km y de noche tu héroe lleva su luz", () => {
+    const traza = Array.from({ length: 60 }, (_, i) => [4.6 + i * 0.0003, -74.08]);
+    const banderas = [traza[19], traza[39]];
+    const { svg } = mapaDeCarrera({ traza, banderas, km: 2.9, parciales: [300, 280] });
+    cierto(svg.includes(">5:00</text>") && svg.includes(">4:40</text>"), "el km 1 a 5:00 y el km 2 a 4:40");
+    cierto(/fill="#ffd76a"[^>]*>4:40</.test(svg), "el más rápido, en dorado");
+    igual((svg.match(/class="cr-hito"/g) || []).length, 2, "siguen siendo dos mojones");
+    cierto(!/>\d+:\d\d<\/text>/.test(mapaDeCarrera({ traza, banderas, km: 2.9 }).svg), "sin parciales, sin plaquita");
+    cierto(mapaDeCarrera({ traza, km: 2.9, flecha: true, hora: 23 }).svg.includes("tibio"), "de noche, en vivo: un brillo tibio alrededor de tu héroe");
+    cierto(!mapaDeCarrera({ traza, km: 2.9, flecha: false, hora: 23 }).svg.includes("tibio"), "en el historial, no");
+});
+
+prueba("Pelea sobre el mapa (v147): si tu héroe queda fuera de la vista, lo que vuela sale del borde", () => {
+    const criatura = { x: 50, y: 50 };   // en el centro del dibujo: (160, 120)
+    const visible = { x0: 40, x1: 280, y0: 0, y1: 240 };
+    igual(peleaMapa.puntoDeTiro({ x: 60, y: 50 }, criatura, visible), { x: 60, y: 50 }, "si se te ve, sale de ti");
+    const t = peleaMapa.puntoDeTiro({ x: 97, y: 50 }, criatura, visible);   // tu héroe en x = 310: en la parte recortada
+    const [tx, ty] = [(t.x / 100) * 320, (t.y / 100) * 240];
+    cierto(Math.abs(tx - 276) < 0.01 && Math.abs(ty - 120) < 0.01, `sale del borde de la derecha (${tx.toFixed(1)}, ${ty.toFixed(1)})`);
+    const d = peleaMapa.puntoDeTiro({ x: 100, y: 0 }, criatura, { x0: 40, x1: 280, y0: 40, y1: 200 });
+    const [dx, dy] = [(d.x / 100) * 320 - 160, (d.y / 100) * 240 - 120];
+    cierto(Math.abs(dx / dy - 160 / -120) < 1e-6, "sobre la línea entre la criatura y tú");
+    cierto(dx <= 276 - 160 + 1e-6 && dy >= 44 - 120 - 1e-6, "y dentro de lo que se ve");
+    cierto(peleaMapa.estiloDeLugar({ x: 97, y: 50 }, criatura, t).includes(`--tx: ${t.x.toFixed(2)}%`), "la capa lleva el punto de salida");
+});
+
+prueba("Memento mori (v147): etapas, semanas marcadas (sin cambiar nada) y las fechas de cada casilla", () => {
+    igual(["0", "13", "44", "64", "99"].map((e) => memento.etapaDeEdad(Number(e)).id), ["infancia", "juventud", "adultez", "madurez", "vejez"]);
+    const nac = "2000-03-15";
+    igual(memento.semanaDeFecha(nac, "2000-03-15"), 0, "el día que naciste es la casilla 0");
+    igual(memento.semanaDeFecha(nac, "2000-03-22"), 1);
+    igual(memento.semanaDeFecha(nac, "2026-03-15"), 26 * 52, "cada cumpleaños empieza una fila");
+    igual(memento.semanaDeFecha(nac, "1999-01-01"), null, "antes de nacer, nada");
+    const s = memento.semanaDeIndice(nac, 26 * 52 + 51);
+    igual([s.fila, s.columna, s.desde, s.hasta], [26, 51, "2027-03-07", "2027-03-14"], "la última semana del año llega hasta el día antes del cumpleaños");
+    for (const i of [0, 51, 52, 700, 26 * 52 + 51]) {
+        const sem = memento.semanaDeIndice(nac, i);
+        igual([memento.semanaDeFecha(nac, sem.desde), memento.semanaDeFecha(nac, sem.hasta)], [i, i], `la casilla ${i} va de su primer a su último día`);
+    }
+    // Las marcas: una carrera, la meta de km, la de gym y misiones los 7 días. Solo se LEE la partida.
+    const estado = partidaNueva();
+    estado.memento = { nacimiento: nac, esperanza: 80 };
+    estado.running.carreras.push(carreraDe(5, 30, "suave", "2026-03-18"));
+    estado.running.semanasCobradas.push("2026-03-30");   // el lunes de una semana con la meta de km cumplida
+    estado.gym.metaSemanal = 2;
+    estado.gym.sesiones.push(gym.sesionRapida("hombros", "2026-04-06"), gym.sesionRapida("espalda", "2026-04-08"));
+    const hecha = (fecha) => ({ misionId: 1, fecha, xp: 10, monedas: 5, atributo: "fuerza", dificultad: "facil" });
+    for (let k = 0; k < 7; k++) estado.completadas.push(hecha(sumarDias("2026-04-13", k)));
+    estado.completadas.push(hecha("2026-04-20"));   // una sola misión esa semana: no cuenta
+    const antes = JSON.stringify(estado);
+    const marcas = memento.semanasMarcadas(estado);
+    igual(JSON.stringify(estado), antes, "no cambia la partida");
+    igual([...marcas.carrera], [memento.semanaDeFecha(nac, "2026-03-18")], "la semana en que corriste");
+    igual([...marcas.meta].sort((a, b) => a - b), ["2026-04-02", "2026-04-09", "2026-04-16"].map((f) => memento.semanaDeFecha(nac, f)), "km, gym y misiones (se marca el jueves de cada semana)");
+    // La rejilla: las marcas, dos patrones por etapa y el texto de la casilla que tocas.
+    const c = memento.calcular(estado.memento, "2026-05-01");
+    const html = vistasMemento.rejillaMemento(c, marcas);
+    cierto(html.includes('class="mm-carrera"') && html.includes('class="mm-meta"') && html.includes("mm-elegida"), "la rejilla las marca");
+    igual((html.match(/<pattern /g) || []).length, 10, "dos patrones por etapa (siguen siendo pocos elementos)");
+    cierto(!new DOMParser().parseFromString(html.trim(), "image/svg+xml").querySelector("parsererror"), "la rejilla es una imagen válida");
+    igual(vistasMemento.textoDeSemana(nac, memento.semanaDeFecha(nac, "2026-03-18"), c, marcas), "Semana 1.353 · 26 años · del 15 al 21 de mar de 2026 · corriste");
+    cierto(vistasMemento.textoDeSemana(nac, c.vividas, c, marcas).endsWith("esta semana") && vistasMemento.textoDeSemana(nac, c.vividas + 9, c, marcas).endsWith("por vivir"), "esta semana y las que quedan");
+    igual(vistasMemento.textoDeSemana(nac, 26 * 52 + 41, c, marcas).split(" · ")[2], "del 27 de dic de 2026 al 2 de ene de 2027", "si cambia el año, lo dice");
+    cierto(vistasMemento.pantallaMemento(estado, { hoy: "2026-05-01" }).includes("data-mm-info"), "la pantalla tiene la línea para la casilla que tocas");
+});
+
+prueba("Finanzas (v147): la dona del plan 50/30/20 reparte lo que entró (solo lee)", () => {
+    const plan = [{ clave: "necesidad", nombre: "Necesidades", porcentaje: 50, gastado: 400 }, { clave: "gusto", nombre: "Gustos", porcentaje: 30, gastado: 100 },
+        { clave: "ahorro", nombre: "Ahorro y deudas", porcentaje: 20, gastado: 0 }];
+    const partes = vistasFinanzas.partesDeLaDona(plan, 1000);
+    igual(partes.map((p) => [p.clave, Math.round(p.porcentaje)]), [["necesidad", 40], ["gusto", 10], ["ahorro", 0], ["libre", 50]]);
+    igual(partes.reduce((suma, p) => suma + p.porcentaje, 0), 100, "suman el 100 %");
+    igual(vistasFinanzas.partesDeLaDona(plan, 300).find((p) => p.clave === "libre").porcentaje, 0, "si gastaste más de lo que entró, no queda nada libre");
+    igual(vistasFinanzas.partesDeLaDona(plan.map((p) => ({ ...p, gastado: 0 })), 0), [], "sin nada, no hay dona");
+    const svg = vistasFinanzas.donaDelPlan(partes).trim();
+    dibujoSano(svg, "la dona");
+    cierto(svg.includes(">50 %</text>"), "en el centro, cuánto llevas gastado");
+    cierto(!new DOMParser().parseFromString(svg, "image/svg+xml").querySelector("parsererror"), "la dona es una imagen válida");
+    const estado = partidaNueva();
+    estado.finanzas.fuentes.push({ id: 1, nombre: "Trabajo", tipo: "trabajo", valor: 0 });
+    estado.finanzas.ingresos.push({ id: 1, fecha: hoy(), monto: 1000000, fuente: 1, nota: "" });
+    const antes = JSON.stringify(estado);
+    cierto(vistasFinanzas.pantallaFinanzas(estado, { hoy: hoy(), subvista: {} }).includes("fin-dona"), "el Resumen la muestra cuando entró plata");
+    igual(JSON.stringify(estado), antes, "no cambia nada");
+    cierto(!vistasFinanzas.pantallaFinanzas(partidaNueva(), { hoy: hoy(), subvista: {} }).includes('class="fin-dona"'), "sin ingresos, no");
+});
+
+prueba("Íconos (v147): la calle, la pista, el GPS, la tarjeta, la carta y «buscar de nuevo» ya son de píxel", () => {
+    for (const [emoji, nombre] of [["🛣️", "camino"], ["🏟️", "estadio"], ["📡", "antena"], ["💳", "tarjeta"], ["✉️", "sobre"], ["🔄", "repetir"]]) {
+        igual(EMOJIS[emoji.replace(/️/g, "")], nombre, `${emoji} → ${nombre}`);
+        const caja = document.createElement("div");
+        caja.textContent = `${emoji} Calle`;
+        iconizar(caja);
+        cierto(caja.querySelector(`svg[data-icono="${nombre}"]`) && caja.textContent.trim() === "Calle", `${emoji} se dibuja en píxel`);
+    }
 });
 
 prueba("Running: las predicciones parten de tu mejor carrera reciente (Riegel) y ignoran la caminata", () => {

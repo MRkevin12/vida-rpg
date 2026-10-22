@@ -779,7 +779,8 @@ function conectarEventos() {
         if (estado.ajustes.sonido) sonido.despertar();   // el audio solo arranca tras un toque
         if (estado.ajustes.musica) ponerMusica();
         const boton = evento.target.closest("[data-accion]");
-        if (boton && !boton.disabled) ACCIONES[boton.dataset.accion]?.(boton);
+        // (v147) También se pasa el toque (evento): la rejilla de Memento mira dónde tocaste.
+        if (boton && !boton.disabled) ACCIONES[boton.dataset.accion]?.(boton, evento);
     });
 
     document.addEventListener("submit", (evento) => {

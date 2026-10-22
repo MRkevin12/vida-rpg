@@ -29,16 +29,20 @@ const duracionLarga = (ms) => {
 const duracion = (segundos) => `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, "0")}`;
 
 // Una gráfica de línea pequeña (SVG) con los valores dados. Con menos de 2 valores no se dibuja.
+// (v147) En pixel art: va dentro del marco de píxel del HUD de la carrera (CSS .gym-spark), los puntos caen en números
+// enteros (la línea sale en escalones, sin suavizar), las rayitas del fondo marcan el medio y el último valor es un cuadro.
 function sparkline(valores, { ancho = 84, alto = 24, color = "#fbbf24" } = {}) {
     if (valores.length < 2) return "";
     const min = Math.min(...valores);
     const max = Math.max(...valores);
     const rango = max - min || 1;
-    const puntos = valores.map((x, i) => `${(i / (valores.length - 1)) * (ancho - 4) + 2},${alto - 3 - ((x - min) / rango) * (alto - 6)}`);
-    const ultimo = puntos[puntos.length - 1].split(",");
+    const puntos = valores.map((x, i) => [Math.round((i / (valores.length - 1)) * (ancho - 6) + 3), Math.round(alto - 4 - ((x - min) / rango) * (alto - 8))]);
+    const [ux, uy] = puntos[puntos.length - 1];
+    const medio = Math.round(alto / 2);
     return `<svg class="gym-spark" viewBox="0 0 ${ancho} ${alto}" width="${ancho}" height="${alto}" aria-hidden="true">
-        <polyline points="${puntos.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-        <circle cx="${ultimo[0]}" cy="${ultimo[1]}" r="2.6" fill="${color}"/></svg>`;
+        <path d="M0 ${medio}h${ancho}" stroke="rgba(255,255,255,.12)" stroke-width="1" stroke-dasharray="2 2"/>
+        <polyline points="${puntos.map((p) => p.join(",")).join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="miter"/>
+        <rect x="${ux - 2.5}" y="${uy - 2.5}" width="5" height="5" fill="${color}" stroke="#06040d" stroke-width="1"/></svg>`;
 }
 
 // Cuánto hace de la última vez que hiciste una rutina, en palabras.

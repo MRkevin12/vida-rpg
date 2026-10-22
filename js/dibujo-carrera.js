@@ -9,34 +9,22 @@
 // agua, fuego). Las piezas (dibujos y colores) están en dibujo-carrera-piezas.js.
 // Devuelve texto SVG (como los demás dibujos). shape-rendering="crispEdges" deja los bordes en cuadritos.
 
+// (v147) La pista de atletismo está en dibujo-pista.js (aquí solo se vuelve a exportar, como antes).
+// (v147) Cada mojón dice también el ritmo de su km, y de noche la luz alrededor de tu héroe va en anillos, con un brillo tibio.
+
 import { ZONAS, KM_POR_ZONA, zonaDelKm } from "./encuentros.js";
 import * as piezas from "./dibujo-carrera-piezas.js";
+import { textoSegundos } from "./running.js";
 
-const { n1, cuadros, nuevoPintor, PALETAS, AGUAS } = piezas;
+// (v147) El «azar fijo» (azar, suave) y los tonos del suelo también están en las piezas: la pista los usa.
+const { n1, cuadros, nuevoPintor, PALETAS, AGUAS, fases, capaDeLuz, CICLO, azar, suave, tonoDelSuelo } = piezas;
 export const momentoDelDia = piezas.momentoDelDia;
+export const LIENZO = piezas.LIENZO;
+export { puntoEnPista, mapaDePista } from "./dibujo-pista.js";
 
-export const LIENZO = { ancho: 320, alto: 240, margen: 30, minMetros: 160 };
 const CASILLA = 16;   // el paisaje se reparte en casillas de 16 × 16 (el suelo, en cuadritos de 8 × 8)
 
-// Un número entre 0 y 1 que siempre sale igual para la misma casilla.
-const azar = (i, j, k = 0) => {
-    const x = Math.sin(i * 127.1 + j * 311.7 + k * 74.7) * 43758.5453;
-    return x - Math.floor(x);
-};
 const r1 = (n) => n.toFixed(1);
-
-// (v144) Un azar «suave»: cambia poco a poco de una casilla a la vecina. Sirve para que los árboles se junten en
-// bosquecillos con claros entre ellos y para las manchas del suelo (en vez de un tablero de ajedrez).
-function suave(x, y, k) {
-    const i = Math.floor(x);
-    const j = Math.floor(y);
-    const curva = (t) => t * t * (3 - 2 * t);
-    const fx = curva(x - i);
-    const fy = curva(y - j);
-    const arriba = azar(i, j, k) + (azar(i + 1, j, k) - azar(i, j, k)) * fx;
-    const abajo = azar(i, j + 1, k) + (azar(i + 1, j + 1, k) - azar(i, j + 1, k)) * fx;
-    return arriba + (abajo - arriba) * fy;
-}
 
 // (v144) Las piezas ya dibujadas se guardan: el mapa se vuelve a dibujar cada segundo y cada pieza sale siempre igual.
 const PIEZAS_HECHAS = new Map();
@@ -148,14 +136,8 @@ function aTramo(x, y, a, b) {
     return { d2: (a[0] + dx * t - x) ** 2 + (a[1] + dy * t - y) ** 2, t };
 }
 
-// (v144) Las animaciones del mapa (ver estilos.css, bloque v144) duran un divisor de 24 s y van en pasos de 1/8 s.
-// Sus fases salen del reloj: así, aunque el mapa se vuelva a dibujar cada segundo, siguen donde iban en vez de empezar de cero.
-// Hay 4 grupos (--f0 … --f3) desfasados 5/8 s, para que no se mueva todo a la vez.
-const CICLO = 24;
-function fases(reloj) {
-    const t = Math.floor((Number(reloj) || 0) / 125) / 8;
-    return [0, 1, 2, 3].map((n) => `--f${n}:${-((t + n * 0.625) % CICLO)}s`).join(";");
-}
+// (v144) Las fases de las animaciones (fases, CICLO) y la capa de luz de cada hora (capaDeLuz) están en dibujo-carrera-piezas.js:
+// la pista también las usa.
 
 // ===== El mapa =====
 // opciones = { traza: [[lat, lon]…], banderas: [[lat, lon]…] (una por km), encuentros: [{ km, resultado, jefe }…], km: lo corrido,
@@ -561,12 +543,14 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
     }
 
     // 7) Los mojones de cada km: verde si venciste a su criatura, gris si escapó, morado si era un jefe vencido.
+    //    (v147) Al lado, en una plaquita, el ritmo de ese km («5:12»), si se sabe (parciales). El más rápido, en dorado.
     const hitos = mojones.map((b, k) => {
         const [x, y] = aPantalla(b);
         if (!visible(x, y, 14)) return "";
         const pelea = (encuentros || []).find((e) => e.km === k + 1);
         const color = !pelea?.resultado ? "#fbbf24" : pelea.resultado === "vencida" ? (pelea.jefe ? "#c084fc" : "#4ade80") : "#8a8a96";
-        return piezas.mojon(x, y, k + 1, color, momento);
+        const segundos = lista2.length === (parciales || []).length ? lista2[k] : null;   // solo si todos los parciales son válidos (si no, se correrían)
+        return piezas.mojon(x, y, k + 1, color, momento, segundos ? { texto: textoSegundos(segundos), mejor: k + 1 === rapido } : null);
     }).join("");
 
     // 8) (v131) Hacia dónde vas: una flechita delante de ti (con la dirección de los últimos ~15 m).
@@ -604,7 +588,8 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
     }
 
     // 10) La luz de la hora del día (una capa encima de todo el paisaje) y lo que brilla encima de ella.
-    const luz = capaDeLuz(momento, p, vivo ? ex : ancho / 2, vivo ? ey : alto / 2);
+    // (v147) De noche la luz se centra en el pecho de tu héroe (un poco arriba de sus pies) y lleva un brillo tibio.
+    const luz = capaDeLuz(momento, p, vivo ? ex : ancho / 2, vivo ? ey - 8 : alto / 2, vivo);
     const conClase = (lista3, clase) => lista3.map((pintor, f) => (pintor.vacio() ? "" : pintor.svg().replace(/<path /g, `<path class="${clase} f${f}" `))).join("");
     const definiciones = [...defs.values()].map((pz) => `<g id="${pz.id}">${pz.base}</g>${pz.copa ? `<g id="${pz.id}-c">${pz.copa}</g>` : ""}`).join("");
     objetos.sort((a, b) => a.y - b.y);
@@ -679,12 +664,6 @@ const MEDIDAS = {
     aldea: { w: [40, 44], h: [20, 24] }, torre: { w: [14, 16], h: [26, 28] }, campamento: { w: [28, 30], h: [14, 16] },
     ruinas: { w: [28, 32], h: [16, 18] }, choza: { w: [22, 24], h: [16, 18] },
 };
-
-// El tono (0–3) del cuadrito (ci, cj) del suelo: manchas grandes y suaves, otras más chicas y un poco de azar.
-function tonoDelSuelo(ci, cj) {
-    const v = 0.68 * suave(ci / 8, cj / 8, 21) + 0.32 * suave(ci / 3, cj / 3, 22);
-    return v < 0.38 ? 0 : v < 0.5 ? 1 : v < 0.62 ? 2 : 3;
-}
 
 // Los detalles chicos del suelo de una casilla (matas, flores, piedritas, ondas de arena, grietas de lava…) y los efectos de
 // la zona (niebla, nieve, brasas, luciérnagas, mariposas). Van fijos al terreno, como todo el paisaje.
@@ -833,93 +812,6 @@ function huellas(puntos) {
         andado += largo;
     }
     return niveles.map((pintor, i) => (pintor.vacio() ? "" : `<g opacity="${[0.7, 0.45, 0.22][i]}">${pintor.svg()}</g>`)).join("");
-}
-
-// La capa de luz de cada momento: tibia al amanecer (el sol sale por la derecha), naranja al atardecer y, de noche,
-// oscuridad con un círculo de luz alrededor de tu héroe (cx, cy). De día no hace falta.
-function capaDeLuz(momento, p, cx, cy) {
-    const parada = (o, color, op) => `<stop offset="${o}" stop-color="${color}" stop-opacity="${op}"/>`;
-    const capa = `<rect width="${LIENZO.ancho}" height="${LIENZO.alto}" fill="url(#${p}luz)"/>`;
-    if (momento === "amanecer") {
-        return { defs: `<linearGradient id="${p}luz" x1="1" y1="0" x2="0" y2="1">${parada(0, "#ffb27a", 0.3)}${parada(0.5, "#e88a9a", 0.12)}${parada(1, "#4a3a8a", 0.24)}</linearGradient>`, svg: capa };
-    }
-    if (momento === "atardecer") {
-        return { defs: `<linearGradient id="${p}luz" x1="0" y1="0" x2="1" y2="1">${parada(0, "#ff7a3a", 0.3)}${parada(0.45, "#c84a5a", 0.2)}${parada(1, "#24184a", 0.4)}</linearGradient>`, svg: capa };
-    }
-    if (momento === "noche") {
-        return {
-            defs: `<radialGradient id="${p}luz" gradientUnits="userSpaceOnUse" cx="${n1(cx)}" cy="${n1(cy)}" r="190">${parada(0, "#0a1030", 0.12)}${parada(0.3, "#0a1030", 0.42)}${parada(0.7, "#0a1030", 0.62)}${parada(1, "#0a1030", 0.72)}</radialGradient>`,
-            svg: capa,
-        };
-    }
-    return { defs: "", svg: "" };
-}
-
-// ===== (v131) La pista de atletismo =====
-// En una pista el GPS dibuja círculos encimados; aquí se dibuja la pista de verdad (400 m en el carril 1: dos rectas de 84,39 m y
-// dos curvas de 36,8 m de radio) y tu héroe va sobre ella según los metros que llevas en la vuelta. La salida está al inicio de la
-// recta de abajo y se corre en sentido contrario a las agujas del reloj, como en cualquier pista.
-const PISTA = { recta: 84.39, radio: 36.8, borde: 36.5, carril: 1.22, carriles: 6 };
-
-// Dónde estás (en metros desde el centro de la pista) a `m` metros de la salida, en el carril 1.
-export function puntoEnPista(m, largo = 400) {
-    const { recta: L, radio: R } = PISTA;
-    let p = ((m % largo) + largo) % largo;
-    p *= (2 * L + 2 * Math.PI * R) / largo;   // por si la pista no mide exactamente 400 m
-    if (p < L) return [-L / 2 + p, R];
-    p -= L;
-    if (p < Math.PI * R) { const t = Math.PI / 2 - p / R; return [L / 2 + R * Math.cos(t), R * Math.sin(t)]; }
-    p -= Math.PI * R;
-    if (p < L) return [L / 2 - p, -R];
-    p -= L;
-    const t = -Math.PI / 2 - p / R;
-    return [-L / 2 + R * Math.cos(t), R * Math.sin(t)];
-}
-
-// opciones = { metros: lo corrido, largo: 400, vueltas: true }. Devuelve { svg, aqui, rumbo, zona: { nombre } } como mapaDeCarrera.
-export function mapaDePista({ metros = 0, largo = 400 } = {}) {
-    const { ancho, alto } = LIENZO;
-    const { recta: L, borde, carril, carriles } = PISTA;
-    const exterior = borde + carril * carriles;
-    const s = Math.min((ancho - 36) / (L + 2 * exterior), (alto - 70) / (2 * exterior));
-    const [cx, cy] = [ancho / 2, alto / 2 + 4];
-    const aP = ([x, y]) => [cx + x * s, cy + y * s];
-    // Un «estadio» (rectángulo con las puntas redondas) de radio r metros.
-    const estadio = (r) => `M${r1(cx - (L / 2) * s)} ${r1(cy - r * s)} h${r1(L * s)} a${r1(r * s)} ${r1(r * s)} 0 0 1 0 ${r1(2 * r * s)} h${r1(-L * s)} a${r1(r * s)} ${r1(r * s)} 0 0 1 0 ${r1(-2 * r * s)} Z`;
-    const lineas = Array.from({ length: carriles - 1 }, (_, i) => `<path d="${estadio(borde + carril * (i + 1))}" fill="none" stroke="#f4e6e0" stroke-width=".7" opacity=".7"/>`).join("");
-    // Las gradas, arriba y abajo.
-    const grada = (y, alto2) => Array.from({ length: 4 }, (_, i) => `<rect x="14" y="${r1(y + i * (alto2 / 4))}" width="${ancho - 28}" height="${r1(alto2 / 4 - 1)}" fill="${["#5a5266", "#6a6276", "#5a5266", "#4a4256"][i]}"/>`).join("")
-        + Array.from({ length: 26 }, (_, i) => `<rect x="${18 + i * 11}" y="${r1(y + 2 + (i % 4) * (alto2 / 4))}" width="3" height="3" fill="${["#f87171", "#fbbf24", "#60a5fa", "#4ade80", "#eef2ff"][i % 5]}"/>`).join("");
-    // El campo de fútbol del centro.
-    const campoAncho = L * s * 0.95;
-    const campoAlto = borde * 2 * s * 0.72;
-    const campo = `<rect x="${r1(cx - campoAncho / 2)}" y="${r1(cy - campoAlto / 2)}" width="${r1(campoAncho)}" height="${r1(campoAlto)}" fill="none" stroke="#eef7e6" stroke-width="1"/>
-        <line x1="${r1(cx)}" y1="${r1(cy - campoAlto / 2)}" x2="${r1(cx)}" y2="${r1(cy + campoAlto / 2)}" stroke="#eef7e6" stroke-width="1"/>
-        <circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(campoAlto * 0.18)}" fill="none" stroke="#eef7e6" stroke-width="1"/>`;
-    // La salida/meta: una franja blanca a lo ancho de los carriles.
-    const [mx, my] = aP([-L / 2, borde]);
-    const meta = `<rect x="${r1(mx - 1)}" y="${r1(my)}" width="2.5" height="${r1(carril * carriles * s)}" fill="#ffffff"/>`;
-    // Lo que llevas de esta vuelta, en dorado sobre el carril 1.
-    const enVuelta = metros % largo;
-    const traza = [];
-    for (let m = 0; m <= enVuelta; m += 4) traza.push(aP(puntoEnPista(m, largo)));
-    traza.push(aP(puntoEnPista(enVuelta, largo)));
-    const avance = traza.length > 1 ? `<polyline points="${traza.map((q) => `${r1(q[0])},${r1(q[1])}`).join(" ")}" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round"/>` : "";
-    const [ex, ey] = aP(puntoEnPista(metros, largo));
-    // (v146) Hacia dónde corres: de aquí al punto de la pista 2 m más adelante (en las curvas, la tangente).
-    const [sx, sy] = aP(puntoEnPista(metros + 2, largo));
-    const largoRumbo = Math.hypot(sx - ex, sy - ey) || 1;
-    const rumbo = { x: (sx - ex) / largoRumbo, y: (sy - ey) / largoRumbo };
-    const vueltas = Math.floor(metros / largo);
-    const svg = `<svg class="run-mapa-svg" viewBox="0 0 ${ancho} ${alto}" shape-rendering="crispEdges" preserveAspectRatio="none" role="img" aria-label="Tu carrera en la pista">
-        <rect width="${ancho}" height="${alto}" fill="#2a6a38"/>
-        ${grada(4, 26)}${grada(alto - 30, 26)}
-        <path d="${estadio(exterior + 1.5)}" fill="#e7e2d8"/>
-        <path d="${estadio(exterior)}" fill="#b5482e"/>
-        <path d="${estadio(borde)}" fill="#2e7a40" stroke="#f4e6e0" stroke-width="1"/>
-        ${lineas}${campo}${meta}${avance}
-        <rect x="${r1(ex - 3)}" y="${r1(ey - 3)}" width="6" height="6" fill="#f87171" stroke="#0b0816" stroke-width="1.2"/></svg>`;
-    return { svg, aqui: { x: (ex / ancho) * 100, y: (ey / alto) * 100 }, rumbo, zona: { nombre: `🏟️ Pista · ${vueltas === 1 ? "1 vuelta" : `${vueltas} vueltas`} · ${Math.round(enVuelta)}/${largo} m` } };
 }
 
 export { ZONAS, KM_POR_ZONA };

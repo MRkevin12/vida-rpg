@@ -7,7 +7,7 @@
 // Aquí solo hay reglas (sin pantalla ni guardar). Lo guardado vive en estado.memento = { nacimiento: "AAAA-MM-DD" | null, esperanza }.
 // La fecha de nacimiento es un dato personal: NUNCA va en el código (el repo es público), solo en la partida del teléfono.
 
-import { desdeTexto, aTexto, diasEntre, esFechaValida } from "./fechas.js";
+import { desdeTexto, aTexto, diasEntre, esFechaValida, sumarDias, lunesDe } from "./fechas.js";
 
 export const SEMANAS_POR_ANIO = 52;
 export const ESPERANZA_INICIAL = 80;
@@ -88,4 +88,71 @@ export function casillasDeFila(fila, edad, semana) {
     if (fila < edad) return { vividas: SEMANAS_POR_ANIO, ahora: 0, futuras: 0 };
     if (fila > edad) return { vividas: 0, ahora: 0, futuras: SEMANAS_POR_ANIO };
     return { vividas: semana, ahora: 1, futuras: SEMANAS_POR_ANIO - semana - 1 };
+}
+
+// ===== (v147) Las etapas de la vida =====
+// Cada fila (un año de edad) es de una etapa; la rejilla pinta cada etapa de otro color (los colores están en estilos.css:
+// van del amanecer —la infancia— al atardecer —la vejez—). hasta: la última edad de la etapa.
+export const ETAPAS = [
+    { id: "infancia", nombre: "Infancia", desde: 0, hasta: 12 },
+    { id: "juventud", nombre: "Juventud", desde: 13, hasta: 24 },
+    { id: "adultez", nombre: "Adultez", desde: 25, hasta: 44 },
+    { id: "madurez", nombre: "Madurez", desde: 45, hasta: 64 },
+    { id: "vejez", nombre: "Vejez", desde: 65, hasta: Infinity },
+];
+export const etapaDeEdad = (edad) => ETAPAS.find((e) => edad >= e.desde && edad <= e.hasta) || ETAPAS[ETAPAS.length - 1];
+
+// ===== (v147) Cada casilla y su fecha =====
+// La casilla de una fecha: el número de semana de tu vida, desde 0 (fila × 52 + columna). Antes de nacer, null.
+export function semanaDeFecha(nacimiento, fecha) {
+    if (!esFechaValida(fecha) || fecha < nacimiento) return null;
+    const edad = edadEn(nacimiento, fecha);
+    const semana = Math.min(SEMANAS_POR_ANIO - 1, Math.floor(diasEntre(cumpleanos(nacimiento, edad), fecha) / 7));
+    return edad * SEMANAS_POR_ANIO + semana;
+}
+
+// Al revés: las fechas de la casilla número `indice` (desde 0). Devuelve { fila (tu edad), columna, numero (desde 1),
+// desde, hasta }. Cada fila empieza en tu cumpleaños; la última semana del año dura hasta el día antes del siguiente
+// (un año tiene 365 o 366 días, no 52 × 7 = 364).
+export function semanaDeIndice(nacimiento, indice) {
+    const fila = Math.floor(indice / SEMANAS_POR_ANIO);
+    const columna = indice % SEMANAS_POR_ANIO;
+    const desde = sumarDias(cumpleanos(nacimiento, fila), columna * 7);
+    const hasta = columna === SEMANAS_POR_ANIO - 1 ? sumarDias(cumpleanos(nacimiento, fila + 1), -1) : sumarDias(desde, 6);
+    return { fila, columna, numero: indice + 1, desde, hasta };
+}
+
+// ===== (v147) Las semanas que marcaste con lo que hiciste =====
+// Solo LEE la partida (no cambia nada). Devuelve { carrera, meta }: dos conjuntos de casillas (como semanaDeFecha).
+//   carrera: esa semana corriste al menos una vez (estado.running.carreras);
+//   meta: esa semana cumpliste una meta semanal: tus km de running (running.semanasCobradas), tus días de gym
+//         (gym.metaSemanal) o hiciste misiones los 7 días (como los 7 días seguidos que dan un escudo).
+// Las metas van por semanas de lunes a domingo; se marca la casilla del jueves (el medio de esa semana).
+export function semanasMarcadas(estado) {
+    const carrera = new Set();
+    const meta = new Set();
+    const nacimiento = estado?.memento?.nacimiento;
+    if (!nacimiento) return { carrera, meta };
+    const marcar = (conjunto, fecha) => {
+        const indice = semanaDeFecha(nacimiento, fecha);
+        if (indice !== null) conjunto.add(indice);
+    };
+    const jueves = (lunes) => sumarDias(lunes, 3);
+    // Cuántos días distintos hay en cada semana (por su lunes).
+    const diasPorSemana = (fechas) => {
+        const cuenta = new Map();
+        for (const fecha of new Set(fechas.filter(esFechaValida))) {
+            const lunes = lunesDe(fecha);
+            cuenta.set(lunes, (cuenta.get(lunes) || 0) + 1);
+        }
+        return cuenta;
+    };
+    for (const c of estado.running?.carreras || []) marcar(carrera, c.fecha);
+    for (const lunes of estado.running?.semanasCobradas || []) if (esFechaValida(lunes)) marcar(meta, jueves(lunes));
+    const metaGym = estado.gym?.metaSemanal || 0;
+    if (metaGym > 0) {
+        for (const [lunes, dias] of diasPorSemana((estado.gym?.sesiones || []).map((s) => s.fecha))) if (dias >= metaGym) marcar(meta, jueves(lunes));
+    }
+    for (const [lunes, dias] of diasPorSemana((estado.completadas || []).map((c) => c.fecha))) if (dias >= 7) marcar(meta, jueves(lunes));
+    return { carrera, meta };
 }

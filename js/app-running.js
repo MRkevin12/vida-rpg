@@ -162,7 +162,8 @@ export function ponerPeleaEnMapa(ahora = Date.now()) {
         metros: en.distancia - (en.marcas || []).length * 1000,   // lo que llevas del km: se acerca a medida que avanzas
         lado: pelea ? peleaMapa.ladoEnMapa(pelea.id, pelea.jefe) : 26,
     });
-    capa.setAttribute("style", peleaMapa.estiloDeLugar(aqui, criatura));
+    // (v147) Lo que vuela sale de tu héroe o, si quedó fuera de lo que se ve («Ver todo»), del borde de la vista.
+    capa.setAttribute("style", peleaMapa.estiloDeLugar(aqui, criatura, peleaMapa.puntoDeTiro(aqui, criatura, visible)));
     // Las criaturas están dibujadas mirando a la derecha (en la Torre pelean desde la izquierda): si está a tu derecha,
     // se da vuelta para mirarte.
     capa.classList.toggle("mira-izq", criatura.x > aqui.x);
