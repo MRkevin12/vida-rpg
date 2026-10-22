@@ -18,6 +18,7 @@
 // Aquí solo se calcula y se arma el HTML (texto). Quien lo pone en la pantalla es app-running.js (ponerPeleaEnMapa).
 
 import * as encuentros from "./encuentros.js";
+import * as hallazgos from "./hallazgos.js";   // (v148) cofres y fogatas del camino
 import * as bestiario from "./bestiario.js";
 import { LIENZO } from "./dibujo-carrera.js";
 import { esc } from "./vistas-comun.js";
@@ -81,6 +82,32 @@ export function lugarDeCriatura({ aqui, rumbo = null, metros = 0, visible = part
     return { x: (mejor.x / W) * 100, y: (mejor.y / H) * 100 };
 }
 
+// (v148) Dónde va el próximo cofre o fogata: delante de ti, a la distancia que falta (en el modo «Seguirme» 320 puntos del
+// dibujo son unos 420 m, así que 1 m ≈ 0,76 puntos), a un lado del camino: el lado CONTRARIO al de la criatura (criatura,
+// en % del dibujo), para que no se tapen. Si aun así quedan muy juntos, se aparta un poco más.
+export const PUNTOS_POR_METRO = 320 / 420;
+export const SEPARACION = 26;   // puntos del dibujo a un lado del camino
+export function lugarDeHallazgo({ aqui, rumbo = null, falta = 0, visible = parteVisible(0, 0), criatura = null }) {
+    if (!aqui) return null;
+    const { ancho: W, alto: H } = LIENZO;
+    const hx = (aqui.x / 100) * W;
+    const hy = (aqui.y / 100) * H;
+    const d = Math.max(12, falta * PUNTOS_POR_METRO);
+    let [ux, uy] = rumbo && Math.hypot(rumbo.x, rumbo.y) > 0.01 ? [rumbo.x, rumbo.y] : [hx > W / 2 ? -0.94 : 0.94, 0.34];
+    const largo = Math.hypot(ux, uy);
+    ux /= largo;
+    uy /= largo;
+    // ¿De qué lado del camino está la criatura? (el signo del producto cruz entre el rumbo y la línea héroe → criatura)
+    const [cx, cy] = criatura ? [(criatura.x / 100) * W, (criatura.y / 100) * H] : [hx, hy];
+    const ladoCriatura = Math.sign(ux * (cy - hy) - uy * (cx - hx)) || 1;
+    const lado = -ladoCriatura;   // el cofre va del otro lado
+    const dentro = (x, y) => [Math.min(visible.x1 - 8, Math.max(visible.x0 + 8, x)), Math.min(visible.y1 - 4, Math.max(visible.y0 + 16, y))];
+    // Delante (d) y a un costado (SEPARACION, girando el rumbo 90° hacia ese lado). Si queda encima de la criatura, más lejos.
+    let [x, y] = dentro(hx + ux * d - uy * SEPARACION * lado, hy + uy * d + ux * SEPARACION * lado);
+    if (criatura && Math.hypot(x - cx, y - cy) < 28) [x, y] = dentro(hx + ux * d - uy * SEPARACION * 2 * lado, hy + uy * d + ux * SEPARACION * 2 * lado);
+    return { x: (x / W) * 100, y: (y / H) * 100 };
+}
+
 // El rumbo del GPS tiembla un poco: se mezcla con el anterior para que la criatura no salte de un lado a otro.
 // Si das media vuelta (los dos apuntan casi al revés), se queda el nuevo. Sin rumbo nuevo, se queda el anterior.
 export function mezclarRumbo(anterior, nuevo, peso = 0.5) {
@@ -122,10 +149,12 @@ export function puntoDeTiro(heroe, criatura, visible = parteVisible(0, 0), marge
 
 // Lo que app-running.js escribe cada segundo en el style de la capa: dónde va tu héroe y dónde la criatura (en % del dibujo).
 // (v147) tiro: de dónde sale lo que vuela de tu lado (puntoDeTiro); si no se da, tu héroe.
-export function estiloDeLugar(heroe, criatura, tiro = heroe) {
+// (v148) objeto: dónde va el próximo cofre o fogata (lugarDeHallazgo), si hay uno cerca.
+export function estiloDeLugar(heroe, criatura, tiro = heroe, objeto = null) {
     const c = criatura || heroe;
     const t = tiro || heroe;
-    return `--hx: ${heroe.x.toFixed(2)}%; --hy: ${heroe.y.toFixed(2)}%; --cx: ${c.x.toFixed(2)}%; --cy: ${c.y.toFixed(2)}%; --tx: ${t.x.toFixed(2)}%; --ty: ${t.y.toFixed(2)}%`;
+    const o = objeto || heroe;
+    return `--hx: ${heroe.x.toFixed(2)}%; --hy: ${heroe.y.toFixed(2)}%; --cx: ${c.x.toFixed(2)}%; --cy: ${c.y.toFixed(2)}%; --tx: ${t.x.toFixed(2)}%; --ty: ${t.y.toFixed(2)}%; --ox: ${o.x.toFixed(2)}%; --oy: ${o.y.toFixed(2)}%`;
 }
 
 // El nombre sobre la criatura: si es largo, la primera palabra («Araña tejedora» → «Araña»).
@@ -150,7 +179,34 @@ export function firmaDeLaCapa(en, ahora = Date.now(), sprites = {}) {
     const { pelea, final, golpes, llega } = escenaDeBatalla(en, ahora);
     const listas = [sprites.heroeMapa, pelea && sprites.mapa?.[pelea.id]].map(Boolean).join("");
     const reciente = Boolean(golpeFresco(golpes, final, ahora)) || llega;
-    return `${pelea?.km ?? "-"}:${final}:${golpes.length}:${reciente}:${listas}`;
+    // (v148) El cofre o la fogata que viene, y el último que encontraste mientras sea reciente.
+    const viene = hallazgos.proximo(en.inicio, en.distancia);
+    const hallado = halladoFresco(en, ahora);
+    return `${pelea?.km ?? "-"}:${final}:${golpes.length}:${reciente}:${listas}:${viene ? `${viene.tipo}${viene.metro}` : "-"}:${hallado ? hallado.metro : "-"}`;
+}
+
+// (v148) El último cofre o fogata que encontraste, si fue hace poco (RECIENTE). Si no, null.
+export const halladoFresco = (en, ahora = Date.now()) => {
+    const h = (en.hallados || []).at(-1);
+    return h && ahora - h.t < RECIENTE ? h : null;
+};
+
+// (v148) El cofre y la fogata en cuadritos (12 × 12 puntos del dibujo). La llama parpadea (CSS run-pm-llama).
+const DIBUJO_HALLAZGO = {
+    cofre: `<rect x="0" y="5" width="12" height="7" fill="#7a4a1e"/><rect x="0" y="2" width="12" height="4" fill="#a8702e"/>
+        <rect x="1" y="1" width="10" height="1" fill="#c8883a"/><rect x="0" y="5" width="12" height="1" fill="#3a2614"/>
+        <rect x="5" y="5" width="2" height="3" fill="#fbbf24"/><rect x="0" y="11" width="12" height="1" fill="#2a1a0c"/>`,
+    fogata: `<rect x="1" y="10" width="10" height="2" fill="#5a3a1e"/><rect x="3" y="9" width="6" height="1" fill="#7a5028"/>
+        <g class="run-pm-llama"><rect x="3" y="4" width="6" height="5" fill="#e0501a"/><rect x="4" y="2" width="4" height="3" fill="#f07a1f"/>
+        <rect x="5" y="5" width="2" height="4" fill="#ffd23c"/><rect x="5" y="1" width="2" height="2" fill="#ffb020"/></g>`,
+};
+const dibujoHallazgo = (tipo) => `<svg class="run-pm-objeto-svg" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true">${DIBUJO_HALLAZGO[tipo]}</svg>`;
+
+// (v148) El próximo cofre o fogata, delante de ti en el mapa, con los metros que faltan. Se ubica con --ox y --oy.
+function htmlHallazgo(en) {
+    const h = hallazgos.proximo(en.inicio, en.distancia);
+    if (!h) return "";
+    return `<div class="run-pm-objeto ${h.tipo}" aria-hidden="true">${dibujoHallazgo(h.tipo)}<b>${Math.max(1, Math.round(h.falta))} m</b></div>`;
 }
 
 // Una barrita de vida (de 0 a encuentros.VIDA) sobre la cabeza, con el nombre encima si lo hay. Si acaba de haber un
@@ -176,15 +232,27 @@ export function htmlCapa(en, ahora = Date.now(), sprites = {}) {
     const vidas = encuentros.vidasDeLaBatalla(golpes);
     const antes = fresco ? encuentros.vidasDeLaBatalla(golpes.slice(0, -1)) : vidas;
 
+    // (v148) La fogata (un «golpe» que cura) y el último cofre o fogata que encontraste.
+    const descanso = fresco?.tipo === "fogata" ? fresco : null;
+    const hallado = halladoFresco(en, ahora);
+    const cofre = hallado?.tipo === "cofre" ? hallado : null;
+    const extras = (descanso ? chispasFF("cura", 120) + numeroFF(`+${descanso.cura} ❤️`, "cura", 160) : "")
+        + (cofre ? chispasFF("critico", 80) + numeroFF(`+${hallazgos.COFRE.gemas} 💎`, "critico", 120) : "");
+    const cartelHallazgo = cofre ? `${hallazgos.TIPOS.cofre.icono} ¡Cofre! +${hallazgos.COFRE.gemas} 💎 +${hallazgos.COFRE.xp} XP`
+        : descanso ? `${hallazgos.TIPOS.fogata.icono} Descanso: +${descanso.cura} ❤️ y más margen` : "";
+    const objeto = htmlHallazgo(en);
+
     const heroe = `
-        <div class="run-pm-bando run-pm-heroe ${poder ? "lanza" : ""} ${ataque ? "herido" : ""}" style="--lado: ${HEROE.ancho}; --pega: ${pega}ms">
+        <div class="run-pm-bando run-pm-heroe ${poder ? "lanza" : ""} ${ataque ? "herido" : ""} ${descanso ? "descansa" : ""}" style="--lado: ${HEROE.ancho}; --pega: ${pega}ms">
             <span class="run-pm-sombra"></span>
             ${final ? "" : vidaMini(antes.heroe, vidas.heroe, "de-heroe", pega)}
             <span class="run-pm-cuerpo"><img class="run-pm-sprite" src="${sprites.heroeMapa || ""}" alt="" draggable="false"></span>
             ${ataque ? chispasFF("herida", pega) + numeroFF(`−${fresco.herida}`, "herida", pega) : ""}
+            ${extras}
         </div>`;
-    // En el golpe final la criatura está en la escena grande (htmlFinal): aquí solo queda tu héroe.
-    if (!pelea || final) return heroe;
+    const cartelSolo = cartelHallazgo ? `<p class="ff-ventana run-pm-cartel hallazgo">${esc(cartelHallazgo)}</p>` : "";
+    // En el golpe final la criatura está en la escena grande (htmlFinal): aquí solo queda tu héroe (y lo que viene en el camino).
+    if (!pelea || final) return `${objeto}${heroe}${cartelSolo}`;
 
     const criatura = bestiario.CRIATURAS[pelea.id] || {};
     const lado = ladoEnMapa(pelea.id, pelea.jefe);
@@ -218,10 +286,12 @@ export function htmlCapa(en, ahora = Date.now(), sprites = {}) {
     const icono = pelea.jefe ? "👑" : pelea.emboscada ? "⚠️" : clase?.icono || "⚔️";
     const cartel = poder ? `${poder.icono} ${poder.nombre}${fresco.combo ? ` + ${encuentros.PODERES.llamarada.icono} ${encuentros.PODERES.llamarada.nombre}` : ""}`
         : ataque ? `${ataque.icono} ${ataque.nombre}`
+        : cartelHallazgo ? cartelHallazgo
         : llega ? `${icono} ¡Aparece ${encuentros.nombreDe(pelea)}!` : "";
+    const claseCartel = poder ? "" : ataque ? "ataque" : cartelHallazgo ? "hallazgo" : llega ? "aparece" : "";
 
-    return `${enemigo}${heroe}${tiros}
-        ${cartel ? `<p class="ff-ventana run-pm-cartel ${llega ? "aparece" : ataque ? "ataque" : ""}">${esc(cartel)}</p>` : ""}`;
+    return `${objeto}${enemigo}${heroe}${tiros}
+        ${cartel ? `<p class="ff-ventana run-pm-cartel ${claseCartel}">${esc(cartel)}</p>` : ""}`;
 }
 
 // ===== El golpe final: la escena grande de la Torre, encima del mapa =====

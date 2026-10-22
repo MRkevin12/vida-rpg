@@ -118,6 +118,7 @@ export function pantallaGym(estado, ctx) {
             ${listaDeRutinas(estado, ctx)}`,
         progreso: () => `
             ${tarjetaConstancia(estado, ctx)}
+            ${tarjetaMapaCuerpo(estado, ctx)}
             ${tarjetaMusculos(estado)}
             ${tarjetaRecords(estado)}
             ${tarjetaHitos(estado)}
@@ -534,6 +535,68 @@ function ejerciciosExtra(en) {
 }
 
 // ===== Músculos =====
+// ===== (v148) El mapa del cuerpo: qué músculos trabajaste esta semana y cuáles te faltan =====
+// Dos siluetas en cuadritos (de frente y de espaldas). Cada zona es un músculo de gym.MUSCULOS y se pinta según sus
+// series de la semana (gym.nivelDeSeries: 0 apagado, 1 poco, 2 bien, 3 mucho). Lo gris (cabeza, antebrazos, pies) no cuenta.
+// Cada pieza: [músculo o null, x, y, ancho, alto] en una cuadrícula de 30 × 66 por silueta.
+const SILUETA_FRENTE = [
+    [null, 12, 0, 6, 7], [null, 13, 7, 4, 2],
+    ["hombros", 6, 9, 5, 4], ["hombros", 19, 9, 5, 4],
+    ["pecho", 11, 9, 8, 7],
+    ["biceps", 5, 13, 4, 8], ["biceps", 21, 13, 4, 8],
+    [null, 4, 21, 4, 9], [null, 22, 21, 4, 9],
+    ["core", 11, 16, 8, 12],
+    [null, 10, 28, 10, 4],
+    ["cuadriceps", 10, 32, 4, 15], ["cuadriceps", 16, 32, 4, 15],
+    [null, 10, 47, 4, 15], [null, 16, 47, 4, 15],
+    [null, 9, 62, 5, 3], [null, 16, 62, 5, 3],
+];
+const SILUETA_ESPALDA = [
+    [null, 12, 0, 6, 7], [null, 13, 7, 4, 2],
+    ["hombros", 6, 9, 5, 4], ["hombros", 19, 9, 5, 4],
+    ["espalda", 10, 9, 10, 17],
+    ["triceps", 5, 13, 4, 8], ["triceps", 21, 13, 4, 8],
+    [null, 4, 21, 4, 9], [null, 22, 21, 4, 9],
+    ["gluteos", 10, 26, 10, 6],
+    ["isquios", 10, 32, 4, 15], ["isquios", 16, 32, 4, 15],
+    ["pantorrillas", 10, 47, 4, 15], ["pantorrillas", 16, 47, 4, 15],
+    [null, 9, 62, 5, 3], [null, 16, 62, 5, 3],
+];
+
+export function dibujarMapaCuerpo(series) {
+    const silueta = (piezas, dx) => piezas.map(([m, x, y, w, h]) => {
+        const clase = m ? `gc-${gym.nivelDeSeries(series[m] || 0)}` : "gc-base";
+        const titulo = m ? `<title>${gym.MUSCULOS[m].nombre}: ${series[m] || 0} series</title>` : "";
+        return `<rect class="${clase}" x="${x + dx}" y="${y}" width="${w}" height="${h}">${titulo}</rect>`;
+    }).join("");
+    return `<svg class="gym-cuerpo-mapa" viewBox="0 0 76 74" shape-rendering="crispEdges" role="img" aria-label="Músculos trabajados esta semana">
+        ${silueta(SILUETA_FRENTE, 2)}${silueta(SILUETA_ESPALDA, 44)}
+        <text x="17" y="73" text-anchor="middle">Frente</text><text x="59" y="73" text-anchor="middle">Espalda</text>
+    </svg>`;
+}
+
+function tarjetaMapaCuerpo(estado, ctx) {
+    const series = gym.seriesPorMusculoDeLaSemana(estado.gym.sesiones, lunesDe(ctx.hoy));
+    const nombres = (lista) => lista.map((m) => `${gym.MUSCULOS[m].icono} ${gym.MUSCULOS[m].nombre}`).join(" · ");
+    const faltan = Object.keys(gym.MUSCULOS).filter((m) => !series[m]);
+    const fuertes = Object.keys(gym.MUSCULOS).filter((m) => gym.nivelDeSeries(series[m]) >= 2).sort((a, b) => series[b] - series[a]);
+    return `
+        <section class="panel">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">🧍 Tu cuerpo esta semana</h2>
+                <p class="contador ${faltan.length ? "" : "completo"}">${Object.keys(gym.MUSCULOS).length - faltan.length}/${Object.keys(gym.MUSCULOS).length}</p>
+            </div>
+            ${dibujarMapaCuerpo(series)}
+            <ul class="gym-cuerpo-leyenda" aria-label="Leyenda">
+                <li><i class="gc-0"></i> Sin trabajar</li><li><i class="gc-1"></i> Poco (1–5)</li>
+                <li><i class="gc-2"></i> Bien (6–11)</li><li><i class="gc-3"></i> Mucho (12+)</li>
+            </ul>
+            ${fuertes.length ? `<p class="nota">💪 Lo más trabajado: ${nombres(fuertes.slice(0, 3))}.</p>` : ""}
+            <p class="nota">${faltan.length ? `⏳ Te faltan: ${nombres(faltan)}.` : "✨ ¡Trabajaste todos tus músculos esta semana!"}</p>
+            <p class="mini texto-suave">Cuenta las series de lunes a domingo. Unas 10 series por músculo a la semana es lo que se suele recomendar para crecer.</p>
+        </section>`;
+}
+
 function tarjetaMusculos(estado) {
     const niveles = gym.nivelesDeMusculos(estado.gym.sesiones);
     const filas = Object.entries(gym.MUSCULOS).map(([clave, m]) => {

@@ -34,6 +34,7 @@ export function pantallaRunning(estado, ctx) {
     const seccion = SECCIONES_RUNNING.some(([clave]) => clave === pedida) ? pedida : "correr";
     const contenido = {
         correr: () => `
+            ${tarjetaResumenCarrera(estado, ctx)}
             ${tarjetaSemana(estado, ctx)}
             ${tarjetaSugerencia(estado, ctx)}
             ${panelEmpezar(ctx, estado)}
@@ -207,6 +208,54 @@ function detalleDeCarrera(c) {
         </details>`;
 }
 
+// ===== (v148) El resumen de la carrera que acabas de guardar =====
+// Sale arriba de «Correr» al terminar (ctx.resumenRun = el índice de la carrera). Tiene el mapa grande, los números,
+// las criaturas, los cofres y fogatas, los parciales y dos botones: compartir el texto o guardar la imagen del mapa.
+export function textoDeCarrera(c) {
+    const tipo = running.TIPOS[c.tipo] || running.TIPOS.suave;
+    const vencidas = (c.encuentros || []).filter((e) => e.resultado === "vencida").length;
+    return [
+        `${tipo.icono} ${tipo.nombre}: ${running.textoKm(c.km)} en ${running.textoDuracion(c.minutos)} (${running.textoRitmo(running.ritmoDeCarrera(c))})`,
+        c.encuentros?.length ? `⚔️ Criaturas vencidas: ${vencidas} de ${c.encuentros.length}` : "",
+        c.cofres ? `🎁 Cofres abiertos: ${c.cofres}` : "",
+        c.parciales?.length ? `⏱️ Parciales: ${c.parciales.map((s) => running.textoSegundos(s)).join(" · ")}` : "",
+        "— Vida RPG",
+    ].filter(Boolean).join("\n");
+}
+
+function tarjetaResumenCarrera(estado, ctx) {
+    const c = Number.isInteger(ctx.resumenRun) ? estado.running.carreras[ctx.resumenRun] : null;
+    if (!c) return "";
+    const tipo = running.TIPOS[c.tipo] || running.TIPOS.suave;
+    const vencidas = (c.encuentros || []).filter((e) => e.resultado === "vencida");
+    const dato = (titulo, valor) => `<div><small>${titulo}</small><b>${valor}</b></div>`;
+    const mapa = c.traza
+        ? `<div class="run-mapa-vivo run-resumen-mapa" data-run-resumen-mapa>${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km, porZona: c.kmPorZona || 3,
+            pista: c.pista ? { metros: c.km * 1000, largo: c.pista } : null, hora: horaDeCarrera(c), parciales: c.parciales || [] })}</div>` : "";
+    return `
+        <section class="panel run-resumen">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">🏁 ¡Carrera guardada!</h2>
+                <button type="button" class="boton-icono" data-accion="run-resumen-cerrar" aria-label="Cerrar el resumen">✕</button>
+            </div>
+            <p class="etiqueta">${tipo.icono} ${esc(tipo.nombre)} · ${fechaCorta(c.fecha)}</p>
+            ${mapa}
+            <div class="run-datos run-resumen-datos">
+                ${dato("Distancia", running.textoKm(c.km))}
+                ${dato("Tiempo", running.textoDuracion(c.minutos))}
+                ${dato("Ritmo", running.textoRitmo(running.ritmoDeCarrera(c)))}
+                ${dato("Premio", `+${c.xp} XP`)}
+            </div>
+            ${c.encuentros?.length ? `<p class="nota">⚔️ Venciste ${vencidas.length} de ${c.encuentros.length}${vencidas.some((e) => e.jefe) ? " (¡con jefe!)" : ""}${vencidas.length ? `: ${vencidas.slice(0, 4).map((e) => esc(encuentros.nombreDe(e))).join(", ")}${vencidas.length > 4 ? "…" : ""}` : "."}</p>` : ""}
+            ${c.cofres || c.fogatas ? `<p class="nota">${c.cofres ? `🎁 ${plural(c.cofres, "cofre abierto", "cofres abiertos")}` : ""}${c.cofres && c.fogatas ? " · " : ""}${c.fogatas ? `🔥 ${plural(c.fogatas, "fogata", "fogatas")}` : ""}</p>` : ""}
+            ${htmlParciales(c.parciales)}
+            <div class="run-botones">
+                <button type="button" class="boton boton-secundario" data-accion="run-compartir" data-indice="${ctx.resumenRun}">📤 Compartir</button>
+                ${c.traza ? `<button type="button" class="boton boton-secundario" data-accion="run-guardar-imagen" data-indice="${ctx.resumenRun}">🖼️ Guardar imagen</button>` : ""}
+            </div>
+        </section>`;
+}
+
 // ===== El mapa de tu carrera (v118; zonas, ríos, lagos y criaturas en la v119) =====
 // El dibujo está en dibujo-carrera.js. Encima van tu héroe (su imagen la pone app.js: es pixel art y tarda un instante)
 // y el nombre de la zona donde vas.
@@ -215,12 +264,12 @@ function detalleDeCarrera(c) {
 // (v146) heroeEnCapa: con criaturas, tu héroe no va aquí sino en la capa de la pelea (vistas-pelea-mapa.js), que no se
 // vuelve a escribir cada segundo. Para ubicarlo, el <svg> lleva data-aqui (dónde vas, en %) y data-rumbo (hacia dónde corres).
 export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, seguir = false, pista = null, porZona = 3, recorte = false,
-                                                hora, reloj = 0, parciales = [], heroeEnCapa = false } = {}) {
+                                                hora, reloj = 0, parciales = [], heroeEnCapa = false, fantasma = null, clima = null } = {}) {
     // (v131) En pista se dibuja la pista de atletismo; en la calle, el mapa te sigue de cerca o muestra todo el recorrido.
     // (v147) La pista también lleva la luz de la hora, las fases de sus animaciones, el marcador (parciales) y el rastro (vivo).
     const dibujo = pista
         ? mapaDePista({ metros: pista.metros, largo: pista.largo, hora, reloj, parciales, vivo: heroe })
-        : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe, porZona, hora, reloj, parciales });
+        : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe, porZona, hora, reloj, parciales, fantasma });
     const { aqui, rumbo, zona } = dibujo;
     // (v139) recorte: en la carrera en vivo la caja del mapa no siempre mide 4:3. En vez de estirar el dibujo (los cuadritos se
     // deformarían), se agranda hasta llenarla y se recortan los bordes («slice»). Entonces tu héroe se ubica con la misma cuenta:
@@ -238,8 +287,12 @@ export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas
         // La primera línea es para los teléfonos viejos que no entienden cqw (la ignoran la segunda y se quedan con la primera).
         return `${normal}; left: calc(50% + ${px.toFixed(1)} * ${escala}); top: calc(50% + ${py.toFixed(1)} * ${escala})`;
     };
-    return `${svg}
-        <span class="run-mapa-zona">${esc(zona.nombre)}</span>
+    // (v148) El clima del día: una capa de lluvia, niebla, nieve, arena o ceniza encima del dibujo. Su animación empieza
+    // «atrasada» según el reloj (animation-delay negativo), así sigue donde iba aunque el mapa se vuelva a escribir cada segundo.
+    const infoClima = clima && clima !== "despejado" ? running.CLIMAS[clima] : null;
+    const capaClima = infoClima ? `<div class="run-clima ${clima}" style="animation-delay: -${Math.round(reloj % 6000)}ms" aria-hidden="true"></div>` : "";
+    return `${svg}${capaClima}
+        <span class="run-mapa-zona">${esc(zona.nombre)}${infoClima ? ` · ${infoClima.icono}` : ""}</span>
         ${heroe && !pista ? `<button type="button" class="run-mapa-vista" data-accion="run-vista-mapa">${seguir ? "🗺️ Ver todo" : "🎯 Seguirme"}</button>` : ""}
         ${heroe && aqui && !heroeEnCapa ? `<img class="run-mapa-heroe" alt="" style="${enMapa(aqui.x, aqui.y)}">` : ""}`;
 }
@@ -255,7 +308,22 @@ export const opcionesDelMapa = (en, r = {}, ahora = Date.now()) => ({
     heroeEnCapa: Boolean(en.encuentros),                                     // (v146) tu héroe va en la capa de la pelea
     hora: horaDelDia(ahora), reloj: ahora,                                   // (v144) la luz de ahora y las fases de las animaciones
     parciales: running.parcialesDe(en.marcas),                               // (v144) tu km más rápido brilla
+    fantasma: en.pista ? null : fantasmaDe(en, r, ahora),                    // (v148) la última vez que saliste de aquí
+    clima: running.climaDelDia(fechaDeCarrera(en), encuentros.zonaDelKm(Math.floor(en.distancia / 1000) + 1, en.kmPorZona || 3).id),   // (v148)
 });
+
+// (v148) La carrera fantasma de la carrera en curso. Se busca una sola vez por carrera (cuando ya hay un primer punto del GPS)
+// y se recuerda aquí. avance: qué parte del tiempo de esa carrera llevas (0 a 1): ahí va el fantasma.
+const fantasmas = new Map();   // inicio de la carrera en curso → la carrera fantasma (o null)
+const fechaDeCarrera = (en) => { const d = new Date(en.inicio); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+export function fantasmaDe(en, r = {}, ahora = Date.now()) {
+    if (!en.traza?.length) return null;
+    if (!fantasmas.has(en.inicio)) fantasmas.set(en.inicio, running.carreraFantasma(r.carreras, en.traza[0]));
+    const c = fantasmas.get(en.inicio);
+    if (!c) return null;
+    const minutos = running.tiempoDeEncurso(en, ahora) / 60000;
+    return { traza: c.traza, avance: Math.min(1, minutos / c.minutos), fecha: c.fecha };
+}
 
 // (v144) La hora del día de un momento (en ms), como número: 18.5 = 18:30. En el historial se usa la mitad de la carrera
 // (creada es cuando se guardó, al final); las carreras sin ese dato se dibujan de día.

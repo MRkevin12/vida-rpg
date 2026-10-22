@@ -303,6 +303,40 @@ export const MAX_TRAZA = 120;   // puntos que se guardan del recorrido de cada c
 
 // Deja como mucho `max` puntos del recorrido (siempre el primero y el último) para no llenar la memoria del teléfono.
 // puntos = [[lat, lon], …]; devuelve la lista con 5 decimales (≈ 1 m).
+// (v148) La carrera «fantasma»: la última que empezaste cerca del mismo lugar (a menos de `radio` metros), con recorrido.
+// carreras: las guardadas; salida: [lat, lon] del primer punto de la carrera de hoy. Devuelve la carrera o null.
+// No sirve en pista (ahí todas las vueltas son iguales).
+export function carreraFantasma(carreras, salida, { radio = 250 } = {}) {
+    if (!Array.isArray(salida) || !Number.isFinite(salida[0])) return null;
+    const aqui = { lat: salida[0], lon: salida[1] };
+    for (let i = (carreras || []).length - 1; i >= 0; i--) {
+        const c = carreras[i];
+        if (c.pista || !Array.isArray(c.traza) || c.traza.length < 2 || !(c.minutos > 0)) continue;
+        const [lat, lon] = c.traza[0];
+        if (metrosEntre(aqui, { lat, lon }) <= radio) return c;
+    }
+    return null;
+}
+
+// (v148) El clima del día en el mapa de la carrera (es un juego: no se pide a internet). Sale de la fecha, así todo el día
+// es el mismo. En la nieve la lluvia es nevada y en el desierto, tormenta de arena; en las Tierras del Abismo, ceniza.
+export const CLIMAS = {
+    despejado: { icono: "☀️", nombre: "Despejado" },
+    lluvia: { icono: "🌧️", nombre: "Lluvia" },
+    niebla: { icono: "🌫️", nombre: "Niebla" },
+    nevada: { icono: "🌨️", nombre: "Nevada" },
+    arena: { icono: "🌪️", nombre: "Tormenta de arena" },
+    ceniza: { icono: "🌋", nombre: "Lluvia de ceniza" },
+};
+export function climaDelDia(fecha, zona = "pradera") {
+    const n = [...String(fecha)].reduce((suma, letra) => (suma * 31 + letra.charCodeAt(0)) % 100003, 7);
+    const x = Math.sin(n * 12.9898) * 43758.5453;
+    const r = x - Math.floor(x);
+    const base = r < 0.6 ? "despejado" : r < 0.82 ? "lluvia" : "niebla";
+    if (base !== "lluvia") return base;
+    return { nieve: "nevada", desierto: "arena", volcan: "ceniza" }[zona] || "lluvia";
+}
+
 export function simplificarTraza(puntos, max = MAX_TRAZA) {
     const lista = (puntos || []).filter((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
     const redondo = (p) => [Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5];

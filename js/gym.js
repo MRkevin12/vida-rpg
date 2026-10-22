@@ -363,6 +363,26 @@ export function diasDeLaSemana(sesiones, lunes) {
     return new Set(sesiones.filter((s) => s.fecha >= lunes && s.fecha <= fin).map((s) => s.fecha)).size;
 }
 
+// (v148) El mapa del cuerpo: cuántas series hizo cada músculo en la semana que empieza en `lunes`.
+// Las series anotadas cuentan una por una; una sesión solo marcada («hoy entrené») cuenta las series que planea su rutina.
+// Devuelve { pecho: 6, espalda: 0, … } con TODOS los músculos (los que no trabajaste quedan en 0).
+export function seriesPorMusculoDeLaSemana(sesiones, lunes) {
+    const series = Object.fromEntries(Object.keys(MUSCULOS).map((m) => [m, 0]));
+    const fin = sumarDias(lunes, 6);
+    for (const s of sesiones.filter((x) => x.fecha >= lunes && x.fecha <= fin)) {
+        for (const ej of s.ejercicios) {
+            const musculo = ejercicioPorId(ej.id)?.musculo;
+            if (musculo) series[musculo] += ej.series.length;
+        }
+        if (s.rapido) for (const ej of rutinaPorId(s.rutina)?.ejercicios || []) series[ej.musculo] += ej.series;
+    }
+    return series;
+}
+
+// Qué tan trabajado quedó un músculo en la semana: 0 = nada, 1 = poco (1–5 series), 2 = bien (6–11), 3 = mucho (12 o más).
+// Unas 10 series por músculo a la semana es lo que suele recomendarse para crecer.
+export const nivelDeSeries = (n) => (n <= 0 ? 0 : n < 6 ? 1 : n < 12 ? 2 : 3);
+
 // Semanas seguidas cumpliendo tu meta. La semana en curso suma si ya la cumpliste, pero no rompe la racha si aún no.
 export function rachaSemanal(sesiones, meta, hoyTexto) {
     const lunesHoy = lunesDe(hoyTexto);

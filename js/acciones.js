@@ -40,6 +40,7 @@ import * as fragua from "./fragua.js";
 import * as gymAurelio from "./gym-aurelio.js";
 import * as ruta from "./ruta.js";
 import * as encuentros from "./encuentros.js";   // (v119) criaturas en tus carreras
+import * as hallazgos from "./hallazgos.js";     // (v148) cofres y fogatas en el camino
 import * as running from "./running.js";   // (v109) el running
 import * as finanzas from "./finanzas.js";   // (v135) las cuentas de tu plata
 import { hoy, diasEntre, sumarDias, lunesDe, aTexto, esFechaValida } from "./fechas.js";
@@ -2471,6 +2472,16 @@ export function registrarPuntoCarrera(estado, punto) {
         if (en.traza.length > 600) en.traza = en.traza.filter((_, i) => i % 2 === 0 || i === en.traza.length - 1);
     }
     const golpes = en.kmActual ? anotarTramos(estado, en, en.distancia, distancia) : [];   // (v139) los poderes de la batalla
+    // (v148) Los cofres y fogatas que cruzaste con este punto. El cofre se cobra al guardar la carrera; la fogata cura a tu
+    // héroe y da más margen a la pelea de este km (se anota ANTES de decidir el km, por si estaba justo al final).
+    const encontrados = en.encuentros ? hallazgos.cruzados(en.inicio, en.distancia, distancia) : [];
+    for (const h of encontrados) {
+        (en.hallados = en.hallados || []).push({ ...h, t: Date.now() });
+        if (h.tipo === "fogata" && en.kmActual) {
+            en.kmActual.fogata = true;
+            (en.kmActual.golpes = en.kmActual.golpes || []).push({ tipo: "fogata", dano: 0, herida: 0, cura: hallazgos.CURA_FOGATA, t: Date.now() });
+        }
+    }
     en.distancia = distancia;
     en.ultimo = ultimo;
     en.marcas = en.marcas || [];
@@ -2497,7 +2508,7 @@ export function registrarPuntoCarrera(estado, punto) {
                 mitad: k.mitad === null ? NaN : k.mitad / 1000,
                 ultimos200: k.t800 === null ? NaN : segundos - k.t800 / 1000,
                 pausas: k.pausas,
-            }, en.objetivo, Boolean(mascota.especieActiva(estado)));
+            }, en.objetivo, Boolean(mascota.especieActiva(estado)), { fogata: Boolean(k.fogata) });
             pelea.resultado = vencida ? "vencida" : "escapo";
             pelea.segundos = segundos;
             // (v139) Para la escena del golpe final: con cuánta vida quedó y cuándo terminó la pelea.
@@ -2517,7 +2528,7 @@ export function registrarPuntoCarrera(estado, punto) {
     }
     const parciales = running.parcialesDe(en.marcas);
     return {
-        distancia, kmNuevo, segundos: kmNuevo ? parciales[parciales.length - 1] : null, golpes,
+        distancia, kmNuevo, segundos: kmNuevo ? parciales[parciales.length - 1] : null, golpes, encontrados,
         resueltos, nuevo: kmNuevo && en.encuentros ? en.encuentros.at(-1) : null,
     };
 }
@@ -2574,6 +2585,19 @@ export function terminarCarrera(estado, { km = "", minutos = "", nota = "" } = {
             });
         }
     }
+    // (v148) Los cofres que abriste en el camino.
+    const cofres = hallazgos.botinDeCofres(en.hallados);
+    if (cofres.cofres) {
+        ganar(estado, { gemas: cofres.gemas, xp: cofres.xp, atributo: "fuerza" });
+        resultado.carrera.cofres = cofres.cofres;
+        resultado.celebraciones.push({
+            icono: "🎁", etiqueta: "Cofres del camino",
+            titulo: cofres.cofres === 1 ? "Abriste 1 cofre" : `Abriste ${cofres.cofres} cofres`,
+            detalle: `+${cofres.gemas} 💎 · +${cofres.xp} XP de 💪 Fuerza`,
+        });
+    }
+    const fogatas = (en.hallados || []).filter((h) => h.tipo === "fogata").length;
+    if (fogatas) resultado.carrera.fogatas = fogatas;
     estado.running.encurso = null;
     return resultado;
 }

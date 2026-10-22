@@ -18,7 +18,10 @@ import { icono } from "./iconos.js";
 import { tarjetaGymHoy } from "./vistas-gym.js";
 import { tarjetaRunningHoy } from "./vistas-running.js";   // (v110) la tarjeta del running en Hoy
 import { tarjetaMementoHoy } from "./vistas-memento.js";   // (v142)
-import { tarjetaFinanzasHoy } from "./vistas-finanzas.js";   // (v135) la tarjeta de Finanzas, debajo de la del running
+import { tarjetaFinanzasHoy } from "./vistas-finanzas.js";
+import { semanaEnCurso } from "./resumen.js";        // (v148) la tarjeta «Tu semana»
+import * as gymReglas from "./gym.js";
+import * as runningReglas from "./running.js";   // (v135) la tarjeta de Finanzas, debajo de la del running
 import { fechaLegible, fechaCorta, DIAS_LETRAS, DIAS_CORTOS, diaDeSemana, diasEntre, lunesDe, relojTexto,
          relojLargo, sumarDias, hoy as fechaDeHoy } from "./fechas.js";
 import { agruparPorAtributo, vacio, plegable, esc, ICONOS, barra, botonEditar, ficha, cabeceraSeccion,
@@ -860,7 +863,36 @@ function cuadriculaDeAreas(estado, ctx, { esAyer, esencial }) {
         esAyer || esencial ? "" : tarjetaFinanzasHoy(estado, ctx),
         esAyer || esencial ? "" : tarjetaMementoHoy(estado, ctx),
     ].filter(Boolean);
+    // (v148) Arriba de todo, a lo ancho: tu semana en una sola tarjeta.
+    if (!esAyer && !esencial) tarjetas.unshift(tarjetaSemanaHoy(estado, ctx));
     return tarjetas.length ? `<div class="hoy-areas" aria-label="Tus áreas">${tarjetas.join("")}</div>` : "";
+}
+
+// (v148) «Tu semana»: lo que llevas de lunes a hoy, en una sola tarjeta. Una tira de 7 días (color = cuánto cumpliste
+// ese día) y cuatro datos: misiones, XP, gym y km. Los días que aún no llegan salen vacíos.
+function tarjetaSemanaHoy(estado, ctx) {
+    const s = semanaEnCurso(estado, ctx.hoy);
+    const g = estado.gym;
+    const r = estado.running;
+    const diasGym = gymReglas.diasDeLaSemana(g.sesiones, s.lunes);
+    const km = runningReglas.kmDeLaSemana(r.carreras, s.lunes);
+    const tira = DIAS_LETRAS.map((letra, i) => {
+        const dia = s.porDia[i];
+        const nivel = !dia ? "futuro" : dia.pct === null ? "libre" : dia.pct >= 100 ? "perfecto" : dia.pct >= 50 ? "bien" : dia.hechas ? "poco" : "nada";
+        return `<li class="hs-dia ${nivel} ${i === s.dias - 1 ? "hoy" : ""}" title="${letra}"><b>${letra}</b></li>`;
+    }).join("");
+    const dato = (icono, valor, texto, lleno = false) => `<div class="hs-dato ${lleno ? "lleno" : ""}"><span aria-hidden="true">${icono}</span><b>${valor}</b><small>${texto}</small></div>`;
+    return `
+        <div class="gym-hoy hoy-semana">
+            <span class="gym-hoy-texto"><b>📊 Tu semana</b><small>${s.cumplimiento.pct === null ? "Aún sin misiones esta semana" : `${s.cumplimiento.pct} % cumplido · ${plural(s.perfectos, "día perfecto", "días perfectos")}`}</small></span>
+            <ol class="hs-tira" aria-label="Lunes a domingo">${tira}</ol>
+            <div class="hs-datos">
+                ${dato("✅", s.completadas, "misiones")}
+                ${dato("✨", s.xp, "XP")}
+                ${dato("🏋️", `${diasGym}/${g.metaSemanal}`, "gym", diasGym >= g.metaSemanal)}
+                ${dato("🏃", runningReglas.textoKm(km), `de ${r.metaKm} km`, km >= r.metaKm)}
+            </div>
+        </div>`;
 }
 
 function avisoNotificaciones(ctx) {

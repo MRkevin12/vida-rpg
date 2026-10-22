@@ -4,9 +4,23 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 147;
+export const VERSION_APP = 148;
 
 export const NOVEDADES = [
+    {
+        version: 148,
+        titulo: "Cofres, fogatas y tu semana",
+        cambios: [
+            "🎁 Corriendo con GPS hay cofres en el camino: al pasar por uno ganas 3 💎 y 5 XP (se cobran al guardar la carrera). Aparecen en el mapa con los metros que faltan.",
+            "🔥 Cada 2 km, una fogata: tu héroe recupera vida y la pelea de ese km tiene un 2 % más de margen para vencerla.",
+            "🏁 Al terminar una carrera, un resumen con el mapa, tus números y tus criaturas, y botones para compartirla o guardar la imagen.",
+            "🌧️ El clima cambia cada día en el mapa: lluvia, niebla, nevada, tormenta de arena o ceniza según la zona.",
+            "👻 Si ya corriste saliendo del mismo lugar, ves esa ruta anterior y un fantasma que marca dónde ibas.",
+            "💬 Memento mori: la frase del día ahora le habla a tu etapa de la vida.",
+            "🧍 Gimnasio › Progreso: un mapa de tu cuerpo con los músculos que trabajaste esta semana y los que te faltan.",
+            "📊 Hoy: la tarjeta «Tu semana» con tus días, misiones, XP, gym y km de un vistazo.",
+        ],
+    },
     {
         version: 147,
         titulo: "Todo se ve mejor",

@@ -11,6 +11,7 @@ import * as peleaMapa from "./vistas-pelea-mapa.js";   // (v146) la pelea sobre 
 import * as sprites from "./sprites.js";
 import * as running from "./running.js";
 import * as encuentros from "./encuentros.js";   // (v119) criaturas en tus carreras
+import * as hallazgos from "./hallazgos.js";     // (v148) cofres y fogatas del camino
 import * as frases from "./frases.js";   // (v128) lo que dice la voz de la carrera
 import * as locutor from "./locutor.js";   // (v128) las voces grabadas
 import { hoy, sumarDias } from "./fechas.js";
@@ -25,7 +26,8 @@ let vueltaVista = 0;                    // (v131) la última vuelta avisada en p
 let seguimientoGps = null;              // (v109) el id del seguimiento de posición del GPS mientras corres, o null
 export let gpsProblema = null;          // (v109) por qué no hay GPS: "permiso" o "senal", o null
 let pantallaDeDespierta = null;         // (v109) el «wake lock»: la pantalla no se apaga mientras corres
-export let runTerminando = false;       // (v129) en la carrera en vivo: tocaste «Ya terminé» y se ve el formulario de guardar
+export let runTerminando = false;
+export let runResumen = null;           // (v148) el índice de la carrera recién guardada: su resumen sale arriba de «Correr»       // (v129) en la carrera en vivo: tocaste «Ya terminé» y se ve el formulario de guardar
 let pausoParaTerminar = false;          // y la carrera estaba corriendo: la pausamos nosotros (si te arrepientes, se reanuda)
 
 // (v118) Tu héroe en el mapa de la carrera: el dibujo se pixela una sola vez y se reutiliza cada vez que el mapa se redibuja.
@@ -162,8 +164,11 @@ export function ponerPeleaEnMapa(ahora = Date.now()) {
         metros: en.distancia - (en.marcas || []).length * 1000,   // lo que llevas del km: se acerca a medida que avanzas
         lado: pelea ? peleaMapa.ladoEnMapa(pelea.id, pelea.jefe) : 26,
     });
+    // (v148) El próximo cofre o fogata (si está cerca), delante de ti y a un lado del camino.
+    const viene = hallazgos.proximo(en.inicio, en.distancia);
+    const objeto = viene ? peleaMapa.lugarDeHallazgo({ aqui, rumbo: rumboSuave, falta: viene.falta, visible, criatura }) : null;
     // (v147) Lo que vuela sale de tu héroe o, si quedó fuera de lo que se ve («Ver todo»), del borde de la vista.
-    capa.setAttribute("style", peleaMapa.estiloDeLugar(aqui, criatura, peleaMapa.puntoDeTiro(aqui, criatura, visible)));
+    capa.setAttribute("style", peleaMapa.estiloDeLugar(aqui, criatura, peleaMapa.puntoDeTiro(aqui, criatura, visible), objeto));
     // Las criaturas están dibujadas mirando a la derecha (en la Torre pelean desde la izquierda): si está a tu derecha,
     // se da vuelta para mirarte.
     capa.classList.toggle("mira-izq", criatura.x > aqui.x);
@@ -197,6 +202,7 @@ export function iniciarGps() {
             if (avance.kmNuevo) anunciarKilometro(avance.kmNuevo, avance.segundos, avance.resueltos, avance.nuevo);
             else avisarSiVasLento();
             if (avance.golpes?.length) sonarGolpes(avance.golpes);   // (v140)
+            if (avance.encontrados?.length) anunciarHallazgos(avance.encontrados);   // (v148) cofres y fogatas
             // (v131) En pista: aviso de cada vuelta.
             const en = estado.running.encurso;
             if (en?.pista) {
@@ -223,6 +229,75 @@ function sonarGolpes(golpes) {
     const g = golpes.at(-1);
     sonar(g.combo ? "fuego" : SONIDO_DE_GOLPE[g.tipo] || "tajo");
     try { navigator.vibrate?.(g.tipo === "lento" ? [60, 40, 60] : 40); } catch (error) { /* sin vibración */ }
+}
+
+// (v148) Al pasar por un cofre o una fogata: un sonido, un aviso y (si el teléfono deja) una vibración.
+function anunciarHallazgos(encontrados) {
+    for (const h of encontrados) {
+        if (h.tipo === "cofre") {
+            sonar("cofre");
+            avisar(`🎁 ¡Cofre! +${hallazgos.COFRE.gemas} 💎 y +${hallazgos.COFRE.xp} XP al guardar la carrera`);
+        } else {
+            sonar("pocion");
+            avisar(`🔥 Descanso junto al fuego: +${hallazgos.CURA_FOGATA} ❤️ y un poco más de margen en esta pelea`);
+        }
+    }
+    try { navigator.vibrate?.([30, 30, 30]); } catch (error) { /* sin vibración */ }
+}
+
+// (v148) Compartir una carrera. Sin imagen: el texto (tiempo, km, criaturas, parciales). Con imagen: el mapa del resumen
+// pasado a PNG (el SVG se dibuja en un <canvas>). En el iPhone sale el menú de compartir (Fotos, WhatsApp…); si el teléfono
+// no lo deja, la imagen se descarga.
+async function compartirCarrera(indice, conImagen) {
+    const c = estado.running.carreras[indice];
+    if (!c) return;
+    const texto = vistasRunning.textoDeCarrera(c);
+    try {
+        if (!conImagen) {
+            if (navigator.share) await navigator.share({ title: "Mi carrera", text: texto });
+            else { await navigator.clipboard?.writeText(texto); avisar("📋 Copiado: pégalo donde quieras"); }
+            return;
+        }
+        const svg = document.querySelector("[data-run-resumen-mapa] svg");
+        if (!svg) return;
+        const archivo = await imagenDeSvg(svg, `carrera-${c.fecha}.png`);
+        if (navigator.canShare?.({ files: [archivo] })) await navigator.share({ files: [archivo], title: "Mi carrera", text: texto });
+        else {
+            const enlace = document.createElement("a");
+            enlace.href = URL.createObjectURL(archivo);
+            enlace.download = archivo.name;
+            enlace.click();
+            setTimeout(() => URL.revokeObjectURL(enlace.href), 4000);
+            avisar("🖼️ Imagen guardada");
+        }
+    } catch (error) {
+        if (error?.name !== "AbortError") avisar("No se pudo compartir. Inténtalo otra vez.");
+    }
+}
+
+// Un SVG de la pantalla → un archivo PNG del doble de su tamaño, con los bordes de cuadritos nítidos.
+function imagenDeSvg(svg, nombre) {
+    return new Promise((resolver, fallar) => {
+        const [ancho, alto] = [640, 480];
+        const copia = svg.cloneNode(true);
+        copia.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        copia.setAttribute("width", ancho);
+        copia.setAttribute("height", alto);
+        copia.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        const datos = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(copia));
+        const img = new Image();
+        img.onload = () => {
+            const lienzo = document.createElement("canvas");
+            lienzo.width = ancho;
+            lienzo.height = alto;
+            const pincel = lienzo.getContext("2d");
+            pincel.imageSmoothingEnabled = false;
+            pincel.drawImage(img, 0, 0, ancho, alto);
+            lienzo.toBlob((blob) => (blob ? resolver(new File([blob], nombre, { type: "image/png" })) : fallar(new Error("sin imagen"))), "image/png");
+        };
+        img.onerror = fallar;
+        img.src = datos;
+    });
 }
 
 // (v116) Cada kilómetro: un sonido, un aviso en pantalla y, si está activada la voz, tu tiempo hablado.
@@ -425,6 +500,10 @@ export const ACCIONES_RUNNING = {
         mantenerPantallaDespierta(false);
         ponerMusica();   // (v125) se acabó la carrera: vuelve la música del juego
     },
+    // (v148) El resumen de la carrera recién guardada: cerrarlo, compartir el texto o guardar la imagen del mapa.
+    "run-resumen-cerrar": () => { runResumen = null; dibujarPantalla({ mantenerScroll: true }); },
+    "run-compartir": (boton) => compartirCarrera(Number(boton.dataset.indice), false),
+    "run-guardar-imagen": (boton) => compartirCarrera(Number(boton.dataset.indice), true),
     "run-meta": (boton) => ejecutar(() => acciones.cambiarMetaKm(estado, estado.running.metaKm + Number(boton.dataset.delta)), { mantenerScroll: true }),
     "run-buscar-voces": () => buscarVocesNuevas(),
     "run-ver-voces": () => verTodasLasVoces(),
@@ -475,6 +554,7 @@ export const FORMULARIOS_RUNNING = {
         ponerMusica();   // (v125) se acabó la carrera
         hablar(frases.anuncioFinal());
         subvista.running = "correr";
+        runResumen = estado.running.carreras.length - 1;   // (v148) el resumen de la carrera que acabas de guardar
         sonar("completar");
         dibujarPantalla();
         window.scrollTo(0, 0);

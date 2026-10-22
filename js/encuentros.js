@@ -10,6 +10,7 @@
 // Aquí solo hay reglas (sin pantalla ni guardar). Lo que se guarda vive en la carrera en curso (ver acciones.js).
 
 import * as bestiario from "./bestiario.js";
+import { MARGEN_FOGATA } from "./hallazgos.js";   // (v148) la fogata da más margen
 
 // ===== Las zonas del mapa de la carrera (cambian cada «km por zona»: lo eliges tú, por defecto KM_POR_ZONA) =====
 // suelo: los dos colores del césped en cuadritos; criaturas: de qué zona del bestiario salen.
@@ -100,8 +101,9 @@ export function pistaDe(encuentro) {
 // ===== ¿La venciste? =====
 // datos del km: { segundos (lo que tardaste), mitad (s hasta los 500 m), ultimos200 (s de los últimos 200 m), pausas (cuántas) }.
 // objetivo: segundos por km. mascota: true si te acompaña un dragón (más margen).
-export function resolver(encuentro, datos, objetivo, mascota = false) {
-    const extra = mascota ? MARGEN_MASCOTA : 0;
+// (v148) fogata: true si descansaste junto a una fogata en este km (un 2 % más de margen, ver hallazgos.js).
+export function resolver(encuentro, datos, objetivo, mascota = false, { fogata = false } = {}) {
+    const extra = (mascota ? MARGEN_MASCOTA : 0) + (fogata ? MARGEN_FOGATA : 0);
     const limite = (margen) => objetivo * (1 + margen + extra);
     const { segundos, mitad, ultimos200, pausas } = datos;
     if (encuentro.jefe) return segundos <= limite(0) && !pausas;
@@ -188,12 +190,14 @@ export function poderDelTramo(encuentro, segundos, objetivo, racha = 0, mascota 
 
 // La vida de la criatura y la de tu héroe (de 0 a VIDA) según los golpes de la pelea.
 // resultado: el de la pelea si ya se decidió ("vencida" la deja en 0).
+// (v148) Tu vida se cuenta golpe por golpe, en orden: así una fogata (cura) no te deja con más de VIDA.
 export function vidasDeLaBatalla(golpes = [], resultado = null) {
     const dano = golpes.reduce((suma, g) => suma + (g.dano || 0), 0);
-    const herida = golpes.reduce((suma, g) => suma + (g.herida || 0), 0);
+    let heroe = VIDA;
+    for (const g of golpes) heroe = Math.min(VIDA, Math.max(VIDA_MIN, heroe - (g.herida || 0) + (g.cura || 0)));
     return {
         criatura: resultado === "vencida" ? 0 : Math.max(VIDA_MIN, VIDA - dano),
-        heroe: Math.max(VIDA_MIN, VIDA - herida),
+        heroe,
     };
 }
 

@@ -2,6 +2,16 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v148 — Cofres, fogatas, resumen de carrera, clima, ruta fantasma, frases por edad, mapa del cuerpo y «Tu semana»
+- `js/hallazgos.js` (nuevo): `hallazgosDelKm` (cofre 60 % por km entre 150–850 m; fogata cada 2 km entre 450–900 m; azar fijo por hora de inicio), `cruzados`, `proximo`, `botinDeCofres`; `COFRE` (3 💎 + 5 XP), `CURA_FOGATA` (30), `MARGEN_FOGATA` (2 %).
+- `acciones.js`: `registrarPuntoCarrera` anota lo cruzado en `en.hallados` (la fogata suma un «golpe» que cura y marca `kmActual.fogata`) y devuelve `encontrados`; `terminarCarrera` paga los cofres y guarda `cofres`/`fogatas` en la carrera.
+- `encuentros.js`: `resolver(…, { fogata })` suma el margen; `vidasDeLaBatalla` cuenta la vida del héroe golpe por golpe (cura sin pasar de 100).
+- `vistas-pelea-mapa.js`: el próximo cofre o fogata delante de ti (`lugarDeHallazgo`, del lado contrario a la criatura; `--ox/--oy`), carteles al encontrarlo. `app-running.js`: sonido, aviso y vibración.
+- Resumen de la carrera (`tarjetaResumenCarrera`, `textoDeCarrera`) arriba de «Correr» al guardar, con compartir (texto) y guardar imagen (SVG → canvas → PNG).
+- `running.js`: `climaDelDia`, `CLIMAS`, `carreraFantasma`; el mapa dibuja la ruta fantasma y la capa `.run-clima`.
+- `memento.js`: frases con `etapas`, `frasesParaEdad`, `fraseDelDia(fecha, edad)`. `gym.js`: `seriesPorMusculoDeLaSemana`, `nivelDeSeries`; `vistas-gym.js`: `dibujarMapaCuerpo`. `resumen.js`: `semanaEnCurso`; `vistas-hoy.js`: «Tu semana».
+- Pruebas: 396 (6 nuevas). Sin cambios en los datos guardados (los campos nuevos son de la carrera en curso o opcionales).
+
 ## v147 — Mejoras gráficas (pista, textos, íconos, Memento, Finanzas, Progreso, Gym)
 - `dibujo-pista.js` (nuevo): `mapaDePista({ metros, largo, hora, reloj, parciales, vivo })` rehecha en pixel art (pasto en cuadritos de 8 con manchas, tartán y bordillos en filas de 1 punto —bordes en escalón— con grano, líneas de carril finas, salida a cuadros, cancha con franjas y líneas de cal, foso de arena y círculo de lanzamiento, gradas con un `<pattern>` de asientos, techo, banderas animadas y espectadores, árboles y arbustos de `dibujo-carrera-piezas.js`, 4 torres de luz, marcador con km y ritmo del último km). Toda la pista cabe en el centro (`ESCALA` ≈ 1,3 puntos/m): se ve entera de pie (caja cuadrada) y acostado. Lo fijo se arma una vez por momento del día (`FIJAS`, con «§» en lugar del prefijo de los id). Luz por hora; de noche, oscuridad con viñeta, brillo de las torres y brillo tibio en el héroe. En vivo: rastro de luz de 150 m y sombra; en el historial, cuadro rojo. `puntoEnPista`, el largo de 400 m, `aqui` y `rumbo` no cambian. `dibujo-carrera.js` la vuelve a exportar.
 - `dibujo-carrera-piezas.js`: ahora tiene `LIENZO`, `azar`, `suave`, `tonoDelSuelo`, `fases`, `CICLO` y `capaDeLuz` (antes en `dibujo-carrera.js`), para que la pista los use. `capaDeLuz(momento, p, cx, cy, antorcha)`: de noche la luz va en anillos (paradas dobles) y, con antorcha, un brillo tibio de 30 puntos. `mojon(…, ritmo)`: plaquita con el ritmo del km (dorada si es el más rápido).

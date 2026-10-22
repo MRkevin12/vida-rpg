@@ -21,7 +21,8 @@ import * as cinematicas from "../js/cinematicas.js";
 import * as voces from "../js/voces.js";
 import * as vistasVoces from "../js/vistas-voces.js";
 import { existeSonido } from "../js/sonido.js";
-import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO } from "../js/resumen.js";
+import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso } from "../js/resumen.js";
+import * as hallazgos from "../js/hallazgos.js";   // (v148)
 import { resumenParaAvisos, avisosDeMisiones, avisosDeTareas } from "../js/avisos.js";
 import * as torre from "../js/torre.js";
 import * as bestiario from "../js/bestiario.js";
@@ -3109,7 +3110,7 @@ prueba("Pelea sobre el mapa (v146): la criatura va delante de ti y se acerca a m
     igual(peleaMapa.leerPar("50.00,48.20"), { x: 50, y: 48.2 });
     igual(peleaMapa.leerPar(undefined), null);
     // (v147) --tx, --ty: de dónde sale lo que vuela de tu lado (sin decirlo, tu héroe).
-    igual(peleaMapa.estiloDeLugar({ x: 50, y: 50 }, { x: 62.5, y: 30 }), "--hx: 50.00%; --hy: 50.00%; --cx: 62.50%; --cy: 30.00%; --tx: 50.00%; --ty: 50.00%");
+    igual(peleaMapa.estiloDeLugar({ x: 50, y: 50 }, { x: 62.5, y: 30 }), "--hx: 50.00%; --hy: 50.00%; --cx: 62.50%; --cy: 30.00%; --tx: 50.00%; --ty: 50.00%; --ox: 50.00%; --oy: 50.00%");
     igual(peleaMapa.nombreCorto("Araña tejedora"), "Araña");
     igual(peleaMapa.nombreCorto("Esqueleto"), "Esqueleto");
     cierto(peleaMapa.ladoEnMapa("esqueleto", true) > peleaMapa.ladoEnMapa("esqueleto"), "el jefe, un poco más grande");
@@ -3318,6 +3319,132 @@ prueba("Memento mori (v142): guardar, quitar, el dibujo de la rejilla y la tarje
     cierto(vistasMemento.tarjetaMementoHoy(estado, { hoy: "2026-03-15" }).includes("de 4.160"), "la tarjeta de Hoy muestra la semana");
     acciones.quitarMemento(estado);
     igual(estado.memento.nacimiento, null);
+});
+
+prueba("v148: frases de Memento según tu edad", () => {
+    const jovenes = memento.frasesParaEdad(20);
+    const mayores = memento.frasesParaEdad(70);
+    cierto(jovenes.every((x) => !x.etapas || x.etapas.includes("juventud")), "a los 20 solo las de juventud y las generales");
+    cierto(mayores.every((x) => !x.etapas || x.etapas.includes("vejez")), "a los 70 solo las de vejez y las generales");
+    cierto(jovenes.some((x) => x.etapas) && mayores.some((x) => x.etapas), "cada etapa tiene frases propias");
+    igual(memento.frasesParaEdad(null).length, memento.FRASES.length, "sin edad, todas");
+    igual(memento.fraseDelDia("2026-03-15", 20), memento.fraseDelDia("2026-03-15", 20), "el mismo día, la misma frase");
+    cierto(jovenes.includes(memento.fraseDelDia("2026-03-16", 20)), "la del día sale de las de su etapa");
+});
+
+prueba("v148: el mapa del cuerpo del Gym cuenta las series de cada músculo en la semana", () => {
+    const lunes = "2026-10-19";
+    const sesiones = [
+        { fecha: "2026-10-20", rutina: "x", ejercicios: [{ id: gym.RUTINA[0].ejercicios[0].id, series: [{}, {}, {}] }], rapido: false },
+        { fecha: "2026-10-12", rutina: "x", ejercicios: [{ id: gym.RUTINA[0].ejercicios[0].id, series: [{}, {}] }], rapido: false },   // la semana anterior: no cuenta
+    ];
+    const series = gym.seriesPorMusculoDeLaSemana(sesiones, lunes);
+    const musculo = gym.RUTINA[0].ejercicios[0].musculo;
+    igual(series[musculo], 3, "3 series de esta semana");
+    igual(Object.keys(series).length, Object.keys(gym.MUSCULOS).length, "están todos los músculos");
+    igual([0, 1, 5, 6, 11, 12].map(gym.nivelDeSeries), [0, 1, 1, 2, 2, 3]);
+    const rapida = gym.seriesPorMusculoDeLaSemana([{ fecha: "2026-10-21", rutina: gym.RUTINA[0].id, ejercicios: [], rapido: true }], lunes);
+    cierto(Object.values(rapida).some((n) => n > 0), "una sesión solo marcada cuenta las series de su rutina");
+    const svg = vistasGym.dibujarMapaCuerpo(series);
+    cierto(svg.includes("gc-1") && svg.includes("gc-0") && svg.includes("Frente") && svg.includes("Espalda"), "el dibujo pinta lo trabajado y lo que falta");
+});
+
+prueba("v148: «Tu semana» cuenta solo los días que ya pasaron", () => {
+    const estado = partidaDemo();
+    const s = semanaEnCurso(estado, "2026-10-21");   // miércoles
+    igual(s.lunes, "2026-10-19");
+    igual(s.dias, 3, "lunes, martes y miércoles");
+    igual(s.porDia.length, 3);
+    cierto(Number.isFinite(s.xp) && Number.isFinite(s.completadas));
+    const info = juego.resumen(estado, hoy());
+    const html = vistas.pantallaHoy(estado, { hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+        vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null, rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {} });
+    cierto(html.includes("hoy-semana") && html.includes("Tu semana"), "la tarjeta sale en Hoy");
+});
+
+prueba("v148: cofres y fogatas del camino (dónde caen, qué cruzas y el botín)", () => {
+    const inicio = 1234567;
+    igual(hallazgos.hallazgosDelKm(inicio, 3), hallazgos.hallazgosDelKm(inicio, 3), "la misma carrera y km: lo mismo (no cambia al recargar)");
+    for (let km = 1; km <= 12; km++) {
+        for (const h of hallazgos.hallazgosDelKm(inicio, km)) cierto(h.metro > (km - 1) * 1000 && h.metro < km * 1000, `dentro de su km (${h.tipo} ${h.metro})`);
+        igual(hallazgos.hallazgosDelKm(inicio, km).some((h) => h.tipo === "fogata"), km % hallazgos.FOGATA_CADA === 0, `fogata solo en los km pares (km ${km})`);
+    }
+    const lista = [];
+    for (let km = 1; km <= 4; km++) lista.push(...hallazgos.hallazgosDelKm(inicio, km));
+    igual(hallazgos.cruzados(inicio, 0, 4000).length, lista.length, "corriendo 4 km los cruzas todos");
+    igual(hallazgos.cruzados(inicio, 500, 500).length, 0, "sin avanzar no cruzas nada");
+    const primero = lista[0];
+    const prox = hallazgos.proximo(inicio, primero.metro - 50);
+    igual([prox.tipo, prox.falta], [primero.tipo, 50], "el próximo, a 50 m");
+    igual(hallazgos.proximo(inicio, primero.metro - 500), null, "lejos todavía no aparece");
+    igual(hallazgos.botinDeCofres([{ tipo: "cofre" }, { tipo: "fogata" }, { tipo: "cofre" }]), { cofres: 2, gemas: 2 * hallazgos.COFRE.gemas, xp: 2 * hallazgos.COFRE.xp });
+    // La fogata cura (sin pasar de la vida máxima) y da más margen para vencer.
+    igual(encuentros.vidasDeLaBatalla([{ herida: 20 }, { cura: 30 }]).heroe, encuentros.VIDA, "curarse no pasa de la vida máxima");
+    igual(encuentros.vidasDeLaBatalla([{ herida: 40 }, { cura: 30 }]).heroe, encuentros.VIDA - 10);
+    const pelea = { km: 1, id: "esqueleto", clase: "normal", jefe: false, emboscada: false };
+    const datos = { segundos: 375, pausas: 0 };   // objetivo 360: un 4,2 % más lento (el margen normal es 3 %)
+    cierto(!encuentros.resolver(pelea, datos, 360), "sin fogata, escapa");
+    cierto(encuentros.resolver(pelea, datos, 360, false, { fogata: true }), "con fogata (+2 %), la vences");
+});
+
+prueba("v148: corriendo, al pasar por un cofre se cobra su botín al guardar la carrera", () => {
+    const real = Date.now;
+    try {
+        let reloj = real();
+        Date.now = () => reloj;
+        const estado = partidaNueva();
+        acciones.empezarCarrera(estado, "suave", { gps: true, objetivo: "5:05" });
+        const en = estado.running.encurso;
+        // Una carrera cuyo primer km trae cofre (se busca una hora de inicio que lo tenga).
+        while (!hallazgos.hallazgosDelKm(en.inicio, 1).some((h) => h.tipo === "cofre")) en.inicio += 1;
+        let lat = 4.6;
+        const encontrados = [];
+        for (let i = 0; i < 300; i++) {
+            reloj += 1000;
+            lat += 0.00003;
+            const r = acciones.registrarPuntoCarrera(estado, { lat, lon: -74.08, precision: 4, t: reloj });
+            if (r?.encontrados?.length) encontrados.push(...r.encontrados);
+        }
+        cierto(encontrados.some((h) => h.tipo === "cofre"), "pasaste por el cofre");
+        igual(en.hallados.length, encontrados.length, "queda anotado en la carrera");
+        const gemas = estado.personaje.gemas;
+        const fin = acciones.terminarCarrera(estado, {});
+        const carrera = estado.running.carreras.at(-1);
+        cierto(carrera.cofres >= 1, "la carrera guarda cuántos cofres abriste");
+        cierto(estado.personaje.gemas >= gemas + hallazgos.COFRE.gemas, "y su botín se suma");
+        cierto(fin.celebraciones.some((c) => c.etiqueta === "Cofres del camino"), "hay celebración de los cofres");
+    } finally {
+        Date.now = real;
+    }
+});
+
+prueba("v148: la ruta fantasma, el clima del día y el resumen de la carrera", () => {
+    const carreras = [
+        { fecha: "2026-10-01", km: 3, minutos: 18, traza: [[4.6, -74.08], [4.61, -74.08]] },
+        { fecha: "2026-10-05", km: 2, minutos: 12, traza: [[5.5, -75.0], [5.51, -75.0]] },   // en otra ciudad
+        { fecha: "2026-10-07", km: 5, minutos: 30, pista: 400, traza: [[4.6, -74.08], [4.6, -74.081]] },   // en pista: no sirve
+    ];
+    igual(running.carreraFantasma(carreras, [4.6005, -74.0801]).fecha, "2026-10-01", "la última que salió cerca y no es de pista");
+    igual(running.carreraFantasma(carreras, [10, 10]), null, "lejos de todas: no hay fantasma");
+    igual(running.carreraFantasma([], [4.6, -74.08]), null);
+    const { svg } = mapaDeCarrera({ traza: [[4.6, -74.08], [4.6004, -74.08]], km: 0.05, flecha: true, fantasma: { traza: carreras[0].traza, avance: 0.1 } });
+    cierto(svg.includes('stroke-dasharray="3 3"'), "la ruta fantasma se dibuja punteada");
+    // El clima: el mismo todo el día, y según la zona.
+    igual(running.climaDelDia("2026-10-21", "pradera"), running.climaDelDia("2026-10-21", "pradera"));
+    const climas = new Set(Array.from({ length: 60 }, (_, i) => running.climaDelDia(`2026-01-${String((i % 28) + 1).padStart(2, "0")}${i}`, "pradera")));
+    cierto(climas.has("despejado") && (climas.has("lluvia") || climas.has("niebla")), "a veces llueve o hay niebla");
+    const lluvioso = Array.from({ length: 200 }, (_, i) => `d${i}`).find((d) => running.climaDelDia(d, "pradera") === "lluvia");
+    igual(running.climaDelDia(lluvioso, "nieve"), "nevada", "en la nieve la lluvia es nevada");
+    igual(running.climaDelDia(lluvioso, "desierto"), "arena");
+    cierto(vistasRunning.htmlMapaVivo([[4.6, -74.08], [4.601, -74.08]], [], { clima: "lluvia" }).includes("run-clima lluvia"), "la capa de lluvia sale en el mapa");
+    // El resumen de la carrera recién guardada.
+    const estado = partidaNueva();
+    acciones.guardarCarrera(estado, { fecha: hoy(), km: "5", minutos: "28", tipo: "suave" });
+    const c = estado.running.carreras.at(-1);
+    cierto(vistasRunning.textoDeCarrera(c).includes("5 km"), "el texto para compartir dice los km");
+    const html = vistasRunning.pantallaRunning(estado, { hoy: hoy(), ahora: Date.now(), subvista: { running: "correr" }, tipo: "suave", resumenRun: estado.running.carreras.length - 1 });
+    cierto(html.includes("Carrera guardada") && html.includes("run-compartir"), "el resumen sale arriba de Correr");
+    cierto(!vistasRunning.pantallaRunning(estado, { hoy: hoy(), ahora: Date.now(), subvista: { running: "correr" }, tipo: "suave", resumenRun: null }).includes("Carrera guardada"), "cerrado, no sale");
 });
 
 prueba("Frases de la carrera: los números se dicen bien en español", () => {

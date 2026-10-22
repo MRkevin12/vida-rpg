@@ -16,6 +16,7 @@ export const ESPERANZA_MAX = 120;
 export const NACIMIENTO_MIN = "1900-01-01";
 
 // Frases para tener presente que el tiempo se acaba. Traducciones libres de textos antiguos (dominio público).
+// (v148) etapas: a qué etapas de la vida le habla cada frase (los id de ETAPAS, más abajo). Sin etapas = sirve para todas.
 export const FRASES = [
     { texto: "No es que tengamos poco tiempo: es que perdemos mucho.", autor: "Séneca" },
     { texto: "Podrías dejar la vida ahora mismo. Que eso decida lo que haces, dices y piensas.", autor: "Marco Aurelio" },
@@ -26,10 +27,33 @@ export const FRASES = [
     { texto: "Lo que haces hoy es lo único que de verdad tienes.", autor: "Marco Aurelio" },
     { texto: "Ordena tus días como si cada uno fuera el último y también el primero.", autor: "Séneca" },
     { texto: "Recuerda que vas a morir. Y por eso, hoy, empieza.", autor: "Memento mori" },
+    // Para quien empieza: el tiempo parece infinito y no lo es.
+    { texto: "Nadie es tan joven que no pueda morir mañana. Lo que quieres ser, empiézalo hoy.", autor: "Séneca", etapas: ["infancia", "juventud"] },
+    { texto: "La juventud no es un adelanto de tiempo: es tiempo que ya se está gastando.", autor: "Séneca", etapas: ["juventud"] },
+    { texto: "Los hábitos de hoy son el carácter de mañana.", autor: "Aristóteles", etapas: ["juventud", "adultez"] },
+    // Para quien construye: la prisa y las obligaciones se comen la vida.
+    { texto: "No es que la vida sea corta: es que la llenamos de ocupaciones que no elegimos.", autor: "Séneca", etapas: ["adultez", "madurez"] },
+    { texto: "Busca primero lo que de verdad importa; lo demás puede esperar.", autor: "Marco Aurelio", etapas: ["adultez"] },
+    { texto: "Ya no discutas cómo debe ser un hombre bueno: sé uno.", autor: "Marco Aurelio", etapas: ["adultez", "madurez"] },
+    // Para quien mira atrás: lo que importa es lo que haces con lo que queda.
+    { texto: "Lo vivido ya es tuyo: nadie te lo quita. Cuida lo que te queda.", autor: "Séneca", etapas: ["madurez", "vejez"] },
+    { texto: "Una vida bien vivida es larga, aunque los años sean pocos.", autor: "Séneca", etapas: ["madurez", "vejez"] },
+    { texto: "Envejecer es enseñar con el ejemplo cómo se vive cada día.", autor: "Cicerón", etapas: ["vejez"] },
 ];
 
-// La frase del día: la misma todo el día, otra mañana.
-export const fraseDelDia = (fecha) => FRASES[((diasEntre("2000-01-01", fecha) % FRASES.length) + FRASES.length) % FRASES.length];
+// Las frases que le hablan a una edad: las de su etapa más las generales (sin etapas). Sin edad: todas.
+export function frasesParaEdad(edad) {
+    if (!Number.isFinite(edad)) return FRASES;
+    const etapa = etapaDeEdad(edad).id;
+    return FRASES.filter((f) => !f.etapas || f.etapas.includes(etapa));
+}
+
+// La frase del día: la misma todo el día, otra mañana. (v148) Con tu edad, solo entre las que le hablan a tu etapa.
+export function fraseDelDia(fecha, edad = null) {
+    const lista = frasesParaEdad(edad);
+    const n = diasEntre("2000-01-01", fecha);
+    return lista[((n % lista.length) + lista.length) % lista.length];
+}
 
 // Tu cumpleaños número n ("AAAA-MM-DD"). Si naciste un 29 de febrero, en los años sin 29 cae el 1 de marzo.
 export function cumpleanos(nacimiento, n) {

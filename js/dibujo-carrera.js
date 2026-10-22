@@ -149,7 +149,7 @@ function aTramo(x, y, a, b) {
 // en el dibujo; null si todavía no se sabe), zona (la del final del recorrido) }.
 // El paisaje y el río están anclados al TERRENO (en metros), así no «bailan» cuando el mapa te sigue.
 export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km = 0, seguir = false, flecha = false, porZona = 3,
-                                parciales = [], hora, reloj = 0, vivo = flecha } = {}) {
+                                parciales = [], hora, reloj = 0, vivo = flecha, fantasma = null } = {}) {
     const lista = (traza || []).filter((p) => Array.isArray(p) && Number.isFinite(p[0]));
     const { ancho, alto } = LIENZO;
     const zonaFinal = zonaDelKm(Math.floor(km) + 1, porZona);
@@ -542,6 +542,18 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
         rastro = cortes.map(([a, b], c) => `<path d="${trazo(a, b)}" stroke="#ffe9a8" stroke-opacity="${[0.7, 0.42, 0.2][c]}" stroke-width="2"/>`).join("");
     }
 
+    // (v148) La ruta fantasma: la última vez que saliste de este mismo lugar. Su camino va en una línea punteada clara y el
+    // fantasma (un cuadrito blanco transparente) marca dónde ibas a esta misma altura de la carrera (fantasma.avance, de 0 a 1).
+    let fantasmaSvg = "";
+    if (fantasma?.traza?.length > 1) {
+        const pts = fantasma.traza.filter((q) => Array.isArray(q) && Number.isFinite(q[0])).map(aPantalla);
+        const linea = pts.map(([x, y]) => `${r1(x)},${r1(y)}`).join(" ");
+        const i = Math.min(pts.length - 1, Math.max(0, Math.round((fantasma.avance || 0) * (pts.length - 1))));
+        const [gx, gy] = pts[i];
+        fantasmaSvg = `<polyline points="${linea}" fill="none" stroke="#dfe8ff" stroke-opacity=".45" stroke-width="1.6" stroke-dasharray="3 3" stroke-linejoin="round"/>`
+            + (vivo && visible(gx, gy, 6) ? `<g class="cr-fantasma" opacity=".75"><rect x="${r1(gx - 3)}" y="${r1(gy - 9)}" width="6" height="7" fill="#eef3ff"/><rect x="${r1(gx - 3)}" y="${r1(gy - 2)}" width="2" height="2" fill="#eef3ff"/><rect x="${r1(gx + 1)}" y="${r1(gy - 2)}" width="2" height="2" fill="#eef3ff"/><rect x="${r1(gx - 2)}" y="${r1(gy - 7)}" width="1" height="2" fill="#1a1222"/><rect x="${r1(gx + 1)}" y="${r1(gy - 7)}" width="1" height="2" fill="#1a1222"/></g>` : "");
+    }
+
     // 7) Los mojones de cada km: verde si venciste a su criatura, gris si escapó, morado si era un jefe vencido.
     //    (v147) Al lado, en una plaquita, el ritmo de ese km («5:12»), si se sabe (parciales). El más rápido, en dorado.
     const hitos = mojones.map((b, k) => {
@@ -603,7 +615,7 @@ export function mapaDeCarrera({ traza = [], banderas = [], encuentros = [], km =
             <use href="#${p}cam" stroke="#e8f0c0" stroke-opacity=".07" stroke-width="26"/>
             ${dRapido ? `<use href="#${p}rap" class="cr-rapido" stroke="#fbbf24" stroke-opacity=".3" stroke-width="15"/>` : ""}
             <use href="#${p}cam" stroke="#2a1d12" stroke-width="9"/><use href="#${p}cam" stroke="#9a7a4c" stroke-width="6.5"/><use href="#${p}cam" stroke="#b39065" stroke-width="3"/>
-        </g>${marcas.svg()}${puentes.join("")}
+        </g>${fantasmaSvg}${marcas.svg()}${puentes.join("")}
         ${objetos.map((o) => o.svg).join("")}
         ${conClase(efectos.niebla, "cr-niebla")}${conClase(efectos.copo, "cr-copo")}${conClase(efectos.mariposa, "cr-mariposa")}${detrasDeTi}${aves}
         ${luz.svg}

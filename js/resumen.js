@@ -126,6 +126,26 @@ export function calcularResumen(estado, hoy, dias) {
 }
 
 
+// ===== (v148) La semana EN CURSO (la tarjeta «Tu semana» de Hoy) =====
+// Solo cuenta los días que ya pasaron (de lunes a hoy): lo que falta de la semana no cuenta como fallado.
+// El gym, el running y las finanzas los suma vistas-hoy.js (así este archivo no depende de esas reglas).
+export function semanaEnCurso(estado, hoy) {
+    const lunes = lunesDe(hoy);
+    const dias = diaDeSemana(hoy) + 1;   // lunes = 1 … domingo = 7
+    const r = calcularResumen(estado, hoy, dias);
+    return {
+        lunes,
+        dias,
+        cumplimiento: r.cumplimiento,
+        perfectos: r.perfectos,
+        xp: r.xp,
+        completadas: estado.completadas.filter((c) => c.fecha >= lunes && c.fecha <= hoy).length,
+        tareas: estado.tareas.filter((t) => t.hechaEn && t.hechaEn >= lunes && t.hechaEn <= hoy).length,
+        porDia: r.porDia.map((d) => ({ fecha: d.fecha, pct: d.pct, hechas: d.hechas })),
+    };
+}
+
+
 // ===== Tu semana (la tarjeta del lunes) =====
 
 // ¿Hay que mostrar el resumen de la semana pasada? Devuelve su lunes, o null.

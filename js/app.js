@@ -55,7 +55,7 @@ import { vigilarIconos } from "./iconos.js";
 import { retratoPixel } from "./retratos.js";
 import * as fx from "./efectos.js";
 import { hoy, diasEntre, sumarDias, relojTexto, relojLargo } from "./fechas.js";
-import { runTipo, runPista, gpsProblema, runTerminando, ponerHeroeEnMapaVivo, mostrarNotificacionCarrera,
+import { runTipo, runPista, gpsProblema, runTerminando, runResumen, ponerHeroeEnMapaVivo, mostrarNotificacionCarrera,
          ponerCriaturasDeCarrera, ponerPeleaEnMapa, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
          mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
 import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM } from "./app-gym.js";
@@ -533,6 +533,7 @@ export function contextoActual(efectos = {}) {
         pista: runPista,                                    // (v131)                                      // (v109) el tipo de carrera elegido
         gpsProblema,
         terminando: runTerminando,
+        resumenRun: runResumen,                             // (v148) la carrera recién guardada: su resumen arriba de «Correr»
         fraseGym: ui.fraseGym,
         resumenGym: ui.resumenGym,
         paginaLibro: ui.paginaLibro,

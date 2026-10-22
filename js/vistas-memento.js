@@ -121,7 +121,7 @@ function vistaInicio(estado, ctx) {
 }
 
 function vistaCalendario(estado, ctx, c) {
-    const frase = memento.fraseDelDia(ctx.hoy);
+    const frase = memento.fraseDelDia(ctx.hoy, c.edad);   // (v148) la frase le habla a tu etapa de la vida
     const marcas = memento.semanasMarcadas(estado);   // (v147) solo lee: las semanas en que corriste o cumpliste una meta
     const dato = (icono, titulo, valor, pista = "") => `
         <div class="mm-dato"><small>${icono} ${titulo}</small><b>${valor}</b>${pista ? `<em>${pista}</em>` : ""}</div>`;

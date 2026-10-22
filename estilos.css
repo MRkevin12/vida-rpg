@@ -10630,6 +10630,134 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-hoy-icono { font-size: 1.7rem; line-height: 1; }
 .gym-hoy-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .gym-hoy-texto small { color: var(--texto-suave); font-size: 0.8rem; }
+/* (v148) El resumen de la carrera recién guardada. */
+.run-resumen { border-color: #fbbf24; }
+.run-resumen-mapa { margin: 8px 0; }
+.run-resumen-datos { margin: 8px 0; }
+
+/* (v148) El clima del día sobre el mapa de la carrera. Va encima del dibujo pero debajo de la pelea y los rótulos. */
+.run-clima {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    image-rendering: pixelated;
+}
+/* Lluvia: rayitas en diagonal que caen (dos capas, una más lenta, para que se vea profundidad). */
+.run-clima.lluvia, .run-clima.ceniza {
+    background-image:
+        repeating-linear-gradient(105deg, transparent 0 14px, rgba(190, 215, 255, 0.45) 14px 15px, transparent 15px 31px),
+        repeating-linear-gradient(105deg, transparent 0 22px, rgba(190, 215, 255, 0.25) 22px 23px, transparent 23px 47px);
+    background-size: 62px 62px, 94px 94px;
+    animation: run-llueve 0.6s steps(6) infinite;
+    background-color: rgba(30, 40, 70, 0.18);
+}
+.run-clima.ceniza {
+    background-image:
+        repeating-linear-gradient(100deg, transparent 0 18px, rgba(90, 80, 80, 0.5) 18px 20px, transparent 20px 40px),
+        repeating-linear-gradient(100deg, transparent 0 26px, rgba(255, 140, 60, 0.35) 26px 27px, transparent 27px 55px);
+    background-color: rgba(40, 20, 20, 0.2);
+    animation-duration: 1.4s;
+}
+@keyframes run-llueve { to { background-position: -12px 62px, -18px 94px; } }
+/* Nevada: copos de 2 × 2 que bajan despacio. */
+.run-clima.nevada {
+    background-image:
+        radial-gradient(circle at 20% 30%, #fff 0 1.5px, transparent 1.6px),
+        radial-gradient(circle at 70% 60%, #eef3ff 0 1.2px, transparent 1.3px);
+    background-size: 46px 46px, 70px 70px;
+    background-color: rgba(220, 230, 255, 0.08);
+    animation: run-nieva 3s steps(12) infinite;
+}
+@keyframes run-nieva { to { background-position: 8px 46px, -10px 70px; } }
+/* Niebla: bandas claras que se mueven de lado, muy suaves. */
+.run-clima.niebla {
+    background:
+        linear-gradient(180deg, rgba(220, 225, 240, 0.32), rgba(220, 225, 240, 0.08) 45%, rgba(220, 225, 240, 0.28)),
+        repeating-linear-gradient(90deg, rgba(235, 238, 248, 0.16) 0 60px, transparent 60px 130px);
+    background-size: 100% 100%, 260px 100%;
+    animation: run-niebla 6s linear infinite;
+}
+@keyframes run-niebla { to { background-position: 0 0, 260px 0; } }
+/* Tormenta de arena: polvo amarillento que corre de lado. */
+.run-clima.arena {
+    background-image: repeating-linear-gradient(170deg, transparent 0 10px, rgba(220, 180, 110, 0.35) 10px 12px, transparent 12px 26px);
+    background-size: 120px 40px;
+    background-color: rgba(200, 150, 80, 0.2);
+    animation: run-arena 0.8s steps(8) infinite;
+}
+@keyframes run-arena { to { background-position: 120px 6px; } }
+.cr-fantasma { animation: cr-fantasma 1.6s steps(4) infinite; }
+@keyframes cr-fantasma { 50% { opacity: 0.4; } }
+@media (prefers-reduced-motion: reduce) {
+    .run-clima, .cr-fantasma { animation: none; }
+}
+
+/* (v148) El próximo cofre o fogata en el mapa de la carrera (se ubica con --ox y --oy, como la criatura). */
+.run-pm-objeto {
+    position: absolute;
+    left: var(--ox);
+    top: var(--oy);
+    z-index: 2;
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+    width: calc(var(--px, 2px) * 12);
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+    filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.7));
+}
+.run-pm-objeto.fogata { filter: drop-shadow(0 0 4px rgba(255, 120, 30, 0.85)); }
+.run-pm-objeto-svg { display: block; width: 100%; height: auto; }
+.run-pm-objeto b {
+    padding: 0 3px;
+    font-size: 0.62rem;
+    color: #fff;
+    white-space: nowrap;
+    background: rgba(11, 8, 22, 0.75);
+    border-radius: 2px;
+}
+.run-pm-llama { animation: run-pm-llama 0.6s steps(2) infinite; transform-origin: 50% 100%; transform-box: fill-box; }
+@keyframes run-pm-llama { 50% { transform: scaleY(0.85); } }
+.run-pm-cartel.hallazgo { border-color: #fbbf24; }
+.run-pm-heroe.descansa .run-pm-cuerpo { animation: run-pm-descansa 0.9s steps(4) 2; }
+@keyframes run-pm-descansa { 50% { filter: brightness(1.6) sepia(0.6) hue-rotate(-20deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .run-pm-llama, .run-pm-heroe.descansa .run-pm-cuerpo { animation: none; }
+}
+
+/* (v148) El mapa del cuerpo del Gym: dos siluetas en cuadritos, cada músculo según sus series de la semana. */
+.gym-cuerpo-mapa { display: block; width: 100%; max-width: 320px; height: auto; margin: 6px auto; font-family: var(--letra-titulo); }
+.gym-cuerpo-mapa text { fill: var(--texto-suave); font-size: 3.4px; }
+.gc-base { fill: #4a4468; }
+.gc-0 { fill: #2b2748; stroke: #5a5480; stroke-width: 0.4; }
+.gc-1 { fill: #8a5a1e; }
+.gc-2 { fill: #e0a024; }
+.gc-3 { fill: #ffd75a; }
+.gym-cuerpo-leyenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin: 0 0 6px; padding: 0; list-style: none; font-size: 0.78rem; }
+.gym-cuerpo-leyenda i { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px; }
+.gym-cuerpo-leyenda i.gc-0 { background: #2b2748; border: 1px solid #5a5480; }
+.gym-cuerpo-leyenda i.gc-1 { background: #8a5a1e; }
+.gym-cuerpo-leyenda i.gc-2 { background: #e0a024; }
+.gym-cuerpo-leyenda i.gc-3 { background: #ffd75a; }
+
+/* (v148) «Tu semana» en Hoy: a lo ancho de la cuadrícula, con la tira de 7 días y 4 datos. */
+.hoy-areas .hoy-semana { grid-column: 1 / -1; gap: 8px; }
+.hs-tira { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.hs-dia { display: grid; place-items: center; height: 26px; font-size: 0.72rem; color: #fff; background: #2b2748; border: 1px solid #4a4570; border-radius: 3px; }
+.hs-dia.futuro { opacity: 0.4; }
+.hs-dia.libre { background: #34304e; }
+.hs-dia.nada { background: #5a2a36; }
+.hs-dia.poco { background: #8a5a1e; }
+.hs-dia.bien { background: #2f8a52; }
+.hs-dia.perfecto { background: #e0a024; color: #1a1222; }
+.hs-dia.hoy { outline: 2px solid #fff; outline-offset: 1px; }
+.hs-datos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.hs-dato { display: grid; justify-items: center; gap: 1px; padding: 4px 2px; background: rgba(8, 6, 20, 0.55); border: 1px solid var(--borde); border-radius: var(--esquina); }
+.hs-dato b { font-family: var(--letra-titulo); font-size: 0.95rem; color: #fff; }
+.hs-dato small { font-size: 0.7rem; color: var(--texto-suave); }
+.hs-dato.lleno { border-color: rgba(52, 211, 153, 0.7); }
+
 /* (v143) Las áreas de Hoy en cuadrícula: cada una como una pastilla con el icono arriba y el botón abajo. */
 .hoy-areas {
     display: grid;
