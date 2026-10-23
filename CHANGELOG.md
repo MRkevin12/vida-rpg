@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v150 — Pase de temporada
+- `temporadas.js`: `PASE` (4 niveles), `progresoDelPase` (promedio de las metas, cada una hasta 100 %) y `nivelesPorCobrar`.
+- `acciones.js`: `cobrarPase(estado, mes)`; se llama al revisar cambios (mes en curso) y antes de cerrar un mes.
+- `vistas-temporada.js`: barra y niveles dentro de la tarjeta de temporada.
+- Datos: `estado.temporadas[mes].pase = { cobrados: [25, …] }` (sin cambiar la versión de los datos).
+- Pruebas: 411. Dos pruebas de cierre cambiaron sus números porque el pase también paga.
+
 ## v149 — Temporadas mensuales, revisión semanal con consejos y logros secretos
 - `js/temporadas.js` (nuevo): `METAS` (misiones, días perfectos, gym, km, diario), `valorDeMeta`, `metaSugerida` (mes pasado +10 %), `temporadaDe`, `numerosDelMes`, `premioDeTemporada` (`PREMIO_META` 40 XP + 5 💎; `PREMIO_TODAS` +150 XP, 15 💎, 50 🪙), `veredicto`, `consejoParaLaSiguiente`. El avance se calcula del historial; solo se guardan las metas y el cierre.
 - `acciones.js`: `elegirMetasDeTemporada` (1 a 4 metas), `cerrarTemporadas` (se llama al abrir la app; paga una sola vez y guarda `cierre`), `cerrarResumenTemporada`, `aplicarSugerencia`, `revisarSecretos` (dentro de `revisarCambios`). `completarMision` guarda `hora` (0–23) cuando se marca el mismo día.

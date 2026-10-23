@@ -39,9 +39,25 @@ export function tarjetaTemporada(estado, ctx) {
         <section class="panel temporada" aria-label="Temporada del mes">
             <p class="etiqueta">🗓️ Temporada de ${temporadas.nombreDelMes(mes)} · ${t.diasRestantes ? `quedan ${t.diasRestantes} días` : "último día"}</p>
             <ul class="temporada-lista">${filas}</ul>
+            ${tarjetaPase(estado, t)}
             <p class="mini texto-suave">Cada meta cumplida: ${textoPremio(temporadas.PREMIO_META)}. Si cumples todas: ${textoPremio(temporadas.PREMIO_TODAS)} más.</p>
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="abrir" data-dialogo="temporada">Cambiar mis metas</button>
         </section>`;
+}
+
+// (v150) El pase: cuatro niveles según tu avance del mes. Cobrados, listos para cobrar (no se ve el cobro aquí) o pendientes.
+function tarjetaPase(estado, t) {
+    const pct = temporadas.progresoDelPase(t);
+    const cobrados = estado.temporadas[t.mes].pase?.cobrados || [];
+    const niveles = temporadas.PASE.map((n) => `
+                <li class="pase-nivel ${cobrados.includes(n.porcentaje) ? "cobrado" : pct >= n.porcentaje ? "listo" : ""}">
+                    <b>${n.porcentaje} %</b><small>${n.texto}</small></li>`).join("");
+    return `
+            <div class="pase" aria-label="Pase de temporada">
+                <p class="mini">🎖️ Pase de temporada: ${pct} %</p>
+                ${barra(pct)}
+                <ol class="pase-niveles">${niveles}</ol>
+            </div>`;
 }
 
 // «Así te fue en septiembre»: el resumen de una temporada ya cerrada.

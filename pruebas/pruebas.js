@@ -8078,8 +8078,9 @@ prueba("Temporadas: al pasar el mes se cierra, paga el premio y no se paga dos v
     const r = acciones.cerrarTemporadas(estado);
     const cierre = estado.temporadas[antes].cierre;
     igual([cierre.cumplidas, cierre.total, cierre.todas], [1, 2, false]);
-    igual([estado.personaje.xp - xpAntes, estado.personaje.gemas - gemasAntes], [temporadas.PREMIO_META.xp, temporadas.PREMIO_META.gemas]);
-    igual(r.celebraciones.length, 1);
+    // Progreso 60 % (misiones 2 de 2 = 100, km 0 de 10 = 0): el pase paga los niveles 25 y 50 (60 💎 y 20 🪙); la meta cumplida da 5 💎.
+    igual([estado.personaje.xp - xpAntes, estado.personaje.gemas - gemasAntes], [temporadas.PREMIO_META.xp, temporadas.PREMIO_META.gemas + 20 + 40]);
+    igual(r.celebraciones.length, 3, "dos niveles del pase (25 y 50 %) y el cierre");
     igual(cierre.numeros.misiones, 2);
     acciones.cerrarTemporadas(estado);
     igual(estado.personaje.xp - xpAntes, temporadas.PREMIO_META.xp, "no se cobra dos veces");
@@ -8098,8 +8099,35 @@ prueba("Temporadas: cumplir todas las metas da el regalo extra y el mes en curso
     const monedasAntes = estado.personaje.monedas;
     acciones.cerrarTemporadas(estado);
     igual(estado.temporadas[antes].cierre.todas, true);
-    igual(estado.personaje.monedas - monedasAntes, temporadas.PREMIO_TODAS.monedas);
+    // El regalo de 50 🪙 más los 20 (nivel 50 %) y 100 (sello) del pase.
+    igual(estado.personaje.monedas - monedasAntes, temporadas.PREMIO_TODAS.monedas + 20 + 100);
     igual(estado.temporadas[temporadas.mesDe(hoy())].cierre, null, "este mes sigue abierto");
+});
+
+prueba("Pase de temporada: cada nivel se cobra una sola vez, al llegar a su porcentaje", () => {
+    const estado = partidaNueva();
+    const mes = temporadas.mesDe(hoy());
+    acciones.elegirMetasDeTemporada(estado, { meta_misiones: "4" });
+    const misiones = [1, 2, 3, 4].map((i) => crearMision(estado, { nombre: `M${i}` }));
+    const gemas = () => estado.personaje.gemas;
+    const inicio = gemas();
+    const primera = jugar(estado, () => acciones.completarMision(estado, misiones[0].id));   // 25 %
+    igual(gemas() - inicio, 20, "el primer nivel da 20 💎");
+    cierto(primera.some((c) => c.titulo.startsWith("25 %")), "se celebra el nivel 25 %");
+    jugar(estado, () => acciones.completarMision(estado, misiones[1].id));                  // 50 %
+    igual(gemas() - inicio, 20 + 40, "el nivel 50 % suma 40 💎 más");
+    jugar(estado, () => acciones.completarMision(estado, misiones[2].id));                  // 75 %
+    jugar(estado, () => acciones.completarMision(estado, misiones[3].id));                  // 100 %
+    igual(gemas() - inicio, 20 + 40 + 60 + 100, "todos los niveles, una vez cada uno");
+    igual(estado.temporadas[mes].pase.cobrados, [25, 50, 75, 100]);
+    jugar(estado, () => {});
+    igual(gemas() - inicio, 220, "no se vuelve a cobrar");
+});
+
+prueba("Pase de temporada: el progreso es el promedio de las metas y cada una cuenta hasta 100 %", () => {
+    const t = { metas: [{ valor: 50, meta: 10 }, { valor: 2, meta: 4 }] };   // 100 % y 50 %
+    igual(temporadas.progresoDelPase(t), 75);
+    igual(temporadas.progresoDelPase({ metas: [{ valor: 0, meta: 5 }] }), 0);
 });
 
 prueba("Temporadas: los meses y sus días", () => {

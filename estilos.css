@@ -14032,3 +14032,41 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     flex: none;
     font-size: 1.7rem;
 }
+
+
+/* ===== Pase de temporada (v150) ===== */
+.pase {
+    display: grid;
+    gap: 6px;
+}
+
+.pase-niveles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pase-nivel {
+    display: grid;
+    gap: 2px;
+    padding: 6px 4px;
+    text-align: center;
+    font-size: 0.75rem;
+    opacity: 0.55;
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.pase-nivel.listo {
+    opacity: 1;
+    border-color: rgba(251, 191, 36, 0.7);
+}
+
+.pase-nivel.cobrado {
+    opacity: 1;
+    border-color: #86efac;
+    color: #86efac;
+}

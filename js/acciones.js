@@ -1218,6 +1218,7 @@ export function cerrarTemporadas(estado) {
     for (const mes of Object.keys(estado.temporadas).sort()) {
         const guardada = estado.temporadas[mes];
         if (guardada.cierre || mes >= actual) continue;
+        celebraciones.push(...cobrarPase(estado, mes));   // (v150) los niveles que alcanzaste y no cobraste, antes de cerrar
         const info = temporadas.temporadaDe(estado, mes, hoy());
         const premio = temporadas.premioDeTemporada(info.cumplidas, info.todas);
         ganar(estado, premio);
@@ -1236,6 +1237,22 @@ export function cerrarTemporadas(estado) {
                              detalle: premio.xp ? `+${premio.xp} XP · +${premio.gemas} 💎${premio.monedas ? ` · +${premio.monedas} 🪙` : ""}` : "Mira el resumen en Hoy." });
     }
     return { celebraciones };
+}
+
+// Pase de temporada (v150): cobra los niveles que ya alcanzaste en ese mes. Cada nivel se cobra una sola vez.
+export function cobrarPase(estado, mes) {
+    const guardada = estado.temporadas[mes];
+    if (!guardada) return [];
+    const pendientes = temporadas.nivelesPorCobrar(estado, mes, hoy());
+    guardada.pase ||= { cobrados: [] };
+    return pendientes.map((nivel) => {
+        guardada.pase.cobrados.push(nivel.porcentaje);
+        ganar(estado, nivel);
+        const premio = [nivel.xp ? `+${nivel.xp} XP` : "", nivel.gemas ? `+${nivel.gemas} 💎` : "", nivel.monedas ? `+${nivel.monedas} 🪙` : ""]
+            .filter(Boolean).join(" · ");
+        return { icono: "🎖️", etiqueta: `Pase de ${temporadas.nombreDelMes(mes)}`,
+                 titulo: `${nivel.porcentaje} % · ${nivel.texto}`, detalle: premio };
+    });
 }
 
 // Cierra la tarjeta con el resumen de una temporada que ya pasó.
@@ -2053,6 +2070,7 @@ export function revisarCambios(estado, antes) {
     const info = juego.resumen(estado, hoy());
     celebraciones.push(...revisarInsignias(estado, info));   // (v101)
     celebraciones.push(...revisarSecretos(estado));          // (v149)
+    celebraciones.push(...cobrarPase(estado, temporadas.mesDe(hoy())));   // (v150) el pase del mes en curso
 
     const nivel = juego.calcularNivel(estado.personaje.xp).nivel;
     if (nivel > antes.nivel) {

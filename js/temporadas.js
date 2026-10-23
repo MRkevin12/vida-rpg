@@ -188,3 +188,31 @@ export function consejoParaLaSiguiente(cierre) {
     const info = METAS[peor.tipo];
     return `${info.icono} «${info.nombre}»: te quedaste en ${peor.valor} de ${peor.meta}. Prueba con ${realista} el mes que viene.`;
 }
+
+
+// ===== El pase de temporada (v150) =====
+// Cada mes, a medida que avanzas, se desbloquean niveles del pase. Cada nivel se cobra una sola vez.
+// El progreso es el promedio de tus metas (cada una cuenta hasta 100 %), así que cumplir una meta
+// por completo no tapa el avance de las demás.
+export const PASE = [
+    { porcentaje: 25,  gemas: 20,  xp: 0,   monedas: 0,   texto: "Primer paso" },
+    { porcentaje: 50,  gemas: 40,  xp: 0,   monedas: 20,  texto: "Mitad del camino" },
+    { porcentaje: 75,  gemas: 60,  xp: 40,  monedas: 0,   texto: "Tres cuartos" },
+    { porcentaje: 100, gemas: 100, xp: 100, monedas: 100, texto: "Sello del mes" },
+];
+
+// Cuánto avanzó el pase (0 a 100): el promedio del avance de cada meta.
+export function progresoDelPase(temporada) {
+    if (!temporada || !temporada.metas.length) return 0;
+    const suma = temporada.metas.reduce((total, m) => total + Math.min(100, (m.valor / m.meta) * 100), 0);
+    return Math.floor(suma / temporada.metas.length);
+}
+
+// Los niveles del pase que ya alcanzaste en ese mes y todavía no se cobraron.
+export function nivelesPorCobrar(estado, mes, hoy) {
+    const t = temporadaDe(estado, mes, hoy);
+    if (!t) return [];
+    const cobrados = estado.temporadas[mes].pase?.cobrados || [];
+    const pct = progresoDelPase(t);
+    return PASE.filter((nivel) => pct >= nivel.porcentaje && !cobrados.includes(nivel.porcentaje));
+}

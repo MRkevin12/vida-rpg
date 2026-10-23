@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 149;
+export const VERSION_APP = 150;
 
 export const NOVEDADES = [
+    {
+        version: 150,
+        titulo: "Pase de temporada",
+        cambios: [
+            "🎖️ Cada mes tienes un pase con 4 niveles (25, 50, 75 y 100 %). Avanzas con el promedio de tus metas: cada nivel da 💎, 🪙 o XP, y se cobra una sola vez.",
+            "🏁 Si cierras el mes sin haber cobrado un nivel que sí alcanzaste, se cobra al cerrar la temporada.",
+        ],
+    },
     {
         version: 149,
         titulo: "Temporadas, revisión con consejos y secretos",
