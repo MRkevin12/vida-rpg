@@ -424,3 +424,40 @@ export function textoComparacion(comparacion) {
         ? `▼ ${texto} más rápida que tu anterior de este tipo`
         : `▲ ${texto} más lenta que tu anterior de este tipo`;
 }
+
+// ===== La luz según el sol de verdad (v151) =====
+// El mapa tiene 4 luces (amanecer, día, atardecer, noche). Antes cambiaban a horas fijas (5, 7, 17 y 19 h);
+// ahora siguen la salida y la puesta del sol del lugar donde corres.
+
+// Salida y puesta del sol en HORA LOCAL del teléfono (0–24, con decimales: 6.5 = 6:30), para un lugar y un día.
+// Fórmula aproximada de la NOAA (sirve para unos minutos de error). null si ese día el sol no sale o no se pone (polos).
+export function horasDelSol(lat, lon, ms) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(ms)) return null;
+    const fecha = new Date(ms);
+    const diaDelAno = Math.round((Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()) - Date.UTC(fecha.getFullYear(), 0, 0)) / 86400000);
+    const g = (2 * Math.PI / 365) * (diaDelAno - 1);                    // la fecha como un ángulo del año
+    const ecuacionDelTiempo = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));   // minutos
+    const declinacion = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+    const rad = Math.PI / 180;
+    const cosAngulo = Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(declinacion)) - Math.tan(lat * rad) * Math.tan(declinacion);
+    if (cosAngulo < -1 || cosAngulo > 1) return null;
+    const angulo = Math.acos(cosAngulo) / rad;                          // grados del mediodía a la salida/puesta
+    const aLocal = (minutosUTC) => (((minutosUTC - fecha.getTimezoneOffset()) / 60) % 24 + 24) % 24;
+    const salida = aLocal(720 - 4 * (lon + angulo) - ecuacionDelTiempo);
+    let puesta = aLocal(720 - 4 * (lon - angulo) - ecuacionDelTiempo);
+    if (puesta <= salida) puesta += 24;
+    return { salida, puesta };
+}
+
+// La hora que entienden los dibujos del mapa (que siguen usando 5–7 amanecer, 7–17 día, 17–19 atardecer): se cambia la hora real
+// por una hora "típica" de la luz que toca según el sol. Amanecer = 1 h antes a 1 h después de salir el sol; atardecer, igual con la puesta.
+// Sin datos del sol (o sin hora) devuelve la misma hora y todo queda como antes.
+export function horaDeLuz(hora, sol) {
+    if (!Number.isFinite(hora) || !sol || sol.puesta - sol.salida < 4) return hora;
+    const desdeElAlba = ((hora - (sol.salida - 1)) % 24 + 24) % 24;     // horas pasadas desde 1 h antes de la salida
+    const largoDelDia = sol.puesta - sol.salida;
+    if (desdeElAlba < 2) return 6;                                       // amanecer
+    if (desdeElAlba < largoDelDia) return 12;                            // día
+    if (desdeElAlba < largoDelDia + 2) return 18;                        // atardecer
+    return 23;                                                           // noche
+}

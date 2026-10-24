@@ -71,6 +71,14 @@ export function lugarDeCriatura({ aqui, rumbo = null, metros = 0, visible = part
     // Que quepa entera: se ubica por sus pies, así que arriba también tiene que caber su cuerpo, su nombre y su vida.
     const caja = { x0: visible.x0 + lado / 2, x1: visible.x1 - lado / 2, y0: visible.y0 + lado + 14, y1: visible.y1 - 2 };
     const dentro = (x, y) => [Math.min(caja.x1, Math.max(caja.x0, x)), Math.min(caja.y1, Math.max(caja.y0, y))];
+    // (v151) Cerca del borde (sobre todo en «Ver todo», donde el recorrido llega hasta las orillas) la criatura no se salta
+    // al otro lado ni se pega al borde: avanza por el camino, acercándose a ti de 4 en 4 puntos, hasta que cabe delante.
+    for (let d = distancia; ; d = Math.max(CERCA, d - 4)) {
+        const x = hx + ux * d;
+        const y = hy + uy * d;
+        if (x >= caja.x0 && x <= caja.x1 && y >= caja.y0 && y <= caja.y1) return { x: (x / W) * 100, y: (y / H) * 100 };
+        if (d <= CERCA) break;
+    }
     // Si delante no hay lugar (corres hacia un borde), se prueba del otro lado: al revés en x, en y o en las dos.
     let mejor = null;
     for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {

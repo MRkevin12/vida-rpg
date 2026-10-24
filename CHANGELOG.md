@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v152 — Luz del sol real en la carrera y criatura en «Ver todo»
+- `running.js`: `horasDelSol(lat, lon, ms)` (salida y puesta del sol, fórmula NOAA; `null` en los polos) y `horaDeLuz(hora, sol)` (traduce la hora real a amanecer, día, atardecer o noche).
+- `vistas-running.js`: `luzDelDia(ms, traza)` usa el primer punto del GPS; sin GPS, las horas fijas de siempre. Lo usan el mapa en vivo, el historial y el resumen.
+- `vistas-pelea-mapa.js`: `lugarDeCriatura` acerca la criatura por tu camino (de 4 en 4 puntos) cuando delante no cabe, en vez de saltar al otro lado.
+- La pista (`mapaDePista`) ya recibía la hora; ahora también sigue el sol real.
+- Datos: sin cambios (`version` sigue en 36).
+- Pruebas: 415 (2 nuevas).
+
 ## v151 — Dificultad adaptable
 - `resumen.js`: `ajusteDeDificultad(estado, mision, hoy)` (ventana de 21 días, mínimo 10 intentos; ≥ 90 % propone subir, ≤ 40 % bajar; no mira metas «N veces» ni del mes) y `ajustesDeDificultad` (hasta 3 misiones activas).
 - `acciones.js`: `aplicarDificultad(estado, { misionId })`: vuelve a calcular la propuesta antes de cambiar la misión.

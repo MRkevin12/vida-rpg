@@ -3144,6 +3144,39 @@ prueba("Pelea sobre el mapa (v146): la criatura cabe en la parte del mapa que se
     cierto(ny >= conRotulos.y0 + lado, `su cuerpo cabe debajo de los rótulos (${ny.toFixed(1)})`);
 });
 
+prueba("Pelea sobre el mapa (v151): cerca del borde la criatura sigue delante de ti, más cerca, en vez de saltar al otro lado", () => {
+    // Tu héroe está a 272 puntos (de 320) y corres hacia la derecha: a 72 puntos ya no cabe, pero a ~32 sí.
+    const [cx, cy] = enPuntos(peleaMapa.lugarDeCriatura({ aqui: { x: 85, y: 50 }, rumbo: { x: 1, y: 0 }, metros: 0 }));
+    cierto(cx > 272 && Math.abs(cy - 120) < 0.5, `sigue delante, en tu camino (${cx.toFixed(1)}, ${cy.toFixed(1)})`);
+    cierto(cx - 272 >= peleaMapa.CERCA && cx - 272 < peleaMapa.LEJOS, "más cerca que al empezar, pero no encima de ti");
+    cierto(cx <= 320 - 13 + 0.01, "y entera dentro de lo que se ve");
+});
+
+prueba("Luz del mapa (v151): sale y se pone el sol según la latitud y el día, y los dibujos reciben la hora que les toca", () => {
+    const junio = new Date(2026, 5, 21, 12).getTime();
+    const diciembre = new Date(2026, 11, 21, 12).getTime();
+    const largo = (sol) => sol.puesta - sol.salida;
+    const bogota = running.horasDelSol(4.6, -74.08, junio);
+    cierto(Math.abs(largo(bogota) - 12.1) < 0.4, `cerca del ecuador el día dura ~12 h (${largo(bogota).toFixed(2)})`);
+    const norteJunio = running.horasDelSol(59.3, 18.07, junio);
+    const norteDic = running.horasDelSol(59.3, 18.07, diciembre);
+    cierto(largo(norteJunio) > 17 && largo(norteDic) < 7, `en el norte: verano largo (${largo(norteJunio).toFixed(1)} h), invierno corto (${largo(norteDic).toFixed(1)} h)`);
+    igual(running.horasDelSol(85, 0, junio), null, "en el polo en verano el sol no se pone: sin datos");
+    igual(running.horasDelSol(NaN, 0, junio), null);
+    // Con un sol de 6:30 a 18:30: amanecer de 5:30 a 7:30, día hasta 17:30, atardecer hasta 19:30.
+    const sol = { salida: 6.5, puesta: 18.5 };
+    const luz = (hora) => momentoDelDia(running.horaDeLuz(hora, sol));
+    igual([luz(5.4), luz(5.6), luz(7.4), luz(7.6)], ["noche", "amanecer", "amanecer", "dia"]);
+    igual([luz(17.4), luz(17.6), luz(19.4), luz(19.6), luz(2)], ["dia", "atardecer", "atardecer", "noche", "noche"]);
+    igual(running.horaDeLuz(14, null), 14, "sin sol, la hora no cambia (horas fijas de siempre)");
+    igual(running.horaDeLuz(undefined, sol), undefined, "sin hora (carreras viejas), sigue sin hora: se dibuja de día");
+    // Un día de verano largo en el norte: a las 21 h todavía es de día.
+    cierto(momentoDelDia(running.horaDeLuz(21, { salida: 3.5, puesta: 22.5 })) === "dia", "sol de medianoche: a las 21 h aún es de día");
+    // La carrera usa el primer punto del GPS; sin GPS (a mano o vieja) usa las horas fijas.
+    const tarde = new Date(2026, 5, 21, 18, 15).getTime();
+    igual(momentoDelDia(vistasRunning.luzDelDia(tarde, undefined)), "atardecer", "sin traza: horas fijas (18:15 es atardecer)");
+});
+
 prueba("Pelea sobre el mapa (v146): el mapa dice dónde estás y hacia dónde corres (y el historial no cambia)", () => {
     const traza = Array.from({ length: 40 }, (_, i) => [4.6 + i * 0.0003, -74.08]);   // hacia el norte
     const { rumbo } = mapaDeCarrera({ traza, km: 1.3, seguir: true, flecha: true });

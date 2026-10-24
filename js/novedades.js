@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 151;
+export const VERSION_APP = 152;
 
 export const NOVEDADES = [
+    {
+        version: 152,
+        titulo: "Luz del sol real en la carrera",
+        cambios: [
+            "🌅 El mapa de la carrera se ilumina según la salida y la puesta del sol del lugar donde corres, no según horas fijas.",
+            "🐉 En «Ver todo», la criatura sigue delante de ti aunque estés cerca del borde del mapa.",
+        ],
+    },
     {
         version: 151,
         titulo: "Dificultad adaptable",

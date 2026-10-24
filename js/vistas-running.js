@@ -306,7 +306,7 @@ export const opcionesDelMapa = (en, r = {}, ahora = Date.now()) => ({
     pista: en.pista ? { metros: en.distancia, largo: en.pista } : null,      // (v131)
     recorte: Boolean(en.encuentros),                                         // (v139) la caja no mide 4:3: se recortan los bordes
     heroeEnCapa: Boolean(en.encuentros),                                     // (v146) tu héroe va en la capa de la pelea
-    hora: horaDelDia(ahora), reloj: ahora,                                   // (v144) la luz de ahora y las fases de las animaciones
+    hora: luzDelDia(ahora, en.traza), reloj: ahora,                          // (v144) la luz de ahora (v151: según el sol del lugar) y las fases de las animaciones
     parciales: running.parcialesDe(en.marcas),                               // (v144) tu km más rápido brilla
     fantasma: en.pista ? null : fantasmaDe(en, r, ahora),                    // (v148) la última vez que saliste de aquí
     clima: running.climaDelDia(fechaDeCarrera(en), encuentros.zonaDelKm(Math.floor(en.distancia / 1000) + 1, en.kmPorZona || 3).id),   // (v148)
@@ -328,7 +328,14 @@ export function fantasmaDe(en, r = {}, ahora = Date.now()) {
 // (v144) La hora del día de un momento (en ms), como número: 18.5 = 18:30. En el historial se usa la mitad de la carrera
 // (creada es cuando se guardó, al final); las carreras sin ese dato se dibujan de día.
 export const horaDelDia = (ms) => { const d = new Date(ms); return d.getHours() + d.getMinutes() / 60; };
-const horaDeCarrera = (c) => (Number.isFinite(c.creada) ? horaDelDia(c.creada - (Number(c.minutos) || 0) * 30000) : undefined);
+const horaDeCarrera = (c) => (Number.isFinite(c.creada) ? luzDelDia(c.creada - (Number(c.minutos) || 0) * 30000, c.traza) : undefined);
+
+// (v151) La hora que se le da a los dibujos del mapa: la hora del día, pero cambiada según la salida y la puesta del sol del
+// lugar de la carrera (el primer punto del GPS). Sin GPS, la luz sigue las horas fijas de siempre.
+export function luzDelDia(ms, traza) {
+    const punto = traza?.[0];
+    return running.horaDeLuz(horaDelDia(ms), punto ? running.horasDelSol(punto[0], punto[1], ms) : null);
+}
 
 // ===== La pelea del km (v119) =====
 // La criatura del km en curso: qué pide, cuánta vida le queda (baja a medida que avanzas en el km) y cómo vas con tu ritmo.
