@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v151 — Dificultad adaptable
+- `resumen.js`: `ajusteDeDificultad(estado, mision, hoy)` (ventana de 21 días, mínimo 10 intentos; ≥ 90 % propone subir, ≤ 40 % bajar; no mira metas «N veces» ni del mes) y `ajustesDeDificultad` (hasta 3 misiones activas).
+- `acciones.js`: `aplicarDificultad(estado, { misionId })`: vuelve a calcular la propuesta antes de cambiar la misión.
+- `vistas-diario.js` y `app-botones.js`: la propuesta aparece en la ventana «Revisión semanal» con su botón.
+- Datos: sin cambios (`version` sigue en 36).
+- Pruebas: 413 (2 nuevas).
+
 ## v150 — Pase de temporada
 - `temporadas.js`: `PASE` (4 niveles), `progresoDelPase` (promedio de las metas, cada una hasta 100 %) y `nivelesPorCobrar`.
 - `acciones.js`: `cobrarPase(estado, mes)`; se llama al revisar cambios (mes en curso) y antes de cerrar un mes.

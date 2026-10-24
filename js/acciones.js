@@ -1281,6 +1281,17 @@ export function aplicarSugerencia(estado, { misionId, lunes }) {
     return { cambio: cambio.tipo, mision: mision.nombre };
 }
 
+// Dificultad adaptable (v151): aplica el ajuste que propuso resumen.ajusteDeDificultad.
+// Se vuelve a calcular aquí, así que solo se puede aplicar lo que de verdad se propuso hoy.
+// Lo que ya se hizo no cambia: cada registro guarda la dificultad de su día.
+export function aplicarDificultad(estado, { misionId }) {
+    const mision = buscar(estado.misiones, Number(misionId), "esa misión");
+    const ajuste = resumen.ajusteDeDificultad(estado, mision, hoy());
+    if (!ajuste) throw new Error("Esa sugerencia ya no se puede aplicar.");
+    mision.dificultad = validarDificultad(ajuste.dificultad);
+    return { cambio: ajuste.tipo, mision: mision.nombre, dificultad: mision.dificultad };
+}
+
 
 // La tarjeta «Tu semana» (resumen de la semana pasada) se muestra hasta que la cierras.
 export function cerrarResumenSemanal(estado) {

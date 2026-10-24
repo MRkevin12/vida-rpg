@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 150;
+export const VERSION_APP = 151;
 
 export const NOVEDADES = [
+    {
+        version: 151,
+        titulo: "Dificultad adaptable",
+        cambios: [
+            "⚖️ La revisión semanal mira tus últimas 3 semanas: si cumples casi siempre una misión diaria, te propone subirla de dificultad; si casi nunca la cumples, te propone bajarla.",
+            "🛠️ Nunca cambia nada sola: tú decides con un botón. Lo que ya hiciste conserva la dificultad de ese día.",
+        ],
+    },
     {
         version: 150,
         titulo: "Pase de temporada",

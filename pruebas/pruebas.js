@@ -21,7 +21,7 @@ import * as cinematicas from "../js/cinematicas.js";
 import * as voces from "../js/voces.js";
 import * as vistasVoces from "../js/vistas-voces.js";
 import { existeSonido } from "../js/sonido.js";
-import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso } from "../js/resumen.js";
+import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso, ajusteDeDificultad, ajustesDeDificultad } from "../js/resumen.js";
 import * as hallazgos from "../js/hallazgos.js";   // (v148)
 import * as temporadas from "../js/temporadas.js";   // (v149)
 import * as secretos from "../js/secretos.js";       // (v149)
@@ -8192,6 +8192,39 @@ prueba("Revisión semanal: sin tiempo ni ganas propone bajar la dificultad, y co
     const facil = crearMision(estado, { nombre: "Fácil", dificultad: "facil" });
     estado.fallas = [{ misionId: facil.id, fecha: lunes, motivo: "tiempo" }];
     igual(pistaDeFallas(estado, lunes).sugerencia, null, "una misión fácil con pocos datos: sin cambio que proponer");
+});
+
+prueba("Dificultad adaptable: con 90 % cumplido propone subir; con 40 % o menos, bajar; con pocos intentos no dice nada", () => {
+    const estado = partidaNueva();
+    const subir = crearMision(estado, { nombre: "Sube", dificultad: "normal" });
+    for (let i = 1; i <= 9; i++) marcarEn(estado, subir, dia(-i));
+    estado.fallas.push({ misionId: subir.id, fecha: dia(-10), motivo: "ganas" });
+    igual(ajusteDeDificultad(estado, subir, hoy())?.tipo, "subir", "9 de 10 cumplidas");
+    igual(ajustesDeDificultad(estado, hoy()).map((x) => x.misionId), [subir.id], "aparece en la lista de la revisión");
+
+    const bajar = crearMision(estado, { nombre: "Baja", dificultad: "dificil" });
+    for (let i = 1; i <= 4; i++) marcarEn(estado, bajar, dia(-i));
+    for (let i = 5; i <= 10; i++) estado.fallas.push({ misionId: bajar.id, fecha: dia(-i), motivo: "tiempo" });
+    igual([ajusteDeDificultad(estado, bajar, hoy())?.tipo, ajusteDeDificultad(estado, bajar, hoy())?.dificultad], ["bajar", "normal"], "4 de 10 cumplidas");
+
+    const pocos = crearMision(estado, { nombre: "Pocas", dificultad: "normal" });
+    marcarEn(estado, pocos, dia(-1));
+    igual(ajusteDeDificultad(estado, pocos, hoy()), null, "solo 1 intento: no se decide nada");
+});
+
+prueba("Dificultad adaptable: aplicar cambia la dificultad; lo ya hecho guarda la de entonces", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado, { nombre: "Sube", dificultad: "facil" });
+    for (let i = 1; i <= 10; i++) marcarEn(estado, mision, dia(-i));
+    igual(ajusteDeDificultad(estado, mision, hoy())?.dificultad, "normal");
+    const resultado = acciones.aplicarDificultad(estado, { misionId: mision.id });
+    igual([mision.dificultad, resultado.cambio], ["normal", "subir"]);
+    igual(estado.completadas[0].dificultad, "facil", "el registro viejo conserva la dificultad de su día");
+    igual(ajusteDeDificultad(estado, mision, hoy())?.dificultad, "dificil", "sigue cumpliéndola: ahora propone el siguiente paso");
+    debeFallar(() => acciones.aplicarDificultad(estado, { misionId: mision.id + 99 }), "esa misión");
+    const dificil = crearMision(estado, { nombre: "Tope", dificultad: "dificil" });
+    for (let i = 1; i <= 10; i++) marcarEn(estado, dificil, dia(-i));
+    debeFallar(() => acciones.aplicarDificultad(estado, { misionId: dificil.id }), "ya no se puede aplicar");
 });
 
 prueba("Secretos: se descubren solos, una sola vez, y pagan su premio", () => {

@@ -320,6 +320,51 @@ export function pistaDeFallas(estado, lunes) {
     };
 }
 
+// ===== Dificultad adaptable (v151) =====
+// Mira las últimas 3 semanas de una misión diaria: si casi siempre la cumples, propone subirla;
+// si casi siempre la fallas, propone bajarla. Solo propone: quien decide es el usuario (acciones.aplicarDificultad).
+const VENTANA_DIFICULTAD = 21;                 // días que se miran
+const MINIMO_INTENTOS = 10;                    // con menos veces que intentarla no se decide nada
+const SUBIR_DESDE = 0.9;                       // cumples el 90 % o más → subirla
+const BAJAR_HASTA = 0.4;                       // cumples el 40 % o menos → bajarla
+const MAS_DIFICIL = { facil: "normal", normal: "dificil" };
+
+export function ajusteDeDificultad(estado, mision, hoy) {
+    if (!mision || mision.archivadaEn || mision.veces || mision.diasMes) return null;   // las metas «N veces» o del mes tienen sus propias reglas
+    const desde = sumarDias(hoy, -VENTANA_DIFICULTAD + 1);
+    const hechas = estado.completadas.filter((c) => c.misionId === mision.id && c.fecha >= desde && c.fecha <= hoy).length;
+    const fallas = estado.fallas.filter((f) => f.misionId === mision.id && f.fecha >= desde && f.fecha <= hoy).length;
+    const intentos = hechas + fallas;
+    if (intentos < MINIMO_INTENTOS) return null;
+
+    const tasa = hechas / intentos;
+    const cumplidas = `${Math.round(tasa * 100)} %`;
+    if (tasa >= SUBIR_DESDE && MAS_DIFICIL[mision.dificultad]) {
+        const nueva = MAS_DIFICIL[mision.dificultad];
+        return { tipo: "subir", dificultad: nueva, cumplidas,
+                 texto: `Llevas 3 semanas cumpliéndola (${cumplidas}). Ya te queda corta: súbela de dificultad.`,
+                 boton: `Subirla a ${DIFICULTAD_NOMBRE[nueva]}` };
+    }
+    if (tasa <= BAJAR_HASTA && MAS_FACIL[mision.dificultad]) {
+        const nueva = MAS_FACIL[mision.dificultad];
+        return { tipo: "bajar", dificultad: nueva, cumplidas,
+                 texto: `Solo la cumples el ${cumplidas} de las veces. Mejor una versión más pequeña que cumplas.`,
+                 boton: `Bajarla a ${DIFICULTAD_NOMBRE[nueva]}` };
+    }
+    return null;
+}
+
+const DIFICULTAD_NOMBRE = { facil: "Fácil", normal: "Normal", dificil: "Difícil" };
+
+// Los ajustes que propone hoy, para las misiones activas (hasta 3, las de mayor cambio primero).
+export function ajustesDeDificultad(estado, hoy) {
+    return estado.misiones
+        .filter((m) => estaActiva(m, hoy))
+        .map((m) => ({ misionId: m.id, nombre: m.nombre, ajuste: ajusteDeDificultad(estado, m, hoy) }))
+        .filter((x) => x.ajuste)
+        .slice(0, 3);
+}
+
 // La revisión que hiciste al empezar esta semana (la de la semana pasada), o null.
 export function revisionVigente(estado, hoy) {
     return estado.revisiones[sumarDias(lunesDe(hoy), -7)] || null;

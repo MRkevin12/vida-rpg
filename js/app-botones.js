@@ -191,6 +191,14 @@ export const ACCIONES_GENERALES = {
         boton.textContent = "✅ Cambio aplicado";
         avisar("🛠️ Listo: ya cambié la misión");
     },
+    // (v151) Dificultad adaptable: aplicar el ajuste que propuso la revisión. El botón queda marcado como hecho.
+    "aplicar-dificultad": (boton) => {
+        const resultado = ejecutar(() => acciones.aplicarDificultad(estado, { misionId: boton.dataset.id }));
+        if (!resultado) return;
+        boton.disabled = true;
+        boton.textContent = "✅ Dificultad cambiada";
+        avisar("⚖️ Listo: ya cambié la dificultad");
+    },
     "revisar-semana": () => {
         const lunes = semanaPorMostrar(estado, hoy());
         if (lunes) abrirDialogo("revision", lunes);

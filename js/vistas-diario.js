@@ -414,6 +414,11 @@ export function contenidoRevision(estado, lunes, hoy) {
             <p class="nota">🛠️ ${pista.sugerencia.texto}</p>
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="aplicar-sugerencia" data-id="${pista.misionId}" data-lunes="${lunes}">${pista.sugerencia.boton}</button>
         </div>` : "") : ""}
+        ${resumen.ajustesDeDificultad(estado, hoy).map((x) => `
+        <div class="sugerencia">
+            <p class="nota">⚖️ «${esc(x.nombre)}»: ${x.ajuste.texto}</p>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="aplicar-dificultad" data-id="${x.misionId}">${x.ajuste.boton}</button>
+        </div>`).join("")}
         <label>¿Qué quieres mejorar?
             <textarea name="mejorar" rows="2" maxlength="500" placeholder="Ej: dormirme antes de las 11">${esc(previa?.mejorar || "")}</textarea>
         </label>
