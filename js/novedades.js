@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 152;
+export const VERSION_APP = 153;
 
 export const NOVEDADES = [
+    {
+        version: 153,
+        titulo: "Marcas de colores en Memento",
+        cambios: [
+            "🎨 En tu vida en semanas, cada tipo de esfuerzo tiene su color: azul para los km, morado para tu meta de gym y verde para las misiones de los 7 días.",
+            "🧩 Si una semana tuvo varias cosas, la casilla se parte en franjas de colores.",
+        ],
+    },
     {
         version: 152,
         titulo: "Luz del sol real en la carrera",

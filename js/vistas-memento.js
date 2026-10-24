@@ -33,9 +33,19 @@ export const MARGEN = 28;        // a la izquierda: los números de edad
 
 // (v147) Cada etapa de la vida tiene su color (estilos.css: .e-infancia, .e-juventud…): sus semanas vividas, fuertes, y las
 // que quedan, apagadas. Por eso hay dos patrones por etapa (10 en total: siguen siendo pocos elementos).
-// marcas = { carrera, meta } (memento.semanasMarcadas): las semanas vividas en que corriste o cumpliste una meta se pintan
-// encima, todas en DOS <path> (uno por color). Tocar una casilla (data-accion) muestra sus fechas (app-memento.js).
-export function rejillaMemento(c, marcas = { carrera: new Set(), meta: new Set() }) {
+// (v152) marcas = { km, gym, misiones } (memento.semanasMarcadas): las semanas vividas en que corriste, cumpliste tu meta de gym o
+// hiciste misiones los 7 días se pintan encima, cada tipo de su color y todas en TRES <path> (uno por color). Si en una semana
+// pasó más de una cosa, la casilla se parte en franjas (2 tipos: 3 y 2 puntos de alto; 3 tipos: 2, 1 y 2). Tocar una casilla
+// (data-accion) muestra sus fechas (app-memento.js).
+export const TIPOS_MARCA = [
+    { clave: "km", clase: "mm-km", texto: "corriste", nombre: "Corriste" },
+    { clave: "gym", clase: "mm-gym", texto: "meta de gym cumplida", nombre: "Meta de gym" },
+    { clave: "misiones", clase: "mm-misiones", texto: "misiones los 7 días", nombre: "Misiones los 7 días" },
+];
+const ALTURAS_DE_FRANJA = { 1: [CASILLA - 1], 2: [3, 2], 3: [2, 1, 2] };   // los 5 puntos de la casilla repartidos entre los tipos presentes
+const sinMarcas = () => ({ km: new Set(), gym: new Set(), misiones: new Set() });
+
+export function rejillaMemento(c, marcas = sinMarcas()) {
     const S = memento.SEMANAS_POR_ANIO;
     const ancho = MARGEN + S * CASILLA;
     const alto = c.filas * CASILLA + 2;
@@ -52,21 +62,27 @@ export function rejillaMemento(c, marcas = { carrera: new Set(), meta: new Set()
         }
         if (fila % 10 === 0) filas.push(`<text class="mm-edad" x="${MARGEN - 4}" y="${y + CASILLA - 0.5}" text-anchor="end">${fila}</text>`);
     }
-    // Las marcas: un cuadrito por semana (meta: la casilla entera; carrera: entera, o al centro si esa semana también hubo meta).
-    const cuadrito = (indice, adentro = 0) => {
-        const lado = CASILLA - 1 - 2 * adentro;
-        return `M${MARGEN + (indice % S) * CASILLA + adentro} ${Math.floor(indice / S) * CASILLA + adentro}h${lado}v${lado}h${-lado}z`;
-    };
+    // Las marcas: cada semana vivida con algo hecho lleva una franja por tipo (de arriba abajo: km, gym, misiones).
     const vivida = (indice) => indice < c.vividas && indice < c.filas * S;
-    const dMeta = [...marcas.meta].filter(vivida).map((i) => cuadrito(i)).join("");
-    const dCarrera = [...marcas.carrera].filter(vivida).map((i) => cuadrito(i, marcas.meta.has(i) ? 1 : 0)).join("");
+    const trazos = { km: "", gym: "", misiones: "" };
+    const indices = new Set([...marcas.km, ...marcas.gym, ...marcas.misiones]);
+    for (const indice of [...indices].filter(vivida)) {
+        const presentes = TIPOS_MARCA.filter((t) => marcas[t.clave].has(indice));
+        const alturas = ALTURAS_DE_FRANJA[presentes.length];
+        const x = MARGEN + (indice % S) * CASILLA;
+        let y = Math.floor(indice / S) * CASILLA;
+        presentes.forEach((t, i) => {
+            trazos[t.clave] += `M${x} ${y}h${CASILLA - 1}v${alturas[i]}h${-(CASILLA - 1)}z`;
+            y += alturas[i];
+        });
+    }
     const patron = (id, clase, etapa) => `<pattern id="${id}-${etapa}" x="${MARGEN}" y="0" width="${CASILLA}" height="${CASILLA}" patternUnits="userSpaceOnUse"><rect class="${clase} e-${etapa}" width="${CASILLA - 1}" height="${CASILLA - 1}"/></pattern>`;
     return `
         <svg class="mm-rejilla" viewBox="0 0 ${ancho} ${alto}" shape-rendering="crispEdges" role="img" data-accion="memento-semana" data-filas="${c.filas}"
              aria-label="Tu vida en semanas: ${miles(c.vividas)} vividas y ${miles(c.restantes)} por vivir. Toca una casilla para ver sus fechas.">
             <defs>${memento.ETAPAS.map((e) => patron("mm-vive", "mm-vivida", e.id) + patron("mm-queda", "mm-queda", e.id)).join("")}</defs>
             ${filas.join("")}
-            ${dMeta ? `<path class="mm-meta" d="${dMeta}"/>` : ""}${dCarrera ? `<path class="mm-carrera" d="${dCarrera}"/>` : ""}
+            ${TIPOS_MARCA.map((t) => (trazos[t.clave] ? `<path class="${t.clase}" d="${trazos[t.clave]}"/>` : "")).join("")}
             <rect class="mm-elegida" x="-20" y="-20" width="${CASILLA + 1}" height="${CASILLA + 1}"/>
         </svg>`;
 }
@@ -76,14 +92,16 @@ const fechaLarga = (texto, conMes = true, conAnio = true) => {
     const [anio, mes, dia] = texto.split("-").map(Number);
     return `${dia}${conMes ? ` de ${MESES_CORTOS[mes - 1]}` : ""}${conAnio ? ` de ${anio}` : ""}`;
 };
-export function textoDeSemana(nacimiento, indice, c, marcas = { carrera: new Set(), meta: new Set() }) {
+// ["a", "b", "c"] → «a, b y c»
+const unirConY = (lista) => (lista.length < 2 ? lista.join("") : `${lista.slice(0, -1).join(", ")} y ${lista.at(-1)}`);
+export function textoDeSemana(nacimiento, indice, c, marcas = sinMarcas()) {
     const s = memento.semanaDeIndice(nacimiento, indice);
     const mismoAnio = s.desde.slice(0, 4) === s.hasta.slice(0, 4);
     const mismoMes = mismoAnio && s.desde.slice(5, 7) === s.hasta.slice(5, 7);
     const rango = `del ${fechaLarga(s.desde, !mismoMes, !mismoAnio)} al ${fechaLarga(s.hasta)}`;
     const que = indice === c.vividas ? "esta semana"
         : indice > c.vividas ? "por vivir"
-        : [marcas.meta.has(indice) ? "meta cumplida" : "", marcas.carrera.has(indice) ? "corriste" : ""].filter(Boolean).join(" y ");
+        : unirConY(TIPOS_MARCA.filter((t) => marcas[t.clave].has(indice)).map((t) => t.texto));
     return `Semana ${miles(s.numero)} · ${s.fila} años · ${rango}${que ? ` · ${que}` : ""}`;
 }
 
@@ -122,7 +140,7 @@ function vistaInicio(estado, ctx) {
 
 function vistaCalendario(estado, ctx, c) {
     const frase = memento.fraseDelDia(ctx.hoy, c.edad);   // (v148) la frase le habla a tu etapa de la vida
-    const marcas = memento.semanasMarcadas(estado);   // (v147) solo lee: las semanas en que corriste o cumpliste una meta
+    const marcas = memento.semanasMarcadas(estado);   // (v147, v152) solo lee: las semanas en que corriste, fuiste al gym o hiciste misiones
     const dato = (icono, titulo, valor, pista = "") => `
         <div class="mm-dato"><small>${icono} ${titulo}</small><b>${valor}</b>${pista ? `<em>${pista}</em>` : ""}</div>`;
     return `
@@ -144,11 +162,10 @@ function vistaCalendario(estado, ctx, c) {
             </ul>
             <ul class="mm-leyenda" aria-label="Leyenda">
                 <li><i class="mm-muestra ahora"></i> Esta semana</li>
-                <li><i class="mm-muestra carrera"></i> Corriste</li>
-                <li><i class="mm-muestra meta"></i> Meta cumplida</li>
+                ${TIPOS_MARCA.map((t) => `<li><i class="mm-muestra ${t.clave}"></i> ${t.nombre}</li>`).join("")}
                 <li><i class="mm-muestra queda"></i> Por vivir</li>
             </ul>
-            <p class="mini texto-suave">Cada fila es un año de tu vida (empieza en tu cumpleaños); cada casilla, una semana. Meta cumplida: tus km de running, tus días de gym o misiones los 7 días.${c.superada ? " Ya pasaste los años que contabas: ¡cada semana de más es un regalo!" : ""}</p>
+            <p class="mini texto-suave">Cada fila es un año de tu vida (empieza en tu cumpleaños); cada casilla, una semana. Azul: corriste o cumpliste tu meta de km · morado: cumpliste tu meta de días de gym · verde: hiciste misiones los 7 días. Si una semana tuvo varias cosas, la casilla se parte en franjas.${c.superada ? " Ya pasaste los años que contabas: ¡cada semana de más es un regalo!" : ""}</p>
         </section>
 
         <section class="mm-datos">

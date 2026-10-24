@@ -147,16 +147,18 @@ export function semanaDeIndice(nacimiento, indice) {
 }
 
 // ===== (v147) Las semanas que marcaste con lo que hiciste =====
-// Solo LEE la partida (no cambia nada). Devuelve { carrera, meta }: dos conjuntos de casillas (como semanaDeFecha).
-//   carrera: esa semana corriste al menos una vez (estado.running.carreras);
-//   meta: esa semana cumpliste una meta semanal: tus km de running (running.semanasCobradas), tus días de gym
-//         (gym.metaSemanal) o hiciste misiones los 7 días (como los 7 días seguidos que dan un escudo).
+// Solo LEE la partida (no cambia nada). (v152) Devuelve { km, gym, misiones }: tres conjuntos de casillas (como semanaDeFecha),
+// uno por tipo de esfuerzo, para pintarlos de colores distintos:
+//   km: esa semana corriste al menos una vez (estado.running.carreras) o cumpliste la meta de km (running.semanasCobradas);
+//   gym: esa semana cumpliste tu meta de días de gym (gym.metaSemanal);
+//   misiones: esa semana hiciste misiones los 7 días (como los 7 días seguidos que dan un escudo).
 // Las metas van por semanas de lunes a domingo; se marca la casilla del jueves (el medio de esa semana).
 export function semanasMarcadas(estado) {
-    const carrera = new Set();
-    const meta = new Set();
+    const km = new Set();
+    const gym = new Set();
+    const misiones = new Set();
     const nacimiento = estado?.memento?.nacimiento;
-    if (!nacimiento) return { carrera, meta };
+    if (!nacimiento) return { km, gym, misiones };
     const marcar = (conjunto, fecha) => {
         const indice = semanaDeFecha(nacimiento, fecha);
         if (indice !== null) conjunto.add(indice);
@@ -171,12 +173,12 @@ export function semanasMarcadas(estado) {
         }
         return cuenta;
     };
-    for (const c of estado.running?.carreras || []) marcar(carrera, c.fecha);
-    for (const lunes of estado.running?.semanasCobradas || []) if (esFechaValida(lunes)) marcar(meta, jueves(lunes));
+    for (const c of estado.running?.carreras || []) marcar(km, c.fecha);
+    for (const lunes of estado.running?.semanasCobradas || []) if (esFechaValida(lunes)) marcar(km, jueves(lunes));
     const metaGym = estado.gym?.metaSemanal || 0;
     if (metaGym > 0) {
-        for (const [lunes, dias] of diasPorSemana((estado.gym?.sesiones || []).map((s) => s.fecha))) if (dias >= metaGym) marcar(meta, jueves(lunes));
+        for (const [lunes, dias] of diasPorSemana((estado.gym?.sesiones || []).map((s) => s.fecha))) if (dias >= metaGym) marcar(gym, jueves(lunes));
     }
-    for (const [lunes, dias] of diasPorSemana((estado.completadas || []).map((c) => c.fecha))) if (dias >= 7) marcar(meta, jueves(lunes));
-    return { carrera, meta };
+    for (const [lunes, dias] of diasPorSemana((estado.completadas || []).map((c) => c.fecha))) if (dias >= 7) marcar(misiones, jueves(lunes));
+    return { km, gym, misiones };
 }

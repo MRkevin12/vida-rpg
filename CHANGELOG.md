@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v153 — Marcas de colores en Memento
+- `memento.js`: `semanasMarcadas` devuelve `{ km, gym, misiones }` (antes `{ carrera, meta }`). Mismas reglas: km = carreras y metas de km; gym = meta de días; misiones = 7 días.
+- `vistas-memento.js`: `TIPOS_MARCA`; cada tipo tiene su trazo (`mm-km`, `mm-gym`, `mm-misiones`). Si una semana tiene varios, la casilla se parte en franjas (2 tipos: 3 y 2 puntos; 3 tipos: 2, 1 y 2). Leyenda y texto de la casilla actualizados.
+- `estilos.css`: colores azul, morado y verde.
+- Datos: sin cambios (`version` sigue en 36).
+- Pruebas: 415.
+
 ## v152 — Luz del sol real en la carrera y criatura en «Ver todo»
 - `running.js`: `horasDelSol(lat, lon, ms)` (salida y puesta del sol, fórmula NOAA; `null` en los polos) y `horaDeLuz(hora, sol)` (traduce la hora real a amanecer, día, atardecer o noche).
 - `vistas-running.js`: `luzDelDia(ms, traza)` usa el primer punto del GPS; sin GPS, las horas fijas de siempre. Lo usan el mapa en vivo, el historial y el resumen.

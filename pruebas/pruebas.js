@@ -3797,12 +3797,21 @@ prueba("Memento mori (v147): etapas, semanas marcadas (sin cambiar nada) y las f
     const antes = JSON.stringify(estado);
     const marcas = memento.semanasMarcadas(estado);
     igual(JSON.stringify(estado), antes, "no cambia la partida");
-    igual([...marcas.carrera], [memento.semanaDeFecha(nac, "2026-03-18")], "la semana en que corriste");
-    igual([...marcas.meta].sort((a, b) => a - b), ["2026-04-02", "2026-04-09", "2026-04-16"].map((f) => memento.semanaDeFecha(nac, f)), "km, gym y misiones (se marca el jueves de cada semana)");
+    const semanas = (fechas) => fechas.map((f) => memento.semanaDeFecha(nac, f));
+    igual([...marcas.km].sort((a, b) => a - b), semanas(["2026-03-18", "2026-04-02"]), "km: la semana en que corriste y la de la meta de km (se marca el jueves)");
+    igual([...marcas.gym], semanas(["2026-04-09"]), "gym: la semana con la meta de días cumplida");
+    igual([...marcas.misiones], semanas(["2026-04-16"]), "misiones: la semana con misiones los 7 días");
     // La rejilla: las marcas, dos patrones por etapa y el texto de la casilla que tocas.
     const c = memento.calcular(estado.memento, "2026-05-01");
     const html = vistasMemento.rejillaMemento(c, marcas);
-    cierto(html.includes('class="mm-carrera"') && html.includes('class="mm-meta"') && html.includes("mm-elegida"), "la rejilla las marca");
+    cierto(html.includes('class="mm-km"') && html.includes('class="mm-gym"') && html.includes('class="mm-misiones"') && html.includes("mm-elegida"), "la rejilla marca cada tipo con su color");
+    // (v152) Si en una semana pasó más de una cosa, la casilla se parte en franjas (2 tipos: 3 y 2 de alto; 3 tipos: 2, 1 y 2).
+    const i = memento.semanaDeFecha(nac, "2026-03-18");
+    const dos = vistasMemento.rejillaMemento(c, { km: new Set([i]), gym: new Set([i]), misiones: new Set() });
+    cierto(/class="mm-km" d="M\d+ \d+h5v3h-5z"/.test(dos) && /class="mm-gym" d="M\d+ \d+h5v2h-5z"/.test(dos) && !dos.includes("mm-misiones"), "dos tipos: franjas de 3 y 2");
+    const tres = vistasMemento.rejillaMemento(c, { km: new Set([i]), gym: new Set([i]), misiones: new Set([i]) });
+    cierto(/mm-km" d="M\d+ \d+h5v2h/.test(tres) && /mm-gym" d="M\d+ \d+h5v1h/.test(tres) && /mm-misiones" d="M\d+ \d+h5v2h/.test(tres), "tres tipos: franjas de 2, 1 y 2");
+    igual(vistasMemento.textoDeSemana(nac, i, c, { km: new Set([i]), gym: new Set([i]), misiones: new Set([i]) }).split(" · ")[3], "corriste, meta de gym cumplida y misiones los 7 días");
     igual((html.match(/<pattern /g) || []).length, 10, "dos patrones por etapa (siguen siendo pocos elementos)");
     cierto(!new DOMParser().parseFromString(html.trim(), "image/svg+xml").querySelector("parsererror"), "la rejilla es una imagen válida");
     igual(vistasMemento.textoDeSemana(nac, memento.semanaDeFecha(nac, "2026-03-18"), c, marcas), "Semana 1.353 · 26 años · del 15 al 21 de mar de 2026 · corriste");

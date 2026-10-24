@@ -13490,9 +13490,11 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .mm-queda.e-madurez { fill: #52302f; }
 .mm-queda.e-vejez { fill: #452c48; }
 
-/* Las semanas en que corriste (celeste) o cumpliste una meta (verde), y la casilla que tocaste (marco blanco). */
-.mm-carrera { fill: #38bdf8; }
-.mm-meta { fill: #4ade80; }
+/* (v152) Las semanas en que corriste (celeste), cumpliste tu meta de gym (morado) o hiciste misiones los 7 días (verde),
+   y la casilla que tocaste (marco blanco). */
+.mm-km { fill: #38bdf8; }
+.mm-gym { fill: #c084fc; }
+.mm-misiones { fill: #4ade80; }
 .mm-elegida { fill: none; stroke: #fff; stroke-width: 1.4; pointer-events: none; }
 .mm-rejilla { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
@@ -13533,8 +13535,9 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .mm-muestra.vivida { background: #fbbf24; }
 .mm-muestra.queda { background: #2b2748; border: 1px solid #4a4570; }
 .mm-muestra.ahora { background: #f87171; border: 1px solid #fff; }
-.mm-muestra.carrera { background: #38bdf8; }
-.mm-muestra.meta { background: #4ade80; }
+.mm-muestra.km { background: #38bdf8; }
+.mm-muestra.gym { background: #c084fc; }
+.mm-muestra.misiones { background: #4ade80; }
 
 .mm-datos {
     display: grid;
