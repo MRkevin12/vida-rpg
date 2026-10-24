@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v154 — Con «Mal», sin gym
+- `vistas-hoy.js` › `cuadriculaDeAreas`: con el ánimo «Mal» (modo esencial) ya no se dibuja la tarjeta de gym.
+- Pruebas: 416 (1 nueva).
+
 ## v153 — Marcas de colores en Memento
 - `memento.js`: `semanasMarcadas` devuelve `{ km, gym, misiones }` (antes `{ carrera, meta }`). Mismas reglas: km = carreras y metas de km; gym = meta de días; misiones = 7 días.
 - `vistas-memento.js`: `TIPOS_MARCA`; cada tipo tiene su trazo (`mm-km`, `mm-gym`, `mm-misiones`). Si una semana tiene varios, la casilla se parte en franjas (2 tipos: 3 y 2 puntos; 3 tipos: 2, 1 y 2). Leyenda y texto de la casilla actualizados.

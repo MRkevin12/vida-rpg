@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 153;
+export const VERSION_APP = 154;
 
 export const NOVEDADES = [
+    {
+        version: 154,
+        titulo: "Con «Mal», sin gym",
+        cambios: [
+            "😔 Si eliges «Me siento mal», Hoy muestra solo lo esencial: la tarjeta de gym ya no sale.",
+        ],
+    },
     {
         version: 153,
         titulo: "Marcas de colores en Memento",

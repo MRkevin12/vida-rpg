@@ -860,7 +860,7 @@ function rivalesDeHoy(estado, ctx) {
 // (v143) Gym, Running, Finanzas y Memento mori: en una cuadrícula de 2 columnas (antes iban una debajo de otra y se veía amontonado).
 function cuadriculaDeAreas(estado, ctx, { esAyer, esencial }) {
     const tarjetas = [
-        esAyer ? "" : tarjetaGymHoy(estado, ctx),
+        esAyer || esencial ? "" : tarjetaGymHoy(estado, ctx),   // (v154) con «Mal» solo lo esencial: sin gym
         esAyer || esencial ? "" : tarjetaRunningHoy(estado, ctx),
         esAyer || esencial ? "" : tarjetaFinanzasHoy(estado, ctx),
         esAyer || esencial ? "" : tarjetaMementoHoy(estado, ctx),

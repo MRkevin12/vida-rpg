@@ -8269,6 +8269,22 @@ prueba("Dificultad adaptable: aplicar cambia la dificultad; lo ya hecho guarda l
     debeFallar(() => acciones.aplicarDificultad(estado, { misionId: dificil.id }), "ya no se puede aplicar");
 });
 
+prueba("Ánimo «Mal» (v154): en Hoy solo sale lo esencial, sin la tarjeta de gym", () => {
+    const estado = partidaNueva();
+    estado.gym.sesiones.push(gym.sesionRapida("hombros", hoy()));
+    const pintar = () => {
+        const info = juego.resumen(estado, hoy());
+        return vistas.pantallaHoy(estado, { hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(estado, hoy(), info),
+            vida: vida.calcularVida(estado, hoy()), maestro: maestro.contexto(estado, hoy(), Date.now()), evento: null, rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {} });
+    };
+    estado.ajustes.esencial = false;
+    cierto(pintar().includes("gym-hoy"), "con ánimo normal o bien, la tarjeta de gym sale");
+    estado.ajustes.esencial = true;
+    estado.ajustes.animo = "mal";
+    const mal = pintar();
+    cierto(!mal.includes("gym-hoy") && !mal.includes("Tu semana") && mal.includes("esencial-diarias"), "con «Mal», sin gym: solo las misiones");
+});
+
 prueba("Secretos: se descubren solos, una sola vez, y pagan su premio", () => {
     const estado = partidaNueva();
     const mision = crearMision(estado);
