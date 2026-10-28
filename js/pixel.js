@@ -143,7 +143,9 @@ export const yaPixelado = (clave) => guardados.get(clave) || null;
 // opciones: { clave (para guardar el resultado), niveles (colores por canal), contorno,
 //             sombra (todo en sombras), espejo (dado vuelta, como en un espejo),
 //             puntos (v93: [{ x, y, color: [r, g, b] }, …] que se pintan al final, encima de todo;
-//                     así se "estampan" los ojos, que al achicar el dibujo se perderían) }
+//                     así se "estampan" los ojos, que al achicar el dibujo se perderían),
+//             margen (v158: los puntos libres en cada borde; con contorno es 1. Con 0, cada unidad del dibujo
+//                     cae justo en un punto: así dos imágenes del mismo tamaño quedan alineadas) }
 // Devuelve la dirección de la imagen (se usa en <img src="…">), o null si no se pudo.
 export async function pixelar(svg, ancho, alto, opciones = {}) {
     const { clave = null, contorno = true, espejo = false, puntos = [] } = opciones;
@@ -156,7 +158,7 @@ export async function pixelar(svg, ancho, alto, opciones = {}) {
     lienzo.height = alto;
     const g = lienzo.getContext("2d", { willReadFrequently: true });
     // Con contorno, el dibujo deja un punto libre en cada borde (para que la línea quepa).
-    const margen = contorno ? 1 : 0;
+    const margen = opciones.margen ?? (contorno ? 1 : 0);
     if (espejo) {
         g.translate(ancho, 0);   // dar vuelta el lienzo: lo de la izquierda queda a la derecha
         g.scale(-1, 1);

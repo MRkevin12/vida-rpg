@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 157;
+export const VERSION_APP = 158;
 
 export const NOVEDADES = [
+    {
+        version: 158,
+        titulo: "El gym en foco, a pantalla completa",
+        cambios: [
+            "🏋️ Mientras entrenas en el modo foco, el gym ocupa toda la pantalla: sin la barra de arriba ni las pestañas. Sales con «‹» (el entrenamiento sigue) o con «📋 Lista».",
+            "🎮 Nuevo diseño de juego: las series en cuadritos arriba, un escenario grande en el medio, contadores de peso y repeticiones como los de una consola y el botón dorado a la altura del pulgar.",
+            "🧍 Las figuras de los ejercicios ahora son cuerpos de verdad en pixel art, con tu piel, tu pelo y más músculo según tu nivel de gym. Cada repetición se anima cuadro a cuadro: se detiene abajo, sube, aprieta arriba y baja despacio.",
+            "🏟️ Cada ejercicio tiene su máquina: banco con barra y discos, polea con la torre de pesas que sube, jalón, asiento, escalón y colchoneta.",
+            "⏳ El descanso es un reloj grande en el centro, con Aurelio abajo; al terminar todo, tu héroe saca bíceps.",
+        ],
+    },
     {
         version: 157,
         titulo: "Aviso de actualización más confiable",

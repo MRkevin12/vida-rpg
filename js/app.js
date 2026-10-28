@@ -459,7 +459,9 @@ export function ejecutar(accion, efectos = {}) {
 export function refrescar(efectos = {}) {
     actualizarCabecera(efectos.subioNivel);
     // El CSS necesita saber cuánto mide la cabecera (para pegar cosas justo debajo).
-    document.documentElement.style.setProperty("--alto-cabecera", `${$(".cabecera").offsetHeight}px`);
+    // (v158) Si está escondida (gym a pantalla completa, carrera en concentración) mide 0: se deja la medida de antes.
+    const altoCabecera = $(".cabecera").offsetHeight;
+    if (altoCabecera) document.documentElement.style.setProperty("--alto-cabecera", `${altoCabecera}px`);
     dibujarPantalla(efectos);
 }
 
@@ -560,6 +562,8 @@ export function dibujarPantalla(efectos = {}) {
     // (v120) Modo concentración: mientras corres, la pantalla de Running se queda solo con lo importante.
     document.body.classList.toggle("run-concentracion", pantallaActual === "running" && Boolean(estado.running.encurso) && estado.running.concentracion !== false);
     document.body.classList.toggle("run-terminando", runTerminando && Boolean(estado.running.encurso));   // (v129)
+    // (v158) El gym en modo foco va a pantalla completa: sin cabecera ni pestañas (se sale con «‹» o con «📋 Lista»).
+    document.body.classList.toggle("gym-pantalla-completa", pantallaActual === "gym" && vistasGym.pantallaCompletaGym(estado));
     const contenedor = $(`#pantalla-${pantallaActual}`);
     contenedor.innerHTML = DIBUJAR[pantallaActual](estado, contextoActual(efectos));
 

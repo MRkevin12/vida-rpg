@@ -14,6 +14,7 @@ import { pixelar, yaPixelado } from "./pixel.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { dibujarSala, SALA } from "./dibujo-monstruos.js";   // (v108) las salas de la Torre, para las ilustraciones
 import { rutaPintura } from "./pinturas.js";
+import * as ejercicios from "./dibujo-ejercicios.js";   // (v158) las figuras del gym
 
 // Los encuadres de dibujarAvatar (su viewBox: x, y, ancho, alto), ver dibujo.js.
 const ENCUADRES = {
@@ -66,24 +67,34 @@ function huella(texto) {
     return h.toString(36);
 }
 
-// Un <img> en pixel art. crear() hace la imagen (devuelve una promesa con su dirección).
+// Pide una imagen en pixel art: si ya está hecha, devuelve su dirección; si no, la empieza a hacer (crear() devuelve
+// una promesa con su dirección) y devuelve null. Cuando esté lista, la pone en todo lo que tenga data-pixel="clave":
+// un <img> (en src) o, desde la v158, un <image> de un SVG (en href).
 const VACIA = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 const enCamino = new Map();
-function imagen(clave, crear, { clase = "", ancho, alto, alt = "" }) {
+function pedirImagen(clave, crear) {
     const lista = yaPixelado(clave);
-    const medidas = `width="${ancho}" height="${alto}"`;
-    if (lista) return `<img class="pixel ${clase}" src="${lista}" ${medidas} alt="${alt}" draggable="false">`;
+    if (lista) return lista;
     if (!enCamino.has(clave)) {
         enCamino.set(clave, crear().then((direccion) => {
             enCamino.delete(clave);
             if (!direccion) return;
-            for (const img of document.querySelectorAll(`img[data-pixel="${clave}"]`)) {
-                img.src = direccion;
-                img.removeAttribute("data-pixel");
-                img.classList.remove("cargando");
+            for (const elemento of document.querySelectorAll(`[data-pixel="${clave}"]`)) {
+                if (elemento.tagName.toLowerCase() === "image") elemento.setAttribute("href", direccion);
+                else elemento.src = direccion;
+                elemento.removeAttribute("data-pixel");
+                elemento.classList.remove("cargando");
             }
         }));
     }
+    return null;
+}
+
+// Un <img> en pixel art.
+function imagen(clave, crear, { clase = "", ancho, alto, alt = "" }) {
+    const lista = pedirImagen(clave, crear);
+    const medidas = `width="${ancho}" height="${alto}"`;
+    if (lista) return `<img class="pixel ${clase}" src="${lista}" ${medidas} alt="${alt}" draggable="false">`;
     return `<img class="pixel ${clase} cargando" data-pixel="${clave}" src="${VACIA}" ${medidas} alt="${alt}" draggable="false">`;
 }
 
@@ -189,6 +200,47 @@ export function ilustracion(fondo, { actores = [], titulo = "", clase = "" } = {
     }
     const personajes = actores.filter(({ d }) => d).map(({ d, x = 50 }) => `<div class="ilustracion-actor" style="left: ${x}%">${figuraPixel(d)}</div>`).join("");   // sin héroe (d vacío), solo el fondo
     return `<figure class="ilustracion ${clase}" aria-hidden="true">${imagenFondo}${personajes}${titulo ? `<figcaption>${titulo}</figcaption>` : ""}</figure>`;
+}
+
+// ===== (v158) La escena de un ejercicio del gym =====
+// Dos imágenes en pixel art, una sobre otra, dentro de un SVG:
+//   1. el gimnasio de fondo (con las máquinas que no se mueven), más grande que el cuadro: si la pantalla es más ancha
+//      o más alta que el dibujo, se sigue viendo la sala;
+//   2. la TIRA con los 20 cuadros de la repetición, uno al lado del otro. Una ventana del tamaño de un cuadro la deja ver
+//      de a uno, y <animate> la corre de cuadro en cuadro (calcMode="discrete": salta, no se desliza), como un dibujo animado.
+// preserveAspectRatio="xMidYMax meet": el cuadro entero cabe, centrado y apoyado abajo (el suelo queda abajo).
+// animar = false: queda quieto en el cuadro `cuadro` (0 = la posición de inicio).
+const clavesEjercicio = (movimiento, apariencia, fisico) => {
+    const quien = huella(JSON.stringify([apariencia.piel, apariencia.pelo, apariencia.peinado, apariencia.barba, apariencia.cuerpo]));
+    return { fondo: `ej-fondo-${ejercicios.fondoDe(movimiento)}`, tira: `ej-tira-${movimiento}-${fisico}-${quien}` };
+};
+
+// Empieza a hacer las imágenes de un ejercicio (sin dibujarlo): así, cuando llegues a él, ya están listas.
+export function prepararEscena(movimiento, apariencia = {}, { fisico = 0 } = {}) {
+    const claves = clavesEjercicio(movimiento, apariencia, fisico);
+    const fondo = pedirImagen(claves.fondo, () => pixelar(ejercicios.dibujarFondoEjercicio(movimiento), ejercicios.FONDO.ancho, ejercicios.FONDO.alto,
+        { clave: claves.fondo, contorno: false, margen: 0 }));
+    const tira = pedirImagen(claves.tira, () => pixelar(ejercicios.tiraDeMovimiento(movimiento, apariencia, { fisico }).svg,
+        ejercicios.ANCHO * ejercicios.CUADROS.length, ejercicios.ALTO, { clave: claves.tira, margen: 0 }));
+    return { claves, fondo, tira };
+}
+
+export function escenaEjercicio(movimiento, apariencia = {}, { animar = true, fisico = 0, cuadro = 0, clase = "" } = {}) {
+    const { ANCHO, ALTO, FONDO, CUADROS } = ejercicios;
+    const { claves, fondo, tira } = prepararEscena(movimiento, apariencia, { fisico });
+    // Mientras la imagen no está hecha, el <image> queda vacío y con data-pixel (pedirImagen le pone la imagen después).
+    const origen = (clave, direccion) => (direccion ? `href="${direccion}"` : `href="${VACIA}" data-pixel="${clave}"`);
+    const { valores, tiempos, duracion } = ejercicios.animacionDeTira();
+    const animacion = animar
+        ? `<animate attributeName="x" values="${valores.join(";")}" keyTimes="${tiempos.join(";")}" dur="${duracion}s" calcMode="discrete" repeatCount="indefinite"/>`
+        : "";
+    // El viewBox es la parte del cuadro que importa (encuadreDe): en una pantalla alta y angosta, la figura sale más grande.
+    return `<svg class="escena-ejercicio ${clase}" viewBox="${ejercicios.encuadreDe(movimiento).join(" ")}" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+        <image ${origen(claves.fondo, fondo)} x="${FONDO.x}" y="${FONDO.y}" width="${FONDO.ancho}" height="${FONDO.alto}" preserveAspectRatio="none" style="image-rendering: pixelated"/>
+        <svg width="${ANCHO}" height="${ALTO}" viewBox="0 0 ${ANCHO} ${ALTO}">
+            <image ${origen(claves.tira, tira)} x="${-cuadro * ANCHO}" y="0" width="${ANCHO * CUADROS.length}" height="${ALTO}" preserveAspectRatio="none" style="image-rendering: pixelated">${animacion}</image>
+        </svg>
+    </svg>`;
 }
 
 // Para tenerlas listas antes de abrir una pantalla (al arrancar la app): así salen al instante.

@@ -70,7 +70,8 @@ import * as ataques from "../js/ataques.js";
 import * as fragua from "../js/fragua.js";
 import * as libroOrrin from "../js/libro-orrin.js";
 import * as libros from "../js/libros.js";
-import { dibujarMovimiento, LISTA_DE_MOVIMIENTOS } from "../js/dibujo-ejercicios.js";
+import * as ejercicios from "../js/dibujo-ejercicios.js";
+const { LISTA_DE_MOVIMIENTOS } = ejercicios;
 import * as gymAurelio from "../js/gym-aurelio.js";
 import { esqueleto } from "../js/dibujo-cuerpo.js";
 import * as vistasGym from "../js/vistas-gym.js";
@@ -7182,34 +7183,98 @@ prueba("Gym (entrenamiento): marcar una serie trae la frase de Aurelio según el
     cierto(!vistasGym.pantallaGym(estado, ctx).includes("gym-resumen"), "sin resumen no se muestra");
 });
 
-prueba("Gym (animaciones): cada movimiento tiene su figura, con animación o quieta, y todos los ejercicios tienen la suya", () => {
+prueba("Gym (animaciones, v158): cada movimiento tiene su figura en pixel art, cuadro a cuadro, y todos los ejercicios tienen la suya", () => {
     igual(LISTA_DE_MOVIMIENTOS.length, 13);
     const ap = { piel: "morena", pelo: "negro" };
-    for (const m of LISTA_DE_MOVIMIENTOS) {
-        const vivo = dibujarMovimiento(m, ap);
-        const quieto = dibujarMovimiento(m, ap, { animar: false });
-        cierto(vivo.startsWith("<svg") && vivo.endsWith("</svg>") && !/undefined|NaN/.test(vivo), `${m}: dibujo sin huecos`);
-        cierto(vivo.includes("<animate") && vivo.includes("animateTransform"), `${m}: se mueve`);
-        cierto(!quieto.includes("<animate") && !/NaN|undefined/.test(quieto), `${m}: quieto no tiene animaciones`);
-        // Las dos poses (arriba y abajo) tienen los mismos puntos: si no, la animación se rompe.
-        for (const [, valores] of vivo.matchAll(/attributeName="d" values="([^"]+)"/g)) {
-            const [p1, p2, p3] = valores.split(";");
-            cierto(p1.split(" L").length === p2.split(" L").length && p1 === p3, `${m}: las poses de una línea tienen los mismos puntos`);
-        }
+    const sinHuecos = (svg) => !/undefined|NaN|Infinity/.test(svg);
+    for (const m of [...LISTA_DE_MOVIMIENTOS, "victoria"]) {
+        // Un cuadro al inicio, a la mitad y al final del movimiento.
+        for (const u of [0, 0.5, 1]) cierto(sinHuecos(ejercicios.dibujarCuadro(m, ap, u, { fisico: 3 })), `${m}: el cuadro u=${u} se dibuja sin huecos`);
+        // La tira: los 20 cuadros, uno al lado del otro.
+        const tira = ejercicios.tiraDeMovimiento(m, ap);
+        cierto(tira.svg.startsWith("<svg") && tira.svg.endsWith("</svg>") && sinHuecos(tira.svg), `${m}: la tira se dibuja sin huecos`);
+        igual((tira.svg.match(/<g transform="translate\(/g) || []).length, ejercicios.CUADROS.length, `${m}: un grupo por cuadro`);
+        cierto(tira.svg.includes(`viewBox="0 0 ${ejercicios.ANCHO * ejercicios.CUADROS.length} ${ejercicios.ALTO}"`), `${m}: la tira mide 20 cuadros de ancho`);
+        // El fondo (la sala y sus máquinas) y el encuadre.
+        cierto(sinHuecos(ejercicios.dibujarFondoEjercicio(m)), `${m}: el fondo se dibuja`);
+        const [x, y, ancho, alto] = ejercicios.encuadreDe(m);
+        cierto(x >= 0 && x + ancho <= ejercicios.ANCHO && y < 0 && alto > ejercicios.ALTO, `${m}: el encuadre cae dentro del cuadro`);
     }
+    // Todos los ejercicios (los de la rutina y los extra) tienen un movimiento con figura.
     for (const x of [...gym.RUTINA.flatMap((r) => r.ejercicios), ...gym.EXTRAS]) {
         cierto(LISTA_DE_MOVIMIENTOS.includes(gym.movimientoDe(x.id)), `${x.id}: su movimiento (${gym.movimientoDe(x.id)}) tiene figura`);
+        cierto(sinHuecos(ejercicios.dibujarCuadro(gym.movimientoDe(x.id), ap, 0.5)), `${x.id}: su figura se dibuja`);
     }
-    cierto(dibujarMovimiento("curl", ap) !== dibujarMovimiento("sentadilla", ap), "cada movimiento se dibuja distinto");
-    cierto(dibujarMovimiento("curl", { piel: "oscura" }).includes("#5e3b27"), "usa tu color de piel");
-    // En el entrenamiento, solo el ejercicio de ahora se mueve.
+    cierto(ejercicios.dibujarCuadro("curl", ap, 1) !== ejercicios.dibujarCuadro("sentadilla", ap, 1), "cada movimiento se dibuja distinto");
+    cierto(ejercicios.dibujarCuadro("curl", ap, 0) !== ejercicios.dibujarCuadro("curl", ap, 1), "el cuerpo se mueve entre el inicio y el final");
+    cierto(ejercicios.dibujarCuadro("curl", { piel: "oscura" }, 0.5).includes("#5e3b27"), "usa tu color de piel");
+    cierto(ejercicios.dibujarCuadro("curl", { pelo: "rubio" }, 0.5).includes(avatar.APARIENCIA.pelo.rubio.color), "y tu color de pelo");
+    cierto(ejercicios.musculoDe(5) > ejercicios.musculoDe(0) && ejercicios.musculoDe(99) === ejercicios.musculoDe(5), "más nivel de gym, más músculo (con tope)");
+});
+
+prueba("Gym (v158): los huesos no se estiran: el codo calculado al revés respeta el largo de cada hueso", () => {
+    const largo = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+    for (const [a, b] of [[[60, 36], [70, 50]], [[45, 75], [46, 49.5]], [[50, 57], [39, 32]], [[0, 0], [100, 0]]]) {
+        for (const lado of [1, -1]) {
+            const codo = ejercicios.articulacion(a, b, 14, 12, lado);
+            cierto(Math.abs(largo(a, codo) - 14) < 0.05, `el brazo mide 14 (${a} → ${b}, lado ${lado})`);
+            // Si la mano llega, el antebrazo también mide 12; si no llega (muy lejos), el brazo queda estirado hacia ella.
+            if (largo(a, b) < 26) cierto(Math.abs(largo(codo, b) - 12) < 0.05, "el antebrazo mide 12");
+        }
+    }
+    const izquierda = ejercicios.articulacion([0, 0], [20, 0], 14, 12, 1);
+    const derecha = ejercicios.articulacion([0, 0], [20, 0], 14, 12, -1);
+    cierto(izquierda[1] * derecha[1] < 0, "lado elige hacia dónde se dobla");
+});
+
+prueba("Gym (v158): la animación cuadro a cuadro: quieto abajo, sube, aprieta arriba y baja más despacio", () => {
+    const c = ejercicios.CUADROS;
+    igual(c.length, 20, "20 cuadros");
+    igual(c[0].u, 0, "empieza abajo");
+    cierto(c.some((x) => x.u === 1), "llega arriba");
+    cierto(c.every((x) => x.u >= 0 && x.u <= 1 && x.dura > 0), "cada cuadro tiene su u (0 a 1) y su duración");
+    const subida = c.slice(1, 9).reduce((s, x) => s + x.dura, 0) - c[8].dura;
+    const bajada = c.slice(9).reduce((s, x) => s + x.dura, 0);
+    cierto(bajada > subida, "baja más despacio de lo que sube");
+    const { valores, tiempos, duracion } = ejercicios.animacionDeTira();
+    igual(valores.length, c.length);
+    igual(valores[1], -ejercicios.ANCHO, "cada cuadro está un cuadro más a la izquierda");
+    igual(tiempos[0], 0);
+    cierto(tiempos.every((t, i) => i === 0 || (t > tiempos[i - 1] && t < 1)), "los tiempos van subiendo, de 0 a menos de 1");
+    cierto(duracion > 2 && duracion < 4, "una repetición dura entre 2 y 4 segundos");
+    // La escena (retratos.js): con animación salta de cuadro en cuadro; quieta, muestra el cuadro pedido.
+    const vivo = retratos.escenaEjercicio("curl", { piel: "media" }, { animar: true });
+    cierto(vivo.includes('<animate attributeName="x"') && vivo.includes('calcMode="discrete"') && vivo.includes("image-rendering: pixelated"), "se anima cuadro a cuadro, en pixel art");
+    const quieto = retratos.escenaEjercicio("curl", { piel: "media" }, { animar: false, cuadro: 5 });
+    cierto(!quieto.includes("<animate") && quieto.includes(`x="${-5 * ejercicios.ANCHO}"`), "quieto: el cuadro 5");
+    cierto(vivo.includes(`viewBox="${ejercicios.encuadreDe("curl").join(" ")}"`) && vivo.includes('preserveAspectRatio="xMidYMax meet"'), "se acerca a lo importante y queda apoyada abajo");
+});
+
+prueba("Gym (v158): en la lista, cada ejercicio tiene su figura y solo la del ejercicio de ahora se mueve", () => {
     const estado = partidaNueva();
     acciones.empezarGym(estado, "pecho-triceps");
     estado.gym.foco = false;
     const html = vistasGym.pantallaGym(estado, { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
     igual((html.match(/class="gym-demo"/g) || []).length, 6, "una figura por ejercicio");
     igual((html.match(/gym-ejercicio [^"]*actual/g) || []).length, 1, "uno solo es el actual");
-    cierto((html.match(/<animateTransform/g) || []).length > 0, "y ese se mueve");
+    cierto((html.match(/<animate attributeName="x"/g) || []).length === (matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1), "y ese se mueve");
+});
+
+prueba("Gym (v158): el modo foco va a pantalla completa solo mientras entrenas en foco", () => {
+    const estado = partidaNueva();
+    igual(vistasGym.pantallaCompletaGym(estado), false, "sin entrenamiento, no");
+    acciones.empezarGym(estado, "hombros");
+    igual(vistasGym.pantallaCompletaGym(estado), true, "entrenando en el modo foco, sí");
+    acciones.cambiarAjusteGym(estado, "foco", false);
+    igual(vistasGym.pantallaCompletaGym(estado), false, "en la lista, no (vuelven la cabecera y las pestañas)");
+    acciones.cambiarAjusteGym(estado, "foco", true);
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes('class="gym-foco-salir" data-accion="ir" data-pantalla="hoy"'), "hay un botón para salir a Hoy");
+    cierto(html.includes("gym-foco-escenario") && html.includes("escena-ejercicio") && html.includes("gym-foco-mapa") && html.includes("gym-pips"), "escenario, series en cuadritos y las de este ejercicio");
+    cierto(html.includes('data-accion="gym-foco" data-valor="0"') && html.includes('data-accion="gym-cancelar"'), "lista y cancelar siguen ahí");
+    acciones.cancelarGym(estado);
+    igual(vistasGym.pantallaCompletaGym(estado), false, "al cancelar, se acaba la pantalla completa");
 });
 
 prueba("Gym (modo foco): una serie a la vez con botones + y −, descanso con anillo y vuelta a la lista", () => {

@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v158 — El gym en foco, a pantalla completa
+- `app.js` › `dibujarPantalla`: clase `gym-pantalla-completa` en el `<body>` cuando la pantalla es el gym y `vistasGym.pantallaCompletaGym(estado)` (entrenamiento en curso + modo foco). Esconde `.cabecera`, `.pestanas` y `.run-flotante`; se quita al salir, terminar, cancelar o pasar a la lista. `refrescar` ya no guarda `--alto-cabecera` = 0 cuando la cabecera está escondida.
+- `vistas-gym.js` › `vistaDeFoco` rehecho: cabecera con «‹» (`data-accion="ir"` a Hoy), `mapaDeSeries` (todas las series en cuadritos por ejercicio), escenario que crece (`flex: 1`) con la figura o el reloj del descanso (figura quieta y oscura detrás, Aurelio abajo), fichas de músculo y «Última vez», nombre + serie + `gym-pips`, contadores y botón dorado. Mismas acciones y atributos (`gym-ajuste`, `gym-contar`, `gym-serie`, `gym-saltar-descanso`, `gym-descanso-mas`, `data-gym-inicio`, `data-descanso-fin`, `data-gym-anillo`). «¡Todo hecho!» muestra la pose `victoria`.
+- `dibujo-ejercicios.js` rehecho: esqueleto con huesos de largo fijo (`MEDIDAS`), cinemática inversa (`articulacion`) para codos y rodillas, cuerpo con cápsulas de músculo sombreadas a mano (`parte`, `bola`), cabeza con pelo/barba según la apariencia, top deportivo con cuerpo femenino, músculo según el físico (`musculoDe`). 13 movimientos + `victoria`, cada uno con `fondo` (máquinas que no se mueven) y `encuadre`. `CUADROS` (20 por repetición: pausa abajo, subida, aprieta arriba, bajada lenta), `tiraDeMovimiento`, `animacionDeTira`, `dibujarFondoEjercicio` (sala ancha: de x -80 a 200 y de y -60 a 110), `encuadreDe`. Ya no exporta `dibujarMovimiento`.
+- `retratos.js`: `pedirImagen` (sirve para `<img>` y para `<image>` de SVG), `escenaEjercicio` (fondo + tira en pixel art; `<animate attributeName="x" calcMode="discrete">` salta de cuadro en cuadro) y `prepararEscena` (prepara el ejercicio siguiente). `pixel.js` › `pixelar`: opción `margen`.
+- `estilos.css`: bloque `v158` (reemplaza a los de v78 y v156): pantalla completa con `100dvh` y `safe-area`, marcos de píxel, contadores de juego, botón dorado; `.gym-demo` de 120 px.
+- Pruebas: 420 (5 nuevas o rehechas: figuras y tira, huesos de largo fijo, animación cuadro a cuadro, la lista y la pantalla completa).
+
 ## v157 — Aviso de actualización más confiable
 - `app-version.js`: `revisarVersionNueva()` compara el número de la caché guardada (`vida-rpg-vN`) con `VERSION_APP`; si la caché es más nueva, muestra «Actualizar». Antes solo salía con `controllerchange`, que el iPhone puede no mandar. Se llama al registrar el SW, en `updatefound`/`statechange`, al volver a la app y 4 s después de `update()`.
 - Pruebas: 416.

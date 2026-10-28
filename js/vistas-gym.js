@@ -10,8 +10,7 @@ import * as avatar from "./avatar.js";
 import * as gymAurelio from "./gym-aurelio.js";
 import { describirMaestro } from "./maestro.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
-import { retratoPixel, cuerpoGymPixel, pixelarEnVivo } from "./retratos.js";
-import { dibujarMovimiento } from "./dibujo-ejercicios.js";
+import { retratoPixel, cuerpoGymPixel, pixelarEnVivo, escenaEjercicio, prepararEscena } from "./retratos.js";
 import { plural } from "./juego.js";
 import { esc, selectorSecciones } from "./vistas-comun.js";
 import { fechaCorta, sumarDias, lunesDe, diaDeSemana, DIAS_LETRAS, hoy as hoyDeHoy } from "./fechas.js";
@@ -301,7 +300,22 @@ function entrenamientoActual(estado, ctx) {
     return estado.gym.foco ? vistaDeFoco(estado, ctx) : vistaDeLista(estado, ctx);
 }
 
+// (v158) ¿Se ve el entrenamiento a pantalla completa? Sí, mientras entrenas en el modo foco: app.js le pone al <body>
+// la clase gym-pantalla-completa, que esconde la cabecera y las pestañas (sales con «‹» o con «📋 Lista»).
+export const pantallaCompletaGym = (estado) => Boolean(estado.gym?.encurso && estado.gym.foco);
+
+// (v158) Todas las series del entrenamiento en cuadritos, agrupadas por ejercicio: las hechas (doradas), la de ahora
+// (parpadea) y las que faltan. Cada grupo ocupa lo que sus series (style="flex: n").
+function mapaDeSeries(en, actual) {
+    const grupos = en.ejercicios.map((ej, ei) => `<li style="flex: ${ej.series.length}">${ej.series.map((s, si) =>
+        `<i class="${s.hecha ? "hecha" : ""}${actual && actual.ejercicio === ei && actual.serie === si ? " ahora" : ""}"></i>`).join("")}</li>`).join("");
+    return `<ol class="gym-foco-mapa" aria-hidden="true">${grupos}</ol>`;
+}
+
 // (v78) El MODO FOCO: una serie a la vez, con letras y botones grandes (para usar con las manos sudadas, entre pesa y pesa).
+// (v158) A pantalla completa, como la pantalla de un juego: arriba la rutina, el tiempo y las series en cuadritos;
+// en el medio el escenario (la figura que hace el ejercicio, o el reloj del descanso); abajo los contadores de peso y
+// repeticiones y el botón grande, a la altura del pulgar.
 function vistaDeFoco(estado, ctx) {
     const g = estado.gym;
     const en = g.encurso;
@@ -311,15 +325,20 @@ function vistaDeFoco(estado, ctx) {
     const actual = gym.serieActual(en);
     const descansando = ctx.descanso && ctx.descanso.fin > ctx.ahora;
     const sinMovimiento = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-    // (v156) Cabecera en una sola fila: rutina, tiempo, kilos y series hechas.
+    const apariencia = ctx.avatar.apariencia;
+    const fisico = ctx.avatar.fisico || 0;
+    // (v158) Arriba: «‹» para salir (el entrenamiento sigue), la rutina, el tiempo y los kilos; debajo, las series.
     const cabecera = `
-        <div class="gym-foco-cabeza">
+        <header class="gym-foco-cabeza">
+            <button type="button" class="gym-foco-salir" data-accion="ir" data-pantalla="hoy" aria-label="Salir a Hoy (el entrenamiento sigue)">‹</button>
             <h2 class="titulo-juego">${rutina.icono} ${esc(rutina.nombre)}${en.fecha !== ctx.hoy ? " <small>(ayer)</small>" : ""}</h2>
-            <span>⏱️ <b data-gym-inicio="${en.inicio}">${duracionLarga(Math.max(0, ctx.ahora - en.inicio))}</b></span>
-            <span>🏋️ <b>${gym.volumenMarcado(en).toLocaleString("es")}</b> kg</span>
+            <span class="gym-foco-dato">⏱️ <b data-gym-inicio="${en.inicio}">${duracionLarga(Math.max(0, ctx.ahora - en.inicio))}</b></span>
+            <span class="gym-foco-dato">🏋️ <b>${gym.volumenMarcado(en).toLocaleString("es")}</b> kg</span>
+        </header>
+        <div class="gym-foco-avance">
+            ${mapaDeSeries(en, actual)}
             <p class="contador ${hechas === total ? "completo" : ""}">${hechas}/${total}</p>
-        </div>
-        ${barra(total ? Math.round((hechas / total) * 100) : 0, "barra-gym")}`;
+        </div>`;
     // (v84) Terminar antes de completar todas las series (si ya marcaste alguna): antes solo se podía desde la lista.
     const terminarYa = hechas > 0 && hechas < total
         ? '<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-terminar">🏁 Terminar</button>' : "";
@@ -333,12 +352,15 @@ function vistaDeFoco(estado, ctx) {
             <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-cancelar">Cancelar</button>
         </div>`;
 
-    // Ya está todo hecho.
+    // Ya está todo hecho: la figura saca bíceps (la pose de la victoria).
     if (!actual) {
         return `
-        <section class="panel gym-sesion gym-foco">
+        <section class="panel gym-sesion gym-foco gym-foco-fin">
             ${cabecera}
-            <p class="gym-foco-listo">🏁 ¡Todo hecho!</p>
+            <div class="gym-foco-escenario">
+                <div class="gym-foco-demo" aria-hidden="true">${escenaEjercicio("victoria", apariencia, { animar: !sinMovimiento, fisico, cuadro: 8 })}</div>
+                <p class="gym-foco-listo">🏁 ¡Todo hecho!</p>
+            </div>
             ${burbujaDeAurelio(ctx)}
             <button type="button" class="boton boton-principal boton-ancho gym-foco-grande" data-accion="gym-terminar">Terminar entrenamiento</button>
             ${ejerciciosExtra(en)}
@@ -353,6 +375,7 @@ function vistaDeFoco(estado, ctx) {
     const movimiento = gym.movimientoDe(ej.id);
     const antes = gym.ultimaVez(g.sesiones, ej.id);
     const pista = gym.sugerencia(info, antes);
+    // (v158) Los contadores de peso y repeticiones, como los de un juego: el nombre arriba, − valor + abajo.
     const stepper = (campo, etiqueta, valor, paso, unidad) => `
         <div class="gym-stepper">
             <span class="gym-stepper-nombre">${etiqueta}</span>
@@ -361,41 +384,49 @@ function vistaDeFoco(estado, ctx) {
             <button type="button" class="gym-mas-menos" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="${campo}" data-delta="${paso}" aria-label="Más ${etiqueta}">+</button>
         </div>`;
     const siguiente = `<p class="gym-foco-serie">Serie <b>${actual.serie + 1}</b> de ${ej.series.length} · ${info.min}–${info.max} reps</p>`;
+    // (v158) Las series de este ejercicio en cuadritos: hechas, la de ahora y las que faltan.
+    const pips = `<span class="gym-pips" aria-hidden="true">${ej.series.map((x, si) => `<i class="${x.hecha ? "hecha" : si === actual.serie ? "ahora" : ""}"></i>`).join("")}</span>`;
     // (v156) De la última vez, solo la mejor serie (la de más peso) para que quepa en una línea.
     const mejorAntes = antes?.series.reduce((m, x) => (x.kg > m.kg || (x.kg === m.kg && x.reps > m.reps) ? x : m));
-    const ultima = mejorAntes ? `<p class="mini gym-antes">Última vez: ${mejorAntes.kg ? `${kilos(mejorAntes.kg)}×${mejorAntes.reps}` : `${mejorAntes.reps} reps`}</p>` : "";
+    const ultima = mejorAntes ? `<p class="gym-foco-chip gym-antes">Última vez: ${mejorAntes.kg ? `${kilos(mejorAntes.kg)}×${mejorAntes.reps}` : `${mejorAntes.reps} reps`}</p>` : "";
+    // (v158) La figura en pixel art, grande, sobre el gimnasio. Con «menos movimiento» se queda quieta a mitad del gesto.
+    const figura = escenaEjercicio(movimiento, apariencia, { animar: !descansando && !sinMovimiento, fisico, cuadro: descansando ? 0 : 5 });
+    // Mientras haces este, se va preparando la imagen del ejercicio que sigue (así aparece al instante).
+    const proximo = en.ejercicios[actual.ejercicio + 1];
+    if (proximo) prepararEscena(gym.movimientoDe(proximo.id), apariencia, { fisico });
     let escena;
     if (descansando) {
         const falta = Math.ceil((ctx.descanso.fin - ctx.ahora) / 1000);
-        const largo = 2 * Math.PI * 52;
+        const largo = 2 * Math.PI * 50;
         const parte = Math.max(0, Math.min(1, (ctx.descanso.fin - ctx.ahora) / ctx.descanso.total));
-        // (v156) El anillo a la izquierda y lo que sigue a la derecha.
+        // (v158) El reloj grande en el medio del escenario (la figura queda quieta y oscura detrás) y Aurelio abajo.
         escena = `
+            <div class="gym-foco-demo" aria-hidden="true">${figura}</div>
             <div class="gym-foco-descanso" role="timer">
-                ${pixelarEnVivo(`<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="gym-anillo-pista" cx="60" cy="60" r="52"/>
-                    <circle class="gym-anillo" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" stroke-dasharray="${largo.toFixed(1)}" stroke-dashoffset="${(largo * (1 - parte)).toFixed(1)}"
-                            data-gym-anillo data-fin="${ctx.descanso.fin}" data-total="${ctx.descanso.total}" data-largo="${largo.toFixed(1)}"/></svg>`, 2.5)}
-                <div class="gym-foco-descanso-texto"><small>Descanso</small><b data-descanso-fin="${ctx.descanso.fin}">${duracion(falta)}</b></div>
-            </div>
-            <div class="gym-foco-datos">
-                <p class="gym-foco-siguiente">Sigue: <b>${esc(info.nombre)}</b></p>
-                ${siguiente}
-                ${ultima}
+                <div class="gym-foco-reloj">
+                    ${pixelarEnVivo(`<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="gym-anillo-fondo" cx="60" cy="60" r="57"/><circle class="gym-anillo-pista" cx="60" cy="60" r="50"/>
+                        <circle class="gym-anillo" cx="60" cy="60" r="50" transform="rotate(-90 60 60)" stroke-dasharray="${largo.toFixed(1)}" stroke-dashoffset="${(largo * (1 - parte)).toFixed(1)}"
+                                data-gym-anillo data-fin="${ctx.descanso.fin}" data-total="${ctx.descanso.total}" data-largo="${largo.toFixed(1)}"/></svg>`, 2)}
+                    <div class="gym-foco-descanso-texto"><small>Descanso</small><b data-descanso-fin="${ctx.descanso.fin}">${duracion(falta)}</b></div>
+                </div>
+                ${burbujaDeAurelio(ctx)}
             </div>`;
     } else {
-        // (v156) La figura pequeña a la izquierda y el nombre, la serie y la última vez a la derecha.
-        escena = `<div class="gym-foco-demo" aria-hidden="true">${pixelarEnVivo(dibujarMovimiento(movimiento, ctx.avatar.apariencia, { animar: !sinMovimiento }), 2)}</div>
-            <div class="gym-foco-datos">
-                <h3 class="gym-foco-nombre">${musculo.icono} ${esc(info.nombre)}</h3>
-                ${siguiente}
-                ${ultima}
-            </div>`;
+        escena = `<div class="gym-foco-demo" aria-hidden="true">${figura}</div>
+            <p class="gym-foco-chip">${musculo.icono} ${musculo.nombre} · ${actual.ejercicio + 1}/${en.ejercicios.length}</p>
+            ${ultima}`;
     }
-    // (v156) Para que quepa todo se quitaron el consejo de técnica y la burbuja de Aurelio; la pista queda en una línea.
+    const titulo = descansando
+        ? `<p class="gym-foco-siguiente">Sigue: <b>${esc(info.nombre)}</b></p>`
+        : `<h3 class="gym-foco-nombre">${esc(info.nombre)}</h3>`;
     return `
-        <section class="panel gym-sesion gym-foco">
+        <section class="panel gym-sesion gym-foco ${descansando ? "gym-foco-descansando" : ""}">
             ${cabecera}
-            <div class="gym-foco-arriba">${escena}</div>
+            <div class="gym-foco-escenario">${escena}</div>
+            <div class="gym-foco-titulo">
+                ${titulo}
+                <div class="gym-foco-serie-fila">${siguiente}${pips}</div>
+            </div>
             ${pista.tipo === "peso" && pista.kg > s.kg
                 ? `<button type="button" class="boton boton-chico boton-secundario boton-ancho gym-subir" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="kg" data-delta="${pista.kg - s.kg}" title="${esc(pista.texto)}">⬆️ Llegaste al tope: subir a ${kilos(pista.kg)}</button>`
                 : `<p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${pista.texto}</p>`}
@@ -452,7 +483,7 @@ function vistaDeLista(estado, ctx) {
         const hechasEj = ej.series.filter((s) => s.hecha).length;
         return `
             <article class="gym-ejercicio ${hechasEj === ej.series.length ? "completo" : ""} ${ei === actual ? "actual" : ""}">
-                <div class="gym-demo" aria-hidden="true">${pixelarEnVivo(dibujarMovimiento(movimiento, ctx.avatar.apariencia, { animar: ei === actual && !sinMovimiento }), 2)}</div>
+                <div class="gym-demo" aria-hidden="true">${escenaEjercicio(movimiento, ctx.avatar.apariencia, { animar: ei === actual && !sinMovimiento, fisico: ctx.avatar.fisico || 0, cuadro: 5 })}</div>
                 <h3>${musculo.icono} ${esc(info.nombre)}</h3>
                 <p class="mini texto-suave gym-meta-ej">${info.series} × ${info.min}–${info.max} reps · ${musculo.nombre}
                     ${sparkline(gym.historialDe(g.sesiones, ej.id).slice(-10).map((x) => x.puntaje), { ancho: 70, alto: 20 })}</p>
