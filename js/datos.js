@@ -8,6 +8,7 @@
 // para exportar e importar una copia de seguridad.
 
 import { hoy } from "./fechas.js";
+import * as gym from "./gym.js";
 import { gymInicial } from "./gym.js";
 import { runningInicial } from "./running.js";   // (v109)
 
@@ -155,6 +156,7 @@ export function estadoInicial() {
 // Las listas nuevas (tareas, desafíos…) ya vienen vacías en "base".
 function completar(guardado) {
     const base = estadoInicial();
+    gym.aplicarRutinas(guardado.gym?.rutinas);   // (v160) tus rutinas editadas
     const avatar = guardado.avatar || {};
     return {
         ...base,
@@ -206,7 +208,7 @@ function completar(guardado) {
         },   // (v135, v138)
         memento: { ...base.memento, ...guardado.memento },   // (v142)
         libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio }, orrin: { ...base.libros.orrin, ...guardado.libros?.orrin } },
-        gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null },   // (v66)
+        gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null, rutinas: guardado.gym?.rutinas || {} },   // (v66, v160)
         mapa: { reclamados: guardado.mapa?.reclamados || [], cines: guardado.mapa?.cines || [] },
         arcade: {
             usadas: guardado.arcade?.usadas || 0,

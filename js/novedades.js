@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 160;
+export const VERSION_APP = 161;
 
 export const NOVEDADES = [
+    {
+        version: 161,
+        titulo: "Tus rutinas, a tu manera",
+        cambios: [
+            "✏️ Nueva pestaña «Rutinas» en el Gimnasio: cambia cualquier ejercicio por otro (agrupados por músculo), agrega más, quítalos, reordénalos y cambia las series. Tu historial y récords no se tocan, y puedes volver a la rutina de fábrica.",
+            "🏋️ Más de 40 ejercicios nuevos (pecho, tríceps, hombros, espalda, bíceps, piernas, glúteos y abdomen), también disponibles como «Ejercicio extra» mientras entrenas.",
+        ],
+    },
     {
         version: 160,
         titulo: "Entrenar de verdad",

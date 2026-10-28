@@ -6761,11 +6761,11 @@ prueba("Gym: una partida guardada sin gimnasio lo recibe vacío, y las sesiones 
 // (v83) La pantalla del gym tiene secciones: esto dibuja la que se pide.
 const gymEn = (seccion, estado, ctx) => vistasGym.pantallaGym(estado, { ...ctx, subvista: { gym: seccion } });
 
-prueba("Gym (v83): el menú de secciones separa la pantalla en Entrenar, Progreso, Cuerpo y Más", () => {
+prueba("Gym (v83): el menú de secciones separa la pantalla en Entrenar, Progreso, Cuerpo, Rutinas y Más", () => {
     const estado = partidaNueva();
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
     const entrenar = vistasGym.pantallaGym(estado, ctx);
-    igual((entrenar.match(/data-accion="subvista" data-pantalla="gym"/g) || []).length, 4, "4 botones de sección");
+    igual((entrenar.match(/data-accion="subvista" data-pantalla="gym"/g) || []).length, 5, "5 botones de sección");
     cierto(entrenar.includes("Tu meta de la semana") && !entrenar.includes("Peso corporal") && !entrenar.includes("Ajustes del gym"), "Entrenar solo trae lo de hoy");
     cierto(gymEn("progreso", estado, ctx).includes("Tus músculos"), "Progreso");
     cierto(gymEn("cuerpo", estado, ctx).includes("Peso corporal") && !gymEn("cuerpo", estado, ctx).includes("Tus músculos"), "Cuerpo");
@@ -6835,13 +6835,13 @@ prueba("Gym: al terminar un entrenamiento se marca sola la misión que elegiste"
 
 prueba("Gym: se pueden sumar ejercicios extra, que cuentan igual (XP, músculo y récords)", () => {
     const estado = partidaNueva();
-    igual(gym.EXTRAS.length, 18);
+    igual(gym.EXTRAS.length, 59);
     for (const x of gym.EXTRAS) cierto(gym.MUSCULOS[x.musculo] && x.min < x.max, `${x.id} es válido`);
     const ids = [...gym.RUTINA.flatMap((r) => r.ejercicios), ...gym.EXTRAS].map((x) => x.id);
     igual(new Set(ids).size, ids.length, "ningún id repetido entre la rutina y los extras");
     acciones.empezarGym(estado, "pecho-triceps");
     estado.gym.foco = false;
-    debeFallar(() => acciones.agregarEjercicioGym(estado, "press-banca"), "no existe");
+    debeFallar(() => acciones.agregarEjercicioGym(estado, "press-banca"), "ya está");
     acciones.agregarEjercicioGym(estado, "abdominales");
     debeFallar(() => acciones.agregarEjercicioGym(estado, "abdominales"), "ya está");
     const en = estado.gym.encurso;
@@ -8437,5 +8437,35 @@ total.textContent = fallidas === 0
     ? `Las ${pruebas.length} pruebas pasaron.`
     : `Fallaron ${fallidas} de ${pruebas.length} pruebas.`;
 total.className = fallidas === 0 ? "bien" : "mal";
+prueba("Gimnasio (v161): editar rutinas (agregar, cambiar, quitar, series, restaurar) sin tocar el historial", () => {
+    const estado = partidaNueva();
+    const original = gym.rutinaPorId("biceps").ejercicios.map((x) => x.id);
+    cierto(gym.CATALOGO.length > 60, "hay muchos ejercicios");
+    cierto(gym.CATALOGO.every((x) => gym.MUSCULOS[x.musculo] && gym.MOVIMIENTO_DE[x.id]), "todos tienen músculo y movimiento");
+    acciones.agregarEjercicioARutina(estado, "biceps", "curl-predicador");
+    igual(gym.rutinaPorId("biceps").ejercicios.length, original.length + 1);
+    debeFallar(() => acciones.agregarEjercicioARutina(estado, "biceps", "curl-predicador"), "ya está");
+    acciones.cambiarEjercicioDeRutina(estado, "biceps", "curl-barra", "curl-polea");
+    cierto(gym.rutinaPorId("biceps").ejercicios.some((x) => x.id === "curl-polea") && !gym.rutinaPorId("biceps").ejercicios.some((x) => x.id === "curl-barra"));
+    acciones.cambiarSeriesDeRutina(estado, "biceps", "curl-polea", 1);
+    igual(gym.rutinaPorId("biceps").ejercicios.find((x) => x.id === "curl-polea").series, 4);
+    acciones.moverEjercicioDeRutina(estado, "biceps", "curl-polea", 1);
+    igual(gym.rutinaPorId("biceps").ejercicios[1].id, "curl-polea");
+    acciones.quitarEjercicioDeRutina(estado, "biceps", "curl-polea");
+    // El entrenamiento usa la rutina editada y no se puede editar mientras entrenas.
+    acciones.empezarGym(estado, "biceps");
+    igual(estado.gym.encurso.ejercicios.length, original.length);
+    debeFallar(() => acciones.quitarEjercicioDeRutina(estado, "biceps", "curl-martillo"), "entrenamiento");
+    acciones.cancelarGym(estado);
+    // Se guarda y se recarga con las rutinas editadas; restaurar vuelve a las de fábrica.
+    gym.aplicarRutinas({});
+    gym.aplicarRutinas(estado.gym.rutinas);
+    igual(gym.rutinaPorId("biceps").ejercicios.length, original.length);
+    acciones.restaurarRutina(estado, "biceps");
+    igual(gym.rutinaPorId("biceps").ejercicios.map((x) => x.id).join(), original.join());
+    cierto(gymEn("rutinas", estado, { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null }).includes("data-gym-rutina-agregar"), "la pestaña Rutinas se dibuja");
+    gym.aplicarRutinas({});
+});
+
 // Para que un programa (o tú, desde la consola) pueda leer el resultado.
 window.resultadoPruebas = { total: pruebas.length, fallidas };

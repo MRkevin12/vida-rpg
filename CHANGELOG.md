@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v161 — Rutinas editables y más ejercicios
+- `gym.js`: `EXTRAS` pasa de 18 a 59 ejercicios; `CATALOGO` (todos) y `ejercicioPorId` lo usa. `estado.gym.rutinas = { rutinaId: [{ id, series }] }` guarda tus cambios y `aplicarRutinas` los pone en `RUTINA` (se llama al cargar, al empezar y al editar). Sin cambio de `version` (campo opcional).
+- `acciones.js`: `agregarEjercicioARutina`, `quitarEjercicioDeRutina`, `cambiarEjercicioDeRutina`, `cambiarSeriesDeRutina`, `moverEjercicioDeRutina`, `restaurarRutina` (no se edita con un entrenamiento en curso).
+- `vistas-gym.js`: pestaña «✏️ Rutinas» (`tarjetaEditarRutinas`); selects en `app.js` (`data-gym-rutina-agregar`, `data-gym-rutina-cambiar`).
+
 ## v160 — Entrenar de verdad
 - `vistas-gym.js`: se quitó el botón «Marcar que hoy entrené» (pestaña y Hoy) y la lista «marcar otra rutina u otro día». Ahora «Empezar entrenamiento» (`gym-empezar`); el día cuenta al terminar y anotar series. `marcarGymRapido` sigue en `acciones.js` pero ya no tiene botón.
 

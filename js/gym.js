@@ -87,6 +87,9 @@ export const RUTINA = [
     ] },
 ];
 
+// (v160) Las rutinas de fábrica: «Restaurar» vuelve a ellas y tus cambios (estado.gym.rutinas) se aplican encima.
+const RUTINAS_DE_FABRICA = RUTINA.map((r) => ({ id: r.id, ejercicios: r.ejercicios }));
+
 // (v76) Qué movimiento hace cada ejercicio: de ahí salen su animación (dibujo-ejercicios.js) y su consejo de técnica (gym-aurelio.js).
 export const MOVIMIENTO_DE = {
     "press-banca": "press_horizontal", "press-inclinado": "press_horizontal", "pec-deck": "press_horizontal",
@@ -103,6 +106,17 @@ export const MOVIMIENTO_DE = {
     "press-militar": "press_vertical", "face-pull": "remo", "encogimientos": "encogimiento", "fondos-banco": "triceps",
     "curl-concentrado": "curl", "sentadilla": "sentadilla", "zancadas": "sentadilla", "hip-thrust": "abdominales",
     "abdominales": "abdominales", "elevacion-piernas": "abdominales", "rueda-abdominal": "abdominales",
+    // (v160) más ejercicios
+    "press-inclinado-mancuernas": "press_horizontal", "cruce-poleas": "press_horizontal", "press-declinado": "press_horizontal", "flexiones": "press_horizontal",
+    "patada-triceps": "triceps", "press-cerrado": "triceps", "extension-mancuerna": "triceps", "triceps-banco-pesas": "triceps",
+    "arnold-press": "press_vertical", "elevaciones-frontales": "elevacion_lateral", "laterales-mancuernas": "elevacion_lateral", "pajaros-mancuernas": "elevacion_lateral",
+    "remo-mancuerna": "remo", "remo-t": "remo", "jalon-neutro": "jalon", "pullover-polea": "jalon", "hiperextensiones": "bisagra",
+    "curl-mancuernas": "curl", "curl-predicador": "curl", "curl-polea": "curl", "curl-21": "curl",
+    "sentadilla-bulgara": "sentadilla", "sentadilla-goblet": "sentadilla", "sentadilla-frontal": "sentadilla", "sentadilla-hack-libre": "sentadilla",
+    "buenos-dias": "bisagra", "peso-muerto-rigido": "bisagra", "curl-nordico": "curl_femoral", "curl-femoral-de-pie": "curl_femoral",
+    "talones-mancuerna": "talones", "talones-burro": "talones", "talones-unilateral": "talones",
+    "puente-gluteos": "abdominales", "patada-gluteo": "bisagra", "abduccion-maquina": "sentadilla", "sentadilla-sumo": "sentadilla", "peso-muerto-sumo": "bisagra",
+    "plancha": "abdominales", "crunch-polea": "abdominales", "giro-ruso": "abdominales", "elevacion-rodillas": "abdominales",
 };
 export const movimientoDe = (ejercicioId) => MOVIMIENTO_DE[ejercicioId] || "curl";
 
@@ -127,9 +141,65 @@ export const EXTRAS = [
     e("abdominales", "Abdominales (crunch)", "core", 3, 12, 20),
     e("elevacion-piernas", "Elevación de piernas", "core", 3, 10, 15),
     e("rueda-abdominal", "Rueda abdominal", "core", 3, 8, 12),
+    // (v160) más ejercicios, por músculo
+    e("press-inclinado-mancuernas", "Press inclinado con mancuernas", "pecho", 3, 8, 12),
+    e("cruce-poleas", "Cruce de poleas", "pecho", 3, 10, 15),
+    e("press-declinado", "Press declinado", "pecho", 3, 8, 12),
+    e("flexiones", "Flexiones", "pecho", 3, 10, 25),
+    e("patada-triceps", "Patada de tríceps con mancuerna", "triceps", 3, 10, 15),
+    e("press-cerrado", "Press de banca agarre cerrado", "triceps", 3, 6, 10),
+    e("extension-mancuerna", "Extensión de tríceps con mancuerna", "triceps", 3, 10, 12),
+    e("triceps-banco-pesas", "Fondos entre bancos con peso", "triceps", 3, 8, 12),
+    e("arnold-press", "Press Arnold", "hombros", 3, 8, 12),
+    e("elevaciones-frontales", "Elevaciones frontales", "hombros", 3, 10, 15),
+    e("laterales-mancuernas", "Elevaciones laterales con mancuernas", "hombros", 3, 10, 15),
+    e("pajaros-mancuernas", "Pájaros con mancuernas", "hombros", 3, 12, 15),
+    e("remo-mancuerna", "Remo con mancuerna a una mano", "espalda", 3, 8, 12),
+    e("remo-t", "Remo en barra T", "espalda", 3, 8, 12),
+    e("jalon-neutro", "Jalón con agarre neutro", "espalda", 3, 8, 12),
+    e("pullover-polea", "Pullover en polea", "espalda", 3, 10, 15),
+    e("hiperextensiones", "Hiperextensiones (lumbar)", "espalda", 3, 10, 15),
+    e("curl-mancuernas", "Curl alterno con mancuernas", "biceps", 3, 8, 12),
+    e("curl-predicador", "Curl predicador (banco Scott)", "biceps", 3, 8, 12),
+    e("curl-polea", "Curl en polea baja", "biceps", 3, 10, 15),
+    e("curl-21", "Curl de bíceps en «21»", "biceps", 2, 15, 21),
+    e("sentadilla-bulgara", "Sentadilla búlgara", "cuadriceps", 3, 8, 12),
+    e("sentadilla-goblet", "Sentadilla goblet", "cuadriceps", 3, 10, 15),
+    e("sentadilla-frontal", "Sentadilla frontal", "cuadriceps", 3, 6, 10),
+    e("sentadilla-hack-libre", "Hack squat con barra", "cuadriceps", 3, 8, 12),
+    e("buenos-dias", "Buenos días con barra", "isquios", 3, 8, 12),
+    e("peso-muerto-rigido", "Peso muerto con piernas rígidas", "isquios", 3, 8, 12),
+    e("curl-nordico", "Curl nórdico", "isquios", 3, 4, 8),
+    e("curl-femoral-de-pie", "Curl femoral de pie", "isquios", 3, 10, 15),
+    e("talones-mancuerna", "Talones con mancuerna a una pierna", "pantorrillas", 3, 12, 20),
+    e("talones-burro", "Talones tipo burro", "pantorrillas", 3, 12, 20),
+    e("talones-unilateral", "Talones unilaterales sin peso", "pantorrillas", 3, 15, 25),
+    e("puente-gluteos", "Puente de glúteos", "gluteos", 3, 10, 15),
+    e("patada-gluteo", "Patada de glúteo en polea", "gluteos", 3, 10, 15),
+    e("abduccion-maquina", "Abducción de cadera en máquina", "gluteos", 3, 12, 20),
+    e("sentadilla-sumo", "Sentadilla sumo", "gluteos", 3, 8, 12),
+    e("peso-muerto-sumo", "Peso muerto sumo", "gluteos", 3, 5, 8),
+    e("plancha", "Plancha (segundos)", "core", 3, 20, 60),
+    e("crunch-polea", "Crunch en polea alta", "core", 3, 10, 15),
+    e("giro-ruso", "Giro ruso", "core", 3, 12, 20),
+    e("elevacion-rodillas", "Elevación de rodillas colgado", "core", 3, 8, 15),
 ];
 
-export const ejercicioPorId = (id) => [...RUTINA.flatMap((r) => r.ejercicios), ...EXTRAS].find((x) => x.id === id) || null;
+// (v160) Todos los ejercicios que existen: los de fábrica y los extra. De aquí eliges cuando editas tus rutinas.
+export const CATALOGO = [...RUTINA.flatMap((r) => r.ejercicios), ...EXTRAS];
+export const ejercicioPorId = (id) => CATALOGO.find((x) => x.id === id) || null;
+
+// (v160) Pone tus rutinas editadas (estado.gym.rutinas = { rutinaId: [{ id, series }] }) en RUTINA; las que no editaste vuelven a las de fábrica.
+export function aplicarRutinas(personales) {
+    for (const r of RUTINA) {
+        const lista = personales?.[r.id];
+        const ejercicios = Array.isArray(lista) ? lista.map(({ id, series }) => {
+            const base = ejercicioPorId(id);
+            return base ? { ...base, series: Math.max(1, Math.min(MAX_SERIES, Number(series) || base.series)) } : null;
+        }).filter(Boolean) : [];
+        r.ejercicios = ejercicios.length ? ejercicios : RUTINAS_DE_FABRICA.find((f) => f.id === r.id).ejercicios;
+    }
+}
 export const seriesPlaneadas = (rutina) => rutina.ejercicios.reduce((suma, x) => suma + x.series, 0);
 
 // ===== Rangos =====
@@ -158,6 +228,7 @@ export function gymInicial() {
         medidas: [],         // (v82) [{ fecha, pecho, brazo, cintura, muslo }] en centímetros (una por día; los que no anotes quedan vacíos)
         mision: null,        // la misión diaria que se marca sola al terminar un entrenamiento (id), o null
         retosCobrados: [],   // (v79) los lunes de las semanas cuyo reto ya cobraste
+        rutinas: {},         // (v160) tus rutinas editadas: { rutinaId: [{ id, series }] }; las que no están usan las de fábrica
         foco: true,          // (v78) el entrenamiento se ve en «modo foco»: una serie a la vez, con letras grandes
     };
 }

@@ -838,6 +838,17 @@ function conectarEventos() {
     // Diario: tocar una carita guarda al instante (junto con la frase que hayas escrito).
     document.addEventListener("change", (evento) => {
         // Gimnasio: el peso y las repeticiones se guardan al cambiarlos, sin redibujar (así no se cierra el teclado).
+        // (v160) Editar rutinas: elegir un ejercicio en el selector lo agrega a la rutina o cambia el que había.
+        if (evento.target.matches?.("[data-gym-rutina-agregar]")) {
+            const nuevo = evento.target.value;
+            if (nuevo) ejecutar(() => acciones.agregarEjercicioARutina(estado, evento.target.dataset.gymRutinaAgregar, nuevo), { mantenerScroll: true });
+            return;
+        }
+        if (evento.target.matches?.("[data-gym-rutina-cambiar]")) {
+            const d = evento.target.dataset;
+            ejecutar(() => acciones.cambiarEjercicioDeRutina(estado, d.gymRutinaCambiar, d.ejercicio, evento.target.value), { mantenerScroll: true });
+            return;
+        }
         if (evento.target.matches?.("[data-gym-mision]")) {
             ejecutar(() => acciones.cambiarAjusteGym(estado, "mision", evento.target.value), { mantenerScroll: true });
             return;

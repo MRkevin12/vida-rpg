@@ -14622,3 +14622,11 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     border-color: #86efac;
     color: #86efac;
 }
+
+/* (v161) Editar tus rutinas del gym */
+.gym-editar { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 12px; }
+.gym-editar-fila { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+.gym-editar-fila .campo-gym { margin: 0; }
+.gym-editar-botones { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.gym-editar-botones b { min-width: 70px; text-align: center; }
+.gym-editar-botones .boton { min-width: 44px; }

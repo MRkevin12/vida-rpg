@@ -92,7 +92,7 @@ export function tarjetaGymHoy(estado, ctx) {
 // (v83) Un menú de 4 secciones (como Progreso y Tienda) en vez de una sola pantalla larguísima:
 //   Entrenar (lo de hoy) · Progreso (músculos, récords, hitos, historial) · Cuerpo (físico, evolución, peso, medidas) · Más (Fragua y ajustes).
 // Mientras hay un entrenamiento en curso no hay menú: solo ves el entrenamiento.
-export const SECCIONES_GYM = [["entrenar", "🏋️ Entrenar"], ["progreso", "📈 Progreso"], ["cuerpo", "🧍 Cuerpo"], ["mas", "📜 Más"]];
+export const SECCIONES_GYM = [["entrenar", "🏋️ Entrenar"], ["progreso", "📈 Progreso"], ["cuerpo", "🧍 Cuerpo"], ["rutinas", "✏️ Rutinas"], ["mas", "📜 Más"]];
 
 // ctx = { hoy, ahora, avatar, descanso: { fin, total } | null, subvista }
 export function pantallaGym(estado, ctx) {
@@ -129,6 +129,7 @@ export function pantallaGym(estado, ctx) {
             ${tarjetaNivel(estado, ctx, false)}
             ${tarjetaEvolucion(estado, ctx)}
             ${tarjetaPeso(estado, ctx)}`,
+        rutinas: () => tarjetaEditarRutinas(estado),
         mas: () => `
             ${tarjetaLecturas(estado)}
             ${tarjetaAjustes(estado)}`,
@@ -560,7 +561,7 @@ function tarjetaResumen(estado, ctx) {
 
 // Los ejercicios extra que aún no están en el entrenamiento, agrupados por músculo.
 function ejerciciosExtra(en) {
-    const disponibles = gym.EXTRAS.filter((x) => !en.ejercicios.some((y) => y.id === x.id));
+    const disponibles = gym.CATALOGO.filter((x) => !en.ejercicios.some((y) => y.id === x.id));
     if (!disponibles.length) return "";
     const porMusculo = {};
     for (const x of disponibles) (porMusculo[x.musculo] ||= []).push(x);
@@ -878,6 +879,54 @@ function tarjetaHistorial(estado) {
             <h2 class="titulo-juego">Últimas sesiones</h2>
             <ul class="historial">${filas}</ul>
         </section>`;
+}
+
+// ===== (v160) Editar tus rutinas: cambiar, agregar, quitar y reordenar ejercicios, y las series de cada uno =====
+// Los selectores se agrupan por músculo (<optgroup>): para cambiar un ejercicio eliges otro del mismo músculo (o de cualquiera).
+function opcionesDeEjercicios(usados, musculoPrimero, actual = "") {
+    const orden = [musculoPrimero, ...Object.keys(gym.MUSCULOS).filter((m) => m !== musculoPrimero)].filter(Boolean);
+    return orden.map((m) => {
+        const lista = gym.CATALOGO.filter((x) => x.musculo === m && (x.id === actual || !usados.includes(x.id)));
+        return lista.length ? `<optgroup label="${gym.MUSCULOS[m].icono} ${gym.MUSCULOS[m].nombre}">${lista.map((x) => `<option value="${x.id}" ${x.id === actual ? "selected" : ""}>${esc(x.nombre)}</option>`).join("")}</optgroup>` : "";
+    }).join("");
+}
+
+function tarjetaEditarRutinas(estado) {
+    const g = estado.gym;
+    if (g.encurso) return '<p class="vacio">Termina o cancela tu entrenamiento para editar tus rutinas.</p>';
+    const tarjetas = gym.RUTINA.map((r) => {
+        const usados = r.ejercicios.map((x) => x.id);
+        const filas = r.ejercicios.map((x, i) => `
+            <li class="gym-editar-fila">
+                <label class="campo-gym"><span class="mini texto-suave">${gym.MUSCULOS[x.musculo].icono} ${gym.MUSCULOS[x.musculo].nombre} · ${x.min}–${x.max} reps</span>
+                    <select data-gym-rutina-cambiar="${r.id}" data-ejercicio="${x.id}" aria-label="Cambiar ${esc(x.nombre)}">${opcionesDeEjercicios(usados, x.musculo, x.id)}</select></label>
+                <span class="gym-editar-botones">
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-series" data-rutina="${r.id}" data-ejercicio="${x.id}" data-delta="-1" ${x.series <= 1 ? "disabled" : ""} aria-label="Una serie menos">−</button>
+                    <b>${x.series}<small> series</small></b>
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-series" data-rutina="${r.id}" data-ejercicio="${x.id}" data-delta="1" ${x.series >= gym.MAX_SERIES ? "disabled" : ""} aria-label="Una serie más">+</button>
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-mover" data-rutina="${r.id}" data-ejercicio="${x.id}" data-delta="-1" ${i === 0 ? "disabled" : ""} aria-label="Subir">▲</button>
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-mover" data-rutina="${r.id}" data-ejercicio="${x.id}" data-delta="1" ${i === r.ejercicios.length - 1 ? "disabled" : ""} aria-label="Bajar">▼</button>
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-quitar" data-rutina="${r.id}" data-ejercicio="${x.id}" ${r.ejercicios.length <= 1 ? "disabled" : ""} aria-label="Quitar">✕</button>
+                </span>
+            </li>`).join("");
+        return `
+        <details class="panel plegable">
+            <summary>${r.icono} ${esc(r.nombre)} <span class="texto-suave">· ${plural(r.ejercicios.length, "ejercicio", "ejercicios")} · ${gym.seriesPlaneadas(r)} series${g.rutinas?.[r.id] ? " · ✏️ editada" : ""}</span></summary>
+            <ul class="gym-editar">${filas}</ul>
+            <label class="campo-gym"><span class="nota">➕ Agregar un ejercicio:</span>
+                <select data-gym-rutina-agregar="${r.id}" aria-label="Agregar un ejercicio a ${esc(r.nombre)}">
+                    <option value="">— Elige uno —</option>${opcionesDeEjercicios(usados, r.ejercicios[0]?.musculo)}
+                </select></label>
+            ${g.rutinas?.[r.id] ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-restaurar" data-rutina="${r.id}">↩ Volver a la de fábrica</button>` : ""}
+        </details>`;
+    }).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">✏️ Tus rutinas</h2>
+            <p class="nota">Abre una rutina para cambiar sus ejercicios (en cada uno eliges otro, de su músculo o de cualquiera), agregar más, quitar, reordenar o cambiar las series.
+               Tu historial y tus récords no se tocan.</p>
+        </section>
+        ${tarjetas}`;
 }
 
 // ===== Ajustes =====

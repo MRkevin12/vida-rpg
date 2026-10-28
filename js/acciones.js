@@ -2208,6 +2208,7 @@ export function empezarGym(estado, rutinaId, fecha = hoy()) {
         if (g.encurso.rutina !== rutinaId) throw new Error("Ya tienes un entrenamiento en curso: termínalo o cancélalo primero.");
         return;
     }
+    gym.aplicarRutinas(g.rutinas);   // (v160)
     if (!gym.rutinaPorId(rutinaId)) throw new Error("Esa rutina no existe.");
     if (fecha !== hoy() && fecha !== sumarDias(hoy(), -1)) throw new Error("Solo puedes anotar el entrenamiento de hoy o de ayer.");
     if (g.sesiones.some((s) => s.fecha === fecha && s.rutina === rutinaId)) {
@@ -2269,7 +2270,7 @@ export function anotarSerieGym(estado, ejercicio, serie, campo, valor) {
 // Suma un ejercicio extra (de gym.EXTRAS) al entrenamiento en curso.
 export function agregarEjercicioGym(estado, ejercicioId) {
     const en = entrenamientoEnCurso(estado);
-    const ej = gym.EXTRAS.find((x) => x.id === ejercicioId);
+    const ej = gym.CATALOGO.find((x) => x.id === ejercicioId);
     if (!ej) throw new Error("Ese ejercicio no existe.");
     if (en.ejercicios.some((x) => x.id === ejercicioId)) throw new Error("Ese ejercicio ya está en tu entrenamiento.");
     en.ejercicios.push({ ...gym.ejercicioDelEntrenamiento(ej, estado.gym.sesiones), extra: true });
@@ -2449,6 +2450,74 @@ export function anotarMedidasGym(estado, valores) {
     else lista.push({ fecha: hoyTexto, ...nuevas });
     lista.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
     if (lista.length > 400) lista.splice(0, lista.length - 400);
+}
+
+// ===== (v160) Editar tus rutinas =====
+// Tus cambios se guardan en estado.gym.rutinas = { rutinaId: [{ id, series }] } y gym.aplicarRutinas los pone en RUTINA.
+// Mientras entrenas no se puede editar (el entrenamiento en curso usa la rutina tal como estaba).
+function listaEditable(estado, rutinaId) {
+    const g = estado.gym;
+    if (g.encurso) throw new Error("Termina o cancela tu entrenamiento antes de editar tus rutinas.");
+    gym.aplicarRutinas(g.rutinas);
+    const rutina = gym.rutinaPorId(rutinaId);
+    if (!rutina) throw new Error("Esa rutina no existe.");
+    if (!g.rutinas[rutinaId]) g.rutinas[rutinaId] = rutina.ejercicios.map((x) => ({ id: x.id, series: x.series }));
+    return g.rutinas[rutinaId];
+}
+const guardarRutinas = (estado) => gym.aplicarRutinas(estado.gym.rutinas);
+
+export function agregarEjercicioARutina(estado, rutinaId, ejercicioId) {
+    const base = gym.ejercicioPorId(ejercicioId);
+    if (!base) throw new Error("Ese ejercicio no existe.");
+    const lista = listaEditable(estado, rutinaId);
+    if (lista.some((x) => x.id === ejercicioId)) throw new Error("Ese ejercicio ya está en la rutina.");
+    if (lista.length >= 12) throw new Error("Una rutina puede tener hasta 12 ejercicios.");
+    lista.push({ id: ejercicioId, series: base.series });
+    guardarRutinas(estado);
+}
+
+export function quitarEjercicioDeRutina(estado, rutinaId, ejercicioId) {
+    const lista = listaEditable(estado, rutinaId);
+    if (lista.length <= 1) throw new Error("La rutina necesita al menos un ejercicio.");
+    const i = lista.findIndex((x) => x.id === ejercicioId);
+    if (i === -1) throw new Error("Ese ejercicio no está en la rutina.");
+    lista.splice(i, 1);
+    guardarRutinas(estado);
+}
+
+// Cambia un ejercicio por otro (se queda en el mismo lugar y con las mismas series).
+export function cambiarEjercicioDeRutina(estado, rutinaId, viejoId, nuevoId) {
+    if (!gym.ejercicioPorId(nuevoId)) throw new Error("Ese ejercicio no existe.");
+    const lista = listaEditable(estado, rutinaId);
+    const i = lista.findIndex((x) => x.id === viejoId);
+    if (i === -1) throw new Error("Ese ejercicio no está en la rutina.");
+    if (viejoId !== nuevoId && lista.some((x) => x.id === nuevoId)) throw new Error("Ese ejercicio ya está en la rutina.");
+    lista[i] = { id: nuevoId, series: lista[i].series };
+    guardarRutinas(estado);
+}
+
+export function cambiarSeriesDeRutina(estado, rutinaId, ejercicioId, delta) {
+    const lista = listaEditable(estado, rutinaId);
+    const x = lista.find((y) => y.id === ejercicioId);
+    if (!x) throw new Error("Ese ejercicio no está en la rutina.");
+    x.series = Math.max(1, Math.min(gym.MAX_SERIES, x.series + delta));
+    guardarRutinas(estado);
+}
+
+export function moverEjercicioDeRutina(estado, rutinaId, ejercicioId, delta) {
+    const lista = listaEditable(estado, rutinaId);
+    const i = lista.findIndex((x) => x.id === ejercicioId);
+    const j = i + delta;
+    if (i === -1 || j < 0 || j >= lista.length) return;
+    [lista[i], lista[j]] = [lista[j], lista[i]];
+    guardarRutinas(estado);
+}
+
+// Vuelve a los ejercicios de fábrica de esa rutina.
+export function restaurarRutina(estado, rutinaId) {
+    listaEditable(estado, rutinaId);
+    delete estado.gym.rutinas[rutinaId];
+    guardarRutinas(estado);
 }
 
 export function cambiarAjusteGym(estado, clave, valor) {

@@ -113,6 +113,14 @@ export const ACCIONES_GYM = {
         if (!confirm("¿Borrar esta sesión? Se le quita el XP y las monedas que dio.")) return;
         ejecutar(() => acciones.borrarSesionGym(estado, Number(boton.dataset.indice)), { mantenerScroll: true });
     },
+    // (v160) Editar tus rutinas: quitar, mover, cambiar las series y restaurar (agregar y cambiar son selects: ver app.js).
+    "gym-rutina-quitar": (boton) => ejecutar(() => acciones.quitarEjercicioDeRutina(estado, boton.dataset.rutina, boton.dataset.ejercicio), { mantenerScroll: true }),
+    "gym-rutina-series": (boton) => ejecutar(() => acciones.cambiarSeriesDeRutina(estado, boton.dataset.rutina, boton.dataset.ejercicio, Number(boton.dataset.delta)), { mantenerScroll: true }),
+    "gym-rutina-mover": (boton) => ejecutar(() => acciones.moverEjercicioDeRutina(estado, boton.dataset.rutina, boton.dataset.ejercicio, Number(boton.dataset.delta)), { mantenerScroll: true }),
+    "gym-rutina-restaurar": (boton) => {
+        if (!confirm("¿Volver a los ejercicios de fábrica de esta rutina? Tu historial no se borra.")) return;
+        ejecutar(() => acciones.restaurarRutina(estado, boton.dataset.rutina), { mantenerScroll: true });
+    },
     "gym-meta": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "meta", estado.gym.metaSemanal + Number(boton.dataset.delta)), { mantenerScroll: true }),
     "gym-descanso": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "descanso", boton.dataset.segundos), { mantenerScroll: true }),
 };
