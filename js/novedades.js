@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 169;
+export const VERSION_APP = 170;
 
 export const NOVEDADES = [
+    {
+        version: 170,
+        titulo: "Actualización de avisos",
+        cambios: [
+            "🔔 Esta versión sube la app para que tome los avisos del descanso del gym. Toca Actualizar y revisa que Ajustes diga v170.",
+        ],
+    },
     {
         version: 169,
         titulo: "Avisos del descanso",

@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v170 — Actualización de avisos
+- Sin cambios de lógica: sube la versión para que el iPhone instale de nuevo la app con los avisos del descanso (`js/app.js`, `js/avisos.js`, `sw.js`).
+
 ## v169 — Avisos del descanso
 - Al irse a segundo plano con un descanso del gym corriendo, `js/app.js` (`visibilitychange`) llama a `avisos.avisarDescansoGym(fin)`, que manda `/descanso-gym` con `keepalive`. Al volver manda `null`. El Worker (`servidor/worker.js`) programa una alarma exacta en un Durable Object (clase `Descanso`, `setAlarm`; migración `new_sqlite_classes` en `wrangler.toml`), avisa una sola vez y la cancela si vuelves. Antes se probó con el reloj por minuto, pero llegaba hasta 60 s tarde. Tipo de aviso `descanso` en `sw.js`.
 - Pruebas: servidor 12, app 438.
