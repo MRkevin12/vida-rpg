@@ -435,7 +435,7 @@ export function cerrarEntrenamiento(entrenamiento, sesiones, ahora = Date.now())
         .map((ej) => ({ id: ej.id, series: ej.series.filter((s) => s.hecha && !s.cal).map(serieGuardada) }))   // (v166) el calentamiento no se guarda
         .filter((ej) => ej.series.length);
     const minutos = Math.max(1, Math.min(240, Math.round((ahora - (entrenamiento.inicio || ahora)) / 60000)));
-    return armarSesion({ ejercicios, fecha: entrenamiento.fecha, rutina: entrenamiento.rutina, calentado: Boolean(entrenamiento.calentado), minutos,
+    return armarSesion({ ejercicios, fecha: entrenamiento.fecha, rutina: entrenamiento.rutina, calentado: Boolean(entrenamiento.calentado) || entrenamiento.ejercicios.some((ej) => ej.series.some((s) => s.cal && s.hecha)), minutos,   // (v166) calentar en un ejercicio da el XP del calentamiento
                          descarga: Boolean(entrenamiento.descarga), planeadas: seriesPlaneadasDe(entrenamiento) }, sesiones);
 }
 

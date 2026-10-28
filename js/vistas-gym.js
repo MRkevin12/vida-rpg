@@ -340,8 +340,6 @@ function vistaDeFoco(estado, ctx) {
     // (v156) Los botones de abajo, chicos y en una sola fila.
     const pie = `
         <div class="gym-foco-pie-fila">
-            <button type="button" class="boton boton-chico ${en.calentado ? "boton-principal" : "boton-secundario"}" data-accion="gym-calentar" aria-pressed="${Boolean(en.calentado)}"
-                    aria-label="${en.calentado ? "Calentamiento hecho" : "Marcar calentamiento (+" + gym.XP_CALENTAMIENTO + " XP)"}">${en.calentado ? "✅ Calentado" : "🔥 Calentar"}</button>
             ${terminarYa}
             <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-foco" data-valor="0">📋 Lista</button>
             <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-cancelar">Cancelar</button>
@@ -422,7 +420,7 @@ function vistaDeFoco(estado, ctx) {
         ? `<p class="gym-foco-siguiente">Sigue: <b>${esc(info.nombre)}</b></p>`
         : `<h3 class="gym-foco-nombre">${esc(info.nombre)}</h3>`;
     // (v164) La pista de hoy (lo de la última vez ya está en la ficha de arriba). Si propone otro peso, un botón lo pone.
-    const pistaHtml = esCal ? '<p class="mini gym-pista">🔥 Calentamiento: peso ligero, sin llegar al límite. No cuenta para récords ni para el XP.</p>' : pista.motivo && pista.kg !== s.kg && (pista.tipo === "bajar" ? pista.kg < s.kg : pista.kg > s.kg)
+    const pistaHtml = esCal ? '<p class="mini gym-pista">🔥 Calentamiento: peso ligero, sin llegar al límite. No cuenta para récords ni kilos; con la primera de tu entrenamiento ganas +'+gym.XP_CALENTAMIENTO+' XP.</p>' : pista.motivo && pista.kg !== s.kg && (pista.tipo === "bajar" ? pista.kg < s.kg : pista.kg > s.kg)
         ? `<button type="button" class="boton boton-chico boton-secundario boton-ancho gym-subir" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="kg" data-delta="${Math.round((pista.kg - s.kg) * 100) / 100}" title="${esc(pista.texto)}">${pista.kg > s.kg ? "⬆️" : "⬇️"} ${pista.motivo}: ${pista.kg > s.kg ? "subir" : "bajar"} a ${kilos(pista.kg)}</button>`
         : `<p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${esc(pista.hoy)}</p>`;
     return `
@@ -533,8 +531,6 @@ function vistaDeLista(estado, ctx) {
                 <li>🏋️ <b>${kilosMovidos.toLocaleString("es")}</b> kg</li>
                 <li>🔥 <b>${hechas}</b> de ${total} series</li>
             </ul>
-            <button type="button" class="boton boton-chico ${en.calentado ? "boton-principal" : "boton-secundario"} gym-calentar" data-accion="gym-calentar" aria-pressed="${Boolean(en.calentado)}">
-                ${en.calentado ? "✅ Calentamiento hecho (+" + gym.XP_CALENTAMIENTO + " XP)" : "🔥 Marcar calentamiento (+" + gym.XP_CALENTAMIENTO + " XP)"}</button>
             <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-foco" data-valor="1">🎯 Pasar al modo foco (una serie a la vez)</button>
             <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-discos" data-kg="">🧮 Calculadora de discos</button>
             ${descanso}
@@ -717,7 +713,7 @@ function notaDeLaSesion(estado, resumen) {
         <button type="button" class="boton boton-chico ${nota.sueno === clave ? "boton-principal" : "boton-secundario"}" data-accion="gym-nota-sueno" ${datos} data-sueno="${clave}" aria-pressed="${nota.sueno === clave}">${x.icono} ${x.nombre}</button>`).join("");
     return `
         <div class="gym-nota">
-            <p class="mini texto-suave">📓 Nota para tu diario (opcional): ¿cómo dormiste?</p>
+            <p class="mini texto-suave">📓 Nota para tu diario (opcional): ¿cómo dormiste anoche?</p>
             <div class="gym-vista-botones">${suenos}</div>
             <form data-form="gym-nota" class="form-linea">
                 <input type="hidden" name="fecha" value="${s.fecha}"><input type="hidden" name="rutina" value="${esc(s.rutina)}">
@@ -1032,7 +1028,7 @@ function tarjetaDiarioGym(estado) {
             <h2 class="titulo-juego">📓 Diario del gym</h2>
             ${patrones.length
                 ? `<ul class="gym-propuestas">${patrones.map((p) => `<li>${p.icono} ${esc(p.texto)}</li>`).join("")}</ul>`
-                : '<p class="nota">Al terminar cada entrenamiento, anota cómo dormiste y si algo te molestó. Con unas cuantas notas, aquí verás patrones (por ejemplo, si rindes menos cuando duermes mal).</p>'}
+                : '<p class="nota">Al terminar cada entrenamiento, anota cómo dormiste anoche y si algo te molestó. Con unas cuantas notas, aquí verás patrones (por ejemplo, si rindes menos cuando duermes mal).</p>'}
             ${notas ? `<ul class="historial">${notas}</ul>` : ""}
         </section>`;
 }

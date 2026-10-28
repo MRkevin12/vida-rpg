@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v167 — Un solo calentamiento
+- Se quita el botón «Calentar» general (`gym-calentar`) del foco (`pie`) y de la lista. `gym.cerrarEntrenamiento`: `calentado` también es verdadero si se marcó alguna serie de calentamiento (`cal`), así los +10 XP (`XP_CALENTAMIENTO`) siguen existiendo, una vez por entrenamiento. La acción `calentarGym` queda (la usan las pruebas). Pruebas: 437.
+
 ## v166 — Un entrenamiento más flexible
 - Cambiar / saltar un ejercicio del entrenamiento en curso (`acciones.cambiarEjercicioEnCurso`, `saltarEjercicioGym`; solo si no tiene series hechas). `en.plan` guarda las series que de verdad ibas a hacer (`gym.seriesPlaneadasDe`) para que saltar no quite el «completo» ni las monedas; la sesión guarda `planeadas`.
 - Calentamiento por ejercicio: series con `cal: true` (`agregarCalentamientoGym`, `quitarCalentamientoGym`; 50/70/85 % del peso de trabajo, máx. 3, descanso de 30 s). No se guardan en la sesión ni cuentan: `seriesMarcadas`, `seriesTotales`, `volumenMarcado`, récords y XP las ignoran.

@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 166;
+export const VERSION_APP = 167;
 
 export const NOVEDADES = [
+    {
+        version: 167,
+        titulo: "Un solo calentamiento",
+        cambios: [
+            "🔥 Se quitó el botón «Calentar» general (del modo foco y de la lista): ahora el calentamiento es por ejercicio, con el botón 🔥 junto a su nombre.",
+            "⭐ Marcar una serie de calentamiento en cualquier ejercicio da los +10 XP del calentamiento (una sola vez por entrenamiento).",
+        ],
+    },
     {
         version: 166,
         titulo: "Un entrenamiento más flexible",

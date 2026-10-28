@@ -7192,7 +7192,7 @@ prueba("Gym (entrenamiento): marcar una serie trae la frase de Aurelio según el
     acciones.empezarGym(otro, "espalda");
     otro.gym.foco = false;
     let html = vistasGym.pantallaGym(otro, { ...ctx, fraseGym: { tipo: "inicio", texto: "Calienta primero, Aria." } });
-    cierto(html.includes("data-gym-inicio") && html.includes("gym-chips") && html.includes('data-accion="gym-calentar"') && html.includes("Calienta primero, Aria.") && html.includes("Técnica:"),
+    cierto(html.includes("data-gym-inicio") && html.includes("gym-chips") && html.includes("Calienta primero, Aria.") && html.includes("Técnica:"),
            "reloj, kilos, calentamiento, Aurelio y técnica");
     html = vistasGym.pantallaGym(estado, { ...ctx, resumenGym: fin.sesion, fraseGym: { tipo: "fin", texto: "Terminaste." } });
     cierto(html.includes("Entrenamiento terminado") && html.includes("gym-resumen") && html.includes("Pantorrilla"), "el resumen");
@@ -8693,7 +8693,7 @@ prueba("Gym (v166): una serie de calentamiento es ligera, descansa poco y no cue
     debeFallar(() => acciones.agregarCalentamientoGym(estado, 0), "Ya empezaste");
     const fin = acciones.terminarGym(estado);
     igual(fin.sesion.ejercicios[0].series.length, 1, "el calentamiento no se guarda");
-    igual(fin.sesion.xp, 1 * gym.XP_POR_SERIE, "XP solo de la serie de trabajo");
+    igual([fin.sesion.calentado, fin.sesion.xp], [true, 1 * gym.XP_POR_SERIE + gym.XP_CALENTAMIENTO], "la serie de trabajo y el +10 XP del calentamiento (una sola vez)");
     // «+ serie» y «− serie» no tocan el calentamiento.
     acciones.empezarGym(estado, "biceps");
     acciones.agregarCalentamientoGym(estado, 0);
