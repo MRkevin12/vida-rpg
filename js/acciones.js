@@ -2242,16 +2242,21 @@ export function marcarSerieGym(estado, ejercicio, serie) {
         if (en.ultima?.ejercicio === ejercicio && en.ultima?.serie === serie) delete en.ultima;
         return { hecha: false };
     }
+    // (v166) Una serie de calentamiento no cuenta para nada (ni récords, ni RIR, ni el avance): solo se marca y se descansa poco.
+    if (s.cal) {
+        delete en.ultima;   // (para que el descanso no pregunte el RIR de otra serie)
+        return { hecha: true, cal: true, frase: { tipo: "calentado", texto: gymAurelio.fraseDeGym("calentado", { nombre: estado.personaje.nombre }, ejercicio + serie) } };
+    }
     en.ultima = { ejercicio, serie };   // (v164) la serie que acabas de hacer: en el descanso te pregunta su RIR
 
     // (v76) Aurelio te dice algo según el momento: primera serie, récord, ejercicio terminado, mitad, última…
-    const total = en.ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
+    const total = gym.seriesTotales(en);
     const hechas = gym.seriesMarcadas(en);
     const ej = en.ejercicios[ejercicio];
     const info = gym.ejercicioPorId(ej.id);
     // (v164) Récord: mejor 1RM o más peso que nunca, contando también las series que ya hiciste hoy de este ejercicio
     // (así la segunda serie igual a la primera no vuelve a ser «récord»).
-    const hoyHechas = ej.series.filter((x, i) => x.hecha && i !== serie);
+    const hoyHechas = ej.series.filter((x, i) => x.hecha && !x.cal && i !== serie);
     const mejor = Math.max(gym.mejoresDe(estado.gym.sesiones)[ej.id]?.puntaje || 0, ...hoyHechas.map((x) => gym.puntajeDe(x.kg, x.reps)));
     const pesoAntes = gym.pesosMaximos(estado.gym.sesiones)[ej.id] || 0;
     const pesoMax = Math.max(pesoAntes, ...hoyHechas.map((x) => x.kg));
@@ -2328,13 +2333,73 @@ export function ajustarSerieGym(estado, ejercicio, serie, campo, delta) {
 export function cambiarSeriesGym(estado, ejercicio, delta) {
     const ej = entrenamientoEnCurso(estado).ejercicios[ejercicio];
     if (!ej) throw new Error("Ese ejercicio no existe.");
+    const trabajo = gym.seriesDeTrabajo(ej);   // (v166) las de calentamiento no cuentan
     if (delta > 0) {
-        if (ej.series.length >= gym.MAX_SERIES) throw new Error(`Máximo ${gym.MAX_SERIES} series por ejercicio.`);
+        if (trabajo.length >= gym.MAX_SERIES) throw new Error(`Máximo ${gym.MAX_SERIES} series por ejercicio.`);
         const ultima = ej.series[ej.series.length - 1] || { kg: 0, reps: 10 };
         ej.series.push({ kg: ultima.kg, reps: ultima.reps, hecha: false });
-    } else if (ej.series.length > 1) {
-        ej.series.pop();
+    } else if (trabajo.length > 1) {
+        for (let i = ej.series.length - 1; i >= 0; i--) {
+            if (!ej.series[i].cal) { ej.series.splice(i, 1); break; }
+        }
     }
+}
+
+// ===== (v166) Cambiar, saltar y calentar ejercicios en pleno entrenamiento =====
+// Cambiar o saltar solo se puede si aún no hiciste ninguna serie de ese ejercicio. `en.plan` guarda cuántas series ibas a hacer
+// de verdad (para que saltar un ejercicio no te quite el «entrenamiento completo» ni las monedas).
+function ejercicioSinEmpezar(estado, indice) {
+    const en = entrenamientoEnCurso(estado);
+    const ej = en.ejercicios[indice];
+    if (!ej) throw new Error("Ese ejercicio no existe.");
+    if (ej.series.some((s) => s.hecha)) throw new Error("Ya hiciste series de este ejercicio: termínalo (o bórralo después en el historial).");
+    if (!Number.isFinite(en.plan)) en.plan = gym.seriesPlaneadasDe(en);
+    return { en, ej };
+}
+
+// La máquina está ocupada: cambia este ejercicio por otro (se llena con lo de la última vez del nuevo).
+export function cambiarEjercicioEnCurso(estado, indice, nuevoId) {
+    const { en, ej } = ejercicioSinEmpezar(estado, indice);
+    const nuevo = gym.ejercicioPorId(nuevoId);
+    if (!nuevo) throw new Error("Ese ejercicio no existe.");
+    if (en.ejercicios.some((x) => x.id === nuevoId)) throw new Error("Ese ejercicio ya está en tu entrenamiento.");
+    const hecho = gym.ejercicioDelEntrenamiento(nuevo, estado.gym.sesiones);
+    if (en.descarga) hecho.series = hecho.series.slice(0, gym.seriesDeDescarga(hecho.series.length));
+    en.plan += hecho.series.length - gym.seriesDeTrabajo(ej).length;
+    en.ejercicios[indice] = { ...hecho, cambiado: true };
+    delete en.ultima;
+}
+
+// Sáltate este ejercicio (no se guarda nada de él).
+export function saltarEjercicioGym(estado, indice) {
+    const { en, ej } = ejercicioSinEmpezar(estado, indice);
+    if (en.ejercicios.length <= 1) throw new Error("Es el único ejercicio: si hoy no vas a entrenar, cancela el entrenamiento.");
+    en.plan = Math.max(1, en.plan - gym.seriesDeTrabajo(ej).length);
+    en.ejercicios.splice(indice, 1);
+    delete en.ultima;
+}
+
+// Una serie ligera antes de las pesadas: el 50 % del peso de trabajo, luego 70 % y 85 %. No da XP ni cuenta para récords.
+export function agregarCalentamientoGym(estado, indice) {
+    const ej = entrenamientoEnCurso(estado).ejercicios[indice];
+    if (!ej) throw new Error("Ese ejercicio no existe.");
+    const trabajo = gym.seriesDeTrabajo(ej);
+    if (trabajo.some((s) => s.hecha)) throw new Error("Ya empezaste las series de trabajo de este ejercicio.");
+    const previas = ej.series.filter((s) => s.cal).length;
+    if (previas >= gym.MAX_CALENTAMIENTOS) throw new Error(`Máximo ${gym.MAX_CALENTAMIENTOS} series de calentamiento por ejercicio.`);
+    const kgTrabajo = trabajo[0]?.kg || 0;
+    const kg = kgTrabajo > 0 ? Math.round((kgTrabajo * gym.PORCENTAJES_CALENTAMIENTO[previas]) / 2.5) * 2.5 : 0;
+    ej.series.splice(previas, 0, { kg, reps: gym.REPS_CALENTAMIENTO, hecha: false, cal: true });
+}
+
+// Quita la última serie de calentamiento que aún no hiciste.
+export function quitarCalentamientoGym(estado, indice) {
+    const ej = entrenamientoEnCurso(estado).ejercicios[indice];
+    if (!ej) throw new Error("Ese ejercicio no existe.");
+    for (let i = ej.series.length - 1; i >= 0; i--) {
+        if (ej.series[i].cal && !ej.series[i].hecha) { ej.series.splice(i, 1); return; }
+    }
+    throw new Error("No hay calentamiento por quitar.");
 }
 
 // Termina el entrenamiento: lo guarda, da el XP de Fuerza, las monedas y los hitos, y avisa de los récords.
@@ -2486,6 +2551,25 @@ export function anotarNotaGym(estado, fecha, rutinaId, valores) {
     return sesion.nota || null;
 }
 
+// (v166) Corrige el peso o las repeticiones de una sesión ya guardada. Se recalculan su XP, sus monedas y sus récords
+// (contra las sesiones anteriores) y se te da o se te quita la diferencia. Las sesiones posteriores no se recalculan
+// y los hitos ya cobrados se quedan.
+// cambios = [{ ejercicio, serie, kg, reps }] (los números pueden venir como texto con coma).
+export function corregirSesionGym(estado, indice, cambios) {
+    const sesion = estado.gym.sesiones[indice];
+    if (!sesion) throw new Error("Esa sesión no existe.");
+    if (sesion.rapido) throw new Error("Esa sesión solo se marcó, no tiene series que corregir.");
+    const limpios = cambios.map((c) => ({
+        ejercicio: c.ejercicio, serie: c.serie,
+        kg: numeroEntre(c.kg === "" ? 0 : c.kg, 0, gym.MAX_KG, "El peso"),
+        reps: Math.round(numeroEntre(c.reps, 1, gym.MAX_REPS, "Las repeticiones")),
+    }));
+    const nueva = gym.corregirSesion(sesion, limpios, estado.gym.sesiones.slice(0, indice));
+    ganar(estado, { xp: nueva.xp - sesion.xp, monedas: nueva.monedas - sesion.monedas, atributo: "fuerza" });
+    estado.gym.sesiones[indice] = nueva;
+    return { sesion: nueva, xp: nueva.xp - sesion.xp, monedas: nueva.monedas - sesion.monedas };
+}
+
 // Borra una sesión equivocada y le quita lo que había dado (los hitos ya cobrados se quedan).
 export function borrarSesionGym(estado, indice) {
     const sesion = estado.gym.sesiones[indice];
@@ -2604,7 +2688,11 @@ export function restaurarRutina(estado, rutinaId) {
 
 export function cambiarAjusteGym(estado, clave, valor) {
     if (clave === "meta") estado.gym.metaSemanal = Math.round(numeroEntre(valor, 1, 7, "La meta"));
-    else if (clave === "foco") {
+    else if (clave === "barra") {   // (v166) lo que pesa tu barra, para la calculadora de discos
+        const kg = Number(valor);
+        if (!gym.BARRAS.includes(kg)) throw new Error("Esa barra no existe.");
+        estado.gym.barra = kg;
+    } else if (clave === "foco") {
         estado.gym.foco = Boolean(valor);
     } else if (clave === "mision") {
         const id = valor === "" || valor === null ? null : Number(valor);

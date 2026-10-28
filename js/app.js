@@ -88,6 +88,8 @@ export const ui = {
     diaSeleccionado: null,         // día tocado en el calendario
     diaVisto: "hoy",               // en la pantalla Hoy: "hoy" o "ayer" (por si olvidaste marcar algo)
     rangoResumen: 7,               // en Progreso: el resumen muestra los últimos 7 o 30 días
+    gymEjercicio: null,            // (v166) el ejercicio que se ve en la gráfica grande de Progreso (id) o null
+    discosKg: 0,                   // (v166) el peso que muestra la calculadora de discos
     aurelioEntra: false,           // (v165) true al empezar un entrenamiento: Aurelio llega caminando (lo gasta animarAurelio)
     fraseGym: null,                // (v76) lo último que te dijo Aurelio en el gimnasio: { tipo, texto } o null
     resumenGym: null,              // (v76) el entrenamiento que acabas de terminar (para mostrar su resumen)
@@ -541,6 +543,7 @@ export function contextoActual(efectos = {}) {
         terminando: runTerminando,
         resumenRun: runResumen,                             // (v148) la carrera recién guardada: su resumen arriba de «Correr»
         fraseGym: ui.fraseGym,
+        gymEjercicio: ui.gymEjercicio,
         resumenGym: ui.resumenGym,
         paginaLibro: ui.paginaLibro,
         problemaAvisos: ui.problemaAvisos,
@@ -851,6 +854,11 @@ function conectarEventos() {
         if (evento.target.matches?.("[data-gym-rutina-cambiar]")) {
             const d = evento.target.dataset;
             ejecutar(() => acciones.cambiarEjercicioDeRutina(estado, d.gymRutinaCambiar, d.ejercicio, evento.target.value), { mantenerScroll: true });
+            return;
+        }
+        if (evento.target.matches?.("[data-gym-grafica]")) {   // (v166) otro ejercicio en la gráfica grande
+            ui.gymEjercicio = evento.target.value;
+            dibujarPantalla({ mantenerScroll: true });
             return;
         }
         if (evento.target.matches?.("[data-gym-mision]")) {

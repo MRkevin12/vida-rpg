@@ -11886,6 +11886,33 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-reto.cobrado { border-color: var(--verde); background: rgba(52, 211, 153, 0.08); }
 .gym-reto-texto { margin: 2px 0 4px; font-weight: 600; }
 
+/* (v166) Calentar, cambiar y saltar ejercicios; calculadora de discos; corregir sesión; gráfica grande */
+.gym-foco-titulo-fila { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.gym-foco-titulo-fila > :first-child { min-width: 0; flex: 1 1 auto; }
+.gym-ej-botones { display: inline-flex; flex-wrap: wrap; gap: 4px; flex: 0 0 auto; }
+.gym-foco .gym-boton-icono { min-width: 40px; min-height: 40px; padding: 0; font-size: 1.05rem; }
+.gym-mas { flex-wrap: wrap; }
+.gym-serie-cal { opacity: 0.8; }
+.gym-serie-cal .gym-n { font-size: 1rem; }
+.gym-foco-mapa i.cal, .gym-pips i.cal { opacity: 0.45; }
+.gym-stepper { position: relative; }
+.gym-discos-boton { position: absolute; top: 0; right: 2px; min-width: 36px; min-height: 32px; padding: 0; font-size: 1rem; line-height: 1; background: transparent; border: 0; color: var(--texto-suave); cursor: pointer; }
+.gym-dialogo-lista { max-height: 52vh; overflow-y: auto; display: grid; gap: 6px; }
+.gym-corregir-nombre { margin: 8px 0 2px; font-size: 0.95rem; }
+.gym-corregir-fila { display: grid; grid-template-columns: 24px 1fr 1fr; gap: 8px; align-items: end; }
+.gym-corregir-fila label { display: grid; gap: 2px; }
+.gym-corregir-fila label span { font-size: 0.7rem; color: var(--texto-suave); }
+.gym-corregir-fila input { width: 100%; min-height: 44px; font-size: 16px; text-align: center; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+.gym-discos-total { margin: 0; font-size: 1.1rem; text-align: center; }
+.gym-discos-total b { font-family: var(--letra-titulo); font-size: 1.8rem; color: var(--gym-2); }
+.gym-discos-lista { text-align: center; margin: 4px 0; }
+.gym-barra { display: flex; align-items: center; gap: 3px; min-height: 84px; padding: 6px 10px; margin: 6px 0; background: #1b1534; box-shadow: inset 0 0 0 1px #3d3470; }
+.gym-barra-tubo { flex: 0 0 38px; height: 12px; background: linear-gradient(#cbd5e1, #64748b); }
+.gym-disco { flex: 0 0 auto; width: 11px; border: 1px solid rgba(0, 0, 0, 0.55); box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.28); }
+.gym-grafica { display: block; width: 100%; height: auto; margin: 8px 0; background: #0d0a1c; box-shadow: inset 0 0 0 1px #3d3470; }
+.gym-grafica text { fill: var(--texto-suave); font-size: 9px; font-family: inherit; }
+.gym-grafica .gym-grafica-titulo { fill: var(--gym-2); font-size: 10px; }
+
 /* (v165) Aurelio con vida: retrato que rebota, símbolo sobre la cabeza, texto que se escribe y figura en la escena del foco */
 .gym-aurelio-cabeza { position: relative; flex: 0 0 54px; width: 54px; animation: gym-aurelio-rebote 3.6s steps(1) infinite; }
 .gym-aurelio-cabeza .gym-aurelio-retrato { display: block; width: 100%; }

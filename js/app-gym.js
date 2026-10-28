@@ -8,7 +8,7 @@ import * as gym from "./gym.js";
 import { hoy, sumarDias } from "./fechas.js";
 import { estado, ui, subvista, ejecutar, dibujarPantalla, cambiarPantalla, $ } from "./app.js";
 import { sonar } from "./app-efectos.js";
-import { dialogoSeguirGym } from "./vistas-gym.js";
+import { dialogoSeguirGym, dialogoCambiarEjercicio, dialogoDiscos, dialogoCorregirSesion } from "./vistas-gym.js";
 import { esc } from "./vistas-comun.js";
 
 // (v164) Al abrir la app con un entrenamiento a medias: «¿Continuar el entrenamiento?».
@@ -79,6 +79,16 @@ export function animarAurelio() {
     }
 }
 
+// (v166) Los diálogos del gym (cambiar ejercicio, calculadora de discos y corregir una sesión) usan la ventana #dialogo-gym.
+function mostrarDialogoGym(html) {
+    const dialogo = $("#dialogo-gym");
+    if (!dialogo) return;
+    dialogo.innerHTML = html;
+    if (!dialogo.open) dialogo.showModal();
+}
+// Calculadora de discos: el peso que se está viendo (se cambia con los botones + y −).
+function mostrarDiscos() { mostrarDialogoGym(dialogoDiscos(estado, ui.discosKg || 0)); }
+
 export let gymVista = null;               // (v75) la vista previa del cuerpo en el gimnasio: { fisico, corp } o null
 
 // Los botones de este archivo (data-accion="…"). app.js los junta todos en ACCIONES.
@@ -124,7 +134,8 @@ export const ACCIONES_GYM = {
         const resultado = ejecutar(() => {
             const r = acciones.marcarSerieGym(estado, Number(boton.dataset.ej), Number(boton.dataset.serie));
             // Al terminar una serie empieza el descanso; al desmarcarla, se quita.
-            ui.descansoGym = r.hecha ? { fin: Date.now() + estado.gym.descanso * 1000, total: estado.gym.descanso * 1000 } : null;
+            const segundos = r.cal ? gym.DESCANSO_CALENTAMIENTO : estado.gym.descanso;   // (v166) tras calentar se descansa poco
+            ui.descansoGym = r.hecha ? { fin: Date.now() + segundos * 1000, total: segundos * 1000 } : null;
             if (r.frase) ui.fraseGym = r.frase;
             return r;
         }, { mantenerScroll: true });
@@ -134,6 +145,32 @@ export const ACCIONES_GYM = {
             if (resultado.frase?.tipo === "record") setTimeout(() => sonar("critico"), 250);
         }
     },
+    // (v166) Calentar, cambiar y saltar un ejercicio durante el entrenamiento.
+    "gym-calentar-ej": (boton) => ejecutar(() => acciones.agregarCalentamientoGym(estado, Number(boton.dataset.ej)), { mantenerScroll: true }),
+    "gym-calentar-quitar": (boton) => ejecutar(() => acciones.quitarCalentamientoGym(estado, Number(boton.dataset.ej)), { mantenerScroll: true }),
+    "gym-cambiar": (boton) => mostrarDialogoGym(dialogoCambiarEjercicio(estado, Number(boton.dataset.ej))),
+    "gym-cambiar-a": (boton) => {
+        if (!ejecutar(() => acciones.cambiarEjercicioEnCurso(estado, Number(boton.dataset.ej), boton.dataset.ejercicio), { mantenerScroll: true })) return;
+        $("#dialogo-gym")?.close();
+        sonar("cursor");
+    },
+    "gym-saltar": (boton) => {
+        if (!confirm("¿Saltar este ejercicio? No se guarda nada de él en este entrenamiento.")) return;
+        ejecutar(() => acciones.saltarEjercicioGym(estado, Number(boton.dataset.ej)), { mantenerScroll: true });
+    },
+    // (v166) La calculadora de discos.
+    "gym-discos": (boton) => {
+        const en = estado.gym.encurso;
+        const actual = en && gym.serieActual(en);
+        const kg = Number(boton.dataset.kg) || (actual ? en.ejercicios[actual.ejercicio].series[actual.serie].kg : 0) || 40;
+        ui.discosKg = kg;
+        mostrarDiscos();
+    },
+    "gym-discos-ajuste": (boton) => { ui.discosKg = Math.max(0, Math.min(gym.MAX_KG, Math.round(((ui.discosKg || 0) + Number(boton.dataset.delta)) * 100) / 100)); mostrarDiscos(); },
+    "gym-barra": (boton) => { if (ejecutar(() => acciones.cambiarAjusteGym(estado, "barra", boton.dataset.barra), { mantenerScroll: true })) mostrarDiscos(); },
+    // (v166) Corregir una sesión ya guardada.
+    "gym-editar": (boton) => mostrarDialogoGym(dialogoCorregirSesion(estado, Number(boton.dataset.indice))),
+    "gym-cerrar-dialogo": () => $("#dialogo-gym")?.close(),
     "gym-extra": (boton) => ejecutar(() => acciones.agregarEjercicioGym(estado, boton.dataset.ejercicio), { mantenerScroll: true }),
     // (v78) El modo foco: los botones + y − de peso y repeticiones, y pasar de la lista al modo foco.
     "gym-ajuste": (boton) => ejecutar(() => acciones.ajustarSerieGym(estado, Number(boton.dataset.ej), Number(boton.dataset.serie), boton.dataset.campo, Number(boton.dataset.delta)), { mantenerScroll: true }),
@@ -243,6 +280,20 @@ export const FORMULARIOS_GYM = {
         const ok = ejecutar(() => acciones.anotarMetaPesoGym(estado, valores.kg), { mantenerScroll: true });
         if (ok) formulario.reset();
         return ok;
+    },
+    // (v166) Corregir el peso y las repeticiones de una sesión guardada: los campos se llaman k-<ejercicio>-<serie> y r-<ejercicio>-<serie>.
+    "gym-corregir"(valores) {
+        const cambios = [];
+        for (const [nombre, valor] of Object.entries(valores)) {
+            const [, campo, ei, si] = /^([kr])-(\d+)-(\d+)$/.exec(nombre) ? [0, ...nombre.split("-")] : [];
+            if (!campo) continue;
+            let c = cambios.find((x) => x.ejercicio === Number(ei) && x.serie === Number(si));
+            if (!c) { c = { ejercicio: Number(ei), serie: Number(si) }; cambios.push(c); }
+            c[campo === "k" ? "kg" : "reps"] = valor;
+        }
+        const r = ejecutar(() => acciones.corregirSesionGym(estado, Number(valores.indice), cambios), { mantenerScroll: true });
+        if (r) sonar("completar");
+        return Boolean(r);
     },
     // (v164) La línea de molestias o dolor de la sesión que acabas de terminar.
     "gym-nota"(valores) {

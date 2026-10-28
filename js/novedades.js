@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 165;
+export const VERSION_APP = 166;
 
 export const NOVEDADES = [
+    {
+        version: 166,
+        titulo: "Un entrenamiento más flexible",
+        cambios: [
+            "🔄 ¿La máquina está ocupada? Cambia un ejercicio por otro (del mismo músculo primero) o sáltalo. El entrenamiento sigue contando como completo.",
+            "🔥 Series de calentamiento por ejercicio: ligeras (50 %, 70 % y 85 % de tu peso), con descanso corto. No dan XP ni cuentan para récords ni kilos.",
+            "✏️ Corrige una sesión ya guardada (peso y repeticiones) desde Progreso: el XP, las monedas y los récords se recalculan.",
+            "🧮 Calculadora de discos: qué poner a cada lado de la barra para llegar a tu peso (barra de 10, 15 o 20 kg).",
+            "📈 Gráfica grande por ejercicio en Progreso: tu 1RM y tu volumen sesión a sesión.",
+        ],
+    },
     {
         version: 165,
         titulo: "Aurelio cobra vida en el gym",

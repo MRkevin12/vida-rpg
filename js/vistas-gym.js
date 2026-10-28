@@ -123,6 +123,7 @@ export function pantallaGym(estado, ctx) {
             ${tarjetaMapaCuerpo(estado, ctx)}
             ${tarjetaMusculos(estado)}
             ${tarjetaSalonRecords(estado)}
+            ${tarjetaGraficaEjercicio(estado, ctx)}
             ${tarjetaDiarioGym(estado)}
             ${tarjetaHitos(estado)}
             ${tarjetaHistorial(estado)}
@@ -302,7 +303,7 @@ export const pantallaCompletaGym = (estado) => Boolean(estado.gym?.encurso && es
 // (parpadea) y las que faltan. Cada grupo ocupa lo que sus series (style="flex: n").
 function mapaDeSeries(en, actual) {
     const grupos = en.ejercicios.map((ej, ei) => `<li style="flex: ${ej.series.length}">${ej.series.map((s, si) =>
-        `<i class="${s.hecha ? "hecha" : ""}${actual && actual.ejercicio === ei && actual.serie === si ? " ahora" : ""}"></i>`).join("")}</li>`).join("");
+        `<i class="${s.hecha ? "hecha" : ""}${s.cal ? " cal" : ""}${actual && actual.ejercicio === ei && actual.serie === si ? " ahora" : ""}"></i>`).join("")}</li>`).join("");
     return `<ol class="gym-foco-mapa" aria-hidden="true">${grupos}</ol>`;
 }
 
@@ -314,7 +315,7 @@ function vistaDeFoco(estado, ctx) {
     const g = estado.gym;
     const en = g.encurso;
     const rutina = gym.rutinaPorId(en.rutina);
-    const total = en.ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
+    const total = gym.seriesTotales(en);
     const hechas = gym.seriesMarcadas(en);
     const actual = gym.serieActual(en);
     const descansando = ctx.descanso && ctx.descanso.fin > ctx.ahora;
@@ -365,6 +366,10 @@ function vistaDeFoco(estado, ctx) {
     const ej = en.ejercicios[actual.ejercicio];
     const s = ej.series[actual.serie];
     const info = gym.ejercicioPorId(ej.id);
+    // (v166) ¿Esta serie es de calentamiento? ¿Cuál es la serie de trabajo que toca? ¿Aún se puede cambiar, saltar o calentar este ejercicio?
+    const esCal = Boolean(s.cal);
+    const nTrabajo = ej.series.slice(0, actual.serie).filter((x) => !x.cal).length + 1;
+    const sinEmpezar = !ej.series.some((x) => x.hecha);
     const musculo = gym.MUSCULOS[info.musculo];
     const movimiento = gym.movimientoDe(ej.id);
     const antes = gym.ultimaVez(g.sesiones, ej.id);
@@ -373,13 +378,16 @@ function vistaDeFoco(estado, ctx) {
     const stepper = (campo, etiqueta, valor, paso, unidad) => `
         <div class="gym-stepper">
             <span class="gym-stepper-nombre">${etiqueta}</span>
+            ${campo === "kg" ? `<button type="button" class="gym-discos-boton" data-accion="gym-discos" data-kg="${valor}" aria-label="Calculadora de discos">🧮</button>` : ""}
             <button type="button" class="gym-mas-menos" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="${campo}" data-delta="${-paso}" aria-label="Menos ${etiqueta}">−</button>
             <b class="gym-stepper-valor">${String(valor).replace(".", ",")}<small>${unidad}</small></b>
             <button type="button" class="gym-mas-menos" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="${campo}" data-delta="${paso}" aria-label="Más ${etiqueta}">+</button>
         </div>`;
-    const siguiente = `<p class="gym-foco-serie">Serie <b>${actual.serie + 1}</b> de ${ej.series.length} · ${info.min}–${info.max} reps</p>`;
+    const siguiente = esCal
+        ? '<p class="gym-foco-serie">🔥 <b>Calentamiento</b> · ligero</p>'
+        : `<p class="gym-foco-serie">Serie <b>${nTrabajo}</b> de ${gym.seriesDeTrabajo(ej).length} · ${info.min}–${info.max} reps</p>`;
     // (v158) Las series de este ejercicio en cuadritos: hechas, la de ahora y las que faltan.
-    const pips = `<span class="gym-pips" aria-hidden="true">${ej.series.map((x, si) => `<i class="${x.hecha ? "hecha" : si === actual.serie ? "ahora" : ""}"></i>`).join("")}</span>`;
+    const pips = `<span class="gym-pips" aria-hidden="true">${ej.series.map((x, si) => `<i class="${x.hecha ? "hecha" : si === actual.serie ? "ahora" : ""}${x.cal ? " cal" : ""}"></i>`).join("")}</span>`;
     // (v156) De la última vez, solo la mejor serie (la de más peso) para que quepa en una línea.
     const mejorAntes = antes?.series.reduce((m, x) => (x.kg > m.kg || (x.kg === m.kg && x.reps > m.reps) ? x : m));
     const ultima = mejorAntes ? `<p class="gym-foco-chip gym-antes">Última vez: ${mejorAntes.kg ? `${kilos(mejorAntes.kg)}×${mejorAntes.reps}` : `${mejorAntes.reps} reps`}</p>` : "";
@@ -414,7 +422,7 @@ function vistaDeFoco(estado, ctx) {
         ? `<p class="gym-foco-siguiente">Sigue: <b>${esc(info.nombre)}</b></p>`
         : `<h3 class="gym-foco-nombre">${esc(info.nombre)}</h3>`;
     // (v164) La pista de hoy (lo de la última vez ya está en la ficha de arriba). Si propone otro peso, un botón lo pone.
-    const pistaHtml = pista.motivo && pista.kg !== s.kg && (pista.tipo === "bajar" ? pista.kg < s.kg : pista.kg > s.kg)
+    const pistaHtml = esCal ? '<p class="mini gym-pista">🔥 Calentamiento: peso ligero, sin llegar al límite. No cuenta para récords ni para el XP.</p>' : pista.motivo && pista.kg !== s.kg && (pista.tipo === "bajar" ? pista.kg < s.kg : pista.kg > s.kg)
         ? `<button type="button" class="boton boton-chico boton-secundario boton-ancho gym-subir" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="kg" data-delta="${Math.round((pista.kg - s.kg) * 100) / 100}" title="${esc(pista.texto)}">${pista.kg > s.kg ? "⬆️" : "⬇️"} ${pista.motivo}: ${pista.kg > s.kg ? "subir" : "bajar"} a ${kilos(pista.kg)}</button>`
         : `<p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${esc(pista.hoy)}</p>`;
     return `
@@ -422,7 +430,7 @@ function vistaDeFoco(estado, ctx) {
             ${cabecera}
             <div class="gym-foco-escenario">${escena}${figuraDeAurelio(ctx, descansando)}</div>
             <div class="gym-foco-titulo">
-                ${titulo}
+                <div class="gym-foco-titulo-fila">${titulo}${sinEmpezar ? botonesDeEjercicio(actual.ejercicio, ej, false) : ""}</div>
                 <div class="gym-foco-serie-fila">${siguiente}${pips}</div>
             </div>
             ${descansando ? preguntaRir(en) : pistaHtml}
@@ -433,7 +441,7 @@ function vistaDeFoco(estado, ctx) {
             ${descansando ? `
             <div class="gym-foco-accion">
                 <button type="button" class="boton boton-secundario" data-accion="gym-descanso-mas" data-segundos="-15">− 15 s</button>
-                <button type="button" class="boton boton-principal gym-foco-grande" data-accion="gym-saltar-descanso">▶️ Empezar serie ${actual.serie + 1}</button>
+                <button type="button" class="boton boton-principal gym-foco-grande" data-accion="gym-saltar-descanso">${esCal ? "▶️ Empezar calentamiento" : `▶️ Empezar serie ${nTrabajo}`}</button>
                 <button type="button" class="boton boton-secundario" data-accion="gym-descanso-mas" data-segundos="15">+ 15 s</button>
             </div>` : `
             <div class="gym-foco-accion gym-foco-accion-serie">
@@ -451,7 +459,7 @@ function vistaDeLista(estado, ctx) {
     const en = g.encurso;
     const rutina = gym.rutinaPorId(en.rutina);
     const hechas = gym.seriesMarcadas(en);
-    const total = en.ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
+    const total = gym.seriesTotales(en);
     const mejores = gym.mejoresDe(g.sesiones);
     const ayer = en.fecha !== ctx.hoy;
     const kilosMovidos = gym.volumenMarcado(en);
@@ -468,13 +476,13 @@ function vistaDeLista(estado, ctx) {
         const atascado = gym.estancamiento(g.sesiones, ej.id);   // (v164)
         const musculo = gym.MUSCULOS[info.musculo];
         const series = ej.series.map((s, si) => `
-            <div class="gym-serie ${s.hecha ? "hecha" : ""}">
-                <span class="gym-n">${si + 1}</span>
+            <div class="gym-serie ${s.hecha ? "hecha" : ""} ${s.cal ? "gym-serie-cal" : ""}">
+                <span class="gym-n">${s.cal ? "🔥" : ej.series.slice(0, si).filter((x) => !x.cal).length + 1}</span>
                 <label><span>kg</span><input type="text" inputmode="decimal" value="${String(s.kg).replace(".", ",")}"
                     data-gym="kg" data-ej="${ei}" data-serie="${si}" aria-label="Peso de la serie ${si + 1}"></label>
                 <label><span>reps</span><input type="number" inputmode="numeric" step="1" min="0" max="${gym.MAX_REPS}" value="${s.reps}"
                     data-gym="reps" data-ej="${ei}" data-serie="${si}" aria-label="Repeticiones de la serie ${si + 1}"></label>
-                <label><span>RIR</span><select data-gym="rir" data-ej="${ei}" data-serie="${si}" aria-label="Repeticiones en reserva de la serie ${si + 1} (opcional)">
+                ${s.cal ? "<span></span>" : ""}<label ${s.cal ? "hidden" : ""}><span>RIR</span><select data-gym="rir" data-ej="${ei}" data-serie="${si}" aria-label="Repeticiones en reserva de la serie ${si + 1} (opcional)">
                     <option value="">–</option>${gym.RIR_OPCIONES.map((n) => `<option value="${n}" ${s.rir === n ? "selected" : ""}>${n === gym.MAX_RIR ? "4+" : n}</option>`).join("")}
                 </select></label>
                 <button type="button" class="gym-ok" data-accion="gym-serie" data-ej="${ei}" data-serie="${si}" aria-pressed="${s.hecha}"
@@ -497,7 +505,8 @@ function vistaDeLista(estado, ctx) {
                 ${series}
                 <div class="gym-mas">
                     <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-serie-mas" data-ej="${ei}">+ serie</button>
-                    <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-serie-menos" data-ej="${ei}" ${ej.series.length <= 1 ? "disabled" : ""}>− serie</button>
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-serie-menos" data-ej="${ei}" ${gym.seriesDeTrabajo(ej).length <= 1 ? "disabled" : ""}>− serie</button>
+                    ${ej.series.some((x) => x.hecha) ? "" : botonesDeEjercicio(ei, ej, true)}
                 </div>
             </article>`;
     }).join("");
@@ -527,6 +536,7 @@ function vistaDeLista(estado, ctx) {
             <button type="button" class="boton boton-chico ${en.calentado ? "boton-principal" : "boton-secundario"} gym-calentar" data-accion="gym-calentar" aria-pressed="${Boolean(en.calentado)}">
                 ${en.calentado ? "✅ Calentamiento hecho (+" + gym.XP_CALENTAMIENTO + " XP)" : "🔥 Marcar calentamiento (+" + gym.XP_CALENTAMIENTO + " XP)"}</button>
             <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-foco" data-valor="1">🎯 Pasar al modo foco (una serie a la vez)</button>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-discos" data-kg="">🧮 Calculadora de discos</button>
             ${descanso}
             ${burbujaDeAurelio(ctx)}
             ${ejercicios}
@@ -548,6 +558,100 @@ function preguntaRir(en) {
                 <span>¿Cuántas más podías? <small>(opcional)</small></span>
                 <span class="gym-rir-botones">${botones}</span>
             </div>`;
+}
+
+// ===== (v166) Calentar, cambiar y saltar un ejercicio; la calculadora de discos y corregir una sesión =====
+
+// Los botones de un ejercicio que aún no empiezas: una serie de calentamiento (+ quitarla), cambiarlo y saltarlo.
+// conTexto: en la lista llevan nombre; en el modo foco solo el ícono (no hay espacio).
+function botonesDeEjercicio(indice, ej, conTexto) {
+    const caliente = (ej.series.filter((x) => x.cal).length);
+    const sobra = ej.series.some((x) => x.cal && !x.hecha);
+    const boton = (accion, icono, texto, etiqueta, desactivado = false) => `<button type="button" class="boton boton-chico boton-secundario ${conTexto ? "" : "gym-boton-icono"}" data-accion="${accion}" data-ej="${indice}" aria-label="${etiqueta}" ${desactivado ? "disabled" : ""}>${icono}${conTexto ? ` ${texto}` : ""}</button>`;
+    return `<span class="gym-ej-botones">
+        ${boton("gym-calentar-ej", "🔥", "+ calentamiento", "Agregar una serie de calentamiento", caliente >= gym.MAX_CALENTAMIENTOS)}
+        ${sobra ? boton("gym-calentar-quitar", "↩️", "quitar calentamiento", "Quitar una serie de calentamiento") : ""}
+        ${boton("gym-cambiar", "🔄", "cambiar", "Cambiar este ejercicio por otro")}
+        ${boton("gym-saltar", "⏭️", "saltar", "Saltar este ejercicio")}
+    </span>`;
+}
+
+// «La máquina está ocupada»: elegir otro ejercicio (los del mismo músculo primero).
+export function dialogoCambiarEjercicio(estado, indice) {
+    const en = estado.gym.encurso;
+    const info = gym.ejercicioPorId(en.ejercicios[indice].id);
+    const usados = en.ejercicios.map((x) => x.id);
+    const orden = [info.musculo, ...Object.keys(gym.MUSCULOS).filter((m) => m !== info.musculo)];
+    const grupos = orden.map((m) => {
+        const lista = gym.CATALOGO.filter((x) => x.musculo === m && !usados.includes(x.id));
+        if (!lista.length) return "";
+        return `<p class="mini texto-suave">${gym.MUSCULOS[m].icono} ${gym.MUSCULOS[m].nombre}${m === info.musculo ? " · el mismo músculo" : ""}</p>
+                <div class="gym-extras">${lista.map((x) => `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-cambiar-a" data-ej="${indice}" data-ejercicio="${x.id}">${esc(x.nombre)}</button>`).join("")}</div>`;
+    }).join("");
+    return `
+        <div class="formulario">
+            <h2 class="titulo-juego">🔄 Cambiar ejercicio</h2>
+            <p class="nota">Cambia <b>${esc(info.nombre)}</b> por otro solo en este entrenamiento. Tus rutinas no se tocan.</p>
+            <div class="gym-dialogo-lista">${grupos}</div>
+            <div class="botones-dialogo"><button type="button" class="boton boton-secundario" data-accion="gym-cerrar-dialogo">Cancelar</button></div>
+        </div>`;
+}
+
+// La calculadora de discos: la barra y los discos de cada lado para llegar a ese peso.
+const COLOR_DE_DISCO = { 25: "#ef4444", 20: "#3b82f6", 15: "#eab308", 10: "#22c55e", 5: "#e5e7eb", 2.5: "#a78bfa", 1.25: "#94a3b8" };
+const ALTO_DE_DISCO = { 25: 74, 20: 66, 15: 58, 10: 48, 5: 38, 2.5: 30, 1.25: 24 };
+export function dialogoDiscos(estado, kg) {
+    const barra = estado.gym.barra || 20;
+    const r = gym.discosPara(kg, barra);
+    const discos = r.porLado.flatMap((d) => Array.from({ length: d.n }, () => d.kg));
+    const dibujo = `<div class="gym-barra" role="img" aria-label="Discos de cada lado">
+            <span class="gym-barra-tubo"></span>
+            ${discos.map((d) => `<i class="gym-disco" style="height: ${ALTO_DE_DISCO[d] || 30}px; background: ${COLOR_DE_DISCO[d] || "#94a3b8"}" title="${kilos(d)}"></i>`).join("")}
+        </div>`;
+    const texto = r.pocoPeso ? `<p class="nota">Ese peso es menos que la barra sola (${kilos(barra)}).</p>`
+        : !r.porLado.length ? `<p class="nota">Solo la barra (${kilos(barra)}).</p>`
+        : `<p class="gym-discos-lista">Por lado: <b>${r.porLado.map((d) => `${d.n > 1 ? `${d.n} × ` : ""}${kilos(d.kg)}`).join(" + ")}</b></p>`;
+    const aviso = r.falta > 0 ? `<p class="nota gym-pista-estancado">Con discos de 1,25 kg o más no se forma justo: quedan ${kilos(r.falta)} sin poner.</p>` : "";
+    const barras = gym.BARRAS.map((b) => `<button type="button" class="boton boton-chico ${b === barra ? "boton-principal" : "boton-secundario"}" data-accion="gym-barra" data-barra="${b}" aria-pressed="${b === barra}">${b} kg</button>`).join("");
+    const ajuste = (delta) => `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-discos-ajuste" data-delta="${delta}">${delta > 0 ? "+" : "−"} ${String(Math.abs(delta)).replace(".", ",")}</button>`;
+    return `
+        <div class="formulario">
+            <h2 class="titulo-juego">🧮 Calculadora de discos</h2>
+            <p class="gym-discos-total"><b>${kilos(kg)}</b> en total</p>
+            <div class="gym-vista-botones">${[-10, -2.5, 2.5, 10].map(ajuste).join("")}</div>
+            ${dibujo}
+            ${texto}${aviso}
+            <p class="mini texto-suave">Tu barra pesa:</p>
+            <div class="gym-vista-botones">${barras}</div>
+            <div class="botones-dialogo"><button type="button" class="boton boton-principal" data-accion="gym-cerrar-dialogo">Listo</button></div>
+        </div>`;
+}
+
+// Corregir el peso y las repeticiones de una sesión ya guardada.
+export function dialogoCorregirSesion(estado, indice) {
+    const sesion = estado.gym.sesiones[indice];
+    const rutina = gym.rutinaPorId(sesion.rutina);
+    const ejercicios = sesion.ejercicios.map((ej, ei) => {
+        const info = gym.ejercicioPorId(ej.id);
+        const filas = ej.series.map((x, si) => `
+            <div class="gym-corregir-fila">
+                <span class="gym-n">${si + 1}</span>
+                <label><span>kg</span><input type="text" inputmode="decimal" name="k-${ei}-${si}" value="${String(x.kg).replace(".", ",")}" aria-label="Peso de la serie ${si + 1}"></label>
+                <label><span>reps</span><input type="number" inputmode="numeric" step="1" min="1" max="${gym.MAX_REPS}" name="r-${ei}-${si}" value="${x.reps}" aria-label="Repeticiones de la serie ${si + 1}"></label>
+            </div>`).join("");
+        return `<h3 class="gym-corregir-nombre">${esc(info?.nombre || ej.id)}</h3>${filas}`;
+    }).join("");
+    return `
+        <form data-form="gym-corregir" class="formulario">
+            <h2 class="titulo-juego">✏️ Corregir sesión</h2>
+            <p class="nota">${rutina?.icono || "🏋️"} ${esc(rutina?.nombre || "")} · ${fechaCorta(sesion.fecha)}. Al guardar se recalculan el XP, las monedas y los récords de esta sesión.</p>
+            <input type="hidden" name="indice" value="${indice}">
+            <div class="gym-dialogo-lista">${ejercicios}</div>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="gym-cerrar-dialogo">Cancelar</button>
+                <button type="submit" class="boton boton-principal">Guardar</button>
+            </div>
+        </form>`;
 }
 
 // (v165) El símbolo que Aurelio lleva sobre la cabeza según lo que acaba de pasar (sin símbolo = una serie cualquiera).
@@ -843,6 +947,75 @@ function tarjetaSalonRecords(estado) {
         </section>`;
 }
 
+// ===== (v166) La gráfica grande de un ejercicio: tu 1RM y tu volumen, sesión a sesión =====
+// Arriba, la línea del 1RM estimado (o de las repeticiones, si no hay peso); abajo, barras del volumen (kg × reps).
+// Los puntos de una semana de descarga van en azul.
+function graficaGrande(puntos) {
+    const ancho = 320;
+    const alto = 200;
+    const izq = 36;
+    const der = 10;
+    const lista = puntos.slice(-20);
+    const n = lista.length;
+    const x = (i) => Math.round(izq + (n === 1 ? (ancho - izq - der) / 2 : (i / (n - 1)) * (ancho - izq - der)));
+    const valores = lista.map((p) => p.puntaje);
+    const min = Math.min(...valores);
+    const max = Math.max(...valores);
+    const y = (v) => Math.round(98 - ((v - min) / (max - min || 1)) * 70);   // la línea vive entre y = 28 y y = 98
+    const volMax = Math.max(...lista.map((p) => p.volumen), 1);
+    const linea = lista.map((p, i) => `${x(i)},${y(p.puntaje)}`).join(" ");
+    const ancho1 = Math.max(4, Math.min(16, Math.floor((ancho - izq - der) / n) - 3));
+    const barras = lista.map((p, i) => {
+        const h = Math.max(2, Math.round((p.volumen / volMax) * 52));
+        return `<rect x="${x(i) - Math.floor(ancho1 / 2)}" y="${176 - h}" width="${ancho1}" height="${h}" fill="${p.descarga ? "#38bdf8" : "#a78bfa"}"><title>${fechaCorta(p.fecha)}: ${p.volumen.toLocaleString("es")} kg</title></rect>`;
+    }).join("");
+    const cuadros = lista.map((p, i) => `<rect x="${x(i) - 2.5}" y="${y(p.puntaje) - 2.5}" width="5" height="5" fill="${p.descarga ? "#38bdf8" : "#fbbf24"}" stroke="#06040d" stroke-width="1"><title>${fechaCorta(p.fecha)}: ${p.puntaje}</title></rect>`).join("");
+    const redondo = (v) => String(Math.round(v * 10) / 10).replace(".", ",");
+    return `<svg class="gym-grafica" viewBox="0 0 ${ancho} ${alto}" role="img" aria-label="Tu 1RM y tu volumen en este ejercicio" shape-rendering="crispEdges">
+        <text x="2" y="12" class="gym-grafica-titulo">1RM estimado</text>
+        <path d="M${izq} 28h${ancho - izq - der}M${izq} 63h${ancho - izq - der}M${izq} 98h${ancho - izq - der}" stroke="rgba(255,255,255,.12)" stroke-width="1" stroke-dasharray="2 2"/>
+        <text x="${izq - 4}" y="31" text-anchor="end">${redondo(max)}</text>
+        <text x="${izq - 4}" y="101" text-anchor="end">${redondo(min)}</text>
+        ${n > 1 ? `<polyline points="${linea}" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linejoin="miter"/>` : ""}
+        ${cuadros}
+        <text x="2" y="122" class="gym-grafica-titulo">Volumen (kg × reps)</text>
+        <path d="M${izq} 176h${ancho - izq - der}" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+        <text x="${izq - 4}" y="132" text-anchor="end">${volMax.toLocaleString("es")}</text>
+        ${barras}
+        <text x="${izq}" y="194">${fechaCorta(lista[0].fecha)}</text>
+        ${n > 1 ? `<text x="${ancho - der}" y="194" text-anchor="end">${fechaCorta(lista[n - 1].fecha)}</text>` : ""}
+    </svg>`;
+}
+
+function tarjetaGraficaEjercicio(estado, ctx) {
+    const sesiones = estado.gym.sesiones;
+    const ids = gym.ejerciciosConHistorial(sesiones);
+    if (!ids.length) return "";
+    const id = ids.includes(ctx.gymEjercicio) ? ctx.gymEjercicio : ids[0];
+    const puntos = gym.progresoDe(sesiones, id);
+    const ej = gym.ejercicioPorId(id);
+    const conPeso = puntos.some((p) => p.kg > 0);
+    const primero = puntos[0];
+    const mejor = puntos.reduce((m, p) => (p.puntaje > m.puntaje ? p : m));
+    const cambio = puntos.length > 1 && primero.puntaje > 0 ? Math.round(((puntos[puntos.length - 1].puntaje - primero.puntaje) / primero.puntaje) * 100) : null;
+    const volumenTotal = puntos.reduce((suma, p) => suma + p.volumen, 0);
+    const opciones = ids.map((x) => `<option value="${x}" ${x === id ? "selected" : ""}>${esc(gym.ejercicioPorId(x).nombre)}</option>`).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">📈 Gráfica por ejercicio</h2>
+            <label class="campo-gym"><span class="nota">Elige un ejercicio:</span>
+                <select data-gym-grafica aria-label="Ejercicio de la gráfica">${opciones}</select></label>
+            ${graficaGrande(puntos)}
+            <ul class="gym-chips">
+                <li>🏆 <b>${conPeso ? kilos(mejor.puntaje) : `${mejor.puntaje} reps`}</b> ${conPeso ? "1RM" : "mejor"}</li>
+                <li>📅 <b>${puntos.length}</b> ${puntos.length === 1 ? "sesión" : "sesiones"}</li>
+                ${cambio !== null ? `<li>${cambio >= 0 ? "📈" : "📉"} <b>${cambio > 0 ? "+" : ""}${cambio}</b> % desde el inicio</li>` : ""}
+                <li>🏋️ <b>${volumenTotal.toLocaleString("es")}</b> ${conPeso ? "kg movidos" : "reps"}</li>
+            </ul>
+            <p class="mini texto-suave">${esc(ej.nombre)}. El 1RM es el peso máximo que podrías levantar una vez (se estima con tu mejor serie). Los puntos azules son semanas de descarga.</p>
+        </section>`;
+}
+
 // ===== (v164) El diario del gym: tus notas (sueño y molestias) y los patrones que se ven en ellas =====
 function tarjetaDiarioGym(estado) {
     const sesiones = estado.gym.sesiones;
@@ -868,7 +1041,7 @@ function tarjetaDiarioGym(estado) {
 export function dialogoSeguirGym(estado, hoyTexto) {
     const en = estado.gym.encurso;
     const r = gym.rutinaPorId(en.rutina);
-    const total = en.ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
+    const total = gym.seriesTotales(en);
     const cuando = en.fecha === hoyTexto ? "de hoy" : `del ${fechaCorta(en.fecha)}`;
     return `
         <div class="formulario">
@@ -1061,6 +1234,7 @@ function tarjetaHistorial(estado) {
         return `<li class="gym-historial">
                     <span><b>${r.icono} ${esc(r.nombre)}</b>
                         <small class="texto-suave">${fechaCorta(s.fecha)} · ${s.rapido ? "✅ marcado" : plural(series, "serie", "series")}${volumen ? ` · ${volumen.toLocaleString("es")} kg` : ""} · +${s.xp} XP${s.records.length ? ` · 📈 ${plural(s.records.length, "récord", "récords")}` : ""}</small></span>
+                    ${s.rapido || !series ? "" : `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-editar" data-indice="${i}" aria-label="Corregir esta sesión">✏️</button>`}
                     <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-borrar" data-indice="${i}" aria-label="Borrar esta sesión">🗑️</button>
                 </li>`;
     }).join("");

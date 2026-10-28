@@ -229,6 +229,7 @@ export function gymInicial() {
         medidas: [],         // (v82) [{ fecha, pecho, brazo, cintura, muslo }] en centímetros (una por día; los que no anotes quedan vacíos)
         mision: null,        // la misión diaria que se marca sola al terminar un entrenamiento (id), o null
         retosCobrados: [],   // (v79) los lunes de las semanas cuyo reto ya cobraste
+        barra: 20,           // (v166) lo que pesa la barra de tu gimnasio, para la calculadora de discos (10, 15 o 20 kg)
         descargas: [],       // (v164) tus semanas de descarga: [{ lunes, cobrada }] (cobrada = ya te dio el premio por descansar bien)
         rutinas: {},         // (v160) tus rutinas editadas: { rutinaId: [{ id, series }] }; las que no están usan las de fábrica
         foco: true,          // (v78) el entrenamiento se ve en «modo foco»: una serie a la vez, con letras grandes
@@ -367,8 +368,16 @@ export function ejercicioDelEntrenamiento(ej, sesiones) {
 }
 
 // Los kilos que llevas movidos en este entrenamiento (solo las series ya marcadas).
+export const MAX_CALENTAMIENTOS = 3;
+export const DESCANSO_CALENTAMIENTO = 30;   // segundos de descanso tras una serie de calentamiento
+export const PORCENTAJES_CALENTAMIENTO = [0.5, 0.7, 0.85];   // del peso de trabajo: la 1.ª, la 2.ª y la 3.ª serie de calentamiento
+export const REPS_CALENTAMIENTO = 8;
+// (v166) Las series de calentamiento (cal: true) no cuentan: ni kilos, ni series, ni récords.
 export const volumenMarcado = (entrenamiento) =>
-    Math.round(entrenamiento.ejercicios.reduce((suma, ej) => suma + ej.series.filter((s) => s.hecha).reduce((t, s) => t + s.kg * s.reps, 0), 0));
+    Math.round(entrenamiento.ejercicios.reduce((suma, ej) => suma + ej.series.filter((s) => s.hecha && !s.cal).reduce((t, s) => t + s.kg * s.reps, 0), 0));
+// Las series de trabajo de un ejercicio (sin las de calentamiento) y todas las del entrenamiento.
+export const seriesDeTrabajo = (ej) => ej.series.filter((s) => !s.cal);
+export const seriesTotales = (entrenamiento) => entrenamiento.ejercicios.reduce((suma, ej) => suma + seriesDeTrabajo(ej).length, 0);
 
 // La serie que toca ahora: la primera sin marcar. { ejercicio, serie } o null si ya está todo hecho.
 export function serieActual(entrenamiento) {
@@ -380,10 +389,12 @@ export function serieActual(entrenamiento) {
 }
 
 export const seriesMarcadas = (entrenamiento) =>
-    entrenamiento.ejercicios.reduce((suma, ej) => suma + ej.series.filter((s) => s.hecha).length, 0);
+    entrenamiento.ejercicios.reduce((suma, ej) => suma + ej.series.filter((s) => s.hecha && !s.cal).length, 0);
 
 // (v164) Las series que planea este entrenamiento: las de la rutina, o menos si es semana de descarga.
+// (v166) Si cambiaste o saltaste ejercicios, `plan` guarda las series que de verdad ibas a hacer.
 export function seriesPlaneadasDe(entrenamiento) {
+    if (Number.isFinite(entrenamiento.plan)) return Math.max(1, entrenamiento.plan);
     const rutina = rutinaPorId(entrenamiento.rutina);
     return entrenamiento.descarga ? rutina.ejercicios.reduce((suma, x) => suma + seriesDeDescarga(x.series), 0) : seriesPlaneadas(rutina);
 }
@@ -391,21 +402,19 @@ export function seriesPlaneadasDe(entrenamiento) {
 // Una serie tal como se guarda: peso y repeticiones, y el RIR solo si lo anotaste.
 const serieGuardada = (s) => (Number.isFinite(s.rir) ? { kg: s.kg, reps: s.reps, rir: s.rir } : { kg: s.kg, reps: s.reps });
 
-// Convierte el entrenamiento en una sesión guardada, con su premio y sus récords nuevos.
-export function cerrarEntrenamiento(entrenamiento, sesiones, ahora = Date.now()) {
-    const ejercicios = entrenamiento.ejercicios
-        .map((ej) => ({ id: ej.id, series: ej.series.filter((s) => s.hecha).map(serieGuardada) }))
-        .filter((ej) => ej.series.length);
+// (v166) Arma una sesión guardada (con su XP, monedas y récords) a partir de las series que SÍ se hicieron.
+// Sirve para terminar un entrenamiento y también para corregir una sesión vieja: `anteriores` son las sesiones previas
+// (contra ellas se miden los récords).
+export function armarSesion({ ejercicios, fecha, rutina, calentado = false, minutos = 1, descarga = false, planeadas }, anteriores) {
     const hechas = ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
     if (!hechas) throw new Error("Marca al menos una serie hecha antes de terminar.");
-    const planeadas = seriesPlaneadasDe(entrenamiento);
     const completa = hechas >= Math.ceil(planeadas * 0.8);
     // Récords: mejor que TODO lo anterior (en esta misma sesión cuenta una vez por ejercicio).
     // (v164) De dos clases: el 1RM estimado (o las repeticiones, sin peso) y el peso más alto que has movido.
-    const antes = mejoresDe(sesiones);
-    const pesosAntes = pesosMaximos(sesiones);
-    const previos = recordsPorEjercicio(sesiones);
-    const nuevos = mejoresDe([{ ejercicios, fecha: entrenamiento.fecha }]);
+    const antes = mejoresDe(anteriores);
+    const pesosAntes = pesosMaximos(anteriores);
+    const previos = recordsPorEjercicio(anteriores);
+    const nuevos = mejoresDe([{ ejercicios, fecha }]);
     const pesosHoy = pesosMaximos([{ ejercicios }]);
     const records = [];
     for (const [id, m] of Object.entries(nuevos)) {
@@ -415,12 +424,34 @@ export function cerrarEntrenamiento(entrenamiento, sesiones, ahora = Date.now())
         if (pesosAntes[id] > 0 && pesosHoy[id] > pesosAntes[id]) tipos.push("peso");
         if (tipos.length) records.push({ id, puntaje: m.puntaje, tipos, nivel: nivelDeRecord(previos[id] || 0) });
     }
-    const calentado = Boolean(entrenamiento.calentado);
     const xp = hechas * XP_POR_SERIE + (completa ? XP_SESION_COMPLETA : 0) + Math.min(records.length, MAX_RECORDS_PREMIADOS) * XP_RECORD + (calentado ? XP_CALENTAMIENTO : 0);
-    const minutos = Math.max(1, Math.min(240, Math.round((ahora - (entrenamiento.inicio || ahora)) / 60000)));
     const monedas = (hechas * 2 >= planeadas ? MONEDAS_SESION : 0) + records.reduce((suma, r) => suma + monedasDeRecord(r.nivel), 0);
-    return { fecha: entrenamiento.fecha, rutina: entrenamiento.rutina, ejercicios, xp, monedas, gemas: 0, completa, records, calentado, minutos,
-             ...(entrenamiento.descarga ? { descarga: true } : {}) };
+    return { fecha, rutina, ejercicios, xp, monedas, gemas: 0, completa, records, calentado, minutos, planeadas, ...(descarga ? { descarga: true } : {}) };
+}
+
+// Convierte el entrenamiento en una sesión guardada, con su premio y sus récords nuevos.
+export function cerrarEntrenamiento(entrenamiento, sesiones, ahora = Date.now()) {
+    const ejercicios = entrenamiento.ejercicios
+        .map((ej) => ({ id: ej.id, series: ej.series.filter((s) => s.hecha && !s.cal).map(serieGuardada) }))   // (v166) el calentamiento no se guarda
+        .filter((ej) => ej.series.length);
+    const minutos = Math.max(1, Math.min(240, Math.round((ahora - (entrenamiento.inicio || ahora)) / 60000)));
+    return armarSesion({ ejercicios, fecha: entrenamiento.fecha, rutina: entrenamiento.rutina, calentado: Boolean(entrenamiento.calentado), minutos,
+                         descarga: Boolean(entrenamiento.descarga), planeadas: seriesPlaneadasDe(entrenamiento) }, sesiones);
+}
+
+// (v166) Corregir una sesión ya guardada: cambia el peso y las repeticiones de sus series (cambios = [{ ejercicio, serie, kg, reps }])
+// y recalcula su XP, monedas y récords contra las sesiones anteriores. Devuelve la sesión nueva (misma fecha, rutina, nota y minutos).
+export function corregirSesion(sesion, cambios, anteriores) {
+    const ejercicios = sesion.ejercicios.map((ej) => ({ id: ej.id, series: ej.series.map((x) => ({ ...x })) }));
+    for (const c of cambios) {
+        const serie = ejercicios[c.ejercicio]?.series[c.serie];
+        if (!serie) throw new Error("Esa serie no existe.");
+        serie.kg = c.kg;
+        serie.reps = c.reps;
+    }
+    const planeadas = sesion.planeadas ?? seriesPlaneadasDe({ rutina: sesion.rutina, descarga: sesion.descarga });
+    const nueva = armarSesion({ ejercicios, fecha: sesion.fecha, rutina: sesion.rutina, calentado: sesion.calentado, minutos: sesion.minutos || 1, descarga: sesion.descarga, planeadas }, anteriores);
+    return { ...nueva, gemas: sesion.gemas || 0, ...(sesion.nota ? { nota: sesion.nota } : {}) };
 }
 
 // Una sesión «marcada»: dices que hoy entrenaste esa rutina, sin anotar series. Da menos XP que una anotada con detalle.
@@ -888,4 +919,41 @@ export function patronesDelGym(sesiones) {
         }
     }
     return patrones;
+}
+
+// ===== (v166) Calculadora de discos =====
+export const DISCOS = [25, 20, 15, 10, 5, 2.5, 1.25];   // los discos que se supone que hay (kg)
+export const BARRAS = [10, 15, 20];                       // lo que puede pesar tu barra (kg)
+// Qué discos poner a cada lado de la barra para llegar a `total` kg: { lado (kg por lado), porLado: [{ kg, n }], falta (kg que no se pueden formar), pocoPeso }.
+export function discosPara(total, barra = 20, discos = DISCOS) {
+    if (!(total > 0)) return { lado: 0, porLado: [], falta: 0, pocoPeso: false };
+    if (total < barra) return { lado: 0, porLado: [], falta: 0, pocoPeso: true };
+    const lado = Math.round(((total - barra) / 2) * 100) / 100;
+    let resto = lado;
+    const porLado = [];
+    for (const kg of discos) {
+        const n = Math.floor(resto / kg + 1e-9);
+        if (n > 0) { porLado.push({ kg, n }); resto = Math.round((resto - n * kg) * 100) / 100; }
+    }
+    return { lado, porLado, falta: Math.round(resto * 2 * 100) / 100, pocoPeso: false };
+}
+
+// ===== (v166) La gráfica grande de un ejercicio: cómo van tu 1RM y tu volumen sesión a sesión =====
+// [{ fecha, puntaje (1RM estimado, o las reps si no hay peso), volumen (kg × reps de ese ejercicio), kg, reps (tu mejor serie), descarga }]
+export function progresoDe(sesiones, ejercicioId) {
+    const puntos = [];
+    for (const s of sesiones) {
+        const ej = s.ejercicios.find((x) => x.id === ejercicioId);
+        if (!ej || !ej.series.length) continue;
+        const mejor = ej.series.reduce((m, x) => (puntajeDe(x.kg, x.reps) > puntajeDe(m.kg, m.reps) ? x : m));
+        const volumen = Math.round(ej.series.reduce((suma, x) => suma + (x.kg > 0 ? x.kg * x.reps : x.reps), 0));
+        puntos.push({ fecha: s.fecha, puntaje: puntajeDe(mejor.kg, mejor.reps), volumen, kg: mejor.kg, reps: mejor.reps, descarga: Boolean(s.descarga) });
+    }
+    return puntos;
+}
+// Los ejercicios con historial, el último que hiciste primero.
+export function ejerciciosConHistorial(sesiones) {
+    const ultimo = {};
+    for (const s of sesiones) for (const ej of s.ejercicios) if (ej.series.length && ejercicioPorId(ej.id)) ultimo[ej.id] = s.fecha;
+    return Object.keys(ultimo).sort((a, b) => (ultimo[a] < ultimo[b] ? 1 : ultimo[a] > ultimo[b] ? -1 : 0));
 }

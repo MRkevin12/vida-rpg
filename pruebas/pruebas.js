@@ -7958,7 +7958,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 37, "versión de los datos");
+    igual(base.version, 38, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -8160,7 +8160,7 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [37, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [38, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });
@@ -8667,6 +8667,151 @@ prueba("Gym (v165): Aurelio lleva un símbolo según el momento, está en la esc
     const otra = partidaNueva();
     otra.gym.sesiones = [-20, -15, -10, -5].map((d) => sesionGym(sumarDias(hoy(), d), "pecho-triceps", { "press-banca": cuatro(60, 8) }));
     cierto(gymEn("entrenar", otra, ctxGym()).includes("🤔"), "estancado → 🤔");
+});
+
+// ===== (v166) Calentar, cambiar y saltar ejercicios; corregir sesiones; calculadora de discos; gráfica por ejercicio =====
+
+prueba("Gym (v166): una serie de calentamiento es ligera, descansa poco y no cuenta para el XP, los kilos ni los récords", () => {
+    const estado = partidaNueva();
+    acciones.empezarGym(estado, "pantorrillas");
+    acciones.anotarSerieGym(estado, 0, 0, "kg", 40);
+    acciones.agregarCalentamientoGym(estado, 0);
+    const ej = estado.gym.encurso.ejercicios[0];
+    igual([ej.series[0].cal, ej.series[0].kg, ej.series[0].reps], [true, 20, gym.REPS_CALENTAMIENTO], "la primera es el 50 % del peso de trabajo");
+    acciones.agregarCalentamientoGym(estado, 0);
+    igual(ej.series[1].kg, 27.5, "la segunda, el 70 % (redondeado a 2,5)");
+    acciones.quitarCalentamientoGym(estado, 0);
+    igual(ej.series.filter((s) => s.cal).length, 1, "se puede quitar");
+    for (let i = 0; i < 3; i++) { try { acciones.agregarCalentamientoGym(estado, 0); } catch (e) { /* tope */ } }
+    igual(ej.series.filter((s) => s.cal).length, gym.MAX_CALENTAMIENTOS, "máximo 3");
+    for (let i = 0; i < 2; i++) acciones.quitarCalentamientoGym(estado, 0);
+    const r = acciones.marcarSerieGym(estado, 0, 0);
+    igual([r.cal, r.frase.tipo], [true, "calentado"], "marcarla no cuenta como serie ni da récord");
+    igual([gym.seriesMarcadas(estado.gym.encurso), gym.volumenMarcado(estado.gym.encurso), gym.seriesTotales(estado.gym.encurso)], [0, 0, 10], "ni series ni kilos");
+    cierto(!estado.gym.encurso.ultima, "no pregunta el RIR de un calentamiento");
+    acciones.marcarSerieGym(estado, 0, 1);
+    debeFallar(() => acciones.agregarCalentamientoGym(estado, 0), "Ya empezaste");
+    const fin = acciones.terminarGym(estado);
+    igual(fin.sesion.ejercicios[0].series.length, 1, "el calentamiento no se guarda");
+    igual(fin.sesion.xp, 1 * gym.XP_POR_SERIE, "XP solo de la serie de trabajo");
+    // «+ serie» y «− serie» no tocan el calentamiento.
+    acciones.empezarGym(estado, "biceps");
+    acciones.agregarCalentamientoGym(estado, 0);
+    const n = estado.gym.encurso.ejercicios[0].series.length;
+    acciones.cambiarSeriesGym(estado, 0, 1);
+    acciones.cambiarSeriesGym(estado, 0, -1);
+    acciones.cambiarSeriesGym(estado, 0, -1);
+    igual(estado.gym.encurso.ejercicios[0].series.filter((s) => s.cal).length, 1, "el calentamiento se queda");
+    igual(estado.gym.encurso.ejercicios[0].series.length, n - 1, "se quitó una serie de trabajo");
+    // En pantalla: botones y marca de calentamiento.
+    estado.gym.foco = true;
+    const html = vistasGym.pantallaGym(estado, ctxGym());
+    cierto(html.includes("Calentamiento") && html.includes('data-accion="gym-cambiar"') && html.includes('data-accion="gym-saltar"') && html.includes('data-accion="gym-calentar-ej"'), "el foco muestra calentar, cambiar y saltar");
+    estado.gym.foco = false;
+    cierto(vistasGym.pantallaGym(estado, ctxGym()).includes("gym-serie-cal"), "la lista marca la serie de calentamiento");
+});
+
+prueba("Gym (v166): se puede cambiar o saltar un ejercicio sin empezar, y el entrenamiento sigue contando como completo", () => {
+    const estado = partidaNueva();
+    acciones.empezarGym(estado, "biceps");
+    const en = estado.gym.encurso;
+    const plan = gym.seriesPlaneadasDe(en);
+    const original = en.ejercicios[0].id;
+    const otro = gym.EXTRAS.find((x) => !en.ejercicios.some((y) => y.id === x.id) && x.musculo === gym.ejercicioPorId(original).musculo);
+    acciones.cambiarEjercicioEnCurso(estado, 0, otro.id);
+    igual([en.ejercicios[0].id, en.ejercicios[0].cambiado], [otro.id, true]);
+    igual(gym.seriesPlaneadasDe(en), plan - gym.ejercicioPorId(original).series + otro.series, "el plan cuenta las series del nuevo");
+    debeFallar(() => acciones.cambiarEjercicioEnCurso(estado, 1, otro.id), "ya está");
+    debeFallar(() => acciones.cambiarEjercicioEnCurso(estado, 1, "no-existe"), "no existe");
+    const saltado = en.ejercicios[1];
+    const planAntes = gym.seriesPlaneadasDe(en);
+    acciones.saltarEjercicioGym(estado, 1);
+    igual([en.ejercicios.length, gym.seriesPlaneadasDe(en)], [2, planAntes - saltado.series.length], "saltarlo quita sus series del plan");
+    acciones.marcarSerieGym(estado, 0, 0);
+    debeFallar(() => acciones.cambiarEjercicioEnCurso(estado, 0, original), "Ya hiciste");
+    debeFallar(() => acciones.saltarEjercicioGym(estado, 0), "Ya hiciste");
+    acciones.saltarEjercicioGym(estado, 1);
+    debeFallar(() => acciones.saltarEjercicioGym(estado, 0), "único");
+    en.ejercicios.forEach((ej, ei) => ej.series.forEach((_, si) => { if (!ej.series[si].hecha) acciones.marcarSerieGym(estado, ei, si); }));
+    const fin = acciones.terminarGym(estado);
+    cierto(fin.sesion.completa && fin.sesion.monedas >= gym.MONEDAS_SESION, "con lo que sí ibas a hacer, es un entrenamiento completo");
+    igual(fin.sesion.ejercicios.map((x) => x.id), [otro.id], "solo se guarda lo que hiciste");
+    // Los diálogos.
+    const otra = partidaNueva();
+    acciones.empezarGym(otra, "biceps");
+    const cambiar = vistasGym.dialogoCambiarEjercicio(otra, 0);
+    cierto(cambiar.includes('data-accion="gym-cambiar-a"') && cambiar.includes("el mismo músculo") && !cambiar.includes(`data-ejercicio="${otra.gym.encurso.ejercicios[1].id}"`), "el diálogo ofrece otros ejercicios, no los que ya tienes");
+});
+
+prueba("Gym (v166): corregir una sesión guardada recalcula su XP, monedas y récords (y ajusta tu Fuerza)", () => {
+    const estado = partidaNueva();
+    entrenar(estado, "biceps", 20, 10, sumarDias(hoy(), -1));
+    const r = entrenar(estado, "biceps", 25, 10);
+    igual(r.sesion.records.length, 3, "con 25 kg son 3 récords");
+    const fuerza = estado.atributos.fuerza;
+    const monedas = estado.personaje.monedas;
+    const cambios = estado.gym.sesiones[1].ejercicios.flatMap((ej, ei) => ej.series.map((_, si) => ({ ejercicio: ei, serie: si, kg: "20", reps: "10" })));
+    const c = acciones.corregirSesionGym(estado, 1, cambios);
+    igual(estado.gym.sesiones[1].records, [], "con 20 kg ya no hay récords");
+    igual(c.xp, -3 * gym.XP_RECORD, "pierde el XP de los 3 récords");
+    igual(estado.atributos.fuerza, fuerza + c.xp, "tu Fuerza se ajusta");
+    igual(estado.personaje.monedas, monedas + c.monedas, "y tus monedas");
+    cierto(c.monedas === -3 * gym.monedasDeRecord(1), "pierde las monedas de los récords");
+    igual(estado.gym.sesiones[1].fecha, hoy(), "misma fecha y rutina");
+    // Al revés: subir el peso de la primera sesión también funciona y respeta la nota.
+    acciones.anotarNotaGym(estado, estado.gym.sesiones[0].fecha, "biceps", { sueno: "bien" });
+    acciones.corregirSesionGym(estado, 0, [{ ejercicio: 0, serie: 0, kg: "22,5", reps: 10 }]);
+    igual([estado.gym.sesiones[0].ejercicios[0].series[0].kg, estado.gym.sesiones[0].nota.sueno], [22.5, "bien"], "acepta coma y conserva la nota");
+    debeFallar(() => acciones.corregirSesionGym(estado, 0, [{ ejercicio: 0, serie: 0, kg: "9999", reps: 10 }]), "peso");
+    debeFallar(() => acciones.corregirSesionGym(estado, 0, [{ ejercicio: 0, serie: 0, kg: 20, reps: 0 }]), "repeticiones");
+    debeFallar(() => acciones.corregirSesionGym(estado, 0, [{ ejercicio: 9, serie: 0, kg: 20, reps: 5 }]), "no existe");
+    debeFallar(() => acciones.corregirSesionGym(estado, 7, []), "no existe");
+    estado.gym.sesiones.push(gym.sesionRapida("hombros", hoy()));
+    debeFallar(() => acciones.corregirSesionGym(estado, estado.gym.sesiones.length - 1, []), "solo se marcó");
+    // Pantalla: el botón y el diálogo.
+    cierto(gymEn("progreso", estado, ctxGym()).includes('data-accion="gym-editar"'), "el historial tiene el botón de corregir");
+    const dialogo = vistasGym.dialogoCorregirSesion(estado, 1);
+    cierto(dialogo.includes('data-form="gym-corregir"') && dialogo.includes('name="k-0-0"') && dialogo.includes('name="r-0-0"'), "el diálogo trae los campos de cada serie");
+});
+
+prueba("Gym (v166): la calculadora de discos dice qué poner a cada lado de la barra", () => {
+    igual(gym.discosPara(62.5, 20), { lado: 21.25, porLado: [{ kg: 20, n: 1 }, { kg: 1.25, n: 1 }], falta: 0, pocoPeso: false });
+    igual(gym.discosPara(100, 20).porLado, [{ kg: 25, n: 1 }, { kg: 15, n: 1 }]);
+    igual(gym.discosPara(45, 20).porLado, [{ kg: 10, n: 1 }, { kg: 2.5, n: 1 }]);
+    igual(gym.discosPara(20, 20).porLado, [], "solo la barra");
+    cierto(gym.discosPara(15, 20).pocoPeso, "menos que la barra");
+    igual(gym.discosPara(21, 20).falta, 1, "lo que no se puede formar");
+    igual(gym.discosPara(60, 10).porLado, [{ kg: 20, n: 1 }, { kg: 5, n: 1 }], "otra barra");
+    igual(gym.discosPara(0), { lado: 0, porLado: [], falta: 0, pocoPeso: false });
+    const estado = partidaNueva();
+    acciones.cambiarAjusteGym(estado, "barra", "15");
+    igual(estado.gym.barra, 15);
+    debeFallar(() => acciones.cambiarAjusteGym(estado, "barra", 17), "barra");
+    const html = vistasGym.dialogoDiscos(estado, 62.5);
+    cierto(html.includes("gym-disco") && html.includes("Por lado") && html.includes('data-accion="gym-barra"'), "el diálogo dibuja los discos");
+    cierto(vistasGym.dialogoDiscos(estado, 10).includes("menos que la barra"), "avisa si es menos que la barra");
+});
+
+prueba("Gym (v166): la gráfica grande de un ejercicio: 1RM y volumen sesión a sesión", () => {
+    const sesiones = [-20, -15, -10, -5].map((d, i) => sesionGym(sumarDias(hoy(), d), "pecho-triceps", { "press-banca": cuatro(60 + i * 2.5, 8) }, i === 3 ? { descarga: true } : {}));
+    const puntos = gym.progresoDe(sesiones, "press-banca");
+    igual(puntos.length, 4);
+    igual([puntos[0].puntaje, puntos[0].volumen, puntos[0].kg, puntos[0].reps], [gym.unaRepeticion(60, 8), 4 * 60 * 8, 60, 8]);
+    cierto(puntos[3].descarga && !puntos[0].descarga, "marca las semanas de descarga");
+    igual(gym.progresoDe(sesiones, "curl-barra"), [], "sin historial no hay puntos");
+    igual(gym.ejerciciosConHistorial([...sesiones, sesionGym(hoy(), "biceps", { "curl-barra": cuatro(20, 10) })]), ["curl-barra", "press-banca"], "el último que hiciste primero");
+    const estado = partidaNueva();
+    cierto(!gymEn("progreso", estado, ctxGym()).includes("Gráfica por ejercicio"), "sin sesiones no hay gráfica");
+    estado.gym.sesiones = sesiones;
+    let html = gymEn("progreso", estado, ctxGym());
+    cierto(html.includes("Gráfica por ejercicio") && html.includes('class="gym-grafica"') && html.includes("data-gym-grafica"), "se dibuja con su selector");
+    cierto(html.includes("1RM estimado") && html.includes("Volumen"), "las dos gráficas");
+    estado.gym.sesiones = [...sesiones, sesionGym(hoy(), "biceps", { "curl-barra": cuatro(20, 10) })];
+    html = gymEn("progreso", { ...estado }, { ...ctxGym(), gymEjercicio: "press-banca" });
+    cierto(html.includes('value="press-banca" selected'), "respeta el ejercicio elegido");
+    // Con un solo punto también se dibuja.
+    estado.gym.sesiones = [sesiones[0]];
+    cierto(gymEn("progreso", estado, ctxGym()).includes('class="gym-grafica"'), "con una sola sesión");
 });
 
 // Para que un programa (o tú, desde la consola) pueda leer el resultado.

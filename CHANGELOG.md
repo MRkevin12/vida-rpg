@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v166 — Un entrenamiento más flexible
+- Cambiar / saltar un ejercicio del entrenamiento en curso (`acciones.cambiarEjercicioEnCurso`, `saltarEjercicioGym`; solo si no tiene series hechas). `en.plan` guarda las series que de verdad ibas a hacer (`gym.seriesPlaneadasDe`) para que saltar no quite el «completo» ni las monedas; la sesión guarda `planeadas`.
+- Calentamiento por ejercicio: series con `cal: true` (`agregarCalentamientoGym`, `quitarCalentamientoGym`; 50/70/85 % del peso de trabajo, máx. 3, descanso de 30 s). No se guardan en la sesión ni cuentan: `seriesMarcadas`, `seriesTotales`, `volumenMarcado`, récords y XP las ignoran.
+- Corregir una sesión guardada: `gym.armarSesion` (compartida con `cerrarEntrenamiento`), `gym.corregirSesion`, `acciones.corregirSesionGym` (recalcula XP, monedas y récords contra las sesiones anteriores y ajusta Fuerza y monedas; las sesiones posteriores no se recalculan). Diálogo `#dialogo-gym`.
+- Calculadora de discos: `gym.discosPara`, `estado.gym.barra` (10/15/20; ajuste «barra»), botón 🧮 en el foco y en la lista.
+- Gráfica grande por ejercicio en Progreso: `gym.progresoDe`, `ejerciciosConHistorial`, `graficaGrande` y `tarjetaGraficaEjercicio` (`ui.gymEjercicio`).
+- Datos: `version` 38 (`gym.barra`). Pruebas: 437.
+
 ## v165 — Aurelio cobra vida en el gym
 - `gym-aurelio.js`: más frases en `mitad`, `serie` y `ejercicio`.
 - `vistas-gym.js`: `cabezaDeAurelio` (retrato + símbolo, `EMOTE_DE_FRASE`) y `figuraDeAurelio` (figura de cuerpo entero en `.gym-foco-escenario`); el texto del globo lleva `data-aurelio-texto`; 🤔/🛌/⚖️ en «Aurelio te avisa».
