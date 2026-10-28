@@ -454,6 +454,17 @@ export function seriesPorMusculoDeLaSemana(sesiones, lunes) {
 // Unas 10 series por músculo a la semana es lo que suele recomendarse para crecer.
 export const nivelDeSeries = (n) => (n <= 0 ? 0 : n < 6 ? 1 : n < 12 ? 2 : 3);
 
+// (v162) El volumen PLANEADO por músculo si haces cada rutina una vez a la semana. Usa las rutinas tal como las tienes
+// (también las editadas). Cuenta las series que planeas, no las que ya hiciste.
+export function seriesPlaneadasPorMusculo() {
+    const series = Object.fromEntries(Object.keys(MUSCULOS).map((m) => [m, 0]));
+    for (const r of RUTINA) for (const ej of r.ejercicios) series[ej.musculo] += ej.series;
+    return series;
+}
+
+// Cómo va el volumen planeado de un músculo: menos de 10 series es poco, de 10 a 20 es lo que suele recomendarse, más de 20 es mucho.
+export const valoracionDeVolumen = (n) => (n <= 0 ? "nada" : n < 10 ? "poco" : n <= 20 ? "bien" : "mucho");
+
 // Semanas seguidas cumpliendo tu meta. La semana en curso suma si ya la cumpliste, pero no rompe la racha si aún no.
 export function rachaSemanal(sesiones, meta, hoyTexto) {
     const lunesHoy = lunesDe(hoyTexto);

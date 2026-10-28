@@ -3388,6 +3388,14 @@ prueba("v148: el mapa del cuerpo del Gym cuenta las series de cada músculo en l
     cierto(svg.includes("gc-1") && svg.includes("gc-0") && svg.includes("Frente") && svg.includes("Espalda"), "el dibujo pinta lo trabajado y lo que falta");
 });
 
+prueba("v162: el volumen planeado por músculo suma las series de tus rutinas", () => {
+    const series = gym.seriesPlaneadasPorMusculo();
+    const total = Object.values(series).reduce((suma, n) => suma + n, 0);
+    igual(total, gym.RUTINA.reduce((suma, r) => suma + gym.seriesPlaneadas(r), 0), "las series de todas las rutinas");
+    igual(Object.keys(series).length, Object.keys(gym.MUSCULOS).length, "están todos los músculos");
+    igual([0, 5, 10, 20, 21].map(gym.valoracionDeVolumen), ["nada", "poco", "bien", "bien", "mucho"]);
+});
+
 prueba("v148: «Tu semana» cuenta solo los días que ya pasaron", () => {
     const estado = partidaDemo();
     const s = semanaEnCurso(estado, "2026-10-21");   // miércoles

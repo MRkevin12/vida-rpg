@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v162 — Volumen semanal por músculo en Rutinas
+- `gym.js`: `seriesPlaneadasPorMusculo()` suma las series de `RUTINA` (incluye las rutinas editadas) y `valoracionDeVolumen(n)` (nada, poco < 10, bien 10–20, mucho > 20).
+- `vistas-gym.js`: `tarjetaVolumenPlaneado()` encima de las rutinas en la pestaña «Rutinas».
+- Sin cambio de datos guardados. Pruebas: 423.
+
 ## v161 — Rutinas editables y más ejercicios
 - `gym.js`: `EXTRAS` pasa de 18 a 59 ejercicios; `CATALOGO` (todos) y `ejercicioPorId` lo usa. `estado.gym.rutinas = { rutinaId: [{ id, series }] }` guarda tus cambios y `aplicarRutinas` los pone en `RUTINA` (se llama al cargar, al empezar y al editar). Sin cambio de `version` (campo opcional).
 - `acciones.js`: `agregarEjercicioARutina`, `quitarEjercicioDeRutina`, `cambiarEjercicioDeRutina`, `cambiarSeriesDeRutina`, `moverEjercicioDeRutina`, `restaurarRutina` (no se edita con un entrenamiento en curso).

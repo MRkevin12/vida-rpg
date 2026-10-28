@@ -891,6 +891,26 @@ function opcionesDeEjercicios(usados, musculoPrimero, actual = "") {
     }).join("");
 }
 
+// (v162) Cuántas series por músculo dejan tus rutinas en una semana: así ves si alguna parte se queda sin trabajar.
+function tarjetaVolumenPlaneado() {
+    const series = gym.seriesPlaneadasPorMusculo();
+    const filas = Object.entries(gym.MUSCULOS).map(([clave, m]) => {
+        const n = series[clave];
+        return `
+            <li class="gym-musculo">
+                <span class="gym-musculo-nombre">${m.icono} ${m.nombre}</span>
+                <span class="gym-musculo-nivel">${n} series · ${gym.valoracionDeVolumen(n)}</span>
+                ${barra(Math.min(100, (n / 20) * 100), "barra-gym")}
+            </li>`;
+    }).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">Series por músculo a la semana</h2>
+            <p class="nota">Si haces cada rutina una vez a la semana. Entre 10 y 20 series por músculo es un buen punto de partida.</p>
+            <ul class="gym-musculos">${filas}</ul>
+        </section>`;
+}
+
 function tarjetaEditarRutinas(estado) {
     const g = estado.gym;
     if (g.encurso) return '<p class="vacio">Termina o cancela tu entrenamiento para editar tus rutinas.</p>';
@@ -926,6 +946,7 @@ function tarjetaEditarRutinas(estado) {
             <p class="nota">Abre una rutina para cambiar sus ejercicios (en cada uno eliges otro, de su músculo o de cualquiera), agregar más, quitar, reordenar o cambiar las series.
                Tu historial y tus récords no se tocan.</p>
         </section>
+        ${tarjetaVolumenPlaneado()}
         ${tarjetas}`;
 }
 

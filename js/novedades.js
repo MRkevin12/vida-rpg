@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 161;
+export const VERSION_APP = 162;
 
 export const NOVEDADES = [
+    {
+        version: 162,
+        titulo: "Tu volumen a la vista",
+        cambios: [
+            "📊 En la pestaña «Rutinas» verás cuántas series por músculo dejan tus rutinas en una semana (si haces cada una una vez), con su valoración: poco, bien o mucho. Así ves si alguna parte se queda sin trabajar.",
+        ],
+    },
     {
         version: 161,
         titulo: "Tus rutinas, a tu manera",
