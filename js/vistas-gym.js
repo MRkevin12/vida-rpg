@@ -77,10 +77,11 @@ export function tarjetaGymHoy(estado, ctx) {
     }
     const toca = gym.siguienteRutina(g.sesiones);
     const lunes = lunesDe(ctx.hoy);
+    const racha = gym.rachaSemanal(g.sesiones, g.metaSemanal, ctx.hoy);   // (v164)
     return `
         <div class="gym-hoy">
             <span class="gym-hoy-icono" aria-hidden="true">${toca.icono}</span>
-            <span class="gym-hoy-texto"><b>Gym: hoy toca ${esc(toca.nombre)}</b><small>Meta de la semana: ${gym.diasDeLaSemana(g.sesiones, lunes)} de ${g.metaSemanal} días</small></span>
+            <span class="gym-hoy-texto"><b>Gym: hoy toca ${esc(toca.nombre)}</b><small>Meta de la semana: ${gym.diasDeLaSemana(g.sesiones, lunes)} de ${g.metaSemanal} días${racha ? ` · 🔥 ${plural(racha, "semana", "semanas")}` : ""}${gym.descargaDeLaSemana(g, lunes) ? " · 🛌 descarga" : ""}</small></span>
             <span class="gym-hoy-botones">
                 <button type="button" class="boton boton-chico boton-principal" data-accion="gym-empezar" data-rutina="${toca.id}" aria-label="Empezar el entrenamiento de hoy">▶ Empezar</button>
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="gym">Abrir</button>
@@ -114,14 +115,15 @@ export function pantallaGym(estado, ctx) {
         entrenar: () => `
             ${ctx.resumenGym ? tarjetaResumen(estado, ctx) : ""}
             ${tarjetaNivel(estado, ctx, true)}
-            ${consejoDelDia(ctx)}
+            ${tarjetaAvisos(estado, ctx) || consejoDelDia(ctx)}
             ${tarjetaSemana(estado, ctx)}
             ${listaDeRutinas(estado, ctx)}`,
         progreso: () => `
             ${tarjetaConstancia(estado, ctx)}
             ${tarjetaMapaCuerpo(estado, ctx)}
             ${tarjetaMusculos(estado)}
-            ${tarjetaRecords(estado)}
+            ${tarjetaSalonRecords(estado)}
+            ${tarjetaDiarioGym(estado)}
             ${tarjetaHitos(estado)}
             ${tarjetaHistorial(estado)}
             ${estado.gym.sesiones.length ? "" : '<p class="vacio">Aún no hay entrenamientos. Cuando anotes el primero, aquí verás tu constancia, tus músculos y tus récords.</p>'}`,
@@ -323,7 +325,7 @@ function vistaDeFoco(estado, ctx) {
     const cabecera = `
         <header class="gym-foco-cabeza">
             <button type="button" class="gym-foco-salir" data-accion="ir" data-pantalla="hoy" aria-label="Salir a Hoy (el entrenamiento sigue)">‹</button>
-            <h2 class="titulo-juego">${rutina.icono} ${esc(rutina.nombre)}${en.fecha !== ctx.hoy ? " <small>(ayer)</small>" : ""}</h2>
+            <h2 class="titulo-juego">${rutina.icono} ${esc(rutina.nombre)}${en.fecha !== ctx.hoy ? " <small>(ayer)</small>" : ""}${en.descarga ? " <small>🛌 descarga</small>" : ""}</h2>
             <span class="gym-foco-dato">⏱️ <b data-gym-inicio="${en.inicio}">${duracionLarga(Math.max(0, ctx.ahora - en.inicio))}</b></span>
             <span class="gym-foco-dato">🏋️ <b>${gym.volumenMarcado(en).toLocaleString("es")}</b> kg</span>
         </header>
@@ -411,6 +413,10 @@ function vistaDeFoco(estado, ctx) {
     const titulo = descansando
         ? `<p class="gym-foco-siguiente">Sigue: <b>${esc(info.nombre)}</b></p>`
         : `<h3 class="gym-foco-nombre">${esc(info.nombre)}</h3>`;
+    // (v164) La pista de hoy (lo de la última vez ya está en la ficha de arriba). Si propone otro peso, un botón lo pone.
+    const pistaHtml = pista.motivo && pista.kg !== s.kg && (pista.tipo === "bajar" ? pista.kg < s.kg : pista.kg > s.kg)
+        ? `<button type="button" class="boton boton-chico boton-secundario boton-ancho gym-subir" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="kg" data-delta="${Math.round((pista.kg - s.kg) * 100) / 100}" title="${esc(pista.texto)}">${pista.kg > s.kg ? "⬆️" : "⬇️"} ${pista.motivo}: ${pista.kg > s.kg ? "subir" : "bajar"} a ${kilos(pista.kg)}</button>`
+        : `<p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${esc(pista.hoy)}</p>`;
     return `
         <section class="panel gym-sesion gym-foco ${descansando ? "gym-foco-descansando" : ""}">
             ${cabecera}
@@ -419,9 +425,7 @@ function vistaDeFoco(estado, ctx) {
                 ${titulo}
                 <div class="gym-foco-serie-fila">${siguiente}${pips}</div>
             </div>
-            ${pista.tipo === "peso" && pista.kg > s.kg
-                ? `<button type="button" class="boton boton-chico boton-secundario boton-ancho gym-subir" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="kg" data-delta="${pista.kg - s.kg}" title="${esc(pista.texto)}">⬆️ Llegaste al tope: subir a ${kilos(pista.kg)}</button>`
-                : `<p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${pista.texto}</p>`}
+            ${descansando ? preguntaRir(en) : pistaHtml}
             <div class="gym-steppers">
                 ${stepper("kg", "Peso", s.kg, 2.5, " kg")}
                 ${stepper("reps", "Reps", s.reps, 1, "")}
@@ -461,6 +465,7 @@ function vistaDeLista(estado, ctx) {
         const antes = gym.ultimaVez(g.sesiones, ej.id);
         const mejor = mejores[ej.id];
         const pista = gym.sugerencia(info, antes);
+        const atascado = gym.estancamiento(g.sesiones, ej.id);   // (v164)
         const musculo = gym.MUSCULOS[info.musculo];
         const series = ej.series.map((s, si) => `
             <div class="gym-serie ${s.hecha ? "hecha" : ""}">
@@ -469,6 +474,9 @@ function vistaDeLista(estado, ctx) {
                     data-gym="kg" data-ej="${ei}" data-serie="${si}" aria-label="Peso de la serie ${si + 1}"></label>
                 <label><span>reps</span><input type="number" inputmode="numeric" step="1" min="0" max="${gym.MAX_REPS}" value="${s.reps}"
                     data-gym="reps" data-ej="${ei}" data-serie="${si}" aria-label="Repeticiones de la serie ${si + 1}"></label>
+                <label><span>RIR</span><select data-gym="rir" data-ej="${ei}" data-serie="${si}" aria-label="Repeticiones en reserva de la serie ${si + 1} (opcional)">
+                    <option value="">–</option>${gym.RIR_OPCIONES.map((n) => `<option value="${n}" ${s.rir === n ? "selected" : ""}>${n === gym.MAX_RIR ? "4+" : n}</option>`).join("")}
+                </select></label>
                 <button type="button" class="gym-ok" data-accion="gym-serie" data-ej="${ei}" data-serie="${si}" aria-pressed="${s.hecha}"
                         aria-label="Serie ${si + 1} hecha">✓</button>
             </div>`).join("");
@@ -483,7 +491,8 @@ function vistaDeLista(estado, ctx) {
                     ? `Última vez (${fechaCorta(antes.fecha)}): ${antes.series.map((s) => (s.kg ? `${kilos(s.kg)}×${s.reps}` : `${s.reps} reps`)).join(" · ")}`
                     : "Primera vez que lo haces."}
                     ${mejor && mejor.kg ? ` 🏆 ${kilos(mejor.kg)} × ${mejor.reps}` : ""}</p>
-                <p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${pista.texto}</p>
+                <p class="mini gym-pista gym-pista-${pista.tipo}">💡 ${esc(pista.hoy)}</p>
+                ${atascado ? `<p class="mini gym-pista gym-pista-estancado">⚠️ ${plural(atascado.sesiones, "sesión", "sesiones")} sin mejorar. ${esc(gym.propuestasDeEstancamiento(atascado)[0]?.texto || "")}</p>` : ""}
                 <p class="mini gym-tecnica">🎯 Técnica: ${esc(gymAurelio.consejoDeTecnica(movimiento, ei))}</p>
                 ${series}
                 <div class="gym-mas">
@@ -504,7 +513,7 @@ function vistaDeLista(estado, ctx) {
         <section class="panel gym-sesion">
             <div class="titulo-seccion">
                 <div>
-                    <p class="etiqueta">${ayer ? `Entrenamiento de ayer` : "Entrenando ahora"}</p>
+                    <p class="etiqueta">${ayer ? `Entrenamiento de ayer` : "Entrenando ahora"}${en.descarga ? " · 🛌 semana de descarga (menos series, mismo peso)" : ""}</p>
                     <h2 class="titulo-juego">${rutina.icono} ${esc(rutina.nombre)}</h2>
                 </div>
                 <p class="contador ${hechas === total ? "completo" : ""}">${hechas}/${total}</p>
@@ -526,6 +535,19 @@ function vistaDeLista(estado, ctx) {
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="gym-cancelar">Cancelar (no se guarda)</button>
             <p class="nota">Marca ✓ cada serie al terminarla: empieza el descanso (${gym.DESCANSOS.includes(g.descanso) ? duracion(g.descanso) : "1:30"}). El XP llega al terminar.</p>
         </section>`;
+}
+
+// (v164) En el descanso: «¿cuántas más podías hacer?» para la serie que acabas de terminar (opcional, un toque).
+function preguntaRir(en) {
+    const u = en.ultima;
+    const s = u && en.ejercicios[u.ejercicio]?.series[u.serie];
+    if (!s || !s.hecha) return "";
+    const botones = gym.RIR_OPCIONES.map((n) => `
+        <button type="button" class="gym-rir-boton" data-accion="gym-rir" data-ej="${u.ejercicio}" data-serie="${u.serie}" data-rir="${n}" aria-pressed="${s.rir === n}">${n === gym.MAX_RIR ? "4+" : n}</button>`).join("");
+    return `<div class="gym-rir" role="group" aria-label="Repeticiones en reserva de la serie que hiciste">
+                <span>¿Cuántas más podías? <small>(opcional)</small></span>
+                <span class="gym-rir-botones">${botones}</span>
+            </div>`;
 }
 
 // Lo que dice Aurelio (entre serie y serie, al empezar, al calentar…). ctx.fraseGym = { tipo, texto } o null.
@@ -556,7 +578,28 @@ function tarjetaResumen(estado, ctx) {
             </ul>
             ${musculos.length ? `<p class="mini texto-suave">Trabajaste: ${musculos.map((m) => `${gym.MUSCULOS[m].icono} ${gym.MUSCULOS[m].nombre}`).join(" · ")}</p>` : ""}
             ${ctx.fraseGym ? burbujaDeAurelio(ctx) : ""}
+            ${notaDeLaSesion(estado, s)}
         </section>`;
+}
+
+// (v164) La nota de la sesión: cómo dormiste (un toque) y una línea de molestias o dolor. Alimenta el Diario del gym.
+function notaDeLaSesion(estado, resumen) {
+    const s = estado.gym.sesiones.find((x) => x.fecha === resumen.fecha && x.rutina === resumen.rutina);
+    if (!s) return "";
+    const nota = s.nota || {};
+    const datos = `data-fecha="${s.fecha}" data-rutina="${esc(s.rutina)}"`;
+    const suenos = Object.entries(gym.SUENOS).map(([clave, x]) => `
+        <button type="button" class="boton boton-chico ${nota.sueno === clave ? "boton-principal" : "boton-secundario"}" data-accion="gym-nota-sueno" ${datos} data-sueno="${clave}" aria-pressed="${nota.sueno === clave}">${x.icono} ${x.nombre}</button>`).join("");
+    return `
+        <div class="gym-nota">
+            <p class="mini texto-suave">📓 Nota para tu diario (opcional): ¿cómo dormiste?</p>
+            <div class="gym-vista-botones">${suenos}</div>
+            <form data-form="gym-nota" class="form-linea">
+                <input type="hidden" name="fecha" value="${s.fecha}"><input type="hidden" name="rutina" value="${esc(s.rutina)}">
+                <input type="text" name="texto" maxlength="${gym.MAX_NOTA}" value="${esc(nota.texto || "")}" placeholder="Molestias o dolor (ej.: me molestó el hombro)" aria-label="Molestias o dolor">
+                <button type="submit" class="boton boton-chico">${nota.texto ? "Cambiar" : "Guardar"}</button>
+            </form>
+        </div>`;
 }
 
 // Los ejercicios extra que aún no están en el entrenamiento, agrupados por músculo.
@@ -617,6 +660,7 @@ function tarjetaMapaCuerpo(estado, ctx) {
     const nombres = (lista) => lista.map((m) => `${gym.MUSCULOS[m].icono} ${gym.MUSCULOS[m].nombre}`).join(" · ");
     const faltan = Object.keys(gym.MUSCULOS).filter((m) => !series[m]);
     const fuertes = Object.keys(gym.MUSCULOS).filter((m) => gym.nivelDeSeries(series[m]) >= 2).sort((a, b) => series[b] - series[a]);
+    const olvidados = gym.musculosOlvidados(estado.gym, ctx.hoy);   // (v164)
     return `
         <section class="panel">
             <div class="titulo-seccion">
@@ -630,6 +674,7 @@ function tarjetaMapaCuerpo(estado, ctx) {
             </ul>
             ${fuertes.length ? `<p class="nota">💪 Lo más trabajado: ${nombres(fuertes.slice(0, 3))}.</p>` : ""}
             <p class="nota">${faltan.length ? `⏳ Te faltan: ${nombres(faltan)}.` : "✨ ¡Trabajaste todos tus músculos esta semana!"}</p>
+            ${olvidados.length ? `<p class="nota gym-pista-estancado">⚖️ Llevas ${gym.SEMANAS_EQUILIBRIO} semanas con poco trabajo (menos de 6 series) de ${nombresDeMusculos(olvidados)}.</p>` : ""}
             <p class="mini texto-suave">Cuenta las series de lunes a domingo. Unas 10 series por músculo a la semana es lo que se suele recomendar para crecer.</p>
         </section>`;
 }
@@ -652,26 +697,7 @@ function tarjetaMusculos(estado) {
         </section>`;
 }
 
-// ===== Récords =====
-function tarjetaRecords(estado) {
-    const mejores = Object.entries(gym.mejoresDe(estado.gym.sesiones))
-        .sort((a, b) => b[1].puntaje - a[1].puntaje);
-    const fila = ([id, m]) => {
-        const ej = gym.ejercicioPorId(id);
-        const hist = gym.historialDe(estado.gym.sesiones, id).slice(-12).map((x) => x.puntaje);
-        return `<li class="gym-record"><span>${gym.MUSCULOS[ej.musculo].icono} ${esc(ej.nombre)}
-                <small class="texto-suave">${m.kg ? `${kilos(m.kg)} × ${m.reps}` : `${m.reps} reps`} · ${fechaCorta(m.fecha)}</small></span>
-                ${sparkline(hist)}</li>`;
-    };
-    return `
-        <section class="panel">
-            <h2 class="titulo-juego">🏆 Récords personales</h2>
-            ${mejores.length
-                ? `<ul class="historial">${mejores.slice(0, 6).map(fila).join("")}</ul>
-                   ${mejores.length > 6 ? `<details class="plegable"><summary>Ver los otros ${mejores.length - 6}</summary><ul class="historial">${mejores.slice(6).map(fila).join("")}</ul></details>` : ""}`
-                : '<p class="nota">Aquí aparecerá tu mejor marca de cada ejercicio. Superarla da +15 XP extra.</p>'}
-        </section>`;
-}
+// (Los récords están en el Salón de récords, v164: tarjetaSalonRecords.)
 
 // ===== Hitos =====
 function tarjetaHitos(estado) {
@@ -690,6 +716,146 @@ function tarjetaHitos(estado) {
             <h2 class="titulo-juego">🎖️ Hitos de gym <span class="texto-suave">${hechos}/${gym.HITOS.length}</span></h2>
             <ul class="gym-hitos">${lista}</ul>
         </section>`;
+}
+
+// ===== (v164) Lo que Aurelio te avisa antes de entrenar =====
+// La semana de descarga (si toca o si ya es), los ejercicios estancados (con qué probar) y los músculos olvidados.
+// Si no hay nada que avisar, en su lugar sale el consejo del día.
+// Los nombres de unos músculos en una frase: «🦵 Cuádriceps, 🦿 Isquiosurales y 🧱 Glúteos». Con más de 4, «… y 3 más».
+function nombresDeMusculos(lista, maximo = 4) {
+    const nombres = lista.slice(0, maximo).map((m) => `${gym.MUSCULOS[m].icono} ${gym.MUSCULOS[m].nombre}`);
+    if (lista.length > maximo) return `${nombres.join(", ")} y ${lista.length - maximo} más`;
+    return nombres.join(", ").replace(/, ([^,]*)$/, " y $1");
+}
+
+function tarjetaAvisos(estado, ctx) {
+    const g = estado.gym;
+    const avisos = [];
+    const descarga = gym.descargaDeLaSemana(g, lunesDe(ctx.hoy));
+    const semanas = gym.semanasSinDescanso(g, ctx.hoy);
+    const recorte = Math.round(gym.RECORTE_DESCARGA * 100);
+    if (descarga) {
+        avisos.push(`
+            <li class="gym-aviso gym-aviso-descarga"><b>🛌 Semana de descarga</b>
+                <small>Cada ejercicio trae un ${recorte} % menos de series. Usa el mismo peso (o un poco menos) y no busques récords: esta semana se gana descansando.
+                ${descarga.cobrada ? "✅ Ya cobraste el premio por descansar bien." : `Al terminar tu primer entrenamiento de la semana: +${gym.PREMIO_DESCARGA.gemas} 💎 y +${gym.PREMIO_DESCARGA.xp} XP.`}</small>
+                ${descarga.cobrada || g.encurso ? "" : '<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-descarga-quitar">Quitar la descarga</button>'}</li>`);
+    } else if (gym.tocaDescarga(g, ctx.hoy)) {
+        avisos.push(`
+            <li class="gym-aviso"><b>🛌 Toca una semana de descarga</b>
+                <small>Llevas ${plural(semanas, "semana seguida", "semanas seguidas")} entrenando. Una semana con un ${recorte} % menos de series deja que el cuerpo se recupere
+                y vuelvas más fuerte. Premio por descansar bien: +${gym.PREMIO_DESCARGA.gemas} 💎.</small>
+                <button type="button" class="boton boton-chico boton-principal" data-accion="gym-descarga">🛌 Empezar la descarga esta semana</button></li>`);
+    }
+    const pesos = gym.pesosMaximos(g.sesiones);
+    for (const e of gym.estancados(g.sesiones, ctx.hoy).slice(0, 2)) {
+        const ej = gym.ejercicioPorId(e.id);
+        const propuestas = gym.propuestasDeEstancamiento(e, semanas).filter((p) => !(p.tipo === "descarga" && descarga));
+        avisos.push(`
+            <li class="gym-aviso"><b>⚠️ ${esc(ej.nombre)}: ${plural(e.sesiones, "sesión", "sesiones")} sin mejorar</b>
+                <small>Tu mejor marca (${pesos[e.id] ? `1RM estimado: ${kilos(e.mejor)}` : `${e.mejor} reps`}) no ha subido. Prueba una de estas:</small>
+                <ul class="gym-propuestas">${propuestas.map((p) => `<li>${p.icono} ${esc(p.texto)}</li>`).join("")}</ul></li>`);
+    }
+    const olvidados = gym.musculosOlvidados(g, ctx.hoy);
+    if (olvidados.length) {
+        const r = gym.rutinaPara(olvidados);
+        const yaHoy = r && g.sesiones.some((s) => s.fecha === ctx.hoy && s.rutina === r.id);
+        avisos.push(`
+            <li class="gym-aviso"><b>⚖️ Llevas ${gym.SEMANAS_EQUILIBRIO} semanas con poco trabajo de ${nombresDeMusculos(olvidados)}</b>
+                <small>Menos de 6 series por semana. ${r ? `«${esc(r.nombre)}» es la rutina que más los trabaja.` : "Agrega un ejercicio para ellos en ✏️ Rutinas."}</small>
+                ${r && !yaHoy && !g.encurso ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-empezar" data-rutina="${r.id}">▶ Empezar ${r.icono} ${esc(r.nombre)}</button>` : ""}</li>`);
+    }
+    if (!avisos.length) return "";
+    return `
+        <section class="panel gym-avisos">
+            <div class="gym-aurelio gym-consejo">
+                <span class="gym-aurelio-retrato" aria-hidden="true">${retratoPixel(describirMaestro())}</span>
+                <p><b>Aurelio te avisa</b>${avisos.length === 1 ? "Mira esto antes de entrenar." : `Mira estas ${avisos.length} cosas antes de entrenar.`}</p>
+            </div>
+            <ul class="gym-avisos-lista">${avisos.join("")}</ul>
+        </section>`;
+}
+
+// ===== (v164) El Salón de récords: tu mejor marca de cada ejercicio, por músculo, con su medalla =====
+function tarjetaSalonRecords(estado) {
+    const sesiones = estado.gym.sesiones;
+    const salon = gym.salonDeRecords(sesiones);
+    const zonas = Object.keys(gym.MUSCULOS).filter((m) => salon[m]);
+    const medallas = gym.MEDALLAS.map((m) => `${m.icono} ${m.desde}`).join(" · ");
+    if (!zonas.length) {
+        return `
+        <section class="panel">
+            <h2 class="titulo-juego">🏛️ Salón de récords</h2>
+            <p class="nota">Aquí aparecerá tu mejor marca de cada ejercicio, agrupada por músculo. Superarla da +${gym.XP_RECORD} XP y monedas, y cada músculo gana medallas con sus récords (${medallas}).</p>
+        </section>`;
+    }
+    const total = zonas.reduce((suma, m) => suma + salon[m].records, 0);
+    const bloque = (m) => {
+        const z = salon[m];
+        const musculo = gym.MUSCULOS[m];
+        const siguiente = gym.MEDALLAS.find((x) => x.desde > z.records);
+        const filas = z.ejercicios.map((x) => {
+            const ej = gym.ejercicioPorId(x.id);
+            const hist = gym.historialDe(sesiones, x.id).slice(-12).map((p) => p.puntaje);
+            const marca = x.kg ? `1RM ${kilos(x.puntaje)} (${kilos(x.kg)} × ${x.reps})${x.kgMax > x.kg ? ` · máx. ${kilos(x.kgMax)}` : ""}` : `${x.reps} reps`;
+            return `<li class="gym-record"><span>${esc(ej.nombre)}
+                    <small class="texto-suave">${marca} · ${fechaCorta(x.fecha)}${x.records ? ` · 📈 ${x.records}` : ""}</small></span>
+                    ${sparkline(hist)}</li>`;
+        }).join("");
+        return `
+            <details class="plegable gym-salon">
+                <summary><span>${musculo.icono} ${musculo.nombre}</span>
+                    <span class="gym-medalla">${z.medalla ? `${z.medalla.icono} ${z.medalla.nombre}` : "—"}</span>
+                    <small class="texto-suave">${plural(z.records, "récord", "récords")}${siguiente ? ` · ${siguiente.icono} a los ${siguiente.desde}` : ""}</small></summary>
+                <ul class="historial">${filas}</ul>
+            </details>`;
+    };
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">🏛️ Salón de récords <span class="texto-suave">${plural(total, "récord", "récords")}</span></h2>
+            <p class="nota">Tu mejor marca de cada ejercicio, por músculo. Cada récord da +${gym.XP_RECORD} XP y monedas: cuantos más llevas en un ejercicio, más difícil
+               es el siguiente y más vale (hasta ×${gym.MAX_NIVEL_RECORD}). Medallas por récords: ${medallas}.</p>
+            ${zonas.map(bloque).join("")}
+        </section>`;
+}
+
+// ===== (v164) El diario del gym: tus notas (sueño y molestias) y los patrones que se ven en ellas =====
+function tarjetaDiarioGym(estado) {
+    const sesiones = estado.gym.sesiones;
+    if (!sesiones.length) return "";
+    const patrones = gym.patronesDelGym(sesiones);
+    const notas = sesiones.filter((s) => s.nota).slice(-6).reverse().map((s) => {
+        const r = gym.rutinaPorId(s.rutina);
+        const sueno = s.nota.sueno ? `${gym.SUENOS[s.nota.sueno].icono} ${gym.SUENOS[s.nota.sueno].nombre}` : "";
+        return `<li class="gym-nota-fila"><b>${fechaCorta(s.fecha)} · ${r?.icono || "🏋️"} ${esc(r?.nombre || "")}</b>
+                    <small class="texto-suave">${[sueno, s.nota.texto ? `«${esc(s.nota.texto)}»` : ""].filter(Boolean).join(" · ")}</small></li>`;
+    }).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">📓 Diario del gym</h2>
+            ${patrones.length
+                ? `<ul class="gym-propuestas">${patrones.map((p) => `<li>${p.icono} ${esc(p.texto)}</li>`).join("")}</ul>`
+                : '<p class="nota">Al terminar cada entrenamiento, anota cómo dormiste y si algo te molestó. Con unas cuantas notas, aquí verás patrones (por ejemplo, si rindes menos cuando duermes mal).</p>'}
+            ${notas ? `<ul class="historial">${notas}</ul>` : ""}
+        </section>`;
+}
+
+// ===== (v164) «¿Continuar el entrenamiento?»: lo que sale al abrir la app con un entrenamiento a medias =====
+export function dialogoSeguirGym(estado, hoyTexto) {
+    const en = estado.gym.encurso;
+    const r = gym.rutinaPorId(en.rutina);
+    const total = en.ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
+    const cuando = en.fecha === hoyTexto ? "de hoy" : `del ${fechaCorta(en.fecha)}`;
+    return `
+        <div class="formulario">
+            <h2 class="titulo-juego">🏋️ ¿Continuar el entrenamiento?</h2>
+            <p>Dejaste a medias el entrenamiento ${cuando}: <b>${r.icono} ${esc(r.nombre)}</b>, con ${gym.seriesMarcadas(en)} de ${total} series hechas.
+               Todo lo que anotaste está guardado.</p>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="gym-descartar">Descartar</button>
+                <button type="button" class="boton boton-principal" data-accion="gym-continuar">▶ Continuar</button>
+            </div>
+        </div>`;
 }
 
 // ===== (v79) El consejo del día, el reto de la semana y tu evolución =====

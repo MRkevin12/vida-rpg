@@ -6,8 +6,19 @@
 import * as acciones from "./acciones.js";
 import * as gym from "./gym.js";
 import { hoy, sumarDias } from "./fechas.js";
-import { estado, ui, subvista, ejecutar, dibujarPantalla } from "./app.js";
+import { estado, ui, subvista, ejecutar, dibujarPantalla, cambiarPantalla, $ } from "./app.js";
 import { sonar } from "./app-efectos.js";
+import { dialogoSeguirGym } from "./vistas-gym.js";
+
+// (v164) Al abrir la app con un entrenamiento a medias: «¿Continuar el entrenamiento?».
+// (La sesión en curso ya se guarda en cada serie y en cada número que cambias; esto solo te lo recuerda.)
+export function ofrecerSeguirGym() {
+    if (!estado.gym?.encurso) return;
+    const dialogo = $("#dialogo-gym");
+    if (!dialogo) return;
+    dialogo.innerHTML = dialogoSeguirGym(estado, hoy());
+    if (!dialogo.open) dialogo.showModal();
+}
 
 export let gymVista = null;               // (v75) la vista previa del cuerpo en el gimnasio: { fisico, corp } o null
 
@@ -88,9 +99,39 @@ export const ACCIONES_GYM = {
         dibujarPantalla({ mantenerScroll: true });
     },
     "gym-saltar-descanso": () => { ui.descansoGym = null; dibujarPantalla({ mantenerScroll: true }); },
+    // (v164) Las repeticiones en reserva de la serie que acabas de hacer (en el descanso del modo foco).
+    "gym-rir": (boton) => {
+        const r = ejecutar(() => acciones.anotarRirGym(estado, Number(boton.dataset.ej), Number(boton.dataset.serie), Number(boton.dataset.rir)), { mantenerScroll: true });
+        if (r) sonar("cursor");
+    },
+    // (v164) La semana de descarga, la nota de la sesión y «¿Continuar el entrenamiento?».
+    "gym-descarga": () => {
+        if (!ejecutar(() => acciones.empezarDescargaGym(estado), { mantenerScroll: true })) return;
+        ui.fraseGym = null;
+        sonar("completar");
+    },
+    "gym-descarga-quitar": () => {
+        if (!confirm("¿Quitar la semana de descarga? Tus entrenamientos volverán a tener todas sus series.")) return;
+        ejecutar(() => acciones.quitarDescargaGym(estado), { mantenerScroll: true });
+    },
+    "gym-nota-sueno": (boton) => {
+        const d = boton.dataset;
+        if (ejecutar(() => acciones.anotarNotaGym(estado, d.fecha, d.rutina, { sueno: d.sueno }), { mantenerScroll: true })) sonar("cursor");
+    },
+    "gym-continuar": () => {
+        $("#dialogo-gym")?.close();
+        cambiarPantalla("gym");
+    },
+    "gym-descartar": () => {
+        if (!confirm("¿Descartar el entrenamiento? Se pierde lo que anotaste y no da premio.")) return;
+        $("#dialogo-gym")?.close();
+        ui.descansoGym = null;
+        ui.fraseGym = null;
+        ejecutar(() => acciones.cancelarGym(estado));
+    },
     "gym-terminar": () => {
         const hechas = gym.seriesMarcadas(estado.gym.encurso);
-        const planeadas = gym.seriesPlaneadas(gym.rutinaPorId(estado.gym.encurso.rutina));
+        const planeadas = gym.seriesPlaneadasDe(estado.gym.encurso);
         if (hechas * 2 < planeadas && !confirm(`Solo marcaste ${hechas} de ${planeadas} series. ¿Terminar así?`)) return;
         const fin = ejecutar(() => acciones.terminarGym(estado));
         if (fin) {
@@ -142,6 +183,10 @@ export const FORMULARIOS_GYM = {
         const ok = ejecutar(() => acciones.anotarMetaPesoGym(estado, valores.kg), { mantenerScroll: true });
         if (ok) formulario.reset();
         return ok;
+    },
+    // (v164) La línea de molestias o dolor de la sesión que acabas de terminar.
+    "gym-nota"(valores) {
+        return Boolean(ejecutar(() => acciones.anotarNotaGym(estado, valores.fecha, valores.rutina, { texto: valores.texto }), { mantenerScroll: true }));
     },
     "gym-peso"(valores, formulario) {
         const ok = ejecutar(() => acciones.anotarPesoGym(estado, valores.kg), { mantenerScroll: true });

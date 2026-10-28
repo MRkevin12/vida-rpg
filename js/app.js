@@ -58,7 +58,7 @@ import { hoy, diasEntre, sumarDias, relojTexto, relojLargo } from "./fechas.js";
 import { runTipo, runPista, gpsProblema, runTerminando, runResumen, ponerHeroeEnMapaVivo, mostrarNotificacionCarrera,
          ponerCriaturasDeCarrera, ponerPeleaEnMapa, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
          mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
-import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM } from "./app-gym.js";
+import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM, ofrecerSeguirGym } from "./app-gym.js";
 import { ACCIONES_MEMENTO, FORMULARIOS_MEMENTO } from "./app-memento.js";   // (v142)
 import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS, conectarPesos } from "./app-finanzas.js";   // (v135, v137)
 import { GRACIA_MS, cerrarTeclado, teclaPulsada, pedirPinParaEntrar, entrarConFaceId, crearPin, ACCIONES_PIN } from "./app-pin.js";
@@ -217,10 +217,12 @@ export function entrarAlJuego({ nuevo = false } = {}) {
         abrirBienvenida(ofrecerPin);
     } else if (preguntar) {
         // Primero la pregunta; después, el PIN y las novedades.
-        preguntarAnimo(() => { ofrecerPin(); mostrarNovedades(); });
+        // (v164) Y al final, si dejaste un entrenamiento a medias, «¿Continuar el entrenamiento?» (queda encima de todo).
+        preguntarAnimo(() => { ofrecerPin(); mostrarNovedades(); ofrecerSeguirGym(); });
     } else {
         ofrecerPin();
         mostrarNovedades();
+        ofrecerSeguirGym();
     }
 }
 

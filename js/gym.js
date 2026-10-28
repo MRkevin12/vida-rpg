@@ -217,7 +217,8 @@ export const rangoDe = (nivel) => [...RANGOS].reverse().find((r) => nivel >= r.d
 // ===== Lo guardado =====
 export function gymInicial() {
     return {
-        sesiones: [],        // [{ fecha, rutina, ejercicios: [{ id, series: [{ kg, reps }] }], xp, monedas, gemas, completa, records: [{ id, puntaje }] }]
+        sesiones: [],        // [{ fecha, rutina, ejercicios: [{ id, series: [{ kg, reps, rir? }] }], xp, monedas, gemas, completa, records: [{ id, puntaje, tipos?, nivel? }],
+                             //    descarga? (v164: hecha en semana de descarga), nota? (v164: { sueno, texto }) }]
         encurso: null,       // el entrenamiento que estás haciendo ahora (ver crearEntrenamiento)
         hitos: [],           // ids de los hitos ya cobrados
         metaSemanal: 4,      // cuántos días a la semana quieres entrenar (1–7)
@@ -228,6 +229,7 @@ export function gymInicial() {
         medidas: [],         // (v82) [{ fecha, pecho, brazo, cintura, muslo }] en centímetros (una por día; los que no anotes quedan vacíos)
         mision: null,        // la misión diaria que se marca sola al terminar un entrenamiento (id), o null
         retosCobrados: [],   // (v79) los lunes de las semanas cuyo reto ya cobraste
+        descargas: [],       // (v164) tus semanas de descarga: [{ lunes, cobrada }] (cobrada = ya te dio el premio por descansar bien)
         rutinas: {},         // (v160) tus rutinas editadas: { rutinaId: [{ id, series }] }; las que no están usan las de fábrica
         foco: true,          // (v78) el entrenamiento se ve en «modo foco»: una serie a la vez, con letras grandes
     };
@@ -283,17 +285,57 @@ export function ultimaVez(sesiones, ejercicioId) {
     return null;
 }
 
+// ===== (v164) Cómo superarte: la sugerencia de progresión =====
+export const PASO_KG = 2.5;   // lo que se sube (o se baja) el peso de una vez
+// RIR = «repeticiones en reserva»: cuántas más podrías haber hecho al terminar la serie (0 = al fallo, 4 = «4 o más»).
+// Es opcional: si lo anotas, la sugerencia sabe si la serie fue fácil o dura, no solo cuánto levantaste.
+export const RIR_OPCIONES = [0, 1, 2, 3, 4];
+export const MAX_RIR = 4;
+
+const conComa = (n) => String(n).replace(".", ",");
+const kgTexto = (kg) => `${conComa(kg)} kg`;
+export const serieTexto = (s) => (s.kg ? `${kgTexto(s.kg)} × ${s.reps}` : `${s.reps} reps`);
+// La mejor serie de una lista: la de más peso y, a igual peso, la de más repeticiones.
+export const mejorSerie = (series) => series.reduce((m, x) => (x.kg > m.kg || (x.kg === m.kg && x.reps > m.reps) ? x : m));
+
 // Una pista para superarte (doble progresión): si en todas las series llegaste al tope de repeticiones, sube el peso;
-// si no, intenta una repetición más en cada serie.
+// si no, intenta una repetición más con el mismo peso. Con el RIR afina: si te sobraron 3 o más, ya puedes subir;
+// si llegaste al fallo sin alcanzar el mínimo del rango, el peso es demasiado y conviene bajarlo.
+// Devuelve { tipo, texto (con «Última vez…»), hoy (solo lo de hoy, para cuando la última vez ya se ve al lado), kg?, reps?,
+// motivo? (por qué cambia el peso, para el botón que lo pone) }.
 export function sugerencia(ejercicio, anterior) {
-    if (!anterior) return { tipo: "nuevo", texto: "Primera vez: empieza ligero y anota cuánto levantaste." };
-    const pesoMax = Math.max(...anterior.series.map((s) => s.kg));
-    const todasAlTope = anterior.series.length >= ejercicio.series && anterior.series.every((s) => s.reps >= ejercicio.max);
-    if (todasAlTope && pesoMax > 0) {
-        return { tipo: "peso", texto: `Llegaste al tope (${ejercicio.max} reps). Sube un poco el peso (+2,5 kg) y vuelve a ${ejercicio.min}.`,
-                 kg: pesoMax + 2.5 };
+    if (!anterior) {
+        const texto = "Primera vez: empieza ligero y anota cuánto levantaste.";
+        return { tipo: "nuevo", texto, hoy: texto };
     }
-    return { tipo: "reps", texto: `Intenta una repetición más que la última vez (la meta es llegar a ${ejercicio.max}).` };
+    const mejor = mejorSerie(anterior.series);
+    const pesoMax = mejor.kg;
+    const todasAlTope = anterior.series.length >= ejercicio.series && anterior.series.every((s) => s.reps >= ejercicio.max);
+    // El RIR más bajo de las series con el peso más alto (las que más costaron), si lo anotaste.
+    const rirs = anterior.series.filter((s) => s.kg === pesoMax && Number.isFinite(s.rir)).map((s) => s.rir);
+    const rir = rirs.length ? Math.min(...rirs) : null;
+    const armar = (tipo, hoy, extra = {}) => ({ tipo, texto: `Última vez: ${serieTexto(mejor)}. ${hoy}`, hoy, ...extra });
+
+    if (pesoMax === 0) {   // peso corporal: solo se suben las repeticiones
+        const reps = mejor.reps + (rir !== null && rir >= 3 ? 2 : 1);
+        return armar("reps", `Hoy intenta ${reps} reps.`, { reps });
+    }
+    const subir = pesoMax + PASO_KG;
+    if (todasAlTope) {
+        return armar("peso", `Llegaste al tope (${ejercicio.max} reps) en todas: hoy intenta ${kgTexto(subir)} y vuelve a ${ejercicio.min}.`, { kg: subir, reps: ejercicio.min, motivo: "Llegaste al tope" });
+    }
+    if (rir === 0 && mejor.reps < ejercicio.min) {
+        const bajar = Math.max(0, pesoMax - PASO_KG);
+        return armar("bajar", `Llegaste al fallo antes de ${ejercicio.min} reps: hoy prueba ${kgTexto(bajar)} y busca ${ejercicio.min}.`, { kg: bajar, reps: ejercicio.min, motivo: "Llegaste al fallo" });
+    }
+    if (rir !== null && rir >= 3) {
+        const reps = Math.min(ejercicio.max, mejor.reps + 2);
+        return armar("peso", `Te sobraron ${rir === MAX_RIR ? "4 o más" : rir} reps: hoy intenta ${kgTexto(subir)} o ${reps} reps.`, { kg: subir, reps, motivo: "Te sobraron reps" });
+    }
+    if (mejor.reps >= ejercicio.max) {
+        return armar("reps", `Hoy busca ${ejercicio.max} reps en todas las series con ${kgTexto(pesoMax)}.`, { reps: ejercicio.max });
+    }
+    return armar("reps", `Hoy intenta ${kgTexto(pesoMax)} × ${mejor.reps + 1}.`, { reps: mejor.reps + 1 });
 }
 
 // ===== Un entrenamiento en curso =====
@@ -340,29 +382,45 @@ export function serieActual(entrenamiento) {
 export const seriesMarcadas = (entrenamiento) =>
     entrenamiento.ejercicios.reduce((suma, ej) => suma + ej.series.filter((s) => s.hecha).length, 0);
 
+// (v164) Las series que planea este entrenamiento: las de la rutina, o menos si es semana de descarga.
+export function seriesPlaneadasDe(entrenamiento) {
+    const rutina = rutinaPorId(entrenamiento.rutina);
+    return entrenamiento.descarga ? rutina.ejercicios.reduce((suma, x) => suma + seriesDeDescarga(x.series), 0) : seriesPlaneadas(rutina);
+}
+
+// Una serie tal como se guarda: peso y repeticiones, y el RIR solo si lo anotaste.
+const serieGuardada = (s) => (Number.isFinite(s.rir) ? { kg: s.kg, reps: s.reps, rir: s.rir } : { kg: s.kg, reps: s.reps });
+
 // Convierte el entrenamiento en una sesión guardada, con su premio y sus récords nuevos.
 export function cerrarEntrenamiento(entrenamiento, sesiones, ahora = Date.now()) {
-    const rutina = rutinaPorId(entrenamiento.rutina);
     const ejercicios = entrenamiento.ejercicios
-        .map((ej) => ({ id: ej.id, series: ej.series.filter((s) => s.hecha).map((s) => ({ kg: s.kg, reps: s.reps })) }))
+        .map((ej) => ({ id: ej.id, series: ej.series.filter((s) => s.hecha).map(serieGuardada) }))
         .filter((ej) => ej.series.length);
     const hechas = ejercicios.reduce((suma, ej) => suma + ej.series.length, 0);
     if (!hechas) throw new Error("Marca al menos una serie hecha antes de terminar.");
-    const planeadas = seriesPlaneadas(rutina);
+    const planeadas = seriesPlaneadasDe(entrenamiento);
     const completa = hechas >= Math.ceil(planeadas * 0.8);
     // Récords: mejor que TODO lo anterior (en esta misma sesión cuenta una vez por ejercicio).
+    // (v164) De dos clases: el 1RM estimado (o las repeticiones, sin peso) y el peso más alto que has movido.
     const antes = mejoresDe(sesiones);
+    const pesosAntes = pesosMaximos(sesiones);
+    const previos = recordsPorEjercicio(sesiones);
     const nuevos = mejoresDe([{ ejercicios, fecha: entrenamiento.fecha }]);
+    const pesosHoy = pesosMaximos([{ ejercicios }]);
     const records = [];
     for (const [id, m] of Object.entries(nuevos)) {
         // El primer registro de un ejercicio no es un récord: no hay con qué compararlo.
-        if (antes[id] && m.puntaje > antes[id].puntaje) records.push({ id, puntaje: m.puntaje });
+        const tipos = [];
+        if (antes[id] && m.puntaje > antes[id].puntaje) tipos.push(m.kg > 0 ? "1rm" : "reps");
+        if (pesosAntes[id] > 0 && pesosHoy[id] > pesosAntes[id]) tipos.push("peso");
+        if (tipos.length) records.push({ id, puntaje: m.puntaje, tipos, nivel: nivelDeRecord(previos[id] || 0) });
     }
     const calentado = Boolean(entrenamiento.calentado);
     const xp = hechas * XP_POR_SERIE + (completa ? XP_SESION_COMPLETA : 0) + Math.min(records.length, MAX_RECORDS_PREMIADOS) * XP_RECORD + (calentado ? XP_CALENTAMIENTO : 0);
     const minutos = Math.max(1, Math.min(240, Math.round((ahora - (entrenamiento.inicio || ahora)) / 60000)));
-    const monedas = hechas * 2 >= planeadas ? MONEDAS_SESION : 0;
-    return { fecha: entrenamiento.fecha, rutina: entrenamiento.rutina, ejercicios, xp, monedas, gemas: 0, completa, records, calentado, minutos };
+    const monedas = (hechas * 2 >= planeadas ? MONEDAS_SESION : 0) + records.reduce((suma, r) => suma + monedasDeRecord(r.nivel), 0);
+    return { fecha: entrenamiento.fecha, rutina: entrenamiento.rutina, ejercicios, xp, monedas, gemas: 0, completa, records, calentado, minutos,
+             ...(entrenamiento.descarga ? { descarga: true } : {}) };
 }
 
 // Una sesión «marcada»: dices que hoy entrenaste esa rutina, sin anotar series. Da menos XP que una anotada con detalle.
@@ -624,4 +682,210 @@ export function progresoDelReto(g, lunes) {
     const reto = retoDeLaSemana(lunes);
     const { hecho, meta } = reto.medir(g, lunes);
     return { reto, hecho: Math.min(hecho, meta), meta, cumplido: hecho >= meta, cobrado: g.retosCobrados.includes(lunes) };
+}
+
+// ===== (v164) Récords con dificultad y el Salón de récords =====
+// Cada récord en un ejercicio cuesta más que el anterior, así que vale más: el nivel sube 1 cada 3 récords (hasta 5)
+// y da MONEDAS_POR_RECORD × nivel monedas. El XP del récord sigue igual (XP_RECORD).
+export const MONEDAS_POR_RECORD = 5;
+export const MAX_NIVEL_RECORD = 5;
+export const nivelDeRecord = (previos) => Math.min(MAX_NIVEL_RECORD, 1 + Math.floor(previos / 3));
+export const monedasDeRecord = (nivel) => MONEDAS_POR_RECORD * (nivel || 1);
+export const NOMBRE_DE_RECORD = { "1rm": "1RM", peso: "peso", reps: "repeticiones" };
+
+// El peso más alto que has movido en cada ejercicio: { id: kg } (los de peso corporal no salen).
+export function pesosMaximos(sesiones) {
+    const pesos = {};
+    for (const s of sesiones) {
+        for (const ej of s.ejercicios) {
+            for (const serie of ej.series) if (serie.kg > (pesos[ej.id] || 0)) pesos[ej.id] = serie.kg;
+        }
+    }
+    return pesos;
+}
+
+// Cuántos récords llevas en cada ejercicio: { id: n }.
+export function recordsPorEjercicio(sesiones) {
+    const cuantos = {};
+    for (const s of sesiones) for (const r of s.records || []) cuantos[r.id] = (cuantos[r.id] || 0) + 1;
+    return cuantos;
+}
+
+// La medalla de un músculo, según los récords que has batido en sus ejercicios.
+export const MEDALLAS = [
+    { desde: 1,  icono: "🥉", nombre: "Bronce" },
+    { desde: 5,  icono: "🥈", nombre: "Plata" },
+    { desde: 12, icono: "🥇", nombre: "Oro" },
+    { desde: 25, icono: "👑", nombre: "Leyenda" },
+];
+export const medallaDe = (records) => [...MEDALLAS].reverse().find((m) => records >= m.desde) || null;
+
+// El Salón de récords: por músculo, sus récords batidos, su medalla y la mejor marca de cada ejercicio.
+// { pecho: { records, medalla, ejercicios: [{ id, puntaje, kg, reps, fecha, kgMax, records }] }, … } (solo los músculos que has trabajado).
+export function salonDeRecords(sesiones) {
+    const mejores = mejoresDe(sesiones);
+    const pesos = pesosMaximos(sesiones);
+    const cuantos = recordsPorEjercicio(sesiones);
+    const salon = {};
+    for (const [id, m] of Object.entries(mejores)) {
+        const musculo = ejercicioPorId(id)?.musculo;
+        if (!musculo) continue;
+        const zona = (salon[musculo] ||= { records: 0, ejercicios: [] });
+        zona.records += cuantos[id] || 0;
+        zona.ejercicios.push({ id, ...m, kgMax: pesos[id] || 0, records: cuantos[id] || 0 });
+    }
+    for (const zona of Object.values(salon)) {
+        zona.medalla = medallaDe(zona.records);
+        zona.ejercicios.sort((a, b) => b.puntaje - a.puntaje);
+    }
+    return salon;
+}
+
+// ===== (v164) Estancamiento: un ejercicio que lleva varias sesiones sin mejorar su 1RM estimado =====
+export const SESIONES_ESTANCADO = 3;
+export const DIAS_RECIENTE = 42;   // solo avisa de ejercicios que hiciste en las últimas 6 semanas
+
+// { id, sesiones (seguidas sin mejorar), mejor, ultima (fecha) } o null si no está estancado.
+// Las sesiones de una semana de descarga no cuentan: son más ligeras a propósito.
+export function estancamiento(sesiones, ejercicioId) {
+    let mejor = 0;
+    let sinMejorar = 0;
+    let ultima = null;
+    for (const s of sesiones) {
+        if (s.descarga) continue;
+        const ej = s.ejercicios.find((x) => x.id === ejercicioId);
+        const puntaje = ej ? Math.max(0, ...ej.series.map((x) => puntajeDe(x.kg, x.reps))) : 0;
+        if (!puntaje) continue;
+        ultima = s.fecha;
+        if (puntaje > mejor) { mejor = puntaje; sinMejorar = 0; } else sinMejorar += 1;
+    }
+    return sinMejorar >= SESIONES_ESTANCADO ? { id: ejercicioId, sesiones: sinMejorar, mejor, ultima } : null;
+}
+
+// Todos los ejercicios estancados que hiciste hace poco, el que más lleva primero.
+export function estancados(sesiones, hoyTexto) {
+    const ids = new Set(sesiones.flatMap((s) => s.ejercicios.map((x) => x.id)));
+    return [...ids].map((id) => estancamiento(sesiones, id))
+        .filter((e) => e && diasEntre(e.ultima, hoyTexto) <= DIAS_RECIENTE)
+        .sort((a, b) => b.sesiones - a.sesiones);
+}
+
+// Qué hacer con un ejercicio estancado: una descarga (si lleva 4 sesiones o muchas semanas sin descanso),
+// otro rango de repeticiones o un ejercicio parecido del mismo músculo. [{ icono, tipo, texto, ejercicio? }]
+export function propuestasDeEstancamiento(e, semanasSeguidas = 0) {
+    const ej = ejercicioPorId(e.id);
+    if (!ej) return [];
+    const lista = [];
+    if (e.sesiones >= 4 || semanasSeguidas >= 4) {
+        lista.push({ icono: "🛌", tipo: "descarga", texto: "Haz una semana de descarga: menos series y el mismo peso. El cuerpo se recupera y vuelve a subir." });
+    }
+    lista.push(ej.max <= 10
+        ? { icono: "🔁", tipo: "rango", texto: "Cambia de rango unas semanas: 10 a 15 reps con menos peso." }
+        : { icono: "🔁", tipo: "rango", texto: "Cambia de rango unas semanas: 6 a 8 reps con más peso." });
+    const enRutinas = new Set(RUTINA.flatMap((r) => r.ejercicios.map((x) => x.id)));
+    const parecidos = CATALOGO.filter((x) => x.musculo === ej.musculo && x.id !== ej.id);
+    const otro = parecidos.find((x) => !enRutinas.has(x.id)) || parecidos[0];
+    if (otro) lista.push({ icono: "🔄", tipo: "cambio", texto: `Cámbialo por «${otro.nombre}» durante 4 a 6 semanas (en ✏️ Rutinas).`, ejercicio: otro.id });
+    return lista;
+}
+
+// ===== (v164) La semana de descarga: cada 6 semanas seguidas entrenando, una semana con un 40 % menos de series =====
+// No es perder: es dejar que el cuerpo se recupere para volver a subir. Por eso da un premio («descansar bien»)
+// al terminar el primer entrenamiento de esa semana.
+export const SEMANAS_PARA_DESCARGA = 6;
+export const RECORTE_DESCARGA = 0.4;
+export const PREMIO_DESCARGA = { gemas: 30, xp: 20 };
+export const seriesDeDescarga = (series) => Math.max(1, Math.round(series * (1 - RECORTE_DESCARGA)));
+export const descargaDeLaSemana = (g, lunes) => (g.descargas || []).find((d) => d.lunes === lunes) || null;
+
+// Semanas seguidas entrenando (al menos un día) desde tu último descanso, contando hasta la semana pasada.
+// Una semana sin entrenar o una semana de descarga cortan la cuenta.
+export function semanasSinDescanso(g, hoyTexto) {
+    let semanas = 0;
+    let lunes = sumarDias(lunesDe(hoyTexto), -7);
+    while (diasDeLaSemana(g.sesiones, lunes) > 0 && !descargaDeLaSemana(g, lunes)) {
+        semanas += 1;
+        lunes = sumarDias(lunes, -7);
+    }
+    return semanas;
+}
+export const tocaDescarga = (g, hoyTexto) => !descargaDeLaSemana(g, lunesDe(hoyTexto)) && semanasSinDescanso(g, hoyTexto) >= SEMANAS_PARA_DESCARGA;
+
+// ===== (v164) Equilibrio: músculos con poco trabajo (menos de 6 series) en cada una de las últimas 3 semanas =====
+// Solo mira semanas en las que entrenaste y que no fueron de descarga (si descansaste, no es que lo olvidaras).
+export const SEMANAS_EQUILIBRIO = 3;
+export function musculosOlvidados(g, hoyTexto) {
+    const lunesHoy = lunesDe(hoyTexto);
+    const semanas = Array.from({ length: SEMANAS_EQUILIBRIO }, (_, i) => sumarDias(lunesHoy, -7 * (i + 1)));
+    if (semanas.some((lunes) => diasDeLaSemana(g.sesiones, lunes) === 0 || descargaDeLaSemana(g, lunes))) return [];
+    const series = semanas.map((lunes) => seriesPorMusculoDeLaSemana(g.sesiones, lunes));
+    return Object.keys(MUSCULOS).filter((m) => series.every((s) => nivelDeSeries(s[m]) <= 1));
+}
+
+// La rutina que más series planea para esos músculos (para proponerla), o null.
+export function rutinaPara(musculos) {
+    let mejor = null;
+    let maximo = 0;
+    for (const r of RUTINA) {
+        const n = r.ejercicios.filter((x) => musculos.includes(x.musculo)).reduce((suma, x) => suma + x.series, 0);
+        if (n > maximo) { maximo = n; mejor = r; }
+    }
+    return mejor;
+}
+
+// ===== (v164) El diario del gym: una nota por sesión (cómo dormiste y molestias) y lo que se ve con el tiempo =====
+export const SUENOS = {
+    bien:    { icono: "😴", nombre: "Dormí bien" },
+    regular: { icono: "😐", nombre: "Regular" },
+    mal:     { icono: "🥱", nombre: "Dormí mal" },
+};
+export const MAX_NOTA = 140;
+// Las partes del cuerpo que se buscan en tus notas (sin tildes, para que «muñeca» y «muneca» cuenten igual).
+const ZONAS_DE_DOLOR = [["hombro", "hombro"], ["rodilla", "rodilla"], ["espalda", "espalda"], ["lumbar", "zona lumbar"], ["codo", "codo"],
+    ["muneca", "muñeca"], ["cuello", "cuello"], ["cadera", "cadera"], ["tobillo", "tobillo"]];
+const sinTildes = (texto) => texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+// Qué tan bien rendiste en cada sesión: el promedio, por ejercicio, de tu mejor puntaje de ese día dividido entre
+// tu mejor puntaje de ANTES (1 = igual que tu mejor marca; 0,95 = un 5 % menos). null si no hay con qué comparar.
+export function rendimientos(sesiones) {
+    const mejor = {};
+    return sesiones.map((s) => {
+        const razones = [];
+        for (const ej of s.ejercicios) {
+            const puntaje = Math.max(0, ...ej.series.map((x) => puntajeDe(x.kg, x.reps)));
+            if (!puntaje) continue;
+            if (mejor[ej.id]) razones.push(puntaje / mejor[ej.id]);
+            mejor[ej.id] = Math.max(mejor[ej.id] || 0, puntaje);
+        }
+        return razones.length ? razones.reduce((a, b) => a + b, 0) / razones.length : null;
+    });
+}
+
+// Los patrones que se ven en tus notas: [{ icono, texto }].
+//   - Sueño: con al menos 3 sesiones «dormí mal» y 3 «bien o regular», compara cuánto rendiste en unas y otras.
+//   - Molestias: una parte del cuerpo que aparece en 2 o más de tus últimas 10 notas.
+export function patronesDelGym(sesiones) {
+    const patrones = [];
+    const r = rendimientos(sesiones);
+    const mal = [];
+    const bien = [];
+    sesiones.forEach((s, i) => {
+        if (r[i] === null || s.descarga || !s.nota?.sueno) return;
+        (s.nota.sueno === "mal" ? mal : bien).push(r[i]);
+    });
+    if (mal.length >= 3 && bien.length >= 3) {
+        const promedio = (lista) => lista.reduce((a, b) => a + b, 0) / lista.length;
+        const diferencia = Math.round(((promedio(bien) - promedio(mal)) / promedio(bien)) * 100);
+        patrones.push(diferencia >= 3
+            ? { icono: "🥱", texto: `Rindes un ${diferencia} % menos cuando duermes mal (${mal.length} sesiones). Dormir también es entrenar.` }
+            : { icono: "😴", texto: `Dormir mal casi no ha cambiado tu rendimiento (${mal.length} sesiones). Aun así, el músculo crece mientras duermes.` });
+    }
+    const notas = sesiones.filter((s) => s.nota?.texto).slice(-10);
+    for (const [clave, nombre] of ZONAS_DE_DOLOR) {
+        const veces = notas.filter((s) => sinTildes(s.nota.texto).includes(clave)).length;
+        if (veces >= 2) {
+            patrones.push({ icono: "🩹", texto: `«${nombre}» aparece en ${veces} de tus últimas ${notas.length} notas. Si duele la articulación, baja el peso o cambia el ejercicio; si sigue, consulta a un médico.` });
+        }
+    }
+    return patrones;
 }

@@ -4,9 +4,23 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 163;
+export const VERSION_APP = 164;
 
 export const NOVEDADES = [
+    {
+        version: 164,
+        titulo: "Un gym que te ayuda a progresar",
+        cambios: [
+            "💡 Cada ejercicio te dice «Última vez: 60 kg × 8. Hoy intenta…»: sube el peso cuando llegas al tope de reps en todas las series.",
+            "🔢 En el descanso puedes anotar cuántas reps te quedaban (RIR, opcional). Con eso la sugerencia sabe si fue fácil o al fallo.",
+            "⚠️ Si un ejercicio lleva 3 sesiones sin mejorar, Aurelio te avisa y te propone otro rango de reps, otro ejercicio o una descarga.",
+            "🛌 Cada 6 semanas seguidas, una semana de descarga: un 40 % menos de series, y un premio por descansar bien.",
+            "🏛️ Salón de récords por músculo, con medallas. Cada récord dice si fue de peso o de 1RM y da más monedas cuantos más llevas.",
+            "⚖️ Aviso si un músculo lleva 3 semanas con poco trabajo, con la rutina que lo entrena.",
+            "📓 Al terminar, una nota: cómo dormiste y molestias. El diario del gym encuentra patrones (por ejemplo, «rindes menos cuando duermes mal»).",
+            "▶️ Si cierras la app a la mitad de un entrenamiento, al volver te pregunta «¿Continuar el entrenamiento?».",
+        ],
+    },
     {
         version: 163,
         titulo: "Entrena en silencio",

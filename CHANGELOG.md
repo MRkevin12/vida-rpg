@@ -2,6 +2,18 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v164 — Un gym que te ayuda a progresar
+- `gym.js` › `sugerencia`: devuelve `texto` («Última vez: 60 kg × 8. Hoy intenta…»), `hoy`, `kg`, `reps` y `motivo`. Doble progresión, afinada con el RIR (≥ 3 → subir; 0 sin llegar al mínimo → bajar 2,5 kg).
+- RIR opcional por serie (`serie.rir`, 0–4): en el descanso del modo foco (`gym-rir`, `acciones.anotarRirGym`, `encurso.ultima`) y un selector en la lista (`data-gym="rir"`). Se guarda en la sesión solo si se anotó.
+- Récords: `records[i].tipos` (`1rm`, `peso`, `reps`) y `nivel` (`nivelDeRecord`: +1 cada 3 récords del ejercicio, hasta 5); monedas `monedasDeRecord`. El récord en vivo también cuenta el peso y las series ya hechas hoy. `salonDeRecords` + `MEDALLAS` → «🏛️ Salón de récords» en Progreso (reemplaza «Récords personales»).
+- Estancamiento: `estancamiento`, `estancados` (últimos 42 días), `propuestasDeEstancamiento` (descarga, rango, ejercicio parecido).
+- Descarga: `estado.gym.descargas = [{ lunes, cobrada }]`; `semanasSinDescanso`, `tocaDescarga` (6 semanas), `seriesDeDescarga` (−40 %), `seriesPlaneadasDe`; `empezarDescargaGym` / `quitarDescargaGym`; premio `PREMIO_DESCARGA` en el primer entrenamiento de la semana; las sesiones llevan `descarga: true`.
+- Equilibrio: `musculosOlvidados` (< 6 series en cada una de las 3 últimas semanas entrenadas) y `rutinaPara`.
+- Diario: `sesion.nota = { sueno, texto }` (`anotarNotaGym`, en el resumen), `rendimientos` y `patronesDelGym` (sueño y partes del cuerpo que se repiten) → «📓 Diario del gym».
+- «Aurelio te avisa» en Entrenar (descarga, estancados, olvidados; si no hay nada, el consejo del día). Racha semanal en la fila de Hoy.
+- `#dialogo-gym` + `app-gym.js › ofrecerSeguirGym`: al abrir la app con `gym.encurso`, «¿Continuar el entrenamiento?».
+- Datos: `version` 37 (`descargas`). Pruebas: 431.
+
 ## v163 — Entrena en silencio y coma en los kilos
 - `app-efectos.js` › `ponerMusica`: no suena la música de fondo mientras hay `estado.gym.encurso` (incluye el modo foco). Los efectos siguen.
 - `vistas-gym.js`: los campos decimales (peso de hoy, objetivo, medidas y kg de las series) pasan a `type="text"` con `inputmode="decimal"`, para que el teclado del iPhone muestre la coma. `numeroEntre` ya convertía la coma.

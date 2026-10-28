@@ -11885,6 +11885,38 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-reto { margin: 12px 0 4px; padding: 10px 12px; border-radius: var(--esquina); border: 1px solid rgba(167, 139, 250, 0.5); background: rgba(139, 92, 246, 0.1); }
 .gym-reto.cobrado { border-color: var(--verde); background: rgba(52, 211, 153, 0.08); }
 .gym-reto-texto { margin: 2px 0 4px; font-weight: 600; }
+
+/* (v164) RIR por serie en la lista: una columna más (n.º · kg · reps · RIR · ✓) */
+.gym-serie { grid-template-columns: 24px 1fr 1fr 58px 52px; }
+.gym-serie select { width: 100%; min-height: 44px; font-size: 16px; text-align: center; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+.gym-serie.hecha select { opacity: 0.65; }
+
+/* (v164) En el descanso del modo foco: «¿Cuántas más podías?» con 5 botones */
+.gym-rir { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; font-size: 0.78rem; color: var(--texto-suave); }
+.gym-rir small { opacity: 0.8; }
+.gym-rir-botones { display: flex; gap: 6px; }
+.gym-rir-boton { min-width: 44px; min-height: 44px; font: inherit; font-weight: 700; font-size: 0.95rem; color: var(--texto); background: #2a2346; border: 0; box-shadow: inset 0 0 0 1px #4c3f8f; cursor: pointer; }
+.gym-rir-boton[aria-pressed="true"] { background: var(--gym); color: #1a1003; box-shadow: inset 0 0 0 1px var(--gym-2); }
+
+/* (v164) Las pistas: bajar el peso y ejercicio estancado */
+.gym-pista-bajar { color: var(--rojo); font-weight: 600; }
+.gym-pista-estancado { color: var(--gym-2); }
+
+/* (v164) Aurelio te avisa: descarga, estancados y músculos olvidados */
+.gym-avisos-lista { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.gym-aviso { display: grid; gap: 4px; padding: 10px 12px; border-radius: var(--esquina); border: 1px solid rgba(252, 211, 77, 0.45); background: rgba(245, 158, 11, 0.08); }
+.gym-aviso > small { color: var(--texto-suave); line-height: 1.4; }
+.gym-aviso .boton { justify-self: start; }
+.gym-aviso-descarga { border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.08); }
+.gym-propuestas { margin: 2px 0 0; padding-left: 0; list-style: none; display: grid; gap: 3px; font-size: 0.85rem; line-height: 1.4; }
+
+/* (v164) El Salón de récords: un plegable por músculo con su medalla */
+.gym-salon > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.gym-medalla { font-weight: 700; color: var(--gym-2); }
+
+/* (v164) La nota de la sesión en el resumen */
+.gym-nota { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--borde); }
+.gym-nota-fila { display: grid; gap: 2px; }
 .gym-evolucion { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; }
 .gym-foto { flex: 0 0 150px; margin: 0; scroll-snap-align: start; text-align: center; }
 .gym-foto-cuerpo { border-radius: var(--esquina); overflow: hidden; border: 1px solid var(--borde); background: #150f2a; }

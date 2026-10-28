@@ -18,7 +18,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 36,   // 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
+        version: 37,   // 37 (v164): gym con descargas, RIR y notas · 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -208,7 +208,7 @@ function completar(guardado) {
         },   // (v135, v138)
         memento: { ...base.memento, ...guardado.memento },   // (v142)
         libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio }, orrin: { ...base.libros.orrin, ...guardado.libros?.orrin } },
-        gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null, rutinas: guardado.gym?.rutinas || {} },   // (v66, v160)
+        gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null, rutinas: guardado.gym?.rutinas || {}, descargas: guardado.gym?.descargas || [] },   // (v66, v160, v164)
         mapa: { reclamados: guardado.mapa?.reclamados || [], cines: guardado.mapa?.cines || [] },
         arcade: {
             usadas: guardado.arcade?.usadas || 0,

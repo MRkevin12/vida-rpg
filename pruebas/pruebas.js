@@ -6803,7 +6803,7 @@ prueba("Gym: las pantallas se dibujan (la fila de Hoy, la elección, el entrenam
     acciones.marcarSerieGym(estado, 0, 0);
     acciones.terminarGym(estado);
     html = gymEn("progreso", estado, ctx);
-    cierto(html.includes("Récords personales") && html.includes("Últimas sesiones") && html.includes("Hitos de gym"), "resultados");
+    cierto(html.includes("Salón de récords") && html.includes("Últimas sesiones") && html.includes("Hitos de gym"), "resultados");
     cierto(html.includes("Tu constancia") && (html.match(/gym-cuadro n/g) || []).length === 84, "el calendario de 12 semanas tiene 84 cuadritos");
     cierto(vistasGym.tarjetaGymHoy(estado, ctx).includes("Hoy entrenaste"));
 });
@@ -7958,7 +7958,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 36, "versión de los datos");
+    igual(base.version, 37, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -8160,7 +8160,7 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [36, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [37, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });
@@ -8473,6 +8473,179 @@ prueba("Gimnasio (v161): editar rutinas (agregar, cambiar, quitar, series, resta
     igual(gym.rutinaPorId("biceps").ejercicios.map((x) => x.id).join(), original.join());
     cierto(gymEn("rutinas", estado, { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null }).includes("data-gym-rutina-agregar"), "la pestaña Rutinas se dibuja");
     gym.aplicarRutinas({});
+});
+
+// ===== (v164) Progresión, RIR, récords, estancamiento, descarga, equilibrio y diario del gym =====
+
+// Una sesión hecha a mano: cada ejercicio con sus series [kg, reps] (o [kg, reps, rir]).
+const sesionGym = (fecha, rutina, ejercicios, extra = {}) => ({
+    fecha, rutina, xp: 10, monedas: 0, gemas: 0, completa: true, records: [],
+    ejercicios: Object.entries(ejercicios).map(([id, series]) => ({ id, series: series.map(([kg, reps, rir]) => (rir === undefined ? { kg, reps } : { kg, reps, rir })) })),
+    ...extra,
+});
+const cuatro = (kg, reps, rir) => [1, 2, 3, 4].map(() => [kg, reps, rir]);
+const ctxGym = () => ({ hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
+
+prueba("Gym (v164): la sugerencia dice lo de la última vez y qué intentar hoy; con el RIR afina", () => {
+    const banca = gym.ejercicioPorId("press-banca");   // 4 × 6–10
+    const ultima = (series) => ({ fecha: "2026-01-01", series: series.map(([kg, reps, rir]) => (rir === undefined ? { kg, reps } : { kg, reps, rir })) });
+    let s = gym.sugerencia(banca, ultima(cuatro(60, 8)));
+    igual([s.tipo, s.texto], ["reps", "Última vez: 60 kg × 8. Hoy intenta 60 kg × 9."], "una repetición más con el mismo peso");
+    s = gym.sugerencia(banca, ultima(cuatro(60, 10)));
+    igual([s.tipo, s.kg, s.reps, s.motivo], ["peso", 62.5, 6, "Llegaste al tope"], "al tope en todas: sube y vuelve al mínimo");
+    s = gym.sugerencia(banca, ultima(cuatro(60, 8, 3)));
+    igual([s.tipo, s.kg, s.reps], ["peso", 62.5, 10], "te sobraron 3: ya puedes subir");
+    cierto(s.hoy.includes("62,5 kg o 10 reps"), s.hoy);
+    s = gym.sugerencia(banca, ultima(cuatro(60, 5, 0)));
+    igual([s.tipo, s.kg], ["bajar", 57.5], "al fallo sin llegar a 6: baja el peso");
+    s = gym.sugerencia(banca, ultima([[60, 10], [60, 10], [60, 9], [60, 8]]));
+    cierto(s.tipo === "reps" && s.hoy.includes("10 reps en todas"), "la mejor ya llegó al tope: completa las demás");
+    s = gym.sugerencia(gym.ejercicioPorId("press-banca"), ultima([[0, 12]]));
+    igual([s.tipo, s.reps, s.texto], ["reps", 13, "Última vez: 12 reps. Hoy intenta 13 reps."], "sin peso, solo repeticiones");
+});
+
+prueba("Gym (v164): el RIR se anota por serie (opcional), se guarda en la sesión y se pregunta en el descanso", () => {
+    const estado = partidaNueva();
+    acciones.empezarGym(estado, "pantorrillas");
+    acciones.anotarSerieGym(estado, 0, 0, "rir", "2");
+    igual(estado.gym.encurso.ejercicios[0].series[0].rir, 2);
+    acciones.anotarSerieGym(estado, 0, 0, "rir", "");
+    igual(estado.gym.encurso.ejercicios[0].series[0].rir, undefined, "vacío lo quita");
+    debeFallar(() => acciones.anotarSerieGym(estado, 0, 0, "rir", 9), "reserva");
+    acciones.marcarSerieGym(estado, 0, 0);
+    igual(estado.gym.encurso.ultima, { ejercicio: 0, serie: 0 }, "recuerda la serie que acabas de hacer");
+    const html = vistasGym.pantallaGym(estado, { ...ctxGym(), descanso: { fin: Date.now() + 60000, total: 90000 } });
+    cierto(html.includes('data-accion="gym-rir"') && html.includes("¿Cuántas más podías?"), "en el descanso pregunta el RIR");
+    igual(acciones.anotarRirGym(estado, 0, 0, 1).rir, 1);
+    igual(acciones.anotarRirGym(estado, 0, 0, 1).rir, null, "tocar el mismo lo quita");
+    acciones.anotarRirGym(estado, 0, 0, 3);
+    const fin = acciones.terminarGym(estado);
+    igual(fin.sesion.ejercicios[0].series[0].rir, 3, "se guarda con la sesión");    estado.gym.foco = false;
+    acciones.empezarGym(estado, "biceps");
+    cierto(vistasGym.pantallaGym(estado, ctxGym()).includes('data-gym="rir"'), "en la lista, un selector por serie");
+});
+
+prueba("Gym (v164): los récords dicen de qué son (1RM o peso), valen más cuantos más llevas y forman el Salón de récords", () => {
+    const estado = partidaNueva();
+    entrenar(estado, "biceps", 20, 10, sumarDias(hoy(), -1));
+    const r = entrenar(estado, "biceps", 25, 10);
+    igual(r.sesion.records.map((x) => [x.tipos.join("+"), x.nivel]), [["1rm+peso", 1], ["1rm+peso", 1], ["1rm+peso", 1]]);
+    igual(r.sesion.monedas, gym.MONEDAS_SESION + 3 * gym.monedasDeRecord(1), "cada récord da monedas");
+    cierto(r.celebraciones.some((c) => c.etiqueta === "¡Récord de 1RM y de peso!"), "la celebración dice qué récord fue");
+    // Más peso con menos repeticiones: récord de peso, aunque el 1RM no suba.
+    const solo = gym.cerrarEntrenamiento({ rutina: "biceps", fecha: hoy(), ejercicios: [{ id: "curl-barra", series: [{ kg: 27.5, reps: 1, hecha: true }] }] }, estado.gym.sesiones);
+    igual(solo.records[0].tipos, ["peso"]);
+    igual([0, 2, 3, 5, 6, 30].map(gym.nivelDeRecord), [1, 1, 2, 2, 3, 5], "sube un nivel cada 3 récords, hasta 5");
+    const salon = gym.salonDeRecords(estado.gym.sesiones);
+    const zona = salon[gym.ejercicioPorId("curl-barra").musculo];
+    cierto(zona.records >= 1 && zona.medalla.nombre === "Bronce", "el músculo gana su medalla");
+    igual([gym.medallaDe(0), gym.medallaDe(5).nombre, gym.medallaDe(30).nombre], [null, "Plata", "Leyenda"]);
+    cierto(gymEn("progreso", estado, ctxGym()).includes("Salón de récords"), "se dibuja en Progreso");
+    // En vivo: la primera serie con más peso es récord; la segunda igual, ya no.
+    const otra = partidaNueva();
+    entrenar(otra, "biceps", 20, 10, sumarDias(hoy(), -1));
+    acciones.empezarGym(otra, "biceps");
+    for (const si of [0, 1]) { acciones.anotarSerieGym(otra, 0, si, "kg", 30); acciones.anotarSerieGym(otra, 0, si, "reps", 10); }
+    igual(acciones.marcarSerieGym(otra, 0, 0).frase.tipo, "record");
+    cierto(acciones.marcarSerieGym(otra, 0, 1).frase.tipo !== "record", "la misma marca otra vez no es récord");
+});
+
+prueba("Gym (v164): un ejercicio que lleva 3 sesiones sin mejorar está estancado, y Aurelio propone qué hacer", () => {
+    const dias = [-20, -15, -10, -5, -1].map((d) => sumarDias(hoy(), d));
+    const sesiones = dias.slice(0, 4).map((f) => sesionGym(f, "pecho-triceps", { "press-banca": cuatro(60, 8) }));
+    let e = gym.estancamiento(sesiones, "press-banca");
+    igual([e.sesiones, e.mejor], [3, gym.unaRepeticion(60, 8)], "3 sesiones sin superar la primera");
+    igual(gym.estancamiento(sesiones.slice(0, 3), "press-banca"), null, "2 todavía no");
+    const conDescarga = [...sesiones.slice(0, 3), sesionGym(dias[3], "pecho-triceps", { "press-banca": cuatro(50, 8) }, { descarga: true })];
+    igual(gym.estancamiento(conDescarga, "press-banca"), null, "la sesión de descarga no cuenta");
+    const mejora = [...sesiones, sesionGym(dias[4], "pecho-triceps", { "press-banca": cuatro(62.5, 8) })];
+    igual(gym.estancamiento(mejora, "press-banca"), null, "al mejorar, se acaba");
+    let propuestas = gym.propuestasDeEstancamiento(e).map((p) => p.tipo);
+    igual(propuestas, ["rango", "cambio"], "con 3: otro rango u otro ejercicio");
+    e = gym.estancamiento([...sesiones, sesionGym(dias[4], "pecho-triceps", { "press-banca": cuatro(60, 8) })], "press-banca");
+    propuestas = gym.propuestasDeEstancamiento(e);
+    igual(propuestas.map((p) => p.tipo), ["descarga", "rango", "cambio"], "con 4: también una descarga");
+    igual(gym.ejercicioPorId(propuestas[2].ejercicio).musculo, "pecho", "el cambio es del mismo músculo");
+    igual(gym.estancados(sesiones, hoy()).map((x) => x.id), ["press-banca"]);
+    igual(gym.estancados(sesiones, sumarDias(hoy(), 60)), [], "si hace mucho que no lo haces, no avisa");
+    const estado = partidaNueva();
+    estado.gym.sesiones = sesiones;
+    cierto(gymEn("entrenar", estado, ctxGym()).includes("Aurelio te avisa") && gymEn("entrenar", estado, ctxGym()).includes("sin mejorar"), "Aurelio lo avisa en Entrenar");
+});
+
+prueba("Gym (v164): cada 6 semanas seguidas toca una semana de descarga: menos series, mismo peso y premio por descansar bien", () => {
+    const estado = partidaNueva();
+    const lunes = lunesDe(hoy());
+    estado.gym.sesiones = [1, 2, 3, 4, 5, 6].map((i) => sesionGym(sumarDias(lunes, -7 * i + 1), "hombros", { "press-hombros": cuatro(30, 10) })).reverse();
+    igual(gym.semanasSinDescanso(estado.gym, hoy()), 6);
+    cierto(gym.tocaDescarga(estado.gym, hoy()), "toca descargar");
+    cierto(gymEn("entrenar", estado, ctxGym()).includes('data-accion="gym-descarga"'), "Aurelio la propone con un botón");
+    acciones.empezarDescargaGym(estado);
+    debeFallar(() => acciones.empezarDescargaGym(estado), "ya es de descarga");
+    cierto(!gym.tocaDescarga(estado.gym, hoy()), "ya no la propone");
+    igual([4, 3, 2, 1].map(gym.seriesDeDescarga), [2, 2, 1, 1], "un 40 % menos (al menos 1)");
+    const planeadas = gym.rutinaPorId("hombros").ejercicios.map((x) => x.series);
+    acciones.empezarGym(estado, "hombros");
+    igual(estado.gym.encurso.ejercicios.map((x) => x.series.length), planeadas.map(gym.seriesDeDescarga), "cada ejercicio trae menos series");
+    estado.gym.encurso.ejercicios.forEach((ej, ei) => ej.series.forEach((_, si) => acciones.marcarSerieGym(estado, ei, si)));
+    const gemas = estado.personaje.gemas;
+    const fin = acciones.terminarGym(estado);
+    cierto(fin.sesion.descarga && fin.sesion.completa, "cuenta como completa con las series de la descarga");
+    cierto(fin.celebraciones.some((c) => c.etiqueta === "¡Descansaste bien!"), "el premio por descansar bien");
+    cierto(estado.personaje.gemas >= gemas + gym.PREMIO_DESCARGA.gemas, "da gemas");
+    debeFallar(() => acciones.quitarDescargaGym(estado), "se queda así");
+    igual(gym.semanasSinDescanso(estado.gym, sumarDias(hoy(), 7)), 0, "la semana de descarga corta la cuenta");
+});
+
+prueba("Gym (v164): si un músculo lleva 3 semanas con poco trabajo, se avisa y se propone la rutina que lo trabaja", () => {
+    const estado = partidaNueva();
+    const lunes = lunesDe(hoy());
+    estado.gym.sesiones = [3, 2, 1].map((i) => sesionGym(sumarDias(lunes, -7 * i + 1), "hombros", { "press-hombros": [...cuatro(30, 10), ...cuatro(30, 10)] }));
+    const olvidados = gym.musculosOlvidados(estado.gym, hoy());
+    cierto(!olvidados.includes("hombros") && olvidados.includes("cuadriceps"), olvidados.join());
+    igual(gym.rutinaPara(["cuadriceps"]).id, "cuadriceps");
+    cierto(gymEn("entrenar", estado, ctxGym()).includes("semanas con poco trabajo de"), "Aurelio lo avisa");
+    cierto(gymEn("progreso", estado, ctxGym()).includes("semanas con poco trabajo"), "y el mapa del cuerpo también");
+    estado.gym.sesiones.splice(1, 1);
+    igual(gym.musculosOlvidados(estado.gym, hoy()), [], "una semana sin entrenar fue descanso: no avisa");
+});
+
+prueba("Gym (v164): la nota de la sesión (sueño y molestias) y los patrones del diario", () => {
+    const estado = partidaNueva();
+    const fin = entrenar(estado, "pantorrillas");
+    acciones.anotarNotaGym(estado, fin.sesion.fecha, "pantorrillas", { sueno: "mal" });
+    acciones.anotarNotaGym(estado, fin.sesion.fecha, "pantorrillas", { texto: "  me molestó la rodilla " });
+    igual(estado.gym.sesiones[0].nota, { sueno: "mal", texto: "me molestó la rodilla" });
+    acciones.anotarNotaGym(estado, fin.sesion.fecha, "pantorrillas", { sueno: "mal" });
+    igual(estado.gym.sesiones[0].nota, { texto: "me molestó la rodilla" }, "tocar el mismo sueño lo quita");
+    debeFallar(() => acciones.anotarNotaGym(estado, fin.sesion.fecha, "pantorrillas", { texto: "x".repeat(200) }), "hasta");
+    debeFallar(() => acciones.anotarNotaGym(estado, fin.sesion.fecha, "pantorrillas", { sueno: "fatal" }), "no existe");
+    debeFallar(() => acciones.anotarNotaGym(estado, "2020-01-01", "pantorrillas", {}), "no existe");
+    const html = vistasGym.pantallaGym(estado, { ...ctxGym(), resumenGym: fin.sesion });
+    cierto(html.includes('data-accion="gym-nota-sueno"') && html.includes('data-form="gym-nota"'), "el resumen pide la nota");
+    // Patrones: con sueño malo rindes un 10 % menos; el hombro aparece en 2 notas.
+    const suenos = ["bien", "bien", "mal", "bien", "mal", "bien", "mal"];
+    const sesiones = suenos.map((sueno, i) => sesionGym(sumarDias(hoy(), -30 + i * 3), "pecho-triceps", { "press-banca": [[sueno === "mal" ? 90 : 100, 0]] },
+        { nota: { sueno, ...(i >= 5 ? { texto: "Me dolió el hombro" } : {}) } }));
+    const r = gym.rendimientos(sesiones);
+    igual([r[0], r[1], r[2]], [null, 1, 0.9], "contra tu mejor marca de antes");
+    const patrones = gym.patronesDelGym(sesiones).map((p) => p.texto);
+    cierto(patrones.some((t) => t.startsWith("Rindes un 10 % menos cuando duermes mal")), patrones.join(" | "));
+    cierto(patrones.some((t) => t.includes("«hombro» aparece en 2")), "la molestia que se repite");
+    estado.gym.sesiones = sesiones;
+    cierto(gymEn("progreso", estado, ctxGym()).includes("Diario del gym"), "el diario se ve en Progreso");
+});
+
+prueba("Gym (v164): al volver con un entrenamiento a medias se pregunta «¿Continuar el entrenamiento?»", () => {
+    const estado = partidaNueva();
+    acciones.empezarGym(estado, "biceps");
+    acciones.marcarSerieGym(estado, 0, 0);
+    const html = vistasGym.dialogoSeguirGym(estado, hoy());
+    cierto(html.includes("¿Continuar el entrenamiento?") && html.includes("1 de 9 series") && html.includes('data-accion="gym-continuar"') && html.includes('data-accion="gym-descartar"'), html);
+    // Lo anotado ya está en la partida guardada (sobrevive a cerrar la app).
+    const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
+    igual(copia.gym.encurso.ejercicios[0].series[0].hecha, true);
+    igual(copia.gym.descargas, [], "las descargas también viajan (vacías en una partida nueva)");
 });
 
 // Para que un programa (o tú, desde la consola) pueda leer el resultado.
