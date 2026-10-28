@@ -17,7 +17,14 @@ export function registrarServiceWorker() {
     const yaInstalada = Boolean(navigator.serviceWorker.controller);
 
     navigator.serviceWorker.register("./sw.js")
-        .then((registro) => { registroSW = registro; })
+        .then((registro) => {
+            registroSW = registro;
+            // (v157) Aviso más confiable: además de «controllerchange», se revisa cuando aparece y se instala un SW nuevo.
+            registro.addEventListener("updatefound", () => {
+                registro.installing?.addEventListener("statechange", revisarVersionNueva);
+            });
+            revisarVersionNueva();
+        })
         .catch(() => {
             // Si falla (ej: abriendo el archivo directo), la app igual funciona con internet.
         });
@@ -35,10 +42,21 @@ export function registrarServiceWorker() {
     });
 }
 
+// (v157) ¿La caché guardada es de una versión más nueva que el código que está corriendo? Entonces hay que recargar.
+// No depende de «controllerchange» (que el iPhone a veces no manda o se pierde si la app estaba dormida).
+export function revisarVersionNueva() {
+    if (!("caches" in window)) return;
+    caches.keys().then((nombres) => {
+        const guardada = Math.max(0, ...nombres.map((n) => Number(n.match(/^vida-rpg-v(\d+)$/)?.[1]) || 0));
+        if (guardada > VERSION_APP) $("#actualizacion").hidden = false;
+    }).catch(() => {});
+}
+
 // El iPhone casi nunca recarga las apps de la pantalla de inicio (las "despierta"),
 // así que cada vez que vuelves a la app le pedimos que revise si hay versión nueva.
 export function buscarActualizacion() {
-    if (registroSW && navigator.onLine) registroSW.update().catch(() => {});
+    revisarVersionNueva();
+    if (registroSW && navigator.onLine) registroSW.update().then(() => setTimeout(revisarVersionNueva, 4000)).catch(() => {});
 }
 
 // Muestra en Ajustes qué versión está guardada en el teléfono (el nombre de la caché).

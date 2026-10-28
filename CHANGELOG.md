@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v157 — Aviso de actualización más confiable
+- `app-version.js`: `revisarVersionNueva()` compara el número de la caché guardada (`vida-rpg-vN`) con `VERSION_APP`; si la caché es más nueva, muestra «Actualizar». Antes solo salía con `controllerchange`, que el iPhone puede no mandar. Se llama al registrar el SW, en `updatefound`/`statechange`, al volver a la app y 4 s después de `update()`.
+- Pruebas: 416.
+
 ## v156 — Gym en foco: todo en una pantalla
 - `vistas-gym.js` › `pantallaGym`: con el modo foco y un entrenamiento en curso, solo se dibuja el entrenamiento (sin encabezado ni `tarjetaNivel`).
 - `vistaDeFoco`: cabecera en una fila (rutina, tiempo, kg, contador); figura o anillo de descanso a la izquierda y nombre/serie/última vez (solo la mejor serie) a la derecha; peso y reps lado a lado; «Contar» al lado de «Terminé la serie»; ±15 s a los lados de «Empezar serie N»; pie en una fila (Calentar, Terminar, Lista, Cancelar). Si toca subir de peso, la pista es el botón. Se quitó el consejo de técnica en el foco.
