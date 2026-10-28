@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v160 — Entrenar de verdad
+- `vistas-gym.js`: se quitó el botón «Marcar que hoy entrené» (pestaña y Hoy) y la lista «marcar otra rutina u otro día». Ahora «Empezar entrenamiento» (`gym-empezar`); el día cuenta al terminar y anotar series. `marcarGymRapido` sigue en `acciones.js` pero ya no tiene botón.
+
 ## v159 — sw.js roto (arreglado)
 - `sw.js` empezaba con dos `+` sueltos (`+` y `+// sw.js…`, sobrados de un parche) desde la v155: error de sintaxis, el navegador no podía instalar el service worker nuevo, así que el iPhone no se actualizaba ni mostraba «Actualizar». Se quitaron.
 - Prueba nueva: `sw.js` se compila sin error de sintaxis.

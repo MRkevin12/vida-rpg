@@ -82,7 +82,7 @@ export function tarjetaGymHoy(estado, ctx) {
             <span class="gym-hoy-icono" aria-hidden="true">${toca.icono}</span>
             <span class="gym-hoy-texto"><b>Gym: hoy toca ${esc(toca.nombre)}</b><small>Meta de la semana: ${gym.diasDeLaSemana(g.sesiones, lunes)} de ${g.metaSemanal} días</small></span>
             <span class="gym-hoy-botones">
-                <button type="button" class="boton boton-chico boton-principal" data-accion="gym-rapido" data-rutina="toca" aria-label="Marcar que hoy entrené">✅ Marcar</button>
+                <button type="button" class="boton boton-chico boton-principal" data-accion="gym-empezar" data-rutina="${toca.id}" aria-label="Empezar el entrenamiento de hoy">▶ Empezar</button>
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="gym">Abrir</button>
             </span>
         </div>`;
@@ -192,23 +192,14 @@ function tarjetaSemana(estado, ctx) {
         const clases = ["gym-dia", deEseDia.length ? "hecho" : "", fecha === ctx.hoy ? "hoy" : "", fecha > ctx.hoy ? "futuro" : ""].join(" ");
         return `<li class="${clases}"><small>${DIAS_LETRAS[diaDeSemana(fecha)]}</small><span>${iconos || "·"}</span></li>`;
     }).join("");
-    // (v74) La meta que se marca: un botón para decir «hoy entrené» (sin anotar series), o marcar otra rutina u otro día.
+    // (v160) El día solo cuenta cuando TERMINAS y anotas el entrenamiento: ya no hay botón de «marcar» sin entrenar.
+    // Otra rutina u otro día se empieza desde la lista de rutinas de abajo.
     const toca = gym.siguienteRutina(g.sesiones);
-    const ayer = sumarDias(ctx.hoy, -1);
     const yaHoy = g.sesiones.some((s) => s.fecha === ctx.hoy && s.rutina === toca.id);
-    const filaMarcar = (r, esAyer) => {
-        const fecha = esAyer ? ayer : ctx.hoy;
-        const hecha = g.sesiones.some((s) => s.fecha === fecha && s.rutina === r.id);
-        return `<li class="gym-rutina gym-rutina-chica"><span>${r.icono} ${esc(r.nombre)}</span>
-                <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rapido" data-rutina="${r.id}" ${esAyer ? 'data-ayer="1"' : ""} ${hecha ? "disabled" : ""}>${hecha ? "✓" : "Marcar"}</button></li>`;
-    };
     const marcar = `
-        <button type="button" class="boton ${yaHoy ? "boton-secundario" : "boton-principal"} boton-ancho gym-marcar" data-accion="gym-rapido" data-rutina="toca" ${yaHoy ? "disabled" : ""}>
-            ${yaHoy ? `✅ Hoy ya marcaste ${esc(toca.nombre)}` : `✅ Marcar que hoy entrené: ${toca.icono} ${esc(toca.nombre)}`}</button>
-        <details class="plegable"><summary>Marcar otra rutina u otro día</summary>
-            <p class="nota">Hoy:</p><ul class="gym-rutinas">${gym.RUTINA.map((r) => filaMarcar(r, false)).join("")}</ul>
-            <p class="nota">Ayer, si se te olvidó:</p><ul class="gym-rutinas">${gym.RUTINA.map((r) => filaMarcar(r, true)).join("")}</ul>
-        </details>`;
+        <button type="button" class="boton ${yaHoy ? "boton-secundario" : "boton-principal"} boton-ancho gym-marcar" data-accion="gym-empezar" data-rutina="${toca.id}" ${yaHoy ? "disabled" : ""}>
+            ${yaHoy ? `✅ Hoy ya entrenaste ${esc(toca.nombre)}` : `▶ Empezar entrenamiento: ${toca.icono} ${esc(toca.nombre)}`}</button>
+        <p class="nota">Se marca cuando lo termines. ¿Otra rutina u otro día? Elígela en la lista de abajo.</p>`;
     return `
         <section class="panel">
             <div class="titulo-seccion">
@@ -218,7 +209,7 @@ function tarjetaSemana(estado, ctx) {
             <ol class="gym-semana">${celdas}</ol>
             ${barra(Math.min(100, Math.round((hechos / g.metaSemanal) * 100)), "barra-gym")}
             <p class="nota">${racha ? `🔥 <b>${plural(racha, "semana seguida", "semanas seguidas")}</b> cumpliendo tu meta.` : "Cumple tu meta de la semana para empezar una racha de semanas."}
-               Marca cada día que entrenes (+${gym.XP_RAPIDO} XP) o, si quieres, anota tus series más abajo (da más XP y récords).</p>
+               Empieza tu entrenamiento, anota tus series y al terminar el día cuenta (da XP y récords).</p>
             ${marcar}
             ${tarjetaReto(estado, ctx)}
             ${recompensasDeConstancia(estado)}

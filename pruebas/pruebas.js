@@ -7008,10 +7008,11 @@ prueba("Gym (meta): se puede marcar «hoy entrené» sin anotar series: da XP, c
     // La pantalla ofrece el botón de marcar y deja intacto lo de Ajustes del gym.
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
     const html = gymEn("entrenar", partidaNueva(), ctx);
-    cierto(html.includes('data-accion="gym-rapido"') && html.includes("Marcar que hoy entrené"), "botón para marcar");
+    cierto(html.includes('data-accion="gym-empezar"') && !html.includes('data-accion="gym-rapido"'), "solo se puede empezar, no marcar sin entrenar");
     const mas = gymEn("mas", partidaNueva(), ctx);
     cierto(mas.includes('data-accion="gym-meta"') && mas.includes('data-accion="gym-descanso"') && mas.includes("data-gym-mision"), "los ajustes del gym siguen ahí");
-    cierto(vistasGym.tarjetaGymHoy(partidaNueva(), ctx).includes('data-accion="gym-rapido"'), "y en Hoy también");
+    const hoyGym = vistasGym.tarjetaGymHoy(partidaNueva(), ctx);
+    cierto(hoyGym.includes('data-accion="gym-empezar"') && !hoyGym.includes('data-accion="gym-rapido"'), "y en Hoy también");
 });
 
 prueba("Gym (IMC): altura, peso, categorías y la silueta del avatar", () => {

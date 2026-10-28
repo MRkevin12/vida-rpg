@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 159;
+export const VERSION_APP = 160;
 
 export const NOVEDADES = [
+    {
+        version: 160,
+        titulo: "Entrenar de verdad",
+        cambios: [
+            "🏋️ Ya no se puede marcar «hoy entrené» sin entrenar: el botón ahora es «Empezar entrenamiento», y el día cuenta cuando terminas y anotas tus series.",
+        ],
+    },
     {
         version: 159,
         titulo: "Actualizaciones arregladas",
