@@ -4,7 +4,7 @@
 // No envían nada de verdad: el KV y los servicios de push se reemplazan por imitaciones.
 
 import { cifrar, firmaVapid, aBytes, aBase64url } from "./webpush.js";
-import { horaLocal, avisosQueTocan, validarHorarios, validarMisiones, validarRespaldo } from "./worker.js";
+import { horaLocal, avisosQueTocan, validarHorarios, validarMisiones, validarRespaldo, esperaDeDescanso } from "./worker.js";
 
 let fallidas = 0;
 async function prueba(nombre, funcion) {
@@ -113,6 +113,17 @@ await prueba("Avisos: el fin del enfoque avisa una sola vez (en el minuto en que
     igual(avisosQueTocan(config, Date.UTC(2026, 9, 12, 15, 26)), [{ tipo: "enfoque" }], "el minuto siguiente");
     igual(avisosQueTocan(config, Date.UTC(2026, 9, 12, 15, 27)), [], "y ya no más");
     igual(avisosQueTocan({ ...config, avisarEnfoque: false }, Date.UTC(2026, 9, 12, 15, 26)), [], "si lo apagaste");
+});
+
+await prueba("Descanso del gym: se espera hasta su segundo exacto, solo en el minuto en que termina", () => {
+    const minuto = Date.UTC(2026, 9, 12, 15, 25);
+    const fin = minuto + 40000;   // termina a los 40 s de este minuto
+    igual(esperaDeDescanso({ finDescanso: fin }, minuto), 40000, "este minuto: espera 40 s");
+    igual(esperaDeDescanso({ finDescanso: fin }, minuto - 60000), null, "el minuto anterior: todavía no");
+    igual(esperaDeDescanso({ finDescanso: fin }, minuto + 60000), 0, "se registró tarde: avisa ya");
+    igual(esperaDeDescanso({ finDescanso: fin }, minuto + 120000), null, "ya pasó mucho: no sirve");
+    igual(esperaDeDescanso({ finDescanso: null }, minuto), null, "sin descanso");
+    igual(esperaDeDescanso({}, minuto), null, "sin el dato");
 });
 
 await prueba("Modo descanso: no llegan recordatorios hasta ese día (el aviso del enfoque sí)", () => {

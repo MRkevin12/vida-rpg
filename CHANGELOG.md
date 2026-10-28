@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v169 — Avisos del descanso
+- Al irse a segundo plano con un descanso del gym corriendo, `js/app.js` (`visibilitychange`) llama a `avisos.avisarDescansoGym(fin)`, que manda `/descanso-gym` con `keepalive`. Al volver manda `null`. El Worker (`servidor/worker.js`) guarda `finDescanso` y `avisarDescanso` espera hasta su segundo exacto (`esperaDeDescanso`), avisa una sola vez y lo borra. Tipo de aviso `descanso` en `sw.js`.
+- Pruebas: servidor 11 (una nueva), app 438.
+
 ## v168 — Cada ejercicio, su propio movimiento
 - `js/dibujo-ejercicios.js`: 51 movimientos nuevos en `MOVIMIENTOS` (64 en total; los 13 originales no cambian) y fondos nuevos en `MAQUINAS` (`NOMBRES_DE_FONDOS`). Ayudantes nuevos (`torreDePolea`, `rodillo`, `respaldo`, `discoDeCanto`…); los cambios de torso y de cuerpo tienen valor por defecto, así que lo viejo se dibuja igual.
 - `js/gym.js`: `MOVIMIENTO_DE` apunta cada ejercicio de `CATALOGO` a su movimiento. `js/gym-aurelio.js`: dos consejos en `TECNICAS` por movimiento nuevo.

@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v168";
+const VERSION = "vida-rpg-v169";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
@@ -344,6 +344,9 @@ async function armarAviso(tipo, id) {
     if (tipo === "prueba") {
         titulo = "🔔 ¡Notificaciones activadas!";
         cuerpo = "Así te avisará Vida RPG a las horas que elegiste.";
+    } else if (tipo === "descanso") {
+        titulo = "🏋️ ¡Descanso terminado!";
+        cuerpo = "Toca tu siguiente serie. Aurelio te espera.";
     } else if (tipo === "enfoque") {
         titulo = "⏱️ ¡Sesión de enfoque terminada!";
         cuerpo = "Buen trabajo. Abre la app para recibir tu premio.";

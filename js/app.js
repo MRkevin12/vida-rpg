@@ -972,6 +972,14 @@ function conectarEventos() {
         else ponerMusica();
         if (!estado.personaje) return;
 
+        // (v169) Descanso del gym en curso: el servidor avisa cuando termina, aunque la app quede suspendida.
+        if (document.visibilityState === "hidden") {
+            const descanso = ui.descansoGym;
+            avisos.avisarDescansoGym(descanso && descanso.fin > Date.now() ? descanso.fin : null);
+        } else {
+            avisos.avisarDescansoGym(null);
+        }
+
         if (document.visibilityState === "hidden") {
             // Con PIN, tapamos todo al salir: así ni la vista previa del
             // selector de apps del iPhone muestra tus datos.

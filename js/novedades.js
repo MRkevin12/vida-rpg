@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 168;
+export const VERSION_APP = 169;
 
 export const NOVEDADES = [
+    {
+        version: 169,
+        titulo: "Avisos del descanso",
+        cambios: [
+            "🏋️ Si sales de la app o bloqueas el iPhone durante el descanso entre series, te llega un aviso cuando termina.",
+        ],
+    },
     {
         version: 168,
         titulo: "Cada ejercicio, su propio movimiento",

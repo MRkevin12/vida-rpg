@@ -60,11 +60,12 @@ export async function activadas(registro) {
 
 // ===== Hablar con el servidor =====
 
-async function pedir(ruta, datos) {
+async function pedir(ruta, datos, { keepalive = false } = {}) {
     let respuesta;
     try {
         respuesta = await fetch(SERVIDOR + ruta, {
             method: "POST",
+            keepalive,   // true: la petición sale aunque la página se esté yendo a segundo plano
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ codigo: codigo(), ...datos }),
         });
@@ -187,6 +188,17 @@ export function reactivar(registro, estado) {
 export function avisarEnfoque(fin) {
     if (!codigo()) return;
     pedir("/enfoque", { fin }).catch(() => {});
+}
+
+// (v169) El descanso del gym con la app suspendida. Al irte a segundo plano (cambias de app o bloqueas el iPhone) mandas
+// cuándo termina el descanso (fin = milisegundos); al volver mandas null: ya lo ves en pantalla y no hace falta el aviso.
+// Solo manda null si antes mandó un fin, para no hacer peticiones de más.
+let descansoAvisado = false;
+export function avisarDescansoGym(fin) {
+    if (!codigo()) return;
+    if (fin === null && !descansoAvisado) return;
+    descansoAvisado = fin !== null;
+    pedir("/descanso-gym", { fin }, { keepalive: true }).catch(() => {});
 }
 
 export function probar() {
