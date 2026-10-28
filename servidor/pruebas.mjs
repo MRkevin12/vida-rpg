@@ -4,7 +4,7 @@
 // No envían nada de verdad: el KV y los servicios de push se reemplazan por imitaciones.
 
 import { cifrar, firmaVapid, aBytes, aBase64url } from "./webpush.js";
-import { horaLocal, avisosQueTocan, validarHorarios, validarMisiones, validarRespaldo, esperaDeDescanso } from "./worker.js";
+import { horaLocal, avisosQueTocan, validarHorarios, validarMisiones, validarRespaldo, finDeDescanso, Descanso } from "./worker.js";
 
 let fallidas = 0;
 async function prueba(nombre, funcion) {
@@ -115,15 +115,30 @@ await prueba("Avisos: el fin del enfoque avisa una sola vez (en el minuto en que
     igual(avisosQueTocan({ ...config, avisarEnfoque: false }, Date.UTC(2026, 9, 12, 15, 26)), [], "si lo apagaste");
 });
 
-await prueba("Descanso del gym: se espera hasta su segundo exacto, solo en el minuto en que termina", () => {
-    const minuto = Date.UTC(2026, 9, 12, 15, 25);
-    const fin = minuto + 40000;   // termina a los 40 s de este minuto
-    igual(esperaDeDescanso({ finDescanso: fin }, minuto), 40000, "este minuto: espera 40 s");
-    igual(esperaDeDescanso({ finDescanso: fin }, minuto - 60000), null, "el minuto anterior: todavía no");
-    igual(esperaDeDescanso({ finDescanso: fin }, minuto + 60000), 0, "se registró tarde: avisa ya");
-    igual(esperaDeDescanso({ finDescanso: fin }, minuto + 120000), null, "ya pasó mucho: no sirve");
-    igual(esperaDeDescanso({ finDescanso: null }, minuto), null, "sin descanso");
-    igual(esperaDeDescanso({}, minuto), null, "sin el dato");
+await prueba("Descanso del gym: solo se acepta un fin futuro y razonable", () => {
+    const ahora = Date.UTC(2026, 9, 12, 15, 25);
+    igual(finDeDescanso(ahora + 90000, ahora), ahora + 90000, "un descanso normal");
+    igual(finDeDescanso(null, ahora), null, "null cancela");
+    igual(finDeDescanso(ahora - 1000, ahora), null, "ya pasó");
+    igual(finDeDescanso("hola", ahora), null, "no es un número");
+    igual(finDeDescanso(ahora + 16 * 60000, ahora), null, "más de 15 minutos");
+});
+
+await prueba("Descanso del gym: la alarma guarda, avisa una sola vez y se cancela", async () => {
+    const guardado = new Map();
+    let alarma = null;
+    const estado = { storage: {
+        put: async (k, v) => guardado.set(k, v), get: async (k) => guardado.get(k), delete: async (k) => guardado.delete(k),
+        setAlarm: async (t) => { alarma = t; }, deleteAlarm: async () => { alarma = null; },
+    } };
+    const descanso = new Descanso(estado, {});
+    const pedir = (fin) => descanso.fetch({ json: async () => ({ fin }) });
+    await pedir(12345);
+    igual(alarma, 12345, "programa la alarma a la hora del fin");
+    await pedir(null);
+    igual(alarma, null, "al volver a la app se cancela");
+    igual(guardado.has("fin"), false, "y se olvida el fin");
+    await descanso.alarm();   // sin fin guardado no hace nada (ni falla)
 });
 
 await prueba("Modo descanso: no llegan recordatorios hasta ese día (el aviso del enfoque sí)", () => {

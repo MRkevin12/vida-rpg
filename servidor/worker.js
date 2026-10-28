@@ -108,12 +108,12 @@ const RUTAS = {
 
     // (v169) El descanso entre series del gym: la app manda cuándo termina (fin = milisegundos) al irse a segundo plano,
     // o null al volver (ya lo ves tú). Así el iPhone avisa aunque la app esté suspendida.
+    // Un reloj por minuto llegaría hasta 60 s tarde: por eso lo cuida una alarma exacta (la clase Descanso, abajo).
     async "/descanso-gym"(datos, env) {
         const config = await leer(env);
-        if (!config) throw new Error("Primero activa las notificaciones.");
-        const fin = Number(datos.fin);
-        config.finDescanso = Number.isFinite(fin) && fin > Date.now() && fin < Date.now() + MAX_DESCANSO_MS ? fin : null;
-        await guardar(env, config);
+        if (!config?.suscripcion) throw new Error("Primero activa las notificaciones.");
+        const alarma = env.DESCANSO.get(env.DESCANSO.idFromName("gym"));
+        await alarma.fetch("https://alarma/", { method: "POST", body: JSON.stringify({ fin: finDeDescanso(datos.fin, Date.now()) }) });
         return { ok: true };
     },
 
@@ -164,31 +164,51 @@ async function revisarAvisos(env, ahora) {
             return;
         }
     }
-    await avisarDescanso(env, config, ahora);
 }
 
-// (v169) El fin del descanso del gym. El reloj del servidor da una vuelta por minuto, pero un descanso dura 60–180 s:
-// si termina dentro de este minuto, se espera hasta su segundo exacto (esperar no gasta nada) y se avisa.
-async function avisarDescanso(env, config, ahora) {
-    const espera = esperaDeDescanso(config, ahora);
-    if (espera === null) return;
-    await new Promise((listo) => setTimeout(listo, espera));
-    // Mientras esperábamos pudiste volver a la app (o saltar el descanso): se mira otra vez.
-    const actual = await leer(env);
-    if (!actual?.suscripcion || actual.finDescanso !== config.finDescanso) return;
-    await guardar(env, { ...actual, finDescanso: null });   // una sola vez
-    const estado = await enviarPush(actual.suscripcion, { tipo: "descanso" }, vapid(env), { ttl: 120, urgencia: "high" });
-    console.log(`Aviso «descanso»: respuesta ${estado}`);
-    if (estado === 404 || estado === 410) await guardar(env, { ...actual, finDescanso: null, suscripcion: null });
+// ===== (v169) El fin del descanso del gym, en el segundo exacto =====
+
+// El fin que manda la app (milisegundos), o null si no sirve: ya pasó, no es un número o es de más de 15 minutos.
+export function finDeDescanso(fin, ahora) {
+    const numero = Number(fin);
+    return Number.isFinite(numero) && numero > ahora && numero < ahora + MAX_DESCANSO_MS ? numero : null;
 }
 
-// Cuántos milisegundos esperar hasta el fin del descanso, o null si no toca avisar en este minuto.
-// Si el descanso terminó hace menos de un minuto (se registró cuando ya había pasado el reloj), avisa ya.
-export function esperaDeDescanso(config, ahora) {
-    const fin = config.finDescanso;
-    const minuto = Math.floor(ahora / 60000) * 60000;
-    if (!fin || fin >= minuto + 60000 || fin <= minuto - 60000) return null;
-    return Math.max(0, fin - ahora);
+// Un "Durable Object": un trocito del servidor que puede despertarse a una hora exacta (setAlarm).
+// Cada petición reemplaza la alarma anterior; con fin = null se cancela (volviste a la app).
+export class Descanso {
+    constructor(estado, env) {
+        this.estado = estado;
+        this.env = env;
+    }
+
+    async fetch(peticion) {
+        const { fin } = await peticion.json();
+        if (fin) {
+            await this.estado.storage.put("fin", fin);
+            await this.estado.storage.setAlarm(fin);
+        } else {
+            await this.estado.storage.deleteAlarm();
+            await this.estado.storage.delete("fin");
+        }
+        return new Response("ok");
+    }
+
+    // Cloudflare la ejecuta cuando llega la hora de la alarma.
+    async alarm() {
+        const fin = await this.estado.storage.get("fin");
+        if (!fin) return;
+        await this.estado.storage.delete("fin");   // una sola vez
+        try {
+            const config = await leer(this.env);
+            if (!config?.suscripcion) return;
+            const estado = await enviarPush(config.suscripcion, { tipo: "descanso" }, vapid(this.env), { ttl: 120, urgencia: "high" });
+            console.log(`Aviso «descanso»: respuesta ${estado}`);
+            if (estado === 404 || estado === 410) await guardar(this.env, { ...config, suscripcion: null });
+        } catch (error) {
+            console.log(`Aviso «descanso» falló: ${error.message}`);
+        }
+    }
 }
 
 // Qué avisos tocan en este minuto. Es una función "pura" (no envía nada) para poder probarla.

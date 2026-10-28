@@ -14,6 +14,15 @@ crons = ["* * * * *"]
 binding = "DATOS"
 id = "12a4e3e7a79a48f69939e3dcca53c33e"
 
+# (v169) Durable Object: la alarma exacta del fin del descanso del gym (clase Descanso en worker.js).
+[[durable_objects.bindings]]
+name = "DESCANSO"
+class_name = "Descanso"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Descanso"]
+
 [vars]
 # La llave PÚBLICA para firmar avisos (la privada es un secreto: VAPID_PRIVADA).
 VAPID_PUBLICA = "BIsttFvwAePACNPckoefvwwuDeAIVPPOna0-aoFU5n4sxvvvahQRZasy4jlHHwiA9JB0s8qw_cNnpZuQZV34wKA"
