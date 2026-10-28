@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v155 — Gym en foco sin deslizar
+- `vistas-gym.js` › `vistaDeFoco`: durante el descanso, un solo botón «Empezar la serie N ya» (`gym-saltar-descanso`, que solo termina el descanso). Antes «Empezar ya» ejecutaba `gym-serie` y marcaba la serie como hecha. Se quitó «Saltar el descanso» (duplicado). Se oculta el botón de contar mientras descansas.
+- `vistas-gym.js`: la burbuja de Aurelio sale del modo foco por serie (queda en «¡Todo hecho!»).
+- `estilos.css`: bloque `v155` con tamaños compactos para `.gym-foco`.
+- Pruebas: 416 (2 actualizadas al nuevo botón).
+
 ## v154 — Con «Mal», sin gym
 - `vistas-hoy.js` › `cuadriculaDeAreas`: con el ánimo «Mal» (modo esencial) ya no se dibuja la tarjeta de gym.
 - Pruebas: 416 (1 nueva).

@@ -330,7 +330,7 @@ function vistaDeFoco(estado, ctx) {
         <button type="button" class="boton boton-chico ${en.calentado ? "boton-principal" : "boton-secundario"} gym-calentar" data-accion="gym-calentar" aria-pressed="${Boolean(en.calentado)}">
             ${en.calentado ? "✅ Calentamiento hecho (+" + gym.XP_CALENTAMIENTO + " XP)" : "🔥 Marcar calentamiento (+" + gym.XP_CALENTAMIENTO + " XP)"}</button>
         ${terminarYa}
-        <div class="gym-foco-pie">
+        <div class="gym-foco-pie gym-foco-pie-fino">
             <button type="button" class="boton boton-secundario" data-accion="gym-foco" data-valor="0">📋 Ver todos los ejercicios</button>
             <button type="button" class="boton boton-secundario" data-accion="gym-cancelar">Cancelar</button>
         </div>`;
@@ -391,15 +391,14 @@ function vistaDeFoco(estado, ctx) {
             <p class="mini gym-tecnica">🎯 ${esc(gymAurelio.consejoDeTecnica(movimiento, actual.ejercicio + actual.serie))}</p>
             ${stepper("kg", "Peso", s.kg, 2.5, " kg")}
             ${stepper("reps", "Repeticiones", s.reps, 1, "")}
+            ${descansando ? `
+            <button type="button" class="boton boton-principal boton-ancho gym-foco-grande" data-accion="gym-saltar-descanso">▶️ Empezar la serie ${actual.serie + 1} ya</button>
+            <div class="gym-foco-pie">
+                <button type="button" class="boton boton-secundario" data-accion="gym-descanso-mas" data-segundos="-15">− 15 s</button>
+                <button type="button" class="boton boton-secundario" data-accion="gym-descanso-mas" data-segundos="15">+ 15 s</button></div>` : `
             <button type="button" class="boton boton-secundario boton-ancho gym-contar" data-accion="gym-contar" data-ej="${actual.ejercicio}" data-serie="${actual.serie}">
                 👆 ${s.contando ? `Toca por cada repetición: llevas ${s.reps}` : "Contar las repeticiones tocando"}</button>
-            <button type="button" class="boton boton-principal boton-ancho gym-foco-grande" data-accion="gym-serie" data-ej="${actual.ejercicio}" data-serie="${actual.serie}">
-                ${descansando ? "⏭️ Empezar ya esta serie" : "✅ Terminé la serie"}</button>
-            ${descansando ? `<div class="gym-foco-pie">
-                <button type="button" class="boton boton-secundario" data-accion="gym-descanso-mas" data-segundos="-15">− 15 s</button>
-                <button type="button" class="boton boton-secundario" data-accion="gym-descanso-mas" data-segundos="15">+ 15 s</button></div>
-                <button type="button" class="boton boton-secundario boton-ancho" data-accion="gym-saltar-descanso">Saltar el descanso</button>` : ""}
-            ${burbujaDeAurelio(ctx)}
+            <button type="button" class="boton boton-principal boton-ancho gym-foco-grande" data-accion="gym-serie" data-ej="${actual.ejercicio}" data-serie="${actual.serie}">✅ Terminé la serie</button>`}
             ${pie}
         </section>`;
 }

@@ -11330,6 +11330,22 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-foco-descanso-texto small { color: var(--texto-suave); }
 .gym-foco-descanso-texto b { font-family: var(--letra-titulo); font-size: 2.6rem; color: var(--gym-2); }
 .gym-foco-siguiente { margin: 2px 0 6px; }
+/* (v155) El modo foco cabe en la pantalla sin deslizar: todo más compacto */
+.gym-foco .gym-chips { margin: 4px 0; }
+.gym-foco .gym-foco-descanso { width: 130px; margin: 2px auto; }
+.gym-foco .gym-foco-descanso-texto b { font-size: 1.8rem; }
+.gym-foco .gym-foco-siguiente { margin: 0 0 2px; font-size: 0.9rem; }
+.gym-foco .gym-foco-demo { width: min(52%, 170px); margin: 2px auto; }
+.gym-foco .gym-foco-nombre { font-size: 1.1rem; }
+.gym-foco .gym-foco-serie { font-size: 0.95rem; margin: 0 0 2px; }
+.gym-foco .gym-foco-serie b { font-size: 1.2rem; }
+.gym-foco .gym-stepper { margin: 4px 0; gap: 8px; }
+.gym-foco .gym-stepper-valor { font-size: 1.6rem; }
+.gym-foco .gym-foco-grande { min-height: 56px; font-size: 1.15rem; margin: 6px 0; }
+.gym-foco .gym-foco-pie { margin-top: 4px; }
+.gym-foco .gym-calentar { margin-top: 4px; }
+.gym-foco .gym-antes { margin: 0; font-size: 0.75rem; }
+.gym-foco .gym-pista, .gym-foco .gym-tecnica { font-size: 0.75rem; }
 
 /* v79: consejo del día, reto de la semana y evolución */
 .gym-consejo { margin: 0 0 12px; }

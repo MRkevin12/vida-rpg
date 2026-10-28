@@ -7235,7 +7235,7 @@ prueba("Gym (modo foco): una serie a la vez con botones + y −, descanso con an
     acciones.marcarSerieGym(estado, 0, 0);
     igual(gym.serieActual(en), { ejercicio: 0, serie: 1 }, "pasa a la serie 2");
     html = vistasGym.pantallaGym(estado, { ...ctx, descanso: { fin: Date.now() + 60000, total: 90000 } });
-    cierto(html.includes("data-gym-anillo") && html.includes("data-descanso-fin") && html.includes("Empezar ya esta serie") && html.includes("Serie <b>2</b> de 4"), "descanso con anillo y la serie que sigue");
+    cierto(html.includes("data-gym-anillo") && html.includes("data-descanso-fin") && html.includes("Empezar la serie 2 ya") && !html.includes("Terminé la serie") && html.includes("Serie <b>2</b> de 4"), "descanso con anillo y la serie que sigue");
     // La lista de siempre sigue disponible.
     acciones.cambiarAjusteGym(estado, "foco", false);
     html = vistasGym.pantallaGym(estado, ctx);
@@ -7354,7 +7354,7 @@ prueba("Gym (v81): en el modo foco se ve la última vez, un botón para subir de
     cierto(!html.includes("Subir a 32,5 kg"), "ya no hace falta si ya lo subiste");
     acciones.marcarSerieGym(estado, 0, 0);
     html = vistasGym.pantallaGym(estado, { ...ctx, descanso: { fin: Date.now() + 60000, total: 90000 } });
-    cierto(html.includes('data-segundos="15"') && html.includes('data-segundos="-15"') && html.includes("Saltar el descanso"), "±15 s y saltar");
+    cierto(html.includes('data-segundos="15"') && html.includes('data-segundos="-15"') && html.includes('data-accion="gym-saltar-descanso"') && !html.includes("Saltar el descanso"), "±15 s y empezar ya (un solo botón)");
 });
 
 prueba("Gym (v82): peso objetivo, medidas del cuerpo y la celebración de «tu cuerpo cambió»", () => {
