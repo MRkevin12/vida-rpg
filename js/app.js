@@ -58,7 +58,7 @@ import { hoy, diasEntre, sumarDias, relojTexto, relojLargo } from "./fechas.js";
 import { runTipo, runPista, gpsProblema, runTerminando, runResumen, ponerHeroeEnMapaVivo, mostrarNotificacionCarrera,
          ponerCriaturasDeCarrera, ponerPeleaEnMapa, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
          mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
-import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM, ofrecerSeguirGym } from "./app-gym.js";
+import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM, ofrecerSeguirGym, animarAurelio } from "./app-gym.js";
 import { ACCIONES_MEMENTO, FORMULARIOS_MEMENTO } from "./app-memento.js";   // (v142)
 import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS, conectarPesos } from "./app-finanzas.js";   // (v135, v137)
 import { GRACIA_MS, cerrarTeclado, teclaPulsada, pedirPinParaEntrar, entrarConFaceId, crearPin, ACCIONES_PIN } from "./app-pin.js";
@@ -88,6 +88,7 @@ export const ui = {
     diaSeleccionado: null,         // día tocado en el calendario
     diaVisto: "hoy",               // en la pantalla Hoy: "hoy" o "ayer" (por si olvidaste marcar algo)
     rangoResumen: 7,               // en Progreso: el resumen muestra los últimos 7 o 30 días
+    aurelioEntra: false,           // (v165) true al empezar un entrenamiento: Aurelio llega caminando (lo gasta animarAurelio)
     fraseGym: null,                // (v76) lo último que te dijo Aurelio en el gimnasio: { tipo, texto } o null
     resumenGym: null,              // (v76) el entrenamiento que acabas de terminar (para mostrar su resumen)
     descansoGym: null,             // (v66) el descanso entre series del gym: { fin, total } (milisegundos), o null
@@ -577,6 +578,7 @@ export function dibujarPantalla(efectos = {}) {
     if (pantallaActual === "arcade") pintarPortadas();        // la portada de la Mazmorra (pixel art)
     if (pantallaActual === "voces") pintarRetratosVoces($("#pantalla-voces"));   // las caras de la aldea (pixel art)
     if (pantallaActual === "libro") conectarHojear();         // pasar las páginas deslizando
+    if (pantallaActual === "gym") animarAurelio();            // (v165) Aurelio escribe, reacciona y llega caminando
 
     if (pantallaActual === "progreso" && !efectos.mantenerScroll) {
         // El calendario empieza mostrando las semanas más recientes (a la derecha).

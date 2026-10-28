@@ -10,7 +10,7 @@ import * as avatar from "./avatar.js";
 import * as gymAurelio from "./gym-aurelio.js";
 import { describirMaestro } from "./maestro.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
-import { retratoPixel, cuerpoGymPixel, pixelarEnVivo, escenaEjercicio, prepararEscena } from "./retratos.js";
+import { retratoPixel, figuraPixel, cuerpoGymPixel, pixelarEnVivo, escenaEjercicio, prepararEscena } from "./retratos.js";
 import { plural } from "./juego.js";
 import { esc, selectorSecciones } from "./vistas-comun.js";
 import { fechaCorta, sumarDias, lunesDe, diaDeSemana, DIAS_LETRAS, hoy as hoyDeHoy } from "./fechas.js";
@@ -420,7 +420,7 @@ function vistaDeFoco(estado, ctx) {
     return `
         <section class="panel gym-sesion gym-foco ${descansando ? "gym-foco-descansando" : ""}">
             ${cabecera}
-            <div class="gym-foco-escenario">${escena}</div>
+            <div class="gym-foco-escenario">${escena}${figuraDeAurelio(ctx, descansando)}</div>
             <div class="gym-foco-titulo">
                 ${titulo}
                 <div class="gym-foco-serie-fila">${siguiente}${pips}</div>
@@ -550,12 +550,33 @@ function preguntaRir(en) {
             </div>`;
 }
 
+// (v165) El símbolo que Aurelio lleva sobre la cabeza según lo que acaba de pasar (sin símbolo = una serie cualquiera).
+const EMOTE_DE_FRASE = { record: "❗", ejercicio: "⭐", ejercicioFinal: "⭐", ultima: "🔥", fin: "⭐", marcado: "⭐", mitad: "🔥", primera: "💪", calentado: "🔥", inicio: "👋" };
+
+// (v165) La cara de Aurelio: su retrato redondo, que rebota cada pocos segundos, y su símbolo encima (si hay).
+function cabezaDeAurelio(emote = "") {
+    return `<span class="gym-aurelio-cabeza" aria-hidden="true"><span class="gym-aurelio-retrato">${retratoPixel(describirMaestro())}</span>${emote ? `<span class="gym-aurelio-emote" data-aurelio-emote>${emote}</span>` : ""}</span>`;
+}
+
+// (v165) Aurelio de cuerpo entero en la escena del modo foco, abajo a la izquierda: llega caminando al empezar y reacciona
+// a lo que haces (app-gym.js › animarAurelio le pone la animación solo cuando algo nuevo pasa). Mientras descansas lleva el
+// símbolo de la última frase y habla con su globo al lado.
+function figuraDeAurelio(ctx, descansando) {
+    const emote = descansando && ctx.fraseGym ? EMOTE_DE_FRASE[ctx.fraseGym.tipo] || "" : "";
+    // (v165) Dos dibujos: el de pie y el de la victoria (bastón en alto), que solo se ve un momento al ganar algo.
+    return `<div class="gym-foco-aurelio" data-aurelio-figura aria-hidden="true"><div class="gym-aurelio-cuerpo">
+                <div class="gym-aurelio-de-pie">${figuraPixel(describirMaestro())}</div>
+                <div class="gym-aurelio-pose">${figuraPixel(describirMaestro(), { pose: "victoria" })}</div>
+            </div>${emote ? `<span class="gym-aurelio-emote" data-aurelio-emote>${emote}</span>` : ""}</div>`;
+}
+
 // Lo que dice Aurelio (entre serie y serie, al empezar, al calentar…). ctx.fraseGym = { tipo, texto } o null.
+// (v165) El texto lleva data-aurelio-texto: app-gym.js lo escribe letra por letra la primera vez que sale.
 function burbujaDeAurelio(ctx) {
     if (!ctx.fraseGym) return "";
     return `<div class="gym-aurelio" role="status">
-                <span class="gym-aurelio-retrato" aria-hidden="true">${retratoPixel(describirMaestro())}</span>
-                <p><b>Aurelio</b>${esc(ctx.fraseGym.texto)}</p>
+                ${cabezaDeAurelio(EMOTE_DE_FRASE[ctx.fraseGym.tipo] || "")}
+                <p><b>Aurelio</b><span class="gym-aurelio-texto" data-aurelio-texto>${esc(ctx.fraseGym.texto)}</span></p>
             </div>`;
 }
 
@@ -731,6 +752,7 @@ function nombresDeMusculos(lista, maximo = 4) {
 function tarjetaAvisos(estado, ctx) {
     const g = estado.gym;
     const avisos = [];
+    let emoteDeAvisos = "⚖️";   // (v165) 🤔 si hay un ejercicio estancado, 🛌 si toca descansar, ⚖️ si hay músculos olvidados
     const descarga = gym.descargaDeLaSemana(g, lunesDe(ctx.hoy));
     const semanas = gym.semanasSinDescanso(g, ctx.hoy);
     const recorte = Math.round(gym.RECORTE_DESCARGA * 100);
@@ -741,6 +763,7 @@ function tarjetaAvisos(estado, ctx) {
                 ${descarga.cobrada ? "✅ Ya cobraste el premio por descansar bien." : `Al terminar tu primer entrenamiento de la semana: +${gym.PREMIO_DESCARGA.gemas} 💎 y +${gym.PREMIO_DESCARGA.xp} XP.`}</small>
                 ${descarga.cobrada || g.encurso ? "" : '<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-descarga-quitar">Quitar la descarga</button>'}</li>`);
     } else if (gym.tocaDescarga(g, ctx.hoy)) {
+        emoteDeAvisos = "🛌";
         avisos.push(`
             <li class="gym-aviso"><b>🛌 Toca una semana de descarga</b>
                 <small>Llevas ${plural(semanas, "semana seguida", "semanas seguidas")} entrenando. Una semana con un ${recorte} % menos de series deja que el cuerpo se recupere
@@ -750,6 +773,7 @@ function tarjetaAvisos(estado, ctx) {
     const pesos = gym.pesosMaximos(g.sesiones);
     for (const e of gym.estancados(g.sesiones, ctx.hoy).slice(0, 2)) {
         const ej = gym.ejercicioPorId(e.id);
+        emoteDeAvisos = "🤔";
         const propuestas = gym.propuestasDeEstancamiento(e, semanas).filter((p) => !(p.tipo === "descarga" && descarga));
         avisos.push(`
             <li class="gym-aviso"><b>⚠️ ${esc(ej.nombre)}: ${plural(e.sesiones, "sesión", "sesiones")} sin mejorar</b>
@@ -769,7 +793,7 @@ function tarjetaAvisos(estado, ctx) {
     return `
         <section class="panel gym-avisos">
             <div class="gym-aurelio gym-consejo">
-                <span class="gym-aurelio-retrato" aria-hidden="true">${retratoPixel(describirMaestro())}</span>
+                ${cabezaDeAurelio(emoteDeAvisos)}
                 <p><b>Aurelio te avisa</b>${avisos.length === 1 ? "Mira esto antes de entrenar." : `Mira estas ${avisos.length} cosas antes de entrenar.`}</p>
             </div>
             <ul class="gym-avisos-lista">${avisos.join("")}</ul>
@@ -861,7 +885,7 @@ export function dialogoSeguirGym(estado, hoyTexto) {
 // ===== (v79) El consejo del día, el reto de la semana y tu evolución =====
 function consejoDelDia(ctx) {
     return `<div class="gym-aurelio gym-consejo">
-                <span class="gym-aurelio-retrato" aria-hidden="true">${retratoPixel(describirMaestro())}</span>
+                ${cabezaDeAurelio()}
                 <p><b>Consejo de Aurelio</b>${esc(gymAurelio.consejoDelDia(ctx.hoy))}</p>
             </div>`;
 }

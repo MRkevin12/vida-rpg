@@ -8648,5 +8648,26 @@ prueba("Gym (v164): al volver con un entrenamiento a medias se pregunta «¿Cont
     igual(copia.gym.descargas, [], "las descargas también viajan (vacías en una partida nueva)");
 });
 
+prueba("Gym (v165): Aurelio lleva un símbolo según el momento, está en la escena del foco y su texto se puede escribir a mano", () => {
+    const estado = partidaNueva();
+    acciones.empezarGym(estado, "pantorrillas");
+    const ctx = { ...ctxGym(), fraseGym: { tipo: "record", texto: "¡Marca nueva!" }, descanso: { fin: Date.now() + 60000, total: 90000 } };
+    let html = vistasGym.pantallaGym(estado, ctx);
+    cierto(html.includes("data-aurelio-figura") && html.includes("gym-foco-escenario"), "su figura está en la escena del foco");
+    cierto(html.includes("data-aurelio-emote") && html.includes("❗"), "un récord lleva ❗ sobre su cabeza");
+    cierto(html.includes("data-aurelio-texto"), "el texto de su globo se puede escribir letra por letra");
+    cierto(html.includes("gym-aurelio-pose") && html.includes("gym-aurelio-de-pie"), "tiene el dibujo de la victoria (bastón en alto) además del de pie");
+    const pose = dibujarAvatar(maestro.describirMaestro(), { batalla: true, sinEfectos: true, pose: "victoria" });
+    cierto(pose.includes("scale(0.84)") && pose !== dibujarAvatar(maestro.describirMaestro(), { batalla: true, sinEfectos: true }), "la pose cambia el dibujo y lo encoge para que quepa el bastón");
+    html = vistasGym.pantallaGym(estado, { ...ctx, fraseGym: { tipo: "ejercicio", texto: "Listo." } });
+    cierto(html.includes("⭐"), "terminar un ejercicio lleva ⭐");
+    html = vistasGym.pantallaGym(estado, { ...ctx, fraseGym: null, descanso: null });
+    cierto(!html.includes("data-aurelio-emote") && !html.includes("data-aurelio-texto"), "sin frase no hay símbolo ni globo");
+    // Con un ejercicio estancado, el aviso de Aurelio trae 🤔.
+    const otra = partidaNueva();
+    otra.gym.sesiones = [-20, -15, -10, -5].map((d) => sesionGym(sumarDias(hoy(), d), "pecho-triceps", { "press-banca": cuatro(60, 8) }));
+    cierto(gymEn("entrenar", otra, ctxGym()).includes("🤔"), "estancado → 🤔");
+});
+
 // Para que un programa (o tú, desde la consola) pueda leer el resultado.
 window.resultadoPruebas = { total: pruebas.length, fallidas };

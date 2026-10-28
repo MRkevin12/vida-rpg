@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 164;
+export const VERSION_APP = 165;
 
 export const NOVEDADES = [
+    {
+        version: 165,
+        titulo: "Aurelio cobra vida en el gym",
+        cambios: [
+            "🧙 En el modo foco, Aurelio llega caminando a la escena al empezar y se queda a tu lado. Salta cuando terminas una serie o un ejercicio, y en un récord salta con destellos dorados.",
+            "❗ Lleva un símbolo sobre la cabeza según el momento: ❗ récord, ⭐ ejercicio terminado, 🔥 última serie o mitad, 🤔 si un ejercicio está estancado.",
+            "⌨️ Sus frases se escriben letra por letra (toca el globo para verlas completas) y su retrato rebota de vez en cuando.",
+            "🧘 Con «reducir movimiento» activado en el teléfono, nada de esto se anima.",
+            "💬 Más frases nuevas entre series, a la mitad y al terminar cada ejercicio.",
+        ],
+    },
     {
         version: 164,
         titulo: "Un gym que te ayuda a progresar",

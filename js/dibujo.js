@@ -108,7 +108,7 @@ function crearPaleta(d) {
 //   "figura"  el héroe, su sombra en el suelo y la mascota
 //   "encima"  lo que oscurece la escena entera (cansado, dormido, caído)
 //   "todo"    todo junto (lo de siempre)
-export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = false, capa: parte = "todo" } = {}) {
+export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = false, capa: parte = "todo", pose = "" } = {}) {
     // (v100) "puesto" = los objetos de verdad (con sus variantes); en "d" quedan los de base, que son los que se dibujan.
     const puesto = { ...(d.equipado || {}) };
     const fondoPuesto = OBJETOS[puesto.fondo]?.pintura || puesto.fondo;
@@ -119,6 +119,11 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     };
     const p = crearPaleta(d);
     const e = esqueleto(d);
+    // (v165) Una pose para Aurelio: el brazo del bastón en alto (la «victoria» de cuerpo entero).
+    if (pose === "victoria") {
+        const H = e.H;
+        e.der = { hombro: e.der.hombro, codo: [100 + H + 7, 56], muneca: [100 + H + 8.5, 45], mano: [100 + H + 9, 40] };
+    }
     const dormido = d.animo === "dormido";
     const caido = d.animo === "caido";   // sin vida: cabeza baja y la escena se apaga
 
@@ -212,7 +217,9 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
         figura: [...capaFigura, mascota],
         encima: capaEncima,
     };
-    const capas = [`<defs>${p.defs}${recorte}</defs>`, ...(partes[parte] || partes.todo)];
+    // (v165) En la pose de victoria se achica un poco hacia los pies: así el bastón en alto cabe en el encuadre.
+    const encogido = pose === "victoria" ? [`<g transform="translate(100 183) scale(0.84) translate(-100 -183)">`, "</g>"] : ["", ""];
+    const capas = [`<defs>${p.defs}${recorte}</defs>`, encogido[0], ...(partes[parte] || partes.todo), encogido[1]];
 
     // El encuadre completo recorta un poco los bordes para que la figura se vea más grande.
     const vista = mini ? "75 11 50 50" : batalla ? "32.5 6 135 180" : "6 2 188 188";

@@ -9,6 +9,7 @@ import { hoy, sumarDias } from "./fechas.js";
 import { estado, ui, subvista, ejecutar, dibujarPantalla, cambiarPantalla, $ } from "./app.js";
 import { sonar } from "./app-efectos.js";
 import { dialogoSeguirGym } from "./vistas-gym.js";
+import { esc } from "./vistas-comun.js";
 
 // (v164) Al abrir la app con un entrenamiento a medias: «¿Continuar el entrenamiento?».
 // (La sesión en curso ya se guarda en cada serie y en cada número que cambias; esto solo te lo recuerda.)
@@ -18,6 +19,64 @@ export function ofrecerSeguirGym() {
     if (!dialogo) return;
     dialogo.innerHTML = dialogoSeguirGym(estado, hoy());
     if (!dialogo.open) dialogo.showModal();
+}
+
+// ===== (v165) Aurelio con vida: escribe a mano, reacciona y llega caminando =====
+// animarAurelio() se llama al final de cada dibujarPantalla. Redibujar la pantalla (un + o un −) no repite nada:
+// lo suyo solo ocurre cuando hay una frase NUEVA (o un entrenamiento nuevo).
+const sinMovimiento = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const MS_POR_LETRA = 28;
+let temporizadorDeTexto = null;
+let ultimaEscrita = null;     // la frase que ya se escribió (o se está escribiendo)
+let ultimaReaccion = null;    // la frase a la que ya reaccionó Aurelio en la escena
+
+// La reacción de su figura según la frase: un récord es un salto doble con destello; terminar un ejercicio, un salto grande.
+const REACCION_DE_FRASE = { record: "record", ejercicio: "ejercicio", ejercicioFinal: "ejercicio", ultima: "ejercicio", fin: "ejercicio" };
+
+function escribirALetras(elemento) {
+    const texto = elemento.textContent;
+    let hechas = 0;
+    const pintar = () => {
+        // Lo escrito se ve; lo que falta ocupa su lugar pero está transparente (así la burbuja no cambia de tamaño mientras escribe).
+        elemento.innerHTML = `<span>${esc(texto.slice(0, hechas))}</span><span class="falta">${esc(texto.slice(hechas))}</span>`;
+    };
+    const terminar = () => { clearInterval(temporizadorDeTexto); temporizadorDeTexto = null; elemento.textContent = texto; };
+    pintar();
+    temporizadorDeTexto = setInterval(() => {
+        hechas += 1;
+        if (hechas >= texto.length || !elemento.isConnected) terminar();
+        else pintar();
+    }, MS_POR_LETRA);
+    // Tocar el globo completa la frase de golpe.
+    elemento.closest(".gym-aurelio")?.addEventListener("click", terminar, { once: true });
+}
+
+export function animarAurelio() {
+    const frase = ui.fraseGym;
+    if (!frase) { ultimaEscrita = null; ultimaReaccion = null; }
+    if (!estado.gym.encurso) ui.aurelioEntra = false;
+    const quieto = sinMovimiento();
+
+    // 1. Llega caminando (solo al empezar el entrenamiento) y, si pasó algo nuevo, reacciona.
+    const figura = document.querySelector("[data-aurelio-figura]");
+    if (figura && !quieto) {
+        if (ui.aurelioEntra) { figura.classList.add("entra"); ui.aurelioEntra = false; }
+        else if (frase && frase.texto !== ultimaReaccion) figura.classList.add(`reacciona-${REACCION_DE_FRASE[frase.tipo] || "serie"}`);
+        if (frase) ultimaReaccion = frase.texto;
+    }
+
+    // 2. El símbolo sobre su cabeza aparece de golpe cuando la frase es nueva.
+    const nueva = frase && frase.texto !== ultimaEscrita;
+    if (nueva && !quieto) for (const emote of document.querySelectorAll("[data-aurelio-emote]")) emote.classList.add("nuevo");
+
+    // 3. La frase se escribe letra por letra (una sola vez).
+    const elemento = document.querySelector("[data-aurelio-texto]");
+    if (!elemento) { clearInterval(temporizadorDeTexto); temporizadorDeTexto = null; return; }
+    if (nueva) {
+        clearInterval(temporizadorDeTexto);
+        ultimaEscrita = frase.texto;
+        if (!quieto && frase.texto.length) escribirALetras(elemento);
+    }
 }
 
 export let gymVista = null;               // (v75) la vista previa del cuerpo en el gimnasio: { fisico, corp } o null
@@ -31,6 +90,7 @@ export const ACCIONES_GYM = {
         if (!empezo) return;
         ui.descansoGym = null;
         ui.resumenGym = null;
+        ui.aurelioEntra = true;   // (v165) Aurelio llega caminando a la escena
         subvista.gym = "entrenar";
         if (empezo.frase) { ui.fraseGym = empezo.frase; sonar("campana"); dibujarPantalla(); }
         window.scrollTo(0, 0);

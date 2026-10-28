@@ -11886,6 +11886,54 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-reto.cobrado { border-color: var(--verde); background: rgba(52, 211, 153, 0.08); }
 .gym-reto-texto { margin: 2px 0 4px; font-weight: 600; }
 
+/* (v165) Aurelio con vida: retrato que rebota, símbolo sobre la cabeza, texto que se escribe y figura en la escena del foco */
+.gym-aurelio-cabeza { position: relative; flex: 0 0 54px; width: 54px; animation: gym-aurelio-rebote 3.6s steps(1) infinite; }
+.gym-aurelio-cabeza .gym-aurelio-retrato { display: block; width: 100%; }
+@keyframes gym-aurelio-rebote {
+    0%, 82%, 100% { transform: translateY(0); }
+    86%, 94% { transform: translateY(-3px); }
+    90% { transform: translateY(-1px); }
+}
+.gym-aurelio-emote { position: absolute; top: -10px; right: -8px; z-index: 2; font-size: 1.1rem; line-height: 1; text-shadow: 0 2px 0 var(--gf-tinta, #06040d); pointer-events: none; }
+.gym-aurelio-emote.nuevo { animation: gym-aurelio-emote 0.5s steps(5) both; }
+@keyframes gym-aurelio-emote { from { transform: translateY(10px) scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.gym-aurelio-texto .falta { color: transparent; }
+
+.gym-foco-aurelio { position: absolute; z-index: 2; left: 8px; bottom: 8px; width: 48px; pointer-events: none; }
+.gym-foco-aurelio .figura-pixel { display: block; width: 100%; height: auto; }
+.gym-aurelio-cuerpo { position: relative; }
+.gym-aurelio-pose { position: absolute; inset: 0; opacity: 0; }
+/* Un momento al ganar algo (récord o ejercicio terminado): el dibujo de la victoria, y después vuelve a estar de pie. */
+.gym-foco-aurelio.reacciona-record .gym-aurelio-pose,
+.gym-foco-aurelio.reacciona-ejercicio .gym-aurelio-pose { animation: gym-aurelio-pose 1.8s linear both; }
+@keyframes gym-aurelio-pose { 0%, 85% { opacity: 1; } 85.1%, 100% { opacity: 0; } }
+.gym-foco-aurelio .gym-aurelio-emote { top: -14px; right: -6px; }
+/* Mientras descansa, su globo queda a su lado y su retrato redondo sobra (ya está él mismo). */
+.gym-foco-descansando .gym-foco-descanso .gym-aurelio { margin-left: 54px; }
+.gym-foco-descansando .gym-foco-descanso .gym-aurelio-cabeza { display: none; }
+
+/* Llega caminando desde la izquierda (pasitos de dos cuadros) y se queda. */
+.gym-foco-aurelio.entra { animation: gym-aurelio-camina 1.4s linear both; }
+.gym-foco-aurelio.entra .gym-aurelio-cuerpo { animation: gym-aurelio-paso 0.35s steps(1) 4; }
+@keyframes gym-aurelio-camina { from { transform: translateX(-90px); } to { transform: translateX(0); } }
+@keyframes gym-aurelio-paso { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* Reacciona: un salto al terminar un ejercicio, dos y un destello dorado en un récord. */
+.gym-foco-aurelio.reacciona-serie .gym-aurelio-cuerpo { animation: gym-aurelio-salta 0.5s steps(4) 1; }
+.gym-foco-aurelio.reacciona-ejercicio .gym-aurelio-cuerpo { animation: gym-aurelio-salta 0.55s steps(5) 2; }
+.gym-foco-aurelio.reacciona-record .gym-aurelio-cuerpo { animation: gym-aurelio-salta 0.5s steps(4) 3; filter: drop-shadow(0 0 5px #fcd34d); }
+.gym-foco-aurelio.reacciona-record::before {
+    content: ""; position: absolute; left: 50%; top: 4px; width: 4px; height: 4px; background: #fcd34d;
+    box-shadow: -18px 10px 0 #fcd34d, 18px 8px 0 #fff3b0, -12px -8px 0 #fff3b0, 14px -10px 0 #fcd34d, 0 -14px 0 #fff3b0;
+    animation: gym-aurelio-destello 1.1s steps(6) both;
+}
+@keyframes gym-aurelio-salta { 0%, 100% { transform: translateY(0); } 40%, 60% { transform: translateY(-10px); } }
+@keyframes gym-aurelio-destello { 0% { opacity: 0; transform: scale(0.3); } 30% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.7) translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) {
+    .gym-aurelio-cabeza, .gym-aurelio-emote.nuevo, .gym-foco-aurelio, .gym-aurelio-cuerpo, .gym-aurelio-pose, .gym-foco-aurelio .figura-pixel, .gym-foco-aurelio::before { animation: none !important; }
+    .gym-aurelio-pose { display: none; }
+}
+
 /* (v164) RIR por serie en la lista: una columna más (n.º · kg · reps · RIR · ✓) */
 .gym-serie { grid-template-columns: 24px 1fr 1fr 58px 52px; }
 .gym-serie select { width: 100%; min-height: 44px; font-size: 16px; text-align: center; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }

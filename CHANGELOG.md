@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v165 — Aurelio cobra vida en el gym
+- `gym-aurelio.js`: más frases en `mitad`, `serie` y `ejercicio`.
+- `vistas-gym.js`: `cabezaDeAurelio` (retrato + símbolo, `EMOTE_DE_FRASE`) y `figuraDeAurelio` (figura de cuerpo entero en `.gym-foco-escenario`); el texto del globo lleva `data-aurelio-texto`; 🤔/🛌/⚖️ en «Aurelio te avisa».
+- `app-gym.js › animarAurelio` (se llama al final de `dibujarPantalla` en el gym): escribe la frase letra por letra una sola vez (tocar el globo la completa), reacciona (`reacciona-serie|ejercicio|record`) y llega caminando (`ui.aurelioEntra`, al empezar). Solo ocurre con una frase nueva: redibujar no lo repite. Sin movimiento si `prefers-reduced-motion`.
+- CSS `gym-aurelio-*` en `estilos.css`. La reacción es un salto y un destello con la figura quieta (no hay sprites de «victoria» de Aurelio). Sin cambio de datos. Pruebas: 432.
+
 ## v164 — Un gym que te ayuda a progresar
 - `gym.js` › `sugerencia`: devuelve `texto` («Última vez: 60 kg × 8. Hoy intenta…»), `hoy`, `kg`, `reps` y `motivo`. Doble progresión, afinada con el RIR (≥ 3 → subir; 0 sin llegar al mínimo → bajar 2,5 kg).
 - RIR opcional por serie (`serie.rir`, 0–4): en el descanso del modo foco (`gym-rir`, `acciones.anotarRirGym`, `encurso.ultima`) y un selector en la lista (`data-gym="rir"`). Se guarda en la sesión solo si se anotó.

@@ -113,10 +113,10 @@ export function retratoPixel(d, { clase = "", alt = "", lado = 32 } = {}) {
 
 // De cuerpo entero, sin fondo (la campaña, el arcade, Aurelio de pie). Del mismo tamaño que en la Torre: 54 × 72.
 // efectos: true = detrás van sus llamas o su aura (si las tiene), pixeladas en vivo como en el diorama.
-export function figuraPixel(d, { clase = "", alt = "" , efectos = false } = {}) {
+export function figuraPixel(d, { clase = "", alt = "", efectos = false, pose = "" } = {}) {
     const [ancho, alto] = [54, 72];
-    const clave = `figura-${huella(JSON.stringify(d))}`;
-    const img = imagen(clave, () => pixelar(dibujarAvatar(d, { batalla: true, sinEfectos: true }), ancho, alto,
+    const clave = `figura-${pose ? `${pose}-` : ""}${huella(JSON.stringify(d))}`;
+    const img = imagen(clave, () => pixelar(dibujarAvatar(d, { batalla: true, sinEfectos: true, pose }), ancho, alto,
         { clave, puntos: rasgosEnPixeles(d, "batalla", ancho, alto) }), { clase: `figura-pixel ${clase}`, ancho, alto, alt });
     const detras = efectos ? dibujarAvatar(d, { batalla: true, capa: "detras" }) : "";
     // Sin llamas ni aura, la capa de atrás queda vacía (solo <defs>): entonces va la imagen sola.
