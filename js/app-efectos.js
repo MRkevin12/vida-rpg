@@ -70,7 +70,8 @@ export function sonar(nombre) {
 // (el navegador solo deja empezar a sonar después de uno) y al cambiar algo en Ajustes.
 export function ponerMusica() {
     const a = estado.ajustes;
-    if (!a.musica || document.visibilityState !== "visible" || enCarrera()) {   // (v125) en la carrera, la música es la tuya
+    // (v125) en la carrera, la música es la tuya. (v163) Igual mientras entrenas en el gym (modo foco incluido).
+    if (!a.musica || document.visibilityState !== "visible" || enCarrera() || estado.gym?.encurso) {
         musica.detener();
         return;
     }

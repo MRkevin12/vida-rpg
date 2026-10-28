@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v163 — Entrena en silencio y coma en los kilos
+- `app-efectos.js` › `ponerMusica`: no suena la música de fondo mientras hay `estado.gym.encurso` (incluye el modo foco). Los efectos siguen.
+- `vistas-gym.js`: los campos decimales (peso de hoy, objetivo, medidas y kg de las series) pasan a `type="text"` con `inputmode="decimal"`, para que el teclado del iPhone muestre la coma. `numeroEntre` ya convertía la coma.
+- Sin cambio de datos guardados. Pruebas: 423.
+
 ## v162 — Volumen semanal por músculo en Rutinas
 - `gym.js`: `seriesPlaneadasPorMusculo()` suma las series de `RUTINA` (incluye las rutinas editadas) y `valoracionDeVolumen(n)` (nada, poco < 10, bien 10–20, mucho > 20).
 - `vistas-gym.js`: `tarjetaVolumenPlaneado()` encima de las rutinas en la pestaña «Rutinas».

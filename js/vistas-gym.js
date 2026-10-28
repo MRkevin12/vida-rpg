@@ -465,7 +465,7 @@ function vistaDeLista(estado, ctx) {
         const series = ej.series.map((s, si) => `
             <div class="gym-serie ${s.hecha ? "hecha" : ""}">
                 <span class="gym-n">${si + 1}</span>
-                <label><span>kg</span><input type="number" inputmode="decimal" step="0.5" min="0" max="${gym.MAX_KG}" value="${s.kg}"
+                <label><span>kg</span><input type="text" inputmode="decimal" value="${String(s.kg).replace(".", ",")}"
                     data-gym="kg" data-ej="${ei}" data-serie="${si}" aria-label="Peso de la serie ${si + 1}"></label>
                 <label><span>reps</span><input type="number" inputmode="numeric" step="1" min="0" max="${gym.MAX_REPS}" value="${s.reps}"
                     data-gym="reps" data-ej="${ei}" data-serie="${si}" aria-label="Repeticiones de la serie ${si + 1}"></label>
@@ -804,7 +804,7 @@ function tarjetaPeso(estado, ctx) {
                 : `<p class="nota">Anota tu peso de vez en cuando para ver tu avance${g.altura ? ` (tu altura: ${g.altura} cm)` : ""}.</p>`}
             ${bloqueImc}
             <form data-form="gym-peso" class="form-linea">
-                <input type="number" name="kg" inputmode="decimal" step="0.1" min="20" max="400" required placeholder="${hoyPuesto ? "Cambiar el peso de hoy" : "Tu peso de hoy (kg)"}" aria-label="Peso corporal en kilos">
+                <input type="text" name="kg" inputmode="decimal" required placeholder="${hoyPuesto ? "Cambiar el peso de hoy" : "Tu peso de hoy (kg)"}" aria-label="Peso corporal en kilos">
                 <button type="submit" class="boton boton-chico">${hoyPuesto ? "Cambiar" : "Anotar"}</button>
             </form>
             <form data-form="gym-altura" class="form-linea">
@@ -828,7 +828,7 @@ function bloqueMetaDePeso(g) {
         : g.metaPeso ? `<p class="mini">🎯 Tu objetivo: <b>${kilos(g.metaPeso)}</b>. Anota tu peso para ver el avance.</p>` : "";
     return `${estado}
             <form data-form="gym-meta-peso" class="form-linea">
-                <input type="number" name="kg" inputmode="decimal" step="0.1" min="20" max="400" placeholder="${g.metaPeso ? `Objetivo: ${kilos(g.metaPeso)} (cambiarlo; vacío lo quita)` : "Tu peso objetivo (kg)"}" aria-label="Peso objetivo en kilos">
+                <input type="text" name="kg" inputmode="decimal" placeholder="${g.metaPeso ? `Objetivo: ${kilos(g.metaPeso)} (cambiarlo; vacío lo quita)` : "Tu peso objetivo (kg)"}" aria-label="Peso objetivo en kilos">
                 <button type="submit" class="boton boton-chico">${g.metaPeso ? "Cambiar" : "Fijar"}</button>
             </form>`;
 }
@@ -847,7 +847,7 @@ function tarjetaMedidas(estado, ctx) {
     }).join("");
     const campos = Object.entries(gym.MEDIDAS).map(([clave, m]) => `
         <label class="gym-campo-medida"><span>${m.icono} ${m.nombre}</span>
-            <input type="number" name="${clave}" inputmode="decimal" step="0.1" min="10" max="250" placeholder="${ultima?.[clave] ? String(ultima[clave]).replace(".", ",") : "cm"}" aria-label="${m.nombre} en centímetros"></label>`).join("");
+            <input type="text" name="${clave}" inputmode="decimal" placeholder="${ultima?.[clave] ? String(ultima[clave]).replace(".", ",") : "cm"}" aria-label="${m.nombre} en centímetros"></label>`).join("");
     return `
         <section class="panel">
             <h2 class="titulo-juego">📏 Medidas del cuerpo</h2>

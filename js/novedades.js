@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 162;
+export const VERSION_APP = 163;
 
 export const NOVEDADES = [
+    {
+        version: 163,
+        titulo: "Entrena en silencio",
+        cambios: [
+            "🔇 Mientras entrenas en el gym (también en el modo foco) se calla la música del juego. Los efectos de sonido siguen.",
+            "🔢 En el iPhone ya se puede escribir la coma en los kilos (peso, objetivo, medidas y series).",
+        ],
+    },
     {
         version: 162,
         titulo: "Tu volumen a la vista",
