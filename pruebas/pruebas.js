@@ -6770,7 +6770,7 @@ prueba("Gym (v83): el menú de secciones separa la pantalla en Entrenar, Progres
     // (v84) En el modo foco se puede terminar antes de completar todas las series, pero solo si ya marcaste alguna.
     cierto(!gymEn("entrenar", estado, ctx).includes('data-accion="gym-terminar"'), "sin series marcadas no se ofrece terminar ya");
     acciones.marcarSerieGym(estado, 0, 0);
-    cierto(gymEn("entrenar", estado, ctx).includes("Terminar ya el entrenamiento"), "con una serie marcada sí");
+    cierto(gymEn("entrenar", estado, ctx).includes('data-accion="gym-terminar"'), "con una serie marcada sí");
 });
 
 prueba("Gym: las pantallas se dibujan (la fila de Hoy, la elección, el entrenamiento y los resultados)", () => {
@@ -7235,7 +7235,7 @@ prueba("Gym (modo foco): una serie a la vez con botones + y −, descanso con an
     acciones.marcarSerieGym(estado, 0, 0);
     igual(gym.serieActual(en), { ejercicio: 0, serie: 1 }, "pasa a la serie 2");
     html = vistasGym.pantallaGym(estado, { ...ctx, descanso: { fin: Date.now() + 60000, total: 90000 } });
-    cierto(html.includes("data-gym-anillo") && html.includes("data-descanso-fin") && html.includes("Empezar la serie 2 ya") && !html.includes("Terminé la serie") && html.includes("Serie <b>2</b> de 4"), "descanso con anillo y la serie que sigue");
+    cierto(html.includes("data-gym-anillo") && html.includes("data-descanso-fin") && html.includes("Empezar serie 2") && !html.includes("Terminé la serie") && html.includes("Serie <b>2</b> de 4"), "descanso con anillo y la serie que sigue");
     // La lista de siempre sigue disponible.
     acciones.cambiarAjusteGym(estado, "foco", false);
     html = vistasGym.pantallaGym(estado, ctx);
@@ -7348,10 +7348,10 @@ prueba("Gym (v81): en el modo foco se ve la última vez, un botón para subir de
     const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
     let html = vistasGym.pantallaGym(estado, ctx);
     cierto(html.includes("Última vez") && html.includes("30 kg×12"), "se ve lo de la última vez");
-    cierto(html.includes("Subir a 32,5 kg") && html.includes('data-delta="2.5"'), "botón para subir a 32,5 kg");
+    cierto(html.includes("subir a 32,5 kg") && html.includes('data-delta="2.5"'), "botón para subir a 32,5 kg");
     acciones.ajustarSerieGym(estado, 0, 0, "kg", 2.5);
     html = vistasGym.pantallaGym(estado, ctx);
-    cierto(!html.includes("Subir a 32,5 kg"), "ya no hace falta si ya lo subiste");
+    cierto(!html.includes("subir a 32,5 kg"), "ya no hace falta si ya lo subiste");
     acciones.marcarSerieGym(estado, 0, 0);
     html = vistasGym.pantallaGym(estado, { ...ctx, descanso: { fin: Date.now() + 60000, total: 90000 } });
     cierto(html.includes('data-segundos="15"') && html.includes('data-segundos="-15"') && html.includes('data-accion="gym-saltar-descanso"') && !html.includes("Saltar el descanso"), "±15 s y empezar ya (un solo botón)");

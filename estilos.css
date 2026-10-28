@@ -11330,22 +11330,40 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-foco-descanso-texto small { color: var(--texto-suave); }
 .gym-foco-descanso-texto b { font-family: var(--letra-titulo); font-size: 2.6rem; color: var(--gym-2); }
 .gym-foco-siguiente { margin: 2px 0 6px; }
-/* (v155) El modo foco cabe en la pantalla sin deslizar: todo más compacto */
-.gym-foco .gym-chips { margin: 4px 0; }
-.gym-foco .gym-foco-descanso { width: 130px; margin: 2px auto; }
-.gym-foco .gym-foco-descanso-texto b { font-size: 1.8rem; }
-.gym-foco .gym-foco-siguiente { margin: 0 0 2px; font-size: 0.9rem; }
-.gym-foco .gym-foco-demo { width: min(52%, 170px); margin: 2px auto; }
-.gym-foco .gym-foco-nombre { font-size: 1.1rem; }
-.gym-foco .gym-foco-serie { font-size: 0.95rem; margin: 0 0 2px; }
-.gym-foco .gym-foco-serie b { font-size: 1.2rem; }
-.gym-foco .gym-stepper { margin: 4px 0; gap: 8px; }
-.gym-foco .gym-stepper-valor { font-size: 1.6rem; }
-.gym-foco .gym-foco-grande { min-height: 56px; font-size: 1.15rem; margin: 6px 0; }
-.gym-foco .gym-foco-pie { margin-top: 4px; }
-.gym-foco .gym-calentar { margin-top: 4px; }
-.gym-foco .gym-antes { margin: 0; font-size: 0.75rem; }
-.gym-foco .gym-pista, .gym-foco .gym-tecnica { font-size: 0.75rem; }
+/* (v156) El modo foco cabe en UNA pantalla del iPhone: cabecera en una fila, figura al lado del texto,
+   peso y reps lado a lado, y los botones de abajo chicos en una sola fila. */
+.gym-foco { padding-top: 10px; padding-bottom: 10px; }
+.gym-foco-cabeza { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; text-align: left; }
+.gym-foco-cabeza h2 { flex: 1; margin: 0; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gym-foco-cabeza h2 small { font-size: 0.7rem; color: var(--texto-suave); }
+.gym-foco-cabeza b { font-family: var(--letra-titulo); color: var(--gym-2); }
+.gym-foco-cabeza .contador { margin: 0; font-size: 1.1rem; }
+.gym-foco .barra-gym { margin: 6px 0; }
+.gym-foco-arriba { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; text-align: left; margin: 4px 0; }
+.gym-foco .gym-foco-demo { width: 120px; height: 120px; margin: 0; display: grid; place-items: center; }
+.gym-foco .gym-foco-demo svg { width: auto; height: 100%; max-width: 100%; display: block; }
+.gym-foco .gym-foco-descanso { width: 120px; margin: 0; }
+.gym-foco .gym-foco-descanso-texto b { font-size: 1.6rem; }
+.gym-foco .gym-foco-descanso-texto small { font-size: 0.75rem; }
+.gym-foco-datos { min-width: 0; }
+.gym-foco .gym-foco-nombre, .gym-foco .gym-foco-siguiente { margin: 0 0 4px; font-size: 1rem; }
+.gym-foco .gym-foco-serie { margin: 0 0 4px; font-size: 0.9rem; }
+.gym-foco .gym-foco-serie b { font-size: 1.15rem; }
+.gym-foco .gym-antes { margin: 0; font-size: 0.72rem; }
+.gym-foco .gym-pista { margin: 2px 0 4px; font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gym-steppers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0; }
+.gym-steppers .gym-stepper { grid-template-columns: 44px 1fr 44px; gap: 4px; margin: 0; }
+.gym-steppers .gym-stepper-nombre { grid-column: 1 / -1; text-align: center; font-size: 0.75rem; }
+.gym-steppers .gym-mas-menos { min-height: 48px; font-size: 1.6rem; }
+.gym-steppers .gym-stepper-valor { min-width: 0; font-size: 1.4rem; }
+.gym-steppers .gym-stepper-valor small { font-size: 0.7rem; }
+.gym-foco-accion { display: grid; grid-template-columns: 64px 1fr 64px; gap: 6px; margin: 6px 0; }
+.gym-foco-accion-serie { grid-template-columns: 96px 1fr; }
+.gym-foco .gym-foco-grande { min-height: 56px; font-size: 1.05rem; margin: 0; }
+.gym-foco-accion > .boton { margin: 0; padding-left: 4px; padding-right: 4px; }
+.gym-foco-pie-fila { display: flex; gap: 6px; margin-top: 4px; }
+.gym-foco-pie-fila .boton { flex: 1; margin: 0; padding-left: 2px; padding-right: 2px; font-size: 0.75rem; white-space: nowrap; min-width: 0; }
+.gym-foco .gym-subir { margin: 2px 0 4px; }
 
 /* v79: consejo del día, reto de la semana y evolución */
 .gym-consejo { margin: 0 0 12px; }

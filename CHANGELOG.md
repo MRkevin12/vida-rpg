@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v156 — Gym en foco: todo en una pantalla
+- `vistas-gym.js` › `pantallaGym`: con el modo foco y un entrenamiento en curso, solo se dibuja el entrenamiento (sin encabezado ni `tarjetaNivel`).
+- `vistaDeFoco`: cabecera en una fila (rutina, tiempo, kg, contador); figura o anillo de descanso a la izquierda y nombre/serie/última vez (solo la mejor serie) a la derecha; peso y reps lado a lado; «Contar» al lado de «Terminé la serie»; ±15 s a los lados de «Empezar serie N»; pie en una fila (Calentar, Terminar, Lista, Cancelar). Si toca subir de peso, la pista es el botón. Se quitó el consejo de técnica en el foco.
+- `estilos.css`: bloque `v156` (reemplaza al de v155).
+- Pruebas: 416 (3 ajustadas a los textos nuevos).
+
 ## v155 — Gym en foco sin deslizar
 - `vistas-gym.js` › `vistaDeFoco`: durante el descanso, un solo botón «Empezar la serie N ya» (`gym-saltar-descanso`, que solo termina el descanso). Antes «Empezar ya» ejecutaba `gym-serie` y marcaba la serie como hecha. Se quitó «Saltar el descanso» (duplicado). Se oculta el botón de contar mientras descansas.
 - `vistas-gym.js`: la burbuja de Aurelio sale del modo foco por serie (queda en «¡Todo hecho!»).

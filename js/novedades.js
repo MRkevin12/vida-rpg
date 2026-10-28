@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 155;
+export const VERSION_APP = 156;
 
 export const NOVEDADES = [
+    {
+        version: 156,
+        titulo: "Gym en foco: todo en una pantalla",
+        cambios: [
+            "📱 Mientras entrenas en modo foco solo se ve el entrenamiento: sin las tarjetas de nivel y físico encima.",
+            "🧩 La figura y el temporizador van al lado del ejercicio, el peso y las reps en una sola fila y los botones de abajo más chicos.",
+            "⬆️ El consejo de subir de peso ahora es el mismo botón: «Llegaste al tope: subir a…».",
+        ],
+    },
     {
         version: 155,
         titulo: "Gym en foco sin deslizar",
