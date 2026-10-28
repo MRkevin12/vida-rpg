@@ -3930,6 +3930,13 @@ prueba("Versión: la de las novedades es la misma que la del service worker", as
     igual(Number(texto.match(/vida-rpg-v(\d+)/)[1]), VERSION_APP, "VERSION en sw.js");
 });
 
+prueba("Service worker: el archivo sw.js no tiene errores de sintaxis (si los tiene, el teléfono nunca se actualiza)", async () => {
+    const texto = await (await fetch("../sw.js", { cache: "no-store" })).text();
+    let error = null;
+    try { new Function(texto); } catch (e) { error = e.message; }   // solo se lee, no se ejecuta
+    igual(error, null, "error de sintaxis en sw.js");
+});
+
 prueba("Nube: la partida se cifra; con la contraseña se abre y con otra no", async () => {
     const sal = crypto.getRandomValues(new Uint8Array(16));
     const llave = await nube.derivarLlave("caballo-azul-27", sal);

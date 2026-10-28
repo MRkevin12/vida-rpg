@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v159 — sw.js roto (arreglado)
+- `sw.js` empezaba con dos `+` sueltos (`+` y `+// sw.js…`, sobrados de un parche) desde la v155: error de sintaxis, el navegador no podía instalar el service worker nuevo, así que el iPhone no se actualizaba ni mostraba «Actualizar». Se quitaron.
+- Prueba nueva: `sw.js` se compila sin error de sintaxis.
+- Pruebas: 421.
+
 ## v158 — El gym en foco, a pantalla completa
 - `app.js` › `dibujarPantalla`: clase `gym-pantalla-completa` en el `<body>` cuando la pantalla es el gym y `vistasGym.pantallaCompletaGym(estado)` (entrenamiento en curso + modo foco). Esconde `.cabecera`, `.pestanas` y `.run-flotante`; se quita al salir, terminar, cancelar o pasar a la lista. `refrescar` ya no guarda `--alto-cabecera` = 0 cuando la cabecera está escondida.
 - `vistas-gym.js` › `vistaDeFoco` rehecho: cabecera con «‹» (`data-accion="ir"` a Hoy), `mapaDeSeries` (todas las series en cuadritos por ejercicio), escenario que crece (`flex: 1`) con la figura o el reloj del descanso (figura quieta y oscura detrás, Aurelio abajo), fichas de músculo y «Última vez», nombre + serie + `gym-pips`, contadores y botón dorado. Mismas acciones y atributos (`gym-ajuste`, `gym-contar`, `gym-serie`, `gym-saltar-descanso`, `gym-descanso-mas`, `data-gym-inicio`, `data-descanso-fin`, `data-gym-anillo`). «¡Todo hecho!» muestra la pose `victoria`.

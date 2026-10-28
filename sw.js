@@ -1,5 +1,4 @@
-+
-+// sw.js — Service worker: hace que la app funcione SIN INTERNET.
+// sw.js — Service worker: hace que la app funcione SIN INTERNET.
 //
 // Un service worker es un pequeño programa que el navegador ejecuta
 // "por detrás" de la página. La primera vez que abres la app (con internet)
@@ -18,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v158";
+const VERSION = "vida-rpg-v159";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
