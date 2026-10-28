@@ -126,6 +126,67 @@ export const TECNICAS = {
     talones: ["Sube lo más alto que puedas y aguanta un segundo arriba.", "Baja despacio hasta estirar bien la pantorrilla."],
     abdominales: ["Enrolla el torso, no tires del cuello con las manos.", "Exhala al subir y aprieta el abdomen arriba."],
     encogimiento: ["Sube los hombros hacia las orejas, sin girarlos.", "Aguanta un segundo arriba y baja lento."],
+    // (v168) Los movimientos nuevos (uno para cada ejercicio que antes se veía como otro).
+    // Pecho
+    press_mancuernas: ["Baja las mancuernas a los lados del pecho, con los codos un poco por debajo de los hombros.", "Empuja hacia arriba y júntalas sin chocarlas; los omóplatos siguen pegados al banco."],
+    press_inclinado: ["Banco a unos 30 o 45 grados: más inclinado trabaja sobre todo el hombro.", "Baja hasta la parte alta del pecho y empuja sin despegar la espalda del respaldo."],
+    press_declinado: ["Traba bien las piernas en los rodillos antes de sacar el peso.", "Baja la barra a la parte baja del pecho, controlada, y empuja recto hacia arriba."],
+    aperturas: ["Los codos un poco doblados y quietos: el movimiento sale del hombro.", "Junta las manos delante del pecho, aprieta un segundo y abre despacio."],
+    cruce_poleas: ["Un pie adelante y el pecho alto; los brazos casi estirados todo el tiempo.", "Lleva las manos juntas hacia abajo y al frente, como abrazando un barril, y vuelve lento."],
+    flexion: ["El cuerpo recto como una tabla: aprieta el abdomen y los glúteos.", "Las manos debajo de los hombros; baja hasta casi tocar el suelo con el pecho."],
+    fondos: ["Inclínate un poco hacia adelante para que trabaje más el pecho.", "Baja hasta que los brazos queden casi paralelos al suelo, sin que molesten los hombros."],
+    // Tríceps
+    press_frances: ["Los codos quietos apuntando arriba: solo se mueve el antebrazo.", "Baja la barra despacio hacia la frente y extiende sin abrir los codos."],
+    extension_cuerda: ["Inclínate un poco hacia adelante y deja los codos cerca de la cabeza.", "Estira los brazos del todo y vuelve despacio hasta sentir el tríceps estirado."],
+    extension_arriba: ["Los codos apuntando al techo y cerca de la cabeza, sin abrirlos.", "Baja la mancuerna detrás de la nuca, despacio, y sube hasta estirar los brazos."],
+    patada_triceps: ["El brazo pegado al cuerpo y paralelo al suelo: el codo no se mueve.", "Estira el brazo hacia atrás, aprieta un segundo y baja despacio."],
+    fondos_banco: ["Las manos en el borde del banco y la espalda cerca de él.", "Baja doblando los codos hacia atrás, sin pasar de 90 grados, y empuja hasta estirarlos."],
+    // Hombros
+    elevacion_frontal: ["Sube hasta la altura de los hombros, con los brazos casi estirados.", "Sin balancear el torso: si necesitas impulso, el peso es demasiado."],
+    pajaros: ["Los brazos casi estirados y los hombros abajo, lejos de las orejas.", "Abre hacia atrás juntando los omóplatos y vuelve despacio."],
+    face_pull: ["La polea a la altura de la cara: tira de la cuerda hacia los ojos.", "Codos altos y abiertos; al final separa las manos y aprieta los omóplatos."],
+    // Espalda
+    remo_mancuerna: ["La espalda recta y paralela al suelo, con la mano y la rodilla firmes en el banco.", "Lleva la mancuerna hacia la cadera, con el codo pegado al cuerpo."],
+    remo_inclinado: ["Inclínate con la espalda recta y las rodillas un poco dobladas.", "Lleva la barra al abdomen con los codos hacia atrás y bájala controlada."],
+    dominada: ["Empieza colgado con los brazos estirados y los hombros firmes.", "Sube llevando el pecho a la barra y baja despacio, sin balancearte."],
+    pullover: ["Los brazos casi estirados y el torso un poco inclinado hacia adelante.", "Baja la barra en arco hasta los muslos, sintiendo la espalda, y vuelve lento."],
+    hiperextension: ["La almohadilla justo debajo de la cadera, para doblarte desde ahí.", "Sube hasta quedar en línea con las piernas; no arquees la espalda de más."],
+    // Bíceps
+    curl_inclinado: ["La espalda pegada al respaldo y los brazos colgando detrás del cuerpo.", "Sube sin adelantar los codos y baja hasta estirar el brazo."],
+    curl_predicador: ["Los brazos bien apoyados en la almohadilla, con las axilas en el borde.", "Baja controlado hasta casi estirar, sin soltar el peso de golpe."],
+    curl_concentrado: ["El codo apoyado en la parte de adentro del muslo, sin moverse.", "Sube despacio, aprieta arriba un segundo y baja lento."],
+    // Cuádriceps
+    prensa: ["La espalda y la cadera pegadas al respaldo todo el tiempo.", "Baja hasta que las rodillas lleguen cerca del pecho y empuja sin trabar las rodillas."],
+    extension_cuadriceps: ["Ajusta la máquina para que la rodilla quede a la altura del eje.", "Sube hasta estirar la pierna, aprieta un segundo y baja despacio."],
+    hack: ["La espalda y los hombros pegados a las almohadillas.", "Baja hasta que los muslos queden paralelos a la plataforma y empuja con todo el pie."],
+    hack_barra: ["La barra pegada a la parte de atrás de las piernas y el pecho alto.", "Baja la cadera como en una sentadilla y sube empujando el suelo."],
+    zancada: ["Un paso largo, con el peso en la pierna de adelante.", "Baja recto hasta que la rodilla de atrás casi toque el suelo."],
+    bulgara: ["El empeine de atrás en el banco y casi todo el peso en la pierna de adelante.", "Baja recto, con el torso firme, y sube empujando con el talón."],
+    sentadilla_goblet: ["La mancuerna pegada al pecho y los codos hacia abajo.", "Baja entre las rodillas con la espalda recta y sube empujando el suelo."],
+    sentadilla_frontal: ["La barra sobre la parte de adelante de los hombros y los codos bien altos.", "El pecho derecho durante todo el movimiento; baja controlado."],
+    // Isquiosurales y glúteos
+    peso_muerto: ["La barra pegada a las piernas, sobre el medio del pie.", "Espalda recta y pecho alto: empuja el suelo con las piernas y estira la cadera al final."],
+    peso_muerto_sumo: ["Los pies muy abiertos y las manos por dentro de las rodillas.", "Empuja las rodillas hacia afuera y sube con el pecho alto y la barra pegada."],
+    buenos_dias: ["La barra en la espalda alta y las rodillas apenas dobladas.", "Lleva la cadera hacia atrás con la espalda recta hasta sentir la parte de atrás del muslo."],
+    curl_femoral_sentado: ["La almohadilla de arriba firme sobre los muslos, cerca de las rodillas.", "Lleva los talones hacia abajo y atrás, y vuelve en tres segundos."],
+    nordico: ["Los tobillos bien trabados y el cuerpo recto de las rodillas a la cabeza.", "Baja lo más lento que puedas y frena con las manos cuando ya no aguantes."],
+    curl_femoral_pie: ["La cadera quieta y apoyada: solo se mueve la pierna.", "Sube el talón hacia el glúteo, aprieta y baja despacio."],
+    sentadilla_sumo: ["Los pies bien abiertos y las puntas hacia afuera.", "Las rodillas siguen la dirección de los pies; baja con el pecho alto."],
+    puente: ["Los pies cerca de la cadera y los brazos en el suelo.", "Sube la cadera apretando los glúteos hasta que hombros, cadera y rodillas queden en línea."],
+    hip_thrust: ["El borde del banco justo debajo de los omóplatos y la barra sobre la cadera.", "Arriba, el torso horizontal y la barbilla hacia el pecho; aprieta los glúteos un segundo."],
+    patada_gluteo: ["El torso firme y un poco inclinado: no arquees la espalda.", "Lleva la pierna hacia atrás con el glúteo, sin girar la cadera, y vuelve lento."],
+    abduccion: ["Siéntate derecho, con la espalda en el respaldo.", "Abre las rodillas con fuerza, aguanta un segundo y cierra despacio."],
+    // Pantorrillas
+    talones_sentado: ["La almohadilla firme sobre las rodillas y la punta de los pies en el escalón.", "Sube lo más alto que puedas y baja hasta estirar bien la pantorrilla."],
+    talones_prensa: ["Solo la punta de los pies en la plataforma, con las piernas casi estiradas.", "Empuja con los dedos lo más lejos que puedas y vuelve hasta estirar la pantorrilla."],
+    talones_burro: ["La espalda recta y los antebrazos firmes en el apoyo.", "Baja los talones hasta estirar y sube lo más alto que puedas, sin rebotar."],
+    // Abdomen
+    plancha: ["Codos debajo de los hombros y el cuerpo recto: ni la cadera arriba ni hundida.", "Aprieta el abdomen y los glúteos, y sigue respirando."],
+    crunch_polea: ["La cadera quieta: el movimiento es enrollar la espalda hacia el suelo.", "Lleva los codos hacia los muslos, suelta el aire y sube despacio."],
+    giro_ruso: ["Echa el torso hacia atrás con la espalda recta, no encorvada.", "Gira desde el tronco, no solo con los brazos, y lleva el peso de un lado al otro."],
+    colgado_rodillas: ["Cuelga quieto: no uses el balanceo para subir las piernas.", "Sube las rodillas hacia el pecho enrollando la pelvis y baja lento."],
+    elevacion_piernas: ["La parte baja de la espalda pegada al suelo todo el tiempo.", "Sube las piernas estiradas y bájalas despacio, sin tocar el suelo."],
+    rueda: ["Aprieta el abdomen y los glúteos antes de rodar.", "Llega solo hasta donde puedas sin que se hunda la espalda, y vuelve con el abdomen."],
 };
 
 export function consejoDeTecnica(movimiento, indice = 0) {

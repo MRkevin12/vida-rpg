@@ -91,32 +91,33 @@ export const RUTINA = [
 const RUTINAS_DE_FABRICA = RUTINA.map((r) => ({ id: r.id, ejercicios: r.ejercicios }));
 
 // (v76) Qué movimiento hace cada ejercicio: de ahí salen su animación (dibujo-ejercicios.js) y su consejo de técnica (gym-aurelio.js).
+// (v168) Cada ejercicio tiene una figura que se parece a lo que haces; los que comparten figura son de verdad parecidos.
 export const MOVIMIENTO_DE = {
-    "press-banca": "press_horizontal", "press-inclinado": "press_horizontal", "pec-deck": "press_horizontal",
-    "press-frances": "triceps", "triceps-polea": "triceps", "triceps-cuerda": "triceps",
-    "press-hombros": "press_vertical", "elevaciones-laterales": "elevacion_lateral", "pajaros": "elevacion_lateral",
-    "peso-muerto-rumano": "bisagra", "curl-femoral-sentado": "curl_femoral", "curl-femoral-tumbado": "curl_femoral",
+    "press-banca": "press_horizontal", "press-inclinado": "press_inclinado", "pec-deck": "aperturas",
+    "press-frances": "press_frances", "triceps-polea": "triceps", "triceps-cuerda": "extension_cuerda",
+    "press-hombros": "press_vertical", "elevaciones-laterales": "elevacion_lateral", "pajaros": "pajaros",
+    "peso-muerto-rumano": "bisagra", "curl-femoral-sentado": "curl_femoral_sentado", "curl-femoral-tumbado": "curl_femoral",
     "jalon-pecho": "jalon", "remo-sentado": "remo", "remo-unilateral": "remo",
-    "curl-barra": "curl", "curl-inclinado": "curl", "curl-martillo": "curl",
-    "prensa-piernas": "sentadilla", "extension-cuadriceps": "sentadilla", "hack-squat": "sentadilla",
-    "talones-de-pie": "talones", "talones-sentado": "talones", "talones-prensa": "talones",
+    "curl-barra": "curl", "curl-inclinado": "curl_inclinado", "curl-martillo": "curl",
+    "prensa-piernas": "prensa", "extension-cuadriceps": "extension_cuadriceps", "hack-squat": "hack",
+    "talones-de-pie": "talones", "talones-sentado": "talones_sentado", "talones-prensa": "talones_prensa",
     // los extras
-    "dominadas": "jalon", "remo-barra": "remo", "jalon-cerrado": "jalon", "peso-muerto": "bisagra",
-    "press-mancuernas": "press_horizontal", "aperturas-mancuernas": "press_horizontal", "fondos": "press_horizontal",
-    "press-militar": "press_vertical", "face-pull": "remo", "encogimientos": "encogimiento", "fondos-banco": "triceps",
-    "curl-concentrado": "curl", "sentadilla": "sentadilla", "zancadas": "sentadilla", "hip-thrust": "abdominales",
-    "abdominales": "abdominales", "elevacion-piernas": "abdominales", "rueda-abdominal": "abdominales",
+    "dominadas": "dominada", "remo-barra": "remo_inclinado", "jalon-cerrado": "jalon", "peso-muerto": "peso_muerto",
+    "press-mancuernas": "press_mancuernas", "aperturas-mancuernas": "aperturas", "fondos": "fondos",
+    "press-militar": "press_vertical", "face-pull": "face_pull", "encogimientos": "encogimiento", "fondos-banco": "fondos_banco",
+    "curl-concentrado": "curl_concentrado", "sentadilla": "sentadilla", "zancadas": "zancada", "hip-thrust": "hip_thrust",
+    "abdominales": "abdominales", "elevacion-piernas": "elevacion_piernas", "rueda-abdominal": "rueda",
     // (v160) más ejercicios
-    "press-inclinado-mancuernas": "press_horizontal", "cruce-poleas": "press_horizontal", "press-declinado": "press_horizontal", "flexiones": "press_horizontal",
-    "patada-triceps": "triceps", "press-cerrado": "triceps", "extension-mancuerna": "triceps", "triceps-banco-pesas": "triceps",
-    "arnold-press": "press_vertical", "elevaciones-frontales": "elevacion_lateral", "laterales-mancuernas": "elevacion_lateral", "pajaros-mancuernas": "elevacion_lateral",
-    "remo-mancuerna": "remo", "remo-t": "remo", "jalon-neutro": "jalon", "pullover-polea": "jalon", "hiperextensiones": "bisagra",
-    "curl-mancuernas": "curl", "curl-predicador": "curl", "curl-polea": "curl", "curl-21": "curl",
-    "sentadilla-bulgara": "sentadilla", "sentadilla-goblet": "sentadilla", "sentadilla-frontal": "sentadilla", "sentadilla-hack-libre": "sentadilla",
-    "buenos-dias": "bisagra", "peso-muerto-rigido": "bisagra", "curl-nordico": "curl_femoral", "curl-femoral-de-pie": "curl_femoral",
-    "talones-mancuerna": "talones", "talones-burro": "talones", "talones-unilateral": "talones",
-    "puente-gluteos": "abdominales", "patada-gluteo": "bisagra", "abduccion-maquina": "sentadilla", "sentadilla-sumo": "sentadilla", "peso-muerto-sumo": "bisagra",
-    "plancha": "abdominales", "crunch-polea": "abdominales", "giro-ruso": "abdominales", "elevacion-rodillas": "abdominales",
+    "press-inclinado-mancuernas": "press_inclinado", "cruce-poleas": "cruce_poleas", "press-declinado": "press_declinado", "flexiones": "flexion",
+    "patada-triceps": "patada_triceps", "press-cerrado": "press_horizontal", "extension-mancuerna": "extension_arriba", "triceps-banco-pesas": "fondos_banco",
+    "arnold-press": "press_vertical", "elevaciones-frontales": "elevacion_frontal", "laterales-mancuernas": "elevacion_lateral", "pajaros-mancuernas": "pajaros",
+    "remo-mancuerna": "remo_mancuerna", "remo-t": "remo_inclinado", "jalon-neutro": "jalon", "pullover-polea": "pullover", "hiperextensiones": "hiperextension",
+    "curl-mancuernas": "curl", "curl-predicador": "curl_predicador", "curl-polea": "curl", "curl-21": "curl",
+    "sentadilla-bulgara": "bulgara", "sentadilla-goblet": "sentadilla_goblet", "sentadilla-frontal": "sentadilla_frontal", "sentadilla-hack-libre": "hack_barra",
+    "buenos-dias": "buenos_dias", "peso-muerto-rigido": "bisagra", "curl-nordico": "nordico", "curl-femoral-de-pie": "curl_femoral_pie",
+    "talones-mancuerna": "talones", "talones-burro": "talones_burro", "talones-unilateral": "talones",
+    "puente-gluteos": "puente", "patada-gluteo": "patada_gluteo", "abduccion-maquina": "abduccion", "sentadilla-sumo": "sentadilla_sumo", "peso-muerto-sumo": "peso_muerto_sumo",
+    "plancha": "plancha", "crunch-polea": "crunch_polea", "giro-ruso": "giro_ruso", "elevacion-rodillas": "colgado_rodillas",
 };
 export const movimientoDe = (ejercicioId) => MOVIMIENTO_DE[ejercicioId] || "curl";
 

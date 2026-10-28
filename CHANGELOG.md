@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v168 — Cada ejercicio, su propio movimiento
+- `js/dibujo-ejercicios.js`: 51 movimientos nuevos en `MOVIMIENTOS` (64 en total; los 13 originales no cambian) y fondos nuevos en `MAQUINAS` (`NOMBRES_DE_FONDOS`). Ayudantes nuevos (`torreDePolea`, `rodillo`, `respaldo`, `discoDeCanto`…); los cambios de torso y de cuerpo tienen valor por defecto, así que lo viejo se dibuja igual.
+- `js/gym.js`: `MOVIMIENTO_DE` apunta cada ejercicio de `CATALOGO` a su movimiento. `js/gym-aurelio.js`: dos consejos en `TECNICAS` por movimiento nuevo.
+- Pruebas: el conteo de movimientos pasa de 13 a 64 y hay una prueba nueva (movimientos distintos, fondos existentes, consejos, ejercicios que los usan).
+- Pendiente de ver en el iPhone. Aproximados: `pajaros-mancuernas` y `aperturas-mancuernas` (muestran máquinas), `curl-polea` y `curl-barra` (muestran mancuernas), `arnold-press` sin giro de muñeca.
+
 ## v167 — Un solo calentamiento
 - Se quita el botón «Calentar» general (`gym-calentar`) del foco (`pie`) y de la lista. `gym.cerrarEntrenamiento`: `calentado` también es verdadero si se marcó alguna serie de calentamiento (`cal`), así los +10 XP (`XP_CALENTAMIENTO`) siguen existiendo, una vez por entrenamiento. La acción `calentarGym` queda (la usan las pruebas). Pruebas: 437.
 

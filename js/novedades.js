@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 167;
+export const VERSION_APP = 168;
 
 export const NOVEDADES = [
+    {
+        version: 168,
+        titulo: "Cada ejercicio, su propio movimiento",
+        cambios: [
+            "🏋️ Ahora cada ejercicio del gimnasio tiene su animación: antes muchos compartían una figura que no era la suya (p. ej. los talones burro mostraban talones de pie).",
+            "🎬 51 movimientos nuevos en pixel art: dominadas, fondos, flexiones, aperturas, extensiones de tríceps, peso muerto, hip thrust, plancha, rueda abdominal y más.",
+            "🪑 Máquinas nuevas de fondo: banco inclinado y declinado, pec deck, poleas dobles, prensa, extensión, hack, femoral, paralelas y más.",
+            "💬 Aurelio da dos consejos de técnica para cada movimiento nuevo.",
+        ],
+    },
     {
         version: 167,
         titulo: "Un solo calentamiento",

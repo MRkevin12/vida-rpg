@@ -7200,7 +7200,7 @@ prueba("Gym (entrenamiento): marcar una serie trae la frase de Aurelio según el
 });
 
 prueba("Gym (animaciones, v158): cada movimiento tiene su figura en pixel art, cuadro a cuadro, y todos los ejercicios tienen la suya", () => {
-    igual(LISTA_DE_MOVIMIENTOS.length, 13);
+    igual(LISTA_DE_MOVIMIENTOS.length, 64, "(v168) 64 movimientos: uno para cada ejercicio que antes se veía como otro");
     const ap = { piel: "morena", pelo: "negro" };
     const sinHuecos = (svg) => !/undefined|NaN|Infinity/.test(svg);
     for (const m of [...LISTA_DE_MOVIMIENTOS, "victoria"]) {
@@ -7226,6 +7226,25 @@ prueba("Gym (animaciones, v158): cada movimiento tiene su figura en pixel art, c
     cierto(ejercicios.dibujarCuadro("curl", { piel: "oscura" }, 0.5).includes("#5e3b27"), "usa tu color de piel");
     cierto(ejercicios.dibujarCuadro("curl", { pelo: "rubio" }, 0.5).includes(avatar.APARIENCIA.pelo.rubio.color), "y tu color de pelo");
     cierto(ejercicios.musculoDe(5) > ejercicios.musculoDe(0) && ejercicios.musculoDe(99) === ejercicios.musculoDe(5), "más nivel de gym, más músculo (con tope)");
+});
+
+prueba("Gym (animaciones, v168): cada movimiento es distinto, se mueve, usa un fondo que existe, tiene su consejo y algún ejercicio lo usa", () => {
+    const ap = { piel: "media", pelo: "castano" };
+    const dibujos = LISTA_DE_MOVIMIENTOS.map((m) => ejercicios.dibujarCuadro(m, ap, 0.5));
+    igual(new Set(dibujos).size, LISTA_DE_MOVIMIENTOS.length, "no hay dos movimientos con el mismo dibujo");
+    const usados = new Set(gym.CATALOGO.map((x) => gym.movimientoDe(x.id)));
+    for (const m of LISTA_DE_MOVIMIENTOS) {
+        cierto(ejercicios.dibujarCuadro(m, ap, 0) !== ejercicios.dibujarCuadro(m, ap, 1), `${m}: el cuerpo se mueve`);
+        cierto(ejercicios.NOMBRES_DE_FONDOS.includes(ejercicios.fondoDe(m)), `${m}: su fondo («${ejercicios.fondoDe(m)}») existe`);
+        const consejos = gymAurelio.TECNICAS[m] || [];
+        cierto(consejos.length >= 2 && consejos.every((c) => c.length > 20 && c.endsWith(".")), `${m}: tiene al menos 2 consejos de técnica`);
+        cierto(usados.has(m), `${m}: algún ejercicio del catálogo lo usa`);
+    }
+    // Y al revés: no hay consejos de movimientos que no existen.
+    for (const m of Object.keys(gymAurelio.TECNICAS)) cierto(LISTA_DE_MOVIMIENTOS.includes(m), `TECNICAS.${m}: es un movimiento con figura`);
+    // Los ejercicios que se parecían mal ahora tienen su propia figura.
+    igual([gym.movimientoDe("plancha"), gym.movimientoDe("dominadas"), gym.movimientoDe("flexiones"), gym.movimientoDe("talones-burro")],
+        ["plancha", "dominada", "flexion", "talones_burro"]);
 });
 
 prueba("Gym (v158): los huesos no se estiran: el codo calculado al revés respeta el largo de cada hueso", () => {
