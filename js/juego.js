@@ -237,8 +237,23 @@ export function descansoDe(estado, fecha) {
     return (estado.descansos || []).find((d) => d.desde <= fecha && fecha <= d.hasta) || null;
 }
 
+// (v179) Modo «mal día»: si al abrir la app eliges «Mal», ese día queda en estado.diasMalos. Funciona como un descanso
+// de un solo día: no pierdes vida y la racha no se rompe aunque no hagas nada. Si haces al menos una misión, la racha
+// suma igual que siempre. Para que no se abuse, hay un máximo de días malos por semana (los 7 días que terminan en esa fecha).
+export const MAL_DIA = { maxPorSemana: 2 };
+
+export function esMalDia(estado, fecha) {
+    return (estado.diasMalos || []).includes(fecha);
+}
+
+// ¿Todavía te queda un «mal día» esa semana? (no cuenta la propia fecha: si ya está marcada, sigue valiendo)
+export function quedanMalosDias(estado, fecha) {
+    const otros = (estado.diasMalos || []).filter((d) => d !== fecha && d <= fecha && d > sumarDias(fecha, -7));
+    return otros.length < MAL_DIA.maxPorSemana;
+}
+
 export function enDescanso(estado, fecha) {
-    return Boolean(descansoDe(estado, fecha));
+    return Boolean(descansoDe(estado, fecha)) || esMalDia(estado, fecha);
 }
 
 // Las misiones que tocaban ese día.

@@ -318,6 +318,43 @@ export function carreraFantasma(carreras, salida, { radio = 250 } = {}) {
     return null;
 }
 
+// (v179) Tu rival de hace un mes: la carrera (sin pista) que hiciste más cerca de «hace 30 días», dentro de ±margen días.
+// carreras: las guardadas; fecha: el día de hoy ("AAAA-MM-DD"). Devuelve la carrera o null si ese mes no corriste.
+// Con `salida` ([lat, lon]) solo vale si empezó a menos de `radio` metros de ahí y tiene recorrido (para ponerla de fantasma en el mapa).
+export const RIVAL = { dias: 30, margen: 10 };
+export function rivalDeHace(carreras, fecha, { salida = null, radio = 250 } = {}) {
+    const objetivo = sumarDias(fecha, -RIVAL.dias);
+    let mejor = null;
+    let distancia = Infinity;
+    for (const c of carreras || []) {
+        if (c.pista || !(c.km > 0) || !(c.minutos > 0)) continue;
+        const lejos = Math.abs(diasEntre(c.fecha, objetivo));
+        if (lejos > RIVAL.margen || c.fecha >= fecha) continue;
+        if (salida) {
+            if (!Array.isArray(c.traza) || c.traza.length < 2) continue;
+            const [lat, lon] = c.traza[0];
+            if (metrosEntre({ lat: salida[0], lon: salida[1] }, { lat, lon }) > radio) continue;
+        }
+        if (lejos < distancia) { mejor = c; distancia = lejos; }
+    }
+    return mejor;
+}
+
+// (v179) Cómo vas contra tu rival: la diferencia de ritmo (segundos por km; negativo = vas más rápido) y una frase.
+export function contraRival(carrera, rival) {
+    if (!carrera || !rival) return null;
+    const ahora = ritmoDeCarrera(carrera);
+    const antes = ritmoDeCarrera(rival);
+    if (!Number.isFinite(ahora) || !Number.isFinite(antes)) return null;
+    const dif = Math.round((ahora - antes) * 60);   // ritmoDeCarrera da minutos por km
+    const km = Math.round((carrera.km - rival.km) * 10) / 10;
+    let frase;
+    if (Math.abs(dif) < 3) frase = "Vas igual que tu yo de hace un mes.";
+    else if (dif < 0) frase = `¡Le ganaste a tu yo de hace un mes! ${Math.abs(dif)} s más rápido por km.`;
+    else frase = `Tu yo de hace un mes fue ${dif} s más rápido por km. Hoy toca alcanzarlo.`;
+    return { dif, km, frase, ganaste: dif < -2 };
+}
+
 // (v148) El clima del día en el mapa de la carrera (es un juego: no se pide a internet). Sale de la fecha, así todo el día
 // es el mismo. En la nieve la lluvia es nevada y en el desierto, tormenta de arena; en las Tierras del Abismo, ceniza.
 export const CLIMAS = {

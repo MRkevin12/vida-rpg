@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 178;
+export const VERSION_APP = 179;
 
 export const NOVEDADES = [
+    {
+        version: 179,
+        titulo: "Mal día, tú contra tú y el capítulo del mes",
+        cambios: [
+            "😔 Si en «¿Cómo te sientes hoy?» eliges «Mal», ese día no pierdes vida y tu racha no se rompe. Hoy te propone UNA sola misión (la más fácil) y con eso basta. Máximo 2 días malos por semana.",
+            "👻 En Running, si corriste por el mismo lugar hace un mes (±10 días), tu fantasma en el mapa es tu yo de hace 30 días. Al guardar la carrera ves «Tú contra tú»: cuántos segundos por km ganaste o te faltaron.",
+            "📅 Tu libro tiene un capítulo por cada mes que termina: tus cifras, tus metas de la temporada, los días malos que superaste y lo que anotaste en las revisiones de cada semana. Está en el Índice, abajo, y también en el libro que descargas.",
+        ],
+    },
     {
         version: 178,
         titulo: "Orden por dentro",

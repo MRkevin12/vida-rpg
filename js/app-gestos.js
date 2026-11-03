@@ -212,6 +212,7 @@ export function conectarHojear() {
         const dy = evento.clientY - inicio.y;
         inicio = null;
         if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx)) return;   // fue un toque o un scroll
+        if (String(ui.paginaLibro).startsWith("mes-")) return;   // (v179) el capítulo de un mes se cierra con su botón
         const total = libro.capitulosDelLibro(estado, hoy()).length;
         const actual = Number(ui.paginaLibro) || 0;   // portada e índice cuentan como 0
         const siguiente = dx < 0 ? actual + 1 : actual - 1;

@@ -18,7 +18,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 39,   // 39 (v174): copias de rutinas y aviso de serie del gym · 38 (v166): barra del gym · 37 (v164): gym con descargas, RIR y notas · 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
+        version: 40,   // 40 (v179): días malos · 39 (v174): copias de rutinas y aviso de serie del gym · 38 (v166): barra del gym · 37 (v164): gym con descargas, RIR y notas · 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -64,6 +64,7 @@ export function estadoInicial() {
             avisadoHasta: null,   // hasta qué día ya te avisamos cuánta vida perdiste
         },
         descansos: [],        // modo descanso: { desde, hasta } (los dos días incluidos)
+        diasMalos: [],        // (v179) los días que dijiste «Mal» en «¿Cómo te sientes hoy?»: ["2026-10-12", …] (valen como descanso)
         // Armadura (ver equipo.js y vida.js). No se guarda cuánta tienes (se calcula), solo:
         //   desde   = el día en que empezó a contar (null = desde que empezó la vida)
         //   cambios = cuál era tu armadura máxima cada vez que cambió: [{ fecha, maxima }]

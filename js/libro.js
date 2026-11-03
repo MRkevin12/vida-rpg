@@ -12,6 +12,7 @@
 import * as juego from "./juego.js";
 import * as campana from "./campana.js";
 import * as voces from "./voces.js";
+import * as temporadas from "./temporadas.js";   // (v179) el capítulo de cada mes
 import { calcularVida, robosDeJefes } from "./vida.js";
 import { sumarDias, desdeTexto, fechaLegible } from "./fechas.js";
 
@@ -276,6 +277,90 @@ export function capitulosDelLibro(estado, hoy) {
     return fechas.map((fecha, i) => armarCapitulo(estado, fecha, i + 1, hoy, nombre, registroVida, robos));
 }
 
+// ===== (v179) El capítulo de cada mes =====
+// Cuando un mes termina, el libro suma un capítulo especial que lo cuenta entero: las cifras, la temporada (tus metas
+// del mes), lo que escribiste en las revisiones de cada semana y los días malos que atravesaste. Va aparte de los capítulos
+// de cada día (no cambia su numeración). Todo se calcula del historial: no se guarda nada.
+
+const DIAS_NOMBRE = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+
+function tituloDelMes(n, t, mes) {
+    if (t?.todas) return "El mes del sello";
+    if (n.perfectos >= 8) return "El mes de la constancia";
+    if (n.misiones === 0) return "El mes del silencio";
+    return elegir(["Un mes de camino", "Lo que dejó el mes", "Entre una luna y otra", "El mes que pasó"], `${mes}-01`);
+}
+
+export function capituloDelMes(estado, mes, hoy) {
+    const nombre = estado.pacto?.nombre || estado.personaje.nombre;
+    const nombreMes = temporadas.nombreDelMes(mes);
+    const anio = mes.slice(0, 4);
+    const ultimo = `${mes}-${String(temporadas.diasDelMes(mes)).padStart(2, "0")}`;
+    const n = temporadas.numerosDelMes(estado, mes, hoy);
+    const antes = temporadas.numerosDelMes(estado, temporadas.mesAnterior(mes), hoy);
+    const valor = (tipo) => temporadas.valorDeMeta(estado, tipo, mes, hoy);
+    const t = temporadas.temporadaDe(estado, mes, hoy);
+    const parrafos = [];
+    const texto = (x) => parrafos.push({ tipo: "texto", texto: x });
+
+    // 1. Las cifras.
+    const cifras = [`Así pasó ${nombreMes} de ${anio} para ${nombre}: cumplió ${n.misiones} misiones y ganó ${n.xp} de experiencia.`];
+    if (n.perfectos) cifras.push(`${n.perfectos === 1 ? "Un día fue perfecto" : `${n.perfectos} días fueron perfectos`}, sin una sola misión pendiente.`);
+    if (n.mejorDia) cifras.push(`Su mejor día fue el ${fechaLegible(n.mejorDia.fecha)}, con ${n.mejorDia.misiones} misiones.`);
+    if (n.mejorDiaSemana !== null) cifras.push(`Los ${DIAS_NOMBRE[n.mejorDiaSemana]} fueron sus días más fuertes.`);
+    texto(cifras.join(" "));
+
+    // 2. El cuerpo y la mente: gym, carreras y diario.
+    const cuerpo = [];
+    if (valor("gym")) cuerpo.push(`Pisó el gimnasio ${valor("gym")} ${valor("gym") === 1 ? "día" : "días"}.`);
+    if (valor("km")) cuerpo.push(`Corrió ${valor("km")} km en total.`);
+    if (valor("diario")) cuerpo.push(`Escribió en su diario ${valor("diario")} ${valor("diario") === 1 ? "día" : "días"}.`);
+    if (cuerpo.length) texto(cuerpo.join(" "));
+
+    // 3. Frente al mes anterior.
+    if (antes.misiones > 0 && n.misiones > 0) {
+        const dif = n.misiones - antes.misiones;
+        texto(dif > 0 ? `Fue un mes más fuerte que el anterior: ${dif} misiones más.`
+            : dif < 0 ? `Un mes algo más tranquilo que el anterior (${-dif} misiones menos), y también eso es parte del camino.`
+            : "Igual de constante que el mes anterior, misión por misión.");
+    }
+
+    // 4. La temporada: las metas que se puso.
+    if (t && t.total) {
+        const lista = t.metas.map((m) => `${m.nombre.toLowerCase()} (${m.valor} de ${m.meta})`);
+        const cierre = { total: t.total, cumplidas: t.cumplidas, todas: t.todas, valores: t.metas.map((m) => ({ tipo: m.tipo, valor: m.valor, meta: m.meta })) };
+        const consejo = temporadas.consejoParaLaSiguiente(cierre);
+        texto(`Para ese mes se había puesto ${t.total === 1 ? "una meta" : `${t.total} metas`}: ${enumerar(lista, false)}. Cumplió ${t.cumplidas} de ${t.total}. ${temporadas.veredicto(cierre)}${consejo ? ` ${consejo}` : ""}`);
+    }
+
+    // 5. Los días malos.
+    const malos = (estado.diasMalos || []).filter((d) => d.slice(0, 7) === mes).length;
+    if (malos) texto(`Hubo ${malos === 1 ? "un día" : `${malos} días`} en que se sintió mal. Los atravesó sin perder vida ni racha: saber cuándo bajar el paso también es de valientes.`);
+
+    // 6. Lo que escribió en las revisiones de cada semana.
+    const revisiones = Object.keys(estado.revisiones || {}).filter((l) => l.slice(0, 7) === mes).sort();
+    const buenas = revisiones.map((l) => estado.revisiones[l].bien).filter(Boolean);
+    const mejoras = revisiones.map((l) => estado.revisiones[l].mejorar).filter(Boolean);
+    if (revisiones.length) texto(`Se detuvo a revisar ${revisiones.length === 1 ? "una semana" : `${revisiones.length} semanas`} del mes.${buenas.length ? " Esto fue lo que anotó de bueno:" : ""}`);
+    for (const b of buenas.slice(0, 2)) parrafos.push({ tipo: "cita", texto: b });
+    if (mejoras.length) texto(`Y lo que se prometió mejorar: «${mejoras[mejoras.length - 1]}».`);
+
+    // 7. El cierre, con la racha con la que llegó al último día.
+    const racha = juego.calcularRacha(estado, ultimo).actual;
+    texto(`${racha >= 3 ? `Llegó al final del mes con ${racha} días seguidos de racha. ` : ""}El libro pasa la página: viene ${temporadas.nombreDelMes(temporadas.mesSiguiente(mes))}.`);
+
+    return { mes, titulo: tituloDelMes(n, t, mes), nombreMes: `${mayuscula(nombreMes)} de ${anio}`, parrafos };
+}
+
+// Los capítulos de los meses ya terminados que tuvieron algo de actividad (del más viejo al más nuevo).
+export function capitulosDeMeses(estado, hoy) {
+    const meses = new Set();
+    for (const c of estado.completadas) meses.add(c.fecha.slice(0, 7));
+    for (const f of Object.keys(estado.diario)) meses.add(f.slice(0, 7));
+    const actual = temporadas.mesDe(hoy);
+    return [...meses].filter((m) => m < actual).sort().map((m) => capituloDelMes(estado, m, hoy));
+}
+
 // El libro entero como texto (para descargarlo).
 export function libroComoTexto(estado, hoy) {
     const nombre = estado.pacto?.nombre || estado.personaje.nombre;
@@ -283,6 +368,10 @@ export function libroComoTexto(estado, hoy) {
     for (const c of capitulosDelLibro(estado, hoy)) {
         lineas.push(`CAPÍTULO ${aRomano(c.numero)} · ${c.titulo}`, "");
         for (const p of c.parrafos) lineas.push(p.tipo === "cita" ? `    «${p.texto}»` : p.texto, "");
+    }
+    for (const m of capitulosDeMeses(estado, hoy)) {
+        lineas.push(`CAPÍTULO DEL MES · ${m.nombreMes.toUpperCase()} · ${m.titulo}`, "");
+        for (const p of m.parrafos) lineas.push(p.tipo === "cita" ? `    «${p.texto}»` : p.texto, "");
     }
     return lineas.join("\n");
 }

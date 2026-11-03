@@ -22,7 +22,7 @@ export function pantallaAnimo(nombre, hora, dia) {
     const saludo = hora < 6 ? "Aún es de madrugada" : hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
     const cita = maestro.CONSEJOS[dia % maestro.CONSEJOS.length];
     const opciones = [
-        ["mal", "😔", "Mal", "Solo lo esencial. Un paso a la vez."],
+        ["mal", "😔", "Mal", "Solo lo esencial. Hoy no pierdes vida ni racha."],
         ["normal", "🙂", "Normal", "Lo justo para avanzar sin distracciones."],
         ["bien", "😄", "Bien", "Todo el reino a tu disposición."],
     ];

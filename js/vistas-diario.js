@@ -27,9 +27,33 @@ export function pantallaLibro(estado, ctx) {
     const ir = (pagina, texto, clase = "boton boton-secundario") =>
         `<button type="button" class="${clase}" data-accion="libro-pagina" data-pagina="${pagina}">${texto}</button>`;
 
+    // (v179) Los capítulos de cada mes (se abren desde el índice con la página «mes-AAAA-MM»).
+    const meses = libro.capitulosDeMeses(estado, ctx.hoy);
+    const delMes = String(ctx.paginaLibro).startsWith("mes-") ? meses.find((m) => `mes-${m.mes}` === ctx.paginaLibro) : null;
+
     let pagina;
     let navegacion = "";
-    if (!total) {
+    if (delMes) {
+        const i = meses.indexOf(delMes);
+        pagina = `
+            <header class="pergamino-cabecera">
+                <p class="pergamino-sobre">Capítulo del mes</p>
+                <h2 class="capitulo-titulo">${esc(delMes.titulo)}</h2>
+                <p class="pergamino-entre">${esc(delMes.nombreMes)}</p>
+            </header>
+            <div class="capitulo-texto">
+                ${delMes.parrafos.map((p) => (p.tipo === "cita"
+                    ? `<blockquote class="capitulo-cita">${esc(p.texto)}</blockquote>`
+                    : `<p>${esc(p.texto)}</p>`)).join("")}
+            </div>
+            <p class="numero-pagina">— ${i + 1} de ${meses.length} meses —</p>`;
+        navegacion = `
+            <div class="libro-navegar">
+                ${i > 0 ? ir(`mes-${meses[i - 1].mes}`, "‹ Mes anterior") : ir("indice", "‹ Índice")}
+                ${ir("indice", "Índice")}
+                ${i < meses.length - 1 ? ir(`mes-${meses[i + 1].mes}`, "Mes siguiente ›") : '<span class="libro-fin">Continuará…</span>'}
+            </div>`;
+    } else if (!total) {
         pagina = `
             <div class="portada">
                 <p class="pergamino-sobre">Libro primero</p>
@@ -72,7 +96,15 @@ export function pantallaLibro(estado, ctx) {
                         <span class="indice-numero">${libro.aRomano(c.numero)}</span>
                         <span class="indice-titulo">${esc(c.titulo)}</span>
                         <span class="indice-fecha">${fechaCorta(c.fecha)}</span>
-                    </button></li>`).join("")}</ol>`).join("")}`;
+                    </button></li>`).join("")}</ol>`).join("")}
+            ${meses.length ? `
+                <h3 class="indice-mes">Capítulos de cada mes</h3>
+                <ol class="indice">${meses.map((m) => `
+                    <li><button type="button" data-accion="libro-pagina" data-pagina="mes-${m.mes}">
+                        <span class="indice-numero">📅</span>
+                        <span class="indice-titulo">${esc(m.titulo)}</span>
+                        <span class="indice-fecha">${esc(m.nombreMes)}</span>
+                    </button></li>`).join("")}</ol>` : ""}`;
         navegacion = `<div class="libro-navegar">${ir("portada", "‹ Portada")}${ir(1, "Empezar a leer ›")}</div>`;
     } else {
         pagina = `

@@ -64,7 +64,7 @@ export function pantallaHoy(estado, ctx) {
             lista = agruparPorAtributo(estado, delDia, tarjeta, (m) => hechasEseDia.has(m.id));
         }
     } else if (sinMisiones) {
-        lista = vacio("Aún no tienes misiones diarias.<br>Crea tu primer hábito: ir al gym, leer, estudiar inglés…");
+        lista = vacio("Aún no tienes misiones diarias.<br>Crea tu primer hábito: ir al gym, leer, estudiar inglés…", "misiones");
     } else if (!semanales.length) {
         lista = vacio(`${esAyer ? "Ayer fue" : "Hoy es"} día de descanso: no ${esAyer ? "tocaba" : "toca"} ninguna misión.<br>Tu racha no se rompe.`);
     }
@@ -151,7 +151,7 @@ export function pantallaHoy(estado, ctx) {
             <div class="titulo-seccion"><h2 class="titulo-juego">🗓️ Metas de la semana</h2></div>
             <p class="nota">Misiones de «N veces por semana»: las marcas cualquier día hasta cumplir las veces de la semana.</p>
             ${semanales.length ? `<ul class="lista">${semanales.map(tarjeta).join("")}</ul>`
-                : vacio("Aún no tienes metas semanales.<br>Crea una misión y elige «veces por semana» (ej: gimnasio 3 veces).")}
+                : vacio("Aún no tienes metas semanales.<br>Crea una misión y elige «veces por semana» (ej: gimnasio 3 veces).", "semanales")}
             <div class="botones-dialogo botones-hoy">
                 <button type="button" class="boton boton-principal" data-accion="abrir" data-dialogo="mision">+ Nueva meta</button>
             </div>
@@ -380,7 +380,7 @@ function seccionTareas(estado, ctx) {
             ? listaAtributos(paraHoy)
             : vacio(proximas.length
                 ? "Nada pendiente para hoy."
-                : "Pendientes de una sola vez, con fecha: pagar un recibo, entregar un trabajo…<br>Aparecen aquí el día que vencen.")}
+                : "Pendientes de una sola vez, con fecha: pagar un recibo, entregar un trabajo…<br>Aparecen aquí el día que vencen.", "tareas")}
         ${plegable(`Próximas (${proximas.length})`, lista(proximas), proximas.length)}
         ${plegable(`Hechas antes (${anteriores.length})`, lista(anteriores), anteriores.length)}`;
 }
@@ -767,6 +767,15 @@ export function pantallaGolpe(g) {
 // Debajo de la barra: qué te pasará hoy (o por qué estás así).
 function notaDeVida(estado, ctx) {
     const v = ctx.vida;
+    // (v179) Mal día: la meta baja a UNA misión (la más fácil) y ni la vida ni la racha corren peligro.
+    if (juego.esMalDia(estado, ctx.hoy) && !juego.descansoDe(estado, ctx.hoy)) {
+        const faciles = juego.misionesDelDia(estado.misiones, ctx.hoy)
+            .filter((m) => !(estado.completadas || []).some((c) => c.fecha === ctx.hoy && c.misionId === m.id));
+        const facil = faciles.sort((a, b) => (juego.DIFICULTADES[a.dificultad]?.xp || 0) - (juego.DIFICULTADES[b.dificultad]?.xp || 0))[0];
+        const hecho = (estado.completadas || []).some((c) => c.fecha === ctx.hoy);
+        return `😔 Mal día: hoy no pierdes vida y tu racha está a salvo. ${hecho ? "Ya hiciste algo: eso cuenta. 💛"
+            : facil ? `Con una sola basta: prueba «${esc(facil.nombre)}».` : "Descansa, mañana seguimos."}`;
+    }
     if (juego.enDescanso(estado, ctx.hoy)) return "🏖️ Modo descanso: hoy no pierdes vida.";
     if (v.caido) return `Tienda y arcade cerrados hasta llegar a ${v.levantarse} ❤️. Cada misión te cura.`;
     const pendiente = v.pendienteHoy;

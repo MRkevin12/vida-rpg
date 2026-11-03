@@ -124,7 +124,8 @@ export function detalleDia(estado, fecha, racha) {
         return esc(mision ? mision.nombre : "misión borrada");
     });
     let protegido = racha.protegidos.has(fecha) ? " · 🛡️ protegido por un escudo" : "";
-    if (juego.enDescanso(estado, fecha)) protegido += " · 🏖️ descanso";
+    if (juego.esMalDia(estado, fecha) && !juego.descansoDe(estado, fecha)) protegido += " · 😔 mal día (racha a salvo)";
+    else if (juego.enDescanso(estado, fecha)) protegido += " · 🏖️ descanso";
     const tareas = estado.tareas.filter((t) => t.hechaEn === fecha).map((t) => esc(t.nombre));
     const minutos = estado.enfoque.sesiones.filter((s) => s.fecha === fecha).reduce((suma, s) => suma + s.minutos, 0);
     const entrada = estado.diario[fecha];

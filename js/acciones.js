@@ -921,6 +921,11 @@ export function elegirAnimo(estado, animo) {
     if (!["mal", "normal", "bien"].includes(animo)) throw new Error("Ese ánimo no existe.");
     estado.ajustes.animo = animo;
     estado.ajustes.esencial = animo === "mal";
+    // (v179) «Mal» también marca el día como «mal día» (no pierdes vida ni la racha), con un máximo por semana.
+    // Si luego cambias de opinión y eliges otra, la marca de hoy se quita.
+    const dia = hoy();
+    const marcados = (estado.diasMalos || []).filter((d) => d !== dia);
+    estado.diasMalos = (animo === "mal" && juego.quedanMalosDias(estado, dia) ? [...marcados, dia] : marcados).sort();
 }
 
 // Música de fondo: qué pista suena (ver musica.js) y a qué volumen (de 0 a 1).

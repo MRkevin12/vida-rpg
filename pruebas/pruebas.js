@@ -7982,7 +7982,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 39, "versión de los datos");
+    igual(base.version, 40, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -8184,7 +8184,7 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [39, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [40, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });
@@ -8976,6 +8976,92 @@ prueba("Gym (v166): la gráfica grande de un ejercicio: 1RM y volumen sesión a 
     // Con un solo punto también se dibuja.
     estado.gym.sesiones = [sesiones[0]];
     cierto(gymEn("progreso", estado, ctxGym()).includes('class="gym-grafica"'), "con una sola sesión");
+});
+
+// ===== v179: mal día, rival de hace 30 días y capítulo del mes =====
+
+prueba("Mal día (v179): no quita vida ni rompe la racha, sale solo al elegir «Mal» y tiene tope por semana", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    vidaDesde(estado, 3);
+    marcarEn(estado, leer, dia(-3));
+    estado.diasMalos = [dia(-2), dia(-1)];   // dos días malos sin hacer nada
+    igual(vida.calcularVida(estado, hoy()).puntos, 105, "sin daño");
+    igual(juego.calcularRacha(estado, hoy()).actual, 1, "la racha sigue viva");
+    cierto(juego.enDescanso(estado, dia(-1)) && juego.esMalDia(estado, dia(-1)) && !juego.descansoDe(estado, dia(-1)), "vale como descanso, pero no es un descanso");
+
+    // Elegir «Mal» marca hoy; elegir otra cosa lo quita.
+    const otra = partidaNueva();
+    acciones.elegirAnimo(otra, "mal");
+    igual(otra.diasMalos, [hoy()]);
+    acciones.elegirAnimo(otra, "mal");
+    igual(otra.diasMalos, [hoy()], "no se repite");
+    acciones.elegirAnimo(otra, "bien");
+    igual(otra.diasMalos, [], "al cambiar de opinión se quita");
+
+    // Máximo 2 por semana: el tercero ya no protege (el menú esencial sí cambia).
+    const tope = partidaNueva();
+    tope.diasMalos = [dia(-1), dia(-2)];
+    acciones.elegirAnimo(tope, "mal");
+    igual(tope.diasMalos, [dia(-2), dia(-1)], "el tercer día no se marca");
+    cierto(tope.ajustes.esencial, "pero el modo esencial sí");
+    tope.diasMalos = [dia(-1), dia(-7)];   // el de hace 7 días ya no cuenta en esta semana
+    acciones.elegirAnimo(tope, "mal");
+    cierto(juego.esMalDia(tope, hoy()), "sí se marca si uno ya salió de la semana");
+    cierto(datos.estadoInicial().diasMalos.length === 0, "la partida nueva trae la lista vacía");
+});
+
+prueba("Rival (v179): tu carrera de hace 30 días (±10), con salida cercana si hay GPS, y la comparación de ritmo", () => {
+    const c = (fecha, km, minutos, extra = {}) => ({ fecha, km, minutos, tipo: "suave", ...extra });
+    const carreras = [c(dia(-45), 5, 30), c(dia(-33), 5, 32), c(dia(-29), 4, 28), c(dia(-5), 5, 25)];
+    igual(running.rivalDeHace(carreras, hoy()).fecha, dia(-29), "la más cercana a hace 30 días");
+    igual(running.rivalDeHace([c(dia(-45), 5, 30), c(dia(-5), 5, 25)], hoy()), null, "si ese mes no corriste, no hay rival");
+    igual(running.rivalDeHace([c(dia(-30), 5, 30, { pista: 400 })], hoy()), null, "la pista no cuenta");
+    // Con GPS: solo vale si empezó cerca de donde sales hoy.
+    const cerca = c(dia(-30), 5, 30, { traza: [[19.4326, -99.1332], [19.44, -99.14]] });
+    const lejos = c(dia(-30), 5, 30, { traza: [[20.6597, -103.3496], [20.66, -103.35]] });
+    igual(running.rivalDeHace([lejos, cerca], hoy(), { salida: [19.4327, -99.1333] }), cerca);
+    igual(running.rivalDeHace([lejos], hoy(), { salida: [19.4327, -99.1333] }), null);
+    // La comparación: 6:00/km hoy contra 6:30/km antes = 30 s más rápido.
+    const cmp = running.contraRival(c(hoy(), 5, 30), c(dia(-30), 5, 32.5));
+    igual([cmp.dif, cmp.ganaste], [-30, true]);
+    cierto(cmp.frase.includes("30 s"), "la frase dice cuánto");
+    const peor = running.contraRival(c(hoy(), 5, 35), c(dia(-30), 5, 30));
+    igual([peor.dif, peor.ganaste], [60, false]);
+    igual(running.contraRival(c(hoy(), 5, 30), null), null);
+    // En el resumen de la carrera sale la línea «Tú contra tú» solo si hay rival.
+    const estado = partidaNueva();
+    estado.running.carreras = [c(dia(-30), 5, 32.5), c(hoy(), 5, 30)];
+    cierto(vistasRunning.htmlRival(estado, estado.running.carreras[1]).includes("Tú contra tú"), "con rival");
+    igual(vistasRunning.htmlRival(estado, estado.running.carreras[0]), "", "la carrera vieja no tiene rival");
+});
+
+prueba("Capítulo del mes (v179): narra las cifras, la temporada, los días malos y las revisiones del mes que terminó", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    envejecer(estado, 120);
+    const mes = temporadas.mesAnterior(temporadas.mesDe(hoy()));
+    marcarEn(estado, leer, `${mes}-05`);
+    marcarEn(estado, leer, `${mes}-06`);
+    estado.diasMalos = [`${mes}-07`];
+    estado.revisiones[`${mes}-01`] = { bien: "Fui constante con el gym", mejorar: "Dormir más", foco: [], hechaEn: `${mes}-08` };
+    estado.temporadas[mes] = { metas: [{ tipo: "misiones", meta: 5 }], cierre: null };
+    const meses = libro.capitulosDeMeses(estado, hoy());
+    igual(meses.length, 1, "solo el mes que terminó (el actual no)");
+    const texto = meses[0].parrafos.map((p) => p.texto).join(" ");
+    cierto(texto.includes("cumplió 2 misiones"), "las cifras");
+    cierto(texto.includes("Cumplió 0 de 1"), "la temporada");
+    cierto(texto.includes("un día en que se sintió mal"), "el día malo");
+    cierto(meses[0].parrafos.some((p) => p.tipo === "cita" && p.texto === "Fui constante con el gym"), "lo que anotó en la revisión");
+    cierto(texto.includes("Dormir más"), "lo que se prometió mejorar");
+    cierto(libro.libroComoTexto(estado, hoy()).includes("CAPÍTULO DEL MES"), "también va en el libro descargado");
+    // La pantalla del libro: el índice lo lista y la página se abre.
+    estado.diario[`${mes}-05`] = { texto: "Un día", animo: "bien" };
+    const indice = vistas.pantallaLibro(estado, { hoy: hoy(), paginaLibro: "indice" });
+    cierto(indice.includes(`data-pagina="mes-${mes}"`), "el índice lista el mes");
+    cierto(vistas.pantallaLibro(estado, { hoy: hoy(), paginaLibro: `mes-${mes}` }).includes("Capítulo del mes"), "la página del mes");
+    // Un mes sin nada de nada no genera capítulo.
+    igual(libro.capitulosDeMeses(partidaNueva(), hoy()), []);
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

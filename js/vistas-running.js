@@ -8,7 +8,7 @@ import * as running from "./running.js";
 import * as ruta from "./ruta.js";
 import * as encuentros from "./encuentros.js";
 import { mapaDeCarrera, mapaDePista, LIENZO } from "./dibujo-carrera.js";
-import { esc, selectorSecciones } from "./vistas-comun.js";
+import { esc, selectorSecciones, vacio } from "./vistas-comun.js";
 import { spriteFF, salaFF, ambienteFF, frenteFF, chispasFF, numeroFF } from "./vistas-torre.js";   // (v139) la escena de batalla de la Torre
 import * as bestiario from "./bestiario.js";
 import { plural } from "./juego.js";
@@ -223,6 +223,16 @@ export function textoDeCarrera(c) {
     ].filter(Boolean).join("\n");
 }
 
+// (v179) «Tú contra tú»: cómo te fue frente a tu yo de hace 30 días (la carrera de ±10 días de esa fecha). Sin carrera de entonces, no sale.
+export function htmlRival(estado, c) {
+    if (c.pista) return "";
+    const rival = running.rivalDeHace(estado.running.carreras.filter((x) => x !== c), c.fecha);
+    const cmp = running.contraRival(c, rival);
+    if (!cmp) return "";
+    const km = cmp.km === 0 ? "la misma distancia" : `${cmp.km > 0 ? "+" : "−"}${Math.abs(cmp.km)} km`;
+    return `<p class="nota">${cmp.ganaste ? "🏆" : "👻"} <b>Tú contra tú</b> (${fechaCorta(rival.fecha)}: ${running.textoKm(rival.km)} a ${running.textoRitmo(running.ritmoDeCarrera(rival))}). ${cmp.frase} Hoy: ${km}.</p>`;
+}
+
 function tarjetaResumenCarrera(estado, ctx) {
     const c = Number.isInteger(ctx.resumenRun) ? estado.running.carreras[ctx.resumenRun] : null;
     if (!c) return "";
@@ -248,6 +258,7 @@ function tarjetaResumenCarrera(estado, ctx) {
             </div>
             ${c.encuentros?.length ? `<p class="nota">⚔️ Venciste ${vencidas.length} de ${c.encuentros.length}${vencidas.some((e) => e.jefe) ? " (¡con jefe!)" : ""}${vencidas.length ? `: ${vencidas.slice(0, 4).map((e) => esc(encuentros.nombreDe(e))).join(", ")}${vencidas.length > 4 ? "…" : ""}` : "."}</p>` : ""}
             ${c.cofres || c.fogatas ? `<p class="nota">${c.cofres ? `🎁 ${plural(c.cofres, "cofre abierto", "cofres abiertos")}` : ""}${c.cofres && c.fogatas ? " · " : ""}${c.fogatas ? `🔥 ${plural(c.fogatas, "fogata", "fogatas")}` : ""}</p>` : ""}
+            ${htmlRival(estado, c)}
             ${htmlParciales(c.parciales)}
             <div class="run-botones">
                 <button type="button" class="boton boton-secundario" data-accion="run-compartir" data-indice="${ctx.resumenRun}">📤 Compartir</button>
@@ -292,7 +303,7 @@ export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas
     const infoClima = clima && clima !== "despejado" ? running.CLIMAS[clima] : null;
     const capaClima = infoClima ? `<div class="run-clima ${clima}" style="animation-delay: -${Math.round(reloj % 6000)}ms" aria-hidden="true"></div>` : "";
     return `${svg}${capaClima}
-        <span class="run-mapa-zona">${esc(zona.nombre)}${infoClima ? ` · ${infoClima.icono}` : ""}</span>
+        <span class="run-mapa-zona">${esc(zona.nombre)}${infoClima ? ` · ${infoClima.icono}` : ""}${fantasma?.mes ? " · 👻 tú hace 1 mes" : ""}</span>
         ${heroe && !pista ? `<button type="button" class="run-mapa-vista" data-accion="run-vista-mapa">${seguir ? "🗺️ Ver todo" : "🎯 Seguirme"}</button>` : ""}
         ${heroe && aqui && !heroeEnCapa ? `<img class="run-mapa-heroe" alt="" style="${enMapa(aqui.x, aqui.y)}">` : ""}`;
 }
@@ -318,11 +329,15 @@ const fantasmas = new Map();   // inicio de la carrera en curso → la carrera f
 const fechaDeCarrera = (en) => { const d = new Date(en.inicio); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 export function fantasmaDe(en, r = {}, ahora = Date.now()) {
     if (!en.traza?.length) return null;
-    if (!fantasmas.has(en.inicio)) fantasmas.set(en.inicio, running.carreraFantasma(r.carreras, en.traza[0]));
-    const c = fantasmas.get(en.inicio);
+    // (v179) Primero tu yo de hace 30 días (si corriste por aquí ese mes); si no, la última vez que saliste de este lugar.
+    if (!fantasmas.has(en.inicio)) {
+        const rival = running.rivalDeHace(r.carreras, fechaDeCarrera(en), { salida: en.traza[0] });
+        fantasmas.set(en.inicio, rival ? { c: rival, mes: true } : { c: running.carreraFantasma(r.carreras, en.traza[0]), mes: false });
+    }
+    const { c, mes } = fantasmas.get(en.inicio);
     if (!c) return null;
     const minutos = running.tiempoDeEncurso(en, ahora) / 60000;
-    return { traza: c.traza, avance: Math.min(1, minutos / c.minutos), fecha: c.fecha };
+    return { traza: c.traza, avance: Math.min(1, minutos / c.minutos), fecha: c.fecha, mes };
 }
 
 // (v144) La hora del día de un momento (en ms), como número: 18.5 = 18:30. En el historial se usa la mitad de la carrera
@@ -796,7 +811,7 @@ function tarjetaAjustes(estado) {
 // ===== Historial =====
 function tarjetaHistorial(estado) {
     const carreras = estado.running.carreras;
-    if (!carreras.length) return '<p class="vacio">Aún no hay carreras. Empieza en la pestaña Correr: con GPS o anotando una que ya hiciste.</p>';
+    if (!carreras.length) return vacio("Aún no hay carreras. Empieza en la pestaña Correr: con GPS o anotando una que ya hiciste.", "carreras");
     const filas = carreras.map((c, indice) => ({ c, indice })).reverse().slice(0, 60).map(({ c, indice }) => {
         const tipo = running.TIPOS[c.tipo] || running.TIPOS.suave;
         const comparacion = running.comparacionDe(carreras, c);

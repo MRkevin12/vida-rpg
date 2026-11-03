@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v179 — Mal día, rival de hace 30 días y capítulo del mes
+- **Mal día** (datos v40): `estado.diasMalos` (fechas). `acciones.elegirAnimo("mal")` marca hoy si quedan días (`juego.MAL_DIA.maxPorSemana` = 2 en los 7 días que terminan hoy; `quedanMalosDias`); elegir otro ánimo lo quita. `juego.enDescanso` ahora también es verdadero en un mal día (`esMalDia`), así que vida, racha, pacto, semanales y avisos lo tratan como descanso de un día sin tocar `descansos`. Hoy muestra la misión más fácil como meta del día; Progreso lo rotula «mal día».
+- **Rival de hace 30 días**: `running.rivalDeHace(carreras, fecha, {salida})` (±`RIVAL.margen` = 10 días, sin pista; con `salida`, solo si empezó a ≤250 m y tiene recorrido) y `running.contraRival` (diferencia de ritmo en s/km). `vistas-running.fantasmaDe` lo prefiere a «la última vez» (el mapa dice «👻 tú hace 1 mes»); el resumen de la carrera suma «Tú contra tú» (`htmlRival`).
+- **Capítulo del mes**: `libro.capituloDelMes` / `capitulosDeMeses` (meses ya terminados con actividad; usa `temporadas`, `revisiones`, `diasMalos`, racha). No cambia la numeración de los capítulos diarios; el índice del libro los lista (página `mes-AAAA-MM`) y `libroComoTexto` los incluye.
+- 3 pruebas nuevas.
+
 ## v178 — acciones.js dividido por área
 - Sin cambios de comportamiento. `js/acciones.js` (3485 líneas) se dividió en `acciones-gym.js` (Gimnasio), `acciones-running.js`, `acciones-finanzas.js` y `acciones-comun.js` (ayudantes compartidos: `ganar`, `nuevoId`, `buscar`, `validar…`, `numeroEntre`). `acciones.js` los reexporta con `export *`, así que en la app se sigue usando `acciones.x`. Las 177 funciones públicas son las mismas.
 - Los archivos nuevos van en `ARCHIVOS` de `sw.js`. `acciones-gym.js` y `acciones-running.js` importan `completarMision` de `acciones.js` (es una función: el ciclo de imports es seguro).
