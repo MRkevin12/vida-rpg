@@ -8,8 +8,17 @@ import * as gym from "./gym.js";
 import { hoy, sumarDias } from "./fechas.js";
 import { estado, ui, subvista, ejecutar, dibujarPantalla, cambiarPantalla, $ } from "./app.js";
 import { sonar } from "./app-efectos.js";
+import { mantenerPantallaDespierta } from "./app-running.js";
 import { dialogoSeguirGym, dialogoCambiarEjercicio, dialogoDiscos, dialogoCorregirSesion } from "./vistas-gym.js";
 import { esc } from "./vistas-comun.js";
+
+// (v173) La pantalla no se apaga mientras hay un entrenamiento en curso (si no lo apagas en Ajustes del gym).
+// Se llama en cada dibujarPantalla: pide el bloqueo al empezar (y al volver a la app) y lo suelta al terminar.
+export function ajustarPantallaGym() {
+    const quiere = Boolean(estado.gym?.encurso) && gym.pantallaEncendida(estado.gym);
+    if (!quiere && estado.running?.encurso) return;   // la carrera tiene su propio bloqueo: no se lo quites
+    mantenerPantallaDespierta(quiere);
+}
 
 // (v164) Al abrir la app con un entrenamiento a medias: «¿Continuar el entrenamiento?».
 // (La sesión en curso ya se guarda en cada serie y en cada número que cambias; esto solo te lo recuerda.)
@@ -219,6 +228,13 @@ export const ACCIONES_GYM = {
         $("#dialogo-gym")?.close();
         cambiarPantalla("gym");
     },
+    // (v173) Desde el aviso de un entrenamiento viejo: se cierra la ventana y se termina con el mismo botón de siempre.
+    "gym-terminar-viejo": () => {
+        $("#dialogo-gym")?.close();
+        cambiarPantalla("gym");
+        ACCIONES_GYM["gym-terminar"]();
+    },
+    "gym-pantalla": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "pantalla", boton.dataset.valor === "1"), { mantenerScroll: true }),
     "gym-descartar": () => {
         if (!confirm("¿Descartar el entrenamiento? Se pierde lo que anotaste y no da premio.")) return;
         $("#dialogo-gym")?.close();

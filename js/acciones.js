@@ -2694,6 +2694,8 @@ export function cambiarAjusteGym(estado, clave, valor) {
         estado.gym.barra = kg;
     } else if (clave === "foco") {
         estado.gym.foco = Boolean(valor);
+    } else if (clave === "pantalla") {   // (v173) pantalla encendida mientras entrenas
+        estado.gym.pantalla = Boolean(valor);
     } else if (clave === "mision") {
         const id = valor === "" || valor === null ? null : Number(valor);
         if (id !== null && !estado.misiones.some((m) => m.id === id && !m.archivadaEn)) throw new Error("Esa misión no existe.");

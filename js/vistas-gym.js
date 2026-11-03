@@ -373,12 +373,14 @@ function vistaDeFoco(estado, ctx) {
     const antes = gym.ultimaVez(g.sesiones, ej.id);
     const pista = gym.sugerencia(info, antes);
     // (v158) Los contadores de peso y repeticiones, como los de un juego: el nombre arriba, − valor + abajo.
+    // (v173) En los ejercicios sin peso (flexiones, abdominales…) un 0 se lee «Peso corporal», no «0 kg».
     const stepper = (campo, etiqueta, valor, paso, unidad) => `
         <div class="gym-stepper">
             <span class="gym-stepper-nombre">${etiqueta}</span>
-            ${campo === "kg" ? `<button type="button" class="gym-discos-boton" data-accion="gym-discos" data-kg="${valor}" aria-label="Calculadora de discos">🧮</button>` : ""}
             <button type="button" class="gym-mas-menos" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="${campo}" data-delta="${-paso}" aria-label="Menos ${etiqueta}">−</button>
-            <b class="gym-stepper-valor">${String(valor).replace(".", ",")}<small>${unidad}</small></b>
+            ${campo === "kg" && valor === 0 && gym.PESO_CORPORAL.has(ej.id)
+        ? '<b class="gym-stepper-valor gym-stepper-corporal">Peso corporal</b>'
+        : `<b class="gym-stepper-valor">${String(valor).replace(".", ",")}<small>${unidad}</small></b>`}
             <button type="button" class="gym-mas-menos" data-accion="gym-ajuste" data-ej="${actual.ejercicio}" data-serie="${actual.serie}" data-campo="${campo}" data-delta="${paso}" aria-label="Más ${etiqueta}">+</button>
         </div>`;
     const siguiente = esCal
@@ -394,6 +396,9 @@ function vistaDeFoco(estado, ctx) {
     // Mientras haces este, se va preparando la imagen del ejercicio que sigue (así aparece al instante).
     const proximo = en.ejercicios[actual.ejercicio + 1];
     if (proximo) prepararEscena(gym.movimientoDe(proximo.id), apariencia, { fisico });
+    // (v173) Qué ejercicio viene después, bajo el botón grande (en el descanso ya dice «Sigue: …»).
+    const despues = descansando ? "" : `<p class="gym-foco-despues">${proximo
+        ? `Siguiente: <b>${esc(gym.ejercicioPorId(proximo.id)?.nombre || "")}</b>` : "🏁 Es el último ejercicio"}</p>`;
     let escena;
     if (descansando) {
         const falta = Math.ceil((ctx.descanso.fin - ctx.ahora) / 1000);
@@ -447,6 +452,7 @@ function vistaDeFoco(estado, ctx) {
                         aria-label="${s.contando ? `Toca por cada repetición: llevas ${s.reps}` : "Contar las repeticiones tocando"}">👆 ${s.contando ? s.reps : "Contar"}</button>
                 <button type="button" class="boton boton-principal gym-foco-grande" data-accion="gym-serie" data-ej="${actual.ejercicio}" data-serie="${actual.serie}">✅ Terminé la serie</button>
             </div>`}
+            ${despues}
             ${pie}
         </section>`;
 }
@@ -1039,6 +1045,21 @@ export function dialogoSeguirGym(estado, hoyTexto) {
     const r = gym.rutinaPorId(en.rutina);
     const total = gym.seriesTotales(en);
     const cuando = en.fecha === hoyTexto ? "de hoy" : `del ${fechaCorta(en.fecha)}`;
+    // (v173) Uno abierto desde hace mucho (más de 12 h) se quedó colgado: se ofrece terminarlo (si ya anotaste algo) o descartarlo.
+    if (gym.entrenamientoViejo(en)) {
+        const hechas = gym.seriesMarcadas(en);
+        return `
+        <div class="formulario">
+            <h2 class="titulo-juego">🏋️ Entrenamiento sin cerrar</h2>
+            <p>Tienes abierto el entrenamiento ${cuando}: <b>${r.icono} ${esc(r.nombre)}</b>, con ${hechas} de ${total} series hechas.
+               ¿Lo terminas o lo descartas?</p>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="gym-descartar">Descartar</button>
+                ${hechas > 0 ? '<button type="button" class="boton boton-secundario" data-accion="gym-terminar-viejo">🏁 Terminar</button>' : ""}
+                <button type="button" class="boton boton-principal" data-accion="gym-continuar">▶ Continuar</button>
+            </div>
+        </div>`;
+    }
     return `
         <div class="formulario">
             <h2 class="titulo-juego">🏋️ ¿Continuar el entrenamiento?</h2>
@@ -1330,5 +1351,10 @@ function tarjetaAjustes(estado) {
                 </select></label>
             <p class="nota">Descanso entre series:</p>
             <div class="botones-dialogo">${descansos}</div>
+            <p class="nota">Pantalla encendida mientras entrenas (así el teléfono no se suspende entre series; gasta más batería):</p>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-chico ${gym.pantallaEncendida(g) ? "boton-principal" : "boton-secundario"}" data-accion="gym-pantalla" data-valor="1" aria-pressed="${gym.pantallaEncendida(g)}">Sí</button>
+                <button type="button" class="boton boton-chico ${gym.pantallaEncendida(g) ? "boton-secundario" : "boton-principal"}" data-accion="gym-pantalla" data-valor="0" aria-pressed="${!gym.pantallaEncendida(g)}">No</button>
+            </div>
         </details>`;
 }

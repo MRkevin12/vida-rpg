@@ -58,7 +58,8 @@ import { hoy, diasEntre, sumarDias, relojTexto, relojLargo } from "./fechas.js";
 import { runTipo, runPista, gpsProblema, runTerminando, runResumen, ponerHeroeEnMapaVivo, mostrarNotificacionCarrera,
          ponerCriaturasDeCarrera, ponerPeleaEnMapa, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
          mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
-import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM, ofrecerSeguirGym, animarAurelio } from "./app-gym.js";
+import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM, ofrecerSeguirGym, animarAurelio, ajustarPantallaGym } from "./app-gym.js";
+import { entrenandoAhora } from "./gym.js";
 import { ACCIONES_MEMENTO, FORMULARIOS_MEMENTO } from "./app-memento.js";   // (v142)
 import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS, conectarPesos } from "./app-finanzas.js";   // (v135, v137)
 import { GRACIA_MS, cerrarTeclado, teclaPulsada, pedirPinParaEntrar, entrarConFaceId, crearPin, ACCIONES_PIN } from "./app-pin.js";
@@ -582,6 +583,7 @@ export function dibujarPantalla(efectos = {}) {
     if (pantallaActual === "voces") pintarRetratosVoces($("#pantalla-voces"));   // las caras de la aldea (pixel art)
     if (pantallaActual === "libro") conectarHojear();         // pasar las páginas deslizando
     if (pantallaActual === "gym") animarAurelio();            // (v165) Aurelio escribe, reacciona y llega caminando
+    ajustarPantallaGym();                                     // (v173) pantalla encendida mientras hay un entrenamiento
 
     if (pantallaActual === "progreso" && !efectos.mantenerScroll) {
         // El calendario empieza mostrando las semanas más recientes (a la derecha).
@@ -985,7 +987,8 @@ function conectarEventos() {
             // selector de apps del iPhone muestra tus datos.
             // Excepción: con un entrenamiento del gym o una carrera en curso no se pide PIN al volver
             // (el teléfono se suspende entre series o en el camino y sería molesto desbloquear cada vez).
-            const entrenando = !!(estado.gym?.encurso || estado.running?.encurso);
+            // (v173) Solo en las primeras 4 horas: uno olvidado no deja la app sin PIN para siempre.
+            const entrenando = entrenandoAhora(estado.gym?.encurso) || entrenandoAhora(estado.running?.encurso);
             if (seguridad.hayPin() && $("#bloqueo").hidden && !entrenando) {
                 ocultaDesde = Date.now();
                 pedirPinParaEntrar(alVolver);

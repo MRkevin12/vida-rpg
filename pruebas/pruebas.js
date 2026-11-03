@@ -8505,6 +8505,23 @@ const sesionGym = (fecha, rutina, ejercicios, extra = {}) => ({
 const cuatro = (kg, reps, rir) => [1, 2, 3, 4].map(() => [kg, reps, rir]);
 const ctxGym = () => ({ hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
 
+prueba("Gym (v173): peso corporal, entrenamiento viejo, PIN solo las primeras horas y pantalla encendida", () => {
+    const piernas = gym.ejercicioPorId("elevacion-piernas");
+    cierto(gym.PESO_CORPORAL.has("elevacion-piernas") && !gym.PESO_CORPORAL.has("press-banca"), "solo los ejercicios sin peso");
+    cierto(gym.sugerencia(piernas, null).hoy.includes("peso corporal"), "la primera vez no dice «empieza ligero»");
+    cierto(gym.sugerencia(gym.ejercicioPorId("press-banca"), null).hoy.includes("empieza ligero"), "con peso sigue igual");
+    const hora = 3600 * 1000;
+    const ahora = Date.now();
+    cierto(gym.entrenandoAhora({ inicio: ahora - 2 * hora }), "hace 2 h: sin PIN al volver");
+    cierto(!gym.entrenandoAhora({ inicio: ahora - 5 * hora }), "hace 5 h: ya pide PIN");
+    cierto(!gym.entrenandoAhora(null), "sin entrenamiento: pide PIN");
+    cierto(!gym.entrenamientoViejo({ inicio: ahora - 11 * hora }) && gym.entrenamientoViejo({ inicio: ahora - 13 * hora }), "viejo: más de 12 h");
+    cierto(gym.pantallaEncendida({}) && gym.pantallaEncendida({ pantalla: true }) && !gym.pantallaEncendida({ pantalla: false }), "encendida salvo que la apagues");
+    const estado = partidaNueva();
+    acciones.cambiarAjusteGym(estado, "pantalla", false);
+    igual(estado.gym.pantalla, false);
+});
+
 prueba("Gym (v164): la sugerencia dice lo de la última vez y qué intentar hoy; con el RIR afina", () => {
     const banca = gym.ejercicioPorId("press-banca");   // 4 × 6–10
     const ultima = (series) => ({ fecha: "2026-01-01", series: series.map(([kg, reps, rir]) => (rir === undefined ? { kg, reps } : { kg, reps, rir })) });

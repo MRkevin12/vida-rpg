@@ -4,9 +4,21 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 172;
+export const VERSION_APP = 173;
 
 export const NOVEDADES = [
+    {
+        version: 173,
+        titulo: "Un entrenamiento más cómodo",
+        cambios: [
+            "📱 La pantalla se queda encendida mientras entrenas, para que el teléfono no se suspenda entre series. Se puede apagar en ⚙️ Ajustes del gym.",
+            "🔓 El PIN solo se salta en las primeras 4 horas de un entrenamiento o carrera; uno olvidado ya no deja la app sin PIN.",
+            "🏋️ Si abres la app con un entrenamiento de hace más de 12 horas, te pregunta si lo terminas o lo descartas.",
+            "💪 En flexiones, abdominales, dominadas y demás ejercicios sin peso, el contador dice «Peso corporal» en vez de 0 kg.",
+            "➡️ En el modo foco, bajo el botón grande ves cuál es el siguiente ejercicio.",
+            "🧮 Se quitó el botón de la calculadora de discos del contador de peso (sigue en la lista).",
+        ],
+    },
     {
         version: 172,
         titulo: "Cambiar ejercicio, solo del mismo músculo",

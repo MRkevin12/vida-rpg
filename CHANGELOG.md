@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v173 — Un entrenamiento más cómodo
+- Pantalla encendida: `ajustarPantallaGym` (`js/app-gym.js`, se llama en cada `dibujarPantalla`) usa `mantenerPantallaDespierta` (`app-running.js`; ahora no pide dos veces y se vuelve a pedir tras el `release` del teléfono). Ajuste `estado.gym.pantalla` (sin migración: `gym.pantallaEncendida` cuenta como `true` si falta), botones Sí/No en «Ajustes del gym».
+- PIN: `gym.entrenandoAhora` — solo se salta en las primeras 4 h (`HORAS_SIN_PIN`) de un entrenamiento o carrera (`js/app.js`).
+- Entrenamiento viejo (>12 h, `gym.entrenamientoViejo`): `dialogoSeguirGym` ofrece Descartar / Terminar (`gym-terminar-viejo`) / Continuar.
+- Peso corporal: `gym.PESO_CORPORAL`; con 0 kg el contador dice «Peso corporal» y la pista de la primera vez no dice «empieza ligero».
+- Modo foco: «Siguiente: …» bajo el botón grande; se quita el 🧮 del contador de peso (la calculadora sigue en la lista).
+- Pruebas: app 439.
+
 ## v172 — Cambiar ejercicio, solo del mismo músculo
 - `js/vistas-gym.js` (`dialogoCambiarEjercicio`): la lista solo trae los ejercicios del músculo del ejercicio que cambias (antes también los demás músculos). Pruebas: app 438.
 

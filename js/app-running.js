@@ -25,7 +25,8 @@ export let runPista = false;            // (v131) ¿vas a correr en una pista de
 let vueltaVista = 0;                    // (v131) la última vuelta avisada en pista
 let seguimientoGps = null;              // (v109) el id del seguimiento de posición del GPS mientras corres, o null
 export let gpsProblema = null;          // (v109) por qué no hay GPS: "permiso" o "senal", o null
-let pantallaDeDespierta = null;         // (v109) el «wake lock»: la pantalla no se apaga mientras corres
+let pidiendoPantalla = false;
+let pantallaDeDespierta = null;        // (v109) el «wake lock»: la pantalla no se apaga mientras corres
 export let runTerminando = false;
 export let runResumen = null;           // (v148) el índice de la carrera recién guardada: su resumen sale arriba de «Correr»       // (v129) en la carrera en vivo: tocaste «Ya terminé» y se ve el formulario de guardar
 let pausoParaTerminar = false;          // y la carrera estaba corriendo: la pausamos nosotros (si te arrepientes, se reanuda)
@@ -440,8 +441,16 @@ function detenerGps() {
 // La pantalla no se apaga mientras corres (si el teléfono lo permite). Al volver a la app, se pide de nuevo.
 export async function mantenerPantallaDespierta(encendida) {
     try {
-        if (encendida && !pantallaDeDespierta) pantallaDeDespierta = await navigator.wakeLock?.request("screen");
-        else if (!encendida && pantallaDeDespierta) { await pantallaDeDespierta.release(); pantallaDeDespierta = null; }
+        if (encendida && !pantallaDeDespierta && !pidiendoPantalla) {
+            pidiendoPantalla = true;   // (v173) se llama en cada redibujo: no pedir otra vez mientras llega la respuesta
+            try {
+                pantallaDeDespierta = await navigator.wakeLock?.request("screen");
+                // (v173) El teléfono lo suelta solo al irte a segundo plano: así, al volver, se vuelve a pedir.
+                pantallaDeDespierta?.addEventListener("release", () => { pantallaDeDespierta = null; });
+            } finally {
+                pidiendoPantalla = false;
+            }
+        } else if (!encendida && pantallaDeDespierta) { const bloqueo = pantallaDeDespierta; pantallaDeDespierta = null; await bloqueo.release(); }
     } catch (error) {
         pantallaDeDespierta = null;   // sin permiso o sin soporte: la carrera sigue igual
     }

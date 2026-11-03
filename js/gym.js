@@ -121,6 +121,22 @@ export const MOVIMIENTO_DE = {
 };
 export const movimientoDe = (ejercicioId) => MOVIMIENTO_DE[ejercicioId] || "curl";
 
+// (v173) Los ejercicios que normalmente se hacen sin peso extra: con 0 kg la pantalla dice «Peso corporal».
+export const PESO_CORPORAL = new Set([
+    "dominadas", "fondos", "fondos-banco", "flexiones", "abdominales", "elevacion-piernas", "rueda-abdominal", "elevacion-rodillas",
+    "talones-burro", "talones-unilateral", "puente-gluteos", "plancha", "curl-nordico", "hiperextensiones", "giro-ruso",
+]);
+
+// (v173) Un entrenamiento abierto desde hace más de 12 h se quedó colgado (se ofrece terminarlo o descartarlo al abrir la app).
+// Y solo en las primeras 4 h la app se salta el PIN al volver (si no, uno olvidado dejaría la app sin PIN para siempre).
+export const HORAS_ENTRENAMIENTO_VIEJO = 12;
+export const HORAS_SIN_PIN = 4;
+export const entrenamientoViejo = (en, ahora = Date.now()) => ahora - en.inicio > HORAS_ENTRENAMIENTO_VIEJO * 3600 * 1000;
+export const entrenandoAhora = (en, ahora = Date.now()) => Boolean(en) && ahora - en.inicio < HORAS_SIN_PIN * 3600 * 1000;
+
+// (v173) ¿Mantener la pantalla encendida mientras entrenas? Sí, salvo que lo apagues en Ajustes (los datos viejos no lo traen).
+export const pantallaEncendida = (g) => g.pantalla !== false;
+
 export const rutinaPorId = (id) => RUTINA.find((r) => r.id === id) || null;
 // Ejercicios extra que puedes sumar a cualquier entrenamiento (cuentan igual: XP, récords y gráficas).
 export const EXTRAS = [
@@ -230,7 +246,8 @@ export function gymInicial() {
         medidas: [],         // (v82) [{ fecha, pecho, brazo, cintura, muslo }] en centímetros (una por día; los que no anotes quedan vacíos)
         mision: null,        // la misión diaria que se marca sola al terminar un entrenamiento (id), o null
         retosCobrados: [],   // (v79) los lunes de las semanas cuyo reto ya cobraste
-        barra: 20,           // (v166) lo que pesa la barra de tu gimnasio, para la calculadora de discos (10, 15 o 20 kg)
+        pantalla: true,      // (v173) mantener la pantalla encendida mientras entrenas (los datos viejos no lo traen: cuenta como true)
+        barra: 20,          // (v166) lo que pesa la barra de tu gimnasio, para la calculadora de discos (10, 15 o 20 kg)
         descargas: [],       // (v164) tus semanas de descarga: [{ lunes, cobrada }] (cobrada = ya te dio el premio por descansar bien)
         rutinas: {},         // (v160) tus rutinas editadas: { rutinaId: [{ id, series }] }; las que no están usan las de fábrica
         foco: true,          // (v78) el entrenamiento se ve en «modo foco»: una serie a la vez, con letras grandes
@@ -307,7 +324,10 @@ export const mejorSerie = (series) => series.reduce((m, x) => (x.kg > m.kg || (x
 // motivo? (por qué cambia el peso, para el botón que lo pone) }.
 export function sugerencia(ejercicio, anterior) {
     if (!anterior) {
-        const texto = "Primera vez: empieza ligero y anota cuánto levantaste.";
+        // (v173) Sin peso extra no hay nada que «levantar ligero»: lo que se anota son las repeticiones.
+        const texto = PESO_CORPORAL.has(ejercicio.id)
+            ? "Primera vez: hazlo con tu peso corporal y anota cuántas repeticiones sacas."
+            : "Primera vez: empieza ligero y anota cuánto levantaste.";
         return { tipo: "nuevo", texto, hoy: texto };
     }
     const mejor = mejorSerie(anterior.series);
