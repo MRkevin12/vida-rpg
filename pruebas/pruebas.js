@@ -67,6 +67,10 @@ import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js
 import * as avatar from "../js/avatar.js";
 import * as gym from "../js/gym.js";
 import * as rutinasPlantillas from "../js/rutinas-plantillas.js";
+import * as accionesComun from "../js/acciones-comun.js";       // (v178) acciones.js dividido por área
+import * as accionesGym from "../js/acciones-gym.js";
+import * as accionesRunning from "../js/acciones-running.js";
+import * as accionesFinanzas from "../js/acciones-finanzas.js";
 import * as ataques from "../js/ataques.js";
 import * as fragua from "../js/fragua.js";
 import * as libroOrrin from "../js/libro-orrin.js";
@@ -8479,6 +8483,21 @@ const sesionGym = (fecha, rutina, ejercicios, extra = {}) => ({
 });
 const cuatro = (kg, reps, rir) => [1, 2, 3, 4].map(() => [kg, reps, rir]);
 const ctxGym = () => ({ hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
+
+prueba("Acciones (v178): dividido por área, todo sigue llegando por acciones.js y ningún nombre se repite", () => {
+    // Con `export *`, un nombre exportado por dos archivos desaparece de acciones.js sin aviso: aquí se detecta.
+    const areas = { "acciones-gym.js": accionesGym, "acciones-running.js": accionesRunning, "acciones-finanzas.js": accionesFinanzas };
+    const vistos = new Map();
+    for (const [archivo, modulo] of Object.entries(areas)) {
+        for (const nombre of Object.keys(modulo)) {
+            cierto(!vistos.has(nombre), `«${nombre}» está en ${vistos.get(nombre)} y en ${archivo}`);
+            vistos.set(nombre, archivo);
+            cierto(acciones[nombre] === modulo[nombre], `acciones.${nombre} llega desde ${archivo}`);
+        }
+    }
+    cierto(acciones.ganar === accionesComun.ganar, "acciones.ganar sigue existiendo");
+    cierto(typeof acciones.empezarGym === "function" && typeof acciones.empezarCarrera === "function" && typeof acciones.configurarMemento === "function", "las de cada área");
+});
 
 prueba("Gym (v177): plantillas de rutinas por objetivo (déficit, mantener, aumento)", () => {
     const { PLANTILLAS, OBJETIVOS } = rutinasPlantillas;

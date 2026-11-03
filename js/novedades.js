@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 177;
+export const VERSION_APP = 178;
 
 export const NOVEDADES = [
+    {
+        version: 178,
+        titulo: "Orden por dentro",
+        cambios: [
+            "🧹 Sin cambios que se vean: el código que guarda tus cambios del Gimnasio, el Running y las Finanzas ahora está en archivos separados. Así los próximos cambios son más seguros y rápidos de hacer.",
+        ],
+    },
     {
         version: 177,
         titulo: "Plantillas de rutinas",

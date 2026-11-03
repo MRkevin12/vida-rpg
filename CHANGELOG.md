@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v178 — acciones.js dividido por área
+- Sin cambios de comportamiento. `js/acciones.js` (3485 líneas) se dividió en `acciones-gym.js` (Gimnasio), `acciones-running.js`, `acciones-finanzas.js` y `acciones-comun.js` (ayudantes compartidos: `ganar`, `nuevoId`, `buscar`, `validar…`, `numeroEntre`). `acciones.js` los reexporta con `export *`, así que en la app se sigue usando `acciones.x`. Las 177 funciones públicas son las mismas.
+- Los archivos nuevos van en `ARCHIVOS` de `sw.js`. `acciones-gym.js` y `acciones-running.js` importan `completarMision` de `acciones.js` (es una función: el ciclo de imports es seguro).
+- Prueba nueva: ningún nombre se repite entre los archivos de acciones (con `export *`, un repetido desaparecería sin aviso). Pruebas: app 443.
+
 ## v177 — Plantillas de rutinas
 - `js/rutinas-plantillas.js` (nuevo, en `ARCHIVOS` de `sw.js`): `PLANTILLAS` (Cuerpo completo, Empuje / Tirón / Piernas, Torso / Piernas), `OBJETIVOS` (déficit, mantener, aumento), `armarPlantilla(id, objetivo)` y `objetivoSugerido(gym)` (según tu peso objetivo). Cada ejercicio es `[id, series déficit, series mantener, series aumento]`; el objetivo cambia las series y qué ejercicios lleva (las repeticiones son fijas por ejercicio).
 - `acciones.crearRutinasDePlantilla`: las rutinas salen como copias con `base: null` (no entran al turno de «Hoy toca»; `gym.siguienteRutina` busca hacia atrás la última sesión que sí cuenta). `MAX_COPIAS` sube a 12. Helpers `nombreEnUso` e `idLibreDeCopia` (compartidos con `duplicarRutina`).
