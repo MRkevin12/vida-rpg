@@ -101,6 +101,59 @@ export function contar(elemento, desde, hasta, { espera = 0, duracion = 900 } = 
     contando.set(elemento, requestAnimationFrame(paso));
 }
 
+// (v180) Chispas: ~36 cuadritos que saltan desde el centro de un elemento y se apagan solos (logros, cofres…).
+// Es UN <canvas> pequeño, no 36 elementos con animación: gasta menos y se borra a sí mismo en ~1.4 s.
+// Se mueve con requestAnimationFrame; cada chispa sube, la gravedad la baja y su brillo se va apagando.
+const COLORES_CHISPA = ["#ffe45a", "#fbbf24", "#fff3c4", "#ffffff", "#22d3ee"];
+export function chispas(contenedor, { cuantas = 36, colores = COLORES_CHISPA, duracion = 1400 } = {}) {
+    if (!contenedor || quieto()) return;
+    contenedor.querySelector(".chispas")?.remove();
+    const lienzo = document.createElement("canvas");
+    lienzo.className = "chispas";
+    lienzo.setAttribute("aria-hidden", "true");
+    const caja = contenedor.getBoundingClientRect();
+    const [ancho, alto] = [Math.max(1, Math.round(caja.width / 2)), Math.max(1, Math.round(caja.height / 2))];
+    lienzo.width = ancho;     // la mitad de la pantalla: los cuadritos salen grandes, como pixel art, y pesa 4 veces menos
+    lienzo.height = alto;
+    contenedor.append(lienzo);
+    const g = lienzo.getContext("2d");
+    if (!g) { lienzo.remove(); return; }
+
+    // Cada chispa: de dónde sale (el centro), hacia dónde va, de qué color es y cuánto vive (0,6 a 1 de la duración).
+    const lista = Array.from({ length: cuantas }, (_, i) => {
+        const angulo = azar(i, 11) * Math.PI * 2;
+        const fuerza = 22 + azar(i, 12) * 46;
+        return {
+            x: ancho / 2, y: alto / 2 - 6,
+            vx: Math.cos(angulo) * fuerza, vy: Math.sin(angulo) * fuerza - 26,
+            color: colores[i % colores.length],
+            lado: azar(i, 13) < 0.3 ? 3 : 2,
+            vida: 0.6 + azar(i, 14) * 0.4,
+        };
+    });
+
+    const inicio = performance.now();
+    let anterior = inicio;
+    const cuadro = (ahora) => {
+        const t = (ahora - inicio) / duracion;        // 0 → 1
+        const dt = Math.min(0.05, (ahora - anterior) / 1000);
+        anterior = ahora;
+        g.clearRect(0, 0, ancho, alto);
+        for (const c of lista) {
+            if (t >= c.vida) continue;
+            c.vy += 70 * dt;                          // gravedad
+            c.x += c.vx * dt;
+            c.y += c.vy * dt;
+            g.globalAlpha = Math.max(0, 1 - t / c.vida);
+            g.fillStyle = c.color;
+            g.fillRect(Math.round(c.x), Math.round(c.y), c.lado, c.lado);   // redondeado: cae en la cuadrícula de píxeles
+        }
+        if (t < 1) requestAnimationFrame(cuadro);
+        else lienzo.remove();
+    };
+    requestAnimationFrame(cuadro);
+}
+
 // Confeti de cuadritos de colores que cae sobre un elemento (subir de nivel, vencer a un jefe).
 const COLORES = ["#ffe45a", "#f5a524", "#8b5cf6", "#22d3ee", "#34d399", "#fb7185", "#ffffff"];
 export function confeti(contenedor, cuantos = 42) {

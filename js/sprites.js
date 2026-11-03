@@ -17,18 +17,20 @@ import { rasgosEnPixeles } from "./retratos.js";   // (v93) los ojos, que al ach
 export const HEROE = { ancho: 54, alto: 72 };   // el tamaño de tu héroe, en puntos
 export const MASCOTA = { ancho: 44, alto: 34 }; // el de tu mascota (su dibujo mide 72 × 56)
 
+// (v180) luz: true = luz de borde desde arriba-izquierda, igual en todos los personajes; suelo: true = sombra bajo los pies
+// (solo donde la pantalla no pone ya la suya: la Torre y la carrera usan .ff-sombra).
 // d = la descripción de tu avatar (avatar.describirAvatar). Si cambias de ropa o de
 // equipo, la descripción cambia y se hace una imagen nueva.
 export function spriteDeHeroe(d) {
     const svg = dibujarAvatar(d, { batalla: true, sinEfectos: true });
-    return pixelar(svg, HEROE.ancho, HEROE.alto, { clave: `heroe-${JSON.stringify(d)}`, puntos: rasgosEnPixeles(d, "batalla", HEROE.ancho, HEROE.alto) });
+    return pixelar(svg, HEROE.ancho, HEROE.alto, { clave: `heroe-${JSON.stringify(d)}`, puntos: rasgosEnPixeles(d, "batalla", HEROE.ancho, HEROE.alto), luz: true });
 }
 
 // d (solo para el Reflejo sombrío) = la descripción de tu avatar: esa criatura es tu héroe en sombras.
 export function spriteDeMonstruo(id, d = null) {
     if (CRIATURAS[id]?.espejo) return d ? spriteDeReflejo(d) : Promise.resolve(null);
     const talla = CRIATURAS[id]?.talla || 96;
-    return pixelar(dibujarMonstruo(id), talla, talla, { clave: `monstruo-${id}` });
+    return pixelar(dibujarMonstruo(id), talla, talla, { clave: `monstruo-${id}`, luz: true });
 }
 
 // El Reflejo sombrío (guardián de la Mazmorra): tu héroe, más grande, en sombras y como en un espejo.
@@ -38,7 +40,7 @@ export function spriteDeReflejo(d) {
     const svg = dibujarAvatar(d, { batalla: true, sinEfectos: true });
     // (v93) Sus ojos brillan en rojo (y van del otro lado: el dibujo está dado vuelta, como en un espejo).
     const ojos = rasgosEnPixeles(d, "batalla", ancho, alto).map(({ x, y }) => ({ x: ancho - 1 - x, y, color: [255, 64, 88] }));
-    return pixelar(svg, ancho, alto, { clave: `reflejo-${JSON.stringify(d)}`, sombra: true, espejo: true, puntos: ojos });
+    return pixelar(svg, ancho, alto, { clave: `reflejo-${JSON.stringify(d)}`, sombra: true, espejo: true, puntos: ojos, luz: true });
 }
 
 // La cara del Maestro Aurelio, para sus consejos en la batalla. d = maestro.describirMaestro().
@@ -49,7 +51,7 @@ export function spriteDeMaestro(d) {
 // Aurelio de cuerpo entero, para las cinemáticas del reino (v56). d = maestro.describirMaestro().
 export function spriteDeMaestroCuerpo(d) {
     return pixelar(dibujarAvatar(d, { batalla: true, sinEfectos: true }), HEROE.ancho, HEROE.alto,
-        { clave: "maestro-cuerpo", puntos: rasgosEnPixeles(d, "batalla", HEROE.ancho, HEROE.alto) });
+        { clave: "maestro-cuerpo", puntos: rasgosEnPixeles(d, "batalla", HEROE.ancho, HEROE.alto), luz: true, suelo: true });
 }
 
 // Una persona de la aldea (Las Voces del Valle, v44): de cuerpo entero para la conversación, y solo la cara
@@ -57,7 +59,7 @@ export function spriteDeMaestroCuerpo(d) {
 export function spriteDePersona(id) {
     const persona = describirPersona(id);
     const svg = dibujarAvatar(persona, { batalla: true, sinEfectos: true });
-    return pixelar(svg, HEROE.ancho, HEROE.alto, { clave: `persona-${id}`, puntos: rasgosEnPixeles(persona, "batalla", HEROE.ancho, HEROE.alto) });
+    return pixelar(svg, HEROE.ancho, HEROE.alto, { clave: `persona-${id}`, puntos: rasgosEnPixeles(persona, "batalla", HEROE.ancho, HEROE.alto), luz: true, suelo: true });
 }
 
 export function spriteDeBusto(id) {
@@ -68,7 +70,7 @@ export function spriteDeBusto(id) {
 // Tu mascota en la Torre. b = la de la partida: { especie, etapa ("huevo" | "cria" | "adulto"), triste }.
 export function spriteDeMascota(b) {
     const m = { especie: b.especie, nombre: b.nombre, etapa: { clave: b.etapa, nombre: b.etapa }, triste: Boolean(b.triste) };
-    return pixelar(dibujarMascota(m), MASCOTA.ancho, MASCOTA.alto, { clave: `mascota-${b.especie}-${b.etapa}-${m.triste}` });
+    return pixelar(dibujarMascota(m), MASCOTA.ancho, MASCOTA.alto, { clave: `mascota-${b.especie}-${b.etapa}-${m.triste}`, luz: true });
 }
 
 // La sala de una zona ("cripta", "biblioteca"…). Es un fondo: va sin contorno y con más colores.
@@ -83,18 +85,18 @@ export function spriteDeMapa(datos) {
 
 // Tu héroe y tu mascota en el mapa: pequeños, como los personajes del mapa del mundo de los juegos clásicos.
 export function spriteDeHeroeEnMapa(d) {
-    return pixelar(dibujarAvatar(d, { batalla: true, sinEfectos: true }), 21, 28, { clave: `heroe-mapa-${JSON.stringify(d)}` });
+    return pixelar(dibujarAvatar(d, { batalla: true, sinEfectos: true }), 21, 28, { clave: `heroe-mapa-${JSON.stringify(d)}`, luz: true });
 }
 
 // (v146) Una criatura pequeña para el mapa de la carrera, como tu héroe en el mapa: lado = cuántos puntos mide
 // (cada punto de la imagen queda como un cuadrito del mapa; ver vistas-pelea-mapa.js › ladoEnMapa).
 export function spriteDeMonstruoEnMapa(id, lado) {
-    return pixelar(dibujarMonstruo(id), lado, lado, { clave: `monstruo-mapa-${id}-${lado}` });
+    return pixelar(dibujarMonstruo(id), lado, lado, { clave: `monstruo-mapa-${id}-${lado}`, luz: true });
 }
 
 export function spriteDeMascotaEnMapa(m) {
     const datos = { especie: m.especie, nombre: m.nombre, etapa: m.etapa, triste: Boolean(m.triste) };
-    return pixelar(dibujarMascota(datos), 20, 16, { clave: `mascota-mapa-${m.especie}-${m.etapa.clave}-${datos.triste}` });
+    return pixelar(dibujarMascota(datos), 20, 16, { clave: `mascota-mapa-${m.especie}-${m.etapa.clave}-${datos.triste}`, luz: true });
 }
 
 // Todas las criaturas a la vez (para el bestiario): { esqueleto: "data:image/png…", … }

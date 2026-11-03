@@ -144,7 +144,7 @@ export function pantallaTienda(estado, ctx) {
         recompensas: () => `
             ${cabeceraSeccion("🎁 Recompensas", "recompensa", "+ Nueva")}
             <p class="nota">Premios reales que tú defines. Cánjealos cuando tengas monedas suficientes.</p>
-            ${recompensas.length ? `<ul class="lista">${lista}</ul>` : vacio("Crea tu primera recompensa. Ej: «Ver un capítulo de mi serie» por 50 monedas.")}
+            ${recompensas.length ? `<ul class="lista">${lista}</ul>` : vacio("Crea tu primera recompensa. Ej: «Ver un capítulo de mi serie» por 50 monedas.", "tienda")}
             ${plegable(`Historial de canjes (${canjes.length})`, `<ul class="historial">${historial}</ul>`, canjes.length)}`,
         equipo: () => `
             ${tiendaDelAvatar(estado, cerrada, ctx.evento, ctx.subvista?.tiendaEquipo || "todo")}

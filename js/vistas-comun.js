@@ -35,8 +35,30 @@ export function barra(porcentaje, clase = "") {
 }
 
 
-export function vacio(texto) {
-    return `<p class="vacio">${texto}</p>`;
+// (v180) Las escenas de los estados vacíos: el objeto del centro (ícono de iconos.js), el adorno de cada lado y
+// lo que dice Aurelio. Se elige con vacio(texto, "clave"); sin clave sale la cajita de siempre.
+export const ESCENAS_VACIAS = {
+    misiones: { centro: "espadas", lados: ["vela", "vela"], aurelio: "Todo gran viaje empieza con un hábito pequeño. Elige uno y hazlo hoy." },
+    semanales: { centro: "calendario", lados: ["chispas", "chispas"], aurelio: "Una meta de la semana te da un rumbo sin pedirte todos los días." },
+    tareas: { centro: "lista", lados: ["pluma", "chincheta"], aurelio: "Una cabeza despejada piensa mejor. Anota lo pendiente y suéltalo." },
+    diario: { centro: "libro", lados: ["pluma", "vela"], aurelio: "Las páginas en blanco esperan. Bastan dos líneas sobre tu día." },
+    entrenamientos: { centro: "pesa", lados: ["fuego", "fuego"], aurelio: "El primer entrenamiento es el más difícil, y también el que más cuenta." },
+    carreras: { centro: "corredor", lados: ["camino", "huella"], aurelio: "Mil pasos empiezan con uno. Sal, aunque sea un ratito." },
+    tienda: { centro: "bolsa", lados: ["moneda", "moneda"], aurelio: "Un premio que de verdad quieres vuelve más dulce el esfuerzo." },
+};
+
+export function vacio(texto, escena = null) {
+    const datos = ESCENAS_VACIAS[escena];
+    if (!datos) return `<p class="vacio">${texto}</p>`;
+    return `<div class="vacio vacio-escena">
+        <div class="escena-mini" aria-hidden="true">
+            <span class="escena-lado">${icono(datos.lados[0])}</span>
+            <span class="escena-centro">${icono(datos.centro)}</span>
+            <span class="escena-lado">${icono(datos.lados[1])}</span>
+        </div>
+        <p class="vacio-texto">${texto}</p>
+        <p class="vacio-aurelio">${icono("sombrero")}<span>«${datos.aurelio}»</span></p>
+    </div>`;
 }
 
 

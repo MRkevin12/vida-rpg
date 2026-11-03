@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v180 — Más vida en la pantalla
+- **Chispas** (`efectos.js › chispas`): un canvas de 36 cuadritos que se apaga solo (1,4 s). Logros, cofres y premios (las celebraciones no épicas). Subir de nivel y vencer jefes siguen con el confeti.
+- **Iluminación** (`pixel.js`: opciones `luz` y `suelo`): luz de borde desde arriba-izquierda y sombra elíptica bajo los pies. Activo en `sprites.js` para héroe, mascota, criaturas, personas, Maestro y los sprites del mapa de la carrera. La sombra de suelo solo en Maestro y personas (la Torre ya tiene `.ff-sombra`).
+- **Estados vacíos** (`vistas-comun.js › ESCENAS_VACIAS`, `vacio(texto, escena)`): escena pixel + frase de Aurelio en misiones, metas, tareas, diario, gym, carreras y tienda.
+- **Barra de XP** (`app.js › moverBarra`): clases `llenando` (brillo diagonal) y `nivel-destello`. Pestaña activa más grande y con brillo.
+- Pruebas: 2 nuevas (luz/sombra; estados vacíos). App: 448 de 448.
+
 ## v179 — Mal día, rival de hace 30 días y capítulo del mes
 - **Mal día** (datos v40): `estado.diasMalos` (fechas). `acciones.elegirAnimo("mal")` marca hoy si quedan días (`juego.MAL_DIA.maxPorSemana` = 2 en los 7 días que terminan hoy; `quedanMalosDias`); elegir otro ánimo lo quita. `juego.enDescanso` ahora también es verdadero en un mal día (`esMalDia`), así que vida, racha, pacto, semanales y avisos lo tratan como descanso de un día sin tocar `descansos`. Hoy muestra la misión más fácil como meta del día; Progreso lo rotula «mal día».
 - **Rival de hace 30 días**: `running.rivalDeHace(carreras, fecha, {salida})` (±`RIVAL.margen` = 10 días, sin pista; con `salida`, solo si empezó a ≤250 m y tiene recorrido) y `running.contraRival` (diferencia de ritmo en s/km). `vistas-running.fantasmaDe` lo prefiere a «la última vez» (el mapa dice «👻 tú hace 1 mes»); el resumen de la carrera suma «Tú contra tú» (`htmlRival`).

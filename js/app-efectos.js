@@ -238,6 +238,8 @@ export function siguienteCelebracion() {
         void capa.offsetWidth;   // reinicia el destello si ya estaba
         capa.classList.add("epica");
         fx.confeti(capa);
+    } else {
+        fx.chispas(capa);   // (v180) logros, cofres y premios: unas chispas, más sobrias que el confeti
     }
     reproducirAnimacion($(".celebracion-caja"), "entrar");
     // Con las palabras del Maestro se queda un poco más, para que alcance a leerse.

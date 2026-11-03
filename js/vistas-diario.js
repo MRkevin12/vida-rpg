@@ -357,9 +357,10 @@ function seccionRecuerdos(estado, ctx) {
 export function listaDiario(estado, ctx) {
     const entradas = diario.buscarEntradas(estado, { texto: ctx.busquedaDiario, animo: ctx.filtroDiario });
     if (!entradas.length) {
-        return vacio(Object.keys(estado.diario).length
+        const hayEntradas = Object.keys(estado.diario).length > 0;
+        return vacio(hayEntradas
             ? "No hay entradas con esa búsqueda."
-            : "Todavía no has escrito nada. Empieza hoy: el diario está al final de la pantalla Hoy.");
+            : "Todavía no has escrito nada. Empieza hoy: el diario está al final de la pantalla Hoy.", hayEntradas ? null : "diario");
     }
     const faltan = entradas.length - ctx.limiteDiario;
     return entradas.slice(0, ctx.limiteDiario).map((e) => tarjetaEntrada(e.fecha, e)).join("") +

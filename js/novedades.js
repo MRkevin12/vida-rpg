@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 179;
+export const VERSION_APP = 180;
 
 export const NOVEDADES = [
+    {
+        version: 180,
+        titulo: "Más vida en la pantalla",
+        cambios: [
+            "✨ Al ganar un logro o abrir un cofre salen chispas doradas: un puñado de cuadritos que saltan y se apagan solos.",
+            "🌗 Héroe, mascota, criaturas y personas tienen luz de borde (desde arriba a la izquierda) y una sombra bajo los pies. Así parecen de la misma escena.",
+            "🪧 Las listas vacías (misiones, metas, tareas, diario, gym, carreras y tienda) muestran una escena en pixel art y una frase de Aurelio.",
+            "📈 La barra de XP tiene un brillo que la recorre al llenarse y un destello dorado al subir de nivel.",
+            "🧭 La pestaña elegida es un poco más grande y brilla más.",
+        ],
+    },
     {
         version: 179,
         titulo: "Mal día, tú contra tú y el capítulo del mes",

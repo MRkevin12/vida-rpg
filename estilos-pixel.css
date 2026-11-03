@@ -1485,3 +1485,157 @@ body {
     color: inherit;
     text-shadow: none;
 }
+
+
+/* =====================================================================
+   (v180) Más vida en los gráficos: chispas, barra de XP, pestañas y estados vacíos
+   ===================================================================== */
+
+/* --- Chispas (js/efectos.js › chispas): un canvas pequeño que se agranda sin suavizar --- */
+.chispas {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+/* --- Barra de XP de la cabecera: el brillo ya no corre sin parar; pasa en diagonal cuando la barra CRECE --- */
+.cabecera .barra-xp .barra-relleno::after {
+    background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.75) 50%, transparent 62%);
+    transform: translateX(-110%);
+    animation: none;
+}
+
+.cabecera .barra-xp.llenando .barra-relleno::after {
+    animation: barra-barrido 0.6s ease-out;
+}
+
+.cabecera .barra-xp.nivel-destello {
+    animation: barra-nivel 0.9s steps(6);
+}
+
+@keyframes barra-barrido {
+    to { transform: translateX(110%); }
+}
+
+/* Al subir de nivel: la barra se enciende dorada y se apaga. */
+@keyframes barra-nivel {
+    0%   { box-shadow: 0 0 0 0 rgba(255, 228, 90, 0); filter: brightness(1); }
+    25%  { box-shadow: 0 0 14px 4px rgba(255, 228, 90, 0.95); filter: brightness(1.9); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 228, 90, 0); filter: brightness(1); }
+}
+
+/* --- Pestañas: la elegida es más grande y brilla más --- */
+.pestana[aria-current="page"] .pestana-icono svg.pxi {
+    scale: 1.18;   /* aparte de «transform»: el saltito de pestana-salta se suma sin pelearse con esto */
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.7)) drop-shadow(0 0 1px rgba(255, 243, 196, 0.9));
+}
+
+/* --- Estados vacíos con una mini escena y una frase de Aurelio (vistas-comun.js › vacio) --- */
+.vacio-escena {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+}
+
+.escena-mini {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 14px;
+    width: min(220px, 100%);
+    height: 64px;
+    margin: 0 auto;
+}
+
+/* El suelo: una franja de baldosas de dos tonos, con la sombra del objeto encima. */
+.escena-mini::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 8px;
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.07) 0 8px, transparent 8px 16px),
+        var(--hundido);
+    border-top: 2px solid var(--borde);
+}
+
+.escena-mini svg.pxi {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 8px;
+}
+
+.escena-centro {
+    position: relative;
+    display: flex;
+    z-index: 1;
+}
+
+/* (!important: svg.pxi de arriba también lo lleva) */
+.escena-centro svg.pxi {
+    width: 40px !important;
+    height: 40px !important;
+    margin-bottom: 10px;
+    filter: drop-shadow(-1px -1px 0 rgba(255, 243, 205, 0.45));   /* la misma luz de borde (arriba-izquierda) que los personajes */
+    animation: escena-flota 1.6s steps(2) infinite;
+}
+
+.escena-centro::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 34px;
+    height: 6px;
+    margin-left: -17px;
+    background: rgba(5, 3, 12, 0.55);
+    border-radius: 50%;
+}
+
+.escena-lado svg.pxi {
+    width: 22px !important;
+    height: 22px !important;
+    margin-bottom: 14px;
+    opacity: 0.55;
+}
+
+@keyframes escena-flota {
+    50% { transform: translateY(-3px); }
+}
+
+.vacio-texto {
+    margin: 0;
+}
+
+.vacio-aurelio {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    max-width: 30em;
+    font-size: 0.88rem;
+    font-style: italic;
+    color: #ddd6fe;
+    text-align: left;
+}
+
+.vacio-aurelio svg.pxi {
+    flex: none;
+    width: 20px !important;
+    height: 20px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .escena-centro svg.pxi,
+    .cabecera .barra-xp.llenando .barra-relleno::after,
+    .cabecera .barra-xp.nivel-destello {
+        animation: none;
+    }
+}

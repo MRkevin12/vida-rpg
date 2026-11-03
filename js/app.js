@@ -515,11 +515,17 @@ function actualizarCabecera(subioNivel) {
 }
 
 // Mueve la barra de XP. Al subir de nivel, primero la llena y luego la vacía.
+// (v180) Cuando la barra crece pasa un brillo diagonal (clase «llenando» en la caja de la barra), y al subir de
+// nivel, cuando se vacía para empezar el nivel nuevo, la caja da un destello dorado (clase «nivel-destello»).
 function moverBarra(barra, porcentaje, subioNivel) {
+    const caja = barra.parentElement;
+    const antes = parseFloat(barra.style.width) || 0;
     if (!subioNivel) {
+        if (porcentaje > antes) reproducirAnimacion(caja, "llenando");
         barra.style.width = `${porcentaje}%`;
         return;
     }
+    reproducirAnimacion(caja, "llenando");
     barra.style.width = "100%";
     setTimeout(() => {
         barra.style.transition = "none";   // vaciar sin animación
@@ -527,6 +533,7 @@ function moverBarra(barra, porcentaje, subioNivel) {
         barra.offsetWidth;                 // obliga al navegador a aplicar el cambio ya
         barra.style.transition = "";       // vuelve la animación del CSS
         barra.style.width = `${porcentaje}%`;
+        reproducirAnimacion(caja, "nivel-destello");
     }, 700);
 }
 

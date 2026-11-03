@@ -13,7 +13,7 @@ import { describirMaestro } from "./maestro.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { retratoPixel, figuraPixel, cuerpoGymPixel, pixelarEnVivo, escenaEjercicio, prepararEscena } from "./retratos.js";
 import { plural } from "./juego.js";
-import { esc, selectorSecciones } from "./vistas-comun.js";
+import { esc, selectorSecciones, vacio } from "./vistas-comun.js";
 import { fechaCorta, sumarDias, lunesDe, diaDeSemana, DIAS_LETRAS, hoy as hoyDeHoy } from "./fechas.js";
 
 const barra = (porcentaje, clase = "") => `<div class="barra ${clase}"><div class="barra-relleno" style="width: ${porcentaje}%"></div></div>`;
@@ -130,7 +130,7 @@ export function pantallaGym(estado, ctx) {
             ${tarjetaDiarioGym(estado)}
             ${tarjetaHitos(estado)}
             ${tarjetaHistorial(estado)}
-            ${estado.gym.sesiones.length ? "" : '<p class="vacio">Aún no hay entrenamientos. Cuando anotes el primero, aquí verás tu constancia, tus músculos y tus récords.</p>'}`,
+            ${estado.gym.sesiones.length ? "" : vacio("Aún no hay entrenamientos. Cuando anotes el primero, aquí verás tu constancia, tus músculos y tus récords.", "entrenamientos")}`,
         cuerpo: () => `
             ${tarjetaNivel(estado, ctx, false)}
             ${tarjetaEvolucion(estado, ctx)}

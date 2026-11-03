@@ -80,10 +80,31 @@ export function enSombras(rojo, verde, azul) {
     return sombra.map((valor, i) => Math.round(valor * 0.85 + [rojo, verde, azul][i] * 0.15));
 }
 
+const LUZ_DE_BORDE = [255, 240, 205];   // el blanco cálido de la luz de borde
+
+// (v180) La sombra de suelo: una elipse achatada en las últimas filas, centrada. Solo pinta los puntos vacíos
+// (los pies y el cuerpo quedan encima) y es semitransparente, así que se ve suave sobre cualquier fondo.
+// Va ANTES del contorno: el contorno la ve como «vacía» y no la rodea con una línea.
+function ponerSombraDeSuelo(puntos, ancho, alto) {
+    const [cx, cy] = [(ancho - 1) / 2, alto - 2];
+    const [rx, ry] = [ancho * 0.34, 1.7];
+    for (let y = Math.max(0, Math.floor(cy - ry)); y < alto; y++) {
+        for (let x = 0; x < ancho; x++) {
+            const i = (y * ancho + x) * 4;
+            if (puntos[i + 3]) continue;   // ahí hay dibujo
+            if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 > 1) continue;
+            puntos.set([8, 4, 20, 110], i);
+        }
+    }
+}
+
 // Retoca los puntos de un lienzo: bordes duros, menos colores y contorno.
 // puntos = lista de números [rojo, verde, azul, opacidad, rojo, verde…] (4 por punto).
 // sombra: true = todo en sombras (ver enSombras).
-export function retocarPuntos(puntos, ancho, alto, { niveles = 14, contorno = true, sombra = false } = {}) {
+// luz: true = (v180) luz de borde: los puntos del borde de arriba y de la izquierda se aclaran, como si la luz
+//      viniera siempre de la esquina de arriba a la izquierda. Así héroe, mascota y criaturas parecen de la misma escena.
+// suelo: true = (v180) una sombra elíptica suave bajo los pies, sobre los puntos que quedan vacíos al fondo.
+export function retocarPuntos(puntos, ancho, alto, { niveles = 14, contorno = true, sombra = false, luz = false, suelo = false } = {}) {
     const total = ancho * alto;
     const lleno = new Uint8Array(total);   // 1 si el punto es parte del dibujo
     for (let i = 0; i < total; i++) {
@@ -94,6 +115,25 @@ export function retocarPuntos(puntos, ancho, alto, { niveles = 14, contorno = tr
         const color = sombra ? enSombras(puntos[i * 4], puntos[i * 4 + 1], puntos[i * 4 + 2]) : [puntos[i * 4], puntos[i * 4 + 1], puntos[i * 4 + 2]];
         puntos.set(redondearColor(...color, niveles), i * 4);
     }
+    if (luz) {
+        // Un punto está «de cara a la luz» si el de su izquierda o el de arriba están vacíos.
+        // (Se mira `lleno`, la forma original, para que aclarar un punto no cambie la decisión del siguiente.)
+        for (let y = 0; y < alto; y++) {
+            for (let x = 0; x < ancho; x++) {
+                const i = y * ancho + x;
+                if (!lleno[i]) continue;
+                const izquierdaVacia = x === 0 || !lleno[i - 1];
+                const arribaVacio = y === 0 || !lleno[i - ancho];
+                if (!izquierdaVacia && !arribaVacio) continue;
+                // 30 % hacia un blanco cálido (arriba-izquierda pesa un poco más que solo un lado).
+                const fuerza = izquierdaVacia && arribaVacio ? 0.42 : 0.3;
+                for (let c = 0; c < 3; c++) {
+                    puntos[i * 4 + c] = Math.round(puntos[i * 4 + c] + (LUZ_DE_BORDE[c] - puntos[i * 4 + c]) * fuerza);
+                }
+            }
+        }
+    }
+    if (suelo) ponerSombraDeSuelo(puntos, ancho, alto);
     if (!contorno) return puntos;
 
     // Contorno: todo punto vacío que toca (arriba, abajo o a los lados) uno lleno.

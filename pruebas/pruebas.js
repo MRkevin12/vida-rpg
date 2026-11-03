@@ -35,6 +35,7 @@ import * as cinesReino from "../js/cinematicas-reino.js";
 import { dibujarMapa } from "../js/dibujo-mapa.js";
 import * as sprites from "../js/sprites.js";
 import { retocarPuntos, redondearColor, enSombras } from "../js/pixel.js";
+import { vacio, ESCENAS_VACIAS } from "../js/vistas-comun.js";   // (v180)
 import { dibujarMonstruo, dibujarSala, CON_DIBUJO } from "../js/dibujo-monstruos.js";
 import * as vida from "../js/vida.js";
 import * as diario from "../js/diario.js";
@@ -992,6 +993,40 @@ prueba("Pixel art: bordes duros, menos colores y un contorno oscuro alrededor", 
     // Los colores se redondean: dos tonos casi iguales quedan idénticos, y blanco y negro no cambian.
     igual(redondearColor(120, 60, 30, 14), redondearColor(122, 61, 31, 14), "dos colores casi iguales");
     igual([redondearColor(0, 0, 0, 14), redondearColor(255, 255, 255, 14)], [[0, 0, 0], [255, 255, 255]]);
+});
+
+prueba("Pixel art (v180): luz de borde arriba-izquierda y sombra de suelo bajo los pies", () => {
+    // Un bloque de 3 × 3 en medio de un lienzo de 7 × 7, sin contorno para mirar solo la luz.
+    const hacer = (opciones) => {
+        const p = new Uint8ClampedArray(7 * 7 * 4);
+        for (let y = 2; y <= 4; y++) for (let x = 2; x <= 4; x++) p.set([100, 100, 100, 255], (y * 7 + x) * 4);
+        retocarPuntos(p, 7, 7, { contorno: false, ...opciones });
+        return p;
+    };
+    const rojo = (p, x, y) => p[(y * 7 + x) * 4];
+    const sin = hacer({});
+    const con = hacer({ luz: true });
+    cierto(rojo(con, 2, 2) > rojo(sin, 2, 2), "la esquina de arriba-izquierda se aclara");
+    cierto(rojo(con, 3, 2) > rojo(sin, 3, 2) && rojo(con, 2, 3) > rojo(sin, 2, 3), "el borde de arriba y el de la izquierda también");
+    igual(rojo(con, 3, 3), rojo(sin, 3, 3), "el centro no cambia");
+    igual(rojo(con, 4, 4), rojo(sin, 4, 4), "abajo-derecha queda en sombra (sin luz)");
+    // Sombra de suelo: pinta puntos vacíos de las últimas filas, semitransparentes, y no toca el dibujo.
+    const suelo = hacer({ suelo: true });
+    const alfa = (p, x, y) => p[(y * 7 + x) * 4 + 3];
+    cierto(alfa(suelo, 3, 5) > 0 && alfa(suelo, 3, 5) < 255, "bajo el centro hay una sombra suave");
+    igual(alfa(suelo, 0, 0), 0, "arriba no hay sombra");
+    igual(alfa(suelo, 3, 3), 255, "el dibujo queda intacto");
+});
+
+prueba("Estados vacíos (v180): la caja de siempre, o una escena con Aurelio", () => {
+    cierto(vacio("hola").includes('class="vacio"') && !vacio("hola").includes("escena-mini"), "sin clave: la cajita de antes");
+    cierto(vacio("hola", "no-existe").includes('<p class="vacio">'), "una clave desconocida tampoco rompe nada");
+    const html = vacio("Sin tareas.", "tareas");
+    cierto(html.includes("escena-mini") && html.includes("vacio-aurelio") && html.includes("Sin tareas."), "con escena: dibujo, texto y frase");
+    for (const [clave, e] of Object.entries(ESCENAS_VACIAS)) {
+        for (const nombre of [e.centro, ...e.lados]) cierto(ICONOS[nombre], `la escena «${clave}» usa el ícono «${nombre}», que no existe`);
+        cierto(e.aurelio.length > 10, `la escena «${clave}» necesita una frase`);
+    }
 });
 
 prueba("Dibujo: las criaturas y las salas de la Torre y la Mazmorra son SVG válidos (también como imagen)", () => {
