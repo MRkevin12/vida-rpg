@@ -11897,6 +11897,11 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-foco-mapa i.cal, .gym-pips i.cal { opacity: 0.45; }
 .gym-stepper { position: relative; }
 .gym-stepper-corporal { font-size: 0.95rem; white-space: normal; }
+.gym-rutinas-nota { margin: 4px 4px 2px; }
+.gym-rutinas-ayuda { margin: 0 4px; }
+.gym-rutinas-titulo { margin: 14px 4px 6px; font-size: 0.95rem; color: var(--texto-suave); letter-spacing: 0.04em; }
+.gym-rutinas-titulo small { font-size: 0.75rem; margin-left: 4px; }
+.gym-rutina-resumen { display: block; margin-top: 2px; font-size: 0.78rem; font-weight: normal; }
 .gym-foco-despues { margin: 6px 0 0; text-align: center; font-size: 0.85rem; color: var(--texto-suave); }
 .gym-foco-despues b { color: var(--texto); }
 .gym-dialogo-lista { max-height: 52vh; overflow-y: auto; display: grid; gap: 6px; }

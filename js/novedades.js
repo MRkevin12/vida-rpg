@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 174;
+export const VERSION_APP = 175;
 
 export const NOVEDADES = [
+    {
+        version: 175,
+        titulo: "Rutinas mejor organizadas",
+        cambios: [
+            "✏️ En Rutinas, tus rutinas van primero y cada una muestra cuántos ejercicios y series tiene y qué músculos trabaja.",
+            "📋 Tus copias tienen su propia sección («Mis copias»).",
+            "📊 «Series por músculo a la semana» pasó al final, plegada, y te avisa en el título si algún músculo queda corto.",
+        ],
+    },
     {
         version: 174,
         titulo: "Más herramientas para tu gym",

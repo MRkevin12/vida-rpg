@@ -1286,19 +1286,22 @@ function tarjetaVolumenPlaneado() {
                 ${barra(Math.min(100, (n / 20) * 100), "barra-gym")}
             </li>`;
     }).join("");
+    // (v175) Plegada: es de consulta, no de todos los días. En el título se ve de un vistazo si algún músculo queda corto.
+    const porReforzar = Object.keys(gym.MUSCULOS).filter((m) => ["nada", "poco"].includes(gym.valoracionDeVolumen(series[m]))).length;
     return `
-        <section class="panel">
-            <h2 class="titulo-juego">Series por músculo a la semana</h2>
+        <details class="panel plegable">
+            <summary>📊 Series por músculo a la semana${porReforzar ? ` <span class="texto-suave">· ⚠️ ${porReforzar} por reforzar</span>` : ""}</summary>
             <p class="nota">Si haces cada rutina una vez a la semana. Entre 10 y 20 series por músculo es un buen punto de partida.</p>
             <ul class="gym-musculos">${filas}</ul>
-        </section>`;
+        </details>`;
 }
 
 function tarjetaEditarRutinas(estado) {
     const g = estado.gym;
     if (g.encurso) return '<p class="vacio">Termina o cancela tu entrenamiento para editar tus rutinas.</p>';
-    const tarjetas = gym.RUTINA.map((r) => {
+    const tarjetaDe = (r) => {
         const usados = r.ejercicios.map((x) => x.id);
+        const musculos = [...new Set(r.ejercicios.map((x) => gym.MUSCULOS[x.musculo].nombre))].join(" · ");
         const filas = r.ejercicios.map((x, i) => `
             <li class="gym-editar-fila">
                 <label class="campo-gym"><span class="mini texto-suave">${gym.MUSCULOS[x.musculo].icono} ${gym.MUSCULOS[x.musculo].nombre} · ${x.min}–${x.max} reps</span>
@@ -1314,7 +1317,8 @@ function tarjetaEditarRutinas(estado) {
             </li>`).join("");
         return `
         <details class="panel plegable">
-            <summary>${r.icono} ${esc(r.nombre)} <span class="texto-suave">· ${plural(r.ejercicios.length, "ejercicio", "ejercicios")} · ${gym.seriesPlaneadas(r)} series${r.copia ? " · 📋 copia" : g.rutinas?.[r.id] ? " · ✏️ editada" : ""}</span></summary>
+            <summary>${r.icono} <b>${esc(r.nombre)}</b>${r.copia ? "" : g.rutinas?.[r.id] ? " <span class=\"texto-suave\">✏️ editada</span>" : ""}
+                <small class="texto-suave gym-rutina-resumen">${plural(r.ejercicios.length, "ejercicio", "ejercicios")} · ${gym.seriesPlaneadas(r)} series · ${musculos}</small></summary>
             <ul class="gym-editar">${filas}</ul>
             <label class="campo-gym"><span class="nota">➕ Agregar un ejercicio:</span>
                 <select data-gym-rutina-agregar="${r.id}" aria-label="Agregar un ejercicio a ${esc(r.nombre)}">
@@ -1326,15 +1330,22 @@ function tarjetaEditarRutinas(estado) {
                 ${r.copia ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-borrar-copia" data-rutina="${r.id}">🗑️ Borrar copia</button>` : ""}
             </div>
         </details>`;
-    }).join("");
+    };
+    // (v175) Orden de la pestaña: lo que usas (tus rutinas), tus copias aparte y, plegado al final, el volumen por músculo.
+    const principales = gym.RUTINA.filter((r) => !r.copia).map(tarjetaDe).join("");
+    const copias = gym.RUTINA.filter((r) => r.copia).map(tarjetaDe).join("");
     return `
-        <section class="panel">
-            <h2 class="titulo-juego">✏️ Tus rutinas</h2>
-            <p class="nota">Abre una rutina para cambiar sus ejercicios (en cada uno eliges otro, de su músculo o de cualquiera), agregar más, quitar, reordenar o cambiar las series.
-               Tu historial y tus récords no se tocan. Con «📋 Duplicar rutina» pruebas una variante sin tocar la original (la copia no cambia a cuál le toca entrenar).</p>
-        </section>
-        ${tarjetaVolumenPlaneado()}
-        ${tarjetas}`;
+        <p class="nota gym-rutinas-nota">✏️ Toca una rutina para cambiar sus ejercicios, series u orden. Tu historial y tus récords no se tocan.</p>
+        <details class="plegable gym-rutinas-ayuda">
+            <summary>¿Cómo funciona?</summary>
+            <p class="nota">En cada ejercicio eliges otro (de su músculo o de cualquiera), agregas más, quitas, reordenas o cambias las series.
+               Con «📋 Duplicar rutina» pruebas una variante sin tocar la original: la copia no cambia a cuál le toca entrenar hoy.</p>
+        </details>
+        <h3 class="gym-rutinas-titulo">Rutinas de la semana</h3>
+        ${principales}
+        <h3 class="gym-rutinas-titulo">📋 Mis copias <small class="texto-suave">${g.copias?.length || 0} de ${gym.MAX_COPIAS}</small></h3>
+        ${copias || '<p class="nota">Aún no tienes copias. Abre una rutina y toca «📋 Duplicar rutina» para probar una variante.</p>'}
+        ${tarjetaVolumenPlaneado()}`;
 }
 
 // ===== Ajustes =====

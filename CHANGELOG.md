@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v175 — Rutinas mejor organizadas
+- `tarjetaEditarRutinas` (`js/vistas-gym.js`): intro de una línea con «¿Cómo funciona?» plegado; «Rutinas de la semana» primero (cada una con ejercicios, series y músculos); «📋 Mis copias» en su sección con contador; `tarjetaVolumenPlaneado` ahora es un `<details>` al final con el aviso «⚠️ N por reforzar». Estilos `.gym-rutinas-*` en `estilos.css`. Pruebas: app 440.
+
 ## v174 — Más herramientas para tu gym
 - Aviso de días sin entrenar: `gym.diasSinEntrenar`, `diasParaAvisar` (⌈7 ÷ meta⌉ + 2, mínimo 3) y `avisoSinEntrenar`; sale como una frase más en `tarjetaGymHoy` (sin ventana ni botón).
 - Duplicar rutina: `estado.gym.copias` `[{ id, base, nombre, icono }]` (hasta `MAX_COPIAS` = 6); sus ejercicios van en `estado.gym.rutinas[idDeLaCopia]` y `gym.aplicarRutinas(rutinas, copias)` las pone al final de `RUTINA` con `copia: true`. No entran en el turno (`siguienteRutina`), en el volumen planeado ni en `rutinaPara`. `acciones.duplicarRutina` y `borrarCopiaDeRutina` (no se borra si ya hay entrenamientos con ella). Datos: `version` 39.
