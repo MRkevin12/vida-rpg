@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 171;
+export const VERSION_APP = 172;
 
 export const NOVEDADES = [
+    {
+        version: 172,
+        titulo: "Cambiar ejercicio, solo del mismo músculo",
+        cambios: [
+            "🔄 Al cambiar un ejercicio durante el entrenamiento, la lista ya solo muestra ejercicios del mismo músculo.",
+        ],
+    },
     {
         version: 171,
         titulo: "Sin PIN durante el entrenamiento",

@@ -572,12 +572,12 @@ function botonesDeEjercicio(indice, ej, conTexto) {
     </span>`;
 }
 
-// «La máquina está ocupada»: elegir otro ejercicio (los del mismo músculo primero).
+// «La máquina está ocupada»: elegir otro ejercicio, solo del mismo músculo.
 export function dialogoCambiarEjercicio(estado, indice) {
     const en = estado.gym.encurso;
     const info = gym.ejercicioPorId(en.ejercicios[indice].id);
     const usados = en.ejercicios.map((x) => x.id);
-    const orden = [info.musculo, ...Object.keys(gym.MUSCULOS).filter((m) => m !== info.musculo)];
+    const orden = [info.musculo];
     const grupos = orden.map((m) => {
         const lista = gym.CATALOGO.filter((x) => x.musculo === m && !usados.includes(x.id));
         if (!lista.length) return "";

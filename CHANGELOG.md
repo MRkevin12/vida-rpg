@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v172 — Cambiar ejercicio, solo del mismo músculo
+- `js/vistas-gym.js` (`dialogoCambiarEjercicio`): la lista solo trae los ejercicios del músculo del ejercicio que cambias (antes también los demás músculos). Pruebas: app 438.
+
 ## v171 — Sin PIN durante el entrenamiento
 - `js/app.js` (`visibilitychange`): si hay un entrenamiento del gym (`estado.gym.encurso`) o una carrera (`estado.running.encurso`) en curso, no se tapa la app con el PIN al pasar a segundo plano. Al terminar o cancelar, vuelve a pedirlo como antes.
 - Pruebas: app 438.
