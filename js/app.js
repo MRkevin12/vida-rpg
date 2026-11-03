@@ -983,7 +983,10 @@ function conectarEventos() {
         if (document.visibilityState === "hidden") {
             // Con PIN, tapamos todo al salir: así ni la vista previa del
             // selector de apps del iPhone muestra tus datos.
-            if (seguridad.hayPin() && $("#bloqueo").hidden) {
+            // Excepción: con un entrenamiento del gym o una carrera en curso no se pide PIN al volver
+            // (el teléfono se suspende entre series o en el camino y sería molesto desbloquear cada vez).
+            const entrenando = !!(estado.gym?.encurso || estado.running?.encurso);
+            if (seguridad.hayPin() && $("#bloqueo").hidden && !entrenando) {
                 ocultaDesde = Date.now();
                 pedirPinParaEntrar(alVolver);
             }

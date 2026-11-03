@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 170;
+export const VERSION_APP = 171;
 
 export const NOVEDADES = [
+    {
+        version: 171,
+        titulo: "Sin PIN durante el entrenamiento",
+        cambios: [
+            "🔓 Con un entrenamiento del gym o una carrera en curso, la app ya no pide PIN al volver después de que el celular se suspende.",
+        ],
+    },
     {
         version: 170,
         titulo: "Actualización de avisos",

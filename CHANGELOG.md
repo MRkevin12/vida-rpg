@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v171 — Sin PIN durante el entrenamiento
+- `js/app.js` (`visibilitychange`): si hay un entrenamiento del gym (`estado.gym.encurso`) o una carrera (`estado.running.encurso`) en curso, no se tapa la app con el PIN al pasar a segundo plano. Al terminar o cancelar, vuelve a pedirlo como antes.
+- Pruebas: app 438.
+
 ## v170 — Actualización de avisos
 - Sin cambios de lógica: sube la versión para que el iPhone instale de nuevo la app con los avisos del descanso (`js/app.js`, `js/avisos.js`, `sw.js`).
 
