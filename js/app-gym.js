@@ -9,7 +9,8 @@ import { hoy, sumarDias } from "./fechas.js";
 import { estado, ui, subvista, ejecutar, dibujarPantalla, cambiarPantalla, contextoActual, $ } from "./app.js";
 import { sonar } from "./app-efectos.js";
 import { mantenerPantallaDespierta } from "./app-running.js";
-import { dialogoSeguirGym, dialogoCambiarEjercicio, dialogoDiscos, dialogoCorregirSesion, dialogoElegirEjercicio } from "./vistas-gym.js";
+import { dialogoSeguirGym, dialogoCambiarEjercicio, dialogoDiscos, dialogoCorregirSesion, dialogoElegirEjercicio, dialogoPlantilla } from "./vistas-gym.js";
+import { objetivoSugerido } from "./rutinas-plantillas.js";
 import { esc } from "./vistas-comun.js";
 
 // (v173) La pantalla no se apaga mientras hay un entrenamiento en curso (si no lo apagas en Ajustes del gym).
@@ -115,6 +116,9 @@ function mostrarDialogoGym(html) {
     dialogo.innerHTML = html;
     if (!dialogo.open) dialogo.showModal();
 }
+// (v177) Crear rutinas desde una plantilla. ui.plantillaGym = { plantilla, objetivo, sugerencia }.
+function mostrarPlantilla() { mostrarDialogoGym(dialogoPlantilla(estado, ui.plantillaGym)); }
+
 // (v176) Elegir o cambiar un ejercicio de una rutina viendo su figura. ui.elegirEjercicio = { modo, rutina, viejo, musculo, elegido }.
 function mostrarElegirEjercicio() {
     mostrarDialogoGym(dialogoElegirEjercicio(estado, contextoActual(), ui.elegirEjercicio));
@@ -261,6 +265,28 @@ export const ACCIONES_GYM = {
         $("#dialogo-gym")?.close();
         cambiarPantalla("gym");
         ACCIONES_GYM["gym-terminar"]();
+    },
+    // (v177) Plantillas: se abre con el objetivo que va con tu peso objetivo (si lo tienes) o «Mantener».
+    "gym-plantilla-abrir": () => {
+        const sugerencia = objetivoSugerido(estado.gym);
+        ui.plantillaGym = { plantilla: "cuerpo-completo", objetivo: sugerencia || "mantener", sugerencia };
+        mostrarPlantilla();
+    },
+    "gym-plantilla-elegir": (boton) => {
+        const sel = ui.plantillaGym;
+        if (!sel) return;
+        if (boton.dataset.plantilla) sel.plantilla = boton.dataset.plantilla;
+        if (boton.dataset.objetivo) sel.objetivo = boton.dataset.objetivo;
+        sonar("cursor");
+        mostrarPlantilla();
+    },
+    "gym-plantilla-crear": () => {
+        const sel = ui.plantillaGym;
+        if (!sel) return;
+        if (!ejecutar(() => acciones.crearRutinasDePlantilla(estado, sel.plantilla, sel.objetivo), { mantenerScroll: true })) return;
+        $("#dialogo-gym")?.close();
+        ui.plantillaGym = null;
+        sonar("cursor");
     },
     // (v176) Elegir o cambiar un ejercicio de una rutina viendo su figura (reemplaza a los selectores de antes).
     "gym-rutina-elegir": (boton) => {

@@ -209,7 +209,7 @@ export const ejercicioPorId = (id) => CATALOGO.find((x) => x.id === id) || null;
 // (v160) Pone tus rutinas editadas (estado.gym.rutinas = { rutinaId: [{ id, series }] }) en RUTINA; las que no editaste vuelven a las de fábrica.
 // (v174) Las copias (estado.gym.copias = [{ id, base, nombre, icono }]) también entran a RUTINA, al final y con copia: true.
 // Sus ejercicios se guardan igual que los de las demás, en estado.gym.rutinas[idDeLaCopia].
-export const MAX_COPIAS = 6;
+export const MAX_COPIAS = 12;   // (v177) caben las 6 de una plantilla de 3 rutinas por objetivo, con sitio para duplicar
 export function aplicarRutinas(personales, copias = []) {
     for (let i = RUTINA.length - 1; i >= 0; i--) if (RUTINA[i].copia) RUTINA.splice(i, 1);   // se quitan las que había y se ponen las de ahora
     for (const c of Array.isArray(copias) ? copias : []) {
@@ -616,13 +616,16 @@ export function mejorRachaSemanal(sesiones, meta, hoyTexto) {
 
 // Qué entrenamiento toca ahora: el siguiente al último que hiciste (y si no hay ninguno, el primero).
 export function siguienteRutina(sesiones) {
-    const ultima = sesiones[sesiones.length - 1];
     const turno = RUTINA.filter((r) => !r.copia);   // (v174) las copias no entran en el turno
-    if (!ultima) return turno[0];
-    const hecha = rutinaPorId(ultima.rutina);
-    const idDeTurno = hecha?.copia ? hecha.base : ultima.rutina;   // si hiciste una copia, toca la que sigue a la de la que salió
-    const i = turno.findIndex((r) => r.id === idDeTurno);
-    return turno[(i + 1) % turno.length];
+    // Se busca desde la última sesión hacia atrás la primera que cuente para el turno: una rutina de fábrica, o una copia
+    // de una de ellas (toca la que sigue a la de la que salió). Las de una plantilla (base: null) no cuentan.
+    for (let k = sesiones.length - 1; k >= 0; k--) {
+        const hecha = rutinaPorId(sesiones[k].rutina);
+        const idDeTurno = hecha?.copia ? hecha.base : sesiones[k].rutina;
+        const i = turno.findIndex((r) => r.id === idDeTurno);
+        if (i !== -1) return turno[(i + 1) % turno.length];
+    }
+    return turno[0];
 }
 
 // (v174) Cuántos días llevas sin entrenar (null si aún no has hecho ningún entrenamiento).

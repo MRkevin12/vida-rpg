@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v177 — Plantillas de rutinas
+- `js/rutinas-plantillas.js` (nuevo, en `ARCHIVOS` de `sw.js`): `PLANTILLAS` (Cuerpo completo, Empuje / Tirón / Piernas, Torso / Piernas), `OBJETIVOS` (déficit, mantener, aumento), `armarPlantilla(id, objetivo)` y `objetivoSugerido(gym)` (según tu peso objetivo). Cada ejercicio es `[id, series déficit, series mantener, series aumento]`; el objetivo cambia las series y qué ejercicios lleva (las repeticiones son fijas por ejercicio).
+- `acciones.crearRutinasDePlantilla`: las rutinas salen como copias con `base: null` (no entran al turno de «Hoy toca»; `gym.siguienteRutina` busca hacia atrás la última sesión que sí cuenta). `MAX_COPIAS` sube a 12. Helpers `nombreEnUso` e `idLibreDeCopia` (compartidos con `duplicarRutina`).
+- Pantalla: botón «📚 Nueva rutina desde una plantilla» en Rutinas y `dialogoPlantilla` (plan, objetivo, vista previa de las rutinas con sus series); la sección pasa a llamarse «Mis copias y plantillas». Pruebas: app 442.
+
 ## v176 — Elige ejercicios viéndolos
 - `dialogoElegirEjercicio` (`js/vistas-gym.js`): al tocar un ejercicio de una rutina (o «➕ Agregar ejercicio») se abre una ventana con su animación (`escenaEjercicio`), los músculos en chips y la lista del músculo; tocar uno lo muestra y «Cambiar por este» / «Agregar a la rutina» lo aplica. Reglas: `gym.ejerciciosParaElegir`. Acciones nuevas en `app-gym.js`: `gym-rutina-elegir`, `gym-rutina-nuevo`, `gym-elegir-musculo`, `gym-elegir-ver`, `gym-elegir-usar` (estado en `ui.elegirEjercicio`). Se quitan los `<select>` de Rutinas y sus manejadores en `app.js`. Pruebas: app 441.
 

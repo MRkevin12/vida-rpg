@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 176;
+export const VERSION_APP = 177;
 
 export const NOVEDADES = [
+    {
+        version: 177,
+        titulo: "Plantillas de rutinas",
+        cambios: [
+            "📚 En ✏️ Rutinas, «Nueva rutina desde una plantilla»: Cuerpo completo, Empuje / Tirón / Piernas o Torso / Piernas, con sus ejercicios y series ya puestos.",
+            "🔥 Elige tu objetivo: Déficit (menos series y ejercicios compuestos), Mantener o Aumento (más series y ejercicios de aislamiento). Si tienes un peso objetivo, ya te sugiere el que va con él.",
+            "👀 Antes de crearlas ves qué rutinas salen, con sus ejercicios y series. Se agregan en «Mis copias y plantillas» (hasta 12): tus rutinas de ahora no se tocan y puedes cambiarles lo que quieras.",
+        ],
+    },
     {
         version: 176,
         titulo: "Elige ejercicios viéndolos",

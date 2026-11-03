@@ -8,6 +8,7 @@ import * as gym from "./gym.js";
 import * as fragua from "./fragua.js";
 import * as avatar from "./avatar.js";
 import * as gymAurelio from "./gym-aurelio.js";
+import * as plantillas from "./rutinas-plantillas.js";
 import { describirMaestro } from "./maestro.js";
 import { dibujarAvatar, dibujarAvatarGym } from "./dibujo.js";
 import { retratoPixel, figuraPixel, cuerpoGymPixel, pixelarEnVivo, escenaEjercicio, prepararEscena } from "./retratos.js";
@@ -1265,6 +1266,44 @@ function tarjetaHistorial(estado) {
 }
 
 // ===== (v160) Editar tus rutinas: cambiar, agregar, quitar y reordenar ejercicios, y las series de cada uno =====
+// (v177) Crear rutinas desde una plantilla: eliges la plantilla y el objetivo (déficit, mantener o aumento), ves qué rutinas
+// se crean (con sus ejercicios y series) y las creas con un botón. sel = { plantilla, objetivo, sugerencia (el objetivo que
+// va con tu peso objetivo, o null) }
+export function dialogoPlantilla(estado, sel) {
+    const g = estado.gym;
+    const plantilla = plantillas.PLANTILLAS.find((p) => p.id === sel.plantilla);
+    const rutinas = plantillas.armarPlantilla(sel.plantilla, sel.objetivo);
+    const chip = (atributo, valor, texto, activo) => `<button type="button" class="boton boton-chico ${activo ? "boton-principal" : "boton-secundario"}" data-accion="gym-plantilla-elegir" data-${atributo}="${valor}" aria-pressed="${activo}">${texto}</button>`;
+    const botonesPlantilla = plantillas.PLANTILLAS.map((p) => chip("plantilla", p.id, `${p.icono} ${esc(p.nombre)}`, p.id === sel.plantilla)).join("");
+    const botonesObjetivo = Object.entries(plantillas.OBJETIVOS).map(([clave, o]) => chip("objetivo", clave, `${o.icono} ${o.nombre}`, clave === sel.objetivo)).join("");
+    const objetivo = plantillas.OBJETIVOS[sel.objetivo];
+    const filas = rutinas.map((r) => `
+        <li class="gym-plantilla-rutina">
+            <b>${r.icono} ${esc(r.nombre)}</b> <small class="texto-suave">${plural(r.ejercicios.length, "ejercicio", "ejercicios")} · ${r.ejercicios.reduce((suma, x) => suma + x.series, 0)} series</small>
+            <small class="texto-suave gym-plantilla-lista">${r.ejercicios.map((x) => `${esc(gym.ejercicioPorId(x.id).nombre)} (${x.series})`).join(" · ")}</small>
+        </li>`).join("");
+    const usadas = g.copias?.length || 0;
+    const cabe = usadas + rutinas.length <= gym.MAX_COPIAS;
+    return `
+        <div class="formulario gym-plantilla">
+            <h2 class="titulo-juego">📚 Nueva rutina desde una plantilla</h2>
+            <p class="nota">Elige un plan y tu objetivo. Se agregan en «Mis copias y plantillas»: tus rutinas de ahora no se tocan y después cambias lo que quieras.</p>
+            <p class="mini texto-suave">Plan</p>
+            <div class="gym-plantilla-chips" role="group" aria-label="Plan">${botonesPlantilla}</div>
+            <p class="nota">${esc(plantilla.texto)} <span class="texto-suave">(${esc(plantilla.dias)})</span></p>
+            <p class="mini texto-suave">Objetivo${sel.sugerencia && sel.objetivo === sel.sugerencia ? " · sugerido por tu peso objetivo" : ""}</p>
+            <div class="gym-plantilla-chips" role="group" aria-label="Objetivo">${botonesObjetivo}</div>
+            <p class="nota">${esc(objetivo.texto)}</p>
+            <p class="mini texto-suave">Se crean ${plural(rutinas.length, "rutina", "rutinas")} (entre paréntesis, las series):</p>
+            <ul class="gym-plantilla-rutinas">${filas}</ul>
+            ${cabe ? "" : `<p class="nota">⚠️ Solo caben ${gym.MAX_COPIAS} copias en total y ya tienes ${usadas}: borra alguna para crear ésta.</p>`}
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="gym-cerrar-dialogo">Cancelar</button>
+                <button type="button" class="boton boton-principal" data-accion="gym-plantilla-crear" ${cabe ? "" : "disabled"}>✅ Crear ${plural(rutinas.length, "rutina", "rutinas")}</button>
+            </div>
+        </div>`;
+}
+
 // (v176) Elegir o cambiar un ejercicio de una rutina VIENDO su figura: arriba la animación del que tocaste, debajo los
 // músculos (chips) y los ejercicios de ese músculo. Tocar uno lo muestra; «Usar este» lo pone en la rutina.
 // sel = { modo: "cambiar" | "agregar", rutina, viejo (id o null), musculo, elegido (id) }
@@ -1358,6 +1397,7 @@ function tarjetaEditarRutinas(estado) {
     const copias = gym.RUTINA.filter((r) => r.copia).map(tarjetaDe).join("");
     return `
         <p class="nota gym-rutinas-nota">✏️ Toca una rutina para cambiar sus ejercicios, series u orden. Tu historial y tus récords no se tocan.</p>
+        <button type="button" class="boton boton-principal boton-ancho gym-rutinas-plantilla" data-accion="gym-plantilla-abrir">📚 Nueva rutina desde una plantilla</button>
         <details class="plegable gym-rutinas-ayuda">
             <summary>¿Cómo funciona?</summary>
             <p class="nota">En cada ejercicio eliges otro (de su músculo o de cualquiera), agregas más, quitas, reordenas o cambias las series.
@@ -1365,8 +1405,8 @@ function tarjetaEditarRutinas(estado) {
         </details>
         <h3 class="gym-rutinas-titulo">Rutinas de la semana</h3>
         ${principales}
-        <h3 class="gym-rutinas-titulo">📋 Mis copias <small class="texto-suave">${g.copias?.length || 0} de ${gym.MAX_COPIAS}</small></h3>
-        ${copias || '<p class="nota">Aún no tienes copias. Abre una rutina y toca «📋 Duplicar rutina» para probar una variante.</p>'}
+        <h3 class="gym-rutinas-titulo">📋 Mis copias y plantillas <small class="texto-suave">${g.copias?.length || 0} de ${gym.MAX_COPIAS}</small></h3>
+        ${copias || '<p class="nota">Aún no tienes ninguna. Crea rutinas con una plantilla, o abre una rutina y toca «📋 Duplicar rutina» para probar una variante.</p>'}
         ${tarjetaVolumenPlaneado()}`;
 }
 

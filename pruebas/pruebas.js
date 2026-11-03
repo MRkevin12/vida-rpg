@@ -66,6 +66,7 @@ import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
 import * as gym from "../js/gym.js";
+import * as rutinasPlantillas from "../js/rutinas-plantillas.js";
 import * as ataques from "../js/ataques.js";
 import * as fragua from "../js/fragua.js";
 import * as libroOrrin from "../js/libro-orrin.js";
@@ -8478,6 +8479,67 @@ const sesionGym = (fecha, rutina, ejercicios, extra = {}) => ({
 });
 const cuatro = (kg, reps, rir) => [1, 2, 3, 4].map(() => [kg, reps, rir]);
 const ctxGym = () => ({ hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
+
+prueba("Gym (v177): plantillas de rutinas por objetivo (déficit, mantener, aumento)", () => {
+    const { PLANTILLAS, OBJETIVOS } = rutinasPlantillas;
+    igual(PLANTILLAS.map((p) => p.rutinas.length), [1, 3, 2], "cuántas rutinas trae cada plantilla");
+    const total = (rutinas) => rutinas.reduce((suma, r) => suma + r.ejercicios.reduce((s, x) => s + x.series, 0), 0);
+    for (const p of PLANTILLAS) {
+        const series = {};
+        for (const objetivo of Object.keys(OBJETIVOS)) {
+            const rutinas = rutinasPlantillas.armarPlantilla(p.id, objetivo);
+            igual(rutinas.length, p.rutinas.length);
+            for (const r of rutinas) {
+                cierto(r.ejercicios.length >= 3 && r.ejercicios.length <= 12, `${p.id}/${objetivo}/${r.nombre}: entre 3 y 12 ejercicios`);
+                cierto(r.ejercicios.every((x) => gym.ejercicioPorId(x.id) && x.series >= 1 && x.series <= gym.MAX_SERIES), `${p.id}/${objetivo}: ejercicios y series válidos`);
+                igual(new Set(r.ejercicios.map((x) => x.id)).size, r.ejercicios.length, "sin ejercicios repetidos");
+                cierto(r.nombre.endsWith(OBJETIVOS[objetivo].nombre), "el nombre dice el objetivo");
+            }
+            series[objetivo] = total(rutinas);
+        }
+        cierto(series.deficit < series.mantener && series.mantener < series.aumento, `${p.id}: más series al subir de objetivo (${JSON.stringify(series)})`);
+    }
+    let mensaje = "";
+    try { rutinasPlantillas.armarPlantilla("no-existe", "aumento"); } catch (error) { mensaje = error.message; }
+    cierto(mensaje.includes("plantilla"), "plantilla desconocida");
+    // El objetivo que va con tu peso objetivo.
+    igual([{ peso: [{ kg: 80 }], metaPeso: 72 }, { peso: [{ kg: 70 }], metaPeso: 75 }, { peso: [{ kg: 70 }], metaPeso: 70.2 }, { peso: [], metaPeso: 70 }, { peso: [{ kg: 70 }], metaPeso: null }].map(rutinasPlantillas.objetivoSugerido),
+        ["deficit", "aumento", "mantener", null, null], "objetivo sugerido");
+
+    // Crearlas: se suman a las copias, sin tocar tus rutinas ni el turno de «hoy toca».
+    const estado = partidaNueva();
+    try {
+        const turno = gym.siguienteRutina([]).id;
+        const ids = acciones.crearRutinasDePlantilla(estado, "empuje-tiron-piernas", "aumento");
+        igual(ids.length, 3);
+        igual(estado.gym.copias.map((c) => c.nombre), ["Empuje · Aumento", "Tirón · Aumento", "Piernas · Aumento"]);
+        cierto(estado.gym.copias.every((c) => c.base === null), "no salen de una rutina de fábrica");
+        igual(gym.RUTINA.filter((r) => !r.copia).length, 7, "tus 7 rutinas siguen igual");
+        igual(gym.rutinaPorId(ids[0]).ejercicios.map((x) => x.id), rutinasPlantillas.armarPlantilla("empuje-tiron-piernas", "aumento")[0].ejercicios.map((x) => x.id));
+        // Entrenar una de ellas no cambia a cuál le toca; y se pueden editar como cualquier copia.
+        estado.gym.sesiones.push({ fecha: "2026-03-01", rutina: ids[1], ejercicios: [], xp: 0, monedas: 0, records: [] });
+        igual(gym.siguienteRutina(estado.gym.sesiones).id, turno, "el turno sigue donde iba");
+        const antes = gym.rutinaPorId(ids[2]).ejercicios.length;
+        acciones.quitarEjercicioDeRutina(estado, ids[2], gym.rutinaPorId(ids[2]).ejercicios[0].id);
+        igual(gym.rutinaPorId(ids[2]).ejercicios.length, antes - 1, "se pueden editar");
+        // Al repetirla, los nombres no chocan.
+        acciones.crearRutinasDePlantilla(estado, "torso-piernas", "deficit");
+        acciones.crearRutinasDePlantilla(estado, "torso-piernas", "deficit");
+        igual(estado.gym.copias.filter((c) => c.nombre.startsWith("Torso · Déficit")).map((c) => c.nombre), ["Torso · Déficit", "Torso · Déficit (2)"]);
+        igual(new Set(estado.gym.copias.map((c) => c.id)).size, estado.gym.copias.length, "ids únicos");
+        // El tope de copias.
+        let tope = "";
+        try { acciones.crearRutinasDePlantilla(estado, "empuje-tiron-piernas", "mantener"); acciones.crearRutinasDePlantilla(estado, "empuje-tiron-piernas", "deficit"); } catch (error) { tope = error.message; }
+        cierto(tope.includes(`${gym.MAX_COPIAS}`), `avisa del tope: ${tope}`);
+        // El diálogo.
+        const html = vistasGym.dialogoPlantilla(estado, { plantilla: "cuerpo-completo", objetivo: "deficit", sugerencia: "deficit" });
+        cierto(html.includes("Cuerpo completo · Déficit") && html.includes("sugerido por tu peso objetivo") && html.includes('data-accion="gym-plantilla-crear"'), "el diálogo muestra lo que se crea");
+    } finally {
+        gym.aplicarRutinas({}, []);
+    }
+    const pestana = gymEn("rutinas", partidaNueva(), { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
+    cierto(pestana.includes('data-accion="gym-plantilla-abrir"'), "la pestaña Rutinas ofrece las plantillas");
+});
 
 prueba("Gym (v176): elegir o cambiar un ejercicio de una rutina viendo su figura", () => {
     const estado = partidaNueva();

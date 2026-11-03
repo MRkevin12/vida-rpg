@@ -38,6 +38,7 @@ import * as voces from "./voces.js";
 import * as pergaminos from "./pergaminos.js";
 import * as libros from "./libros.js";
 import * as gym from "./gym.js";
+import * as plantillas from "./rutinas-plantillas.js";   // (v177) plantillas de rutinas del gym
 import * as fragua from "./fragua.js";
 import * as gymAurelio from "./gym-aurelio.js";
 import * as ruta from "./ruta.js";
@@ -2640,18 +2641,48 @@ export function duplicarRutina(estado, rutinaId) {
     const origen = gym.rutinaPorId(rutinaId);
     if (!origen) throw new Error("Esa rutina no existe.");
     if (g.copias.length >= gym.MAX_COPIAS) throw new Error(`Puedes tener hasta ${gym.MAX_COPIAS} copias: borra alguna primero.`);
-    const baseId = origen.copia ? origen.base : origen.id;
-    const nombreBase = gym.rutinaPorId(baseId)?.nombre || origen.nombre;
+    const baseId = origen.copia ? origen.base : origen.id;   // (null si salió de una plantilla)
+    const nombreBase = (baseId && gym.rutinaPorId(baseId)?.nombre) || origen.nombre;
     let n = 1;
     let nombre;
-    do { nombre = n === 1 ? `${nombreBase} (copia)` : `${nombreBase} (copia ${n})`; n += 1; } while (gym.RUTINA.some((r) => r.nombre === nombre));
-    // El id nunca se repite (ni aunque borres copias): el historial lo usa para saber con qué rutina entrenaste.
-    let id = `copia-${Date.now().toString(36)}`;
-    for (let k = 2; gym.rutinaPorId(id) || g.sesiones.some((s) => s.rutina === id); k += 1) id = `copia-${Date.now().toString(36)}-${k}`;
+    do { nombre = n === 1 ? `${nombreBase} (copia)` : `${nombreBase} (copia ${n})`; n += 1; } while (nombreEnUso(g, nombre));
+    const id = idLibreDeCopia(g);
     g.copias.push({ id, base: baseId, nombre, icono: origen.icono });
     g.rutinas[id] = origen.ejercicios.map((x) => ({ id: x.id, series: x.series }));
     guardarRutinas(estado);
     return id;
+}
+
+// ¿Ya hay una rutina (de fábrica o copia) con ese nombre?
+const nombreEnUso = (g, nombre) => gym.RUTINA.some((r) => r.nombre === nombre) || g.copias.some((c) => c.nombre === nombre);
+// El id de una copia nunca se repite (ni aunque borres copias): el historial lo usa para saber con qué rutina entrenaste.
+function idLibreDeCopia(g) {
+    for (let k = 1; ; k += 1) {
+        const id = `copia-${Date.now().toString(36)}${k > 1 ? `-${k}` : ""}`;
+        if (!gym.rutinaPorId(id) && !g.copias.some((c) => c.id === id) && !g.sesiones.some((s) => s.rutina === id)) return id;
+    }
+}
+
+// (v177) Crea las rutinas de una plantilla (para un objetivo: deficit, mantener o aumento). Se suman a tus copias, sin tocar
+// las que ya tienes ni cambiar a cuál le toca entrenar. Devuelve los ids creados.
+export function crearRutinasDePlantilla(estado, plantillaId, objetivo) {
+    const g = estado.gym;
+    if (g.encurso) throw new Error("Termina o cancela tu entrenamiento antes de crear rutinas.");
+    gym.aplicarRutinas(g.rutinas, g.copias);
+    const armadas = plantillas.armarPlantilla(plantillaId, objetivo);
+    if (g.copias.length + armadas.length > gym.MAX_COPIAS) {
+        throw new Error(`Esta plantilla crea ${armadas.length} rutinas y solo caben ${gym.MAX_COPIAS} en total (tienes ${g.copias.length}): borra alguna copia primero.`);
+    }
+    const ids = armadas.map((r) => {
+        let nombre = r.nombre;
+        for (let n = 2; nombreEnUso(g, nombre); n += 1) nombre = `${r.nombre} (${n})`;
+        const id = idLibreDeCopia(g);
+        g.copias.push({ id, base: null, nombre, icono: r.icono });
+        g.rutinas[id] = r.ejercicios.map((x) => ({ id: x.id, series: x.series }));
+        return id;
+    });
+    guardarRutinas(estado);
+    return ids;
 }
 
 // Borra una copia. Si ya hiciste entrenamientos con ella no se puede: el historial los necesita.
