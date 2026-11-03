@@ -6,10 +6,10 @@
 import * as acciones from "./acciones.js";
 import * as gym from "./gym.js";
 import { hoy, sumarDias } from "./fechas.js";
-import { estado, ui, subvista, ejecutar, dibujarPantalla, cambiarPantalla, $ } from "./app.js";
+import { estado, ui, subvista, ejecutar, dibujarPantalla, cambiarPantalla, contextoActual, $ } from "./app.js";
 import { sonar } from "./app-efectos.js";
 import { mantenerPantallaDespierta } from "./app-running.js";
-import { dialogoSeguirGym, dialogoCambiarEjercicio, dialogoDiscos, dialogoCorregirSesion } from "./vistas-gym.js";
+import { dialogoSeguirGym, dialogoCambiarEjercicio, dialogoDiscos, dialogoCorregirSesion, dialogoElegirEjercicio } from "./vistas-gym.js";
 import { esc } from "./vistas-comun.js";
 
 // (v173) La pantalla no se apaga mientras hay un entrenamiento en curso (si no lo apagas en Ajustes del gym).
@@ -115,6 +115,14 @@ function mostrarDialogoGym(html) {
     dialogo.innerHTML = html;
     if (!dialogo.open) dialogo.showModal();
 }
+// (v176) Elegir o cambiar un ejercicio de una rutina viendo su figura. ui.elegirEjercicio = { modo, rutina, viejo, musculo, elegido }.
+function mostrarElegirEjercicio() {
+    mostrarDialogoGym(dialogoElegirEjercicio(estado, contextoActual(), ui.elegirEjercicio));
+    // La fila de músculos se desliza de lado: se centra el que está elegido para que siempre se vea.
+    $("#dialogo-gym .gym-elegir-musculos [aria-pressed='true']")?.scrollIntoView({ inline: "center", block: "nearest" });
+}
+function abrirElegirEjercicio(sel) { ui.elegirEjercicio = sel; mostrarElegirEjercicio(); }
+
 // Calculadora de discos: el peso que se está viendo (se cambia con los botones + y −).
 function mostrarDiscos() { mostrarDialogoGym(dialogoDiscos(estado, ui.discosKg || 0)); }
 
@@ -253,6 +261,44 @@ export const ACCIONES_GYM = {
         $("#dialogo-gym")?.close();
         cambiarPantalla("gym");
         ACCIONES_GYM["gym-terminar"]();
+    },
+    // (v176) Elegir o cambiar un ejercicio de una rutina viendo su figura (reemplaza a los selectores de antes).
+    "gym-rutina-elegir": (boton) => {
+        const info = gym.ejercicioPorId(boton.dataset.ejercicio);
+        abrirElegirEjercicio({ modo: "cambiar", rutina: boton.dataset.rutina, viejo: info.id, musculo: info.musculo, elegido: info.id });
+    },
+    "gym-rutina-nuevo": (boton) => {
+        const rutina = gym.rutinaPorId(boton.dataset.rutina);
+        // Se empieza por el músculo del primer ejercicio de la rutina; si ya los tiene todos, por el primero que tenga algo libre.
+        const musculo = [rutina.ejercicios[0]?.musculo, ...Object.keys(gym.MUSCULOS)].find((m) => m && gym.ejerciciosParaElegir(rutina.id, m).length);
+        if (!musculo) { alert("Esta rutina ya tiene todos los ejercicios."); return; }
+        abrirElegirEjercicio({ modo: "agregar", rutina: rutina.id, viejo: null, musculo, elegido: gym.ejerciciosParaElegir(rutina.id, musculo)[0].id });
+    },
+    "gym-elegir-musculo": (boton) => {
+        const sel = ui.elegirEjercicio;
+        if (!sel) return;
+        const lista = gym.ejerciciosParaElegir(sel.rutina, boton.dataset.musculo, sel.viejo);
+        sel.musculo = boton.dataset.musculo;
+        if (lista.length && !lista.some((x) => x.id === sel.elegido)) sel.elegido = lista[0].id;   // el primero de ese músculo
+        sonar("cursor");
+        mostrarElegirEjercicio();
+    },
+    "gym-elegir-ver": (boton) => {
+        if (!ui.elegirEjercicio) return;
+        ui.elegirEjercicio.elegido = boton.dataset.ejercicio;
+        sonar("cursor");
+        mostrarElegirEjercicio();
+    },
+    "gym-elegir-usar": () => {
+        const sel = ui.elegirEjercicio;
+        if (!sel) return;
+        const hecho = ejecutar(() => (sel.modo === "agregar"
+            ? acciones.agregarEjercicioARutina(estado, sel.rutina, sel.elegido)
+            : acciones.cambiarEjercicioDeRutina(estado, sel.rutina, sel.viejo, sel.elegido)), { mantenerScroll: true });
+        if (!hecho) return;
+        $("#dialogo-gym")?.close();
+        ui.elegirEjercicio = null;
+        sonar("cursor");
     },
     // (v174) Duplicar una rutina para probar una variante, y borrar la copia.
     "gym-rutina-duplicar": (boton) => {

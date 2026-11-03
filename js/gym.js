@@ -224,6 +224,11 @@ export function aplicarRutinas(personales, copias = []) {
         r.ejercicios = ejercicios.length ? ejercicios : (RUTINAS_DE_FABRICA.find((f) => f.id === r.id)?.ejercicios || r.ejercicios);
     }
 }
+// (v176) Los ejercicios de un músculo que puedes elegir para una rutina: sin los que ya tiene (salvo el que estás cambiando, viejoId).
+export function ejerciciosParaElegir(rutinaId, musculo, viejoId = null) {
+    const usados = rutinaPorId(rutinaId)?.ejercicios.map((x) => x.id) || [];
+    return CATALOGO.filter((x) => x.musculo === musculo && (x.id === viejoId || !usados.includes(x.id)));
+}
 export const seriesPlaneadas = (rutina) => rutina.ejercicios.reduce((suma, x) => suma + x.series, 0);
 
 // ===== Rangos =====

@@ -2,6 +2,9 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v176 — Elige ejercicios viéndolos
+- `dialogoElegirEjercicio` (`js/vistas-gym.js`): al tocar un ejercicio de una rutina (o «➕ Agregar ejercicio») se abre una ventana con su animación (`escenaEjercicio`), los músculos en chips y la lista del músculo; tocar uno lo muestra y «Cambiar por este» / «Agregar a la rutina» lo aplica. Reglas: `gym.ejerciciosParaElegir`. Acciones nuevas en `app-gym.js`: `gym-rutina-elegir`, `gym-rutina-nuevo`, `gym-elegir-musculo`, `gym-elegir-ver`, `gym-elegir-usar` (estado en `ui.elegirEjercicio`). Se quitan los `<select>` de Rutinas y sus manejadores en `app.js`. Pruebas: app 441.
+
 ## v175 — Rutinas mejor organizadas
 - `tarjetaEditarRutinas` (`js/vistas-gym.js`): intro de una línea con «¿Cómo funciona?» plegado; «Rutinas de la semana» primero (cada una con ejercicios, series y músculos); «📋 Mis copias» en su sección con contador; `tarjetaVolumenPlaneado` ahora es un `<details>` al final con el aviso «⚠️ N por reforzar». Estilos `.gym-rutinas-*` en `estilos.css`. Pruebas: app 440.
 

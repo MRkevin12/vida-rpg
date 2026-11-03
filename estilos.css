@@ -11897,6 +11897,17 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
 .gym-foco-mapa i.cal, .gym-pips i.cal { opacity: 0.45; }
 .gym-stepper { position: relative; }
 .gym-stepper-corporal { font-size: 0.95rem; white-space: normal; }
+/* v176: el ejercicio de una rutina es un botón (abre «Elegir ejercicio» con su figura) y el selector con la animación */
+.gym-editar-nombre { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 44px; padding: 4px 0; text-align: left; background: transparent; border: 0; color: inherit; font: inherit; cursor: pointer; }
+.gym-editar-nombre b { font-size: 1.02rem; }
+.gym-editar-ver { font-size: 0.74rem; color: var(--gym-2, #fbbf24); }
+.gym-elegir-demo { width: min(100%, 300px); aspect-ratio: 12 / 11; margin: 8px auto 6px; border-radius: var(--esquina); overflow: hidden; background: #1b1534; }
+.gym-elegir-demo .escena-ejercicio { display: block; width: 100%; height: 100%; }
+.gym-elegir-nombre { margin: 4px 0 0; text-align: center; font-size: 1.1rem; }
+.gym-elegir .mini { text-align: center; margin: 0 0 8px; }
+.gym-elegir-musculos { display: flex; gap: 6px; margin: 12px 0 6px; padding-bottom: 6px; overflow-x: auto; }
+.gym-elegir-musculos .boton { flex: none; }
+.gym-elegir-lista { max-height: 26vh; overflow-y: auto; }
 .gym-rutinas-nota { margin: 4px 4px 2px; }
 .gym-rutinas-ayuda { margin: 0 4px; }
 .gym-rutinas-titulo { margin: 14px 4px 6px; font-size: 0.95rem; color: var(--texto-suave); letter-spacing: 0.04em; }

@@ -1265,13 +1265,36 @@ function tarjetaHistorial(estado) {
 }
 
 // ===== (v160) Editar tus rutinas: cambiar, agregar, quitar y reordenar ejercicios, y las series de cada uno =====
-// Los selectores se agrupan por músculo (<optgroup>): para cambiar un ejercicio eliges otro del mismo músculo (o de cualquiera).
-function opcionesDeEjercicios(usados, musculoPrimero, actual = "") {
-    const orden = [musculoPrimero, ...Object.keys(gym.MUSCULOS).filter((m) => m !== musculoPrimero)].filter(Boolean);
-    return orden.map((m) => {
-        const lista = gym.CATALOGO.filter((x) => x.musculo === m && (x.id === actual || !usados.includes(x.id)));
-        return lista.length ? `<optgroup label="${gym.MUSCULOS[m].icono} ${gym.MUSCULOS[m].nombre}">${lista.map((x) => `<option value="${x.id}" ${x.id === actual ? "selected" : ""}>${esc(x.nombre)}</option>`).join("")}</optgroup>` : "";
-    }).join("");
+// (v176) Elegir o cambiar un ejercicio de una rutina VIENDO su figura: arriba la animación del que tocaste, debajo los
+// músculos (chips) y los ejercicios de ese músculo. Tocar uno lo muestra; «Usar este» lo pone en la rutina.
+// sel = { modo: "cambiar" | "agregar", rutina, viejo (id o null), musculo, elegido (id) }
+export function dialogoElegirEjercicio(estado, ctx, sel) {
+    const rutina = gym.rutinaPorId(sel.rutina);
+    const info = gym.ejercicioPorId(sel.elegido);
+    const musculo = gym.MUSCULOS[info.musculo];
+    const viejo = sel.viejo ? gym.ejercicioPorId(sel.viejo) : null;
+    const sinMovimiento = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const lista = gym.ejerciciosParaElegir(sel.rutina, sel.musculo, sel.viejo);
+    const chips = Object.entries(gym.MUSCULOS).map(([clave, m]) => `
+        <button type="button" class="boton boton-chico ${clave === sel.musculo ? "boton-principal" : "boton-secundario"}" data-accion="gym-elegir-musculo" data-musculo="${clave}" aria-pressed="${clave === sel.musculo}">${m.icono} ${m.nombre}</button>`).join("");
+    const botones = lista.map((x) => `
+        <button type="button" class="boton boton-chico ${x.id === sel.elegido ? "boton-principal" : "boton-secundario"}" data-accion="gym-elegir-ver" data-ejercicio="${x.id}" aria-pressed="${x.id === sel.elegido}">${esc(x.nombre)}${x.id === sel.viejo ? " · actual" : ""}</button>`).join("");
+    const esElActual = sel.modo === "cambiar" && sel.elegido === sel.viejo;
+    const boton = sel.modo === "agregar" ? "➕ Agregar a la rutina" : esElActual ? "Es el ejercicio actual" : `🔄 Cambiar por este`;
+    return `
+        <div class="formulario gym-elegir">
+            <h2 class="titulo-juego">${sel.modo === "agregar" ? "➕ Agregar ejercicio" : "🔄 Cambiar ejercicio"}</h2>
+            <p class="nota">${sel.modo === "agregar"
+                ? `Se agrega a <b>${esc(rutina.nombre)}</b>.`
+                : `En <b>${esc(rutina.nombre)}</b>: cambias <b>${esc(viejo.nombre)}</b> por otro. Tus entrenamientos anteriores no se tocan.`}</p>
+            <div class="gym-elegir-demo" aria-hidden="true">${escenaEjercicio(gym.movimientoDe(info.id), ctx.avatar.apariencia, { animar: !sinMovimiento, fisico: ctx.avatar.fisico || 0, cuadro: 5 })}</div>
+            <h3 class="gym-elegir-nombre">${musculo.icono} ${esc(info.nombre)}</h3>
+            <p class="mini texto-suave">${info.series} × ${info.min}–${info.max} reps · ${musculo.nombre}</p>
+            <button type="button" class="boton boton-principal boton-ancho" data-accion="gym-elegir-usar" ${esElActual ? "disabled" : ""}>${boton}</button>
+            <div class="gym-elegir-musculos" role="group" aria-label="Músculo">${chips}</div>
+            <div class="gym-extras gym-elegir-lista">${botones || '<p class="nota">Ya tienes en la rutina todos los ejercicios de este músculo.</p>'}</div>
+            <div class="botones-dialogo"><button type="button" class="boton boton-secundario" data-accion="gym-cerrar-dialogo">Cancelar</button></div>
+        </div>`;
 }
 
 // (v162) Cuántas series por músculo dejan tus rutinas en una semana: así ves si alguna parte se queda sin trabajar.
@@ -1300,12 +1323,14 @@ function tarjetaEditarRutinas(estado) {
     const g = estado.gym;
     if (g.encurso) return '<p class="vacio">Termina o cancela tu entrenamiento para editar tus rutinas.</p>';
     const tarjetaDe = (r) => {
-        const usados = r.ejercicios.map((x) => x.id);
         const musculos = [...new Set(r.ejercicios.map((x) => gym.MUSCULOS[x.musculo].nombre))].join(" · ");
         const filas = r.ejercicios.map((x, i) => `
             <li class="gym-editar-fila">
-                <label class="campo-gym"><span class="mini texto-suave">${gym.MUSCULOS[x.musculo].icono} ${gym.MUSCULOS[x.musculo].nombre} · ${x.min}–${x.max} reps</span>
-                    <select data-gym-rutina-cambiar="${r.id}" data-ejercicio="${x.id}" aria-label="Cambiar ${esc(x.nombre)}">${opcionesDeEjercicios(usados, x.musculo, x.id)}</select></label>
+                <button type="button" class="gym-editar-nombre" data-accion="gym-rutina-elegir" data-rutina="${r.id}" data-ejercicio="${x.id}" aria-label="Ver o cambiar ${esc(x.nombre)}">
+                    <small class="texto-suave">${gym.MUSCULOS[x.musculo].icono} ${gym.MUSCULOS[x.musculo].nombre} · ${x.min}–${x.max} reps</small>
+                    <b>${esc(x.nombre)}</b>
+                    <span class="gym-editar-ver">👁️ Ver · 🔄 Cambiar</span>
+                </button>
                 <span class="gym-editar-botones">
                     <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-series" data-rutina="${r.id}" data-ejercicio="${x.id}" data-delta="-1" ${x.series <= 1 ? "disabled" : ""} aria-label="Una serie menos">−</button>
                     <b>${x.series}<small> series</small></b>
@@ -1320,11 +1345,8 @@ function tarjetaEditarRutinas(estado) {
             <summary>${r.icono} <b>${esc(r.nombre)}</b>${r.copia ? "" : g.rutinas?.[r.id] ? " <span class=\"texto-suave\">✏️ editada</span>" : ""}
                 <small class="texto-suave gym-rutina-resumen">${plural(r.ejercicios.length, "ejercicio", "ejercicios")} · ${gym.seriesPlaneadas(r)} series · ${musculos}</small></summary>
             <ul class="gym-editar">${filas}</ul>
-            <label class="campo-gym"><span class="nota">➕ Agregar un ejercicio:</span>
-                <select data-gym-rutina-agregar="${r.id}" aria-label="Agregar un ejercicio a ${esc(r.nombre)}">
-                    <option value="">— Elige uno —</option>${opcionesDeEjercicios(usados, r.ejercicios[0]?.musculo)}
-                </select></label>
             <div class="botones-dialogo">
+                <button type="button" class="boton boton-chico boton-principal" data-accion="gym-rutina-nuevo" data-rutina="${r.id}" ${r.ejercicios.length >= 12 ? "disabled" : ""}>➕ Agregar ejercicio</button>
                 ${r.copia ? "" : g.rutinas?.[r.id] ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-restaurar" data-rutina="${r.id}">↩ Volver a la de fábrica</button>` : ""}
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-duplicar" data-rutina="${r.id}" ${(g.copias?.length || 0) >= gym.MAX_COPIAS ? "disabled" : ""}>📋 Duplicar rutina</button>
                 ${r.copia ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-borrar-copia" data-rutina="${r.id}">🗑️ Borrar copia</button>` : ""}

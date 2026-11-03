@@ -8464,7 +8464,7 @@ prueba("Gimnasio (v161): editar rutinas (agregar, cambiar, quitar, series, resta
     igual(gym.rutinaPorId("biceps").ejercicios.length, original.length);
     acciones.restaurarRutina(estado, "biceps");
     igual(gym.rutinaPorId("biceps").ejercicios.map((x) => x.id).join(), original.join());
-    cierto(gymEn("rutinas", estado, { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null }).includes("data-gym-rutina-agregar"), "la pestaña Rutinas se dibuja");
+    cierto(gymEn("rutinas", estado, { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null }).includes('data-accion="gym-rutina-nuevo"'), "la pestaña Rutinas se dibuja");
     gym.aplicarRutinas({});
 });
 
@@ -8478,6 +8478,27 @@ const sesionGym = (fecha, rutina, ejercicios, extra = {}) => ({
 });
 const cuatro = (kg, reps, rir) => [1, 2, 3, 4].map(() => [kg, reps, rir]);
 const ctxGym = () => ({ hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
+
+prueba("Gym (v176): elegir o cambiar un ejercicio de una rutina viendo su figura", () => {
+    const estado = partidaNueva();
+    const ctx = { hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null };
+    const rutina = gym.rutinaPorId("biceps");
+    const viejo = rutina.ejercicios[0];
+    const lista = gym.ejerciciosParaElegir("biceps", viejo.musculo, viejo.id);
+    cierto(lista.some((x) => x.id === viejo.id), "incluye el que estás cambiando");
+    cierto(!lista.some((x) => rutina.ejercicios.slice(1).some((y) => y.id === x.id)), "no ofrece los que la rutina ya tiene");
+    const actual = vistasGym.dialogoElegirEjercicio(estado, ctx, { modo: "cambiar", rutina: "biceps", viejo: viejo.id, musculo: viejo.musculo, elegido: viejo.id });
+    cierto(actual.includes("escena-ejercicio") && actual.includes('data-accion="gym-elegir-usar"') && actual.includes("disabled"), "se ve la figura y el actual no se puede «usar»");
+    const otro = lista.find((x) => x.id !== viejo.id);
+    cierto(otro, "hay otro ejercicio del mismo músculo");
+    const distinto = vistasGym.dialogoElegirEjercicio(estado, ctx, { modo: "cambiar", rutina: "biceps", viejo: viejo.id, musculo: viejo.musculo, elegido: otro.id });
+    cierto(!distinto.includes("disabled") && distinto.includes(otro.nombre) && distinto.includes("Cambiar por este"), "otro ejercicio sí se puede usar");
+    const nuevo = vistasGym.dialogoElegirEjercicio(estado, ctx, { modo: "agregar", rutina: "biceps", viejo: null, musculo: otro.musculo, elegido: otro.id });
+    cierto(nuevo.includes("Agregar a la rutina") && nuevo.includes("Se agrega a"), "modo agregar");
+    // La pestaña Rutinas ya no usa selectores: cada ejercicio es un botón que abre el selector con la figura.
+    const pestana = gymEn("rutinas", estado, ctx);
+    cierto(pestana.includes('data-accion="gym-rutina-elegir"') && !pestana.includes("data-gym-rutina-cambiar"), "ejercicios como botones");
+});
 
 prueba("Gym (v174): aviso de días sin entrenar, CSV, aviso de serie y copias de rutinas", () => {
     // Días sin entrenar: se avisa cuando pasa más que el hueco normal de tu meta.

@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 175;
+export const VERSION_APP = 176;
 
 export const NOVEDADES = [
+    {
+        version: 176,
+        titulo: "Elige ejercicios viéndolos",
+        cambios: [
+            "👁️ En ✏️ Rutinas, toca un ejercicio para ver su animación en pixel art antes de elegirlo.",
+            "🔄 Cambiar y ➕ Agregar usan la misma ventana: eliges el músculo, tocas un ejercicio para verlo y lo usas con un botón.",
+        ],
+    },
     {
         version: 175,
         titulo: "Rutinas mejor organizadas",
