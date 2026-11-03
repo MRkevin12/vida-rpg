@@ -2208,7 +2208,7 @@ export function empezarGym(estado, rutinaId, fecha = hoy()) {
         if (g.encurso.rutina !== rutinaId) throw new Error("Ya tienes un entrenamiento en curso: termínalo o cancélalo primero.");
         return;
     }
-    gym.aplicarRutinas(g.rutinas);   // (v160)
+    gym.aplicarRutinas(g.rutinas, g.copias);   // (v160)
     if (!gym.rutinaPorId(rutinaId)) throw new Error("Esa rutina no existe.");
     if (fecha !== hoy() && fecha !== sumarDias(hoy(), -1)) throw new Error("Solo puedes anotar el entrenamiento de hoy o de ayer.");
     if (g.sesiones.some((s) => s.fecha === fecha && s.rutina === rutinaId)) {
@@ -2624,13 +2624,47 @@ export function anotarMedidasGym(estado, valores) {
 function listaEditable(estado, rutinaId) {
     const g = estado.gym;
     if (g.encurso) throw new Error("Termina o cancela tu entrenamiento antes de editar tus rutinas.");
-    gym.aplicarRutinas(g.rutinas);
+    gym.aplicarRutinas(g.rutinas, g.copias);
     const rutina = gym.rutinaPorId(rutinaId);
     if (!rutina) throw new Error("Esa rutina no existe.");
     if (!g.rutinas[rutinaId]) g.rutinas[rutinaId] = rutina.ejercicios.map((x) => ({ id: x.id, series: x.series }));
     return g.rutinas[rutinaId];
 }
-const guardarRutinas = (estado) => gym.aplicarRutinas(estado.gym.rutinas);
+const guardarRutinas = (estado) => gym.aplicarRutinas(estado.gym.rutinas, estado.gym.copias);
+
+// (v174) Duplicar una rutina para probar una variante sin tocar la original. Devuelve el id de la copia.
+export function duplicarRutina(estado, rutinaId) {
+    const g = estado.gym;
+    if (g.encurso) throw new Error("Termina o cancela tu entrenamiento antes de duplicar una rutina.");
+    gym.aplicarRutinas(g.rutinas, g.copias);
+    const origen = gym.rutinaPorId(rutinaId);
+    if (!origen) throw new Error("Esa rutina no existe.");
+    if (g.copias.length >= gym.MAX_COPIAS) throw new Error(`Puedes tener hasta ${gym.MAX_COPIAS} copias: borra alguna primero.`);
+    const baseId = origen.copia ? origen.base : origen.id;
+    const nombreBase = gym.rutinaPorId(baseId)?.nombre || origen.nombre;
+    let n = 1;
+    let nombre;
+    do { nombre = n === 1 ? `${nombreBase} (copia)` : `${nombreBase} (copia ${n})`; n += 1; } while (gym.RUTINA.some((r) => r.nombre === nombre));
+    // El id nunca se repite (ni aunque borres copias): el historial lo usa para saber con qué rutina entrenaste.
+    let id = `copia-${Date.now().toString(36)}`;
+    for (let k = 2; gym.rutinaPorId(id) || g.sesiones.some((s) => s.rutina === id); k += 1) id = `copia-${Date.now().toString(36)}-${k}`;
+    g.copias.push({ id, base: baseId, nombre, icono: origen.icono });
+    g.rutinas[id] = origen.ejercicios.map((x) => ({ id: x.id, series: x.series }));
+    guardarRutinas(estado);
+    return id;
+}
+
+// Borra una copia. Si ya hiciste entrenamientos con ella no se puede: el historial los necesita.
+export function borrarCopiaDeRutina(estado, rutinaId) {
+    const g = estado.gym;
+    if (g.encurso) throw new Error("Termina o cancela tu entrenamiento antes de borrar una copia.");
+    const i = g.copias.findIndex((c) => c.id === rutinaId);
+    if (i === -1) throw new Error("Esa copia no existe.");
+    if (g.sesiones.some((s) => s.rutina === rutinaId)) throw new Error("Ya hiciste entrenamientos con esta copia: se queda para que tu historial siga completo.");
+    g.copias.splice(i, 1);
+    delete g.rutinas[rutinaId];
+    guardarRutinas(estado);
+}
 
 export function agregarEjercicioARutina(estado, rutinaId, ejercicioId) {
     const base = gym.ejercicioPorId(ejercicioId);
@@ -2696,6 +2730,8 @@ export function cambiarAjusteGym(estado, clave, valor) {
         estado.gym.foco = Boolean(valor);
     } else if (clave === "pantalla") {   // (v173) pantalla encendida mientras entrenas
         estado.gym.pantalla = Boolean(valor);
+    } else if (clave === "avisoSerie") {   // (v174) sonido y vibración al acabar el descanso
+        estado.gym.avisoSerie = Boolean(valor);
     } else if (clave === "mision") {
         const id = valor === "" || valor === null ? null : Number(valor);
         if (id !== null && !estado.misiones.some((m) => m.id === id && !m.archivadaEn)) throw new Error("Esa misión no existe.");

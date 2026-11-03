@@ -7977,7 +7977,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 38, "versión de los datos");
+    igual(base.version, 39, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -8179,7 +8179,7 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [38, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [39, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });
@@ -8437,33 +8437,7 @@ prueba("Temporadas y secretos: las partidas viejas se completan con listas vací
 });
 
 
-// ===== Ejecutar todo y mostrar el resultado =====
 
-const lista = document.querySelector("#lista");
-let fallidas = 0;
-
-for (const { nombre, funcion } of pruebas) {
-    const fila = document.createElement("li");
-    try {
-        await funcion();
-        fila.className = "bien";
-        fila.textContent = `✅ ${nombre}`;
-    } catch (error) {
-        fallidas += 1;
-        fila.className = "mal";
-        fila.textContent = `❌ ${nombre}`;
-        const detalle = document.createElement("small");
-        detalle.textContent = error.message;
-        fila.appendChild(detalle);
-    }
-    lista.appendChild(fila);
-}
-
-const total = document.querySelector("#total");
-total.textContent = fallidas === 0
-    ? `Las ${pruebas.length} pruebas pasaron.`
-    : `Fallaron ${fallidas} de ${pruebas.length} pruebas.`;
-total.className = fallidas === 0 ? "bien" : "mal";
 prueba("Gimnasio (v161): editar rutinas (agregar, cambiar, quitar, series, restaurar) sin tocar el historial", () => {
     const estado = partidaNueva();
     const original = gym.rutinaPorId("biceps").ejercicios.map((x) => x.id);
@@ -8504,6 +8478,53 @@ const sesionGym = (fecha, rutina, ejercicios, extra = {}) => ({
 });
 const cuatro = (kg, reps, rir) => [1, 2, 3, 4].map(() => [kg, reps, rir]);
 const ctxGym = () => ({ hoy: hoy(), ahora: Date.now(), avatar: avatarDePrueba({ etapa: avatar.ETAPAS[1] }), descanso: null });
+
+prueba("Gym (v174): aviso de días sin entrenar, CSV, aviso de serie y copias de rutinas", () => {
+    // Días sin entrenar: se avisa cuando pasa más que el hueco normal de tu meta.
+    igual([1, 3, 4, 7].map(gym.diasParaAvisar), [9, 5, 4, 3], "días para avisar según la meta");
+    const sesion = (fecha, rutina = "pecho-triceps", ejercicios = []) => ({ fecha, rutina, ejercicios, xp: 0, monedas: 0, records: [] });
+    igual(gym.diasSinEntrenar([], "2026-02-10"), null, "sin sesiones no hay aviso");
+    const g = { sesiones: [sesion("2026-02-01"), sesion("2026-02-04")], metaSemanal: 4 };
+    igual(gym.avisoSinEntrenar(g, "2026-02-07"), null, "3 días: aún no (la meta de 4 pide 4)");
+    igual(gym.avisoSinEntrenar(g, "2026-02-08"), 4, "4 días: avisa");
+    // El CSV: una fila por serie, comillas si hace falta y la marca BOM de Excel.
+    const csv = gym.sesionesACsv([sesion("2026-02-01", "pecho-triceps", [{ id: "press-banca", series: [{ kg: 60, reps: 8, rir: 2 }, { kg: 60, reps: 7 }] }]), sesion("2026-02-02")]);
+    const lineas = csv.replace("﻿", "").trim().split("\r\n");
+    cierto(csv.startsWith("﻿"), "lleva BOM");
+    igual(lineas.length, 4, "encabezado + 2 series + 1 fila de la sesión marcada sin detalle");
+    cierto(lineas[1].startsWith("2026-02-01,") && lineas[1].endsWith(",1,60,8,2,"), lineas[1]);
+    // El interruptor del aviso de serie.
+    cierto(gym.avisoDeSerie({}) && !gym.avisoDeSerie({ avisoSerie: false }), "encendido salvo que lo apagues");
+    // Copias de rutinas.
+    const estado = partidaNueva();
+    try {
+        const total = gym.RUTINA.length;
+        const id = acciones.duplicarRutina(estado, "pecho-triceps");
+        const copia = gym.rutinaPorId(id);
+        cierto(copia && copia.copia && copia.nombre === "Pecho + Tríceps (copia)", "la copia existe y se llama así");
+        igual(copia.ejercicios.map((x) => x.id), gym.rutinaPorId("pecho-triceps").ejercicios.map((x) => x.id), "trae los mismos ejercicios");
+        igual(gym.RUTINA.length, total + 1);
+        acciones.quitarEjercicioDeRutina(estado, id, copia.ejercicios[0].id);
+        igual(gym.rutinaPorId(id).ejercicios.length, gym.rutinaPorId("pecho-triceps").ejercicios.length - 1, "editar la copia no toca la original");
+        igual(gym.siguienteRutina([sesion("2026-02-01", id)]).id, gym.RUTINA.filter((r) => !r.copia)[1].id, "tras una copia toca la siguiente de la de fábrica");
+        const duplicada = acciones.duplicarRutina(estado, id);   // duplicar una copia sale de la misma base
+        igual(gym.rutinaPorId(duplicada).nombre, "Pecho + Tríceps (copia 2)");
+        // La copia se guarda en la partida y vuelve al cargarla.
+        gym.aplicarRutinas({}, []);
+        igual(gym.RUTINA.length, total, "sin copias, vuelven las 7 de siempre");
+        gym.aplicarRutinas(estado.gym.rutinas, estado.gym.copias);
+        igual(gym.RUTINA.length, total + 2, "al aplicar de nuevo, vuelven las copias");
+        // Con entrenamientos hechos no se borra; sin ellos, sí.
+        estado.gym.sesiones.push(sesion("2026-02-03", id));
+        let mensaje = "";
+        try { acciones.borrarCopiaDeRutina(estado, id); } catch (error) { mensaje = error.message; }
+        cierto(mensaje.includes("historial"), "no se borra una copia con historial");
+        acciones.borrarCopiaDeRutina(estado, duplicada);
+        igual(gym.rutinaPorId(duplicada), null, "la copia sin historial se borra");
+    } finally {
+        gym.aplicarRutinas({}, []);   // para que las demás pruebas vean las 7 de siempre
+    }
+});
 
 prueba("Gym (v173): peso corporal, entrenamiento viejo, PIN solo las primeras horas y pantalla encendida", () => {
     const piernas = gym.ejercicioPorId("elevacion-piernas");
@@ -8767,7 +8788,12 @@ prueba("Gym (v166): se puede cambiar o saltar un ejercicio sin empezar, y el ent
     debeFallar(() => acciones.cambiarEjercicioEnCurso(estado, 0, original), "Ya hiciste");
     debeFallar(() => acciones.saltarEjercicioGym(estado, 0), "Ya hiciste");
     acciones.saltarEjercicioGym(estado, 1);
-    debeFallar(() => acciones.saltarEjercicioGym(estado, 0), "único");
+    // El único que queda no se salta: con series hechas avisa de eso; sin empezar (otra partida), avisa que es el único.
+    debeFallar(() => acciones.saltarEjercicioGym(estado, 0), "Ya hiciste");
+    const solo = partidaNueva();
+    acciones.empezarGym(solo, "biceps");
+    while (solo.gym.encurso.ejercicios.length > 1) acciones.saltarEjercicioGym(solo, 1);
+    debeFallar(() => acciones.saltarEjercicioGym(solo, 0), "único");
     en.ejercicios.forEach((ej, ei) => ej.series.forEach((_, si) => { if (!ej.series[si].hecha) acciones.marcarSerieGym(estado, ei, si); }));
     const fin = acciones.terminarGym(estado);
     cierto(fin.sesion.completa && fin.sesion.monedas >= gym.MONEDAS_SESION, "con lo que sí ibas a hacer, es un entrenamiento completo");
@@ -8817,7 +8843,7 @@ prueba("Gym (v166): la calculadora de discos dice qué poner a cada lado de la b
     igual(gym.discosPara(20, 20).porLado, [], "solo la barra");
     cierto(gym.discosPara(15, 20).pocoPeso, "menos que la barra");
     igual(gym.discosPara(21, 20).falta, 1, "lo que no se puede formar");
-    igual(gym.discosPara(60, 10).porLado, [{ kg: 20, n: 1 }, { kg: 5, n: 1 }], "otra barra");
+    igual(gym.discosPara(60, 10).porLado, [{ kg: 25, n: 1 }], "otra barra (25 kg por lado: un solo disco de 25)");
     igual(gym.discosPara(0), { lado: 0, porLado: [], falta: 0, pocoPeso: false });
     const estado = partidaNueva();
     acciones.cambiarAjusteGym(estado, "barra", "15");
@@ -8849,6 +8875,34 @@ prueba("Gym (v166): la gráfica grande de un ejercicio: 1RM y volumen sesión a 
     estado.gym.sesiones = [sesiones[0]];
     cierto(gymEn("progreso", estado, ctxGym()).includes('class="gym-grafica"'), "con una sola sesión");
 });
+
+// ===== Ejecutar todo y mostrar el resultado =====
+
+const lista = document.querySelector("#lista");
+let fallidas = 0;
+
+for (const { nombre, funcion } of pruebas) {
+    const fila = document.createElement("li");
+    try {
+        await funcion();
+        fila.className = "bien";
+        fila.textContent = `✅ ${nombre}`;
+    } catch (error) {
+        fallidas += 1;
+        fila.className = "mal";
+        fila.textContent = `❌ ${nombre}`;
+        const detalle = document.createElement("small");
+        detalle.textContent = error.message;
+        fila.appendChild(detalle);
+    }
+    lista.appendChild(fila);
+}
+
+const total = document.querySelector("#total");
+total.textContent = fallidas === 0
+    ? `Las ${pruebas.length} pruebas pasaron.`
+    : `Fallaron ${fallidas} de ${pruebas.length} pruebas.`;
+total.className = fallidas === 0 ? "bien" : "mal";
 
 // Para que un programa (o tú, desde la consola) pueda leer el resultado.
 window.resultadoPruebas = { total: pruebas.length, fallidas };

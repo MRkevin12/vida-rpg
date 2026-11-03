@@ -18,7 +18,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 38,   // 38 (v166): barra del gym · 37 (v164): gym con descargas, RIR y notas · 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
+        version: 39,   // 39 (v174): copias de rutinas y aviso de serie del gym · 38 (v166): barra del gym · 37 (v164): gym con descargas, RIR y notas · 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -156,7 +156,7 @@ export function estadoInicial() {
 // Las listas nuevas (tareas, desafíos…) ya vienen vacías en "base".
 function completar(guardado) {
     const base = estadoInicial();
-    gym.aplicarRutinas(guardado.gym?.rutinas);   // (v160) tus rutinas editadas
+    gym.aplicarRutinas(guardado.gym?.rutinas, guardado.gym?.copias);   // (v160) tus rutinas editadas (v174: y tus copias)
     const avatar = guardado.avatar || {};
     return {
         ...base,
@@ -208,7 +208,7 @@ function completar(guardado) {
         },   // (v135, v138)
         memento: { ...base.memento, ...guardado.memento },   // (v142)
         libros: { casio: { ...base.libros.casio, ...guardado.libros?.casio }, orrin: { ...base.libros.orrin, ...guardado.libros?.orrin } },
-        gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null, rutinas: guardado.gym?.rutinas || {}, descargas: guardado.gym?.descargas || [] },   // (v66, v160, v164)
+        gym: { ...base.gym, ...guardado.gym, sesiones: guardado.gym?.sesiones || [], hitos: guardado.gym?.hitos || [], peso: guardado.gym?.peso || [], mision: guardado.gym?.mision ?? null, rutinas: guardado.gym?.rutinas || {}, descargas: guardado.gym?.descargas || [], copias: guardado.gym?.copias || [] },   // (v66, v160, v164, v174)
         mapa: { reclamados: guardado.mapa?.reclamados || [], cines: guardado.mapa?.cines || [] },
         arcade: {
             usadas: guardado.arcade?.usadas || 0,

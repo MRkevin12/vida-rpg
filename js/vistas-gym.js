@@ -78,10 +78,12 @@ export function tarjetaGymHoy(estado, ctx) {
     const toca = gym.siguienteRutina(g.sesiones);
     const lunes = lunesDe(ctx.hoy);
     const racha = gym.rachaSemanal(g.sesiones, g.metaSemanal, ctx.hoy);   // (v164)
+    // (v174) Aviso suave: solo una frase más en la tarjeta (sin ventanas ni botones) cuando llevas más días sin entrenar de lo normal para tu meta.
+    const sinEntrenar = gym.avisoSinEntrenar(g, ctx.hoy);
     return `
         <div class="gym-hoy">
             <span class="gym-hoy-icono" aria-hidden="true">${toca.icono}</span>
-            <span class="gym-hoy-texto"><b>Gym: hoy toca ${esc(toca.nombre)}</b><small>Meta de la semana: ${gym.diasDeLaSemana(g.sesiones, lunes)} de ${g.metaSemanal} días${racha ? ` · 🔥 ${plural(racha, "semana", "semanas")}` : ""}${gym.descargaDeLaSemana(g, lunes) ? " · 🛌 descarga" : ""}</small></span>
+            <span class="gym-hoy-texto"><b>Gym: hoy toca ${esc(toca.nombre)}</b><small>Meta de la semana: ${gym.diasDeLaSemana(g.sesiones, lunes)} de ${g.metaSemanal} días${racha ? ` · 🔥 ${plural(racha, "semana", "semanas")}` : ""}${gym.descargaDeLaSemana(g, lunes) ? " · 🛌 descarga" : ""}${sinEntrenar ? ` · ⏳ ${sinEntrenar} días sin entrenar` : ""}</small></span>
             <span class="gym-hoy-botones">
                 <button type="button" class="boton boton-chico boton-principal" data-accion="gym-empezar" data-rutina="${toca.id}" aria-label="Empezar el entrenamiento de hoy">▶ Empezar</button>
                 <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="gym">Abrir</button>
@@ -1312,20 +1314,24 @@ function tarjetaEditarRutinas(estado) {
             </li>`).join("");
         return `
         <details class="panel plegable">
-            <summary>${r.icono} ${esc(r.nombre)} <span class="texto-suave">· ${plural(r.ejercicios.length, "ejercicio", "ejercicios")} · ${gym.seriesPlaneadas(r)} series${g.rutinas?.[r.id] ? " · ✏️ editada" : ""}</span></summary>
+            <summary>${r.icono} ${esc(r.nombre)} <span class="texto-suave">· ${plural(r.ejercicios.length, "ejercicio", "ejercicios")} · ${gym.seriesPlaneadas(r)} series${r.copia ? " · 📋 copia" : g.rutinas?.[r.id] ? " · ✏️ editada" : ""}</span></summary>
             <ul class="gym-editar">${filas}</ul>
             <label class="campo-gym"><span class="nota">➕ Agregar un ejercicio:</span>
                 <select data-gym-rutina-agregar="${r.id}" aria-label="Agregar un ejercicio a ${esc(r.nombre)}">
                     <option value="">— Elige uno —</option>${opcionesDeEjercicios(usados, r.ejercicios[0]?.musculo)}
                 </select></label>
-            ${g.rutinas?.[r.id] ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-restaurar" data-rutina="${r.id}">↩ Volver a la de fábrica</button>` : ""}
+            <div class="botones-dialogo">
+                ${r.copia ? "" : g.rutinas?.[r.id] ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-restaurar" data-rutina="${r.id}">↩ Volver a la de fábrica</button>` : ""}
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-duplicar" data-rutina="${r.id}" ${(g.copias?.length || 0) >= gym.MAX_COPIAS ? "disabled" : ""}>📋 Duplicar rutina</button>
+                ${r.copia ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="gym-rutina-borrar-copia" data-rutina="${r.id}">🗑️ Borrar copia</button>` : ""}
+            </div>
         </details>`;
     }).join("");
     return `
         <section class="panel">
             <h2 class="titulo-juego">✏️ Tus rutinas</h2>
             <p class="nota">Abre una rutina para cambiar sus ejercicios (en cada uno eliges otro, de su músculo o de cualquiera), agregar más, quitar, reordenar o cambiar las series.
-               Tu historial y tus récords no se tocan.</p>
+               Tu historial y tus récords no se tocan. Con «📋 Duplicar rutina» pruebas una variante sin tocar la original (la copia no cambia a cuál le toca entrenar).</p>
         </section>
         ${tarjetaVolumenPlaneado()}
         ${tarjetas}`;
@@ -1351,10 +1357,17 @@ function tarjetaAjustes(estado) {
                 </select></label>
             <p class="nota">Descanso entre series:</p>
             <div class="botones-dialogo">${descansos}</div>
+            <p class="nota">Sonido y vibración en los últimos 3 segundos del descanso y al empezar la serie (en iPhone suena, pero no vibra):</p>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-chico ${gym.avisoDeSerie(g) ? "boton-principal" : "boton-secundario"}" data-accion="gym-aviso-serie" data-valor="1" aria-pressed="${gym.avisoDeSerie(g)}">Sí</button>
+                <button type="button" class="boton boton-chico ${gym.avisoDeSerie(g) ? "boton-secundario" : "boton-principal"}" data-accion="gym-aviso-serie" data-valor="0" aria-pressed="${!gym.avisoDeSerie(g)}">No</button>
+            </div>
             <p class="nota">Pantalla encendida mientras entrenas (así el teléfono no se suspende entre series; gasta más batería):</p>
             <div class="botones-dialogo">
                 <button type="button" class="boton boton-chico ${gym.pantallaEncendida(g) ? "boton-principal" : "boton-secundario"}" data-accion="gym-pantalla" data-valor="1" aria-pressed="${gym.pantallaEncendida(g)}">Sí</button>
                 <button type="button" class="boton boton-chico ${gym.pantallaEncendida(g) ? "boton-secundario" : "boton-principal"}" data-accion="gym-pantalla" data-valor="0" aria-pressed="${!gym.pantallaEncendida(g)}">No</button>
             </div>
+            <p class="nota">Tu historial como hoja de cálculo (Excel, Numbers, Google Sheets): una fila por serie.</p>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="gym-exportar-csv" ${g.sesiones.length ? "" : "disabled"}>📄 Exportar historial (CSV)</button>
         </details>`;
 }

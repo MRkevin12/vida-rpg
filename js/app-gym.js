@@ -20,6 +20,26 @@ export function ajustarPantallaGym() {
     mantenerPantallaDespierta(quiere);
 }
 
+// (v174) Exportar el historial del gym como CSV: en el iPhone abre el menú de compartir (Guardar en Archivos); en la compu, lo descarga.
+async function exportarCsvGym() {
+    const nombre = `vida-rpg-gym-${hoy()}.csv`;
+    const archivo = new File([gym.sesionesACsv(estado.gym.sesiones)], nombre, { type: "text/csv" });
+    try {
+        if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+            await navigator.share({ files: [archivo], title: "Historial del gym" });
+        } else {
+            const enlace = document.createElement("a");
+            enlace.href = URL.createObjectURL(archivo);
+            enlace.download = nombre;
+            enlace.click();
+            setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+        }
+    } catch (error) {
+        if (error.name === "AbortError") return;   // cerraste el menú sin guardar
+        alert("No se pudo exportar el historial.");
+    }
+}
+
 // (v164) Al abrir la app con un entrenamiento a medias: «¿Continuar el entrenamiento?».
 // (La sesión en curso ya se guarda en cada serie y en cada número que cambias; esto solo te lo recuerda.)
 export function ofrecerSeguirGym() {
@@ -234,6 +254,16 @@ export const ACCIONES_GYM = {
         cambiarPantalla("gym");
         ACCIONES_GYM["gym-terminar"]();
     },
+    // (v174) Duplicar una rutina para probar una variante, y borrar la copia.
+    "gym-rutina-duplicar": (boton) => {
+        if (ejecutar(() => acciones.duplicarRutina(estado, boton.dataset.rutina), { mantenerScroll: true })) sonar("cursor");
+    },
+    "gym-rutina-borrar-copia": (boton) => {
+        if (!confirm("¿Borrar esta copia de la rutina? La rutina original no se toca.")) return;
+        ejecutar(() => acciones.borrarCopiaDeRutina(estado, boton.dataset.rutina), { mantenerScroll: true });
+    },
+    "gym-aviso-serie": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "avisoSerie", boton.dataset.valor === "1"), { mantenerScroll: true }),
+    "gym-exportar-csv": () => exportarCsvGym(),
     "gym-pantalla": (boton) => ejecutar(() => acciones.cambiarAjusteGym(estado, "pantalla", boton.dataset.valor === "1"), { mantenerScroll: true }),
     "gym-descartar": () => {
         if (!confirm("¿Descartar el entrenamiento? Se pierde lo que anotaste y no da premio.")) return;

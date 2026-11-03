@@ -59,7 +59,7 @@ import { runTipo, runPista, gpsProblema, runTerminando, runResumen, ponerHeroeEn
          ponerCriaturasDeCarrera, ponerPeleaEnMapa, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
          mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
 import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM, ofrecerSeguirGym, animarAurelio, ajustarPantallaGym } from "./app-gym.js";
-import { entrenandoAhora } from "./gym.js";
+import { entrenandoAhora, avisoDeSerie } from "./gym.js";
 import { ACCIONES_MEMENTO, FORMULARIOS_MEMENTO } from "./app-memento.js";   // (v142)
 import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS, conectarPesos } from "./app-finanzas.js";   // (v135, v137)
 import { GRACIA_MS, cerrarTeclado, teclaPulsada, pedirPinParaEntrar, entrarConFaceId, crearPin, ACCIONES_PIN } from "./app-pin.js";
@@ -378,12 +378,24 @@ function tictac() {
     const reloj = document.querySelector("[data-descanso-fin]");
     if (reloj) {
         const restante = Number(reloj.dataset.descansoFin) - Date.now();
+        const avisa = avisoDeSerie(estado.gym);   // (v174) el interruptor de Ajustes del gym
         if (restante <= 0) {
             ui.descansoGym = null;
-            sonar("descanso");
-            navigator.vibrate?.([200, 100, 200]);
+            if (avisa) {
+                sonar("descanso");
+                navigator.vibrate?.([200, 100, 200]);
+            }
             dibujarPantalla({ mantenerScroll: true });
         } else {
+            // (v174) Los últimos 3 segundos: un tic por segundo, para saber que viene la serie sin mirar el teléfono.
+            if (avisa && restante <= 3000) {
+                const marca = `${reloj.dataset.descansoFin}-${Math.ceil(restante / 1000)}`;
+                if (ui.ticDescansoGym !== marca) {
+                    ui.ticDescansoGym = marca;
+                    sonar("cursor");
+                    navigator.vibrate?.(60);
+                }
+            }
             reloj.textContent = relojTexto(restante);
         }
     }

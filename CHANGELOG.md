@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v174 — Más herramientas para tu gym
+- Aviso de días sin entrenar: `gym.diasSinEntrenar`, `diasParaAvisar` (⌈7 ÷ meta⌉ + 2, mínimo 3) y `avisoSinEntrenar`; sale como una frase más en `tarjetaGymHoy` (sin ventana ni botón).
+- Duplicar rutina: `estado.gym.copias` `[{ id, base, nombre, icono }]` (hasta `MAX_COPIAS` = 6); sus ejercicios van en `estado.gym.rutinas[idDeLaCopia]` y `gym.aplicarRutinas(rutinas, copias)` las pone al final de `RUTINA` con `copia: true`. No entran en el turno (`siguienteRutina`), en el volumen planeado ni en `rutinaPara`. `acciones.duplicarRutina` y `borrarCopiaDeRutina` (no se borra si ya hay entrenamientos con ella). Datos: `version` 39.
+- CSV: `gym.sesionesACsv` (una fila por serie, con BOM para Excel) y el botón de Ajustes del gym (`exportarCsvGym` en `app-gym.js`: compartir en el iPhone, descargar en la compu).
+- Aviso de serie: `estado.gym.avisoSerie` (sin migración: `gym.avisoDeSerie` cuenta como `true` si falta). Un tic por segundo en los últimos 3 s del descanso (`js/app.js`, `ui.ticDescansoGym`) y el sonido/vibración de siempre al terminar, ahora con interruptor.
+- Pruebas: el bloque que las ejecuta estaba a la mitad de `pruebas.js` y las que se agregaron debajo (desde la v161) se registraban pero nunca corrían. Se movió al final. Al correrlas salieron dos pruebas viejas desactualizadas (discos con barra de 10 kg y saltar el único ejercicio); ya están corregidas. App 440.
+
 ## v173 — Un entrenamiento más cómodo
 - Pantalla encendida: `ajustarPantallaGym` (`js/app-gym.js`, se llama en cada `dibujarPantalla`) usa `mantenerPantallaDespierta` (`app-running.js`; ahora no pide dos veces y se vuelve a pedir tras el `release` del teléfono). Ajuste `estado.gym.pantalla` (sin migración: `gym.pantallaEncendida` cuenta como `true` si falta), botones Sí/No en «Ajustes del gym».
 - PIN: `gym.entrenandoAhora` — solo se salta en las primeras 4 h (`HORAS_SIN_PIN`) de un entrenamiento o carrera (`js/app.js`).

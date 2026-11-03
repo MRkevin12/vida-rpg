@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 173;
+export const VERSION_APP = 174;
 
 export const NOVEDADES = [
+    {
+        version: 174,
+        titulo: "Más herramientas para tu gym",
+        cambios: [
+            "⏳ En Hoy, la tarjeta del gym te dice cuántos días llevas sin entrenar cuando ya son más de lo normal para tu meta semanal (sin ventanas ni molestias).",
+            "📋 Duplica una rutina (en ✏️ Rutinas) para probar una variante sin tocar la original. La copia no cambia a cuál le toca entrenar.",
+            "📄 Exporta tu historial del gym como hoja de cálculo (CSV) desde ⚙️ Ajustes del gym: una fila por serie.",
+            "🔔 En los últimos 3 segundos del descanso suena un tic por segundo, y al empezar la serie suena y vibra. Se apaga en ⚙️ Ajustes del gym (en iPhone suena, pero no vibra).",
+        ],
+    },
     {
         version: 173,
         titulo: "Un entrenamiento más cómodo",

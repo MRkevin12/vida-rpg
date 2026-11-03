@@ -207,14 +207,21 @@ export const CATALOGO = [...RUTINA.flatMap((r) => r.ejercicios), ...EXTRAS];
 export const ejercicioPorId = (id) => CATALOGO.find((x) => x.id === id) || null;
 
 // (v160) Pone tus rutinas editadas (estado.gym.rutinas = { rutinaId: [{ id, series }] }) en RUTINA; las que no editaste vuelven a las de fábrica.
-export function aplicarRutinas(personales) {
+// (v174) Las copias (estado.gym.copias = [{ id, base, nombre, icono }]) también entran a RUTINA, al final y con copia: true.
+// Sus ejercicios se guardan igual que los de las demás, en estado.gym.rutinas[idDeLaCopia].
+export const MAX_COPIAS = 6;
+export function aplicarRutinas(personales, copias = []) {
+    for (let i = RUTINA.length - 1; i >= 0; i--) if (RUTINA[i].copia) RUTINA.splice(i, 1);   // se quitan las que había y se ponen las de ahora
+    for (const c of Array.isArray(copias) ? copias : []) {
+        if (c && typeof c.id === "string") RUTINA.push({ id: c.id, icono: c.icono || "📋", nombre: String(c.nombre || "Copia"), copia: true, base: c.base, ejercicios: [] });
+    }
     for (const r of RUTINA) {
         const lista = personales?.[r.id];
         const ejercicios = Array.isArray(lista) ? lista.map(({ id, series }) => {
             const base = ejercicioPorId(id);
             return base ? { ...base, series: Math.max(1, Math.min(MAX_SERIES, Number(series) || base.series)) } : null;
         }).filter(Boolean) : [];
-        r.ejercicios = ejercicios.length ? ejercicios : RUTINAS_DE_FABRICA.find((f) => f.id === r.id).ejercicios;
+        r.ejercicios = ejercicios.length ? ejercicios : (RUTINAS_DE_FABRICA.find((f) => f.id === r.id)?.ejercicios || r.ejercicios);
     }
 }
 export const seriesPlaneadas = (rutina) => rutina.ejercicios.reduce((suma, x) => suma + x.series, 0);
@@ -250,6 +257,8 @@ export function gymInicial() {
         barra: 20,          // (v166) lo que pesa la barra de tu gimnasio, para la calculadora de discos (10, 15 o 20 kg)
         descargas: [],       // (v164) tus semanas de descarga: [{ lunes, cobrada }] (cobrada = ya te dio el premio por descansar bien)
         rutinas: {},         // (v160) tus rutinas editadas: { rutinaId: [{ id, series }] }; las que no están usan las de fábrica
+        copias: [],          // (v174) rutinas duplicadas para probar variantes: [{ id, base (la rutina de fábrica de la que salió), nombre, icono }]
+        avisoSerie: true,    // (v174) sonido y vibración en los últimos 3 s del descanso y al empezar la serie (los datos viejos no lo traen: cuenta como true)
         foco: true,          // (v78) el entrenamiento se ve en «modo foco»: una serie a la vez, con letras grandes
     };
 }
@@ -568,7 +577,7 @@ export const nivelDeSeries = (n) => (n <= 0 ? 0 : n < 6 ? 1 : n < 12 ? 2 : 3);
 // (también las editadas). Cuenta las series que planeas, no las que ya hiciste.
 export function seriesPlaneadasPorMusculo() {
     const series = Object.fromEntries(Object.keys(MUSCULOS).map((m) => [m, 0]));
-    for (const r of RUTINA) for (const ej of r.ejercicios) series[ej.musculo] += ej.series;
+    for (const r of RUTINA) if (!r.copia) for (const ej of r.ejercicios) series[ej.musculo] += ej.series;   // las copias son pruebas: no suman
     return series;
 }
 
@@ -603,9 +612,47 @@ export function mejorRachaSemanal(sesiones, meta, hoyTexto) {
 // Qué entrenamiento toca ahora: el siguiente al último que hiciste (y si no hay ninguno, el primero).
 export function siguienteRutina(sesiones) {
     const ultima = sesiones[sesiones.length - 1];
-    if (!ultima) return RUTINA[0];
-    const i = RUTINA.findIndex((r) => r.id === ultima.rutina);
-    return RUTINA[(i + 1) % RUTINA.length];
+    const turno = RUTINA.filter((r) => !r.copia);   // (v174) las copias no entran en el turno
+    if (!ultima) return turno[0];
+    const hecha = rutinaPorId(ultima.rutina);
+    const idDeTurno = hecha?.copia ? hecha.base : ultima.rutina;   // si hiciste una copia, toca la que sigue a la de la que salió
+    const i = turno.findIndex((r) => r.id === idDeTurno);
+    return turno[(i + 1) % turno.length];
+}
+
+// (v174) Cuántos días llevas sin entrenar (null si aún no has hecho ningún entrenamiento).
+export function diasSinEntrenar(sesiones, hoyTexto) {
+    if (!sesiones.length) return null;
+    const ultima = sesiones.reduce((m, s) => (s.fecha > m ? s.fecha : m), sesiones[0].fecha);
+    return Math.max(0, diasEntre(ultima, hoyTexto));
+}
+// A partir de cuántos días sin entrenar se avisa: más que el hueco normal de tu meta semanal (7 ÷ días) y dos más; nunca antes de 3.
+export const diasParaAvisar = (metaSemanal) => Math.max(3, Math.ceil(7 / Math.max(1, metaSemanal)) + 2);
+// Los días sin entrenar si ya toca avisar; si no, null.
+export function avisoSinEntrenar(g, hoyTexto) {
+    const dias = diasSinEntrenar(g.sesiones, hoyTexto);
+    return dias !== null && dias >= diasParaAvisar(g.metaSemanal) ? dias : null;
+}
+
+// (v174) ¿Suena y vibra al terminar el descanso y en sus últimos 3 segundos? Sí, salvo que lo apagues en Ajustes.
+export const avisoDeSerie = (g) => g.avisoSerie !== false;
+
+// (v174) El historial como hoja de cálculo (CSV): una fila por serie. Con la marca BOM para que Excel lea bien los acentos.
+export function sesionesACsv(sesiones) {
+    const celda = (valor) => {
+        const texto = String(valor ?? "");
+        return /[",\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
+    };
+    const filas = [["fecha", "rutina", "ejercicio", "musculo", "serie", "kg", "reps", "rir", "semana_de_descarga"]];
+    for (const s of sesiones) {
+        const rutina = rutinaPorId(s.rutina)?.nombre || s.rutina;
+        if (!s.ejercicios.length) filas.push([s.fecha, rutina, "(marcado sin detalle)", "", "", "", "", "", s.descarga ? "si" : ""]);
+        for (const ej of s.ejercicios) {
+            const info = ejercicioPorId(ej.id);
+            ej.series.forEach((x, i) => filas.push([s.fecha, rutina, info?.nombre || ej.id, info ? MUSCULOS[info.musculo].nombre : "", i + 1, x.kg, x.reps, x.rir ?? "", s.descarga ? "si" : ""]));
+        }
+    }
+    return `﻿${filas.map((fila) => fila.map(celda).join(",")).join("\r\n")}\r\n`;
 }
 
 // Cuántos días pasaron desde la última vez que hiciste esa rutina (null si nunca).
@@ -879,6 +926,7 @@ export function rutinaPara(musculos) {
     let mejor = null;
     let maximo = 0;
     for (const r of RUTINA) {
+        if (r.copia) continue;
         const n = r.ejercicios.filter((x) => musculos.includes(x.musculo)).reduce((suma, x) => suma + x.series, 0);
         if (n > maximo) { maximo = n; mejor = r; }
     }
