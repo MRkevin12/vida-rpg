@@ -95,9 +95,10 @@ input, textarea, select, [contenteditable="true"], .seleccionable {
     -webkit-touch-callout: default;
 }
 
-/* (v52) Pantalla fija: un dedo solo hace scroll (sin zoom con doble toque); con dos dedos sí se puede hacer zoom. */
+/* (v52) Pantalla fija: un dedo solo hace scroll (sin zoom con doble toque).
+   (v190) Tampoco con dos dedos: al alejar, iOS achicaba la app y la descuadraba. Ver también app.js › sinZoom. */
 html {
-    touch-action: pan-x pan-y pinch-zoom;
+    touch-action: pan-x pan-y;
     -webkit-text-size-adjust: 100%;
 }
 
@@ -302,9 +303,11 @@ button {
     max-width: 640px;
     margin: 0 auto;
     padding: calc(env(safe-area-inset-top) + 10px) 16px 12px;
-    background: rgba(11, 8, 22, 0.86);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    /* (v190) Fondo casi sólido y SIN desenfoque (backdrop-filter): en el iPhone, la cabecera pegada con desenfoque
+       a veces dejaba de pintar su contenido (se veía solo lo de abajo, borroso, sin tu nombre ni tu retrato).
+       translateZ(0) le da su propia capa, así se repinta bien al hacer scroll. */
+    background: rgba(11, 8, 22, 0.97);
+    transform: translateZ(0);
     border-bottom: 1px solid rgba(44, 35, 82, 0.6);
 }
 

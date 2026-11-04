@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v190 — Pantalla fija, sin zoom
+- Sin zoom con dos dedos: el viewport lleva `minimum-scale=1, maximum-scale=1, user-scalable=no`; `html` pasa de `touch-action: pan-x pan-y pinch-zoom` a `pan-x pan-y`, y `app.js › sinZoom()` cancela `gesturestart/change/end` (iOS) y los `touchmove` con 2 o más dedos (`passive: false`). Al alejar, iOS achicaba la app y quedaba descuadrada.
+- `.cabecera`: fondo casi sólido sin `backdrop-filter` y con `transform: translateZ(0)`. En el iPhone, la cabecera pegada con desenfoque a veces dejaba de pintar su contenido (se veía solo lo de abajo, borroso).
+
 ## v189 — Fondos para el retrato
 - Nuevo `js/dibujo-retrato-fondos.js`: `FONDOS_RETRATO` (12 fondos: clase, noche, atardecer, bosque, océano, volcán, montañas, castillo, cristales, galaxia, dorado, liso), `fondoValido` y `fondoDeRetrato`. Cada fondo es SVG simple en el espacio del retrato mini (ventana 75–125 × 11–61).
 - Se guarda solo el id en `estado.ajustes.retratoFondo` (acción `elegirRetratoFondo`); sin él, o con un id desconocido, se usa el de siempre (el color de la clase). No hay versión de datos nueva.

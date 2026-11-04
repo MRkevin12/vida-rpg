@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 189;
+export const VERSION_APP = 190;
 
 export const NOVEDADES = [
+    {
+        version: 190,
+        titulo: "Pantalla fija, sin zoom",
+        cambios: [
+            "📱 Ya no se puede hacer zoom con dos dedos: al alejar, la app se achicaba y quedaba descuadrada.",
+            "🧭 La cabecera (tu retrato, tu nombre y tu nivel) ya no se queda borrosa y vacía al bajar por la pantalla.",
+        ],
+    },
     {
         version: 189,
         titulo: "Fondos para tu retrato",

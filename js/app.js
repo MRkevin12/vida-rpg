@@ -1033,5 +1033,17 @@ function alVolver() {
 }
 
 
+// (v190) Sin zoom con los dedos. En el iPhone, el viewport (index.html) y el CSS no siempre bastan: iOS deja pellizcar
+// igual, por accesibilidad. Por eso también se cancelan aquí los gestos de pellizco («gesturestart», solo existe en iOS)
+// y cualquier movimiento con dos o más dedos. passive: false hace falta para que preventDefault funcione.
+function sinZoom() {
+    const cancelar = (evento) => evento.preventDefault();
+    for (const tipo of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(tipo, cancelar, { passive: false });
+    document.addEventListener("touchmove", (evento) => {
+        if (evento.touches.length > 1 || (evento.scale !== undefined && evento.scale !== 1)) evento.preventDefault();
+    }, { passive: false });
+}
+sinZoom();
+
 // ¡A jugar!
 iniciar();
