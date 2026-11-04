@@ -1,166 +1,196 @@
-// dibujo-plataformas.js — Cómo se VE «La Senda del Reino» (v185): pixel art pintado en un <canvas>.
+// dibujo-plataformas.js — Cómo se VE «La Senda del Reino» (v185; v187: más escenario, luz y «jugo»): pixel art en un <canvas>.
 //
 // Todo se dibuja con rectángulos de un punto (fillRect), como el pixel art de verdad, en un lienzo chico (240 puntos
 // de alto) que la pantalla agranda sin suavizar. Las criaturas y tu héroe son los sprites de la Torre (sprites.js),
-// achicados; el terreno, los fondos y los objetos se pintan aquí.
+// achicados; el terreno, los adornos y los objetos se pintan aquí. Los fondos, el ambiente y la luz de la pantalla
+// están en dibujo-plataformas-escena.js.
 //
 //   const pintor = crearPintor(partida, imagenes);   // prepara los fondos y el terreno (una vez por nivel)
 //   pintor.dibujar(g);                               // pinta un cuadro (60 veces por segundo)
 //
-// Para que vaya rápido: el terreno que no se mueve se pinta UNA vez en un lienzo escondido del tamaño del nivel,
-// y en cada cuadro solo se copia el pedazo que se ve. Lo animado (monedas, lava, antorchas, bloques) se pinta cada vez.
+// Para que vaya rápido: el terreno que no se mueve (y sus adornos quietos: flores, lápidas, carámbanos…) se pinta UNA
+// vez en un lienzo escondido del tamaño del nivel, y en cada cuadro solo se copia el pedazo que se ve. Lo animado
+// (monedas, lava, antorchas, el pasto que se mueve) se pinta cada vez, pero solo en las columnas que se ven.
+//
+// El orden de un cuadro: fondo → (oscuridad del fondo y lo que brilla en él) → terreno y todo lo que se mueve →
+// (oscuridad de adelante) → luces que suman → partículas del ambiente → destellos → viñeta → iris (al entrar/salir).
 
 import * as P from "./plataformas.js";
+import {
+    PALETAS, ruido, lienzo, px, circulo, brillar, crearFondos, pintarFondos, pintarBrillosDeFondo,
+    pintarAmbiente, crearLuzDePantalla, selloDeLuz, ANCHO_FONDO,
+} from "./dibujo-plataformas-escena.js";
 
 const { CELDA } = P;
 
-// ===== Colores de cada mundo (oscuros y sobrios, como el resto de la app) =====
-const PALETAS = {
-    1: {   // Campos del Alba: amanecer violeta y rosa, pasto oscuro, piedra de ruinas
-        cielo: ["#120d22", "#2a1a38", "#5a2f46", "#a3584c", "#d18a5c"],
-        lejos: "#2b2140", medio: "#1d1f30", cerca: "#13151f",
-        tierra: ["#3a2a21", "#2b1f19", "#4b382b"], borde: ["#6d8f3f", "#4a6b2f", "#33502a"],
-        piedra: ["#827d92", "#625e74", "#46435a", "#2b2938"], ladrillo: ["#80503c", "#633d2e", "#2b1a14"],
-        tabla: ["#86603c", "#634428", "#3c2a19"], oscuridad: 0, estrellas: 18,
-    },
-    2: {   // Minas de Cristal: roca azul oscura, cristales que brillan
-        cielo: ["#05050c", "#090a16", "#0d0f20", "#11142a", "#161a33"],
-        lejos: "#10122a", medio: "#161936", cerca: "#0c0d1c",
-        tierra: ["#272c40", "#1c2030", "#343b55"], borde: ["#56628a", "#414b6c", "#2f3650"],
-        piedra: ["#6b7290", "#4f5672", "#383e56", "#23273a"], ladrillo: ["#4d5470", "#3a4058", "#191c2a"],
-        tabla: ["#6e5038", "#513a28", "#30221a"], cristal: ["#7df3f8", "#38bdd8", "#a78bfa", "#6d4fd0"],
-        oscuridad: 0.62, estrellas: 0,
-    },
-    3: {   // Cumbres de la Tormenta: noche, nieve y hielo
-        cielo: ["#060a18", "#0b1430", "#14224a", "#22366a", "#33508a"],
-        lejos: "#2a3656", medio: "#1e2742", cerca: "#121a2c",
-        tierra: ["#363d56", "#292f45", "#474f6c"], borde: ["#f4f7fc", "#d2dcea", "#9eaecb"],
-        piedra: ["#8f9ab4", "#6c7792", "#4b5470", "#2e3448"], ladrillo: ["#9fd3ec", "#6aa9cf", "#2f5a7a"],
-        tabla: ["#a9c2dc", "#7f97b4", "#4b5d78"], hielo: ["#dff6ff", "#a6dcf2", "#5fa7cf", "#356f96"],
-        oscuridad: 0.22, estrellas: 60,
-    },
-    4: {   // Fortaleza de la Llama: piedra negra, ladrillo rojo oscuro y lava
-        cielo: ["#080304", "#140606", "#220909", "#360d0a", "#561a0e"],
-        lejos: "#240b0b", medio: "#170707", cerca: "#0d0404",
-        tierra: ["#3b2a2b", "#2c1f21", "#4b3638"], borde: ["#6b4b48", "#553a38", "#3e2a2a"],
-        piedra: ["#76656a", "#5a4b50", "#3f3438", "#261e22"], ladrillo: ["#7a3a2c", "#5c2a20", "#241010"],
-        tabla: ["#5d5658", "#433d40", "#272325"], lava: ["#fde047", "#fb923c", "#ea580c", "#9a3412", "#5a1a0a"],
-        oscuridad: 0.4, estrellas: 0,
-    },
-};
-
-// Un número entre 0 y 1 que siempre sale igual para la misma celda (para que el terreno no «baile»).
-function ruido(a, b, c = 0) {
-    let h = (a * 374761393 + b * 668265263 + c * 2246822519) >>> 0;
-    h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-
-function lienzo(ancho, alto) {
-    const l = document.createElement("canvas");
-    l.width = Math.max(1, Math.round(ancho));
-    l.height = Math.max(1, Math.round(alto));
-    return l;
-}
-
-// Un punto (o un rectángulo) de color.
-function px(g, x, y, ancho, alto, color) {
-    g.fillStyle = color;
-    g.fillRect(x, y, ancho, alto);
-}
-
 
 // ===== El terreno (una celda de 16 × 16) =====
-// lados: qué lados de la celda dan al aire (para pintar el pasto arriba y el borde oscuro a los lados).
-function pintarCelda(g, letra, x, y, c, f, mundo, lados) {
+// lados: qué lados de la celda dan al aire (para el pasto, la nieve y los bordes).
+// prof: cuántas celdas de suelo tiene encima (0 = la de arriba): lo hondo se pinta más oscuro.
+function pintarCelda(g, letra, x, y, c, f, mundo, lados, prof = 0) {
     const pal = PALETAS[mundo];
-    if (letra === "#") pintarSuelo(g, x, y, c, f, mundo, pal, lados);
-    else if (letra === "=" || letra === "%") pintarPiedra(g, x, y, c, f, pal, letra === "%");
-    else if (letra === "I") pintarHielo(g, x, y, c, f, pal);
-    else if (letra === "-") pintarTabla(g, x, y, pal, mundo);
+    if (letra === "#") pintarSuelo(g, x, y, c, f, mundo, pal, lados, prof);
+    else if (letra === "=" || letra === "%") pintarPiedra(g, x, y, c, f, pal, letra === "%", mundo, lados);
+    else if (letra === "I") pintarHielo(g, x, y, c, f, pal, lados);
+    else if (letra === "-") pintarTabla(g, x, y, c, pal, mundo);
     else if (letra === "^") pintarPinchos(g, x, y);
-    else if (letra === "U") pintarUrna(g, x, y, pal);
+    else if (letra === "U") pintarUrna(g, x, y);
     else if (letra === "G") pintarPivote(g, x, y);
 }
 
-function pintarSuelo(g, x, y, c, f, mundo, pal, lados) {
+// La sombra de lo hondo: cuanto más abajo, más oscuro (de a franjas de 4 puntos).
+function sombraHonda(g, x, y, prof) {
+    for (let k = 0; k < 4; k++) {
+        const a = Math.min(0.5, (prof * 4 + k) * 0.042);
+        if (a <= 0) continue;
+        g.globalAlpha = a;
+        px(g, x, y + k * 4, 16, 4, "#06040c");
+    }
+    g.globalAlpha = 1;
+}
+
+function pintarSuelo(g, x, y, c, f, mundo, pal, lados, prof) {
     const [base, oscuro, claro] = pal.tierra;
     if (mundo === 4) {
-        // La fortaleza: ladrillos de piedra oscura.
-        px(g, x, y, 16, 16, pal.tierra[2]);
-        for (let fila = 0; fila < 4; fila++) {
-            const corrido = (fila + f) % 2 ? 4 : 0;
-            for (let k = -1; k < 3; k++) {
-                const bx = x + k * 8 + corrido;
-                const tono = ruido(c * 3 + k, f * 4 + fila) < 0.3 ? oscuro : base;
-                g.save();
-                g.beginPath();
-                g.rect(x, y, 16, 16);
-                g.clip();
-                px(g, bx, y + fila * 4, 7, 3, tono);
-                px(g, bx, y + fila * 4, 7, 1, claro);
-                g.restore();
-            }
-        }
+        pintarMuralla(g, x, y, c, f, pal, lados);
     } else {
         px(g, x, y, 16, 16, base);
-        for (let i = 0; i < 7; i++) {
-            const r = ruido(c, f, i);
-            const a = ruido(f, c, i + 9);
-            px(g, x + Math.floor(r * 15), y + Math.floor(a * 15), 2, 1, i % 3 ? oscuro : claro);
-        }
-        if (mundo === 2 && ruido(c, f, 40) < 0.18) {   // vetas de cristal
-            const cx = x + 3 + Math.floor(ruido(c, f, 41) * 9);
-            const cy = y + 5 + Math.floor(ruido(c, f, 42) * 8);
-            px(g, cx, cy, 2, 2, pal.cristal[1]);
-            px(g, cx, cy, 1, 1, pal.cristal[0]);
-        }
-    }
-    if (lados.izq) px(g, x, y, 1, 16, oscuro);
-    if (lados.der) px(g, x + 15, y, 1, 16, oscuro);
-    if (lados.abajo) px(g, x, y + 15, 16, 1, oscuro);
-    if (lados.arriba) {
-        const [luz, medio, sombra] = pal.borde;
-        // La capa de arriba: pasto (mundo 1), roca clara (2), nieve (3) o el borde de la muralla (4).
-        px(g, x, y, 16, 3, medio);
-        px(g, x, y, 16, 1, luz);
-        for (let i = 0; i < 16; i++) {
-            const largo = Math.floor(ruido(c * 16 + i, f, 7) * (mundo === 3 ? 4 : 3));
-            if (largo) px(g, x + i, y + 3, 1, largo, mundo === 3 ? medio : sombra);
-        }
-        if (mundo === 1) {   // matas de pasto que asoman
-            for (let i = 0; i < 3; i++) {
-                const bx = x + Math.floor(ruido(c, f, 20 + i) * 15);
-                px(g, bx, y - 1, 1, 1, luz);
+        for (let i = 0; i < 5; i++) {
+            const sx = x + Math.floor(ruido(c, f, i) * 13);
+            const sy = y + 3 + Math.floor(ruido(f, c, i + 9) * 11);
+            if (mundo === 1) {          // piedritas redondas enterradas
+                px(g, sx, sy, 3, 2, oscuro);
+                px(g, sx, sy, 2, 1, claro);
+            } else if (mundo === 2) {   // vetas de la roca, en capas
+                px(g, sx - 2, sy, 6, 1, i % 2 ? oscuro : claro);
+            } else {                    // tierra helada con escarcha
+                px(g, sx, sy, 2, 1, i % 2 ? oscuro : "#5a6584");
             }
         }
-        if (mundo === 3) px(g, x, y + 3, 16, 1, sombra);
+        if (mundo === 2 && ruido(c, f, 40) < 0.22) {   // vetas de cristal
+            const cx = x + 3 + Math.floor(ruido(c, f, 41) * 9);
+            const cy = y + 5 + Math.floor(ruido(c, f, 42) * 8);
+            px(g, cx, cy, 3, 2, pal.cristal[1]);
+            px(g, cx, cy, 1, 1, pal.cristal[0]);
+            px(g, cx + 1, cy + 2, 1, 1, pal.cristal[3]);
+        }
+        if (mundo === 1 && lados.arriba) {   // raíces que bajan del pasto
+            for (let i = 0; i < 2; i++) {
+                const rx = x + 2 + Math.floor(ruido(c, f, 50 + i) * 12);
+                px(g, rx, y + 4, 1, 2 + Math.floor(ruido(c, f, 52 + i) * 4), "#241a14");
+            }
+        }
+    }
+    sombraHonda(g, x, y, prof);
+    if (lados.izq) { px(g, x, y, 1, 16, oscuro); g.globalAlpha = 0.3; px(g, x + 1, y, 1, 16, "#000"); g.globalAlpha = 1; }
+    if (lados.der) { px(g, x + 15, y, 1, 16, oscuro); g.globalAlpha = 0.3; px(g, x + 14, y, 1, 16, "#000"); g.globalAlpha = 1; }
+    if (lados.abajo) px(g, x, y + 15, 16, 1, oscuro);
+    if (lados.arriba) pintarBordeDeArriba(g, x, y, c, f, mundo, pal, lados);
+}
+
+// La capa de arriba del suelo: pasto (mundo 1), roca clara (2), nieve (3) o el remate de la muralla (4).
+function pintarBordeDeArriba(g, x, y, c, f, mundo, pal, lados) {
+    const [luz, medio, sombra] = pal.borde;
+    if (mundo === 1) {
+        px(g, x, y, 16, 4, sombra);
+        px(g, x, y, 16, 3, medio);
+        px(g, x, y, 16, 1, luz);
+        for (let i = 0; i < 16; i++) {   // el borde de abajo, irregular (el pasto «gotea» sobre la tierra)
+            const largo = Math.floor(ruido(c * 16 + i, f, 7) * 3);
+            if (largo) px(g, x + i, y + 4, 1, largo, sombra);
+        }
+        for (let i = 0; i < 4; i++) px(g, x + Math.floor(ruido(c, f, 30 + i) * 15), y + 1, 1, 1, luz);
+        for (let i = 0; i < 3; i++) {   // briznas quietas que asoman
+            const bx = x + Math.floor(ruido(c, f, 20 + i) * 15);
+            px(g, bx, y - 1, 1, 1, luz);
+            if (ruido(c, f, 23 + i) < 0.5) px(g, bx, y - 2, 1, 1, medio);
+        }
+        if (lados.izq) px(g, x, y + 3, 1, 3, medio);
+        if (lados.der) px(g, x + 15, y + 3, 1, 3, medio);
+    } else if (mundo === 2) {
+        px(g, x, y, 16, 3, medio);
+        px(g, x, y, 16, 1, luz);
+        for (let i = 0; i < 16; i++) if (ruido(c * 16 + i, f, 8) < 0.4) px(g, x + i, y + 3, 1, 1, sombra);
+        if (ruido(c, f, 50) < 0.35) px(g, x + Math.floor(ruido(c, f, 51) * 14), y, 2, 1, pal.cristal[0]);
+    } else if (mundo === 3) {
+        const grosor = 4 + Math.floor(ruido(c, f, 60) * 2);
+        for (let i = 0; i < 16; i++) {
+            const alto = grosor + Math.round(Math.sin((c * 16 + i) * 0.45) * 1.2);
+            px(g, x + i, y, 1, alto, medio);
+            px(g, x + i, y + alto, 1, 1, sombra);
+            if (Math.sin((c * 16 + i) * 0.45) > 0.7) px(g, x + i, y - 1, 1, 1, luz);   // la nieve se amontona
+        }
+        px(g, x, y, 16, 1, luz);
+        px(g, x, y + 1, 16, 1, "#e6edf7");
+        if (lados.izq) px(g, x, y + 4, 1, 2 + Math.floor(ruido(c, f, 61) * 4), medio);
+        if (lados.der) px(g, x + 15, y + 4, 1, 2 + Math.floor(ruido(c, f, 62) * 4), medio);
+    } else {
+        px(g, x, y, 16, 4, sombra);
+        px(g, x, y, 16, 3, medio);
+        px(g, x, y, 16, 1, luz);
+        for (let i = 3; i < 16; i += 8) px(g, x + i, y + 1, 1, 2, sombra);   // las juntas del remate
     }
 }
 
-function pintarPiedra(g, x, y, c, f, pal, falsa) {
+// La muralla de la fortaleza: ladrillos de piedra oscura, corridos fila por medio.
+function pintarMuralla(g, x, y, c, f, pal) {
+    const [base, oscuro, claro] = pal.tierra;
+    px(g, x, y, 16, 16, "#1c1314");
+    for (let fila = 0; fila < 4; fila++) {
+        const corrido = (fila + f) % 2 ? 4 : 0;
+        for (let k = -1; k < 3; k++) {
+            const desde = Math.max(x, x + k * 8 + corrido);
+            const hasta = Math.min(x + 16, x + k * 8 + corrido + 7);
+            if (hasta <= desde) continue;
+            const r = ruido(c * 3 + k, f * 4 + fila);
+            px(g, desde, y + fila * 4, hasta - desde, 3, r < 0.3 ? oscuro : base);
+            px(g, desde, y + fila * 4, hasta - desde, 1, claro);
+            if (r > 0.92) px(g, desde + 2, y + fila * 4 + 1, 1, 2, "#1c1314");   // un ladrillo rajado
+            if (r > 0.97) px(g, desde + 4, y + fila * 4 + 2, 1, 1, "#c2410c");    // con brasa adentro
+        }
+    }
+}
+
+function pintarPiedra(g, x, y, c, f, pal, falsa, mundo, lados) {
     const [luz, cara, sombra, borde] = pal.piedra;
     px(g, x, y, 16, 16, borde);
     px(g, x + 1, y + 1, 14, 14, cara);
+    for (let i = 0; i < 3; i++) {   // manchas de la piedra
+        g.globalAlpha = 0.5;
+        px(g, x + 3 + Math.floor(ruido(c, f, 10 + i) * 9), y + 3 + Math.floor(ruido(c, f, 20 + i) * 9), 2, 1, ruido(c, f, 30 + i) < 0.5 ? sombra : luz);
+    }
+    g.globalAlpha = 1;
     px(g, x + 1, y + 1, 14, 1, luz);
     px(g, x + 1, y + 1, 1, 14, luz);
     px(g, x + 1, y + 14, 14, 1, sombra);
     px(g, x + 14, y + 1, 1, 14, sombra);
-    // Grietas y musgo, distintos en cada bloque.
+    px(g, x + 2, y + 2, 1, 1, "#ffffff40");
     const r = ruido(c, f, 3);
-    if (r < 0.5) {
+    if (r < 0.5) {   // una grieta
         const gx = x + 4 + Math.floor(r * 14);
         px(g, gx, y + 4, 1, 3, sombra);
         px(g, gx + 1, y + 7, 1, 2, sombra);
     }
+    if (ruido(c, f, 8) < 0.25) px(g, x + 13, y + 13, 2, 2, borde);   // una esquina desportillada
     if (falsa) {   // la pared falsa tiene una grieta un poco más marcada (una pista)
         px(g, x + 5, y + 3, 1, 4, borde);
         px(g, x + 6, y + 7, 1, 3, borde);
         px(g, x + 7, y + 10, 1, 2, borde);
     }
+    if (!lados?.arriba) return;
+    if (mundo === 1 && ruido(c, f, 40) < 0.55) {   // musgo arriba, que cuelga un poco
+        const [claro2, oscuro2] = pal.musgo;
+        px(g, x + 1, y, 14, 2, oscuro2);
+        px(g, x + 1, y, 14, 1, claro2);
+        for (let i = 0; i < 14; i++) if (ruido(c * 16 + i, f, 41) < 0.3) px(g, x + 1 + i, y + 2, 1, 1 + Math.floor(ruido(c, f, i) * 2), oscuro2);
+    } else if (mundo === 3) {   // nieve encima
+        px(g, x, y, 16, 3, "#d2dcea");
+        px(g, x, y, 16, 1, "#f4f7fc");
+        for (let i = 0; i < 16; i++) if (ruido(c * 16 + i, f, 42) < 0.35) px(g, x + i, y + 3, 1, 1, "#d2dcea");
+    }
 }
 
-function pintarHielo(g, x, y, c, f, pal) {
+function pintarHielo(g, x, y, c, f, pal, lados) {
     const [brillo, cara, sombra, borde] = pal.hielo || pal.piedra;
     px(g, x, y, 16, 16, borde);
     px(g, x + 1, y + 1, 14, 14, cara);
@@ -168,24 +198,30 @@ function pintarHielo(g, x, y, c, f, pal) {
     px(g, x + 1, y + 12, 14, 2, sombra);
     for (let i = 0; i < 4; i++) px(g, x + 3 + i * 2, y + 9 - i * 2, 2, 1, brillo);   // un reflejo en diagonal
     if (ruido(c, f, 5) < 0.4) px(g, x + 10, y + 5, 3, 1, sombra);
+    if (ruido(c, f, 6) < 0.5) { px(g, x + 4, y + 11, 1, 2, borde); px(g, x + 5, y + 10, 1, 1, borde); }   // burbujas de aire atrapadas
+    if (lados?.arriba) px(g, x, y, 16, 1, "#ffffff");
 }
 
-function pintarTabla(g, x, y, pal, mundo) {
+function pintarTabla(g, x, y, c, pal, mundo) {
     const [luz, cara, sombra] = pal.tabla;
     px(g, x, y, 16, 5, sombra);
     px(g, x, y, 16, 4, cara);
     px(g, x, y, 16, 1, luz);
     if (mundo === 4) {   // una reja de hierro
         for (let i = 1; i < 16; i += 4) px(g, x + i, y + 1, 1, 3, sombra);
-    } else {
-        px(g, x + 7, y + 1, 1, 3, sombra);
-        px(g, x + 3, y + 5, 2, 3, sombra);   // el soporte
-        px(g, x + 11, y + 5, 2, 3, sombra);
+        return;
     }
+    px(g, x + 3 + Math.floor(ruido(c, 1) * 4), y + 2, 4, 1, sombra);   // la veta de la madera
+    px(g, x + 7, y + 1, 1, 3, sombra);
+    px(g, x + 1, y + 2, 1, 1, "#1f150c");   // los clavos
+    px(g, x + 14, y + 2, 1, 1, "#1f150c");
+    px(g, x + 3, y + 5, 2, 3, sombra);      // el soporte
+    px(g, x + 11, y + 5, 2, 3, sombra);
 }
 
 function pintarPinchos(g, x, y) {
     px(g, x, y + 13, 16, 3, "#2b2d36");
+    px(g, x, y + 13, 16, 1, "#4a4e5c");
     for (let i = 0; i < 4; i++) {
         const bx = x + i * 4;
         px(g, bx + 1, y + 7, 2, 6, "#7c8596");
@@ -195,7 +231,7 @@ function pintarPinchos(g, x, y) {
     }
 }
 
-function pintarUrna(g, x, y, pal) {
+function pintarUrna(g, x, y) {
     // Una urna de piedra con la boca abierta (de ahí sale la raíz).
     px(g, x + 1, y, 14, 3, "#2a1f1e");
     px(g, x, y + 1, 16, 2, "#5a4440");
@@ -213,24 +249,186 @@ function pintarPivote(g, x, y) {
     for (const [a, b] of [[3, 3], [11, 3], [3, 11], [11, 11]]) px(g, x + a, y + b, 2, 2, "#2b2d34");
 }
 
-// Las letras que se pintan en CADA cuadro (son animadas o pueden cambiar): no van en el lienzo del terreno.
-const ANIMADAS = new Set(["o", "?", "!", "*", "$", "u", "B", "~", "T"]);
-const SOLIDAS_PARA_BORDES = (l) => l === "#" || l === "=" || l === "%" || l === "I" || l === "B" || l === "u";
 
-// pareceMuro(c, f) = true si esa celda es parte de un escondite sin descubrir (desde afuera se ve como pared).
-function ladosDe(nivel, c, f, letra, pareceMuro = () => false) {
-    const otro = (dc, df) => {
-        if (pareceMuro(c + dc, f + df)) return true;
-        const vecina = P.celda(nivel, c + dc, f + df);
-        return letra === "#" ? vecina === "#" || vecina === "%" : SOLIDAS_PARA_BORDES(vecina);
-    };
-    return { arriba: f > 0 && !otro(0, -1), abajo: !otro(0, 1) && f < nivel.alto - 1, izq: !otro(-1, 0), der: !otro(1, 0) };
+// ===== Los adornos quietos (se pintan con el terreno, en la celda vacía de encima o de debajo) =====
+
+// Sobre el suelo: flores, lápidas y espadas (mundo 1), cristales y hongos (2), montones de nieve (3), huesos (4).
+function adornoDeSuelo(g, x, y, c, f, mundo, pal) {
+    const r = ruido(c, f, 77);
+    const pie = y + 16;
+    if (mundo === 1) {
+        const [luz, medio, sombra] = pal.borde;
+        if (r < 0.26) {          // una mata de pasto
+            for (let i = 0; i < 4; i++) {
+                const bx = x + 3 + i * 3 + Math.floor(ruido(c, f, i) * 2);
+                const alto = 2 + Math.floor(ruido(c, f, 10 + i) * 4);
+                px(g, bx, pie - alto, 1, alto, i % 2 ? medio : sombra);
+                px(g, bx, pie - alto, 1, 1, luz);
+            }
+        } else if (r < 0.38) {   // flores silvestres
+            for (let i = 0; i < 3; i++) {
+                const fx = x + 2 + Math.floor(ruido(c, f, 20 + i) * 12);
+                const alto = 3 + Math.floor(ruido(c, f, 23 + i) * 3);
+                const color = ["#e8d36a", "#d97a8a", "#c9c1e8", "#f1ece0"][Math.floor(ruido(c, f, 26 + i) * 4)];
+                px(g, fx, pie - alto, 1, alto, sombra);
+                px(g, fx - 1, pie - alto - 1, 3, 1, color);
+                px(g, fx, pie - alto - 2, 1, 3, color);
+                px(g, fx, pie - alto - 1, 1, 1, "#fff7d6");
+            }
+        } else if (r < 0.45) {   // una piedra
+            px(g, x + 5, pie - 3, 6, 3, pal.piedra[2]);
+            px(g, x + 6, pie - 4, 4, 1, pal.piedra[2]);
+            px(g, x + 6, pie - 4, 3, 1, pal.piedra[1]);
+        } else if (r < 0.49) {   // una lápida de la última guerra, con su cruz tallada
+            px(g, x + 4, pie - 10, 8, 10, pal.piedra[3]);
+            px(g, x + 5, pie - 11, 6, 1, pal.piedra[3]);
+            px(g, x + 5, pie - 10, 6, 10, pal.piedra[2]);
+            px(g, x + 5, pie - 10, 6, 1, pal.piedra[1]);
+            px(g, x + 7, pie - 8, 2, 5, pal.piedra[3]);
+            px(g, x + 6, pie - 7, 4, 1, pal.piedra[3]);
+            px(g, x + 4, pie - 2, 3, 2, pal.musgo[1]);
+        } else if (r < 0.52) {   // una espada clavada
+            px(g, x + 8, pie - 8, 1, 8, "#9aa0ae");
+            px(g, x + 9, pie - 8, 1, 8, "#5f6574");
+            px(g, x + 6, pie - 9, 6, 1, "#7a5a2e");
+            px(g, x + 8, pie - 12, 2, 3, "#5a3a22");
+            px(g, x + 8, pie - 13, 2, 1, "#c08a34");
+        }
+    } else if (mundo === 2) {
+        if (r < 0.22) {          // cristales que crecen del suelo
+            const violeta = ruido(c, f, 78) < 0.4;
+            const [claro, medio] = violeta ? [pal.cristal[2], pal.cristal[3]] : [pal.cristal[0], pal.cristal[1]];
+            for (const [dx, alto] of [[6, 7], [3, 4], [10, 5]]) {
+                const a = alto + Math.floor(ruido(c, f, dx) * 3);
+                px(g, x + dx, pie - a, 2, a, medio);
+                px(g, x + dx, pie - a, 1, a, claro);
+                px(g, x + dx, pie - a - 1, 1, 1, claro);
+            }
+        } else if (r < 0.32) {   // hongos que dan luz
+            for (const dx of [4, 9]) {
+                const alto = 3 + Math.floor(ruido(c, f, dx) * 3);
+                px(g, x + dx + 1, pie - alto, 1, alto, "#9aa6c4");
+                px(g, x + dx - 1, pie - alto - 2, 5, 2, "#2dd4bf");
+                px(g, x + dx, pie - alto - 3, 3, 1, "#5eead4");
+                px(g, x + dx, pie - alto - 2, 1, 1, "#ccfbf1");
+            }
+        } else if (r < 0.44) {   // cascotes
+            px(g, x + 3, pie - 2, 4, 2, pal.piedra[2]);
+            px(g, x + 9, pie - 3, 3, 3, pal.piedra[3]);
+            px(g, x + 9, pie - 3, 2, 1, pal.piedra[1]);
+        }
+    } else if (mundo === 3) {
+        if (r < 0.26) {          // un montón de nieve
+            for (let i = 0; i < 10; i++) {
+                const alto = Math.round(Math.sin((i / 9) * Math.PI) * 3);
+                if (alto > 0) px(g, x + 3 + i, pie - alto, 1, alto, i < 5 ? "#f4f7fc" : "#c5d2e6");
+            }
+        } else if (r < 0.36) {   // pasto helado
+            for (let i = 0; i < 4; i++) {
+                const alto = 2 + Math.floor(ruido(c, f, 10 + i) * 3);
+                px(g, x + 4 + i * 2, pie - alto, 1, alto, "#a7c4de");
+            }
+        } else if (r < 0.43) {   // una roca con nieve
+            px(g, x + 4, pie - 4, 8, 4, pal.piedra[2]);
+            px(g, x + 5, pie - 5, 6, 2, "#f4f7fc");
+        } else if (r < 0.48) {   // un arbusto seco
+            for (const [a, b, l] of [[7, 0, 6], [5, -2, 4], [10, 2, 4]]) {
+                px(g, x + a, pie - l, 1, l, "#2a3048");
+                px(g, x + a + Math.sign(b), pie - l, 1, 1, "#2a3048");
+            }
+        }
+    } else {
+        if (r < 0.1) {           // una calavera
+            px(g, x + 5, pie - 5, 6, 4, "#cfc8b8");
+            px(g, x + 6, pie - 1, 4, 1, "#a8a090");
+            px(g, x + 6, pie - 4, 2, 2, "#1c1314");
+            px(g, x + 9, pie - 4, 1, 2, "#1c1314");
+            px(g, x + 5, pie - 5, 6, 1, "#e7e2d4");
+        } else if (r < 0.22) {   // huesos
+            px(g, x + 3, pie - 2, 7, 1, "#d8d2c2");
+            px(g, x + 2, pie - 3, 2, 2, "#d8d2c2");
+            px(g, x + 9, pie - 2, 2, 2, "#d8d2c2");
+            px(g, x + 10, pie - 1, 4, 1, "#a8a090");
+        } else if (r < 0.32) {   // cascotes
+            px(g, x + 4, pie - 3, 4, 3, pal.piedra[2]);
+            px(g, x + 4, pie - 3, 3, 1, pal.piedra[1]);
+            px(g, x + 10, pie - 2, 3, 2, pal.piedra[3]);
+        } else if (r < 0.36) {   // una espada rota
+            px(g, x + 7, pie - 5, 1, 5, "#7c8596");
+            px(g, x + 5, pie - 6, 5, 1, "#5a4632");
+            px(g, x + 7, pie - 8, 1, 2, "#3a2a1e");
+        }
+    }
+}
+
+// Debajo de un techo: raíces (mundo 1), estalactitas (2), carámbanos (3) y cadenas (4).
+function adornoColgante(g, x, y, c, f, mundo, pal) {
+    const r = ruido(c, f, 88);
+    if (mundo === 1 && r < 0.4) {
+        for (let i = 0; i < 3; i++) {
+            const rx = x + 2 + Math.floor(ruido(c, f, 90 + i) * 12);
+            const largo = 2 + Math.floor(ruido(c, f, 93 + i) * 6);
+            px(g, rx, y, 1, largo, i % 2 ? "#3a2a21" : "#4a6b2f");
+            if (largo > 4) px(g, rx + 1, y + largo - 2, 1, 1, "#6f9a45");
+        }
+    } else if (mundo === 2 && r < 0.45) {
+        for (let i = 0; i < 2; i++) {
+            const rx = x + 3 + Math.floor(ruido(c, f, 90 + i) * 9);
+            const largo = 3 + Math.floor(ruido(c, f, 93 + i) * 5);
+            for (let k = 0; k < largo; k++) px(g, rx - (k < largo / 2 ? 1 : 0), y + k, k < largo / 2 ? 3 : 1, 1, pal.piedra[2]);
+            if (ruido(c, f, 96 + i) < 0.5) px(g, rx, y + largo, 1, 1, pal.cristal[1]);
+        }
+    } else if (mundo === 3 && r < 0.6) {
+        const [brillo, cara] = pal.hielo;
+        for (let i = 0; i < 3; i++) {
+            if (i && ruido(c, f, 99 + i) < 0.4) continue;
+            const rx = x + 2 + Math.floor(ruido(c, f, 90 + i) * 11);
+            const largo = 3 + Math.floor(ruido(c, f, 93 + i) * 7);
+            for (let k = 0; k < largo; k++) {
+                const w = Math.max(1, Math.round((1 - k / largo) * 3));
+                px(g, rx, y + k, w, 1, cara);
+                px(g, rx, y + k, 1, 1, brillo);
+            }
+        }
+    } else if (mundo === 4 && r < 0.16) {
+        const rx = x + 7;
+        const largo = 6 + Math.floor(ruido(c, f, 91) * 8);
+        for (let k = 0; k < largo; k += 3) {
+            px(g, rx, y + k, 2, 2, "#4a4448");
+            px(g, rx + (k % 6 ? 1 : 0), y + k + 2, 1, 1, "#2a2528");
+        }
+    }
+}
+
+// Los adornos que se mueven (se pintan en cada cuadro): el pasto del mundo 1, los destellos de los cristales y de la nieve.
+// Se arman una vez, por columna, así en cada cuadro solo se miran las columnas que se ven.
+function adornosVivos(n, mundo, oculta) {
+    const porColumna = Array.from({ length: n.ancho }, () => []);
+    const libre = (letra) => letra === "." || letra === "o";
+    for (let c = 0; c < n.ancho; c++) {
+        for (let f = 1; f < n.alto; f++) {
+            const letra = P.celda(n, c, f);
+            if (oculta(c, f) || oculta(c, f - 1) || n.escondite[`${c},${f}`] !== undefined || !libre(P.celda(n, c, f - 1))) continue;
+            const x = c * CELDA;
+            const y = f * CELDA;
+            if (mundo === 1 && letra === "#") {
+                for (let i = 0; i < 2; i++) {
+                    porColumna[c].push({ tipo: "pasto", x: x + 3 + i * 7 + Math.floor(ruido(c, f, 140 + i) * 4), y, alto: 3 + Math.floor(ruido(c, f, 142 + i) * 3) });
+                }
+            } else if (mundo === 2 && (letra === "#" || letra === "=") && ruido(c, f - 1, 77) < 0.22) {
+                porColumna[c].push({ tipo: "cristal", x: x + 6, y: y - 8, fase: ruido(c, f, 7) * 9 });
+            } else if (mundo === 3 && (letra === "#" || letra === "=" || letra === "I") && ruido(c, f, 150) < 0.5) {
+                porColumna[c].push({ tipo: "escarcha", x: x + Math.floor(ruido(c, f, 151) * 15), y: y + 1, fase: ruido(c, f, 152) * 9 });
+            }
+        }
+    }
+    return porColumna;
 }
 
 
 // ===== Lo que se pinta en cada cuadro =====
 
-function pintarBloqueRunico(g, x, y, letra, reloj, mundo) {
+function pintarBloqueRunico(g, x, y, letra) {
     if (letra === "u") {   // ya usado: bronce apagado
         px(g, x, y, 16, 16, "#1f160e");
         px(g, x + 1, y + 1, 14, 14, "#4a3a28");
@@ -238,7 +436,7 @@ function pintarBloqueRunico(g, x, y, letra, reloj, mundo) {
         for (const [a, b] of [[2, 2], [12, 2], [2, 12], [12, 12]]) px(g, x + a, y + b, 2, 2, "#2c2117");
         return;
     }
-    // Un bloque de bronce con una runa que brilla (más fuerte y más lento cada tanto).
+    // Un bloque de bronce con un destello que late (más fuerte y más lento cada tanto).
     px(g, x, y, 16, 16, "#2a1a08");
     px(g, x + 1, y + 1, 14, 14, "#8a6424");
     px(g, x + 1, y + 1, 14, 1, "#c08a34");
@@ -246,19 +444,32 @@ function pintarBloqueRunico(g, x, y, letra, reloj, mundo) {
     px(g, x + 1, y + 14, 14, 1, "#5a3c12");
     px(g, x + 14, y + 1, 1, 14, "#5a3c12");
     for (const [a, b] of [[2, 2], [12, 2], [2, 12], [12, 12]]) px(g, x + a, y + b, 2, 2, "#4a3010");
+    return true;
+}
+
+function pintarDestelloDelBloque(g, x, y, letra, reloj) {
     const brillo = 0.55 + 0.45 * Math.sin(reloj * 4 + x * 0.05);
     const runa = brillo > 0.8 ? "#fff1b8" : brillo > 0.5 ? "#fcd34d" : "#e2a530";
-    // (v186) El símbolo: un destello de cuatro puntas (antes era una runa que parecía una «R» suelta).
-    // Así se entiende a la primera que el bloque guarda algo y que hay que golpearlo desde abajo.
-    px(g, x + 7, y + 3, 2, 10, runa);       // la punta de arriba a la de abajo
-    px(g, x + 3, y + 7, 10, 2, runa);       // y la de izquierda a derecha
-    px(g, x + 6, y + 6, 4, 4, runa);        // el centro, más grueso
-    px(g, x + 5, y + 5, 1, 1, runa);        // chispas en las diagonales
+    // (v186) El símbolo: un destello de cuatro puntas: se entiende a la primera que el bloque guarda algo.
+    px(g, x + 7, y + 3, 2, 10, runa);
+    px(g, x + 3, y + 7, 10, 2, runa);
+    px(g, x + 6, y + 6, 4, 4, runa);
+    px(g, x + 5, y + 5, 1, 1, runa);
     px(g, x + 10, y + 5, 1, 1, runa);
     px(g, x + 5, y + 10, 1, 1, runa);
     px(g, x + 10, y + 10, 1, 1, runa);
-    px(g, x + 7, y + 7, 2, 2, "#fff8dc");   // el corazón del destello, siempre claro
+    px(g, x + 7, y + 7, 2, 2, "#fff8dc");
     if (letra === "*") px(g, x + 3, y + 3, 1, 1, "#ffffff");
+    // (v187) Cada tanto, un brillo cruza el bronce en diagonal (como el reflejo en un metal).
+    const cruce = ((reloj * 0.7 + x * 0.013) % 2.4) * 12 - 4;
+    if (cruce > 0 && cruce < 20) {
+        g.globalAlpha = 0.5;
+        for (let k = 0; k < 14; k++) {
+            const bx = Math.round(cruce - k * 0.6) + 1;
+            if (bx >= 1 && bx <= 13) px(g, x + bx, y + 1 + k, 2, 1, "#ffe8a8");
+        }
+        g.globalAlpha = 1;
+    }
 }
 
 function pintarLadrillo(g, x, y, mundo) {
@@ -272,205 +483,83 @@ function pintarLadrillo(g, x, y, mundo) {
             if (fin <= bx) continue;
             px(g, bx, y + fila * 4, fin - bx, 3, cara);
             px(g, bx, y + fila * 4 + 2, fin - bx, 1, sombra);
+            px(g, bx, y + fila * 4, 1, 1, "#ffffff30");
         }
     }
 }
 
 function pintarMoneda(g, x, y, reloj, semilla = 0) {
-    // Gira: se ve de frente, de canto y vuelta.
+    // Gira: se ve de frente, de canto y vuelta. Con borde oscuro, así se lee sobre cualquier fondo.
     const cuadro = Math.floor(reloj * 8 + semilla) % 6;
     const ancho = [8, 6, 4, 2, 4, 6][cuadro];
     const cx = x + 8 - ancho / 2;
-    px(g, cx, y + 3, ancho, 10, "#a16207");
-    px(g, cx, y + 4, ancho, 8, "#f5b730");
-    if (ancho > 2) {
-        px(g, cx + 1, y + 4, Math.max(1, ancho - 3), 1, "#fde68a");
-        px(g, cx + Math.floor(ancho / 2), y + 6, 1, 4, "#c98a12");
+    if (ancho <= 2) {
+        px(g, cx, y + 3, 2, 10, "#8a5208");
+        px(g, cx, y + 4, 1, 8, "#fde68a");
+        return;
     }
+    px(g, cx, y + 3, ancho, 10, "#6b3d05");
+    px(g, cx + 1, y + 4, ancho - 2, 8, "#f5b730");
+    px(g, cx + 1, y + 4, 1, 8, "#fde68a");
+    px(g, cx + ancho - 2, y + 5, 1, 7, "#c98a12");
+    px(g, cx + Math.floor(ancho / 2), y + 6, 1, 4, "#c98a12");
+    if (cuadro === 0) px(g, cx + 2, y + 5, 1, 1, "#ffffff");
 }
 
 function pintarLava(g, x, y, c, reloj, pal, superficie) {
-    const [amarillo, naranja, rojo, oscuro] = pal.lava;
+    const [amarillo, naranja, rojo, oscuro, negro] = pal.lava;
     px(g, x, y, 16, 16, rojo);
-    px(g, x, y + 10, 16, 6, oscuro);
+    px(g, x, y + 9, 16, 7, oscuro);
+    px(g, x, y + 13, 16, 3, negro);
+    // Costras oscuras que flotan despacio.
+    for (let k = 0; k < 2; k++) {
+        const cx = Math.floor((ruido(c, k, 5) * 16 + reloj * (2.5 + k * 1.5)) % 16);
+        px(g, x + cx, y + 6 + k * 4, Math.min(4, 16 - cx), 1, k ? negro : oscuro);
+    }
     if (superficie) {
         for (let i = 0; i < 16; i++) {
             const ola = Math.round(Math.sin((c * 16 + i) * 0.35 + reloj * 3) * 1.5);
-            px(g, x + i, y + 2 + ola, 1, 3, naranja);
+            px(g, x + i, y + 2 + ola, 1, 4, naranja);
             px(g, x + i, y + 1 + ola, 1, 1, amarillo);
+        }
+        // Burbujas que suben y revientan.
+        const vuelta = Math.floor(reloj * 0.8 + ruido(c, 3));
+        const t = (reloj * 0.8 + ruido(c, 3)) % 1;
+        if (ruido(c, vuelta) < 0.35) {
+            const bx = x + 4 + Math.floor(ruido(c, 9) * 8);
+            if (t < 0.85) px(g, bx, y + 9 - Math.floor(t * 7), 2, 2, amarillo);
+            else { px(g, bx - 2, y + 1, 1, 1, amarillo); px(g, bx + 3, y, 1, 1, amarillo); }
+        }
+        // Una gota que salta fuera y vuelve a caer.
+        const salto = (reloj * 1.3 + ruido(c, 11)) % 1;
+        if (ruido(c, Math.floor(reloj * 1.3 + ruido(c, 11)), 12) < 0.18) {
+            px(g, x + 8 + Math.round(salto * 5), y - Math.round(Math.sin(salto * Math.PI) * 14), 1, 2, salto < 0.5 ? amarillo : naranja);
         }
     } else {
         px(g, x, y, 16, 4, naranja);
-    }
-    // Burbujas que suben y revientan.
-    const t = (reloj * 0.8 + ruido(c, 3)) % 1;
-    if (superficie && ruido(c, Math.floor(reloj * 0.8 + ruido(c, 3))) < 0.35) {
-        px(g, x + 4 + Math.floor(ruido(c, 9) * 8), y + 8 - Math.floor(t * 6), 2, 2, amarillo);
     }
 }
 
 function pintarAntorcha(g, x, y, reloj, mundo) {
     if (mundo === 4) {   // en la muralla: un soporte de hierro
-        px(g, x + 6, y + 8, 4, 2, "#3a3438");
-        px(g, x + 7, y + 6, 2, 6, "#5a5056");
+        px(g, x + 5, y + 8, 6, 2, "#3a3438");
+        px(g, x + 7, y + 6, 2, 7, "#5a5056");
     } else {             // en el campo y las minas: un poste de madera
         px(g, x + 7, y + 6, 2, 10, "#4a3220");
         px(g, x + 7, y + 6, 1, 10, "#6a4a30");
         px(g, x + 5, y + 5, 6, 2, "#2e2a2a");
     }
-    const vaiven = Math.sin(reloj * 14 + x) > 0 ? 1 : 0;
-    px(g, x + 6, y + 1 + vaiven, 4, 4, "#ea580c");
-    px(g, x + 7, y - 1 + vaiven, 2, 4, "#fb923c");
-    px(g, x + 7, y + 2, 2, 2, "#fde68a");
-}
-
-
-// ===== Los fondos (tres capas que se mueven más lento que el terreno: da profundidad) =====
-const ANCHO_FONDO = 512;   // cada capa se repite cada 512 puntos
-
-function ondas(x, semilla, alturas) {
-    // Una suma de ondas que «cierra» cada 512 puntos (así la capa se repite sin que se note la unión).
-    let y = 0;
-    for (const [veces, alto, fase] of alturas) y += Math.sin(((x / ANCHO_FONDO) * veces + fase + semilla) * Math.PI * 2) * alto;
-    return y;
-}
-
-function crearFondos(mundo, alto) {
-    const pal = PALETAS[mundo];
-    const cielo = lienzo(1, alto);
-    const gc = cielo.getContext("2d");
-    const degradado = gc.createLinearGradient(0, 0, 0, alto);
-    pal.cielo.forEach((color, i) => degradado.addColorStop(i / (pal.cielo.length - 1), color));
-    gc.fillStyle = degradado;
-    gc.fillRect(0, 0, 1, alto);
-
-    const capas = [0.12, 0.32, 0.58].map(() => lienzo(ANCHO_FONDO, alto));
-    const [lejos, medio, cerca] = capas.map((l) => l.getContext("2d"));
-    const base = alto;   // las capas se apoyan abajo del todo
-
-    if (pal.estrellas) {   // estrellas fijas en la capa más lejana
-        for (let i = 0; i < pal.estrellas; i++) {
-            const sx = Math.floor(ruido(i, 1) * ANCHO_FONDO);
-            const sy = Math.floor(ruido(i, 2) * alto * (mundo === 3 ? 0.55 : 0.3));
-            px(lejos, sx, sy, 1, 1, ruido(i, 3) < 0.2 ? "#ffffff" : "rgba(220,225,255,.55)");
-        }
-    }
-    if (mundo === 3) {   // una aurora tenue
-        for (let x = 0; x < ANCHO_FONDO; x++) {
-            const y = 30 + ondas(x, 0.2, [[2, 10, 0], [5, 4, 0.3]]);
-            lejos.fillStyle = "rgba(94, 234, 212, 0.10)";
-            lejos.fillRect(x, y, 1, 18 + ondas(x, 0.5, [[3, 6, 0]]));
-            lejos.fillStyle = "rgba(167, 139, 250, 0.07)";
-            lejos.fillRect(x, y + 14, 1, 10);
-        }
-    }
-    if (mundo === 1) {   // el sol que sale, detrás de todo
-        lejos.fillStyle = "rgba(255, 200, 140, 0.16)";
-        lejos.beginPath();
-        lejos.arc(330, base - 70, 46, 0, Math.PI * 2);
-        lejos.fill();
-        lejos.fillStyle = "rgba(255, 214, 160, 0.5)";
-        lejos.beginPath();
-        lejos.arc(330, base - 70, 18, 0, Math.PI * 2);
-        lejos.fill();
-    }
-
-    for (let x = 0; x < ANCHO_FONDO; x++) {
-        // Capa lejana: montañas (o la pared de la cueva, o torres de la fortaleza).
-        const yl = base - 96 + ondas(x, 0.1, [[1, 18, 0], [3, 9, 0.4], [7, 3, 0.1]]);
-        px(lejos, x, yl, 1, base - yl, pal.lejos);
-        if (mundo === 3 && yl < base - 104) px(lejos, x, yl, 1, 3, "#c9d4e8");
-        // Capa media.
-        const ym = base - 62 + ondas(x, 0.6, [[2, 12, 0], [5, 6, 0.2], [11, 2, 0.7]]);
-        px(medio, x, ym, 1, base - ym, pal.medio);
-        if (mundo === 3) px(medio, x, ym, 1, 2, "#8ea0c2");
-        // Capa cercana.
-        const yc = base - 30 + ondas(x, 0.3, [[3, 8, 0], [8, 3, 0.5]]);
-        px(cerca, x, yc, 1, base - yc, pal.cerca);
-    }
-    if (mundo === 2) {
-        // Estalactitas que cuelgan del techo de la cueva (en las tres capas, más grandes cuanto más cerca).
-        for (const [g, color, cuantas, largo] of [[lejos, pal.lejos, 26, 50], [medio, pal.medio, 16, 70], [cerca, pal.cerca, 10, 40]]) {
-            px(g, 0, 0, ANCHO_FONDO, 10, color);
-            for (let i = 0; i < cuantas; i++) {
-                const cx = Math.floor(ruido(i, 11, largo) * ANCHO_FONDO);
-                const l = 14 + Math.floor(ruido(i, 12, largo) * largo);
-                for (let k = 0; k < l; k++) {
-                    const w = Math.max(1, Math.round((1 - k / l) * 7));
-                    px(g, cx - Math.floor(w / 2), 10 + k, w, 1, color);
-                }
-            }
-        }
-        // Cristales que brillan en la capa media.
-        for (let i = 0; i < 14; i++) {
-            const cx = Math.floor(ruido(i, 31) * ANCHO_FONDO);
-            const cy = base - 60 + Math.floor(ruido(i, 32) * 40);
-            const color = ruido(i, 33) < 0.5 ? pal.cristal[1] : pal.cristal[3];
-            for (let k = 0; k < 7; k++) px(medio, cx - Math.floor(k / 3), cy - k, 1, 1, color);
-            px(medio, cx, cy - 7, 1, 2, ruido(i, 34) < 0.5 ? pal.cristal[0] : pal.cristal[2]);
-            px(medio, cx + 2, cy - 4, 1, 4, color);
-        }
-    }
-    if (mundo === 1) {
-        // Pinos oscuros en la capa media y ruinas (arcos rotos) en la cercana.
-        for (let i = 0; i < 22; i++) {
-            const cx = Math.floor(ruido(i, 51) * ANCHO_FONDO);
-            const pie = base - 54 + ondas(cx, 0.6, [[2, 12, 0], [5, 6, 0.2], [11, 2, 0.7]]);
-            const alto2 = 18 + Math.floor(ruido(i, 52) * 16);
-            for (let k = 0; k < alto2; k++) {
-                const w = Math.max(1, Math.round(((k % 6) + 2) * (k / alto2) * 1.3));
-                px(medio, cx - Math.floor(w / 2), pie - alto2 + k, w, 1, pal.medio);
-            }
-        }
-        for (let i = 0; i < 4; i++) {
-            const cx = 40 + i * 128 + Math.floor(ruido(i, 61) * 50);
-            const pie = base - 26;
-            px(cerca, cx, pie - 40, 6, 40, pal.cerca);
-            px(cerca, cx + 26, pie - 30, 6, 30, pal.cerca);
-            for (let k = 0; k < 20; k++) px(cerca, cx + 3 + k, pie - 40 - Math.round(Math.sin((k / 26) * Math.PI) * 8), 1, 4, pal.cerca);
-        }
-    }
-    if (mundo === 3) {
-        // Pinos nevados cerca.
-        for (let i = 0; i < 16; i++) {
-            const cx = Math.floor(ruido(i, 71) * ANCHO_FONDO);
-            const pie = base - 26;
-            const alto2 = 16 + Math.floor(ruido(i, 72) * 12);
-            for (let k = 0; k < alto2; k++) {
-                const w = Math.max(1, Math.round(((k % 5) + 2) * (k / alto2) * 1.4));
-                px(cerca, cx - Math.floor(w / 2), pie - alto2 + k, w, 1, pal.cerca);
-                if (k % 5 === 0) px(cerca, cx - Math.floor(w / 2), pie - alto2 + k, w, 1, "#3a4766");
-            }
-        }
-    }
-    if (mundo === 4) {
-        // Torres de la fortaleza con ventanas encendidas (capa media) y cadenas que cuelgan (capa cercana).
-        for (let i = 0; i < 6; i++) {
-            const cx = 20 + i * 85 + Math.floor(ruido(i, 81) * 30);
-            const ancho = 22 + Math.floor(ruido(i, 82) * 14);
-            const alto2 = 80 + Math.floor(ruido(i, 83) * 60);
-            px(medio, cx, base - alto2, ancho, alto2, pal.medio);
-            for (let k = 0; k < ancho; k += 6) px(medio, cx + k, base - alto2 - 5, 4, 5, pal.medio);
-            for (let k = 0; k < 3; k++) {
-                if (ruido(i, 84 + k) < 0.6) px(medio, cx + 6 + Math.floor(ruido(i, 90 + k) * (ancho - 12)), base - alto2 + 16 + k * 22, 3, 5, "#b45309");
-            }
-        }
-        for (let i = 0; i < 7; i++) {
-            const cx = Math.floor(ruido(i, 101) * ANCHO_FONDO);
-            const largo = 40 + Math.floor(ruido(i, 102) * 90);
-            for (let k = 0; k < largo; k += 4) {
-                px(cerca, cx, k, 2, 3, "#1f0d0b");
-                px(cerca, cx + (k % 8 ? 1 : -1), k + 2, 2, 2, "#2a1210");
-            }
-        }
-        // El resplandor rojo de la lava, abajo.
-        const brillo = lejos.createLinearGradient(0, base - 70, 0, base);
-        brillo.addColorStop(0, "rgba(234, 88, 12, 0)");
-        brillo.addColorStop(1, "rgba(234, 88, 12, 0.28)");
-        lejos.fillStyle = brillo;
-        lejos.fillRect(0, base - 70, ANCHO_FONDO, 70);
-    }
-    return { cielo, capas };
+    // La llama: cuatro dibujos que se turnan, y la punta que baila.
+    const cuadro = Math.floor(reloj * 11 + x * 0.37) % 4;
+    const baile = [0, 1, 0, -1][cuadro];
+    const alto = [0, 1, 2, 1][cuadro];
+    px(g, x + 5, y + 1, 6, 5, "#c2410c");
+    px(g, x + 6, y - 1 - alto, 4, 6 + alto, "#ea580c");
+    px(g, x + 7 + baile, y - 3 - alto, 2, 4, "#fb923c");
+    px(g, x + 7, y + 1, 2, 3, "#fde68a");
+    px(g, x + 7 + baile, y - 4 - alto, 1, 1, "#fdba74");
+    const chispa = (reloj * 1.6 + x * 0.01) % 1;   // una chispa que sube y se apaga
+    if (chispa < 0.6) px(g, x + 8 + Math.round(Math.sin(chispa * 9) * 2), y - 4 - Math.round(chispa * 16), 1, 1, chispa < 0.3 ? "#fde68a" : "#fb923c");
 }
 
 
@@ -513,11 +602,9 @@ function pintarAmuleto(g, x, y) {
 }
 
 function pintarReliquia(g, x, y, reloj) {
-    // Una piedra rúnica de ámbar que flota y late.
+    // Una piedra rúnica de ámbar que flota y late, con chispas que giran alrededor.
     const flota = Math.round(Math.sin(reloj * 2.6 + x) * 2);
     const yy = y + flota;
-    g.fillStyle = "rgba(251, 191, 36, 0.18)";
-    g.fillRect(x - 2, yy - 2, 16, 18);
     px(g, x + 4, yy, 4, 1, "#7c4a03");
     px(g, x + 2, yy + 1, 8, 2, "#b45309");
     px(g, x + 1, yy + 3, 10, 7, "#d97706");
@@ -527,6 +614,10 @@ function pintarReliquia(g, x, y, reloj) {
     const runa = Math.sin(reloj * 5) > 0 ? "#fff7d6" : "#fcd34d";
     px(g, x + 6, yy + 4, 1, 5, runa);
     px(g, x + 5, yy + 6, 3, 1, runa);
+    for (let i = 0; i < 2; i++) {
+        const a = reloj * 3 + i * Math.PI;
+        px(g, Math.round(x + 6 + Math.cos(a) * 9), Math.round(yy + 6 + Math.sin(a) * 4), 1, 1, "#fde68a");
+    }
 }
 
 function pintarCofre(g, x, y, abierto) {
@@ -546,17 +637,18 @@ function pintarCofre(g, x, y, abierto) {
 }
 
 function pintarControl(g, x, y, activo, reloj) {
-    // Un estandarte en un asta: gris y caído hasta que lo tocas; rojo y con su emblema después.
+    // Un estandarte en un asta: gris y caído hasta que lo tocas; rojo, con su emblema, y ondeando después.
     px(g, x + 3, y + 2, 2, 46, "#5a4632");
     px(g, x + 3, y + 2, 1, 46, "#7a6044");
     px(g, x + 2, y, 4, 3, activo ? "#fbbf24" : "#6b6b78");
     if (activo) {
-        const v = Math.round(Math.sin(reloj * 5) * 1);
-        px(g, x + 5, y + 4, 9 + v, 13, "#9f1239");
-        px(g, x + 5, y + 4, 9 + v, 1, "#e11d48");
-        px(g, x + 8, y + 8, 3, 4, "#fbbf24");
-        px(g, x + 5, y + 17, 3, 2, "#9f1239");
-        px(g, x + 11 + v, y + 17, 3, 2, "#9f1239");
+        for (let k = 0; k < 10; k++) {   // la tela ondea: cada columna sube y baja un poco
+            const ola = Math.round(Math.sin(reloj * 6 - k * 0.7) * (k / 9) * 1.5);
+            px(g, x + 5 + k, y + 4 + ola, 1, 13, k % 3 ? "#9f1239" : "#881337");
+            px(g, x + 5 + k, y + 4 + ola, 1, 1, "#e11d48");
+            if (k === 0 || k === 9) px(g, x + 5 + k, y + 17 + ola, 1, 2, "#9f1239");
+        }
+        px(g, x + 8, y + 8 + Math.round(Math.sin(reloj * 6 - 2) * 0.5), 3, 4, "#fbbf24");
     } else {
         px(g, x + 5, y + 14, 5, 12, "#4b4b56");
         px(g, x + 5, y + 14, 5, 1, "#6b6b78");
@@ -571,6 +663,7 @@ function pintarArco(g, x, y, abierto, reloj) {
     px(g, x - 8, y + 6, 4, 42, piedra);
     px(g, x + 18, y + 6, 6, 42, sombra);
     px(g, x + 18, y + 6, 4, 42, piedra);
+    for (let k = 0; k < 6; k++) { px(g, x - 8, y + 10 + k * 7, 6, 1, sombra); px(g, x + 18, y + 10 + k * 7, 6, 1, sombra); }   // las hiladas
     for (let k = 0; k < 32; k++) {
         const altura = Math.round(Math.sin((k / 31) * Math.PI) * 8);
         px(g, x - 8 + k, y + 6 - altura, 1, 5, k % 7 ? piedra : sombra);
@@ -583,6 +676,10 @@ function pintarArco(g, x, y, abierto, reloj) {
             g.fillRect(x - 2 + k * 3, y + 14 - (k % 3) * 3 - v, 3, 34 + (k % 3) * 3 + v);
         }
         px(g, x + 4, y + 26, 8, 22, "rgba(255, 247, 214, 0.55)");
+        for (let i = 0; i < 3; i++) {   // chispas que suben dentro del arco
+            const t = (reloj * 0.9 + i * 0.33) % 1;
+            px(g, x + 2 + ((i * 5 + Math.floor(reloj * 3)) % 12), y + 46 - Math.round(t * 36), 1, 1, t < 0.5 ? "#fff7d6" : "#fde68a");
+        }
     } else {
         for (let k = 0; k < 4; k++) px(g, x - 2 + k * 6, y + 10, 2, 38, "#2b2a33");   // barrotes: sellado
         px(g, x - 2, y + 24, 22, 2, "#2b2a33");
@@ -597,6 +694,7 @@ function pintarPlataforma(g, x, y, ancho, mundo, tiembla) {
     px(g, x + dx, y, ancho, 6, cara);
     px(g, x + dx, y, ancho, 1, luz);
     for (let i = 8; i < ancho; i += 16) px(g, x + dx + i, y + 1, 1, 5, sombra);
+    px(g, x + dx + 2, y + 8, ancho - 4, 1, "rgba(0,0,0,.35)");   // su sombra
     if (tiembla !== undefined) {   // la que se derrumba tiene grietas
         px(g, x + dx + 5, y + 2, 2, 1, "#1a1820");
         px(g, x + dx + ancho - 9, y + 3, 3, 1, "#1a1820");
@@ -622,28 +720,42 @@ function pintarMazo(g, x, y) {
     }
 }
 
-// Letras de 3 × 5 puntos para los números que suben («100», «+1♥»).
+// Letras de 3 × 5 puntos para los números que suben («100», «+1♥», «x2»).
 const LETRAS_PIXEL = {
     0: ["111", "101", "101", "101", "111"], 1: ["010", "110", "010", "010", "111"], 2: ["111", "001", "111", "100", "111"],
     3: ["111", "001", "011", "001", "111"], 4: ["101", "101", "111", "001", "001"], 5: ["111", "100", "111", "001", "111"],
     6: ["111", "100", "111", "101", "111"], 7: ["111", "001", "010", "010", "010"], 8: ["111", "101", "111", "101", "111"],
     9: ["111", "101", "111", "001", "111"], "+": ["000", "010", "111", "010", "000"], "♥": ["10100", "11110", "11110", "01100", "00100"],
+    x: ["000", "101", "010", "101", "000"],
 };
 
-function textoPixel(g, texto, x, y, color) {
+// Un texto de pixel con borde oscuro alrededor (se lee sobre cualquier fondo). escala = 2 lo hace el doble de grande.
+function textoPixel(g, texto, x, y, color, escala = 1) {
     const letras = [...texto].map((l) => LETRAS_PIXEL[l]).filter(Boolean);
-    const ancho = letras.reduce((s, l) => s + l[0].length + 1, -1);
+    const ancho = letras.reduce((s, l) => s + (l[0].length + 1) * escala, -escala);
     let cx = Math.round(x - ancho / 2);
-    for (const letra of letras) {
-        for (const [f, fila] of letra.entries()) {
-            for (const [c, punto] of [...fila].entries()) {
-                if (punto !== "1") continue;
-                px(g, cx + c + 1, y + f + 1, 1, 1, "#140c22");   // sombra
-                px(g, cx + c, y + f, 1, 1, color);
+    for (const pasada of ["borde", "color"]) {
+        let lx = cx;
+        for (const letra of letras) {
+            for (const [f, fila] of letra.entries()) {
+                for (const [c, punto] of [...fila].entries()) {
+                    if (punto !== "1") continue;
+                    const px0 = lx + c * escala;
+                    const py0 = y + f * escala;
+                    if (pasada === "borde") px(g, px0 - 1, py0 - 1, escala + 2, escala + 2, "#140c22");
+                    else px(g, px0, py0, escala, escala, color);
+                }
             }
+            lx += (letra[0].length + 1) * escala;
         }
-        cx += letra[0].length + 1;
     }
+}
+
+// El color de los puntos según cuánto valen: los combos grandes se notan.
+function colorDePuntos(texto, color) {
+    if (color !== "#fde68a") return color;
+    const n = Number(texto);
+    return n >= 1000 ? "#fbbf24" : n >= 800 ? "#fb7185" : n >= 400 ? "#fb923c" : n >= 200 ? "#fde047" : "#fef9e7";
 }
 
 
@@ -671,6 +783,8 @@ function contorno(imagen, color) {
     return l;
 }
 
+const suavizar = (t) => t * t * (3 - 2 * t);   // de 0 a 1, arranca y termina despacio
+
 
 // ===== El pintor =====
 // imagenes = { heroe, enemigos: { esqueleto: Image, … }, jefe } (todas pueden faltar: se pinta un rectángulo).
@@ -678,23 +792,29 @@ export function crearPintor(partida, imagenes = {}) {
     const n = partida.nivel;
     const mundo = partida.mundo;
     const pal = PALETAS[mundo];
-    const altoVista = partida.vista.alto;
-    const fondos = crearFondos(mundo, altoVista);
+    const fondos = crearFondos(mundo, partida.vista.alto);
 
     // Los escondites: hasta que entras, se ven como la pared que los rodea (y no se ve lo que hay adentro).
     const oculta = (c, f) => {
         const numero = n.escondite[`${c},${f}`];
         return numero !== undefined && !partida.descubiertos.has(numero);
     };
+    const enEscondite = (c, f) => n.escondite[`${c},${f}`] !== undefined;
     const disfrazDe = (c, f) => {
         for (const [dc, df] of [[0, -1], [-1, 0], [1, 0], [0, 1], [-1, -1], [1, -1], [0, -2]]) {
             const letra = P.celda(n, c + dc, f + df);
-            if ((letra === "#" || letra === "=" || letra === "I") && n.escondite[`${c + dc},${f + df}`] === undefined) return letra === "I" ? "=" : letra;
+            if ((letra === "#" || letra === "=" || letra === "I") && !enEscondite(c + dc, f + df)) return letra === "I" ? "=" : letra;
         }
         return "#";
     };
+    const techo = (letra) => letra === "#" || letra === "=" || letra === "I";
+    const profundidad = (c, f) => {
+        let k = 0;
+        while (k < 3 && P.celda(n, c, f - k - 1) === "#" && !enEscondite(c, f - k - 1)) k++;
+        return k;
+    };
 
-    // El terreno quieto, pintado una vez.
+    // El terreno quieto (y sus adornos quietos), pintado una vez.
     const terreno = lienzo(n.ancho * CELDA, n.alto * CELDA);
     const gt = terreno.getContext("2d");
     const pintarEn = (c, f) => {
@@ -703,8 +823,8 @@ export function crearPintor(partida, imagenes = {}) {
         const y = f * CELDA;
         gt.clearRect(x, y, CELDA, CELDA);
         const letra = P.celda(n, c, f);
-        if (n.escondite[`${c},${f}`] !== undefined) {
-            pintarCelda(gt, disfrazDe(c, f), x, y, c, f, mundo, { arriba: false, abajo: false, izq: false, der: false });
+        if (enEscondite(c, f)) {
+            pintarCelda(gt, disfrazDe(c, f), x, y, c, f, mundo, { arriba: false, abajo: false, izq: false, der: false }, 1);
             if (oculta(c, f)) {
                 if (letra === "%") { px(gt, x + 6, y + 4, 1, 4, "rgba(0,0,0,.35)"); px(gt, x + 7, y + 8, 1, 3, "rgba(0,0,0,.35)"); }   // una grieta (la pista)
             } else {
@@ -713,10 +833,17 @@ export function crearPintor(partida, imagenes = {}) {
             }
             return;
         }
-        if (letra === "." || letra === "+" || ANIMADAS.has(letra)) return;
-        pintarCelda(gt, letra, x, y, c, f, mundo, ladosDe(n, c, f, letra, oculta));
+        if (letra === "." || letra === "o") {   // una celda vacía: quizá lleva un adorno (sobre el suelo o colgando del techo)
+            const abajo = P.celda(n, c, f + 1);
+            if ((abajo === "#" || abajo === "=") && !enEscondite(c, f + 1)) adornoDeSuelo(gt, x, y, c, f, mundo, pal);
+            if (f > 0 && techo(P.celda(n, c, f - 1)) && !enEscondite(c, f - 1)) adornoColgante(gt, x, y, c, f, mundo, pal);
+            return;
+        }
+        if (letra === "+" || ANIMADAS.has(letra)) return;
+        pintarCelda(gt, letra, x, y, c, f, mundo, ladosDe(n, c, f, letra, oculta), letra === "#" ? profundidad(c, f) : 0);
     };
     for (let f = 0; f < n.alto; f++) for (let c = 0; c < n.ancho; c++) pintarEn(c, f);
+    const vivos = adornosVivos(n, mundo, oculta);
 
     const heroe = imagenes.heroe || null;
     const brillos = {
@@ -724,39 +851,106 @@ export function crearPintor(partida, imagenes = {}) {
         fuego: contorno(heroe, "#fb923c"),
         bendicion: contorno(heroe, "#fde68a"),
         blanco: silueta(heroe, "#ffffff"),
+        rojo: silueta(heroe, "#ef4444"),
+        oro: silueta(heroe, "#fde68a"),
     };
     const jefeImagen = imagenes.jefe || null;
     const jefeBlanco = silueta(jefeImagen, "#ffffff");
-    const sombra = lienzo(8, 8);   // la capa de oscuridad (cuevas y fortaleza); se ajusta al tamaño de la vista
+    const blancos = {};   // el destello blanco de cada criatura (se hace la primera vez que hace falta)
+    const blancoDe = (id) => (blancos[id] ??= silueta(imagenes.enemigos?.[id], "#ffffff"));
+
+    // Lienzos de la vista (se ajustan al tamaño de la pantalla): la oscuridad, lo de adelante y la luz de la pantalla.
+    const sombra = lienzo(8, 8);
+    const frente = lienzo(8, 8);
+    let luzDePantalla = null;
+
+    // Lo que el pintor recuerda entre cuadros (no es parte del juego: solo cómo se ve).
+    const memoria = {
+        fase: partida.fase, irisDesde: 0, irisX: null, irisY: null, muerteX: 0, muerteY: 0,
+        estela: [], ultimoReloj: -1,
+    };
+
+    function ajustarVista(ancho, alto) {
+        for (const l of [sombra, frente]) if (l.width !== ancho || l.height !== alto) { l.width = ancho; l.height = alto; }
+        if (!luzDePantalla || luzDePantalla.width !== ancho || luzDePantalla.height !== alto) luzDePantalla = crearLuzDePantalla(mundo, ancho, alto);
+    }
 
     function dibujar(g) {
         const ancho = partida.vista.ancho;
         const alto = partida.vista.alto;
         const reloj = partida.reloj;
-        // Cuando el jefe aterriza o algo explota, la pantalla tiembla un poco.
-        const temblor = partida.temblor > 0 ? Math.round((Math.random() - 0.5) * 4 * Math.min(1, partida.temblor * 4)) : 0;
-        const camX = Math.round(partida.camara.x) + temblor;
+        ajustarVista(ancho, alto);
+        recordarFase(reloj);
+        // El temblor: una onda que se apaga (no saltos al azar), en los dos ejes, más fuerte en lo horizontal.
+        const fuerza = Math.min(1, partida.temblor * 4);
+        const tx = fuerza ? Math.round(Math.sin(reloj * 97) * 3 * fuerza) : 0;
+        const ty = fuerza ? Math.round(Math.cos(reloj * 73) * 2 * fuerza) : 0;
+        const camX = Math.round(partida.camara.x) + tx;
         const camY = Math.round(partida.camara.y);
         g.imageSmoothingEnabled = false;
+        const oscuro = pal.oscuridad > 0;
+        const c0 = Math.max(0, Math.floor(camX / CELDA) - 1);
+        const c1 = Math.min(n.ancho - 1, Math.floor((camX + ancho) / CELDA) + 1);
 
-        // 1. El cielo y las capas del fondo.
-        g.drawImage(fondos.cielo, 0, 0, ancho, alto);
-        [0.12, 0.32, 0.58].forEach((factor, i) => {
-            const capa = fondos.capas[i];
-            const desde = -(((camX * factor) % ANCHO_FONDO) + ANCHO_FONDO) % ANCHO_FONDO;
-            for (let x = desde; x < ancho; x += ANCHO_FONDO) g.drawImage(capa, Math.round(x), alto - capa.height);
-        });
+        // 1. El cielo y las capas del fondo. En las cuevas, el fondo se oscurece y después brilla lo que da luz.
+        pintarFondos(g, fondos, camX, ancho, alto, reloj);
+        if (oscuro) {
+            prepararOscuridad(camX, camY, ancho, alto, c0, c1);
+            g.drawImage(sombra, 0, 0);
+            pintarBrillosDeFondo(g, fondos, camX, ancho, alto, reloj);
+        }
 
-        // 2. Lo que cambió en el terreno (una puerta que se cierra…) se vuelve a pintar.
+        // 2. Lo de adelante (terreno, criaturas, tu héroe…). En las cuevas se pinta aparte, para oscurecerlo solo a él.
+        const gf = oscuro ? frente.getContext("2d") : g;
+        if (oscuro) { gf.imageSmoothingEnabled = false; gf.clearRect(0, 0, ancho, alto); }
+        gf.save();
+        gf.translate(0, ty);
+        pintarAdelante(gf, camX, camY, ancho, alto, reloj, c0, c1);
+        gf.restore();
+        if (oscuro) {
+            gf.globalCompositeOperation = "source-atop";   // la oscuridad solo cae donde hay algo pintado
+            gf.drawImage(sombra, 0, 0);
+            gf.globalCompositeOperation = "source-over";
+            g.drawImage(frente, 0, 0);
+        }
+
+        // 3. Las luces que suman (antorchas, lava, fuego, cristales): encima de la oscuridad.
+        g.save();
+        g.translate(0, ty);
+        pintarLuces(g, camX, camY, reloj, c0, c1);
+        g.restore();
+
+        // 4. El ambiente, los destellos de la pantalla, la viñeta y el iris.
+        pintarAmbiente(g, mundo, camX, ancho, alto, reloj);
+        if (partida.destello > 0) {   // un golpe: la pantalla se tiñe de rojo un instante
+            g.globalAlpha = Math.min(0.32, partida.destello * 1.2);
+            px(g, 0, 0, ancho, alto, "#b91c1c");
+        }
+        if (partida.fogonazo > 0) {   // algo grande (golpe al jefe, bendición): un fogonazo blanco
+            g.globalAlpha = Math.min(0.55, partida.fogonazo * 1.6);
+            px(g, 0, 0, ancho, alto, "#fff7e0");
+        }
+        if (partida.fase === "muriendo") {   // al caer, todo se apaga un poco
+            g.globalAlpha = Math.min(0.35, (1.9 - partida.espera) * 0.5);
+            px(g, 0, 0, ancho, alto, "#12040a");
+        }
+        g.globalAlpha = 1;
+        g.drawImage(luzDePantalla, 0, 0);
+        pintarIris(g, camX, camY, ancho, alto, reloj);
+    }
+
+    function pintarAdelante(g, camX, camY, ancho, alto, reloj, c0, c1) {
+        // Lo que cambió en el terreno (una puerta que se cierra…) se vuelve a pintar.
         for (const { c, f } of partida.cambios) {
             for (const [dc, df] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) pintarEn(c + dc, f + df);
         }
         partida.cambios = [];
         g.drawImage(terreno, camX, camY, ancho, alto, 0, 0, ancho, alto);
 
-        // 3. Las celdas animadas que se ven.
-        const c0 = Math.max(0, Math.floor(camX / CELDA));
-        const c1 = Math.min(n.ancho - 1, Math.floor((camX + ancho) / CELDA));
+        // Los adornos que se mueven (pasto, destellos).
+        pintarAdornosVivos(g, camX, camY, reloj, c0, c1);
+
+        // Las celdas animadas que se ven.
         const golpe = new Map(partida.golpeados.map((b) => [`${b.c},${b.f}`, b]));
         for (let f = 0; f < n.alto; f++) {
             for (let c = c0; c <= c1; c++) {
@@ -770,11 +964,11 @@ export function crearPintor(partida, imagenes = {}) {
                 else if (letra === "B") pintarLadrillo(g, x, y, mundo);
                 else if (letra === "~") pintarLava(g, x, y, c, reloj, pal, P.celda(n, c, f - 1) !== "~");
                 else if (letra === "T") pintarAntorcha(g, x, y, reloj, mundo);
-                else pintarBloqueRunico(g, x, y, letra, reloj, mundo);
+                else if (pintarBloqueRunico(g, x, y, letra)) pintarDestelloDelBloque(g, x, y, letra, reloj);
             }
         }
 
-        // 4. Las cosas del nivel: plataformas, cofres, estandartes, reliquias y el Arco.
+        // Las cosas del nivel: plataformas, cofres, estandartes, reliquias y el Arco.
         for (const p of partida.plataformas) pintarPlataforma(g, Math.round(p.x - camX), Math.round(p.y - camY), p.ancho, mundo);
         for (const d of partida.derrumbes) {
             if (d.estado !== "ido") pintarPlataforma(g, Math.round(d.x - camX), Math.round(d.y - camY), d.ancho, mundo, d.estado === "tiembla");
@@ -786,7 +980,7 @@ export function crearPintor(partida, imagenes = {}) {
         for (const r of n.reliquias) if (!partida.reliquias.has(r.i) && !oculta(r.c, r.f)) pintarReliquia(g, r.c * CELDA - camX + 2, r.f * CELDA - camY + 1, reloj);
         if (n.meta) pintarArco(g, n.meta.c * CELDA - camX, (n.meta.f - 2) * CELDA - camY, partida.metaAbierta, reloj);
 
-        // 5. Objetos, enemigos, el jefe y los disparos.
+        // Objetos, enemigos, el jefe y los disparos.
         for (const o of partida.objetos) {
             const x = Math.round(o.x - camX);
             const y = Math.round(o.y - camY);
@@ -813,69 +1007,167 @@ export function crearPintor(partida, imagenes = {}) {
             }
         }
         if (partida.jefe) pintarJefe(g, partida.jefe, camX, camY, reloj);
-        for (const p of partida.proyectiles) pintarProyectil(g, p, camX, camY, reloj, alto);
+        for (const p of partida.proyectiles) pintarProyectil(g, p, camX, camY, reloj);
         for (const b of partida.disparos) {
             const x = Math.round(b.x - camX);
             const y = Math.round(b.y - camY);
             const giro = Math.floor(reloj * 16) % 2;
+            px(g, x - Math.sign(b.vx) * 4 + 1, y + 2, 4, 2, "rgba(234,88,12,.5)");   // la cola
             px(g, x, y + giro, 6, 6 - giro, "#ea580c");
             px(g, x + 1, y + 1, 4, 4, "#fb923c");
             px(g, x + 2, y + 2, 2, 2, "#fde68a");
         }
 
-        // 6. Tu héroe.
+        // Tu héroe (con su sombra en el suelo y, con la bendición, una estela).
         pintarHeroe(g, camX, camY, reloj);
 
-        // 7. Partículas y números que suben.
+        // Partículas y números que suben.
         for (const p of partida.particulas) pintarParticula(g, p, camX, camY, reloj);
-        for (const t of partida.textos) textoPixel(g, t.texto, t.x - camX, Math.round(t.y - camY), t.color);
+        for (const t of partida.textos) {
+            const edad = (t.max || 0.9) - t.vida;
+            if (t.vida < 0.2 && Math.floor(reloj * 20) % 2) continue;   // al final, parpadea antes de irse
+            const salto = edad < 0.12 ? Math.round((1 - edad / 0.12) * 3) : 0;   // aparece con un saltito
+            const grande = Number(t.texto) >= 1000;
+            textoPixel(g, t.texto, t.x - camX, Math.round(t.y - camY) - salto, colorDePuntos(t.texto, t.color), grande ? 2 : 1);
+        }
+    }
 
-        // 8. La oscuridad de las cuevas y la fortaleza, con luz alrededor del héroe, antorchas, lava y fuego.
-        if (pal.oscuridad) pintarOscuridad(g, camX, camY, ancho, alto, c0, c1);
+    function pintarAdornosVivos(g, camX, camY, reloj, c0, c1) {
+        const h = partida.heroe;
+        const pies = h.y + h.alto;
+        const centro = h.x + h.ancho / 2;
+        const [luz, medio, oscuro] = pal.borde;
+        for (let c = c0; c <= c1; c++) {
+            for (const a of vivos[c]) {
+                const x = a.x - camX;
+                const y = a.y - camY;
+                if (a.tipo === "pasto") {
+                    // El viento lo mece; si pasas por encima, se aparta hacia el otro lado.
+                    let mece = Math.round(Math.sin(reloj * 2.3 + a.x * 0.15) * 0.8);
+                    if (Math.abs(a.x - centro) < 7 && Math.abs(pies - a.y) < 6) mece = a.x < centro ? -2 : 2;
+                    for (const [dx, extra, color] of [[-1, -1, oscuro], [0, 0, medio], [1, -2, oscuro]]) {
+                        const largo = Math.max(1, a.alto + extra);
+                        const base = Math.ceil(largo / 2);
+                        px(g, x + dx, y - base, 1, base, color);
+                        px(g, x + dx + mece + (dx < 0 ? -1 : dx > 0 ? 1 : 0) * (largo > 3 ? 1 : 0), y - largo, 1, largo - base, color === medio ? luz : medio);
+                    }
+                } else if (a.tipo === "cristal") {
+                    if (Math.sin(reloj * 1.3 + a.fase) > 0.95) { px(g, x - 1, y, 3, 1, "#ffffff"); px(g, x, y - 1, 1, 3, "#ffffff"); }
+                } else if (a.tipo === "escarcha") {
+                    if (Math.sin(reloj * 1.7 + a.fase) > 0.93) px(g, x, y, 1, 1, "#ffffff");
+                }
+            }
+        }
+    }
+
+    // Dónde está el suelo debajo de un punto (para la sombra). Devuelve su altura o null.
+    function sueloDebajo(cx, pies) {
+        const c = Math.floor(cx / CELDA);
+        for (let f = Math.max(0, Math.floor((pies - 1) / CELDA)); f < n.alto && f < Math.floor(pies / CELDA) + 6; f++) {
+            const letra = P.celda(n, c, f);
+            if ((P.esSolida(letra) || P.esTabla(letra)) && f * CELDA >= pies - 1 && !oculta(c, f)) return f * CELDA;
+        }
+        return null;
+    }
+
+    function pintarSombra(g, cx, pies, ancho, camX, camY) {
+        const suelo = sueloDebajo(cx, pies);
+        if (suelo === null) return;
+        const lejos = Math.min(1, (suelo - pies) / 90);
+        const w = Math.max(4, Math.round(ancho * (1 - lejos * 0.6)));
+        g.globalAlpha = 0.38 * (1 - lejos);
+        px(g, Math.round(cx - w / 2 - camX), suelo - camY - 1, w, 2, "#05030a");
+        px(g, Math.round(cx - w / 2 - camX) + 1, suelo - camY - 2, w - 2, 1, "#05030a");
+        g.globalAlpha = 1;
     }
 
     function pintarHeroe(g, camX, camY, reloj) {
         const h = partida.heroe;
         if (partida.fase === "fin") return;
-        if (h.inmune > 0 && partida.fase === "jugando" && Math.floor(reloj * 14) % 2) return;   // parpadea
+        const jugando = partida.fase === "jugando";
         const ancho = heroe ? heroe.width : 22;
         const alto = heroe ? heroe.height : 30;
-        // El dibujo es más grande que la caja de choques: se centra y se apoya en los pies.
-        const x = Math.round(h.x + h.ancho / 2 - ancho / 2 - camX);
-        let y = Math.round(h.y + h.alto - alto + 1 - camY);
-        const aplasta = h.aterrizaje > 0 ? 1 : 0;   // al aterrizar se agacha un punto
-        const mirando = h.mira;   // tu héroe (de la Torre) mira a la izquierda: a la derecha se da vuelta
-        g.save();
-        g.translate(x + ancho / 2, 0);
-        if (mirando > 0) g.scale(-1, 1);
-        g.translate(-ancho / 2, 0);
+        const centro = Math.round(h.x + h.ancho / 2 - camX);
+        const pies = Math.round(h.y + h.alto + 1 - camY);
+        if (partida.fase !== "muriendo") pintarSombra(g, h.x + h.ancho / 2, h.y + h.alto, 16, camX, camY);
+
+        // La estela de la bendición: copias doradas que se quedan atrás.
+        if (memoria.ultimoReloj !== reloj && Math.floor(reloj * 30) !== Math.floor(memoria.ultimoReloj * 30)) {
+            memoria.estela.unshift({ x: h.x, y: h.y, mira: h.mira });
+            memoria.estela.length = Math.min(memoria.estela.length, 6);
+        }
+        memoria.ultimoReloj = reloj;
+        if (h.bendicion > 0 && brillos.oro && jugando) {
+            for (const [i, paso] of memoria.estela.entries()) {
+                if (i % 2 === 0 || i > 5) continue;
+                g.globalAlpha = 0.32 - i * 0.05;
+                dibujarFigura(g, brillos.oro, Math.round(paso.x + h.ancho / 2 - camX), Math.round(paso.y + h.alto + 1 - camY), paso.mira, 1, 1);
+            }
+            g.globalAlpha = 1;
+        }
+        if (h.inmune > 0 && jugando && Math.floor(reloj * 14) % 2) return;   // parpadea
+
+        // Estirar y aplastar: al despegar se estira; al caer de alto, se aplasta un instante.
+        let ex = 1;
+        let ey = 1;
+        if (jugando || partida.fase === "meta") {
+            if (h.aterrizaje > 0) { const t = h.aterrizaje / 0.12; ey = 1 - 0.16 * t; ex = 1 + 0.14 * t; }
+            else if (!h.enSuelo && h.vy < -160) { ey = 1.08; ex = 0.92; }
+            else if (!h.enSuelo && h.vy > 260) { ey = 1.05; ex = 0.95; }
+        }
+        if (partida.fase === "meta") g.globalAlpha = Math.max(0, Math.min(1, (partida.espera - 0.8) / 0.9));   // entra en la luz del Arco
+
         const poder = h.bendicion > 0 ? "bendicion" : h.poder;
         const brillo = brillos[poder];
         if (brillo && partida.fase !== "muriendo") {
-            if (poder === "bendicion") g.globalAlpha = 0.6 + 0.4 * Math.sin(reloj * 20);
-            g.drawImage(brillo, -1, y - 1 + aplasta);
-            g.globalAlpha = 1;
+            const a = g.globalAlpha;
+            if (poder === "bendicion") g.globalAlpha = a * (0.6 + 0.4 * Math.sin(reloj * 20));
+            dibujarFigura(g, brillo, centro, pies + 1, h.mira, ex, ey);
+            g.globalAlpha = a;
         }
         if (heroe) {
-            // Al caminar, las piernas se alternan: la mitad izquierda y la derecha de las piernas suben un punto por turno.
+            // Al caminar, las piernas se alternan; quieto, respira (el cuerpo baja un punto cada tanto).
             const piernas = Math.round(alto * 0.27);
             const cuerpo = alto - piernas;
-            const paso = h.enSuelo && Math.abs(h.vx) > 8 ? Math.floor(h.andar / 7) % 2 : -1;
-            const balanceo = paso === 1 ? 1 : 0;
-            g.drawImage(heroe, 0, 0, ancho, cuerpo, 0, y + aplasta + balanceo, ancho, cuerpo - aplasta);
+            const corre = h.enSuelo && Math.abs(h.vx) > 8;
+            const paso = corre ? Math.floor(h.andar / 7) % 2 : -1;
+            const respira = jugando && h.enSuelo && !corre && Math.floor(reloj * 1.6) % 2 ? 1 : 0;
+            const enAire = !h.enSuelo && jugando;
+            const anchoD = Math.round(ancho * ex);
+            const piernasD = Math.max(1, Math.round(piernas * ey));
+            const cuerpoD = Math.max(1, Math.round(cuerpo * ey));
+            const x0 = centro - Math.floor(anchoD / 2);
+            const y0 = pies - piernasD - cuerpoD;
+            g.save();
+            if (h.mira > 0) { g.translate(centro * 2, 0); g.scale(-1, 1); }   // tu héroe (de la Torre) mira a la izquierda
+            g.drawImage(heroe, 0, 0, ancho, cuerpo, x0, y0 + (paso === 1 ? 1 : 0) + respira, anchoD, cuerpoD - respira);
             const mitad = Math.floor(ancho / 2);
-            const enAire = !h.enSuelo && partida.fase === "jugando";
+            const mitadD = Math.round(mitad * ex);
             const arribaIzq = paso === 0 || enAire ? 1 : 0;
             const arribaDer = paso === 1 ? 1 : 0;
-            g.drawImage(heroe, 0, cuerpo, mitad, piernas, 0, y + cuerpo - arribaIzq, mitad, piernas);
-            g.drawImage(heroe, mitad, cuerpo, ancho - mitad, piernas, mitad, y + cuerpo - arribaDer, ancho - mitad, piernas);
-            if (h.cambio > 0 && Math.floor(reloj * 20) % 2 && brillos.blanco) g.drawImage(brillos.blanco, 0, y);
+            g.drawImage(heroe, 0, cuerpo, mitad, piernas, x0, y0 + cuerpoD - arribaIzq, mitadD, piernasD);
+            g.drawImage(heroe, mitad, cuerpo, ancho - mitad, piernas, x0 + mitadD, y0 + cuerpoD - arribaDer, anchoD - mitadD, piernasD);
+            const blanco = h.cambio > 0 && Math.floor(reloj * 20) % 2 ? brillos.blanco : null;
+            const rojo = partida.fase === "muriendo" ? brillos.rojo : null;
+            if (blanco || rojo) {
+                g.globalAlpha = rojo ? 0.45 : 1;
+                g.drawImage(blanco || rojo, x0, y0, anchoD, cuerpoD + piernasD);
+            }
+            if (h.lanzando > 0) px(g, x0, y0 + 12, 3, 3, "#fde68a");   // el destello de la mano al lanzar fuego
+            g.restore();
         } else {
-            px(g, 6, y + 4, 10, 26, "#c4b5fd");
+            px(g, centro - 5, pies - 26, 10, 26, "#c4b5fd");
         }
-        if (h.lanzando > 0) {   // el destello de la mano al lanzar fuego
-            px(g, 0, y + 12, 3, 3, "#fde68a");
-        }
+        g.globalAlpha = 1;
+    }
+
+    // Un dibujo entero (contorno o silueta) con los pies en (centro, pies), mirando a un lado y estirado ex × ey.
+    function dibujarFigura(g, imagen, centro, pies, mira, ex, ey) {
+        const w = Math.round(imagen.width * ex);
+        const hh = Math.round(imagen.height * ey);
+        g.save();
+        if (mira > 0) { g.translate(centro * 2, 0); g.scale(-1, 1); }
+        g.drawImage(imagen, centro - Math.floor(w / 2), pies - hh, w, hh);
         g.restore();
     }
 
@@ -910,7 +1202,7 @@ export function crearPintor(partida, imagenes = {}) {
             if (e.estado === "rueda") voltear = Math.floor(reloj * 14) % 2 === 0;
         }
         if (e.conducta === "saltador" && e.enSuelo && e.espera < 0.25) { alto = Math.round(lado * 0.8); ancho = Math.round(lado * 1.12); x -= (ancho - lado) / 2; y = e.y + e.alto - alto; }
-        if (!e.vivo && e.estado === "aplastado") { alto = Math.round(lado * 0.4); y = e.y + e.alto - alto; }
+        if (!e.vivo && e.estado === "aplastado") { alto = Math.round(lado * 0.4); ancho = Math.round(lado * 1.15); x -= (ancho - lado) / 2; y = e.y + e.alto - alto; }
         if (!e.vivo && e.estado === "cae") alReves = true;
         if (e.conducta === "arana") {
             px(g, Math.round(e.x + e.ancho / 2 - camX), Math.round(e.origen.y - 6 - camY), 1, Math.round(e.y - e.origen.y + 8), "rgba(220,220,235,.55)");
@@ -919,7 +1211,15 @@ export function crearPintor(partida, imagenes = {}) {
             g.fillStyle = e.def.disparo === "esquirla" ? "rgba(186,230,253,.5)" : "rgba(251,146,60,.5)";
             g.fillRect(Math.round(x - camX) - 2, Math.round(y - camY) - 2, lado + 4, lado + 4);
         }
-        if (e.conducta === "ascua" && e.estado === "espera") return;
+        if (e.conducta === "ascua" && e.estado === "espera") { if (e.conducta === "trampa") g.restore(); return; }
+        // Los que caminan dan un saltito en cada paso (así se ven vivos, no deslizándose).
+        const camina = e.vivo && e.enSuelo && Math.abs(e.vx) > 1 && (e.conducta === "caminante" || (e.conducta === "caparazon" && e.estado === "normal"));
+        if (camina) y -= Math.floor(reloj * 7 + e.origen.x * 0.1) % 2;
+        if (e.vivo && e.enSuelo && e.conducta !== "trampa") {   // su sombra
+            g.globalAlpha = 0.3;
+            px(g, Math.round(e.x + 1 - camX), Math.round(e.y + e.alto - camY) - 1, e.ancho - 2, 2, "#05030a");
+            g.globalAlpha = 1;
+        }
         const sx = Math.round(x - camX);
         const sy = Math.round(y - camY);
         g.save();
@@ -927,6 +1227,7 @@ export function crearPintor(partida, imagenes = {}) {
         g.scale(voltear ? -1 : 1, alReves ? -1 : 1);
         if (imagen) g.drawImage(imagen, -ancho / 2, -alto / 2, ancho, alto);
         else px(g, -ancho / 2, -alto / 2, ancho, alto, "#7c3aed");
+        if (e.golpeEn !== undefined && reloj - e.golpeEn < 0.12 && imagen) g.drawImage(blancoDe(e.def.id), -ancho / 2, -alto / 2, ancho, alto);   // le dio el fuego
         g.restore();
         if (e.conducta === "trampa") g.restore();
     }
@@ -936,17 +1237,19 @@ export function crearPintor(partida, imagenes = {}) {
         const lado = j.def.dibujo;
         const x = Math.round(j.x + j.ancho / 2 - lado / 2 - camX);
         const y = Math.round(j.y + j.alto - lado - camY + (j.especie === "dragon" ? 10 : 2));
+        if (!j.vencido) pintarSombra(g, j.x + j.ancho / 2, j.y + j.alto, j.ancho + 6, camX, camY);
         g.save();
         g.translate(x + lado / 2, 0);
         if (j.mira < 0) g.scale(-1, 1);
         g.translate(-lado / 2, 0);
         if (j.vencido) g.globalAlpha = Math.max(0, 1 - j.t / 1.6);
         else if (j.inmune > 0 && Math.floor(reloj * 16) % 2) g.globalAlpha = 0.4;
-        if (jefeImagen) g.drawImage(jefeImagen, 0, y, lado, lado);
-        else px(g, 0, y, lado, lado, "#9f1239");
+        const temblando = j.vencido ? Math.round(Math.sin(reloj * 60) * 2) : 0;   // al caer vencido, tiembla
+        if (jefeImagen) g.drawImage(jefeImagen, temblando, y, lado, lado);
+        else px(g, temblando, y, lado, lado, "#9f1239");
         // Antes de embestir (o al herirlo) destella en blanco.
-        const destella = (j.estado === "aviso" && Math.floor(reloj * 12) % 2) || (j.inmune > 0.8);
-        if (destella && jefeBlanco) { g.globalAlpha = 0.7; g.drawImage(jefeBlanco, 0, y, lado, lado); }
+        const destella = (j.estado === "aviso" && Math.floor(reloj * 12) % 2) || (j.inmune > 0.8) || (j.vencido && Math.floor(reloj * 10) % 2);
+        if (destella && jefeBlanco) { g.globalAlpha = 0.7; g.drawImage(jefeBlanco, temblando, y, lado, lado); }
         g.restore();
         if (j.vulnerable && !j.vencido) {
             // Aturdido o cansado: estrellitas que giran sobre su cabeza (¡ahora puedes pisarlo!).
@@ -958,23 +1261,17 @@ export function crearPintor(partida, imagenes = {}) {
                 px(g, sx, sy - 1, 1, 3, "#fde68a");
             }
         }
-        if (j.vencido) {
-            for (let i = 0; i < 2; i++) {
-                const ex = Math.round(j.x + Math.random() * j.ancho - camX);
-                const ey = Math.round(j.y + Math.random() * j.alto - camY);
-                px(g, ex, ey, 3, 3, Math.random() < 0.5 ? "#fde68a" : "#fb923c");
-            }
-        }
     }
 
-    function pintarProyectil(g, p, camX, camY, reloj, alto) {
+    function pintarProyectil(g, p, camX, camY, reloj) {
         const x = Math.round(p.x - camX);
         const y = Math.round(p.y - camY);
         if (p.tipo === "bola") {
+            px(g, x - Math.sign(p.vx || 1) * 4 + 2, y + 3, 4, 2, "rgba(251,146,60,.45)");
             px(g, x, y, 8, 8, "#9a3412");
             px(g, x + 1, y + 1, 6, 6, "#ea580c");
             px(g, x + 2, y + 2, 4, 4, "#fbbf24");
-            px(g, x - Math.sign(p.vx || 1) * 3 + 2, y + 3, 3, 2, "rgba(251,146,60,.6)");
+            px(g, x + 3, y + 2, 2, 2, "#fef3c7");
         } else if (p.tipo === "esquirla") {
             px(g, x + 1, y, 4, 6, "#7dd3fc");
             px(g, x, y + 2, 6, 2, "#bae6fd");
@@ -1016,38 +1313,63 @@ export function crearPintor(partida, imagenes = {}) {
     function pintarParticula(g, p, camX, camY, reloj) {
         const x = Math.round(p.x - camX);
         const y = Math.round(p.y - camY);
+        const resto = Math.max(0, Math.min(1, p.vida / (p.max || 0.5)));   // 1 = recién nacida, 0 = se va
         if (p.tipo === "moneda") pintarMoneda(g, x - 4, y - 4, reloj * 3);
         else if (p.tipo === "escombro") {
             const [cara, sombra] = PALETAS[p.mundo || mundo].ladrillo;
-            px(g, x, y, 5, 4, sombra);
-            px(g, x, y, 4, 3, cara);
+            const gira = Math.floor(reloj * 14 + p.vx) % 2;   // da vueltas en el aire
+            px(g, x, y, gira ? 5 : 4, gira ? 4 : 5, sombra);
+            px(g, x, y, gira ? 4 : 3, gira ? 3 : 4, cara);
         } else if (p.tipo === "hueso") {
             px(g, x, y, 5, 2, "#e7e2d4");
             px(g, x - 1, y - 1, 2, 2, "#e7e2d4");
             px(g, x + 4, y + 1, 2, 2, "#e7e2d4");
         } else if (p.tipo === "polvo") {
-            g.fillStyle = `rgba(200, 190, 170, ${Math.max(0, p.vida) * 0.9})`;
-            g.fillRect(x - 3, y - 3, 6, 6);
-        } else {   // chispa, brillo
-            px(g, x, y, 2, 2, p.color || "#fde68a");
+            // Una nubecita que se agranda y se desvanece (de nieve en las cumbres, de ceniza en la fortaleza).
+            const lado = 2 + Math.round((1 - resto) * 3);
+            g.globalAlpha = 0.65 * resto;
+            px(g, x - Math.floor(lado / 2), y - Math.floor(lado / 2), lado, lado, mundo === 3 ? "#eef3fb" : mundo === 4 ? "#8b7d7b" : mundo === 2 ? "#8c93b0" : "#c9b89c");
+            g.globalAlpha = 1;
+        } else if (p.tipo === "estrella") {
+            // El golpe: una estrella de cuatro puntas que se abre y se apaga en un instante.
+            const r = Math.round(2 + (1 - resto) * (p.grande ? 10 : 5));
+            const color = resto > 0.5 ? "#ffffff" : "#fde68a";
+            px(g, x - r, y, r * 2 + 1, 1, color);
+            px(g, x, y - r, 1, r * 2 + 1, color);
+            px(g, x - 1, y - 1, 3, 3, color);
+            if (p.grande) { px(g, x - r + 2, y - r + 2, 1, 1, color); px(g, x + r - 2, y - r + 2, 1, 1, color); px(g, x - r + 2, y + r - 2, 1, 1, color); px(g, x + r - 2, y + r - 2, 1, 1, color); }
+        } else if (p.tipo === "anillo") {
+            // Un aro que se agranda (al tomar una moneda o un poder).
+            const r = Math.round(3 + (1 - resto) * (p.radio || 10));
+            g.globalAlpha = resto;
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2;
+                px(g, Math.round(x + Math.cos(a) * r), Math.round(y + Math.sin(a) * r), 1, 1, p.color || "#fde68a");
+            }
+            g.globalAlpha = 1;
+        } else if (p.tipo === "brillo") {
+            const color = p.color || "#fde68a";
+            px(g, x - 1, y, 3, 1, color);
+            px(g, x, y - 1, 1, 3, color);
+        } else {   // chispa, ascua
+            const lado = resto > 0.4 ? 2 : 1;
+            px(g, x, y, lado, lado, p.color || "#fde68a");
         }
     }
 
-    function pintarOscuridad(g, camX, camY, ancho, alto, c0, c1) {
-        if (sombra.width !== ancho || sombra.height !== alto) { sombra.width = ancho; sombra.height = alto; }
+    // La oscuridad de las cuevas y la fortaleza, con luz alrededor del héroe, antorchas, lava y fuego.
+    function prepararOscuridad(camX, camY, ancho, alto, c0, c1) {
         const s = sombra.getContext("2d");
+        const sello = selloDeLuz();
         s.globalCompositeOperation = "source-over";
         s.clearRect(0, 0, ancho, alto);
+        s.globalAlpha = 1;
         s.fillStyle = `rgba(4, 3, 10, ${pal.oscuridad})`;
         s.fillRect(0, 0, ancho, alto);
         s.globalCompositeOperation = "destination-out";
         const luz = (x, y, radio, fuerza = 1) => {
-            const d = s.createRadialGradient(x, y, 0, x, y, radio);
-            d.addColorStop(0, `rgba(0,0,0,${fuerza})`);
-            d.addColorStop(0.6, `rgba(0,0,0,${fuerza * 0.55})`);
-            d.addColorStop(1, "rgba(0,0,0,0)");
-            s.fillStyle = d;
-            s.fillRect(x - radio, y - radio, radio * 2, radio * 2);
+            s.globalAlpha = fuerza;
+            s.drawImage(sello, x - radio, y - radio, radio * 2, radio * 2);
         };
         const h = partida.heroe;
         const parpadeo = 1 + Math.sin(partida.reloj * 9) * 0.04;
@@ -1060,6 +1382,7 @@ export function crearPintor(partida, imagenes = {}) {
                 else if (letra === "~" && P.celda(n, c, f - 1) !== "~" && c % 2 === 0) luz(c * CELDA + 8 - camX, f * CELDA - camY, 34, 0.8);
                 else if (letra === "o" || letra === "?" || letra === "!" || letra === "*" || letra === "$") luz(c * CELDA + 8 - camX, f * CELDA + 8 - camY, 14, 0.5);
             }
+            if (mundo === 2) for (let c = c0; c <= c1; c++) for (const a of vivos[c]) if (a.tipo === "cristal" && Math.floor(a.y / CELDA) === f) luz(a.x - camX, a.y - camY, 22, 0.55);
         }
         for (const r of n.reliquias) if (!partida.reliquias.has(r.i) && !oculta(r.c, r.f)) luz(r.c * CELDA + 8 - camX, r.f * CELDA + 8 - camY, 26, 0.8);
         for (const b of partida.disparos) luz(b.x + 3 - camX, b.y + 3 - camY, 26, 0.9);
@@ -1070,13 +1393,104 @@ export function crearPintor(partida, imagenes = {}) {
         for (const k of partida.controles) if (k.activo) luz(k.c * CELDA + 8 - camX, (k.f - 1) * CELDA - camY, 40, 0.8);
         const j = partida.jefe;
         if (j && j.activo) luz(j.x + j.ancho / 2 - camX, j.y + j.alto / 2 - camY, 70, 0.7);
-        g.drawImage(sombra, 0, 0);
+        s.globalAlpha = 1;
+        s.globalCompositeOperation = "source-over";
+    }
+
+    // Las luces que suman (encima de todo): el halo tibio de las antorchas, la lava, el fuego y los cristales.
+    function pintarLuces(g, camX, camY, reloj, c0, c1) {
+        for (let f = 0; f < n.alto; f++) {
+            for (let c = c0; c <= c1; c++) {
+                const letra = P.celda(n, c, f);
+                if (letra !== "T" && letra !== "~") continue;
+                if (oculta(c, f)) continue;
+                if (letra === "T") brillar(g, [251, 146, 60], 26, c * CELDA + 8 - camX, f * CELDA + 1 - camY, 0.42 + 0.1 * Math.sin(reloj * 13 + c));
+                else if (c % 2 === 0 && P.celda(n, c, f - 1) !== "~") brillar(g, [251, 120, 40], 22, c * CELDA + 16 - camX, f * CELDA + 2 - camY, 0.4 + 0.12 * Math.sin(reloj * 2 + c));
+            }
+        }
+        if (mundo === 2) for (let c = c0; c <= c1; c++) for (const a of vivos[c]) if (a.tipo === "cristal") brillar(g, [56, 189, 216], 14, a.x - camX, a.y - camY + 3, 0.35);
+        for (const b of partida.disparos) brillar(g, [251, 146, 60], 14, b.x + 3 - camX, b.y + 3 - camY, 0.6);
+        for (const p of partida.proyectiles) if (p.tipo === "bola" || (p.tipo === "pilar" && !p.aviso)) brillar(g, [251, 120, 40], 18, p.x + p.ancho / 2 - camX, p.y + p.alto / 2 - camY, 0.5);
+        for (const k of partida.cadenas) brillar(g, [251, 146, 60], 30, k.cx + Math.cos(k.angulo) * 30 - camX, k.cy + Math.sin(k.angulo) * 30 - camY, 0.35);
+        for (const r of n.reliquias) if (!partida.reliquias.has(r.i) && !oculta(r.c, r.f)) brillar(g, [251, 191, 36], 18, r.c * CELDA + 8 - camX, r.f * CELDA + 8 - camY, 0.4 + 0.15 * Math.sin(reloj * 3));
+        if (n.meta && partida.metaAbierta) brillar(g, [253, 186, 116], partida.fase === "meta" ? 60 : 36, n.meta.c * CELDA + 8 - camX, (n.meta.f - 1) * CELDA - camY, partida.fase === "meta" ? 0.8 : 0.4);
+        const h = partida.heroe;
+        if (partida.fase === "jugando" && (h.poder === "fuego" || h.bendicion > 0)) {
+            brillar(g, h.bendicion > 0 ? [253, 230, 138] : [251, 146, 60], 22, h.x + h.ancho / 2 - camX, h.y + 10 - camY, h.bendicion > 0 ? 0.5 : 0.25);
+        }
+        // Al renacer: una columna de luz donde vuelves a aparecer.
+        const renace = reloj - memoria.irisDesde;
+        if (memoria.renacio && renace >= 0 && renace < 0.7) {
+            const a = 1 - renace / 0.7;
+            g.globalCompositeOperation = "lighter";
+            g.globalAlpha = a * 0.5;
+            px(g, Math.round(h.x + h.ancho / 2 - camX) - 5, 0, 10, Math.round(h.y + h.alto - camY), "#fde68a");
+            g.globalAlpha = a * 0.7;
+            px(g, Math.round(h.x + h.ancho / 2 - camX) - 2, 0, 4, Math.round(h.y + h.alto - camY), "#fff7e0");
+            g.globalAlpha = 1;
+            g.globalCompositeOperation = "source-over";
+        }
+    }
+
+    // Recuerda en qué fase está la partida, para saber cuándo abrir o cerrar el iris.
+    function recordarFase(reloj) {
+        const fase = partida.fase;
+        if (fase === memoria.fase) return;
+        const h = partida.heroe;
+        if (fase === "muriendo") { memoria.muerteX = h.x + h.ancho / 2; memoria.muerteY = h.y + h.alto / 2; }
+        if (fase === "jugando" && memoria.fase === "muriendo") { memoria.irisDesde = reloj; memoria.renacio = true; }
+        if (fase === "meta") { memoria.muerteX = h.x + h.ancho / 2; memoria.muerteY = h.y + h.alto / 2; }
+        memoria.fase = fase;
+    }
+
+    // El iris: un círculo que se abre al entrar al nivel o al renacer, y se cierra al caer o al llegar al Arco.
+    function pintarIris(g, camX, camY, ancho, alto, reloj) {
+        const h = partida.heroe;
+        const maximo = Math.hypot(ancho, alto);
+        let radio = maximo;
+        let cx = h.x + h.ancho / 2 - camX;
+        let cy = h.y + h.alto / 2 - camY;
+        if (partida.fase === "fin") radio = 0;
+        else if (partida.fase === "muriendo" && partida.espera < 0.6) {
+            radio = maximo * suavizar(partida.espera / 0.6);
+            cx = memoria.muerteX - camX;
+            cy = Math.min(alto - 30, memoria.muerteY - camY);
+        } else if (partida.fase === "meta" && partida.espera < 0.7) {
+            radio = maximo * suavizar(partida.espera / 0.7);
+            cx = memoria.muerteX - camX;
+            cy = memoria.muerteY - camY;
+        } else if (partida.fase === "jugando") {
+            const desde = Math.max(memoria.renacio ? memoria.irisDesde : 0, 0);
+            const t = (reloj - desde) / 0.55;
+            if (t < 1) radio = maximo * suavizar(Math.max(0, t));
+        }
+        if (radio >= maximo) return;
+        radio = Math.max(0, Math.round(radio / 2) * 2);   // de a 2 puntos: el borde se ve pixelado
+        g.fillStyle = "#05030a";
+        g.beginPath();
+        g.rect(0, 0, ancho, alto);
+        if (radio > 0) g.arc(cx, cy, radio, 0, Math.PI * 2);
+        g.fill("evenodd");
     }
 
     return { dibujar };
 }
 
-// Una miniatura de un mundo (para las tarjetas del mapa): su cielo, sus montañas y una franja de su suelo. Devuelve un lienzo.
+// Las letras que se pintan en CADA cuadro (son animadas o pueden cambiar): no van en el lienzo del terreno.
+const ANIMADAS = new Set(["o", "?", "!", "*", "$", "u", "B", "~", "T"]);
+const SOLIDAS_PARA_BORDES = (l) => l === "#" || l === "=" || l === "%" || l === "I" || l === "B" || l === "u";
+
+// pareceMuro(c, f) = true si esa celda es parte de un escondite sin descubrir (desde afuera se ve como pared).
+function ladosDe(nivel, c, f, letra, pareceMuro = () => false) {
+    const otro = (dc, df) => {
+        if (pareceMuro(c + dc, f + df)) return true;
+        const vecina = P.celda(nivel, c + dc, f + df);
+        return letra === "#" ? vecina === "#" || vecina === "%" : SOLIDAS_PARA_BORDES(vecina);
+    };
+    return { arriba: f > 0 && !otro(0, -1), abajo: !otro(0, 1) && f < nivel.alto - 1, izq: !otro(-1, 0), der: !otro(1, 0) };
+}
+
+// Una miniatura de un mundo (para las tarjetas del mapa): su cielo, sus capas y una franja de su suelo. Devuelve un lienzo.
 export function miniaturaDeMundo(mundo, ancho = 240, alto = 96) {
     const fondos = crearFondos(mundo, 240);
     const l = lienzo(ancho, alto);
@@ -1084,7 +1498,19 @@ export function miniaturaDeMundo(mundo, ancho = 240, alto = 96) {
     g.imageSmoothingEnabled = false;
     g.drawImage(fondos.cielo, 0, 0, ancho, alto);
     // Las capas se apoyan abajo, a su tamaño (se ve la parte de abajo de cada una: montañas, árboles, torres).
-    fondos.capas.forEach((capa, i) => g.drawImage(capa, -i * 60, alto - capa.height + 18));
+    const capas = fondos.capas.filter((capa) => capa.lienzo);
+    capas.forEach((capa, i) => {
+        const x = -Math.round((i * 47) % ANCHO_FONDO);
+        const y = alto - capa.lienzo.height + 18;
+        g.drawImage(capa.lienzo, x, y);
+        if (capa.brillo) {
+            g.globalCompositeOperation = "lighter";
+            g.globalAlpha = 0.6;
+            g.drawImage(capa.brillo, x, y);
+            g.globalAlpha = 1;
+            g.globalCompositeOperation = "source-over";
+        }
+    });
     // Una franja de suelo, con su borde (pasto, roca, nieve o muralla).
     for (let c = 0; c < Math.ceil(ancho / CELDA); c++) {
         pintarCelda(g, "#", c * CELDA, alto - 14, c, 1, mundo, { arriba: true, abajo: false, izq: false, der: false });
@@ -1093,6 +1519,7 @@ export function miniaturaDeMundo(mundo, ancho = 240, alto = 96) {
         const pal = PALETAS[4];
         for (let c = 6; c < 9; c++) pintarLava(g, c * CELDA, alto - 14, c, 0.4, pal, true);
     }
+    g.drawImage(crearLuzDePantalla(mundo, ancho, alto), 0, 0);
     return l;
 }
 

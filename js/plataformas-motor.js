@@ -8,6 +8,11 @@
 //
 // Los sonidos y avisos no se reproducen aquí: se anotan en partida.sonidos y partida.avisos y app-plataformas.js los saca.
 // Cuando la partida termina, partida.resultado = { gano, puntos, reliquias, tiempo, monedas, enemigos }.
+//
+// (v187) El «jugo» (lo que hace que un golpe se SIENTA): polvo al correr y aterrizar, estrellas al pisar, aros al tomar
+// monedas… son partículas de partida.particulas. Y tres números que solo miran el dibujo y la app:
+//   destello (s) = la pantalla se tiñe de rojo (te golpearon) · fogonazo (s) = un destello blanco (algo grande)
+//   congelar (s) = la app detiene el juego un instante («hit-stop»): así un golpe fuerte pesa. El motor no lo usa.
 
 import * as P from "./plataformas.js";
 
@@ -50,7 +55,7 @@ export function crearPartida(nivelId, opciones = {}) {
         enemigos: [], objetos: [], disparos: [], proyectiles: [], particulas: [], textos: [],
         plataformas: [], derrumbes: [], cadenas: [], cofres: [], controles: [], golpeados: [], multi: {},
         jefe: null, puerta: null, metaAbierta: !def.jefe,
-        fase: "jugando", reloj: 0, temblor: 0, espera: 0, combo: 0,
+        fase: "jugando", reloj: 0, temblor: 0, espera: 0, combo: 0, destello: 0, fogonazo: 0, congelar: 0,
         sonidos: [], avisos: [], cambios: [], terminado: false, resultado: null,
         antes: { saltar: false, fuego: false },
         enemigosVencidos: 0,
@@ -183,6 +188,8 @@ export function paso(partida, entrada, dt = P.PASO) {
     partida.antes = { saltar: Boolean(entrada.saltar), fuego: Boolean(entrada.fuego) };
     partida.reloj += dt;
     partida.temblor = Math.max(0, partida.temblor - dt);
+    partida.destello = Math.max(0, partida.destello - dt);
+    partida.fogonazo = Math.max(0, partida.fogonazo - dt);
 
     if (partida.fase === "jugando") {
         partida.tiempo -= dt;
@@ -239,7 +246,26 @@ function terminar(partida, gano) {
 
 function sumar(partida, puntos, x, y, texto = null) {
     partida.puntos += puntos;
-    if (x !== undefined) partida.textos.push({ texto: texto || `${puntos}`, x, y, vida: 0.9, color: "#fde68a" });
+    if (x !== undefined) partida.textos.push({ texto: texto || `${puntos}`, x, y, vida: 0.9, max: 0.9, color: "#fde68a" });
+}
+
+// ===== El «jugo»: partículas que no cambian el juego, solo cómo se siente =====
+// max = la vida con la que nace (el dibujo la usa para saber cuánto le queda).
+function particula(partida, datos) {
+    partida.particulas.push({ vx: 0, vy: 0, gravedad: 0, ...datos, max: datos.vida });
+}
+
+// Nubecitas de polvo (o de nieve, o de ceniza: el dibujo elige el color según el mundo).
+function polvo(partida, x, y, cuantas, abre = 40, sube = 30) {
+    for (let i = 0; i < cuantas; i++) {
+        const lado = cuantas === 1 ? 0 : (i / (cuantas - 1)) * 2 - 1;
+        particula(partida, { tipo: "polvo", x: x + lado * 3, y, vx: lado * abre, vy: -sube * (0.6 + 0.4 * Math.abs(lado)), vida: 0.32 });
+    }
+}
+
+// La estrella del golpe (al pisar, romper o pegarle al jefe).
+function estrella(partida, x, y, grande = false) {
+    particula(partida, { tipo: "estrella", x, y, vida: grande ? 0.28 : 0.16, grande });
 }
 
 
@@ -318,6 +344,7 @@ function moverHeroe(partida, entrada, pulso, dt) {
         h.enSuelo = false;
         h.sobre = null;
         partida.sonidos.push("salto");
+        polvo(partida, centroX(h), h.y + h.alto - 1, 2, 30, 10);
     }
     // Salto variable: mientras subes con el botón apretado, la gravedad pesa menos.
     if (h.vy >= 0) h.saltando = false;
@@ -355,7 +382,20 @@ function moverHeroe(partida, entrada, pulso, dt) {
             }
         }
     }
-    if (h.enSuelo && !estabaEnSuelo && caidaAntes > 120) h.aterrizaje = 0.12;
+    if (h.enSuelo && !estabaEnSuelo && caidaAntes > 120) {
+        h.aterrizaje = 0.12;
+        polvo(partida, centroX(h), h.y + h.alto - 1, caidaAntes > 300 ? 4 : 2, 30 + caidaAntes * 0.08, 14);
+    }
+    // Al correr se levanta polvo detrás de los pies; al frenar en seco (o dar la vuelta), delante.
+    h.polvo = Math.max(0, (h.polvo || 0) - dt);
+    if (h.enSuelo && h.polvo <= 0) {
+        const frena = direccion && h.vx && signo(h.vx) !== direccion && Math.abs(h.vx) > 50;
+        if (frena || Math.abs(h.vx) > FISICA.velocidadMax * 0.75) {
+            particula(partida, { tipo: "polvo", x: centroX(h) - signo(h.vx) * (frena ? -4 : 5), y: h.y + h.alto - 2,
+                                 vx: -signo(h.vx) * 18, vy: -14, vida: frena ? 0.3 : 0.24 });
+            h.polvo = frena ? 0.05 : 0.13;
+        }
+    }
     if (h.enSuelo) partida.combo = 0;
     h.andar = h.enSuelo && Math.abs(h.vx) > 8 ? h.andar + Math.abs(h.vx) * dt : 0;
 
@@ -393,6 +433,9 @@ function danarHeroe(partida) {
     h.cambio = 0.6;
     partida.sonidos.push("impacto");
     partida.temblor = 0.2;
+    partida.destello = 0.25;
+    partida.congelar = 0.07;
+    chispa(partida, centroX(h), centroY(h), "#fca5a5");
 }
 
 function morir(partida) {
@@ -406,6 +449,8 @@ function morir(partida) {
     h.bendicion = 0;
     partida.sonidos.push("fallo");
     partida.temblor = 0.25;
+    partida.destello = 0.35;
+    partida.congelar = 0.14;
 }
 
 
@@ -415,6 +460,7 @@ function golpearBloque(partida, c, f) {
     const h = partida.heroe;
     const letra = P.celda(n, c, f);
     partida.golpeados.push({ c, f, t: 0.2 });
+    polvo(partida, c * CELDA + 8, (f + 1) * CELDA + 1, 2, 26, -12);   // el golpe suelta polvo del bloque
     const arriba = { x: c * CELDA, y: f * CELDA - 4, ancho: CELDA, alto: 6 };
     // Lo que estaba parado encima del bloque salta (los enemigos caen vencidos).
     for (const e of partida.enemigos) {
@@ -443,9 +489,11 @@ function golpearBloque(partida, c, f) {
         partida.sonidos.push("poder");
     } else if (letra === "B" && h.poder !== "normal") {
         cambiar(".");
-        for (const [vx, vy] of [[-60, -260], [60, -260], [-40, -170], [40, -170]]) {
+        for (const [vx, vy] of [[-60, -260], [60, -260], [-40, -170], [40, -170], [-90, -200], [90, -200]]) {
             partida.particulas.push({ tipo: "escombro", x: x - 3, y: y + 4, vx, vy, vida: 1.2, gravedad: 900, mundo: partida.mundo });
         }
+        polvo(partida, x, y + 8, 3, 50, 20);
+        estrella(partida, x, y + 8);
         sumar(partida, P.PUNTOS.ladrillo);
         partida.sonidos.push("ladrillo");
     } else {
@@ -459,7 +507,10 @@ function ganarMoneda(partida, x, y, saltando = false) {
     sumar(partida, valor);
     partida.sonidos.push("moneda");
     if (saltando) partida.particulas.push({ tipo: "moneda", x: x - 4, y: y - 8, vx: 0, vy: -240, vida: 0.45, gravedad: 900 });
-    else partida.particulas.push({ tipo: "brillo", x: x - 2, y: y - 2, vx: 0, vy: -20, vida: 0.3, gravedad: 0 });
+    else {
+        particula(partida, { tipo: "brillo", x, y: y - 2, vy: -20, vida: 0.3 });
+        particula(partida, { tipo: "anillo", x, y, vida: 0.25, radio: 7 });
+    }
     if (partida.monedas % P.MONEDAS_POR_VIDA === 0) ganarVida(partida);
 }
 
@@ -467,7 +518,7 @@ function ganarVida(partida) {
     partida.vidas += 1;
     partida.sonidos.push("vidaExtra");
     const h = partida.heroe;
-    partida.textos.push({ texto: "+1♥", x: centroX(h), y: h.y - 4, vida: 1.2, color: "#fb7185" });
+    partida.textos.push({ texto: "+1♥", x: centroX(h), y: h.y - 4, vida: 1.2, max: 1.2, color: "#fb7185" });
 }
 
 
@@ -754,7 +805,10 @@ function vencer(partida, e, como) {
         e.vx = (como === "golpe" ? 0 : signo(e.vx || e.mira)) * 40;
     }
     const puntos = como === "concha" ? P.PUNTOS.concha : como === "fuego" ? P.PUNTOS.fuego : P.PUNTOS.pisoton;
-    if (como !== "pisado") sumar(partida, puntos, centroX(e), e.y);
+    if (como !== "pisado") {
+        sumar(partida, puntos, centroX(e), e.y);
+        estrella(partida, centroX(e), centroY(e));
+    }
     if (e.def.id === "esqueleto") {
         for (const [vx, vy] of [[-50, -200], [40, -240], [0, -160]]) {
             partida.particulas.push({ tipo: "hueso", x: centroX(e), y: e.y + 4, vx, vy, vida: 0.9, gravedad: 900 });
@@ -788,6 +842,8 @@ function moverObjetos(partida, dt) {
 
 function tomarObjeto(partida, o) {
     const h = partida.heroe;
+    particula(partida, { tipo: "anillo", x: centroX(o), y: centroY(o), vida: 0.35, radio: 14, color: o.tipo === "vida" ? "#fb7185" : "#fde68a" });
+    if (o.tipo === "bendicion") partida.fogonazo = 0.18;
     sumar(partida, o.tipo === "vida" ? 0 : P.PUNTOS.poder, centroX(o), o.y, o.tipo === "vida" ? "+1♥" : null);
     if (o.tipo === "pocion") {
         if (h.poder === "normal") { h.poder = "armadura"; h.cambio = 0.6; partida.avisos.push({ texto: "🛡️ ¡Armadura!", tipo: "poder" }); }
@@ -830,7 +886,7 @@ function moverDisparos(partida, dt) {
             if (!e.def.fuego) { partida.sonidos.push("bloque"); continue; }
             e.golpesFuego += 1;
             if (e.golpesFuego >= e.def.fuego) vencer(partida, e, "fuego");
-            else partida.sonidos.push("impacto");
+            else { partida.sonidos.push("impacto"); e.golpeEn = partida.reloj; }   // (el dibujo lo hace destellar)
         }
         const j = partida.jefe;
         if (b.vida > 0 && j && j.activo && !j.vencido && P.seTocan(b, j)) {
@@ -878,6 +934,7 @@ function moverParticulas(partida, dt) {
         p.y += p.vy * dt;
     }
     partida.particulas = partida.particulas.filter((p) => p.vida > 0);
+    if (partida.particulas.length > 160) partida.particulas.splice(0, partida.particulas.length - 160);   // un tope, para el iPhone
     for (const t of partida.textos) {
         t.vida -= dt;
         t.y -= 26 * dt;
@@ -1045,6 +1102,9 @@ function pisar(partida, e, entrada) {
     partida.combo += 1;
     const puntos = P.PUNTOS.pisoton * 2 ** Math.min(3, partida.combo - 1);
     sumar(partida, puntos, centroX(e), e.y);
+    estrella(partida, centroX(h), h.y + h.alto, partida.combo > 2);
+    polvo(partida, centroX(e), cajaDe(e).y + 2, 2, 50, 6);
+    partida.congelar = Math.max(partida.congelar, 0.035);
     if (e.conducta === "caparazon") {
         e.estado = "concha";
         e.t = 0;
@@ -1078,6 +1138,11 @@ function llegarALaMeta(partida) {
     sumar(partida, bono, centroX(h), h.y - 6);
     partida.sonidos.push("victoria");
     partida.avisos.push({ texto: `¡Nivel superado! +${bono}`, tipo: "meta" });
+    for (let i = 0; i < 16; i++) {   // chispas doradas que salen del Arco
+        const a = -Math.PI / 2 + (i / 15 - 0.5) * 2.4;
+        particula(partida, { tipo: "chispa", x: centroX(h), y: h.y + 8, vx: Math.cos(a) * (90 + (i % 4) * 30), vy: Math.sin(a) * (90 + (i % 4) * 30),
+                             gravedad: 220, vida: 1.1, color: i % 3 ? "#fde68a" : "#fff7d6" });
+    }
 }
 
 
@@ -1111,6 +1176,9 @@ function golpearJefe(partida, j) {
     partida.temblor = 0.3;
     partida.sonidos.push("critico");
     chispa(partida, centroX(j), j.y + 6, "#fde68a");
+    estrella(partida, centroX(j), j.y + 4, true);
+    partida.congelar = 0.12;
+    partida.fogonazo = 0.12;
     if (j.vida <= 0) {
         j.vencido = true;
         j.vulnerable = false;
@@ -1119,6 +1187,14 @@ function golpearJefe(partida, j) {
         j.vy = -200;
         partida.proyectiles = [];
         sumar(partida, P.PUNTOS.jefe, centroX(j), j.y);
+        partida.congelar = 0.3;
+        partida.fogonazo = 0.35;
+        partida.temblor = 0.6;
+        for (let i = 0; i < 14; i++) {   // revienta en ascuas y chispas
+            const a = (i / 14) * Math.PI * 2;
+            particula(partida, { tipo: "chispa", x: centroX(j), y: centroY(j), vx: Math.cos(a) * 120, vy: Math.sin(a) * 120 - 60, gravedad: 300,
+                                 vida: 0.8, color: i % 2 ? "#fde68a" : "#fb923c" });
+        }
         partida.sonidos.push("descarga");
         partida.avisos.push({ texto: `¡Venciste a ${j.nombre}!`, tipo: "jefe" });
         partida.enemigosVencidos += 1;

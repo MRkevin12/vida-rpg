@@ -25,9 +25,13 @@ let pausado = false;
 let anterior = 0;          // el momento del cuadro anterior (para medir el tiempo)
 let acumulado = 0;         // el tiempo que falta simular
 let cuadroPedido = 0;
-let ultimoHud = "";
 let jefeSonando = false;   // para cambiar la música cuando empieza la pelea
 let conectado = false;
+let introHasta = 0;        // (v187) hasta cuándo se ve la tarjeta «MUNDO 1 · 1-1» (el juego espera quieto)
+let formaHud = "";         // (v187) la forma del marcador: si no cambia, solo se cambian sus números
+const valoresHud = {};     // los números que ya se muestran (para no tocar el HTML si no cambiaron)
+let avanceMostrado = -1;   // la barra del recorrido
+let heroeDelMapa = null;   // el dibujo de tu héroe para pararlo en el mapa (se hace una vez)
 
 // Qué botones están apretados: los toques (cada dedo con su pointerId) y el teclado se juntan aquí.
 const entrada = { izquierda: false, derecha: false, saltar: false, fuego: false };
@@ -88,6 +92,26 @@ function pintarMapaSenda() {
     });
     caja.scrollTop = scroll;
     pintarPortadasSenda(caja);
+    pintarHeroeDelMapa(caja);
+}
+
+// (v187) Tu héroe, parado en el nivel elegido del mapa (el mismo dibujo de la Senda).
+async function pintarHeroeDelMapa(caja) {
+    const img = caja.querySelector("img[data-senda-heroe]");
+    if (!img) return;
+    try {
+        heroeDelMapa ||= await sprites.spriteDeHeroeEnSenda(avatarActual());
+        img.src = heroeDelMapa;
+    } catch { /* sin dibujo: el nodo elegido igual brilla */ }
+}
+
+// La capa que va encima del lienzo (cargando, la tarjeta de entrada, la pausa o el resultado).
+function mostrarCapa(html, clase = "") {
+    const capa = $("#senda-capa");
+    capa.className = `senda-capa ${clase}`.trim();
+    capa.innerHTML = html;
+    capa.hidden = false;
+    return capa;
 }
 
 // Las portadas de los mundos (un pedazo de su fondo, en pixel art): se hacen una vez y se guardan.
@@ -144,25 +168,28 @@ async function jugarNivel(nivelId) {
     $("#senda-juego").hidden = false;
     $("#senda-pausa").hidden = false;
     $("#senda-titulo").textContent = `🏰 ${def.id} · ${def.nombre}`;
-    const capa = $("#senda-capa");
-    capa.innerHTML = '<p class="senda-cargando">Cargando…</p>';
-    capa.hidden = false;
+    mostrarCapa('<p class="senda-cargando">Cargando…</p>', "capa-entrada");
     $("#senda-hud").innerHTML = "";
-    ultimoHud = "";
+    formaHud = "";
+    for (const clave of Object.keys(valoresHud)) delete valoresHud[clave];
 
     const ventajas = arcade.ventajasDelEquipo(acciones.equipoDeBatalla(estado));
     const partida = motor.crearPartida(nivelId, { ventajas });
     juego = { nivelId, partida, pintor: null, terminado: false };
     const actual = juego;
     ajustarLienzo();
+    $("#senda-recorrido").innerHTML = vistasSenda.recorridoDelNivel(partida);
+    avanceMostrado = -1;
     const imagenes = await cargarImagenes(partida);
     if (juego !== actual) return;   // saliste mientras cargaba
     juego.pintor = crearPintor(partida, imagenes);
-    capa.hidden = true;
+    // (v187) La tarjeta de entrada sobre la pantalla negra; al irse, el iris se abre sobre tu héroe.
+    mostrarCapa(vistasSenda.entradaDelNivel(nivelId, partida.vidas), "capa-entrada");
+    introHasta = performance.now() + 1700;
     pausado = false;
     jefeSonando = false;
     soltarTodo();
-    mostrarAviso(`Mundo ${def.mundo} · ${def.nombre}`);
+    sonar("cursor");
     anterior = performance.now();
     acumulado = 0;
     cuadroPedido = requestAnimationFrame(cuadro);
@@ -191,7 +218,18 @@ function cuadro(ahora) {
     const partida = juego.partida;
     const dt = Math.min(0.1, Math.max(0, (ahora - anterior) / 1000));
     anterior = ahora;
-    if (!pausado) {
+    const enIntro = ahora < introHasta;
+    if (!enIntro && introHasta && !pausado) {   // se fue la tarjeta de entrada: empieza el juego
+        introHasta = 0;
+        $("#senda-capa").hidden = true;
+    }
+    if (enIntro) {
+        acumulado = 0;   // mientras se ve la tarjeta, el juego espera quieto
+    } else if (!pausado && partida.congelar > 0) {
+        // (v187) «Hit-stop»: tras un golpe fuerte, el juego se detiene un instante (se sigue pintando). Así el golpe pesa.
+        partida.congelar = Math.max(0, partida.congelar - dt);
+        acumulado = 0;
+    } else if (!pausado) {
         acumulado += dt;
         let pasos = 0;
         while (acumulado >= P.PASO && pasos < 12) {
@@ -208,12 +246,12 @@ function cuadro(ahora) {
     // Los sonidos de este cuadro (sin repetir: diez monedas juntas suenan como una).
     for (const nombre of new Set(motor.sacarSonidos(partida))) sonar(nombre);
     const avisos = motor.sacarAvisos(partida);
-    if (avisos.length) mostrarAviso(avisos[avisos.length - 1].texto);
-    const hud = vistasSenda.marcadorDeLaSenda(motor.marcador(partida));
-    if (hud !== ultimoHud) {
-        $("#senda-hud").innerHTML = hud;
-        ultimoHud = hud;
+    if (avisos.length) {
+        const ultimo = avisos[avisos.length - 1];
+        mostrarAviso(ultimo.texto, ultimo.tipo);
     }
+    actualizarHud(motor.marcador(partida));
+    actualizarRecorrido(partida);
     const fuego = $('[data-senda="fuego"]');
     if (fuego.hidden === motor.tieneFuego(partida)) fuego.hidden = !motor.tieneFuego(partida);
     const peleando = Boolean(partida.jefe?.activo && !partida.jefe.vencido);
@@ -227,12 +265,55 @@ function cuadro(ahora) {
     cuadroPedido = requestAnimationFrame(cuadro);
 }
 
+// (v187) El marcador: se rehace entero solo si cambia su forma (aparece el jefe, cambia tu poder); si no, solo sus números.
+function actualizarHud(m) {
+    const caja = $("#senda-hud");
+    const forma = vistasSenda.formaDelMarcador(m);
+    if (forma !== formaHud) {
+        caja.innerHTML = vistasSenda.marcadorDeLaSenda(m);
+        formaHud = forma;
+        Object.assign(valoresHud, vistasSenda.valoresDelMarcador(m), { jefe: m.jefe?.vida, poco: m.tiempo <= 60 });
+        return;
+    }
+    for (const [clave, valor] of Object.entries(vistasSenda.valoresDelMarcador(m))) {
+        if (valoresHud[clave] === valor) continue;
+        valoresHud[clave] = valor;
+        const el = caja.querySelector(`[data-hud="${clave}"]`);
+        if (el) el.textContent = valor;
+    }
+    const poco = m.tiempo <= 60;
+    if (valoresHud.poco !== poco) {
+        valoresHud.poco = poco;
+        caja.querySelector("[data-hud-tiempo]")?.classList.toggle("senda-poco", poco);
+    }
+    if (m.jefe && valoresHud.jefe !== m.jefe.vida) {   // la barra del jefe baja (con un rastro que la sigue despacio)
+        valoresHud.jefe = m.jefe.vida;
+        const barra = caja.querySelector(".senda-jefe");
+        if (barra) {
+            barra.style.setProperty("--vida", (m.jefe.vida / m.jefe.golpes).toFixed(3));
+            barra.setAttribute("aria-label", `Vida del jefe: ${m.jefe.vida} de ${m.jefe.golpes}`);
+            barra.querySelectorAll(".senda-jefe-celdas i").forEach((celda, i) => celda.classList.toggle("lleno", i < m.jefe.vida));
+            barra.classList.remove("golpe");
+            void barra.offsetWidth;
+            barra.classList.add("golpe");
+        }
+    }
+}
+
+// (v187) La barra del recorrido: cuánto del nivel llevas.
+function actualizarRecorrido(partida) {
+    const avance = Math.max(0, Math.min(1, (partida.heroe.x + partida.heroe.ancho / 2) / (partida.nivel.ancho * P.CELDA)));
+    if (Math.abs(avance - avanceMostrado) < 0.003) return;
+    avanceMostrado = avance;
+    $("#senda-recorrido").style.setProperty("--avance", avance.toFixed(3));
+}
+
 let avisoHasta = 0;
-function mostrarAviso(texto) {
+function mostrarAviso(texto, tipo = "") {
     const aviso = $("#senda-aviso");
     aviso.textContent = texto;
     aviso.hidden = false;
-    aviso.classList.remove("entra");
+    aviso.className = `senda-aviso ${tipo ? `aviso-${tipo}` : ""}`.trim();
     void aviso.offsetWidth;   // reinicia la animación
     aviso.classList.add("entra");
     avisoHasta = Date.now() + 1800;
@@ -256,11 +337,44 @@ function terminarNivel(salio) {
     if (!r) { mostrarMapa(); return; }
     const siguiente = P.siguienteNivel(nivelId);
     if (resultado.gano && siguiente && P.nivelAbierto(estado.arcade.plataformas, siguiente)) elegido = siguiente;
-    const capa = $("#senda-capa");
-    capa.innerHTML = vistasSenda.finalDeLaSenda(r, resultado, nivelId, arcade.fichasDisponibles(estado), salio);
-    capa.hidden = false;
-    if (r.nuevoRecord) sonar("logro");
+    const capa = mostrarCapa(vistasSenda.finalDeLaSenda(r, resultado, nivelId, arcade.fichasDisponibles(estado), salio), resultado.gano ? "capa-final capa-gano" : "capa-final");
+    contarResultado(capa, r.nuevoRecord);
     ponerMusica();
+}
+
+// (v187) Los números del resultado suben de 0 a su valor, uno tras otro, con un tic (como en los juegos de antes).
+// Tocar la pantalla los termina de una vez.
+function contarResultado(capa, record) {
+    const numeros = [...capa.querySelectorAll("[data-contar]")];
+    const metas = numeros.map((el) => Number(el.dataset.contar) || 0);
+    numeros.forEach((el) => { el.textContent = "0"; });
+    capa.classList.add("capa-contando");
+    let i = 0;
+    let desde = performance.now();
+    let ultimoTic = 0;
+    const terminar = () => {
+        numeros.forEach((el, k) => { el.textContent = String(metas[k]); });
+        capa.classList.remove("capa-contando");
+        capa.removeEventListener("pointerdown", terminar);
+        i = numeros.length;
+        if (record) sonar("logro");
+    };
+    capa.addEventListener("pointerdown", terminar);
+    const paso = (ahora) => {
+        if (i >= numeros.length || !capa.contains(numeros[i])) return;
+        const duracion = Math.min(900, 250 + metas[i] * 0.15);
+        const t = Math.min(1, (ahora - desde) / duracion);
+        numeros[i].textContent = String(Math.round(metas[i] * (1 - (1 - t) ** 3)));
+        if (ahora - ultimoTic > 70 && t < 1) { sonar("cursor"); ultimoTic = ahora; }
+        if (t >= 1) {
+            numeros[i].classList.add("listo");
+            i += 1;
+            desde = ahora + 120;
+            if (i >= numeros.length) { terminar(); return; }
+        }
+        requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
 }
 
 function rendirse() {
@@ -279,9 +393,32 @@ function pausar() {
     if (!juego || juego.terminado || pausado) return;
     pausado = true;
     soltarTodo();
-    const capa = $("#senda-capa");
-    capa.innerHTML = vistasSenda.pausaDeLaSenda(juego.nivelId);
-    capa.hidden = false;
+    pintarPausa();
+    sonar("cursor");
+}
+
+// (v187) El menú de pausa, con lo que llevas, el sonido y la música.
+function pintarPausa() {
+    mostrarCapa(vistasSenda.pausaDeLaSenda(juego.nivelId, {
+        marcador: motor.marcador(juego.partida), fichas: arcade.fichasDisponibles(estado),
+        sonido: estado.ajustes.sonido, musica: estado.ajustes.musica,
+    }), "capa-pausa");
+}
+
+// Reiniciar = terminar este intento (cuentan los puntos que llevas) y empezar otro (cuesta 1 ficha, como siempre).
+function reiniciar() {
+    if (!juego || juego.terminado) return;
+    if (!confirm("¿Volver a empezar el nivel? Cuesta 1 ficha y cuentan los puntos que llevas.")) return;
+    const id = juego.nivelId;
+    terminarNivel(true);
+    jugarNivel(id);
+}
+
+function alternarAjuste(clave) {
+    ejecutar(() => acciones.cambiarAjuste(estado, clave, !estado.ajustes[clave]), { mantenerScroll: true });
+    if (clave === "musica") ponerMusica();
+    else sonar("cursor");
+    if (juego && !juego.terminado && pausado) pintarPausa();
 }
 
 function seguir() {
@@ -295,6 +432,7 @@ function detenerJuego() {
     cancelAnimationFrame(cuadroPedido);
     juego = null;
     pausado = false;
+    introHasta = 0;
     soltarTodo();
     $("#senda-capa").hidden = true;
     $("#senda-aviso").hidden = true;
@@ -401,4 +539,7 @@ export const ACCIONES_SENDA = {
     "senda-mapa": () => mostrarMapa(),
     "senda-seguir": () => seguir(),
     "senda-rendirse": () => rendirse(),
+    "senda-reiniciar": () => reiniciar(),
+    "senda-sonido": () => alternarAjuste("sonido"),
+    "senda-musica": () => alternarAjuste("musica"),
 };

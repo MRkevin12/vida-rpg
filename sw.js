@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v186";
+const VERSION = "vida-rpg-v187";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
@@ -116,6 +116,7 @@ const ARCHIVOS = [
     "./js/plataformas-niveles.js",
     "./js/plataformas-motor.js",
     "./js/dibujo-plataformas.js",
+    "./js/dibujo-plataformas-escena.js",   // (v187) fondos, ambiente y luz de la Senda
     "./js/novedades.js",
     "./js/pacto.js",
     "./js/nube.js",

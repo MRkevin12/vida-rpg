@@ -4,9 +4,21 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 186;
+export const VERSION_APP = 187;
 
 export const NOVEDADES = [
+    {
+        version: 187,
+        titulo: "La Senda del Reino, con cara de videojuego",
+        cambios: [
+            "🏞️ Cada mundo tiene un paisaje con más capas y profundidad: el sol del alba con nubes y un castillo en ruinas, faroles y cristales que brillan en las minas, la luna, la aurora y rayos lejanos en las cumbres, y un volcán encendido detrás de la fortaleza.",
+            "🌿 El terreno está vivo: pasto que se mece (y se aparta cuando pasas), flores, lápidas, cristales, carámbanos, huesos y antorchas con su halo de luz. Luciérnagas, polvo de cristal, nieve y ascuas flotan en el aire.",
+            "💥 Cada golpe se siente: polvo al correr, saltar y aterrizar, tu héroe se estira y se aplasta, estrellas al pisar criaturas, aros al tomar monedas, la pantalla se tiñe de rojo si te golpean y el juego se detiene un instante en los golpes fuertes.",
+            "🎬 Al entrar a un nivel aparece «Mundo 1 · 1-1» y la pantalla se abre en un círculo desde tu héroe; al caer o al llegar al Arco, se cierra.",
+            "🎮 Marcador con marcos de pixel, barra del jefe con su nombre, una barra de cuánto llevas del nivel, una pausa nueva (continuar, reiniciar, sonido, música, salir) y el resultado cuenta tus puntos uno por uno.",
+            "🗺️ El mapa es un camino sobre el paisaje de cada mundo, con tu héroe parado en el nivel que elegiste. Los botones parecen un mando: una cruceta y los botones A (saltar) y B (fuego).",
+        ],
+    },
     {
         version: 186,
         titulo: "La Senda del Reino, más clara",

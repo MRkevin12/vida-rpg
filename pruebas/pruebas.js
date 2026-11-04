@@ -9696,7 +9696,8 @@ prueba("La Senda del Reino: las pantallas (Arcade, mapa, resultado y marcador)",
     const m = motorSenda.marcador(motorSenda.crearPartida("1-J"));
     sano(vistasSenda.marcadorDeLaSenda(m), "el marcador");
     const conJefe = vistasSenda.marcadorDeLaSenda({ ...m, jefe: { nombre: "Caballero sin Nombre", vida: 2, golpes: 3 } });
-    cierto(conJefe.includes("▮▮▯"), "la vida del jefe");
+    cierto(conJefe.includes('aria-label="Vida del jefe: 2 de 3"') && (conJefe.match(/class="lleno"/g) || []).length === 2, "la vida del jefe");
+    cierto(conJefe.includes("--vida: 0.667") && conJefe.includes("Caballero sin Nombre"), "la barra del jefe, con su nombre");
     sano(vistasSenda.pausaDeLaSenda("2-3"), "la pausa");
 });
 
@@ -9715,7 +9716,7 @@ prueba("La Senda del Reino: los sonidos existen y cada mundo tiene su música (c
 prueba("La Senda del Reino: archivos en el service worker y en la ayuda", async () => {
     const sw = await (await fetch("../sw.js", { cache: "no-store" })).text();
     for (const archivo of ["plataformas.js", "plataformas-niveles.js", "plataformas-motor.js", "dibujo-plataformas.js", "vistas-plataformas.js",
-                           "app-plataformas.js", "acciones-plataformas.js"]) {
+                           "app-plataformas.js", "acciones-plataformas.js", "dibujo-plataformas-escena.js"]) {
         cierto(sw.includes(`"./js/${archivo}"`), `sw.js guarda ${archivo} (para jugar sin internet)`);
     }
     const html = await (await fetch("../index.html", { cache: "no-store" })).text();
@@ -9724,6 +9725,126 @@ prueba("La Senda del Reino: archivos en el service worker y en la ayuda", async 
     const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
     cierto(/\.senda\.jugando \.senda-pantalla\s*\{[^}]*inset:\s*0/.test(css), "en horizontal, el lienzo a pantalla completa");
     cierto(/\.senda-controles\s*\{[^}]*touch-action:\s*none/.test(css), "los botones no mueven la página");
+});
+
+// ===== (v187) La Senda del Reino más profesional: escenario, «jugo» e interfaz =====
+
+prueba("La Senda del Reino (v187): el «jugo» — polvo, estrellas, aros, destellos, hit-stop y un tope de partículas", () => {
+    const tipos = (p) => p.particulas.map((x) => x.tipo);
+    // Saltar levanta polvo; cada partícula sabe con cuánta vida nació (para desvanecerse).
+    const p = partidaDePrueba({});
+    avanzar(p, 0.05);
+    motorSenda.paso(p, { saltar: true }, plataformas.PASO);
+    cierto(tipos(p).includes("polvo"), "al saltar, polvo");
+    cierto(p.particulas.every((x) => x.max > 0), "cada partícula guarda su vida inicial");
+    // Correr rápido también deja polvo detrás.
+    const corre = partidaDePrueba({});
+    avanzar(corre, 1.2, { derecha: true });
+    cierto(tipos(corre).includes("polvo"), "al correr, polvo");
+    // Pisar a un esqueleto: la estrella del golpe y un instante de «hit-stop».
+    const pisa = partidaDePrueba({ 12: { 6: "e" } });
+    const e = pisa.enemigos[0];
+    avanzar(pisa, 0.05);
+    Object.assign(pisa.heroe, { x: e.x, y: e.y - 40, vy: 200 });
+    for (let i = 0; i < 40 && e.vivo; i++) motorSenda.paso(pisa, {}, plataformas.PASO);
+    cierto(!e.vivo && tipos(pisa).includes("estrella"), "al pisar, una estrella");
+    cierto(pisa.congelar > 0, "y el juego se detiene un instante (la app lo usa)");
+    cierto(pisa.textos.every((t) => t.max > 0), "los puntos que suben saben cuánto duran");
+    // Recibir un golpe: la pantalla se tiñe de rojo (y se apaga sola).
+    const golpe = partidaDePrueba({ 12: { 8: "e" } }, { ventajas: { escudos: 1 } });
+    avanzar(golpe, 2, { derecha: true });
+    igual(golpe.heroe.poder, "normal", "perdió la armadura");
+    const conDestello = partidaDePrueba({ 12: { 8: "e" } }, { ventajas: { escudos: 1 } });
+    let maximo = 0;
+    for (let i = 0; i < 240; i++) { motorSenda.paso(conDestello, { derecha: true }, plataformas.PASO); maximo = Math.max(maximo, conDestello.destello); }
+    cierto(maximo > 0 && conDestello.destello < maximo, "el destello rojo aparece y se apaga");
+    // Tomar una moneda: un aro que se abre.
+    const moneda = partidaDePrueba({ 12: { 4: "o" } });
+    for (let i = 0; i < 240 && !moneda.monedas; i++) motorSenda.paso(moneda, { derecha: true }, plataformas.PASO);
+    cierto(moneda.monedas === 1 && tipos(moneda).includes("anillo"), "la moneda deja un aro");
+    // Nunca más de 160 partículas (para el iPhone).
+    for (let i = 0; i < 400; i++) moneda.particulas.push({ tipo: "chispa", x: 0, y: 0, vx: 0, vy: 0, vida: 5, max: 5 });
+    motorSenda.paso(moneda, {}, plataformas.PASO);
+    cierto(moneda.particulas.length <= 160, `tope de partículas (${moneda.particulas.length})`);
+});
+
+prueba("La Senda del Reino (v187): el escenario — capas con paralaje, lo que brilla, el ambiente y la luz", async () => {
+    const escena = await import("../js/dibujo-plataformas-escena.js");
+    const lienzo = document.createElement("canvas");
+    lienzo.width = 300;
+    lienzo.height = 240;
+    const g = lienzo.getContext("2d");
+    for (const mundo of [1, 2, 3, 4]) {
+        const fondos = escena.crearFondos(mundo, 240);
+        const capas = fondos.capas.filter((c) => c.lienzo);
+        cierto(capas.length >= 3, `mundo ${mundo}: al menos 3 capas (${capas.length})`);
+        cierto(capas.every((c) => c.lienzo.width === escena.ANCHO_FONDO && c.factor > 0 && c.factor < 1), `mundo ${mundo}: cada capa se repite y va más lenta que el terreno`);
+        const factores = capas.map((c) => c.factor);
+        cierto(factores.every((f, i) => i === 0 || f >= factores[i - 1] - 0.1), `mundo ${mundo}: de lejos (lento) a cerca (rápido)`);
+        for (const reloj of [0, 3.02, 11.5]) {
+            escena.pintarFondos(g, fondos, 1234, 300, 240, reloj);
+            escena.pintarBrillosDeFondo(g, fondos, 1234, 300, 240, reloj);
+            escena.pintarAmbiente(g, mundo, 1234, 300, 240, reloj);
+        }
+        const luz = escena.crearLuzDePantalla(mundo, 300, 240);
+        igual([luz.width, luz.height], [300, 240], `mundo ${mundo}: la luz de la pantalla mide lo que la vista`);
+    }
+    cierto(escena.crearFondos(2, 240).capas.some((c) => c.brillo) && escena.crearFondos(4, 240).capas.some((c) => c.brillo), "en las minas y la fortaleza, el fondo brilla");
+    cierto(escena.crearFondos(3, 240).capas.some((c) => c.efecto === "relampago"), "en las cumbres caen rayos");
+    igual(escena.halo([255, 0, 0], 10), escena.halo([255, 0, 0], 10), "los halos se hacen una sola vez");
+    igual(escena.ruido(3, 4, 5), escena.ruido(3, 4, 5), "el ruido siempre da lo mismo (nada «baila»)");
+    // El pintor aguanta todas las fases (entrar, morir, renacer, llegar al Arco) en un mundo oscuro y en uno claro.
+    for (const mundo of [1, 2]) {
+        const p = partidaDePrueba({ 12: { 6: "e", 9: "o" } }, { mundo });
+        const pintor = dibujoSenda.crearPintor(p, {});
+        pintor.dibujar(g);
+        avanzar(p, 0.3, { derecha: true });
+        pintor.dibujar(g);
+        p.tiempo = 0.01;
+        avanzar(p, 1.5);
+        pintor.dibujar(g);
+        avanzar(p, 0.6);
+        pintor.dibujar(g);
+        igual(p.fase, "jugando", `mundo ${mundo}: renació`);
+        p.heroe.x = p.nivel.meta.c * plataformas.CELDA - 6;
+        avanzar(p, 0.5, { derecha: true });
+        pintor.dibujar(g);
+        avanzar(p, 2.5);
+        pintor.dibujar(g);
+        cierto(p.terminado && p.resultado.gano, `mundo ${mundo}: llegó al Arco`);
+    }
+});
+
+prueba("La Senda del Reino (v187): la interfaz — entrada, pausa, marcador por partes, recorrido, mapa y conteo", () => {
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), `${que} no tiene huecos`);
+    const entrada = vistasSenda.entradaDelNivel("1-2", 3);
+    sano(entrada, "la tarjeta de entrada");
+    cierto(entrada.includes("Mundo 1") && entrada.includes("1-2") && entrada.includes(plataformas.POR_ID["1-2"].nombre), "dice el mundo, el nivel y su nombre");
+    cierto(vistasSenda.entradaDelNivel("1-J", 3).includes("Te espera"), "en el jefe, quién te espera");
+    const p = motorSenda.crearPartida("1-1");
+    const m = motorSenda.marcador(p);
+    const pausa = vistasSenda.pausaDeLaSenda("1-1", { marcador: m, fichas: 0, sonido: true, musica: false });
+    sano(pausa, "la pausa con datos");
+    cierto(/data-accion="senda-reiniciar"[^>]*disabled/.test(pausa), "sin fichas, no se puede reiniciar");
+    cierto(pausa.includes('data-accion="senda-sonido" aria-pressed="true"') && pausa.includes('data-accion="senda-musica" aria-pressed="false"'), "el sonido y la música dicen cómo están");
+    cierto(!/data-accion="senda-reiniciar"[^>]*disabled/.test(vistasSenda.pausaDeLaSenda("1-1", { marcador: m, fichas: 2 })), "con fichas, sí");
+    const v = vistasSenda.valoresDelMarcador({ ...m, puntos: 1250, monedas: 7 });
+    igual([v.puntos, v.monedas, v.vidas], ["001250", "×07", `×${m.vidas}`], "los números del marcador, como en los juegos de antes");
+    cierto(vistasSenda.formaDelMarcador(m) !== vistasSenda.formaDelMarcador({ ...m, poder: "fuego" }), "cambiar de poder rehace el marcador");
+    igual(vistasSenda.formaDelMarcador(m), vistasSenda.formaDelMarcador({ ...m, puntos: 999, tiempo: 12 }), "los números solos, no");
+    const marcador = vistasSenda.marcadorDeLaSenda(m);
+    for (const clave of ["vidas", "monedas", "puntos", "tiempo", "reliquias"]) cierto(marcador.includes(`data-hud="${clave}"`), `el marcador tiene «${clave}»`);
+    const recorrido = vistasSenda.recorridoDelNivel(p);
+    igual((recorrido.match(/senda-recorrido-bandera/g) || []).length, p.controles.length, "una banderita por punto de control");
+    const estado = partidaNueva();
+    const mapa = vistasSenda.mapaDeLaSenda(estado, { elegido: "1-1", fichas: 1, caido: false });
+    igual((mapa.match(/class="senda-tramo /g) || []).length, 12, "3 tramos de camino por mundo");
+    igual((mapa.match(/data-senda-heroe/g) || []).length, 1, "tu héroe está parado en un solo nivel");
+    cierto(mapa.includes("senda-tramo siguiente"), "el tramo que sigue se marca");
+    const final = vistasSenda.finalDeLaSenda({ puntos: 4210, premio: { gemas: 10, xp: 7 }, nuevoRecord: false, progreso: { primeraVez: true, nuevas: [0], mejor: true, abre: "1-2" } },
+        { gano: true, puntos: 4210, reliquias: [0], tiempo: 96, monedas: 30, enemigos: 8 }, "1-1", 3);
+    cierto(final.includes('data-contar="4210"') && final.includes('data-contar="30"'), "los números del resultado cuentan desde 0");
+    sano(final, "el resultado con tabla");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====
