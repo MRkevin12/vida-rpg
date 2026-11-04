@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v191 — Avisos más claros
+- `sw.js › mostrar`: el cuerpo del aviso se junta en una sola línea (los renglones van separados por « · »), se acorta a 150 caracteres y lleva `timestamp`. iOS cortaba o mostraba mal los saltos de línea de los avisos de misiones y de recordatorio.
+- Sin cambios en los datos ni en el servidor. Pendiente: probar en el iPhone cómo se ve el aviso de «Te faltan N misiones» (el ícono de la barra de estado sigue siendo el de la app).
+
 ## v190 — Pantalla fija, sin zoom
 - Sin zoom con dos dedos: el viewport lleva `minimum-scale=1, maximum-scale=1, user-scalable=no`; `html` pasa de `touch-action: pan-x pan-y pinch-zoom` a `pan-x pan-y`, y `app.js › sinZoom()` cancela `gesturestart/change/end` (iOS) y los `touchmove` con 2 o más dedos (`passive: false`). Al alejar, iOS achicaba la app y quedaba descuadrada.
 - `.cabecera`: fondo casi sólido sin `backdrop-filter` y con `transform: translateZ(0)`. En el iPhone, la cabecera pegada con desenfoque a veces dejaba de pintar su contenido (se veía solo lo de abajo, borroso).

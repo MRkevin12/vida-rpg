@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v190";
+const VERSION = "vida-rpg-v191";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
@@ -317,8 +317,13 @@ async function mostrar({ titulo, cuerpo, etiqueta }, tipo, id) {
             if (vieja.data?.tipo === (tipo || "recordatorio") && (tipo !== "mision" || vieja.data?.id === id)) vieja.close();
         }
     } catch { /* si no se puede, se quedan: no pasa nada */ }
+    // (v191) iOS no siempre respeta los saltos de línea del aviso: se cortan a medias o se ven como bloques raros.
+    // Por eso el texto se junta en una sola línea, con « · » entre lo que va en cada renglón, y se acorta si es muy largo.
+    const unaLinea = String(cuerpo || "").split("\n").map((l) => l.trim()).filter(Boolean).join(" · ");
+    const textoCorto = unaLinea.length > 150 ? `${unaLinea.slice(0, 147).trimEnd()}…` : unaLinea;
     await self.registration.showNotification(titulo, {
-        body: cuerpo,
+        body: textoCorto,
+        timestamp: Date.now(),
         icon: "./iconos/icono-192.png",
         badge: "./iconos/icono-192.png",
         tag: etiqueta,

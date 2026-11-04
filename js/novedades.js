@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 190;
+export const VERSION_APP = 191;
 
 export const NOVEDADES = [
+    {
+        version: 191,
+        titulo: "Avisos más claros",
+        cambios: [
+            "🔔 Los avisos ya no salen con los renglones cortados: el texto va en una sola línea, con « · » entre lo que importa, y se acorta si es muy largo.",
+            "🕒 Cada aviso lleva su hora, para saber cuándo llegó.",
+        ],
+    },
     {
         version: 190,
         titulo: "Pantalla fija, sin zoom",
