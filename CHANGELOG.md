@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v183 — Las metas semanales, a la vista
+- `vistas-hoy.js`: las misiones con `veces` (N por semana) salen en la pestaña Misiones, bajo las diarias (`bloqueSemana`, «🗓️ Esta semana x/y»), con «quedan N días» / «último día» en cada tarjeta. Se quitó la pestaña Metas (`seccionMetas`); si había guardada la subvista «metas», Hoy cae en Misiones. Las semanales siguen sin contar para el día perfecto ni para el contador de diarias.
+- Pruebas: 1 nueva; se ajustaron las que nombraban la pestaña Metas.
+
 ## v182 — Mucha más apariencia
 - `avatar.js › APARIENCIA`: +9 pieles, +9 ojos, +11 pelos, +10 trajes, +7 peinados, +7 barbas, +5 rostros, +8 marcas, +5 complementos y DOS campos nuevos: `orejas` (4) y `gafas` (6). `APARIENCIA_INICIAL` y `datos.js` los incluyen (las partidas viejas los reciben por la mezcla `{...base, ...guardado}`; no hace falta migrar).
 - Dibujo (`dibujo-cuerpo.js`): `orejas()` (dentro de `cara`), `gafas()` (si hay unas elegidas, no salen las finas del Intelecto), casos nuevos en `pelo`, `barba`, `marcaDeCara`, `complemento` y `ROSTROS`.

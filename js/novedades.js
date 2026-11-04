@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 182;
+export const VERSION_APP = 183;
 
 export const NOVEDADES = [
+    {
+        version: 183,
+        titulo: "Las metas semanales, a la vista",
+        cambios: [
+            "🗓️ Las misiones de «N veces por semana» (por ejemplo, gimnasio 3 veces) ahora salen en la pestaña Misiones, debajo de las diarias, en un bloque «Esta semana». Se marcan desde ahí mismo.",
+            "⏳ Cada una muestra cuántas llevas y cuántos días quedan de la semana (el domingo dice «último día»).",
+            "🧹 La pestaña «Metas» ya no existe: era lo mismo y casi nunca se miraba.",
+        ],
+    },
     {
         version: 182,
         titulo: "Mucha más apariencia",

@@ -83,11 +83,11 @@ export function pantallaHoy(estado, ctx) {
     const importantes = estado.principales.filter((p) => !p.archivada && !p.completadaEn);
     // (v51) Hoy se divide en secciones y solo se ve una a la vez, para no saturar la pantalla (igual en todos los estados):
     // ⚔️ misiones diarias · 🗓️ metas de la semana · 📌 tareas · 🎯 misiones importantes · 📓 diario (solo fuera del modo esencial).
-    const metasPendientes = semanales.filter((m) => juego.vecesEnSemana(estado.completadas, m.id, fecha) < m.veces).length;
+    // (v183) Las metas «N veces por semana» ya no tienen pestaña: salen en Misiones, debajo de las diarias (bloque «Esta semana»).
+    const metasCumplidas = semanales.filter((m) => juego.vecesEnSemana(estado.completadas, m.id, fecha) >= m.veces).length;
     const secciones = [
         ["misiones", "⚔️", `${hechas}/${delDia.length}`, "Misiones", "diarias"],
         ["importantes", "🎯", importantes.length, "Principales", "importantes"],   // (v55) justo después de las misiones
-        ["metas", "🗓️", `${semanales.length - metasPendientes}/${semanales.length}`, "Metas", "metas"],
         ["tareas", "📌", tareasDeHoy, "Tareas", "tareas"],
         ...(esencial ? [] : [["diario", "📓", estado.diario[ctx.hoy] ? "✓" : "·", "Diario", "diario"]]),
         // Aurelio: tu héroe, tus rivales y «Tu día». Solo fuera del modo esencial; la ÚLTIMA pestaña.
@@ -122,6 +122,12 @@ export function pantallaHoy(estado, ctx) {
                 <button type="button" data-accion="agrupar-hoy" data-grupo="atributo" aria-pressed="${agruparPor === "atributo"}">Por atributo</button>
                 <button type="button" data-accion="agrupar-hoy" data-grupo="momento" aria-pressed="${agruparPor === "momento"}">Por momento</button>
             </div>`;
+    // (v183) Las metas de «N veces por semana», con cuántas llevas y cuántos días quedan. Se marcan desde aquí mismo.
+    const bloqueSemana = semanales.length ? `
+            <div class="bloque-semana esencial-metas" aria-label="Metas de la semana">
+                <h3 class="subtitulo">🗓️ Esta semana <small>${metasCumplidas}/${semanales.length}</small></h3>
+                <ul class="lista">${semanales.map(tarjeta).join("")}</ul>
+            </div>` : "";
     const seccionMisiones = `
         <section class="bloque esencial-grupo esencial-diarias" aria-label="Misiones diarias">
             <div class="titulo-seccion">
@@ -135,6 +141,7 @@ export function pantallaHoy(estado, ctx) {
             ${herramientas}
             ${esAyer ? '<p class="nota">Estás viendo <b>ayer</b>. Marca lo que hiciste y se te olvidó anotar.</p>' : ""}
             ${lista}
+            ${bloqueSemana}
             <div class="botones-dialogo botones-hoy">
                 <button type="button" class="boton boton-principal" data-accion="abrir" data-dialogo="mision">+ Nueva misión</button>
                 <button type="button" class="boton boton-secundario" data-accion="abrir" data-dialogo="ordenar"
@@ -146,16 +153,6 @@ export function pantallaHoy(estado, ctx) {
             ${plegable(`Archivadas (${archivadas.length})`,
                 `<ul class="lista">${archivadas.map((m) => filaMision(estado, m, "restaurar")).join("")}</ul>`, archivadas.length)}
         </section>`;
-    const seccionMetas = `
-        <section class="bloque esencial-grupo esencial-metas" aria-label="Metas de la semana">
-            <div class="titulo-seccion"><h2 class="titulo-juego">🗓️ Metas de la semana</h2></div>
-            <p class="nota">Misiones de «N veces por semana»: las marcas cualquier día hasta cumplir las veces de la semana.</p>
-            ${semanales.length ? `<ul class="lista">${semanales.map(tarjeta).join("")}</ul>`
-                : vacio("Aún no tienes metas semanales.<br>Crea una misión y elige «veces por semana» (ej: gimnasio 3 veces).", "semanales")}
-            <div class="botones-dialogo botones-hoy">
-                <button type="button" class="boton boton-principal" data-accion="abrir" data-dialogo="mision">+ Nueva meta</button>
-            </div>
-        </section>`;
     const contenido = {
         // Primero tu personaje y tus rivales; después Aurelio con «Tu día», tu semana y el foco.
         aurelio: esencial ? "" : `
@@ -166,7 +163,6 @@ export function pantallaHoy(estado, ctx) {
             ${esAyer ? "" : tarjetaFoco(estado, ctx)}
             ${esAyer ? "" : tarjetaTemporada(estado, ctx)}`,
         misiones: seccionMisiones,
-        metas: seccionMetas,
         tareas: `<section class="bloque esencial-grupo esencial-tareas" aria-label="Tareas">${seccionTareas(estado, ctx)}</section>`,
         importantes: seccionPrincipales(estado, true),
         diario: esencial ? "" : seccionDiario(estado, ctx, fecha, esAyer),
@@ -258,8 +254,9 @@ function tarjetaMision(mision, estado, fecha, hecha, recienHecha) {
     if (mision.veces) {
         const veces = juego.vecesEnSemana(estado.completadas, mision.id, fecha);
         const cumplida = veces >= mision.veces;
+        const quedan = 7 - diaDeSemana(fecha);   // días que quedan de la semana, contando este (el domingo: 1)
         extra += `<span class="semana-progreso ${cumplida ? "cumplida" : ""}">
-                      ${veces} de ${mision.veces} esta semana${cumplida ? " · ✓ ¡Meta cumplida!" : ""}</span>`;
+                      ${veces} de ${mision.veces} esta semana${cumplida ? " · ✓ ¡Meta cumplida!" : ` · ${quedan === 1 ? "último día" : `quedan ${quedan} días`}`}</span>`;
     }
 
     if (esClave) extra += '<span class="clave-insignia">🔑 Misión clave · vale el doble</span>';

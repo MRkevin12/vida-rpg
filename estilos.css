@@ -8858,6 +8858,9 @@ body:has(#deshacer:not([hidden])) .aviso {
 
 /* ===== (v51) Hoy en secciones: una a la vez, con colores propios; las listas se agrupan por atributo ===== */
 .esencial-metas { --acento: #4ade80; }
+/* (v183) «Esta semana»: las metas de N veces por semana, bajo las misiones diarias. */
+.bloque-semana { margin-top: 18px; padding-top: 12px; border-top: 1px dashed rgba(74, 222, 128, 0.35); }
+.bloque-semana .subtitulo small { margin-left: 6px; opacity: 0.8; }
 .esencial-diario { --acento: #f472b6; }
 
 .hoy-tabs {

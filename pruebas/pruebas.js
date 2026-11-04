@@ -5768,12 +5768,12 @@ prueba("Modo esencial: Hoy muestra solo tus misiones en tres grupos, la Tienda s
     const completo = vistas.pantallaHoy(estado, ctx());
     sano(completo, "Hoy completo");
     cierto(completo.indexOf('data-vista="aurelio"') > completo.indexOf('data-vista="diario"'), "la pestaña Aurelio va la última (v114)");
-    cierto(!vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "metas" } }).includes('destacada-titulo'), "las principales solo salen con la pestaña Misiones (v104)");
+    cierto(!vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "tareas" } }).includes('destacada-titulo'), "las principales solo salen con la pestaña Misiones (v104)");
     cierto(completo.includes("⚔️ Misiones diarias") && !completo.includes('aria-label="Tu día"'), "Hoy abre en las misiones");
     const aurelio = vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "aurelio" } });
     cierto(aurelio.includes('aria-label="Tu día"') && aurelio.includes('aria-label="Tus rivales"') && aurelio.includes("heroe-hoy"), "Aurelio: héroe, rivales y «Tu día»");
     cierto(completo.includes('data-accion="alternar-esencial"'), "con el botón de ánimo");
-    for (const vista of ["misiones", "metas", "tareas", "importantes", "diario"]) {
+    for (const vista of ["misiones", "tareas", "importantes", "diario"]) {
         const html = vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: vista } });
         sano(html, `Hoy › ${vista}`);
         cierto(!html.includes('aria-label="Tu día"'), `Hoy › ${vista}: solo su sección`);
@@ -5789,7 +5789,8 @@ prueba("Modo esencial: Hoy muestra solo tus misiones en tres grupos, la Tienda s
     const html = vistas.pantallaHoy(estado, ctx());
     sano(html, "Hoy esencial");
     cierto(html.includes("⚔️ Misiones diarias") && html.includes("+ Nueva misión"), "abre en las misiones diarias");
-    for (const vista of ["misiones", "metas", "tareas", "importantes"]) cierto(html.includes(`data-vista="${vista}"`), `pestaña ${vista}`);
+    for (const vista of ["misiones", "tareas", "importantes"]) cierto(html.includes(`data-vista="${vista}"`), `pestaña ${vista}`);
+    cierto(!html.includes('data-vista="metas"'), "ya no hay pestaña Metas (v183)");
     cierto(!html.includes('data-vista="aurelio"') && !html.includes('data-vista="diario"'), "sin las pestañas Aurelio ni Diario");
     cierto(!html.includes('aria-label="Tu día"') && !html.includes("Rivales") && !html.includes('class="panel semana"'), "sin héroe, «Tu día» ni semana");
     cierto(vistas.pantallaHoy(estado, { ...ctx(), subvista: { hoy: "aurelio" } }).includes("⚔️ Misiones diarias"), "si pides Aurelio en el esencial, ves las misiones");
@@ -9122,6 +9123,26 @@ prueba("Tu año (v181): cuenta misiones, mejor racha, mes más fuerte y filtra p
     cierto(html.includes("Tu año 2025") && html.includes('data-accion="anio-anual"'), "la ventana y su selector de año");
     // Un año sin nada no se rompe.
     cierto(vistas.contenidoAnual(estado, hoy(), 2024).includes("Tu año 2024"));
+});
+
+prueba("Hoy (v183): las metas «N veces por semana» salen en Misiones, con lo que llevas y los días que quedan", () => {
+    const estado = partidaNueva();
+    const gym = crearMision(estado, { nombre: "Gimnasio", frecuencia: "semana", veces: 3 });
+    const ctx = (e = estado) => {
+        const info = juego.resumen(e, hoy());
+        return {
+            hoy: hoy(), fechaVista: hoy(), ahora: Date.now(), info, avatar: avatar.describirAvatar(e, hoy(), info),
+            vida: vida.calcularVida(e, hoy()), maestro: maestro.contexto(e, hoy(), Date.now()), evento: null,
+            rangoResumen: 7, subvista: {}, campanaVista: null, diarioVista: {},
+        };
+    };
+    const html = vistas.pantallaHoy(estado, ctx());
+    cierto(html.includes("🗓️ Esta semana") && html.includes("Gimnasio"), "el bloque con la meta, en la pestaña Misiones");
+    cierto(html.includes("0 de 3 esta semana") && /quedan \d días|último día/.test(html), "cuántas llevas y cuántos días quedan");
+    cierto(html.includes(`data-accion="alternar-mision" data-id="${gym.id}"`), "se marca desde ahí mismo");
+    // Sin metas semanales, el bloque no aparece.
+    const vacia = partidaNueva();
+    cierto(!vistas.pantallaHoy(vacia, ctx(vacia)).includes("Esta semana"), "sin metas, sin bloque");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====
