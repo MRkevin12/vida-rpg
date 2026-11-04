@@ -22,6 +22,7 @@ import { piernasDesnudas, torsoDesnudo, brazoDesnudo, calzoncillos, escenaDeGimn
 import { fondo, ambiente, aura, llamas, resplandor, noche, escenario } from "./dibujo-escenas.js";
 import { cuerpoMascota, dibujarMascota } from "./dibujo-mascota.js";
 import { insigniaEnElPecho } from "./dibujo-insignias.js";   // (v101)
+import { fondoDeRetrato } from "./dibujo-retrato-fondos.js";   // (v189) los fondos que se eligen para el retrato
 
 export { dibujarMascota };
 
@@ -165,9 +166,10 @@ export function dibujarAvatar(d, { mini = false, batalla = false, sinEfectos = f
     // --- Brazo izquierdo: con Intelecto 6+ lleva el libro de hechizos ---
     const izquierdo = brazo("izq", d, e, p, d.rasgos.intelecto >= 2 ? libro(e.izq.mano, p) : "");
 
-    // El retrato pequeño lleva un fondo liso: a ese tamaño el paisaje no se distingue.
+    // El retrato pequeño lleva un fondo simple: a ese tamaño el paisaje no se distingue.
+    // (v189) Lo eliges en Ajustes (d.retratoFondo); si no has elegido, es el de siempre: el color de tu clase.
     const capaFondo = [
-        batalla ? "" : mini ? `<rect x="60" width="80" height="80" fill="${oscurecer(d.clase.oscuro, 0.5)}"/><circle cx="100" cy="40" r="36" fill="${p.m("gema-luz")}"/>` : fondo(d, p),
+        batalla ? "" : mini ? fondoDeRetrato(d.retratoFondo, d, p, { oscurecer }) : fondo(d, p),
     ];
     const capaDetras = [
         // El aire del fondo: partículas que flotan y rayos de luz (solo en el dibujo completo).

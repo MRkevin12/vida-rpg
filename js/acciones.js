@@ -13,6 +13,7 @@
 import * as juego from "./juego.js";
 import * as insignias from "./insignias.js";   // (v101)
 import * as avatar from "./avatar.js";
+import { IDS_FONDO_RETRATO } from "./dibujo-retrato-fondos.js";   // (v189)
 import * as arcade from "./arcade.js";
 import * as campana from "./campana.js";
 import * as memento from "./memento.js";   // (v142) el calendario de Memento Mori
@@ -959,6 +960,12 @@ export function cambiarApariencia(estado, campo, valor) {
 export function cambiarAjuste(estado, clave, valor) {
     if (!(clave in estado.ajustes)) throw new Error("Ese ajuste no existe.");
     estado.ajustes[clave] = Boolean(valor);
+}
+
+// (v189) El fondo del retrato de la cabecera (ver dibujo-retrato-fondos.js). Se guarda solo el id.
+export function elegirRetratoFondo(estado, id) {
+    if (!IDS_FONDO_RETRATO.includes(id)) throw new Error("Ese fondo no existe.");
+    estado.ajustes.retratoFondo = id;
 }
 
 // (v49) Cómo te sientes hoy decide cuánto menú ves: mal = modo esencial, normal = sin Aventuras, bien = todo.

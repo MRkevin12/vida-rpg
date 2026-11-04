@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v188";
+const VERSION = "vida-rpg-v189";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
@@ -112,6 +112,7 @@ const ARCHIVOS = [
     "./js/saga.js",
     "./js/libro.js",
     "./js/minijuegos.js",
+    "./js/dibujo-retrato-fondos.js",   // (v189) fondos del retrato
     "./js/plataformas.js",          // (v185) La Senda del Reino: reglas, niveles, motor y dibujo
     "./js/plataformas-niveles.js",
     "./js/plataformas-motor.js",

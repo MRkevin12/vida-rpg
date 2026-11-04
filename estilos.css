@@ -15598,3 +15598,34 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     .senda-heroe-mapa,
     .senda-poco { animation: none; }
 }
+
+
+/* ===== (v189) Fondo del retrato (Ajustes): una cuadrícula de retratos para elegir ===== */
+.ajuste-retrato { display: grid; gap: 6px; padding: 4px 0 8px; }
+
+.retrato-fondos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.retrato-fondo {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    min-height: 44px;
+    padding: 6px 4px;
+    font-size: 0.78rem;
+    color: var(--texto);
+    background: var(--hundido);
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
+    cursor: pointer;
+}
+
+.retrato-fondo .retrato-pixel { width: 56px; height: 56px; image-rendering: pixelated; border-radius: 4px; }
+
+.retrato-fondo.elegido {
+    border-color: var(--oro);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3), 0 0 12px rgba(251, 191, 36, 0.3);
+}

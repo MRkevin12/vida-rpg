@@ -542,6 +542,7 @@ export function describirAvatar(estado, hoy, info) {
         diasSinMision: diasSinMision(estado, hoy),
         equipado,
         insignia: estado.insignias?.puesta || null,   // (v101) la insignia que llevas en el pecho (ponerInsignia revisa que sea tuya)
+        retratoFondo: estado.ajustes?.retratoFondo || "clase",   // (v189) el fondo que elegiste para el retrato de la cabecera
         apariencia: { ...APARIENCIA_INICIAL, ...estado.apariencia },
         mascota: {
             especie,                               // cuál te acompaña ("dragon", "fenix"…)

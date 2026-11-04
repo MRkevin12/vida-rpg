@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 188;
+export const VERSION_APP = 189;
 
 export const NOVEDADES = [
+    {
+        version: 189,
+        titulo: "Fondos para tu retrato",
+        cambios: [
+            "🖼️ Ahora puedes cambiar el fondo de tu retrato (el cuadro con tu cara, arriba a la izquierda). Ajustes → «Fondo de tu retrato»: 12 fondos (Noche, Atardecer, Bosque, Océano, Volcán, Montañas, Castillo, Cristales, Galaxia, Dorado, Liso y el de tu clase).",
+        ],
+    },
     {
         version: 188,
         titulo: "Sin pantalla azul",

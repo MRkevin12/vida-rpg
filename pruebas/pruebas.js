@@ -101,6 +101,7 @@ import * as sonidoModulo from "../js/sonido.js";
 import { PINTURAS as PINTURAS_DE_FONDO, rutaPintura, ponerPinturaPixel } from "../js/pinturas.js";
 import { pixelarPintura } from "../js/pixel-pintura.js";
 import { partidaDemo } from "./demo.js";
+import { FONDOS_RETRATO } from "../js/dibujo-retrato-fondos.js";   // (v189)
 import * as plataformas from "../js/plataformas.js";            // (v185) La Senda del Reino
 import * as motorSenda from "../js/plataformas-motor.js";
 import * as dibujoSenda from "../js/dibujo-plataformas.js";
@@ -9845,6 +9846,28 @@ prueba("La Senda del Reino (v187): la interfaz — entrada, pausa, marcador por 
         { gano: true, puntos: 4210, reliquias: [0], tiempo: 96, monedas: 30, enemigos: 8 }, "1-1", 3);
     cierto(final.includes('data-contar="4210"') && final.includes('data-contar="30"'), "los números del resultado cuentan desde 0");
     sano(final, "el resultado con tabla");
+});
+
+// ===== Fondo del retrato (v189) =====
+
+prueba("Fondo del retrato: cada fondo se dibuja distinto, se guarda y uno desconocido cae en el de siempre", () => {
+    const estado = partidaNueva();
+    const base = () => avatar.describirAvatar(estado, hoy(), juego.resumen(estado, hoy()));
+    igual(base().retratoFondo, "clase", "sin elegir: el de siempre");
+    const vistos = new Set();
+    for (const f of FONDOS_RETRATO) {
+        acciones.elegirRetratoFondo(estado, f.id);
+        igual(estado.ajustes.retratoFondo, f.id, `se guarda ${f.id}`);
+        const svg = dibujarAvatar(base(), { mini: true });
+        cierto(svg.includes("<svg") && svg.includes('class="pj"'), `${f.id}: el retrato lleva al héroe`);
+        vistos.add(svg.replace(/av\d+/g, "av"));
+    }
+    igual(vistos.size, FONDOS_RETRATO.length, "los 12 fondos se ven distintos");
+    let error = null;
+    try { acciones.elegirRetratoFondo(estado, "no-existe"); } catch (e) { error = e; }
+    cierto(error && /no existe/.test(error.message), "un fondo inventado se rechaza");
+    estado.ajustes.retratoFondo = "dañado";   // una copia vieja o rota
+    igual(dibujarAvatar(base(), { mini: true }).replace(/av\d+/g, "av"), [...vistos][0], "un id raro se dibuja como el de siempre");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

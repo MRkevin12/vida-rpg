@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v189 — Fondos para el retrato
+- Nuevo `js/dibujo-retrato-fondos.js`: `FONDOS_RETRATO` (12 fondos: clase, noche, atardecer, bosque, océano, volcán, montañas, castillo, cristales, galaxia, dorado, liso), `fondoValido` y `fondoDeRetrato`. Cada fondo es SVG simple en el espacio del retrato mini (ventana 75–125 × 11–61).
+- Se guarda solo el id en `estado.ajustes.retratoFondo` (acción `elegirRetratoFondo`); sin él, o con un id desconocido, se usa el de siempre (el color de la clase). No hay versión de datos nueva.
+- `avatar.describirAvatar` trae `retratoFondo`, así la clave del retrato en pixel art cambia con el fondo. Ajustes: sección «Fondo de tu retrato» con una cuadrícula de retratos (`pintarRetratoFondos`).
+
 ## v188 — La Senda del Reino, sin pantalla azul
 - En el iPhone, mantener el dedo o tocar muy seguido (en TODA la app, no solo en el juego) seleccionaba texto (todo azul, como para copiar) o sacaba la lupa: cancelar `pointerdown` no lo evita en iOS.
 - `js/app-plataformas.js`: `touchstart` cancelado (`passive: false`) en los controles y en `#senda-pantalla` (menos en los botones de pausa y resultado), y `selectstart` / `contextmenu` cancelados en toda `#senda`.

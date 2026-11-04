@@ -18,7 +18,7 @@ import { hoy } from "./fechas.js";
 import { estado, pantallaActual, ui, subvista, $, avatarActual, preguntarAnimo, elegirAnimo, ejecutar,
          dibujarPantalla, fechaVista, cambiarPantalla, exportar, borrarTodo } from "./app.js";
 import { sonar, flotarXp, reproducirAnimacion, celebrar, avisar, ofrecerDeshacer } from "./app-efectos.js";
-import { pintarDescanso, pintarNube, idEnEdicion, abrirDialogo, pintarAvisos, sincronizarAvisos, probarAvisos } from "./app-dialogos.js";
+import { pintarDescanso, pintarNube, idEnEdicion, abrirDialogo, pintarAvisos, pintarRetratoFondos, sincronizarAvisos, probarAvisos } from "./app-dialogos.js";
 import { gestoReciente, iniciarGolpe } from "./app-gestos.js";
 import { registroSW } from "./app-version.js";
 
@@ -174,6 +174,11 @@ export const ACCIONES_GENERALES = {
     // (v49) El botón de Hoy ahora abre la pregunta «¿Cómo te sientes hoy?» para cambiar el menú cuando quieras.
     "alternar-esencial": () => preguntarAnimo(),
     "elegir-animo": (boton) => elegirAnimo(boton.dataset.animo),
+    // (v189) El fondo del retrato de la cabecera (se elige en Ajustes).
+    "elegir-retrato-fondo": (boton) => {
+        ejecutar(() => acciones.elegirRetratoFondo(estado, boton.dataset.fondo));
+        pintarRetratoFondos();   // marca el elegido en la lista de Ajustes
+    },
     // (v52) «Por atributo» / «Por momento» en Hoy. (Antes usaban la acción «subvista», que intentaba abrir una pantalla «hoy-agrupar».)
     "agrupar-hoy": (boton) => {
         ui.agruparHoy = boton.dataset.grupo;

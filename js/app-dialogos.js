@@ -27,7 +27,9 @@ import * as equipo from "./equipo.js";
 import * as avisos from "./avisos.js";
 import * as nube from "./nube.js";
 import { hoy, fechaLegible, DIAS_LETRAS, DIAS_CORTOS } from "./fechas.js";
-import { estado, pantallaActual, $, fechaVista } from "./app.js";
+import { estado, pantallaActual, $, fechaVista, avatarActual } from "./app.js";
+import { retratoPixel } from "./retratos.js";
+import { FONDOS_RETRATO, fondoValido } from "./dibujo-retrato-fondos.js";   // (v189)
 import { avisar } from "./app-efectos.js";
 import { registroSW, mostrarVersion } from "./app-version.js";
 
@@ -324,6 +326,7 @@ export const PREPARAR = {
     ajustes() {
         mostrarVersion();
         pintarAvisos();
+        pintarRetratoFondos();
         $("#ajustes-nombre").value = estado.personaje.nombre;
         $("#ajustes-sonido").checked = estado.ajustes.sonido;
         $("#ajustes-golpe").checked = estado.ajustes.golpe;
@@ -524,6 +527,21 @@ export function mostrarCamposLogro() {
 
 
 // ===== Notificaciones =====
+
+// (v189) Los fondos del retrato en Ajustes: un botón por fondo, con tu cara encima para que veas cómo queda.
+// El elegido lleva la clase «elegido» y aria-pressed="true".
+export function pintarRetratoFondos() {
+    const lugar = $("#ajustes-retrato-fondos");
+    if (!lugar) return;
+    const actual = fondoValido(estado.ajustes.retratoFondo);
+    const yo = avatarActual();
+    lugar.innerHTML = FONDOS_RETRATO.map((f) => `
+        <button type="button" class="retrato-fondo ${f.id === actual ? "elegido" : ""}" data-accion="elegir-retrato-fondo"
+                data-fondo="${f.id}" aria-pressed="${f.id === actual}" aria-label="Fondo ${f.nombre}">
+            ${retratoPixel({ ...yo, retratoFondo: f.id }, { alt: "" })}
+            <span>${f.icono} ${f.nombre}</span>
+        </button>`).join("");
+}
 
 // Dibuja la sección de notificaciones de Ajustes. Depende del teléfono
 // (si la app está instalada, si diste permiso…), por eso se arma aparte.
