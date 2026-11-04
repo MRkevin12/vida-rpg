@@ -158,6 +158,7 @@ const ARCHIVOS = [
     "./js/musica.js",
     "./js/equipo.js",
     "./js/torre.js",
+    "./js/torre-reglas.js",   // (orden) las reglas fijas de la Torre
     "./js/bestiario.js",
     "./js/leyendas.js",
     "./js/dibujo-monstruos.js",
