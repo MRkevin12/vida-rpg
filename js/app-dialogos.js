@@ -377,6 +377,23 @@ export const PREPARAR = {
     revision(lunes) {
         $("#revision-contenido").innerHTML = vistas.contenidoRevision(estado, lunes, hoy());
     },
+    // (v184) Enlazar un paso de una principal con una misión diaria: recibe { principal, sub } (ids).
+    enlace({ principal, sub }) {
+        const p = estado.principales.find((x) => x.id === principal);
+        const paso = p?.submisiones.find((x) => x.id === sub);
+        if (!paso) return;
+        const formulario = $("#dialogo-enlace form");
+        formulario.elements.principal.value = principal;
+        formulario.elements.sub.value = sub;
+        formulario.elements.veces.value = paso.enlace?.veces || 1;
+        $("#enlace-texto").textContent = `Paso: «${paso.nombre}»`;
+        // Las opciones se arman con el DOM (no con texto HTML) para que un nombre raro no se cuele como código.
+        const lista = $("#enlace-mision");
+        lista.replaceChildren(new Option("Sin enlace", ""));
+        for (const m of estado.misiones.filter((x) => !x.archivadaEn)) {
+            lista.add(new Option(m.nombre, m.id, false, paso.enlace?.misionId === m.id));
+        }
+    },
     // (v149) Las metas del mes.
     temporada() {
         $("#temporada-contenido").innerHTML = vistas.contenidoTemporada(estado, hoy());

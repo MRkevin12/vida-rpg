@@ -217,6 +217,7 @@ export const ACCIONES_GENERALES = {
             ofrecerDeshacer(`✔ Paso completado · +${resultado.xp} XP`, () => ejecutar(() => acciones.alternarSubmision(estado, id, sub)));
         }
     },
+    "abrir-enlace": (boton) => abrirDialogo("enlace", { principal: Number(boton.dataset.id), sub: Number(boton.dataset.sub) }),
     "borrar-submision": (boton) => {
         ejecutar(() => acciones.borrarSubmision(estado, Number(boton.dataset.id), Number(boton.dataset.sub)));
     },

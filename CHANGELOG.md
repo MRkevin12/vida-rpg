@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v184 — Pasos de principales enlazados con misiones diarias
+- Datos (campos opcionales, sin migrar): `submision.enlace = { misionId, veces, desde }` y `submision.auto` (true si se marcó sola). `juego.vecesDelEnlace(estado, enlace)` cuenta las completadas de esa misión desde `desde`.
+- `acciones.js`: `enlazarSubmision` (sin `mision` quita el enlace) y `sincronizarEnlaces`, llamada al final de `completarMision` y `desmarcarMision` (las demás vías, como `fijarCantidad`, pasan por ellas). Marca el paso reutilizando `alternarSubmision` (mismo XP y misma celebración de principal completada) y solo desmarca los `auto`; `alternarSubmision` borra `auto` cuando lo toca el usuario.
+- Pantalla: botón 🔗 en cada paso sin hacer (`abrir-enlace` → `<dialog id="dialogo-enlace">`, `PREPARAR.enlace`, formulario `enlace`) y el avance «🔗 Misión · 1 de 20» bajo el nombre del paso.
+- Pruebas: 1 nueva.
+
 ## v183 — Las metas semanales, a la vista
 - `vistas-hoy.js`: las misiones con `veces` (N por semana) salen en la pestaña Misiones, bajo las diarias (`bloqueSemana`, «🗓️ Esta semana x/y»), con «quedan N días» / «último día» en cada tarjeta. Se quitó la pestaña Metas (`seccionMetas`); si había guardada la subvista «metas», Hoy cae en Misiones. Las semanales siguen sin contar para el día perfecto ni para el contador de diarias.
 - Pruebas: 1 nueva; se ajustaron las que nombraban la pestaña Metas.

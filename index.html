@@ -424,6 +424,28 @@
         </form>
     </dialog>
 
+    <!-- Enlazar un paso de una principal con una misión diaria (v184). Lo rellena app-dialogos.js › PREPARAR.enlace. -->
+    <dialog id="dialogo-enlace" class="dialogo">
+        <form data-form="enlace" class="formulario">
+            <h2 class="titulo-juego" tabindex="-1" autofocus>🔗 Enlazar paso</h2>
+            <input type="hidden" name="principal">
+            <input type="hidden" name="sub">
+            <p class="nota" id="enlace-texto"></p>
+            <label>Misión diaria
+                <select name="mision" id="enlace-mision"></select>
+            </label>
+            <label>¿Cuántas veces?
+                <input type="number" name="veces" min="1" max="999" step="1" inputmode="numeric" value="1">
+            </label>
+            <p class="nota">Cuando completes esa misión esas veces (contando desde hoy), el paso se marca solo y te da su XP.
+               Si deshaces una misión por error, el paso también se deshace.</p>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
+                <button type="submit" class="boton boton-principal">Guardar</button>
+            </div>
+        </form>
+    </dialog>
+
     <dialog id="dialogo-principal" class="dialogo">
         <form data-form="principal" class="formulario">
             <h2 class="titulo-juego" tabindex="-1" autofocus>Nueva misión principal</h2>

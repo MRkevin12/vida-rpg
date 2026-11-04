@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 183;
+export const VERSION_APP = 184;
 
 export const NOVEDADES = [
+    {
+        version: 184,
+        titulo: "Pasos que se marcan solos",
+        cambios: [
+            "🔗 En Principales, cada paso tiene un botón 🔗: lo enlazas con una misión diaria y dices cuántas veces (por ejemplo «Correr» 20 veces).",
+            "✅ Cuando completas esa misión esas veces, el paso se marca solo y te da su XP. Ya no tienes que acordarte de marcarlo.",
+            "↩️ Si deshaces la misión por error, el paso se deshace también. Lo que marcas tú a mano nunca se desmarca solo.",
+        ],
+    },
     {
         version: 183,
         titulo: "Las metas semanales, a la vista",

@@ -117,13 +117,22 @@ export function pantallaAventuras(estado, ctx) {
 function tarjetaPrincipal(estado, p) {
     const hechas = p.submisiones.filter((s) => s.hecha).length;
     const total = p.submisiones.length;
+    // (v184) Un paso puede estar enlazado con una misión diaria: se marca solo al completarla N veces.
+    const textoEnlace = (s) => {
+        if (!s.enlace) return "";
+        const m = estado.misiones.find((x) => x.id === s.enlace.misionId);
+        const lleva = Math.min(juego.vecesDelEnlace(estado, s.enlace), s.enlace.veces);
+        return `<small class="submision-enlace">🔗 ${m ? esc(m.nombre) : "misión borrada"} · ${lleva} de ${s.enlace.veces}${m?.archivadaEn ? " (archivada)" : ""}</small>`;
+    };
     const pasos = p.submisiones.map((s) => `
         <li class="submision ${s.hecha ? "hecha" : ""}">
             <button type="button" class="check-chico" data-accion="alternar-submision" data-id="${p.id}" data-sub="${s.id}"
                     aria-pressed="${s.hecha}" aria-label="Marcar ${esc(s.nombre)}">${ICONOS.check}</button>
-            <span class="submision-nombre">${esc(s.nombre)}</span>
+            <span class="submision-nombre">${esc(s.nombre)}${textoEnlace(s)}</span>
             ${!s.hecha && !p.completadaEn
-                ? `<button type="button" class="boton-icono chico" data-accion="borrar-submision" data-id="${p.id}" data-sub="${s.id}"
+                ? `<button type="button" class="boton-icono chico" data-accion="abrir-enlace" data-id="${p.id}" data-sub="${s.id}"
+                           aria-label="Enlazar ${esc(s.nombre)} con una misión diaria">🔗</button>
+                   <button type="button" class="boton-icono chico" data-accion="borrar-submision" data-id="${p.id}" data-sub="${s.id}"
                            aria-label="Borrar ${esc(s.nombre)}">${ICONOS.cerrar}</button>`
                 : ""}
         </li>`).join("");

@@ -42,6 +42,7 @@ export const FORMULARIOS_GENERALES = {
     },
     tarea: (valores) => ejecutar(() => (valores.id ? acciones.editarTarea(estado, valores) : acciones.crearTarea(estado, valores))),
     principal: (valores) => ejecutar(() => acciones.crearPrincipal(estado, valores)),
+    enlace: (valores) => ejecutar(() => acciones.enlazarSubmision(estado, valores)),   // (v184)
     enfoque(valores) {
         const resultado = ejecutar(() => acciones.empezarEnfoque(estado, valores));
         if (resultado) {

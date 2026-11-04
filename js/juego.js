@@ -267,6 +267,12 @@ export function semanalesDelDia(misiones, fecha) {
     return misiones.filter((m) => m.veces && estaActiva(m, fecha));
 }
 
+// (v184) Un paso de una misión principal puede estar ENLAZADO con una misión diaria: enlace = { misionId, veces, desde }.
+// Cuenta cuántas veces completaste esa misión desde que hiciste el enlace (ese mismo día incluido).
+export function vecesDelEnlace(estado, enlace) {
+    return estado.completadas.filter((c) => c.misionId === enlace.misionId && c.fecha >= enlace.desde).length;
+}
+
 // Cuántas veces completaste una misión en la semana (de lunes a domingo) de esa fecha.
 export function vecesEnSemana(completadas, misionId, fecha) {
     const lunes = lunesDe(fecha);

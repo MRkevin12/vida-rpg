@@ -259,7 +259,9 @@ export function completarMision(estado, id, fecha = hoy()) {
                               // (v149) La hora en que la marcaste (solo si es de hoy): sirve para saber a qué hora la sueles cumplir.
                               ...(fecha === hoy() ? { hora: new Date().getHours() } : {}) });
     ganar(estado, { xp, monedas, atributo: mision.atributo });
-    return { xp, forma, clave: esClave };
+    // (v184) Si algún paso de una misión principal estaba enlazado con esta misión, se marca solo.
+    const enlaces = sincronizarEnlaces(estado);
+    return { xp, forma, clave: esClave, ...(enlaces.celebraciones.length ? { celebraciones: enlaces.celebraciones } : {}) };
 }
 
 // Deshace una misión de hoy o de ayer (por si la marcaste por error).
@@ -270,6 +272,7 @@ export function desmarcarMision(estado, id, fecha = hoy()) {
 
     const [completada] = estado.completadas.splice(posicion, 1); // la quita de la lista
     ganar(estado, { xp: -completada.xp, monedas: -completada.monedas, atributo: completada.atributo });
+    sincronizarEnlaces(estado);   // (v184) un paso que se marcó solo con esta misión se desmarca también
     return { xp: -completada.xp };
 }
 
@@ -588,6 +591,7 @@ export function alternarSubmision(estado, principalId, subId) {
     const principal = buscar(estado.principales, principalId, "esa misión principal");
     const sub = buscar(principal.submisiones, subId, "esa submisión");
     const premio = juego.PREMIOS.submision;
+    delete sub.auto;   // (v184) si tú lo marcas o desmarcas, deja de ser «marcado solo» (sincronizarEnlaces lo vuelve a poner)
 
     if (!sub.hecha) {
         sub.hecha = true;
@@ -608,6 +612,46 @@ export function alternarSubmision(estado, principalId, subId) {
         xp -= extra.xp;
     }
     return { xp };
+}
+
+// (v184) Enlazar un paso con una misión diaria: al completarla `veces` veces, el paso se marca solo.
+// Sin `mision` quita el enlace. Si ya llevas esas veces (hoy ya la hiciste), se marca de una vez.
+export function enlazarSubmision(estado, { principal, sub, mision, veces }) {
+    const p = buscar(estado.principales, Number(principal), "esa misión principal");
+    const paso = buscar(p.submisiones, Number(sub), "esa submisión");
+    if (paso.hecha) throw new Error("Ese paso ya está completado.");
+    if (!mision) {
+        delete paso.enlace;
+        return { celebraciones: [] };
+    }
+    const m = buscar(estado.misiones, Number(mision), "esa misión");
+    if (m.archivadaEn) throw new Error("Esa misión está archivada.");
+    const n = Number(veces);
+    if (!Number.isInteger(n) || n < 1 || n > 999) throw new Error("Escribe cuántas veces (de 1 a 999).");
+    paso.enlace = { misionId: m.id, veces: n, desde: hoy() };
+    return sincronizarEnlaces(estado);
+}
+
+// (v184) Pone al día los pasos enlazados: marca los que ya llevan sus veces y desmarca los que se pasaron de largo
+// (por ejemplo si deshiciste la misión). Solo toca los que se marcaron solos (`auto`), nunca los que marcaste tú.
+export function sincronizarEnlaces(estado) {
+    const celebraciones = [];
+    for (const principal of estado.principales) {
+        if (principal.archivada) continue;
+        for (const sub of principal.submisiones) {
+            if (!sub.enlace) continue;
+            const lleva = juego.vecesDelEnlace(estado, sub.enlace);
+            if (!sub.hecha && lleva >= sub.enlace.veces) {
+                const r = alternarSubmision(estado, principal.id, sub.id);
+                sub.auto = true;
+                celebraciones.push({ icono: "🔗", etiqueta: "Paso completado solo", titulo: sub.nombre,
+                                     detalle: `${principal.nombre} · +${r.xp} XP` }, ...(r.celebraciones || []));
+            } else if (sub.hecha && sub.auto && lleva < sub.enlace.veces) {
+                alternarSubmision(estado, principal.id, sub.id);
+            }
+        }
+    }
+    return { celebraciones };
 }
 
 export function borrarSubmision(estado, principalId, subId) {

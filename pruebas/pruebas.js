@@ -9145,6 +9145,46 @@ prueba("Hoy (v183): las metas «N veces por semana» salen en Misiones, con lo q
     cierto(!vistas.pantallaHoy(vacia, ctx(vacia)).includes("Esta semana"), "sin metas, sin bloque");
 });
 
+prueba("Principales (v184): un paso enlazado con una misión diaria se marca solo (y se desmarca si la deshaces)", () => {
+    const estado = partidaNueva();
+    const correr = crearMision(estado, { nombre: "Correr" });
+    envejecer(estado, 5);
+    acciones.crearPrincipal(estado, { nombre: "Condición física", atributo: "fuerza", submisiones: "Correr 2 veces\nComprar tenis" });
+    const p = estado.principales[0];
+    const [paso, otro] = p.submisiones;
+    const ayer = sumarDias(hoy(), -1);
+
+    debeFallar(() => acciones.enlazarSubmision(estado, { principal: p.id, sub: paso.id, mision: correr.id, veces: 0 }), "cuántas veces");
+    acciones.enlazarSubmision(estado, { principal: p.id, sub: paso.id, mision: correr.id, veces: 2 });
+    paso.enlace.desde = ayer;   // como si se hubiera enlazado ayer
+    const html = vistas.seccionPrincipales(estado);
+    cierto(html.includes('data-accion="abrir-enlace"') && html.includes("🔗 Correr · 0 de 2"), "la tarjeta muestra el enlace y su avance");
+
+    acciones.completarMision(estado, correr.id, ayer);
+    igual(paso.hecha, false, "con 1 de 2 todavía no");
+    const r = acciones.completarMision(estado, correr.id);
+    igual(paso.hecha, true, "con 2 de 2 se marca solo");
+    cierto(paso.auto && r.celebraciones.some((c) => c.icono === "🔗"), "avisa que se completó solo");
+    igual(otro.hecha, false);
+    igual(p.completadaEn, null, "la principal sigue en curso: falta el otro paso");
+
+    acciones.desmarcarMision(estado, correr.id);
+    igual(paso.hecha, false, "si deshaces la misión, el paso se deshace");
+
+    // Lo que marcas tú a mano no se desmarca solo.
+    acciones.alternarSubmision(estado, p.id, paso.id);
+    igual(paso.hecha, true);
+    acciones.completarMision(estado, correr.id);
+    acciones.desmarcarMision(estado, correr.id);
+    igual(paso.hecha, true, "un paso marcado por ti se queda");
+
+    // Quitar el enlace y rechazar misiones que no existen.
+    acciones.enlazarSubmision(estado, { principal: p.id, sub: otro.id, mision: correr.id, veces: 1 });
+    acciones.enlazarSubmision(estado, { principal: p.id, sub: otro.id, mision: "" });
+    cierto(!otro.enlace, "sin misión, se quita el enlace");
+    debeFallar(() => acciones.enlazarSubmision(estado, { principal: p.id, sub: otro.id, mision: 99999, veces: 1 }), "No encontré");
+});
+
 // ===== Ejecutar todo y mostrar el resultado =====
 
 const lista = document.querySelector("#lista");
