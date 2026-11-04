@@ -497,6 +497,22 @@ function conectar() {
     for (const tipo of ["pointerup", "pointercancel", "lostpointercapture"]) controles.addEventListener(tipo, soltar);
     controles.addEventListener("contextmenu", (evento) => evento.preventDefault());   // mantener apretado no abre el menú
 
+    // (v188) En el iPhone, cancelar «pointerdown» NO basta: si mantienes el dedo o tocas muchas veces seguidas,
+    // iOS empieza a SELECCIONAR texto (todo se pinta de azul, como para copiar) o saca la lupa.
+    // Lo que lo evita es cancelar «touchstart». Hay que pedirlo con passive: false; si no, el navegador
+    // ignora el preventDefault. Se hace en los botones y en la pantalla del juego.
+    const sinSeleccion = (evento) => {
+        // Los botones de verdad (pausa, resultado, mapa) sí deben recibir su toque: a esos no se les cancela.
+        if (evento.target.closest?.("button:not(.senda-boton), a, input, select, textarea")) return;
+        evento.preventDefault();
+    };
+    controles.addEventListener("touchstart", sinSeleccion, { passive: false });
+    $("#senda-pantalla").addEventListener("touchstart", sinSeleccion, { passive: false });
+    // Y por si acaso, en toda la Senda: nada de empezar una selección ni de abrir el menú de «copiar».
+    const senda = $("#senda");
+    senda.addEventListener("selectstart", (evento) => evento.preventDefault());
+    senda.addEventListener("contextmenu", (evento) => evento.preventDefault());
+
     // El teclado (en la compu).
     document.addEventListener("keydown", (evento) => {
         if (!juego || juego.terminado || !sendaAbierta()) return;

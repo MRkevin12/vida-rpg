@@ -81,6 +81,18 @@ body {
     -webkit-tap-highlight-color: transparent; /* sin flash gris al tocar */
     overscroll-behavior-y: none;
     overflow-x: clip;                 /* (v52) la pantalla no se mueve de lado */
+    /* (v188) Es una app, no una página web: nada se selecciona al mantener el dedo o tocar muy seguido
+       (si no, iOS pinta el texto de azul y saca «Copiar · Consultar · Traducir»). */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* …excepto donde se escribe: ahí sí hay que poder poner el cursor, seleccionar, copiar y pegar. */
+input, textarea, select, [contenteditable="true"], .seleccionable {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
 }
 
 /* (v52) Pantalla fija: un dedo solo hace scroll (sin zoom con doble toque); con dos dedos sí se puede hacer zoom. */
@@ -14811,6 +14823,19 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
         radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.1), transparent 55%),
         var(--fondo);
     overscroll-behavior: contain;
+    /* (v188) Nada en el juego se puede seleccionar: si no, al mantener el dedo o tocar muy seguido,
+       el iPhone pinta todo de azul como para copiar, y sale la lupa. */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;   /* tampoco el zoom de doble toque */
+}
+
+.senda * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .senda[hidden] { display: none; }

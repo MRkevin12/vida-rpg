@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 187;
+export const VERSION_APP = 188;
 
 export const NOVEDADES = [
+    {
+        version: 188,
+        titulo: "Sin pantalla azul",
+        cambios: [
+            "👆 Ya no se pinta el texto de azul (con «Copiar · Consultar · Traducir») al mantener el dedo o tocar muchas veces seguidas, en toda la app y en el juego. En los campos donde escribes sigues pudiendo seleccionar y pegar.",
+        ],
+    },
     {
         version: 187,
         titulo: "La Senda del Reino, con cara de videojuego",
