@@ -50,6 +50,12 @@ export function pantallaProgreso(estado, ctx) {
         ${seccionResumen(estado, ctx)}
 
         <section class="panel">
+            <h2 class="titulo-juego">🎆 Tu año</h2>
+            <p class="nota">Misiones, rachas, kilos levantados y kilómetros de todo el año en una sola vista.</p>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="abrir" data-dialogo="anual">Ver mi año</button>
+        </section>
+
+        <section class="panel">
             <div class="titulo-seccion">
                 <h2 class="titulo-juego">🗓️ Calendario</h2>
                 <span class="texto-suave mini">✨ ${plural(diasPerfectos, "día perfecto", "días perfectos")}</span>

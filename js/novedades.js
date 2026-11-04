@@ -4,9 +4,27 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 180;
+export const VERSION_APP = 182;
 
 export const NOVEDADES = [
+    {
+        version: 182,
+        titulo: "Mucha más apariencia",
+        cambios: [
+            "🎨 Más colores: 9 tonos de piel (con orco, piedra, hielo…), 9 de ojos, 11 de pelo (azul, rosa, fuego, plata…) y 10 de traje.",
+            "💇 7 peinados nuevos (media melena, mohicano, afro, dos coletas, despeinado, cola alta y rastas) y 7 barbas (bigote de manillar, Fu Manchú, chivo, mentonera…).",
+            "🙂 5 rostros nuevos (travieso, sorprendido, soñador, feroz y calmado), 8 marcas (pecas, lágrima, rayo, tribal…) y 5 complementos (diadema, pañuelo, plumas, flor y laurel).",
+            "🧝 Dos secciones nuevas: Orejas (de elfo, elfo largas, de orco) y Gafas y antifaces (redondas, cuadradas, de sol, monóculo y antifaz). Están en Héroe → Aspecto.",
+        ],
+    },
+    {
+        version: 181,
+        titulo: "Tu año en revisión",
+        cambios: [
+            "🎆 En Progreso hay un botón nuevo, «Ver mi año»: misiones y XP, días perfectos, mejor racha, mes más fuerte, kilos levantados en el gym, kilómetros corridos, horas de enfoque y jefes vencidos.",
+            "📊 Una gráfica de 12 columnas muestra en qué mes hiciste más misiones. Si llevas más de un año jugando, puedes cambiar de año.",
+        ],
+    },
     {
         version: 180,
         titulo: "Más vida en la pantalla",

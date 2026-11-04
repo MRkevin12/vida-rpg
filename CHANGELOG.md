@@ -2,6 +2,16 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v182 — Mucha más apariencia
+- `avatar.js › APARIENCIA`: +9 pieles, +9 ojos, +11 pelos, +10 trajes, +7 peinados, +7 barbas, +5 rostros, +8 marcas, +5 complementos y DOS campos nuevos: `orejas` (4) y `gafas` (6). `APARIENCIA_INICIAL` y `datos.js` los incluyen (las partidas viejas los reciben por la mezcla `{...base, ...guardado}`; no hace falta migrar).
+- Dibujo (`dibujo-cuerpo.js`): `orejas()` (dentro de `cara`), `gafas()` (si hay unas elegidas, no salen las finas del Intelecto), casos nuevos en `pelo`, `barba`, `marcaDeCara`, `complemento` y `ROSTROS`.
+- Pantalla: `vistas-heroe.js › TITULOS_APARIENCIA` (títulos de los dos campos nuevos). La prueba existente de «todas las opciones se dibujan» ya los cubre.
+
+## v181 — Tu año en revisión
+- **`js/anual.js`** (solo calcula): `resumenAnual(estado, anio, hoy)`, `aniosConDatos`, `mejorRachaDelAnio` (días seguidos con ≥1 misión; sin escudos ni días libres). Los jefes vencidos no guardan fecha, así que se muestran «en toda tu partida».
+- **`js/vistas-anual.js`** (`contenidoAnual`) + `<dialog id="dialogo-anual">` + botón «Ver mi año» en Progreso. Cambiar de año usa `data-accion="anio-anual"` (no cierra la ventana). CSS `.anual-meses`.
+- Pruebas: 1 nueva.
+
 ## v180 — Más vida en la pantalla
 - **Chispas** (`efectos.js › chispas`): un canvas de 36 cuadritos que se apaga solo (1,4 s). Logros, cofres y premios (las celebraciones no épicas). Subir de nivel y vencer jefes siguen con el confeti.
 - **Iluminación** (`pixel.js`: opciones `luz` y `suelo`): luz de borde desde arriba-izquierda y sombra elíptica bajo los pies. Activo en `sprites.js` para héroe, mascota, criaturas, personas, Maestro y los sprites del mapa de la carrera. La sombra de suelo solo en Maestro y personas (la Torre ya tiene `.ff-sombra`).

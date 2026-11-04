@@ -33,6 +33,7 @@ export * from "./vistas-comun.js";
 export * from "./vistas-hoy.js";
 export * from "./vistas-diario.js";
 export * from "./vistas-temporada.js";
+export * from "./vistas-anual.js";
 export * from "./vistas-progreso.js";
 export * from "./vistas-aventuras.js";
 export * from "./vistas-mapa.js";

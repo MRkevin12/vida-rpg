@@ -136,7 +136,8 @@ function seccionInsignias(estado, ctx) {
 // Los colores se eligen con círculos de color; lo demás, con botones de texto.
 const TITULOS_APARIENCIA = {
     cuerpo: "Cuerpo", piel: "Tono de piel", rostro: "Rostro", ojos: "Color de ojos",
-    pelo: "Color de pelo", peinado: "Peinado", barba: "Barba", traje: "Color del traje", marca: "Marcas", complemento: "Complementos" };
+    pelo: "Color de pelo", peinado: "Peinado", barba: "Barba", traje: "Color del traje", marca: "Marcas", complemento: "Complementos",
+    orejas: "Orejas", gafas: "Gafas y antifaces" };
 
 
 function seccionApariencia(estado, ctx) {

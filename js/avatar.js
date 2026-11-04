@@ -209,6 +209,16 @@ export const APARIENCIA = {
         porcelana: { nombre: "Porcelana", color: "#f8dfc9", sombra: "#d4a98a" },
         oliva:     { nombre: "Oliva",     color: "#c79d6e", sombra: "#9c7348" },
         ebano:     { nombre: "Ébano",     color: "#422819", sombra: "#2a1810" },
+        // (v182)
+        rosada:    { nombre: "Rosada",    color: "#f3d1c0", sombra: "#d19a8a" },
+        dorada:    { nombre: "Dorada",    color: "#d4a259", sombra: "#a9772f" },
+        avellana:  { nombre: "Avellana",  color: "#c68e63", sombra: "#9b6a42" },
+        bronce:    { nombre: "Bronce",    color: "#a8693f", sombra: "#7e4826" },
+        verde:     { nombre: "Verde orco", color: "#7fa05a", sombra: "#587a3a" },
+        piedra:    { nombre: "Gris piedra", color: "#9a9aa4", sombra: "#70707c" },
+        hielo:     { nombre: "Azul hielo", color: "#9bc3d9", sombra: "#6f9bb5" },
+        brasa:     { nombre: "Rojiza brasa", color: "#b8503c", sombra: "#8a3626" },
+        lila:      { nombre: "Lila",      color: "#b9a2d4", sombra: "#8d76ac" },
     },
     rostro: {
         sereno:   { nombre: "Sereno" },
@@ -217,6 +227,12 @@ export const APARIENCIA = {
         curtido:  { nombre: "Curtido" },
         severo:   { nombre: "Severo" },     // (v102) cejas bajas y rectas
         cansado:  { nombre: "Ojeroso" },    // (v102) ojeras de tanto estudiar
+        // (v182)
+        travieso:    { nombre: "Travieso" },
+        sorprendido: { nombre: "Sorprendido" },
+        sonador:     { nombre: "Soñador" },
+        feroz:       { nombre: "Feroz" },
+        calmado:     { nombre: "Calmado" },
     },
     ojos: {
         cafe:  { nombre: "Café",  color: "#5b3a1e" },
@@ -229,6 +245,16 @@ export const APARIENCIA = {
         violeta: { nombre: "Violeta", color: "#7c4ab8" },
         negro:   { nombre: "Negro",   color: "#1c1410" },
         hielo:   { nombre: "Hielo",   color: "#9fd6ea" },
+        // (v182)
+        rojo:      { nombre: "Rojo",       color: "#b32b2b" },
+        dorado:    { nombre: "Dorado",     color: "#d4a017" },
+        rosa:      { nombre: "Rosa",       color: "#c05c8c" },
+        turquesa:  { nombre: "Turquesa",   color: "#2aa7a0" },
+        avellana:  { nombre: "Avellana",   color: "#8a6a2f" },
+        esmeralda: { nombre: "Esmeralda",  color: "#1f9d55" },
+        marino:    { nombre: "Azul marino", color: "#25418c" },
+        plata:     { nombre: "Plata",      color: "#c4ccd6" },
+        luz:       { nombre: "Blanco luz", color: "#e8eef5" },
     },
     pelo: {
         negro:   { nombre: "Negro",         color: "#16110e" },
@@ -244,6 +270,18 @@ export const APARIENCIA = {
         azabache: { nombre: "Negro azulado",  color: "#1b2340" },
         ceniza:   { nombre: "Ceniza",         color: "#6e6a64" },
         vino:     { nombre: "Vino",           color: "#5a1a2a" },
+        // (v182)
+        azul:      { nombre: "Azul",           color: "#2f5fc4" },
+        verde:     { nombre: "Verde",          color: "#2f8f4a" },
+        rosa:      { nombre: "Rosa",           color: "#d86a9a" },
+        morado:    { nombre: "Morado",         color: "#6b3fb0" },
+        fuego:     { nombre: "Fuego",          color: "#d9541e" },
+        turquesa:  { nombre: "Turquesa",       color: "#2aa7a0" },
+        dorado:    { nombre: "Dorado",         color: "#d8aa32" },
+        plata:     { nombre: "Plata",          color: "#bfc5d0" },
+        rubioceniza: { nombre: "Rubio ceniza", color: "#a89a78" },
+        castanorojo: { nombre: "Castaño rojo", color: "#5a2e1c" },
+        carmesi:   { nombre: "Rojo intenso",   color: "#a31d1d" },
     },
     peinado: {
         corto:    { nombre: "Corto" },
@@ -259,6 +297,14 @@ export const APARIENCIA = {
         puntas:   { nombre: "En punta" },
         lado:     { nombre: "Raya al lado" },
         mono:     { nombre: "Moño" },
+        // (v182)
+        bob:        { nombre: "Media melena" },
+        mohicano:   { nombre: "Mohicano" },
+        afro:       { nombre: "Afro" },
+        coletas:    { nombre: "Dos coletas" },
+        despeinado: { nombre: "Despeinado" },
+        cola:       { nombre: "Cola alta" },
+        rastas:     { nombre: "Rastas" },
     },
     barba: {
         ninguna:  { nombre: "Sin barba" },
@@ -270,6 +316,14 @@ export const APARIENCIA = {
         patillas: { nombre: "Patillas" },
         larga:    { nombre: "Barba larga" },
         corta:    { nombre: "Barba corta" },
+        // (v182)
+        manillar:   { nombre: "Bigote de manillar" },
+        fumanchu:   { nombre: "Fu Manchú" },
+        sombra:     { nombre: "Barba de tres días" },
+        chivo:      { nombre: "Chivo" },
+        grueso:     { nombre: "Bigote grueso" },
+        mentonera:  { nombre: "Mentonera" },
+        anchas:     { nombre: "Patillas y bigote" },
     },
     // Color del traje. "clase" no tiene color propio: usa el de tu clase.
     traje: {
@@ -287,6 +341,17 @@ export const APARIENCIA = {
         cielo:     { nombre: "Cielo",     color: "#3a8ad0" },
         acero:     { nombre: "Gris acero", color: "#4a5568" },
         cobre:     { nombre: "Cobre",     color: "#9a4a1c" },
+        // (v182)
+        fucsia:    { nombre: "Fucsia",    color: "#be185d" },
+        turquesa:  { nombre: "Turquesa",  color: "#0f766e" },
+        naranja:   { nombre: "Naranja",   color: "#c2410c" },
+        mostaza:   { nombre: "Mostaza",   color: "#a16207" },
+        lavanda:   { nombre: "Lavanda",   color: "#7c6bb8" },
+        bosque:    { nombre: "Verde bosque", color: "#14532d" },
+        marino:    { nombre: "Azul marino", color: "#172554" },
+        ladrillo:  { nombre: "Ladrillo",  color: "#7f1d1d" },
+        marfil:    { nombre: "Marfil",    color: "#d6cfb8" },
+        medianoche: { nombre: "Medianoche", color: "#1e1b4b" },
     },
     // (v102) Marcas de la cara (dibujo-cuerpo.js › cara).
     marca: {
@@ -296,6 +361,15 @@ export const APARIENCIA = {
         guerra:    { nombre: "Pintura de guerra" },
         runa:      { nombre: "Runa en la frente" },
         lunar:     { nombre: "Lunar" },
+        // (v182)
+        rubor:     { nombre: "Mejillas rosadas" },
+        pecas:     { nombre: "Pecas" },
+        lagrima:   { nombre: "Lágrima tatuada" },
+        rayo:      { nombre: "Cicatriz de rayo" },
+        tribal:    { nombre: "Tatuaje tribal" },
+        labio:     { nombre: "Cicatriz en el labio" },
+        azul:      { nombre: "Pintura azul" },
+        estrella:  { nombre: "Estrella en la mejilla" },
     },
     // (v102) Complementos (dibujo-cuerpo.js › complemento). Van encima de la cara y debajo del sombrero.
     complemento: {
@@ -305,6 +379,28 @@ export const APARIENCIA = {
         cinta:     { nombre: "Cinta en la frente" },
         aros:      { nombre: "Dos aros" },
         venda:     { nombre: "Venda en la cabeza" },
+        // (v182)
+        diadema:   { nombre: "Diadema de oro" },
+        panuelo:   { nombre: "Pañuelo" },
+        plumas:    { nombre: "Plumas" },
+        flor:      { nombre: "Flor en el pelo" },
+        laurel:    { nombre: "Corona de laurel" },
+    },
+    // (v182) Orejas (dibujo-cuerpo.js › orejas).
+    orejas: {
+        normales:  { nombre: "Normales" },
+        elfo:      { nombre: "De elfo" },
+        elfolargo: { nombre: "De elfo largas" },
+        orco:      { nombre: "De orco" },
+    },
+    // (v182) Gafas y antifaces (dibujo-cuerpo.js › gafas). Si eliges unas, no salen las finas del Intelecto.
+    gafas: {
+        ninguna:   { nombre: "Ninguna" },
+        redondas:  { nombre: "Redondas" },
+        cuadradas: { nombre: "Cuadradas" },
+        sol:       { nombre: "De sol" },
+        monoculo:  { nombre: "Monóculo" },
+        antifaz:   { nombre: "Antifaz" },
     },
 };
 
@@ -312,6 +408,7 @@ export const APARIENCIA_INICIAL = {
     cuerpo: "masculino", piel: "media", rostro: "sereno", ojos: "cafe",
     pelo: "castano", peinado: "corto", barba: "ninguna", traje: "clase",
     marca: "ninguna", complemento: "ninguno",   // (v102)
+    orejas: "normales", gafas: "ninguna",        // (v182)
 };
 
 // 7. Mascota: crece con las misiones diarias que completas (desde que la adoptaste: ver mascota.js).

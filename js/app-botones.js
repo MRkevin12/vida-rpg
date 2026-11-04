@@ -42,6 +42,8 @@ export const ACCIONES_GENERALES = {
     ir: (boton) => cambiarPantalla(boton.dataset.pantalla),
     abrir: (boton) => abrirDialogo(boton.dataset.dialogo),
     cerrar: (boton) => boton.closest("dialog").close(),
+    // (v181) Tu año: cambiar de año sin cerrar la ventana.
+    "anio-anual": (boton) => { $("#anual-contenido").innerHTML = vistas.contenidoAnual(estado, hoy(), Number(boton.dataset.anio)); },
 
     "alternar-mision": (boton) => {
         const id = Number(boton.dataset.id);

@@ -104,7 +104,29 @@ const ROSTROS = {
     curtido:  { cejas: [38.6, 38.2, 39.7], ojo: 2.0, grosor: 1.75, cicatriz: true },
     severo:   { cejas: [38.1, 38.4, 39.6], ojo: 1.7, grosor: 1.6, ceno: true },    // (v102)
     cansado:  { cejas: [40.0, 38.8, 39.2], ojo: 1.7, grosor: 1.1 },    // (v102) ojeroso
+    // (v182)
+    travieso:    { cejas: [38.4, 37.6, 39.2], ojo: 2.2, grosor: 1.2, sonrie: true },
+    sorprendido: { cejas: [37.0, 36.0, 37.4], ojo: 3.6, grosor: 1.0 },
+    sonador:     { cejas: [39.8, 38.2, 38.6], ojo: 1.6, grosor: 0.9, sonrie: true },
+    feroz:       { cejas: [37.4, 37.6, 40.0], ojo: 1.6, grosor: 1.9, ceno: true },
+    calmado:     { cejas: [39.0, 38.4, 38.9], ojo: 2.0, grosor: 1.0 },
 };
+
+// (v182) Las orejas: normales (óvalos) o puntiagudas. Se dibuja la izquierda y la derecha es su espejo.
+function orejas(d, p) {
+    const forma = {
+        elfo:      "M91.2 39 Q87 38 84.4 34.4 Q85.2 41.4 89.6 46.6 L91.4 46 Z",
+        elfolargo: "M91.2 39 Q86 37.4 80.8 31.6 Q82.4 41.6 89.6 46.6 L91.4 46 Z",
+        orco:      "M91.2 40 Q88 38.6 86.6 35.4 Q87.8 42.4 90 46.4 L91.4 45.6 Z",
+    }[d.apariencia.orejas];
+    if (!forma) {
+        return `<g fill="${p.m("piel")}" stroke="${TRAZO}" stroke-width=".7">
+            <ellipse cx="90.5" cy="43" rx="1.7" ry="3"/><ellipse cx="109.5" cy="43" rx="1.7" ry="3"/></g>`;
+    }
+    const una = `<path d="${forma}" fill="${p.m("piel")}" stroke="${TRAZO}" stroke-width=".7" stroke-linejoin="round"/>
+                 <path d="M89.8 41 Q88 40 87 38.4" fill="none" stroke="${p.pielSombra}" stroke-width=".5" opacity=".7"/>`;
+    return `${una}<g transform="translate(200 0) scale(-1 1)">${una}</g>`;
+}
 
 function formaCabeza(e) {
     const m = e.fem ? 6.3 : 7.7;     // medio ancho de la mandíbula
@@ -183,8 +205,7 @@ export function cara(d, e, p) {
 
     return `
         <!-- orejas (van detrás de la cara) -->
-        <g fill="${p.m("piel")}" stroke="${TRAZO}" stroke-width=".7">
-            <ellipse cx="90.5" cy="43" rx="1.7" ry="3"/><ellipse cx="109.5" cy="43" rx="1.7" ry="3"/></g>
+        ${orejas(d, p)}
         ${r.riqueza >= 2 ? `<g fill="none" stroke="${p.oroPlano}" stroke-width=".8"><circle cx="90.1" cy="46.8" r="1.05"/><circle cx="109.9" cy="46.8" r="1.05"/></g>` : ""}
         <path d="${forma}" fill="${p.m("piel")}" stroke="${TRAZO}" stroke-width=".85" stroke-linejoin="round"/>
         <!-- sombra del lado derecho y luz en la frente: le dan volumen a la cara -->
@@ -224,6 +245,29 @@ function marcaDeCara(marca, p) {
                     <path d="M100 31.2 L100 36" stroke="#5ad0ff" stroke-width="2" opacity=".2"/>`;
         case "lunar":
             return `<circle cx="104.8" cy="48.6" r=".55" fill="#3a2418"/>`;
+        // (v182)
+        case "rubor":
+            return `<g fill="#e0607a" opacity=".38"><ellipse cx="94" cy="46.6" rx="2.9" ry="1.7"/><ellipse cx="106" cy="46.6" rx="2.9" ry="1.7"/></g>`;
+        case "pecas":
+            return `<g fill="${oscurecer(p.pielSombra, 0.25)}" opacity=".8">${[[94.2, 45], [95.8, 46.2], [93.4, 46.8], [97.2, 45.2], [105.8, 45], [104.2, 46.2], [106.6, 46.8], [102.8, 45.2], [99.4, 44.4], [100.6, 44.2], [98.4, 46.2], [101.8, 46.2]]
+                .map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".3"/>`).join("")}</g>`;
+        case "lagrima":
+            return `<path d="M94.6 44.2 Q93.2 46.2 94.6 47.4 Q96 46.2 94.6 44.2 Z" fill="#3a5ea8" stroke="${TRAZO}" stroke-width=".25"/>`;
+        case "rayo":
+            return `<path d="M101.8 30.6 L99.2 34.2 L100.8 34.2 L98.6 38" fill="none" stroke="${claro}" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M101.8 30.6 L99.2 34.2 L100.8 34.2 L98.6 38" fill="none" stroke="${p.pielSombra}" stroke-width=".3" stroke-linecap="round" stroke-linejoin="round"/>`;
+        case "tribal": {
+            const lado = `<path d="M103.4 44.8 Q106 44.2 108.2 46 M103.6 46.8 Q106 46.6 107.8 48.2 M104 48.8 Q105.8 48.8 107 50" fill="none" stroke="#1d2a4a" stroke-width=".6" stroke-linecap="round" opacity=".9"/>`;
+            return `${lado}<g transform="translate(200 0) scale(-1 1)">${lado}</g>`;
+        }
+        case "labio":
+            return `<path d="M101.4 48.4 L102.4 52.4" stroke="${claro}" stroke-width=".8" stroke-linecap="round"/>
+                    <path d="M101.4 48.4 L102.4 52.4" stroke="${p.pielSombra}" stroke-width=".28" stroke-linecap="round"/>`;
+        case "azul":       // una franja azul sobre los ojos, de lado a lado
+            return `<path d="M91 39.2 Q100 37 109 39.2 L108.6 43.4 Q100 41.6 91.4 43.4 Z" fill="#3a74d8" opacity=".55"/>
+                    <path d="M91.4 44.4 L96.6 46 L92.2 47.4 Z M108.6 44.4 L103.4 46 L107.8 47.4 Z" fill="#3a74d8" opacity=".5"/>`;
+        case "estrella":
+            return `<path d="M105.6 44 L106.2 45.4 L107.7 45.5 L106.5 46.5 L106.9 48 L105.6 47.2 L104.3 48 L104.7 46.5 L103.5 45.5 L105 45.4 Z" fill="#e8c13a" stroke="${TRAZO}" stroke-width=".2"/>`;
         default:
             return "";
     }
@@ -248,6 +292,31 @@ export function complemento(d, p) {
             return `<path d="M89.6 33.6 Q100 29.8 110.4 33.6 L110.6 37 Q100 33.2 89.4 37 Z" fill="#e8e0cc" stroke="${TRAZO}" stroke-width=".5"/>
                     <path d="M93 33.2 L95 36.2 M99 31.8 L100.4 35 M105 32.6 L106.4 35.8" stroke="#bdb39a" stroke-width=".45"/>
                     <path d="M106 33 Q107.2 34.4 106.4 35.6" stroke="#a83a3a" stroke-width=".9" opacity=".7" fill="none"/>`;
+        // (v182)
+        case "diadema":
+            return `<path d="M90 36.4 Q100 31.2 110 36.4 L109.8 38 Q100 33 90.2 38 Z" fill="${p.m("oro")}" stroke="${TRAZO}" stroke-width=".4"/>
+                    <circle cx="100" cy="33.8" r="1.25" fill="#e8384f" stroke="${TRAZO}" stroke-width=".3"/>`;
+        case "panuelo":
+            return `<path d="M89.6 34.4 Q100 29.8 110.4 34.4 L110.6 38.2 Q100 34 89.4 38.2 Z" fill="#a82a2a" stroke="${TRAZO}" stroke-width=".5"/>
+                    <g fill="#f0d8d0" opacity=".8"><circle cx="94" cy="34" r=".35"/><circle cx="98" cy="32.8" r=".35"/><circle cx="102.4" cy="32.8" r=".35"/><circle cx="106.4" cy="34" r=".35"/></g>
+                    <path d="M110 35.6 L114.4 34 L113.2 37.6 L115.4 40.6 L111 38.8 Z" fill="#a82a2a" stroke="${TRAZO}" stroke-width=".5" stroke-linejoin="round"/>`;
+        case "plumas":
+            return `<path d="M108.4 34 Q113.4 25.6 118.6 27.4 Q115 32.4 110 37 Z" fill="#e8e0cc" stroke="${TRAZO}" stroke-width=".5" stroke-linejoin="round"/>
+                    <path d="M109 35.8 Q116.4 31.4 120.2 35.6 Q114.6 38 110.4 38.6 Z" fill="#c24a3a" stroke="${TRAZO}" stroke-width=".5" stroke-linejoin="round"/>
+                    <path d="M108 34.6 L112 39.6" stroke="${p.oroPlano}" stroke-width=".6" stroke-linecap="round"/>`;
+        case "flor":
+            return `<g transform="translate(93 34.6)"><g fill="#f2a1c0" stroke="${TRAZO}" stroke-width=".25">
+                    <circle cx="0" cy="-1.5" r="1.2"/><circle cx="1.45" cy="-.45" r="1.2"/><circle cx="0.9" cy="1.2" r="1.2"/><circle cx="-0.9" cy="1.2" r="1.2"/><circle cx="-1.45" cy="-.45" r="1.2"/></g>
+                    <circle r=".9" fill="#f2c94c" stroke="${TRAZO}" stroke-width=".2"/></g>`;
+        case "laurel": {
+            const hojas = [];
+            for (let i = 0; i < 6; i++) {
+                const x = 90.6 + i * 1.7, y = 38.4 - i * 1.6 + (i > 3 ? (i - 3) * 0.7 : 0);
+                hojas.push(`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="2" ry=".9" transform="rotate(${-55 + i * 14} ${x.toFixed(1)} ${y.toFixed(1)})"/>`);
+            }
+            const lado = `<g fill="#4d7a3a" stroke="${TRAZO}" stroke-width=".25">${hojas.join("")}</g>`;
+            return `${lado}<g transform="translate(200 0) scale(-1 1)">${lado}</g>`;
+        }
         default:
             return "";
     }
@@ -271,10 +340,43 @@ export function lentes(p) {
 }
 
 
+// (v182) Gafas y antifaces (campo «gafas»). Devuelve "" si no hay (entonces salen las finas del Intelecto, si las tienes).
+export function gafas(d, p) {
+    const marco = "#2a2430";
+    const espejo = (x) => `${x}<g transform="translate(200 0) scale(-1 1)">${x}</g>`;
+    switch (d.apariencia.gafas) {
+        case "redondas":
+            return `<g fill="rgba(190,225,255,.1)" stroke="${marco}" stroke-width="1"><circle cx="96.1" cy="41.8" r="3.1"/><circle cx="103.9" cy="41.8" r="3.1"/></g>
+                    <path d="M99.2 41.4 Q100 40.6 100.8 41.4 M93 41.4 L90.6 40.6 M107 41.4 L109.4 40.6" fill="none" stroke="${marco}" stroke-width=".8"/>
+                    <path d="M94.2 40.4 L95.4 39.6 M102.2 40.4 L103.4 39.6" stroke="#fff" stroke-width=".4" opacity=".7" stroke-linecap="round"/>`;
+        case "cuadradas":
+            return `<g fill="rgba(190,225,255,.1)" stroke="${marco}" stroke-width=".95"><rect x="92.9" y="39.4" width="6" height="4.6" rx=".9"/><rect x="101.1" y="39.4" width="6" height="4.6" rx=".9"/></g>
+                    <path d="M98.9 40.8 L101.1 40.8 M92.9 40.4 L90.6 39.8 M107.1 40.4 L109.4 39.8" fill="none" stroke="${marco}" stroke-width=".8"/>`;
+        case "sol":
+            return `${espejo(`<path d="M92.6 39.6 L99.4 39.6 L99 43.6 Q96 45.8 93.4 43.8 Z" fill="#14121a" stroke="#000" stroke-width=".5" stroke-linejoin="round"/>
+                    <path d="M94 40.6 L96.2 40.6" stroke="#fff" stroke-width=".45" opacity=".55" stroke-linecap="round"/>`)}
+                    <path d="M99.2 40.4 L100.8 40.4 M92.6 40 L90.5 39.4 M107.4 40 L109.5 39.4" stroke="#000" stroke-width=".8" fill="none"/>`;
+        case "monoculo":
+            return `<circle cx="103.9" cy="41.8" r="3.15" fill="rgba(190,225,255,.12)" stroke="${p.oroOscuro}" stroke-width=".95"/>
+                    <circle cx="103.9" cy="41.8" r="3.15" fill="none" stroke="${p.oroClaro}" stroke-width=".35"/>
+                    <path d="M106.6 43.6 Q110.6 50 107.8 58" fill="none" stroke="${p.oroPlano}" stroke-width=".35"/>
+                    <path d="M102.2 40.2 L103.4 39.4" stroke="#fff" stroke-width=".4" opacity=".8" stroke-linecap="round"/>`;
+        case "antifaz":    // con los agujeros de los ojos (evenodd deja ver los ojos de debajo)
+            return `<path fill-rule="evenodd" d="M90.8 39.6 Q96 37.6 100 39.2 Q104 37.6 109.2 39.6 L108.8 43.8 Q104 45.6 101.8 43.2 Q100 42.6 98.2 43.2 Q96 45.6 91.2 43.8 Z
+                    M93.7 41.7 a2.35 1.8 0 1 0 4.7 0 a2.35 1.8 0 1 0 -4.7 0 Z M101.6 41.7 a2.35 1.8 0 1 0 4.7 0 a2.35 1.8 0 1 0 -4.7 0 Z"
+                    fill="#16121c" stroke="${TRAZO}" stroke-width=".5" stroke-linejoin="round"/>
+                    <path d="M91 40.2 L89.6 38.6 M109 40.2 L110.4 38.6" stroke="#16121c" stroke-width=".8" stroke-linecap="round"/>`;
+        default:
+            return "";
+    }
+}
+
+
 // ===== Barba =====
 
 export function barba(d, p) {
     const color = p.m("pelo");
+    const espejo = (x) => `${x}<g transform="translate(200 0) scale(-1 1)">${x}</g>`;
     const formas = {
         bigote: `<path d="M96 49 Q100 46.9 104 49 Q102 50 100 49.2 Q98 50 96 49 Z" fill="${color}"/>`,
         candado: `<path d="M95.9 48.9 Q100 46.9 104.1 48.9 L103.7 52.4 Q100 56 96.3 52.4 Z" fill="${color}"/>`,
@@ -288,6 +390,18 @@ export function barba(d, p) {
                 <path d="M94.4 52 Q96 58 99 61.4 M105.6 52 Q104 58 101 61.4 M100 55 L100 62" fill="none" stroke="${p.peloLuz}" stroke-width=".5" opacity=".55"/>`,
         corta: `<path d="M91.2 45 C91.8 49.6 94 52.8 96.8 54.2 Q100 55.4 103.2 54.2 C106 52.8 108.2 49.6 108.8 45 C107.6 47.8 106 49 104 49.2 Q100 47.8 96 49.2 C94 49 92.4 47.8 91.2 45 Z" fill="${color}" opacity=".75"/>
                 <path d="M96 49 Q100 47.4 104 49 Q102 49.8 100 49.2 Q98 49.8 96 49 Z" fill="${color}"/>`,
+        // (v182)
+        manillar: espejo(`<path d="M100 48.8 Q96.6 47.4 94 49.4 Q92.2 51 91.8 48.6 Q92.4 52.4 95.4 51.4 Q98 50.6 100 50.2 Z" fill="${color}"/>`),
+        fumanchu: espejo(`<path d="M99.8 48.8 Q96.4 47.8 94 49.6 Q93 54.4 93.8 60 Q95 60.4 95.6 59 Q95.2 53.4 97.6 50.8 Q99 50.2 99.8 50.4 Z" fill="${color}"/>`),
+        sombra: `<path d="M91.2 44 C91.8 49.6 94 52.8 96.8 54.2 Q100 55.4 103.2 54.2 C106 52.8 108.2 49.6 108.8 44 C107.6 47.4 106 48.6 104 48.8 Q100 47.4 96 48.8 C94 48.6 92.4 47.4 91.2 44 Z" fill="${p.pelo}" opacity=".3"/>
+                 <path d="M96.4 48.8 Q100 47.4 103.6 48.8 Q102 49.6 100 49.1 Q98 49.6 96.4 48.8 Z" fill="${p.pelo}" opacity=".45"/>`,
+        chivo: `<path d="M96.2 49 Q100 47.6 103.8 49 Q102 49.8 100 49.2 Q98 49.8 96.2 49 Z" fill="${color}"/>
+                <path d="M97.4 52.4 Q100 51.6 102.6 52.4 L101.6 61 Q100 62.6 98.4 61 Z" fill="${color}"/>`,
+        grueso: `<path d="M94.6 49.6 Q100 46.2 105.4 49.6 Q105.8 51.8 103.6 51.4 Q100 49.8 96.4 51.4 Q94.2 51.8 94.6 49.6 Z" fill="${color}"/>
+                 <path d="M96.4 49.2 Q100 47.4 103.6 49.2" fill="none" stroke="${p.peloLuz}" stroke-width=".4" opacity=".6"/>`,
+        mentonera: `<path d="M90.8 44 C91 49.6 93.4 53.6 96.6 55.2 Q100 56.4 103.4 55.2 C106.6 53.6 109 49.6 109.2 44 L108 44.4 C107.6 49 105.6 52.2 103 53.6 Q100 54.6 97 53.6 C94.4 52.2 92.4 49 92 44.4 Z" fill="${color}"/>`,
+        anchas: `${espejo(`<path d="M90.6 39.6 L91.2 50 Q92.8 52 94.4 49.8 L93.2 41 Z" fill="${color}"/>`)}
+                 <path d="M94.8 49.6 Q100 46.4 105.2 49.6 Q105.4 51.4 103.6 51.2 Q100 49.8 96.4 51.2 Q94.6 51.4 94.8 49.6 Z" fill="${color}"/>`,
     };
     if (formas[d.apariencia.barba]) return formas[d.apariencia.barba];
     // Rostro curtido sin barba: una sombra de barba de varios días.
@@ -405,6 +519,73 @@ export function pelo(d, p) {
                          <path d="M95.4 28.6 Q100 27.2 104.6 28.6 L104.2 30 Q100 28.8 95.8 30 Z" fill="${p.borde}" stroke="${TRAZO}" stroke-width=".5"/>
                          ${brillo("M93.6 32 Q96.4 29.4 100 29.1")}${mechones("M92.4 37 Q95 31.6 100 30.4", "M100.6 30.4 Q105.6 31.2 108.4 36.6")}`,
             };
+
+        // (v182) Media melena: a la altura de la barbilla, con flequillo.
+        case "bob":
+            return {
+                atras: `<path d="M88.8 40 C87.2 28.6 93 26 100 26 C107 26 112.8 28.6 111.2 40 C112 46 112.4 51 110.8 55.6 Q100 58.8 89.2 55.6 C87.6 51 88 46 88.8 40 Z" fill="${color}" ${borde}/>`,
+                frente: `<path d="M90.2 41.8 C89 33 92.6 27.3 100 27.1 C107.4 27.3 111 33 109.8 41.8 C108 38.2 105 36.2 100 35.6 C95 36.2 92 38.2 90.2 41.8 Z" fill="${color}" ${borde}/>
+                         <path d="M90.5 40 C89.3 45 89.3 50 90.3 54.4 Q92.1 55 92.7 52.8 C92 48 92 44 92.3 41.5 Z" fill="${color}" ${borde}/>
+                         <path d="M109.5 40 C110.7 45 110.7 50 109.7 54.4 Q107.9 55 107.3 52.8 C108 48 108 44 107.7 41.5 Z" fill="${color}" ${borde}/>
+                         ${brillo("M93.2 32.4 Q96 29.4 99.6 29")}${brillo("M94 37.6 Q97.6 36.4 101 36.8", 0.6)}${mechones("M92.6 35 Q95.6 30.8 100.6 30.2", "M90.8 44 Q90.4 50 91 53.4", "M109.2 44 Q109.6 50 109 53.4")}`,
+            };
+        // (v182) Mohicano: lados rapados y una cresta alta y delgada al centro.
+        case "mohicano":
+            return {
+                atras: "",
+                frente: `<path d="M90.5 39.6 C89.6 31.5 94 28.9 100 28.8 C106 28.9 110.4 31.5 109.5 39.6 C108.6 35.6 105.8 33.5 100 33.3 C94.2 33.5 91.4 35.6 90.5 39.6 Z" fill="${p.pelo}" opacity=".6"/>
+                         <path d="M96.4 33.6 C95.6 27 96.8 21.2 100 18.6 C103.2 21.2 104.4 27 103.6 33.6 C102 32.6 98 32.6 96.4 33.6 Z" fill="${color}" ${borde}/>
+                         ${brillo("M98 30 Q98 24 99.6 21", 0.7)}${mechones("M97.6 32 Q97.4 25 99.4 20.6", "M102.2 32 Q102.6 25 100.8 20.6")}`,
+            };
+        // (v182) Afro: una nube grande de pelo.
+        case "afro": {
+            const bolas = [[100, 27.5, 14], [88.4, 32.6, 9], [111.6, 32.6, 9], [86.6, 42, 6.2], [113.4, 42, 6.2], [93.4, 22.6, 9.4], [106.6, 22.6, 9.4]]
+                .map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join("");
+            return {
+                atras: `<g fill="${TRAZO}" stroke="${TRAZO}" stroke-width="1.5">${bolas}</g><g fill="${color}">${bolas}</g>`,
+                frente: `<path d="M90.4 40 C89.6 33 93 29.4 100 29.2 C107 29.4 110.4 33 109.6 40 C108.6 36 105 33.4 100 33 C95 33.4 91.4 36 90.4 40 Z" fill="${color}" ${borde}/>
+                         ${brillo("M90 24 Q93 19.4 98 18.4", 0.9)}${brillo("M103 18.6 Q108.6 20 111 24.4", 0.8)}${mechones("M92 34 Q95 31 100 30.4", "M100.6 30.4 Q105.6 31 108 34")}`,
+            };
+        }
+        // (v182) Dos coletas: una a cada lado, atadas arriba.
+        case "coletas": {
+            const cola = `<path d="M90 33 C84 34 81.6 42 83.2 50 C83.8 56 82 60.6 84.6 65.4 Q88 66.6 88.8 62.4 C88 55.4 90 48.4 91.4 41 Z" fill="${color}" ${borde}/>
+                          <path d="M85.6 44 Q85 52 86 60" fill="none" stroke="${p.peloLuz}" stroke-width=".6" opacity=".7"/>
+                          <ellipse cx="89.6" cy="34.2" rx="1.6" ry="2" fill="${p.borde}" stroke="${TRAZO}" stroke-width=".5"/>`;
+            return {
+                atras: `${cola}<g transform="translate(200 0) scale(-1 1)">${cola}</g>`,
+                frente: `<path d="M90.3 40.8 C89.2 32.4 92.8 27.7 100 27.5 C107.2 27.7 110.8 32.4 109.7 40.8 C108.8 36 105.6 32.9 100 32.5 C94.4 32.9 91.2 36 90.3 40.8 Z" fill="${color}" ${borde}/>
+                         ${brillo("M93.6 32 Q96.4 29.4 100 29.1")}${mechones("M92.4 37 Q95 31.6 100 30.4", "M100.6 30.4 Q105.6 31.2 108.4 36.6")}`,
+            };
+        }
+        // (v182) Despeinado: mechones en todas direcciones.
+        case "despeinado":
+            return {
+                atras: "",
+                frente: `<path d="M90.4 40.4 L88.6 35 L92 35.8 L90.6 30 L94.4 32.4 L94.8 26.4 L98.4 30.6 L101 25 L103.2 30.4 L107 27 L106.8 32.6 L110.6 31 L109.2 36 L111.4 37.8 L109.6 40.4 C108.8 36.6 105.8 34.4 100 34 C94.4 34.4 91.2 36.6 90.4 40.4 Z" fill="${color}" ${borde}/>
+                         <path d="M97 33.8 Q99.4 38.8 96.4 41.4 Q98.8 38.2 97.8 34.4 Z" fill="${color}"/>
+                         ${brillo("M95.4 30.6 L96 27.8", 0.7)}${brillo("M103 30 L105.6 28.4", 0.7)}${mechones("M93 36.6 Q96 33 99.6 32.2", "M101 32.2 Q105 33 107.8 36.4")}`,
+            };
+        // (v182) Cola alta: el pelo recogido arriba y atrás, cayendo hacia un lado.
+        case "cola":
+            return {
+                atras: `<path d="M102 27 C109 20.4 117.6 24 117.2 34 C117 41 119.4 46 116.6 51.6 Q113.6 52.8 112.6 50 C113.4 45 111.4 40.6 109.6 36.6 Z" fill="${color}" ${borde}/>
+                        ${brillo("M114.6 28 Q116 36 114.6 46", 0.7)}${mechones("M112.4 30 Q114 38 112.8 48")}
+                        <ellipse cx="105" cy="27.4" rx="2" ry="1.5" fill="${p.borde}" stroke="${TRAZO}" stroke-width=".6" transform="rotate(-20 105 27.4)"/>`,
+                frente: `<path d="M90.3 40.8 C89.2 32.4 92.8 27.7 100 27.5 C107.2 27.7 110.8 32.4 109.7 40.8 C108.8 36 105.6 32.9 100 32.5 C94.4 32.9 91.2 36 90.3 40.8 Z" fill="${color}" ${borde}/>
+                         ${brillo("M93.6 32 Q96.4 29.4 100 29.1")}${mechones("M92.4 37 Q95 31.6 100 30.4", "M100.6 30.4 Q105.6 31.2 108.4 36.6")}`,
+            };
+        // (v182) Rastas: mechones gruesos que caen a los lados.
+        case "rastas": {
+            const hebras = [88.2, 91, 93.8].map((x, i) => `<rect x="${x}" y="${36 + i * 0.6}" width="2.5" height="${26 - i * 2}" rx="1.2" fill="${color}" ${borde}/>`).join("");
+            const lado = `${hebras}<path d="M88.8 44 L91 44 M88.8 51 L91 51 M91.6 46 L93.6 46 M91.6 53 L93.6 53" stroke="${oscurecer(p.pelo, 0.5)}" stroke-width=".3" opacity=".7"/>`;
+            return {
+                atras: `${lado}<g transform="translate(200 0) scale(-1 1)">${lado}</g>`,
+                frente: `<path d="M90.3 41 C89 33 92.6 27.4 100 27.2 C107.4 27.4 111 33 109.7 41 C108.8 36.4 105.6 33.2 100 32.8 C94.4 33.2 91.2 36.4 90.3 41 Z" fill="${color}" ${borde}/>
+                         <path d="M93 33.4 L94.4 28.6 M97 31.6 L97.6 27.6 M101 31.2 L101.4 27.4 M105 32.2 L105.8 28" stroke="${oscurecer(p.pelo, 0.5)}" stroke-width=".4" opacity=".7"/>
+                         ${brillo("M93.6 32 Q96.4 29.4 100 29.1", 0.7)}`,
+            };
+        }
 
         default:           // "corto": corto, peinado de lado
             return {

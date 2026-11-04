@@ -381,6 +381,10 @@ export const PREPARAR = {
     temporada() {
         $("#temporada-contenido").innerHTML = vistas.contenidoTemporada(estado, hoy());
     },
+    // (v181) Tu año: abre en el año actual.
+    anual() {
+        $("#anual-contenido").innerHTML = vistas.contenidoAnual(estado, hoy());
+    },
     ordenar() {
         $("#ordenar-lista").innerHTML = vistas.listaOrdenar(estado);
     },

@@ -14665,6 +14665,35 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     border-color: rgba(96, 165, 250, 0.45);
 }
 
+/* (v181) Tu año: 12 columnas, una por mes. El mes más fuerte va en el violeta de los datos. */
+.anual-meses {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 4px;
+    align-items: end;
+    height: 110px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.anual-meses li {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    gap: 4px;
+}
+.anual-meses li i {
+    display: block;
+    width: 100%;
+    min-height: 2px;
+    background: #4a4468;
+    border-radius: 3px 3px 0 0;
+}
+.anual-meses li.mejor i { background: #8b5cf6; }
+.anual-meses small { font-size: 0.7rem; opacity: 0.8; }
+
 .temporada-lista {
     display: grid;
     gap: 10px;

@@ -20,6 +20,7 @@ import * as retos from "../js/retos.js";
 import * as cinematicas from "../js/cinematicas.js";
 import * as voces from "../js/voces.js";
 import * as vistasVoces from "../js/vistas-voces.js";
+import * as anual from "../js/anual.js";   // (v181)
 import { existeSonido } from "../js/sonido.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso, ajusteDeDificultad, ajustesDeDificultad } from "../js/resumen.js";
 import * as hallazgos from "../js/hallazgos.js";   // (v148)
@@ -5535,7 +5536,7 @@ prueba("Apariencia: se puede cambiar, y una opción inventada no se acepta", () 
     const estado = partidaNueva();
     acciones.cambiarApariencia(estado, "piel", "oscura");
     igual(estado.apariencia.piel, "oscura");
-    debeFallar(() => acciones.cambiarApariencia(estado, "piel", "verde"), "no existe");
+    debeFallar(() => acciones.cambiarApariencia(estado, "piel", "inventada"), "no existe");
 });
 
 prueba("Apariencia: las opciones nuevas (cuerpo, rostro, ojos, traje) se pueden elegir", () => {
@@ -9097,6 +9098,30 @@ prueba("Capítulo del mes (v179): narra las cifras, la temporada, los días malo
     cierto(vistas.pantallaLibro(estado, { hoy: hoy(), paginaLibro: `mes-${mes}` }).includes("Capítulo del mes"), "la página del mes");
     // Un mes sin nada de nada no genera capítulo.
     igual(libro.capitulosDeMeses(partidaNueva(), hoy()), []);
+});
+
+prueba("Tu año (v181): cuenta misiones, mejor racha, mes más fuerte y filtra por año", () => {
+    const estado = partidaNueva();
+    const leer = crearMision(estado);
+    envejecer(estado, 1000);
+    // Tres días seguidos de marzo de 2025, uno suelto en 2024 (no debe contar en 2025).
+    marcarEn(estado, leer, "2025-03-10");
+    marcarEn(estado, leer, "2025-03-11");
+    marcarEn(estado, leer, "2025-03-12");
+    marcarEn(estado, leer, "2025-03-20");
+    marcarEn(estado, leer, "2024-12-30");
+    const r = anual.resumenAnual(estado, 2025, hoy());
+    igual(r.misiones, 4, "solo las de 2025");
+    igual(r.racha.dias, 3, "tres días seguidos");
+    igual(r.racha.desde, "2025-03-10");
+    igual(r.mejorMes, 2, "marzo es el mes 2 (enero = 0)");
+    igual(r.gym.sesiones, 0);
+    igual(r.running.km, 0);
+    cierto(anual.aniosConDatos(estado, hoy()).includes(2025), "2025 está en el selector");
+    const html = vistas.contenidoAnual(estado, hoy(), 2025);
+    cierto(html.includes("Tu año 2025") && html.includes('data-accion="anio-anual"'), "la ventana y su selector de año");
+    // Un año sin nada no se rompe.
+    cierto(vistas.contenidoAnual(estado, hoy(), 2024).includes("Tu año 2024"));
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====
