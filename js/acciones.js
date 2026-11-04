@@ -49,6 +49,7 @@ export { ganar } from "./acciones-comun.js";
 export * from "./acciones-gym.js";
 export * from "./acciones-running.js";
 export * from "./acciones-finanzas.js";
+export * from "./acciones-plataformas.js";   // (v185) La Senda del Reino
 
 
 

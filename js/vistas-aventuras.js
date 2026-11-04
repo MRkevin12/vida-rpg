@@ -80,7 +80,7 @@ export function pantallaAventuras(estado, ctx) {
             <button type="button" class="acceso acceso-arcade" data-accion="ir" data-pantalla="arcade">
                 <span class="acceso-icono" aria-hidden="true">🕹️</span>
                 <b>Arcade</b>
-                <small>La Torre y 3 minijuegos</small>
+                <small>La Torre, La Senda del Reino y 3 minijuegos</small>
                 <small>🎟️ ${plural(fichas, "ficha", "fichas")}</small>
             </button>
             <button type="button" class="acceso acceso-voces" data-accion="ir" data-pantalla="voces">

@@ -27,7 +27,8 @@
 //   vistas-heroe.js        — la pestaña Héroe
 //   vistas-tienda.js       — la Tienda
 //
-// (Aparte están vistas-gym.js, vistas-running.js y vistas-voces.js, que app.js usa directamente.)
+// (Aparte están vistas-gym.js, vistas-running.js y vistas-voces.js, que app.js usa directamente, y vistas-plataformas.js,
+// que usa app-plataformas.js; su tarjeta del Arcade la pone vistas-arcade.js.)
 
 export * from "./vistas-comun.js";
 export * from "./vistas-hoy.js";

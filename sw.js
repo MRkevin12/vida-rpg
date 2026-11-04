@@ -17,7 +17,7 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v184";
+const VERSION = "vida-rpg-v185";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
 
@@ -32,6 +32,7 @@ const ARCHIVOS = [
     "./js/app-gym.js",
     "./js/app-pin.js",
     "./js/app-torre.js",
+    "./js/app-plataformas.js",   // (v185) La Senda del Reino
     "./js/app-historias.js",
     "./js/app-efectos.js",
     "./js/app-dialogos.js",
@@ -53,6 +54,7 @@ const ARCHIVOS = [
     "./js/acciones-gym.js",
     "./js/acciones-running.js",
     "./js/acciones-finanzas.js",
+    "./js/acciones-plataformas.js",
     "./js/arcade.js",
     "./js/avisos.js",
     "./js/avatar.js",
@@ -110,6 +112,10 @@ const ARCHIVOS = [
     "./js/saga.js",
     "./js/libro.js",
     "./js/minijuegos.js",
+    "./js/plataformas.js",          // (v185) La Senda del Reino: reglas, niveles, motor y dibujo
+    "./js/plataformas-niveles.js",
+    "./js/plataformas-motor.js",
+    "./js/dibujo-plataformas.js",
     "./js/novedades.js",
     "./js/pacto.js",
     "./js/nube.js",
@@ -145,6 +151,7 @@ const ARCHIVOS = [
     "./js/vistas-mapa.js",
     "./js/vistas-historia.js",
     "./js/vistas-arcade.js",
+    "./js/vistas-plataformas.js",
     "./js/vistas-torre.js",
     "./js/vistas-enfoque.js",
     "./js/vistas-ajustes.js",

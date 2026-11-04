@@ -20,6 +20,7 @@ import * as retos from "./retos.js";
 import { chipAtributo, esc, vacio, encabezado, selectorSecciones, barra, textoPremioReto } from "./vistas-comun.js";
 import { notaDeGym, selectorDeModo, selectorDeMarcas, tarjetaMazmorra } from "./vistas-torre.js";
 import { avisoCaido } from "./vistas-heroe.js";
+import { tarjetaSenda } from "./vistas-plataformas.js";   // (v185) La Senda del Reino
 
 const { ATRIBUTOS, plural } = juego;
 
@@ -41,7 +42,9 @@ export function pantallaArcade(estado, ctx) {
     });
     const habilidadesTorre = equipo.habilidadesDelEquipo(estado);
     const petTorre = mascota.mascotaDeBatalla(estado, ctx.avatar.mascota, ctx.hoy);
-    const tarjetas = Object.entries(arcade.JUEGOS).map(([clave, j]) => {
+    // (v185) La Senda del Reino tiene su propia tarjeta (va primero, más grande): abre el mapa de los mundos.
+    const tarjetaDeLaSenda = tarjetaSenda(estado, puedeJugar, arcade.textoVentajas("plataformas", ventajas));
+    const tarjetas = Object.entries(arcade.JUEGOS).filter(([clave]) => clave !== "plataformas").map(([clave, j]) => {
         const record = estado.arcade.records[clave] || 0;
         const ventaja = arcade.textoVentajas(clave, ventajas);
         return `
@@ -125,6 +128,7 @@ export function pantallaArcade(estado, ctx) {
             <p class="nota">Partidas cortas: cada una cuesta 1 ficha y da gemas 💎 y XP según tus puntos
                (máx. ${arcade.MAX_GEMAS} 💎 y ${arcade.MAX_XP} XP).</p>
             ${fichas || caido ? "" : vacio("Sin fichas por ahora. Completa una misión diaria y vuelve a jugar.")}
+            ${tarjetaDeLaSenda}
             ${tarjetas}`,
         bazar: () => panelBazar(estado, caido),
     };

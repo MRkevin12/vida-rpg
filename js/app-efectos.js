@@ -14,6 +14,7 @@ import { dibujarInsignia } from "./dibujo-insignias.js";   // (v101)   // fx = "
 import { prepararPinturas } from "./pixel-pintura.js";   // (v95) las pinturas en pixel art
 import { estado, pantallaActual, $, avatarActual, refrescar } from "./app.js";
 import { lugarAbierto } from "./app-torre.js";
+import { musicaDeLaSenda } from "./app-plataformas.js";   // (v185)
 
 let alCerrarRobo = null;         // qué hacer cuando se cierre la escena del robo de vida
 
@@ -81,6 +82,7 @@ export function ponerMusica() {
     const pista = musica.pistaDeEscena({
         pantalla: leyendoHistoria ? "historia" : pantallaActual,
         torre: $("#torre").hidden || leyendoHistoria ? null : lugarAbierto,
+        senda: musicaDeLaSenda(),   // (v185) La Senda del Reino: la pista de cada mundo (y «Batalla» con el jefe)
         elegida: a.pista, auto: a.musicaAuto !== false,
     });
     musica.reproducir(musica.PISTAS[pista] ? pista : "epica", volumen);

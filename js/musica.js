@@ -76,10 +76,11 @@ export const PISTAS = {
 // ¿Qué pista toca en cada escena? (v58) Una función pura, para poder probarla.
 //   pantalla: la pantalla de Hoy, Aventuras, etc. (o "historia" si se lee la historia de la Torre)
 //   torre: null si la Torre está cerrada, o "torre" / "mazmorra" si hay una batalla
+//   senda: (v185) en La Senda del Reino, la pista de ese momento (la de cada mundo, o «batalla» con el jefe), o null
 //   elegida: la pista que tú elegiste en Ajustes; auto: si la música cambia según la escena (Ajustes)
 // Sin «auto», suena la que elegiste (y en la Torre y la Mazmorra, las de siempre).
 export const PANTALLAS_DE_LECTURA = ["pergamino", "biblioteca", "memorias", "libro", "pacto", "historia", "novela"];
-export function pistaDeEscena({ pantalla, torre = null, elegida = "epica", auto = true }) {
+export function pistaDeEscena({ pantalla, torre = null, senda = null, elegida = "epica", auto = true }) {
     if (torre) {
         // (v64) Cada lugar suena a lo suyo: la Torre y las minas, batalla; la Mazmorra, abismo; el laberinto, misterio.
         if (torre === "mazmorra") return auto ? "abismo" : "misterio";
@@ -87,6 +88,7 @@ export function pistaDeEscena({ pantalla, torre = null, elegida = "epica", auto 
         return "batalla";
     }
     if (!auto) return elegida;
+    if (senda && PISTAS[senda]) return senda;
     if (PANTALLAS_DE_LECTURA.includes(pantalla)) return "lectura";
     if (pantalla === "diario") return "nocturno";
     if (pantalla === "gym") return "batalla";   // (v73) para levantar hierro: «Marte», de Holst

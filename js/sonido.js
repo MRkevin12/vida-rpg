@@ -72,6 +72,24 @@ const SONIDOS = {
     siseo:     { onda: "triangle", volumen: 0.02, notas: [[200, 0, 0.5]], ruido: [[0, 0.55, 5500, 0.28, 5500, "highpass"]] },
     chillido:  { onda: "square",   volumen: 0.06, notas: [[1900, 0, 0.3, 1000]] },
     fenix:     { onda: "triangle", volumen: 0.16, notas: [[784, 0, 0.15], [988, 0.12, 0.15], [1319, 0.24, 0.45]] },
+
+    // ===== (v185) La Senda del Reino (el juego de plataformas) =====
+    // Pisar a una criatura: un golpe sordo que rebota hacia arriba.
+    pisar:     { onda: "square",   volumen: 0.07, notas: [[196, 0, 0.05, 98], [523, 0.05, 0.07]], ruido: [[0, 0.05, 900, 0.18, 300, "lowpass"]] },
+    // Golpear un bloque con la cabeza (y que no pase nada).
+    bloque:    { onda: "square",   volumen: 0.05, notas: [[165, 0, 0.06, 110]], ruido: [[0, 0.05, 1200, 0.12, 400, "lowpass"]] },
+    // Romper un ladrillo: piedra que se parte.
+    ladrillo:  { onda: "sawtooth", volumen: 0.05, notas: [[220, 0, 0.05, 80]], ruido: [[0, 0.22, 2600, 0.3, 500, "bandpass"]] },
+    // Un poder sale de un bloque rúnico: notas que suben.
+    poder:     { onda: "triangle", volumen: 0.12, notas: [[392, 0, 0.07], [523, 0.07, 0.07], [659, 0.14, 0.07], [784, 0.21, 0.16]] },
+    // Una vida más.
+    vidaExtra: { onda: "square",   volumen: 0.06, notas: [[659, 0, 0.08], [784, 0.08, 0.08], [1047, 0.16, 0.08], [1319, 0.24, 0.22]] },
+    // Patear una concha.
+    patada:    { onda: "square",   volumen: 0.06, notas: [[294, 0, 0.03], [587, 0.03, 0.06]] },
+    // Encontrar un pasaje secreto: un brillo que sube y baja, como una llave que gira.
+    secreto:   { onda: "triangle", volumen: 0.12, notas: [[659, 0, 0.08], [831, 0.08, 0.08], [988, 0.16, 0.08], [1319, 0.24, 0.3], [1245, 0.36, 0.25]] },
+    // Lanzar una bola de fuego.
+    bola:      { onda: "sawtooth", volumen: 0.05, notas: [[880, 0, 0.08, 330]], ruido: [[0, 0.08, 3000, 0.12, 900, "bandpass"]] },
 };
 
 // ===== (v58) Las voces de las criaturas =====

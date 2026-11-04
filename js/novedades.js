@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 184;
+export const VERSION_APP = 185;
 
 export const NOVEDADES = [
+    {
+        version: 185,
+        titulo: "La Senda del Reino",
+        cambios: [
+            "🏰 Juego nuevo en el Arcade (Minijuegos): La Senda del Reino, de plataformas. 4 mundos (Campos del Alba, Minas de Cristal, Cumbres de la Tormenta y la Fortaleza de la Llama), 3 niveles en cada uno y un jefe al final.",
+            "🏃 Corres y saltas con tu héroe: ◀ ▶ para moverte y el botón grande para saltar (mantenlo para saltar más alto). Puedes correr y saltar a la vez. En horizontal, el juego ocupa toda la pantalla.",
+            "🧪 Bloques con runa: la Poción de vigor te pone armadura (aguantas un golpe y rompes ladrillos), la Brasa rúnica te deja lanzar fuego 🔥 y la Bendición de la Llama te hace invencible unos segundos.",
+            "⚔️ Las criaturas de la Torre: esqueletos, cangrejos que se esconden en su caparazón (y se patean), murciélagos, arpías, cienos que saltan, gárgolas que disparan, raíces, ascuas, arañas y mazos de piedra. Y cuatro jefes con sus propios ataques.",
+            "◆ Cada nivel esconde 3 reliquias (bloques escondidos, paredes falsas, caminos altos). Cada nivel cuesta 1 ficha y paga gemas y XP de Fuerza según tus puntos. Con armadura en tu equipo, empiezas con armadura.",
+        ],
+    },
     {
         version: 184,
         titulo: "Pasos que se marcan solos",

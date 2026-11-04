@@ -49,6 +49,7 @@ let partida = null;        // el minijuego que se está jugando (para poder dete
 export let juegoActual = null;    // qué minijuego es ("carrera", "lluvia" o "golpe")
 
 export async function jugarMinijuego(tipo) {
+    if (!minijuegos.esMinijuego(tipo)) return;   // (v185) La Senda del Reino se abre con su mapa (app-plataformas.js)
     // Gastar la ficha (si no hay, ejecutar() muestra el mensaje y devuelve null).
     if (!ejecutar(() => acciones.empezarPartida(estado, tipo))) return;
 

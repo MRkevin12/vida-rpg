@@ -14,6 +14,7 @@
 //   app-gym.js           — los botones del gimnasio
 //   app-pin.js           — el PIN y Face ID
 //   app-torre.js         — mapa, minijuegos, Torre y Mazmorra
+//   app-plataformas.js   — La Senda del Reino, el juego de plataformas (v185)
 //   app-historias.js     — cinemáticas, novelas, pergaminos, Voces del Valle
 //   app-efectos.js       — robo, sonido, música, celebraciones, «Deshacer»
 //   app-dialogos.js      — las ventanas y sus formularios
@@ -64,6 +65,7 @@ import { ACCIONES_MEMENTO, FORMULARIOS_MEMENTO } from "./app-memento.js";   // (
 import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS, conectarPesos } from "./app-finanzas.js";   // (v135, v137)
 import { GRACIA_MS, cerrarTeclado, teclaPulsada, pedirPinParaEntrar, entrarConFaceId, crearPin, ACCIONES_PIN } from "./app-pin.js";
 import { pintarMapa, juegoActual, jugarMinijuego, cerrarMinijuego, ACCIONES_TORRE } from "./app-torre.js";
+import { ACCIONES_SENDA, pintarPortadasSenda } from "./app-plataformas.js";   // (v185) La Senda del Reino
 import { revisarCines, capituloNovela, libroNovela, pergaminoActual, pintarRetratosVoces, pintarPortadas,
          ACCIONES_HISTORIAS } from "./app-historias.js";
 import { roboDesde, mostrarRobo, cerrarRobo, sonar, ponerMusica, arreglarVistaTrasTeclado, pinturasEnPixel,
@@ -410,7 +412,7 @@ function tictac() {
     }
     const activo = estado.personaje && estado.enfoque.activo;
     // Con el PIN puesto o en medio de un minijuego, espera: el premio llega después.
-    if (!activo || $("#juego").hidden || !$("#minijuego").hidden) return;
+    if (!activo || $("#juego").hidden || !$("#minijuego").hidden || !$("#senda").hidden) return;
 
     const restante = juego.finDelEnfoque(activo) - Date.now();
     if (restante <= 0) {
@@ -599,6 +601,7 @@ export function dibujarPantalla(efectos = {}) {
     if (pantallaActual === "mapa") pintarMapa();   // la imagen del mapa (pixel art) llega un instante después
     actualizarBarraRun();
     if (pantallaActual === "arcade") pintarPortadas();        // la portada de la Mazmorra (pixel art)
+    if (pantallaActual === "arcade") pintarPortadasSenda(contenedor);   // (v185) la de La Senda del Reino
     if (pantallaActual === "voces") pintarRetratosVoces($("#pantalla-voces"));   // las caras de la aldea (pixel art)
     if (pantallaActual === "libro") conectarHojear();         // pasar las páginas deslizando
     if (pantallaActual === "gym") animarAurelio();            // (v165) Aurelio escribe, reacciona y llega caminando
@@ -781,6 +784,7 @@ export const ACCIONES = {
     ...ACCIONES_GYM,
     ...ACCIONES_PIN,
     ...ACCIONES_TORRE,
+    ...ACCIONES_SENDA,      // (v185)
     ...ACCIONES_HISTORIAS,
     ...ACCIONES_EFECTOS,
     ...ACCIONES_MAESTRO,

@@ -232,6 +232,9 @@ function cartel(mundo, ancho, alto, titulo, subtitulo) {
 
 // ===== El ciclo del juego =====
 
+// (v185) Los minijuegos de este archivo (La Senda del Reino, el de plataformas, tiene su propio motor y su pantalla).
+export const esMinijuego = (tipo) => ["carrera", "lluvia", "golpe"].includes(tipo);
+
 // tipo: "carrera" | "lluvia" | "golpe"
 // pixel: para "Golpe preciso", las imágenes en pixel art de la batalla (ver sprites.js):
 //        { heroe, rival, sala (direcciones de las imágenes), nombre (el de la criatura) }

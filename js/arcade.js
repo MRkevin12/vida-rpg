@@ -28,6 +28,12 @@ export const JUEGOS = {
         descripcion: "Tu héroe contra una criatura de la Torre. Toca cuando la marca esté en el centro para un golpe crítico.",
         puntosPorGema: 30, puntosPorXp: 40,
     },
+    // (v185) El juego de plataformas: sus reglas están en plataformas.js y se juega nivel por nivel (1 ficha cada uno).
+    plataformas: {
+        nombre: "La Senda del Reino", icono: "🏰", atributo: "fuerza",
+        descripcion: "Un juego de plataformas: 4 mundos, 16 niveles y un jefe al final de cada mundo.",
+        puntosPorGema: 400, puntosPorXp: 600,
+    },
 };
 
 // Fichas: las de regalo + 1 por cada misión diaria completada + las de los cofres − las ya usadas.
@@ -58,6 +64,11 @@ export function textoVentajas(tipo, v) {
     if (tipo === "lluvia" && v.vidasExtra) partes.push(`❤️ +${v.vidasExtra} ${v.vidasExtra === 1 ? "vida" : "vidas"}`);
     if (tipo === "golpe" && v.fuerza > 1) partes.push(`⚔️ +${Math.round((v.fuerza - 1) * 100)} % de daño`);
     if (tipo === "golpe" && v.zona > 1) partes.push(`🔮 zonas ${Math.round((v.zona - 1) * 100)} % más anchas`);
+    // (v185) La Senda del Reino: la armadura te la pone desde el inicio, la vida suma vidas y la magia alarga la bendición.
+    if (tipo === "plataformas" && v.escudos) partes.push("🛡️ empiezas con armadura");
+    if (tipo === "plataformas" && v.vidasExtra) partes.push(`❤️ +${v.vidasExtra} ${v.vidasExtra === 1 ? "vida" : "vidas"}`);
+    if (tipo === "plataformas" && v.fuerza > 1) partes.push(`⚔️ fuego +${Math.round((v.fuerza - 1) * 100)} % contra jefes`);
+    if (tipo === "plataformas" && v.zona > 1) partes.push(`🔮 bendición +${Math.round((v.zona - 1) * 100)} %`);
     if (tipo !== "golpe" && v.suerte > 1) partes.push(`🍀 monedas +${Math.round((v.suerte - 1) * 100)} %`);
     return partes.join(" · ");
 }

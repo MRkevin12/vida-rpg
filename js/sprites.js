@@ -88,6 +88,14 @@ export function spriteDeHeroeEnMapa(d) {
     return pixelar(dibujarAvatar(d, { batalla: true, sinEfectos: true }), 21, 28, { clave: `heroe-mapa-${JSON.stringify(d)}`, luz: true });
 }
 
+// (v185) Tu héroe en La Senda del Reino (el juego de plataformas): 22 × 30 puntos, con los ojos marcados.
+export const HEROE_SENDA = { ancho: 22, alto: 30 };
+export function spriteDeHeroeEnSenda(d) {
+    const { ancho, alto } = HEROE_SENDA;
+    return pixelar(dibujarAvatar(d, { batalla: true, sinEfectos: true }), ancho, alto,
+        { clave: `heroe-senda-${JSON.stringify(d)}`, puntos: rasgosEnPixeles(d, "batalla", ancho, alto), luz: true });
+}
+
 // (v146) Una criatura pequeña para el mapa de la carrera, como tu héroe en el mapa: lado = cuántos puntos mide
 // (cada punto de la imagen queda como un cuadrito del mapa; ver vistas-pelea-mapa.js › ladoEnMapa).
 export function spriteDeMonstruoEnMapa(id, lado) {

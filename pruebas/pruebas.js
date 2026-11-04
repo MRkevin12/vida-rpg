@@ -101,6 +101,10 @@ import * as sonidoModulo from "../js/sonido.js";
 import { PINTURAS as PINTURAS_DE_FONDO, rutaPintura, ponerPinturaPixel } from "../js/pinturas.js";
 import { pixelarPintura } from "../js/pixel-pintura.js";
 import { partidaDemo } from "./demo.js";
+import * as plataformas from "../js/plataformas.js";            // (v185) La Senda del Reino
+import * as motorSenda from "../js/plataformas-motor.js";
+import * as dibujoSenda from "../js/dibujo-plataformas.js";
+import * as vistasSenda from "../js/vistas-plataformas.js";
 
 
 // ===== Herramientas para escribir pruebas =====
@@ -8019,7 +8023,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 40, "versión de los datos");
+    igual(base.version, 41, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -8221,7 +8225,7 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [40, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [41, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });
@@ -9183,6 +9187,543 @@ prueba("Principales (v184): un paso enlazado con una misión diaria se marca sol
     acciones.enlazarSubmision(estado, { principal: p.id, sub: otro.id, mision: "" });
     cierto(!otro.enlace, "sin misión, se quita el enlace");
     debeFallar(() => acciones.enlazarSubmision(estado, { principal: p.id, sub: otro.id, mision: 99999, veces: 1 }), "No encontré");
+});
+
+// ===== La Senda del Reino (v185): el juego de plataformas =====
+
+// Un nivel hecho a mano para las pruebas: un llano largo (filas 13 y 14 de suelo) con lo que se le agregue.
+// cosas = { fila: { columna: "letras" } }. El héroe empieza en la columna 2.
+function nivelDePrueba(cosas = {}, { ancho = 60, mundo = 1, tiempo = 300, sinSuelo = [] } = {}) {
+    const filas = Array.from({ length: 15 }, (_, f) => [...(f >= 13 ? "#" : ".").repeat(ancho)]);
+    for (const c of sinSuelo) { filas[13][c] = "."; filas[14][c] = "."; }
+    filas[12][2] = "S";
+    filas[12][ancho - 2] = "F";
+    for (const [f, fila] of Object.entries(cosas)) {
+        for (const [c, texto] of Object.entries(fila)) [...texto].forEach((letra, i) => { filas[Number(f)][Number(c) + i] = letra; });
+    }
+    return { id: "prueba", mundo, tiempo, filas: filas.map((f) => f.join("")) };
+}
+
+function partidaDePrueba(cosas, opciones = {}) {
+    return motorSenda.crearPartida("prueba", { def: nivelDePrueba(cosas, opciones), ventajas: opciones.ventajas });
+}
+
+// Avanza la partida «segundos» con unos botones apretados.
+function avanzar(partida, segundos, entrada = {}) {
+    for (let i = 0; i < Math.round(segundos / plataformas.PASO); i++) motorSenda.paso(partida, entrada, plataformas.PASO);
+}
+
+prueba("La Senda del Reino: 4 mundos de 4 niveles (3 y un jefe), bien formados", () => {
+    igual(plataformas.MUNDOS.length, 4, "cuatro mundos");
+    igual(plataformas.NIVELES.length, 16, "dieciséis niveles");
+    igual(new Set(plataformas.NIVELES.map((n) => n.id)).size, 16, "sin ids repetidos");
+    for (const m of plataformas.MUNDOS) {
+        const niveles = plataformas.nivelesDelMundo(m.numero);
+        igual(niveles.map((n) => n.numero), [1, 2, 3, 4], `mundo ${m.numero}: 3 niveles y el jefe`);
+        cierto(!niveles.slice(0, 3).some((n) => n.jefe) && niveles[3].jefe, `mundo ${m.numero}: el jefe va al final`);
+        cierto(PISTAS[m.musica], `mundo ${m.numero}: su música existe`);
+    }
+    for (const def of plataformas.NIVELES) {
+        const n = plataformas.prepararNivel(def);   // falla si una fila mide distinto o hay una letra desconocida
+        igual(n.alto, 15, `${def.id}: 15 filas`);
+        cierto(n.ancho >= 50 && n.ancho <= 220, `${def.id}: ancho razonable (${n.ancho})`);
+        cierto(def.tiempo >= 200, `${def.id}: tiene tiempo`);
+        const letras = def.filas.join("");
+        igual([letras.split("S").length - 1, letras.split("F").length - 1], [1, 1], `${def.id}: un inicio y una meta`);
+        cierto(n.controles.length >= 1, `${def.id}: tiene un punto de control`);
+        for (const p of n.plataformas) cierto(p.hasta !== (p.tipo === "lado" ? p.c : p.f), `${def.id}: la plataforma de (${p.c}, ${p.f}) tiene a dónde ir`);
+        if (def.jefe) {
+            cierto(n.jefe && plataformas.JEFES[def.jefe], `${def.id}: tiene su jefe`);
+            cierto(def.arena[0] < n.jefe.c && n.jefe.c <= def.arena[1], `${def.id}: el jefe está en la arena`);
+            igual(n.reliquias.length, 0, `${def.id}: las peleas no tienen reliquias`);
+        } else {
+            igual(n.reliquias.length, 3, `${def.id}: tres reliquias`);
+            cierto(n.enemigos.length >= 10, `${def.id}: tiene enemigos (${n.enemigos.length})`);
+        }
+    }
+    igual(plataformas.RELIQUIAS_TOTALES, 36);
+    debeFallar(() => plataformas.prepararNivel({ id: "mal", filas: ["...", "..", "..."] }), "otro largo");
+    debeFallar(() => plataformas.prepararNivel({ id: "mal", filas: ["..Ñ"] }), "Letra desconocida");
+});
+
+prueba("La Senda del Reino: en cada nivel se llega a la meta, a las 3 reliquias y a los puntos de control", () => {
+    for (const def of plataformas.NIVELES) {
+        const a = plataformas.alcanzable(plataformas.prepararNivel(def));
+        cierto(a.meta, `${def.id}: se llega a la meta`);
+        a.reliquias.forEach((llega, i) => cierto(llega, `${def.id}: se llega a la reliquia ${i + 1}`));
+        a.controles.forEach((llega, i) => cierto(llega, `${def.id}: se llega al punto de control ${i + 1}`));
+    }
+    // La revisión de verdad detecta un pozo imposible (7 celdas) y una pared muy alta.
+    const pozo = plataformas.prepararNivel(nivelDePrueba({}, { sinSuelo: [20, 21, 22, 23, 24, 25, 26] }));
+    cierto(!plataformas.alcanzable(pozo).meta, "un pozo de 7 celdas no se salta");
+    const pared = plataformas.prepararNivel(nivelDePrueba({ 7: { 30: "=" }, 8: { 30: "=" }, 9: { 30: "=" }, 10: { 30: "=" }, 11: { 30: "=" }, 12: { 30: "=" },
+                                                         0: { 30: "=" }, 1: { 30: "=" }, 2: { 30: "=" }, 3: { 30: "=" }, 4: { 30: "=" }, 5: { 30: "=" }, 6: { 30: "=" } }));
+    cierto(!plataformas.alcanzable(pared).meta, "una pared hasta el techo no se pasa");
+});
+
+prueba("La Senda del Reino: los choques contra la cuadrícula (suelo, paredes, tablas y bloques escondidos)", () => {
+    const { CELDA } = plataformas;
+    const n = plataformas.prepararNivel(nivelDePrueba({ 9: { 10: "-", 20: "+", 30: "?" }, 12: { 40: "=" }, 11: { 40: "=" } }));
+    // Cae y se apoya en el suelo.
+    const cuerpo = { x: 5 * CELDA, y: 100, ancho: 10, alto: 24, vx: 0, vy: 300 };
+    let res;
+    for (let i = 0; i < 120; i++) res = plataformas.moverCuerpo(cuerpo, n, 1 / 120);
+    igual([cuerpo.y, cuerpo.vy, res.suelo], [13 * CELDA - 24, 0, "#"], "queda parado sobre el suelo");
+    // Una pared lo frena.
+    const contra = { x: 38 * CELDA, y: 13 * CELDA - 24, ancho: 10, alto: 24, vx: 200, vy: 0 };
+    res = plataformas.moverCuerpo(contra, n, 0.2);
+    igual([contra.x, res.pared], [40 * CELDA - 10, 1], "choca contra la pared");
+    // La tabla: desde abajo se atraviesa; desde arriba se pisa.
+    const sube = { x: 10 * CELDA + 2, y: 10 * CELDA + 4, ancho: 10, alto: 24, vx: 0, vy: -200 };
+    plataformas.moverCuerpo(sube, n, 0.1);
+    cierto(sube.y < 10 * CELDA + 4 - 15, "atraviesa la tabla desde abajo");
+    const baja = { x: 10 * CELDA + 2, y: 9 * CELDA - 30, ancho: 10, alto: 24, vx: 0, vy: 200 };
+    res = plataformas.moverCuerpo(baja, n, 0.1);
+    igual([baja.y, res.suelo], [9 * CELDA - 24, "-"], "se para encima de la tabla");
+    // El bloque escondido: se atraviesa… salvo cuando el héroe lo golpea desde abajo.
+    const escondido = { x: 20 * CELDA + 2, y: 10 * CELDA + 4, ancho: 10, alto: 24, vx: 0, vy: -200 };
+    plataformas.moverCuerpo({ ...escondido }, n, 0.1);
+    res = plataformas.moverCuerpo(escondido, n, 0.1, { esconditos: true });
+    igual(res.arriba, [{ c: 20, f: 9 }], "lo golpea con la cabeza");
+    igual(escondido.y, 10 * CELDA, "y queda justo debajo");
+});
+
+prueba("La Senda del Reino: los escondites se ven como pared hasta que cruzas su pared falsa", () => {
+    // En 1-1, la colina tiene una cueva con la reliquia 2 detrás de una pared falsa.
+    const p = motorSenda.crearPartida("1-1");
+    const n = p.nivel;
+    igual(n.escondites.length, 1, "1-1 tiene un escondite");
+    const r = n.reliquias.find((x) => x.c === 131);
+    cierto(motorSenda.escondida(p, r.c, r.f) && motorSenda.escondida(p, 133, 12), "la reliquia y la pared falsa están escondidas");
+    cierto(motorSenda.escondida(p, 130, 11), "y también sus monedas");
+    cierto(!motorSenda.escondida(p, 135, 12), "lo de afuera, no");
+    p.heroe.x = 133 * plataformas.CELDA + 3;
+    p.heroe.y = 13 * plataformas.CELDA - p.heroe.alto;
+    motorSenda.paso(p, {}, plataformas.PASO);
+    cierto(!motorSenda.escondida(p, r.c, r.f), "al cruzar la pared falsa, se descubre");
+    cierto(motorSenda.sacarSonidos(p).includes("secreto") && motorSenda.sacarAvisos(p).some((a) => a.tipo === "secreto"), "con su sonido y su aviso");
+    // Todos los niveles con un cuarto escondido tienen adentro una reliquia, y su puerta es una pared falsa.
+    let total = 0;
+    for (const def of plataformas.NIVELES) {
+        const m = plataformas.prepararNivel(def);
+        for (const celdas of m.escondites) {
+            total += 1;
+            cierto(celdas.some((k) => def.filas[Number(k.split(",")[1])][Number(k.split(",")[0])] === "%"), `${def.id}: el escondite tiene su pared falsa`);
+            cierto(m.reliquias.some((x) => celdas.includes(`${x.c},${x.f}`)), `${def.id}: hay una reliquia adentro`);
+        }
+    }
+    cierto(total >= 8, `hay escondites en muchos niveles (${total})`);
+});
+
+prueba("La Senda del Reino: el salto es variable y tiene «tiempo de coyote» y «buffer»", () => {
+    const { CELDA } = plataformas;
+    const medir = (pasosApretado) => {
+        const p = partidaDePrueba({});
+        const suelo = p.heroe.y;
+        let subida = 0;
+        for (let i = 0; i < 150; i++) {
+            motorSenda.paso(p, { saltar: i < pasosApretado }, plataformas.PASO);
+            subida = Math.max(subida, suelo - p.heroe.y);
+        }
+        return subida;
+    };
+    const alto = medir(200);
+    const corto = medir(3);
+    cierto(alto >= 4 * CELDA && alto <= 5 * CELDA, `manteniendo, sube más de 4 celdas (${alto.toFixed(1)})`);
+    cierto(corto < 3 * CELDA && corto < alto * 0.7, `con un toque, menos (${corto.toFixed(1)})`);
+    // Corriendo, salta más de 5 celdas de largo.
+    const p = partidaDePrueba({});
+    avanzar(p, 1, { derecha: true });
+    const x0 = p.heroe.x;
+    motorSenda.paso(p, { derecha: true, saltar: true }, plataformas.PASO);
+    avanzar(p, 0.02, { derecha: true, saltar: true });
+    while (!p.heroe.enSuelo) motorSenda.paso(p, { derecha: true, saltar: true }, plataformas.PASO);
+    cierto(p.heroe.x - x0 >= 5 * CELDA, `salta lejos (${(p.heroe.x - x0).toFixed(0)} puntos)`);
+
+    // Coyote: sale del borde de un pozo y salta un instante después (ya en el aire): igual salta.
+    const borde = () => {
+        const q = partidaDePrueba({}, { sinSuelo: [10, 11, 12, 13, 14, 15] });
+        q.heroe.x = 9 * CELDA + 4;
+        q.heroe.vx = 100;
+        while (q.heroe.x < 10 * CELDA) motorSenda.paso(q, { derecha: true }, plataformas.PASO);
+        return q;
+    };
+    const conCoyote = borde();
+    avanzar(conCoyote, 0.06, { derecha: true });
+    cierto(!conCoyote.heroe.enSuelo, "ya salió del borde");
+    motorSenda.paso(conCoyote, { derecha: true, saltar: true }, plataformas.PASO);
+    cierto(conCoyote.heroe.vy < -200, "con coyote, el salto sale");
+    const tarde = borde();
+    avanzar(tarde, 0.2, { derecha: true });
+    motorSenda.paso(tarde, { derecha: true, saltar: true }, plataformas.PASO);
+    cierto(tarde.heroe.vy > 0, "mucho después, ya no");
+
+    // Buffer: aprieta saltar justo antes de tocar el suelo y salta al tocarlo.
+    const q = partidaDePrueba({});
+    q.heroe.y -= 30;
+    q.heroe.vy = 300;
+    q.heroe.enSuelo = false;
+    avanzar(q, 0.04);
+    motorSenda.paso(q, { saltar: true }, plataformas.PASO);    // apretó en el aire…
+    let salto = false;
+    for (let i = 0; i < 30; i++) {
+        motorSenda.paso(q, { saltar: true }, plataformas.PASO);   // …y lo mantiene
+        if (q.heroe.vy < -200) salto = true;
+    }
+    cierto(salto, "el salto guardado sale al aterrizar");
+});
+
+prueba("La Senda del Reino: pisar enemigos, recibir golpes, la armadura y la bendición", () => {
+    // Cae encima de un esqueleto: lo vence, rebota y suma 100.
+    const p = partidaDePrueba({ 12: { 6: "e" } });
+    const e = p.enemigos[0];
+    avanzar(p, 0.05);
+    p.heroe.x = e.x;
+    p.heroe.y = e.y - 40;
+    p.heroe.vy = 200;
+    for (let i = 0; i < 40 && e.vivo; i++) motorSenda.paso(p, {}, plataformas.PASO);
+    igual([e.vivo, p.puntos, p.enemigosVencidos], [false, 100, 1], "pisotón");
+    cierto(p.heroe.vy < 0, "y rebota");
+
+    // De costado: con armadura la pierde (y queda un rato invencible); sin armadura, cae.
+    const golpe = (ventajas) => {
+        const q = partidaDePrueba({ 12: { 8: "e" } }, { ventajas });
+        avanzar(q, 2, { derecha: true });
+        return q;
+    };
+    const conArmadura = golpe({ escudos: 1 });
+    igual(conArmadura.heroe.poder, "normal", "la armadura aguanta el golpe");
+    igual(conArmadura.fase, "jugando");
+    const sinArmadura = golpe({});
+    igual(sinArmadura.fase, "muriendo", "sin armadura, cae");
+    avanzar(sinArmadura, 2.2);
+    igual([sinArmadura.vidas, sinArmadura.fase], [2, "jugando"], "pierde una vida y vuelve a empezar");
+
+    // Con la Bendición de la Llama, lo que toca cae.
+    const q = partidaDePrueba({ 12: { 8: "e" } });
+    q.heroe.bendicion = 5;
+    avanzar(q, 2, { derecha: true });
+    igual([q.enemigos[0].vivo, q.fase], [false, "jugando"], "la bendición vence al tocar");
+});
+
+prueba("La Senda del Reino: bloques rúnicos, ladrillos, bloque escondido y monedas", () => {
+    const { CELDA } = plataformas;
+    // Un bloque en la fila 9 justo encima del héroe; salta y lo golpea.
+    const golpear = (letra, poder = "normal") => {
+        const p = partidaDePrueba({ 9: { 2: letra } });
+        p.heroe.poder = poder;
+        avanzar(p, 0.6, { saltar: true });
+        return p;
+    };
+    let p = golpear("?");
+    igual([p.monedas, plataformas.celda(p.nivel, 2, 9)], [1, "u"], "el bloque rúnico da una moneda y queda usado");
+    p = golpear("!");
+    igual(p.objetos.map((o) => o.tipo), ["pocion"], "sin armadura sale la poción");
+    p = golpear("!", "armadura");
+    igual(p.objetos.map((o) => o.tipo), ["brasa"], "con armadura sale la brasa rúnica");
+    p = golpear("B");
+    igual(plataformas.celda(p.nivel, 2, 9), "B", "sin armadura el ladrillo no se rompe");
+    p = golpear("B", "armadura");
+    igual(plataformas.celda(p.nivel, 2, 9), ".", "con armadura se rompe");
+    p = golpear("+");
+    igual([plataformas.celda(p.nivel, 2, 9), p.objetos[0]?.tipo], ["u", "vida"], "el bloque escondido aparece y da una vida");
+    p = golpear("$");
+    avanzar(p, 0.2);                       // suelta el botón…
+    avanzar(p, 0.6, { saltar: true });     // …y salta otra vez
+    igual(p.monedas, 2, "el de muchas monedas da una por golpe");
+
+    // Tomar los poderes.
+    const tomar = (tipo) => {
+        const q = partidaDePrueba({});
+        q.objetos.push({ tipo, x: q.heroe.x, y: q.heroe.y, ancho: 12, alto: 12, vx: 0, vy: 0, saliendo: 0 });
+        motorSenda.paso(q, {}, plataformas.PASO);
+        return q;
+    };
+    igual(tomar("pocion").heroe.poder, "armadura");
+    igual(tomar("brasa").heroe.poder, "fuego");
+    cierto(tomar("bendicion").heroe.bendicion > 8, "la bendición dura unos segundos");
+    igual(tomar("vida").vidas, plataformas.VIDAS + 1);
+
+    // Monedas sueltas y cada 100, una vida.
+    const q = partidaDePrueba({ 12: { 4: "ooo" } }, { ventajas: { suerte: 1.5 } });
+    avanzar(q, 1.5, { derecha: true });
+    igual([q.monedas, q.puntos], [3, 45], "3 monedas de 15 puntos (con suerte +50 %)");
+    q.monedas = 99;
+    q.nivel.celdas[12 * q.nivel.ancho + 30] = "o";
+    q.heroe.x = 30 * CELDA + 3;
+    motorSenda.paso(q, {}, plataformas.PASO);
+    igual(q.vidas, plataformas.VIDAS + 1, "la moneda 100 da una vida");
+});
+
+prueba("La Senda del Reino: el cangrejo se esconde, su concha rueda y vence a los que encuentra", () => {
+    const p = partidaDePrueba({ 12: { 8: "k", 20: "e" } });
+    const [cangrejo, esqueleto] = p.enemigos;
+    avanzar(p, 0.05);
+    p.heroe.x = cangrejo.x + 3;
+    p.heroe.y = cangrejo.y - 30;
+    p.heroe.vy = 200;
+    for (let i = 0; i < 40 && cangrejo.estado !== "concha"; i++) motorSenda.paso(p, {}, plataformas.PASO);
+    igual(cangrejo.estado, "concha", "al pisarlo se esconde");
+    cierto(cangrejo.vivo, "pero no cae");
+    p.heroe.x = cangrejo.x - 60;   // se aleja (para no caer otra vez encima)
+    avanzar(p, 0.6);
+    // Lo toca de costado: sale rodando hacia el otro lado.
+    p.heroe.x = cangrejo.x - 8;
+    p.heroe.y = cangrejo.y + cangrejo.alto - p.heroe.alto;
+    p.heroe.vy = 0;
+    motorSenda.paso(p, {}, plataformas.PASO);
+    igual([cangrejo.estado, cangrejo.mira], ["rueda", 1], "la patea");
+    igual(p.heroe.poder, "normal");
+    igual(p.fase, "jugando", "patear no duele");
+    p.heroe.x = 2 * plataformas.CELDA;
+    avanzar(p, 2);
+    igual(esqueleto.vivo, false, "la concha vence al esqueleto");
+});
+
+prueba("La Senda del Reino: con la brasa rúnica lanzas fuego (2 a la vez) y vence a las criaturas", () => {
+    const p = partidaDePrueba({ 12: { 10: "e" } });
+    p.heroe.poder = "fuego";
+    motorSenda.paso(p, { fuego: true }, plataformas.PASO);
+    motorSenda.paso(p, {}, plataformas.PASO);
+    motorSenda.paso(p, { fuego: true }, plataformas.PASO);
+    motorSenda.paso(p, {}, plataformas.PASO);
+    motorSenda.paso(p, { fuego: true }, plataformas.PASO);
+    igual(p.disparos.length, 2, "máximo dos bolas a la vez");
+    igual(motorSenda.sacarSonidos(p).filter((s) => s === "bola").length, 2);
+    avanzar(p, 1.2);
+    igual(p.enemigos[0].vivo, false, "el fuego vence al esqueleto");
+    const sinFuego = partidaDePrueba({});
+    motorSenda.paso(sinFuego, { fuego: true }, plataformas.PASO);
+    igual(sinFuego.disparos.length, 0, "sin la brasa no hay fuego");
+    cierto(!motorSenda.tieneFuego(sinFuego) && motorSenda.tieneFuego(p), "el botón 🔥 solo con la brasa");
+});
+
+prueba("La Senda del Reino: la meta da puntos por el tiempo que sobra; sin vidas, termina", () => {
+    const p = partidaDePrueba({ 11: { 10: "R" } });
+    p.heroe.x = 10 * plataformas.CELDA + 3;   // pasa por la reliquia
+    motorSenda.paso(p, {}, plataformas.PASO);
+    igual([...p.reliquias], [0], "toma la reliquia");
+    p.heroe.x = (p.nivel.meta.c) * plataformas.CELDA - 6;
+    avanzar(p, 0.3, { derecha: true });
+    igual(p.fase, "meta", "llegó al Arco de la Llama");
+    avanzar(p, 2.6);
+    cierto(p.terminado && p.resultado.gano, "ganó");
+    const bono = plataformas.PUNTOS.meta + Math.floor(p.def.tiempo - 0.3) * plataformas.PUNTOS.porSegundo;
+    cierto(p.resultado.puntos >= bono + plataformas.PUNTOS.reliquia - 40, `puntos con el bono del tiempo (${p.resultado.puntos})`);
+    igual(p.resultado.reliquias, [0]);
+
+    const q = partidaDePrueba({}, { sinSuelo: [5, 6, 7, 8, 9, 10] });
+    for (let vez = 0; vez < 3; vez++) {
+        q.heroe.x = 6 * plataformas.CELDA;
+        avanzar(q, 2.5);
+    }
+    cierto(q.terminado && !q.resultado.gano, "sin vidas, la partida termina");
+    igual(q.vidas, 0);
+
+    const r = partidaDePrueba({}, { tiempo: 1 });
+    avanzar(r, 1.2);
+    igual(r.fase, "muriendo", "si se acaba el tiempo, pierdes una vida");
+});
+
+prueba("La Senda del Reino: los 4 jefes atacan, quedan vulnerables, se vencen pisándolos y abren el Arco", () => {
+    for (const id of ["1-J", "2-J", "3-J", "4-J"]) {
+        const p = motorSenda.crearPartida(id);
+        const j = p.jefe;
+        p.vidas = 99;
+        p.heroe.x = j.arena.x0 + 4 * plataformas.CELDA;
+        const estados = new Set();
+        let segundos = 0;
+        while (!j.vencido && segundos < 200) {
+            const h = p.heroe;
+            h.bendicion = 999;   // las pruebas no se cansan: el héroe es invencible
+            if (!j.activo && p.fase === "jugando") { h.x = j.arena.x0 + 4 * plataformas.CELDA; h.y = 8 * plataformas.CELDA; }
+            avanzar(p, 0.1);
+            segundos += 0.1;
+            estados.add(j.estado);
+            // Cuando está aturdido o cansado, el héroe cae encima de su cabeza.
+            if (j.vulnerable && j.inmune <= 0 && p.fase === "jugando") {
+                h.x = j.x + j.ancho / 2 - h.ancho / 2;
+                h.y = j.y - h.alto - 12;
+                h.vy = 120;
+                avanzar(p, 0.1);
+                segundos += 0.1;
+            }
+        }
+        cierto(j.activo, `${id}: la pelea empezó`);
+        cierto(p.puerta === null || j.vencido, `${id}: la puerta`);
+        cierto(j.vencido, `${id}: ${j.nombre} cae (estados: ${[...estados].join(", ")}; vida ${j.vida})`);
+        cierto(estados.size >= 4, `${id}: tiene varios ataques (${[...estados].join(", ")})`);
+        igual(p.metaAbierta, false, `${id}: el Arco se abre un momento después`);
+        avanzar(p, 2);
+        igual(p.metaAbierta, true, `${id}: y se abre`);
+        igual(p.puerta, null, `${id}: la puerta de la arena se abre otra vez`);
+        cierto(p.puntos >= plataformas.PUNTOS.jefe, `${id}: vencerlo da ${plataformas.PUNTOS.jefe} puntos`);
+    }
+    // El fuego también le hace daño (más lento) y si caes en la pelea, el jefe vuelve con toda su vida.
+    const p = motorSenda.crearPartida("1-J", { vistaAncho: 600 });
+    const j = p.jefe;
+    p.heroe.x = j.arena.x0 + 3 * plataformas.CELDA;
+    avanzar(p, 0.2);
+    cierto(j.activo, "empieza la pelea");
+    p.heroe.poder = "fuego";
+    j.vida = 1;
+    j.dano = 0.9;
+    p.disparos.push({ x: j.x + 4, y: j.y + 10, ancho: 6, alto: 6, vx: 1, vy: 0, vida: 1 });
+    avanzar(p, 0.02);
+    igual(j.vencido, true, "el fuego suma y termina de vencerlo");
+    const q = motorSenda.crearPartida("2-J");
+    q.heroe.x = q.jefe.arena.x0 + 3 * plataformas.CELDA;
+    avanzar(q, 0.2);
+    q.jefe.vida = 1;
+    q.heroe.y = 400;   // cae al vacío (para la prueba)
+    avanzar(q, 2.2);
+    igual([q.jefe.vida, q.jefe.activo, q.puerta], [plataformas.JEFES.golem.golpes, false, null], "al volver a empezar, el jefe tiene toda su vida");
+});
+
+prueba("La Senda del Reino: cada nivel se juega y se dibuja sin errores", () => {
+    const lienzo = document.createElement("canvas");
+    lienzo.width = 300;
+    lienzo.height = 240;
+    const g = lienzo.getContext("2d");
+    for (const def of plataformas.NIVELES) {
+        const p = motorSenda.crearPartida(def.id, { vistaAncho: 300 });
+        const pintor = dibujoSenda.crearPintor(p, {});
+        for (let t = 0; t < 25 && !p.terminado; t += 0.5) {
+            avanzar(p, 0.5, { derecha: true, saltar: Math.floor(t * 2) % 3 === 0, fuego: true });
+            pintor.dibujar(g);
+        }
+        cierto(p.camara.x >= 0 && p.camara.x <= p.nivel.ancho * plataformas.CELDA, `${def.id}: la cámara no se sale`);
+        const m = motorSenda.marcador(p);
+        cierto(Number.isFinite(m.puntos) && Number.isFinite(m.tiempo), `${def.id}: el marcador tiene números`);
+    }
+    for (const mundo of [1, 2, 3, 4]) igual(dibujoSenda.miniaturaDeMundo(mundo).width, 240, `la portada del mundo ${mundo}`);
+});
+
+prueba("La Senda del Reino: el progreso (niveles abiertos, reliquias y mejores marcas)", () => {
+    const progreso = plataformas.progresoInicial();
+    cierto(plataformas.nivelAbierto(progreso, "1-1") && !plataformas.nivelAbierto(progreso, "1-2"), "al principio, solo el primero");
+    igual(plataformas.registrarNivel(progreso, "1-1", { gano: false, puntos: 900, reliquias: [0] }, dia(0)).primeraVez, false, "perder no anota nada");
+    igual(progreso.niveles, {});
+    let r = plataformas.registrarNivel(progreso, "1-1", { gano: true, puntos: 3000, reliquias: [2, 0, 0, 7], tiempo: 120 }, dia(-1));
+    igual([r.primeraVez, r.nuevas, r.abre], [true, [2, 0], "1-2"], "la primera vez abre el siguiente");
+    r = plataformas.registrarNivel(progreso, "1-1", { gano: true, puntos: 2000, reliquias: [1], tiempo: 90 }, dia(0));
+    igual(progreso.niveles["1-1"], { mejor: 3000, reliquias: [0, 1, 2], tiempo: 90, ganadoEn: dia(-1), veces: 2 }, "se juntan las reliquias; queda lo mejor");
+    igual([r.primeraVez, r.mejor, r.abre], [false, false, null]);
+    igual(plataformas.totalReliquias(progreso), 3);
+    for (const id of ["1-2", "1-3", "1-J"]) plataformas.registrarNivel(progreso, id, { gano: true, puntos: 1, reliquias: [] }, dia(0));
+    cierto(plataformas.mundoAbierto(progreso, 2) && !plataformas.mundoAbierto(progreso, 3), "vencer al jefe abre el mundo 2");
+    igual(plataformas.siguienteNivel("1-J"), "2-1");
+    igual(plataformas.siguienteNivel("4-J"), null, "el último no tiene siguiente");
+    igual(vistasSenda.nivelSugerido(progreso), "2-1", "el mapa sugiere el primero sin terminar");
+});
+
+prueba("La Senda del Reino: cada nivel cuesta 1 ficha, paga como un minijuego (con topes) y guarda el progreso", () => {
+    const estado = partidaNueva();
+    debeFallar(() => acciones.empezarSenda(estado, "1-2"), "cerrado");
+    debeFallar(() => acciones.empezarSenda(estado, "9-9"), "no existe");
+    const fichas = arcade.fichasDisponibles(estado);
+    acciones.empezarSenda(estado, "1-1");
+    igual(arcade.fichasDisponibles(estado), fichas - 1, "gasta una ficha");
+    const gemas = estado.personaje.gemas;
+    let r = acciones.terminarSenda(estado, "1-1", { gano: true, puntos: 100000, reliquias: [0, 1, 2], tiempo: 80, monedas: 40, enemigos: 9 });
+    igual(r.premio, { gemas: arcade.MAX_GEMAS, xp: arcade.MAX_XP }, "con muchos puntos, el tope de siempre");
+    igual(estado.personaje.gemas, gemas + arcade.MAX_GEMAS);
+    igual(estado.arcade.records.plataformas, 100000, "el récord");
+    igual(r.progreso.abre, "1-2", "se abre el siguiente nivel");
+    cierto(r.celebraciones.some((c) => c.etiqueta === "Todas las reliquias"), "celebra las 3 reliquias");
+    igual(arcade.premio("plataformas", 4000), { gemas: 10, xp: 6 }, "4000 puntos: 10 💎 y 6 XP");
+    acciones.empezarSenda(estado, "1-2");
+    r = acciones.terminarSenda(estado, "1-2", { gano: false, puntos: 800, reliquias: [0], tiempo: 50, monedas: 3, enemigos: 1 });
+    igual([r.premio.gemas, estado.arcade.plataformas.niveles["1-2"]], [2, undefined], "perder paga lo suyo pero no anota el nivel");
+    // Vencer al primer jefe celebra el mundo.
+    for (const id of ["1-2", "1-3"]) acciones.terminarSenda(estado, id, { gano: true, puntos: 10, reliquias: [], tiempo: 1, monedas: 0, enemigos: 0 });
+    r = acciones.terminarSenda(estado, "1-J", { gano: true, puntos: 10, reliquias: [], tiempo: 1, monedas: 0, enemigos: 0 });
+    cierto(r.celebraciones.some((c) => c.etiqueta === "¡Mundo superado!" && c.detalle.includes("Minas de Cristal")), "¡mundo superado!");
+    // Con el reto del día de la Senda.
+    estado.arcade.retos[hoy()] = { tipo: "plataformas", meta: 1500, mejor: 0, cobradoEn: null };
+    r = acciones.terminarSenda(estado, "2-1", { gano: false, puntos: 2000, reliquias: [], tiempo: 1, monedas: 0, enemigos: 0 });
+    igual([r.reto?.tipo, r.reto?.gemas], ["plataformas", retos.PREMIO_RETO.gemas], "cumple el reto del día");
+    igual(retos.metaDelReto(partidaNueva(), "plataformas", hoy()), retos.RETOS.plataformas.base, "sin récord, la meta es la base");
+    // Caído en combate, el arcade está cerrado (como en «Vida: en 0 caes…»).
+    const caido = partidaNueva();
+    for (const nombre of ["A", "B", "C", "D"]) crearMision(caido, { nombre, dificultad: "dificil" });
+    vidaDesde(caido, 4);
+    cierto(vida.calcularVida(caido, hoy()).caido, "cayó");
+    debeFallar(() => acciones.empezarSenda(caido, "1-1"), "Caíste en combate");
+});
+
+prueba("La Senda del Reino: tu equipo ayuda (armadura al empezar, vidas, fuego y bendición) y los datos viejos se completan", () => {
+    const v = arcade.ventajasDelEquipo({ armadura: 30, ataque: 20, magia: 10 });
+    const texto = arcade.textoVentajas("plataformas", v);
+    cierto(texto.includes("empiezas con armadura") && texto.includes("+1 vida") && texto.includes("fuego +100 %"), texto);
+    const p = motorSenda.crearPartida("1-1", { ventajas: v });
+    igual([p.heroe.poder, p.vidas], ["armadura", plataformas.VIDAS + 1], "con armadura y una vida de más");
+    igual(motorSenda.crearPartida("1-1").heroe.poder, "normal", "sin equipo, sin armadura");
+    // Una copia de antes de la v185 no tiene la Senda: se completa vacía.
+    const estado = partidaNueva();
+    delete estado.arcade.plataformas;
+    estado.version = 40;
+    const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
+    igual([copia.version, copia.arcade.plataformas], [41, { niveles: {} }], "versión 41 y la Senda vacía");
+    estado.arcade.plataformas = { niveles: { "1-1": { mejor: 10, reliquias: [1], tiempo: 5, ganadoEn: dia(0), veces: 1 } } };
+    igual(datos.desdeRespaldo(datos.textoRespaldo(estado)).arcade.plataformas.niveles["1-1"].reliquias, [1], "y se conserva lo que había");
+});
+
+prueba("La Senda del Reino: las pantallas (Arcade, mapa, resultado y marcador)", () => {
+    const sano = (html, que) => cierto(!/undefined|NaN|\[object/.test(sinImagenes(html)), `${que} no tiene huecos`);
+    const estado = partidaNueva();
+    const ctx = { vida: vida.calcularVida(estado, hoy()), avatar: avatarDePrueba(), hoy: hoy() };
+    const arcadeHtml = arcadeCompleto(estado, ctx);
+    cierto(arcadeHtml.includes('data-accion="senda-abrir"') && arcadeHtml.includes("La Senda del Reino"), "la tarjeta está en el Arcade");
+    cierto(!arcadeHtml.includes('data-juego="plataformas"'), "no sale como un minijuego cualquiera");
+    let mapaHtml = vistasSenda.mapaDeLaSenda(estado, { elegido: null, fichas: 3, caido: false });
+    sano(mapaHtml, "el mapa");
+    igual((mapaHtml.match(/data-accion="senda-elegir"/g) || []).length, 16, "16 niveles en el mapa");
+    igual((mapaHtml.match(/senda-nodo[^"]*cerrado/g) || []).length, 15, "al principio, 15 cerrados");
+    cierto(mapaHtml.includes('data-accion="senda-jugar" data-nivel="1-1"'), "se puede jugar el primero");
+    estado.arcade.plataformas.niveles["1-1"] = { mejor: 4210, reliquias: [0, 2], tiempo: 96, ganadoEn: hoy(), veces: 1 };
+    mapaHtml = vistasSenda.mapaDeLaSenda(estado, { elegido: "1-1", fichas: 0, caido: false });
+    cierto(mapaHtml.includes("◆◇◆") && mapaHtml.includes("4210"), "muestra las reliquias y la mejor marca");
+    cierto(mapaHtml.includes("Sin fichas"), "sin fichas, lo dice");
+    cierto(vistasSenda.mapaDeLaSenda(estado, { elegido: "4-J", fichas: 1, caido: false }).includes('data-nivel="1-2"'), "un nivel cerrado no se elige: muestra el sugerido");
+    const final = vistasSenda.finalDeLaSenda({ puntos: 4210, premio: { gemas: 10, xp: 7 }, nuevoRecord: true, progreso: { primeraVez: true, nuevas: [0, 2], mejor: true, abre: "1-2" } },
+        { gano: true, puntos: 4210, reliquias: [0, 2], tiempo: 96, monedas: 30, enemigos: 8 }, "1-1", 3);
+    sano(final, "el resultado");
+    cierto(final.includes("¡Nivel superado!") && final.includes("Se abrió: 1-2") && final.includes('data-nivel="1-2"'), "ofrece el siguiente nivel");
+    const perdio = vistasSenda.finalDeLaSenda({ puntos: 50, premio: { gemas: 0, xp: 0 }, nuevoRecord: false, progreso: { primeraVez: false, nuevas: [], mejor: false, abre: null } },
+        { gano: false, puntos: 50, reliquias: [], tiempo: 10, monedas: 1, enemigos: 0 }, "1-1", 0, true);
+    cierto(perdio.includes("Saliste del nivel") && perdio.includes("Sin fichas"), "saliste y sin fichas");
+    const m = motorSenda.marcador(motorSenda.crearPartida("1-J"));
+    sano(vistasSenda.marcadorDeLaSenda(m), "el marcador");
+    const conJefe = vistasSenda.marcadorDeLaSenda({ ...m, jefe: { nombre: "Caballero sin Nombre", vida: 2, golpes: 3 } });
+    cierto(conJefe.includes("▮▮▯"), "la vida del jefe");
+    sano(vistasSenda.pausaDeLaSenda("2-3"), "la pausa");
+});
+
+prueba("La Senda del Reino: los sonidos existen y cada mundo tiene su música (con el jefe, «Batalla»)", () => {
+    for (const nombre of ["salto", "moneda", "impacto", "fallo", "aviso", "poder", "ladrillo", "bloque", "vidaExtra", "coraza", "fuego",
+                          "habilidad", "bola", "retumbo", "graznido", "hielo", "pisar", "patada", "campana", "cofre", "victoria", "critico",
+                          "descarga", "logro", "tajo", "carga", "chillido", "rayo", "secreto"]) {
+        cierto(existeSonido(nombre), `existe el sonido «${nombre}»`);
+    }
+    igual(musicaModulo.pistaDeEscena({ pantalla: "arcade", senda: "misterio" }), "misterio", "en las minas suena «Misterio»");
+    igual(musicaModulo.pistaDeEscena({ pantalla: "arcade", senda: "batalla" }), "batalla");
+    igual(musicaModulo.pistaDeEscena({ pantalla: "arcade", senda: "misterio", auto: false, elegida: "nocturno" }), "nocturno", "sin música por escena, la tuya");
+    igual(plataformas.MUNDOS.map((m) => m.musica), ["alba", "misterio", "epica", "abismo"]);
+});
+
+prueba("La Senda del Reino: archivos en el service worker y en la ayuda", async () => {
+    const sw = await (await fetch("../sw.js", { cache: "no-store" })).text();
+    for (const archivo of ["plataformas.js", "plataformas-niveles.js", "plataformas-motor.js", "dibujo-plataformas.js", "vistas-plataformas.js",
+                           "app-plataformas.js", "acciones-plataformas.js"]) {
+        cierto(sw.includes(`"./js/${archivo}"`), `sw.js guarda ${archivo} (para jugar sin internet)`);
+    }
+    const html = await (await fetch("../index.html", { cache: "no-store" })).text();
+    for (const id of ["senda", "senda-mapa", "senda-lienzo", "senda-controles", "senda-capa", "senda-hud"]) cierto(html.includes(`id="${id}"`), `index.html tiene #${id}`);
+    for (const boton of ["izquierda", "derecha", "saltar", "fuego"]) cierto(html.includes(`data-senda="${boton}"`), `botón ${boton}`);
+    const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
+    cierto(/\.senda\.jugando \.senda-pantalla\s*\{[^}]*inset:\s*0/.test(css), "en horizontal, el lienzo a pantalla completa");
+    cierto(/\.senda-controles\s*\{[^}]*touch-action:\s*none/.test(css), "los botones no mueven la página");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

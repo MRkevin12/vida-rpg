@@ -39,6 +39,12 @@ export const RETOS = {
         texto: (n) => `Llega a ${n} puntos en el Golpe preciso`,
         unidad: "pts",
     },
+    // (v185) La Senda del Reino: puntos en un solo nivel (los niveles más difíciles dan más puntos).
+    plataformas: {
+        icono: "🏰", atributo: "fuerza", base: 1500, pasos: 100, factores: [0.5, 0.6, 0.7],
+        texto: (n) => `Llega a ${n} puntos en un nivel de La Senda del Reino`,
+        unidad: "pts",
+    },
     torre: {
         icono: "🗼", atributo: "carisma", base: 2, pasos: 1, factores: [0.5, 0.6, 0.7], tope: 30,
         texto: (n) => `Supera ${n} pisos de la Torre en una subida`,

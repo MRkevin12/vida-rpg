@@ -18,7 +18,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 40,   // 40 (v179): días malos · 39 (v174): copias de rutinas y aviso de serie del gym · 38 (v166): barra del gym · 37 (v164): gym con descargas, RIR y notas · 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
+        version: 41,   // 41 (v185): La Senda del Reino (arcade.plataformas) · 40 (v179): días malos · 39 (v174): copias de rutinas y aviso de serie del gym · 38 (v166): barra del gym · 37 (v164): gym con descargas, RIR y notas · 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas
@@ -109,7 +109,9 @@ export function estadoInicial() {
             exploraciones: {}, // (v103) lo que trajo al explorar cada día: { fecha: { especie, tipo, cantidad, texto } }
             adoptadas: {},    // las que adoptaste en la Tienda: { fenix: { nombre, desde (fecha) } }
         },
-        arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, minas: null, laberinto: null, fragua: null, diaria: { fecha: null, mejor: 0, cobrado: false }, extra: 0, bestiario: {}, bazar: [], despertar: false, retos: {} },   // fichas gastadas, mejor
+        arcade: { usadas: 0, records: {}, torre: null, mazmorra: null, minas: null, laberinto: null, fragua: null, diaria: { fecha: null, mejor: 0, cobrado: false }, extra: 0, bestiario: {}, bazar: [], despertar: false, retos: {},
+                  plataformas: { niveles: {} } },
+                                              //   usadas: fichas gastadas · records: el mejor
                                               //   puntaje de cada minijuego (records.torre y records.mazmorra = pisos superados),
                                               //   la partida de la Torre y la de la Mazmorra en curso (ver torre.js) o null,
                                               //   fichas de cofres y lo que sabes de cada criatura (ver bestiario.js):
@@ -117,6 +119,8 @@ export function estadoInicial() {
                                               //   despertar (v38): si ya se te contó que la Torre despertó
                                               //   bazar: las provisiones compradas para la próxima partida ("pocion"…)
                                               //   retos (v40): el reto del día de cada fecha { tipo, meta, mejor, cobradoEn } (ver retos.js)
+                                              //   plataformas (v185): La Senda del Reino, { niveles: { "1-1": { mejor, reliquias: [0, 2],
+                                              //     tiempo, ganadoEn, veces } } } (ver plataformas.js; qué niveles están abiertos se calcula)
         campana: { recompensados: {},         // cuántos jefes de cada categoría ya dieron su premio
                    libres: {} },              // (v52) los que ya estaban vencidos antes de atar los jefes al mapa
         maestro: { leidas: 0 },               // cuántos capítulos de las memorias de Aurelio ya leíste (ver memorias.js)
@@ -226,6 +230,7 @@ function completar(guardado) {
             bazar: guardado.arcade?.bazar || [],
             despertar: guardado.arcade?.despertar || false,
             retos: { ...guardado.arcade?.retos },
+            plataformas: { niveles: { ...guardado.arcade?.plataformas?.niveles } },   // (v185) las partidas viejas empiezan sin niveles
         },
         campana: {
             recompensados: { ...guardado.campana?.recompensados },
