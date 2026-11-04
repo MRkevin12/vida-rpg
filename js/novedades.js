@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 185;
+export const VERSION_APP = 186;
 
 export const NOVEDADES = [
+    {
+        version: 186,
+        titulo: "La Senda del Reino, más clara",
+        cambios: [
+            "📱 En vertical, el juego es más alto y los botones van en un panel propio: ya no queda un hueco vacío entre la pantalla y los botones.",
+            "✨ Los bloques con premio ahora llevan un destello de cuatro puntas (antes la runa parecía una «R» suelta).",
+            "🪙 El nivel 1-1 empieza con monedas a la vista y una criatura cerca, para que se entienda a qué hay que ir.",
+        ],
+    },
     {
         version: 185,
         titulo: "La Senda del Reino",

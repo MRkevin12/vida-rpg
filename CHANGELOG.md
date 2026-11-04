@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v186 — La Senda del Reino, más clara
+- Vertical: `.senda-pantalla` pasa de `aspect-ratio` 0.86 a 0.74 (el juego es más alto) y `.senda-controles` es un panel con fondo y borde (en horizontal sigue flotando sin fondo). Se quita el hueco vacío entre el lienzo y los botones.
+- Los bloques con premio (`pintarBloqueRunico`) dibujan un destello de cuatro puntas en vez de la runa que parecía una «R».
+- Nivel 1-1: un bloque con premio (columna 6), monedas en la fila 10 (columna 8) y un esqueleto en la columna 10, todo a la vista desde el inicio.
+- No se tocó la dificultad: falta que alguien juegue los niveles en el iPhone.
+
 ## v185 — La Senda del Reino (juego de plataformas en el Arcade)
 - Juego nuevo: 4 mundos (Campos del Alba, Minas de Cristal, Cumbres de la Tormenta, Fortaleza de la Llama), 3 niveles en cada uno y un jefe al final (Caballero sin Nombre, Gólem de hierro, Dragón de la tormenta y Señor de la Fragua, con los sprites de la Torre). 3 reliquias por nivel (36 en total) en caminos altos, bloques y **escondites** (cuartos `_` que se ven como pared hasta cruzar su pared falsa `%`).
 - **`js/plataformas.js`** (reglas puras): `FISICA` (aceleración/fricción, hielo, salto variable con `gravedadSalto`, coyote 0,1 s, buffer 0,12 s), `LETRAS`, `ENEMIGOS` (14 tipos: caminante, cuidadoso, caparazón que se patea, volador, picado, saltador, torreta de bolas o esquirlas, trampa en urna, ascua, araña, mazo), `JEFES`, `PODERES`, `PUNTOS`, `MUNDOS`; `prepararNivel` (cuadrícula → celdas y entidades; detecta los escondites), `moverCuerpo` (AABB contra la cuadrícula en pasitos de 6 puntos, tablas de un solo sentido, bloque escondido `+`), progreso (`nivelAbierto` se calcula, `registrarNivel`, `totalReliquias`) y `alcanzable` (búsqueda de saltos posibles, con margen, para las pruebas).

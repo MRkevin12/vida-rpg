@@ -248,13 +248,16 @@ function pintarBloqueRunico(g, x, y, letra, reloj, mundo) {
     for (const [a, b] of [[2, 2], [12, 2], [2, 12], [12, 12]]) px(g, x + a, y + b, 2, 2, "#4a3010");
     const brillo = 0.55 + 0.45 * Math.sin(reloj * 4 + x * 0.05);
     const runa = brillo > 0.8 ? "#fff1b8" : brillo > 0.5 ? "#fcd34d" : "#e2a530";
-    // La runa: una «ᚱ» de líneas rectas (no es una letra de ningún otro juego).
-    px(g, x + 6, y + 4, 1, 8, runa);
-    px(g, x + 7, y + 4, 3, 1, runa);
-    px(g, x + 9, y + 5, 1, 2, runa);
-    px(g, x + 7, y + 7, 2, 1, runa);
-    px(g, x + 8, y + 8, 1, 2, runa);
-    px(g, x + 9, y + 10, 1, 2, runa);
+    // (v186) El símbolo: un destello de cuatro puntas (antes era una runa que parecía una «R» suelta).
+    // Así se entiende a la primera que el bloque guarda algo y que hay que golpearlo desde abajo.
+    px(g, x + 7, y + 3, 2, 10, runa);       // la punta de arriba a la de abajo
+    px(g, x + 3, y + 7, 10, 2, runa);       // y la de izquierda a derecha
+    px(g, x + 6, y + 6, 4, 4, runa);        // el centro, más grueso
+    px(g, x + 5, y + 5, 1, 1, runa);        // chispas en las diagonales
+    px(g, x + 10, y + 5, 1, 1, runa);
+    px(g, x + 5, y + 10, 1, 1, runa);
+    px(g, x + 10, y + 10, 1, 1, runa);
+    px(g, x + 7, y + 7, 2, 2, "#fff8dc");   // el corazón del destello, siempre claro
     if (letra === "*") px(g, x + 3, y + 3, 1, 1, "#ffffff");
 }
 

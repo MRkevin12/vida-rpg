@@ -14982,7 +14982,7 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     position: relative;
     flex: none;
     width: 100%;
-    aspect-ratio: 0.86;              /* en vertical, unas 13 celdas de ancho */
+    aspect-ratio: 0.74;              /* en vertical, unas 12 celdas de ancho (v186: más alto, para llenar la pantalla) */
     max-height: calc(100% - 130px);  /* y siempre queda lugar para los botones */
     overflow: hidden;
     background: #07050d;
@@ -15091,7 +15091,11 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
     align-items: flex-end;   /* abajo, donde llegan los pulgares */
     justify-content: space-between;
     gap: 12px;
-    padding: 4px 4px 14px;
+    padding: 10px 14px 18px;
+    /* (v186) el espacio de debajo del juego es un «mando»: un panel con los botones abajo, no un hueco vacío */
+    background: linear-gradient(180deg, rgba(28, 21, 54, 0.55), rgba(12, 8, 26, 0.9));
+    border: 2px solid #2a2140;
+    border-radius: var(--esquina);
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
@@ -15173,6 +15177,8 @@ details.ff-capitulo[open] > p:nth-of-type(n + 4) { animation-delay: 0.3s; }
         flex: none;
         min-height: 0;
         padding: 0 calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 16px);
+        background: none;       /* (v186) en horizontal no hay panel: los botones flotan sobre el juego */
+        border: 0;
         pointer-events: none;   /* entre los botones se ve el juego */
     }
 
