@@ -14,7 +14,7 @@ import * as hallazgos from "./hallazgos.js";     // (v148) cofres y fogatas en e
 import * as running from "./running.js";   // (v109) el running
 import { hoy, sumarDias, lunesDe, aTexto } from "./fechas.js";
 import { ganar, numeroEntre } from "./acciones-comun.js";
-import { completarMision } from "./acciones.js";   // (es una función: se puede importar aunque acciones.js importe este archivo)
+import { completarMision } from "./acciones-misiones.js";   // (es una función: se puede importar aunque acciones.js importe este archivo)
 
 // ===== El running (v109) =====
 // Las reglas están en running.js. Aquí se guarda la carrera en vivo, se anotan las carreras a mano y se cobran los premios.

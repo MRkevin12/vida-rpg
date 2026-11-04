@@ -4,6 +4,10 @@
 // Los usan acciones.js y los archivos por área (acciones-gym.js, acciones-running.js, acciones-finanzas.js).
 
 import * as juego from "./juego.js";
+import * as vida from "./vida.js";
+import * as equipo from "./equipo.js";
+import * as retos from "./retos.js";
+import { hoy } from "./fechas.js";
 
 
 // Da un número de id nuevo (1, 2, 3...) para cada cosa que se crea.
@@ -76,3 +80,68 @@ export const numeroEntre = (valor, minimo, maximo, que) => {
     if (!Number.isFinite(n) || n < minimo || n > maximo) throw new Error(`${que} debe estar entre ${minimo} y ${maximo}.`);
     return Math.round(n * 100) / 100;
 };
+
+
+// ===== (orden) Ayudantes que usan varios archivos de acciones =====
+
+// Los días de la semana vienen del formulario como lista de números (0 = lunes … 6 = domingo).
+// Si están los 7, guardamos null, que significa "todos los días".
+export function validarDias(dias) {
+    if (dias === undefined || dias === null) return null;
+    const lista = [...new Set(dias.map(Number))].filter((d) => Number.isInteger(d) && d >= 0 && d <= 6).sort();
+    if (lista.length === 0) throw new Error("Elige al menos un día de la semana.");
+    return lista.length === 7 ? null : lista;
+}
+
+// Hora del aviso de una misión (opcional): "18:00", o vacío = sin aviso.
+export function validarAviso(hora) {
+    const texto = String(hora || "").trim();
+    if (!texto) return null;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(texto)) throw new Error("Elige una hora válida para el aviso.");
+    return texto;
+}
+
+// Si caíste en combate, la tienda y el arcade se cierran hasta que te levantes.
+export function revisarQueNoEstesCaido(estado, que) {
+    const v = vida.calcularVida(estado, hoy());
+    if (v.caido) {
+        throw new Error(`Caíste en combate: ${que} se abre cuando llegues a ${v.levantarse} ❤️ (tienes ${v.puntos}). ` +
+                        "Cumple misiones para curarte (o toma una poción).");
+    }
+}
+
+// Apunta cuánta armadura máxima tienes hoy, si cambió (te pusiste o quitaste algo, o cambiaste
+// de etapa). Así vida.js sabe cuál tenías cada día, y lo que te pongas hoy no cambia el pasado.
+// El primer apunte (fecha "") es «la de siempre»: vale para todos los días anteriores.
+export function anotarArmadura(estado) {
+    if (!estado.personaje) return;
+    const maxima = equipo.armaduraMaxima(estado);
+    const cambios = estado.armadura.cambios;
+    const ultimo = cambios[cambios.length - 1];
+    if (!ultimo) cambios.push({ fecha: "", maxima });
+    else if (ultimo.maxima === maxima) return;
+    else if (ultimo.fecha === hoy()) ultimo.maxima = maxima;
+    else cambios.push({ fecha: hoy(), maxima });
+}
+
+// Crea el reto de hoy si todavía no existe (se llama al abrir la app y al terminar cada partida).
+export function asegurarRetoDelDia(estado) {
+    retos.asegurarReto(estado, hoy());
+}
+
+// Anota la partida que acabas de terminar y, si con ella se cumple el reto de hoy, cobra el premio.
+// Devuelve { gemas, xp, tipo } si se cumplió ahora mismo, o null.
+export function cobrarReto(estado, juego, valor) {
+    const premio = retos.registrarPartida(estado, hoy(), juego, valor);
+    if (premio) ganar(estado, premio);
+    return premio;
+}
+
+// El nivel de cada atributo (fuerza, mente…) en este momento: lo usan la foto de antes/después y la Torre.
+export function nivelesDeAtributos(estado) {
+    const niveles = {};
+    for (const clave of Object.keys(juego.ATRIBUTOS)) {
+        niveles[clave] = juego.calcularNivel(estado.atributos[clave], juego.BASE_ATRIBUTO).nivel;
+    }
+    return niveles;
+}

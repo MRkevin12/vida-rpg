@@ -71,6 +71,9 @@ const ARCHIVOS = [
     "./js/vistas-finanzas.js",
     "./js/acciones.js",
     "./js/acciones-comun.js",      // (v178) acciones.js dividido por área
+    "./js/acciones-misiones.js",   // (orden) más partes de acciones.js
+    "./js/acciones-aventuras.js",
+    "./js/acciones-torre.js",
     "./js/acciones-gym.js",
     "./js/acciones-running.js",
     "./js/acciones-finanzas.js",

@@ -12,7 +12,7 @@ import * as fragua from "./fragua.js";
 import * as gymAurelio from "./gym-aurelio.js";
 import { hoy, sumarDias, lunesDe } from "./fechas.js";
 import { nuevoId, ganar, numeroEntre } from "./acciones-comun.js";
-import { completarMision } from "./acciones.js";   // (es una función: se puede importar aunque acciones.js importe este archivo)
+import { completarMision } from "./acciones-misiones.js";   // (es una función: se puede importar aunque acciones.js importe este archivo)
 
 // ===== El Gimnasio (v66) =====
 // Las reglas están en gym.js. Aquí se guarda el entrenamiento en curso, se anotan las series y se cobra el premio.
