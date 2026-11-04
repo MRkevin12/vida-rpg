@@ -111,6 +111,8 @@ const ARCHIVOS = [
     "./js/dibujo-gym.js",
     "./js/gym-aurelio.js",
     "./js/dibujo-ejercicios.js",
+    "./js/dibujo-ejercicios-piezas.js",       // (orden) piezas del cuerpo, pesas y máquinas
+    "./js/dibujo-ejercicios-movimientos.js",  // (orden) los 64 movimientos
     "./js/dibujo-base.js",
     "./js/dibujo-cuerpo.js",
     "./js/dibujo-escenas.js",
@@ -162,6 +164,7 @@ const ARCHIVOS = [
     "./js/bestiario.js",
     "./js/leyendas.js",
     "./js/dibujo-monstruos.js",
+    "./js/dibujo-salas.js",   // (orden) las salas, separadas de dibujo-monstruos.js
     "./js/pixel.js",
     "./js/sprites.js",
     "./js/habilidades.js",
