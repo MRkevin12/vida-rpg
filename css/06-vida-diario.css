@@ -1,0 +1,1990 @@
+/* css/06-vida-diario.css — Celebraciones, animaciones, vida (v16), atributos propios, diario, Tratado, «Fallé», libro, avisos, v22, armadura y robo de vida.
+   (Trozo de los estilos: se cargan EN ORDEN desde index.html; lo de abajo le gana a lo de arriba.) */
+
+/* ===== Celebraciones y avisos ===== */
+.celebracion {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(5, 3, 12, 0.72);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    cursor: pointer;
+    animation: aparecer 0.3s ease-out;
+}
+
+.celebracion-caja {
+    width: min(340px, 100%);
+    padding: 28px 24px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--panel-claro), var(--panel));
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    border-radius: var(--esquina);
+    box-shadow: 0 0 50px rgba(251, 191, 36, 0.3);
+    animation: entrar-celebracion 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.celebracion-caja.entrar {
+    animation: entrar-celebracion 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.celebracion-icono {
+    font-size: 3rem;
+    line-height: 1.2;
+    animation: flotar-icono 2s ease-in-out infinite;
+}
+
+.celebracion .etiqueta {
+    margin-top: 6px;
+    color: var(--oro);
+}
+
+.celebracion-titulo {
+    margin-top: 6px;
+    font-family: var(--letra-titulo);
+    font-size: 1.6rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+    background: linear-gradient(180deg, #fff3c4, var(--oro));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.celebracion-detalle {
+    margin-top: 6px;
+    color: var(--texto-suave);
+}
+
+.aviso {
+    position: fixed;
+    right: 16px;
+    bottom: calc(var(--alto-pestanas) + env(safe-area-inset-bottom) + 14px);
+    left: 16px;
+    z-index: 15;
+    width: fit-content;
+    max-width: calc(100% - 32px);
+    margin: 0 auto;
+    padding: 10px 18px;
+    font-weight: 600;
+    background: var(--panel-claro);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.aviso.entrar {
+    animation: subir-aviso 0.3s ease-out;
+}
+
+/* Aviso de versión nueva: se queda hasta que tocas "Actualizar" */
+.actualizacion {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 10px);
+    right: 12px;
+    left: 12px;
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 10px 10px 10px 16px;
+    font-weight: 600;
+    background: var(--panel-claro);
+    border: 1px solid rgba(251, 191, 36, 0.55);
+    border-radius: var(--esquina);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+    animation: bajar 0.3s ease-out;
+}
+
+
+/* ===== Animaciones ===== */
+@keyframes pulso {
+    40% { transform: scale(1.4); }
+}
+
+@keyframes brillo {
+    0% { transform: translateX(-100%); }
+    60%, 100% { transform: translateX(100%); }
+}
+
+@keyframes destello {
+    from { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6); }
+    to { box-shadow: 0 0 0 14px rgba(52, 211, 153, 0); }
+}
+
+@keyframes destello-rojo {
+    0% { filter: brightness(2.2); }
+    100% { filter: brightness(1); }
+}
+
+@keyframes rebote {
+    40% { transform: scale(1.18); }
+}
+
+@keyframes dibujar-check {
+    from { stroke-dashoffset: 24; }
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes flotar {
+    0% { opacity: 0; transform: translateY(-50%) scale(0.8); }
+    15% { opacity: 1; transform: translateY(-60%) scale(1.1); }
+    100% { opacity: 0; transform: translateY(-230%) scale(1); }
+}
+
+@keyframes sacudir {
+    15% { transform: translateX(-6px) rotate(-6deg); }
+    35% { transform: translateX(6px) rotate(5deg); }
+    55% { transform: translateX(-4px) rotate(-3deg); }
+    75% { transform: translateX(3px) rotate(2deg); }
+}
+
+@keyframes aparecer {
+    from { opacity: 0; }
+}
+
+@keyframes bajar {
+    from { opacity: 0; transform: translateY(-16px); }
+}
+
+@keyframes subir-aviso {
+    from { opacity: 0; transform: translateY(12px); }
+}
+
+@keyframes entrar-celebracion {
+    from { opacity: 0; transform: scale(0.5); }
+}
+
+@keyframes flotar-icono {
+    50% { transform: translateY(-6px); }
+}
+
+/* ===== Vida del héroe (v16) ===== */
+/* El color de la barra dice cómo estás: verde en plena forma, ámbar bien, rojo herido, gris caído. */
+.salud-forma  { --color-salud: var(--verde); }
+.salud-bien   { --color-salud: var(--oro); }
+.salud-herido { --color-salud: var(--rojo); }
+.salud-caido  { --color-salud: #6b6488; }
+
+.barra-salud {
+    display: block;   /* también se usa con <span> dentro de botones */
+    height: 8px;
+    margin: 4px 0 2px;
+}
+
+.barra-salud .barra-relleno {
+    display: block;
+    background: var(--color-salud, var(--rojo));
+    box-shadow: 0 0 8px var(--color-salud, var(--rojo));
+}
+
+/* En la cabecera las dos barras (XP y vida) van juntas y más finas. */
+.cabecera .barra-xp {
+    height: 7px;
+    margin: 4px 0 0;
+}
+
+.cabecera .barra-salud {
+    height: 5px;
+    margin: 3px 0 2px;
+}
+
+.cabecera .barra-armadura {
+    height: 4px;
+    margin: 2px 0;
+}
+
+.cab-datos {
+    position: relative;   /* para el "+4 ❤️" que flota */
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.cab-vida {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.cab-datos .flotante {
+    top: -16px;
+    right: 0;
+    font-size: 0.8rem;
+}
+
+.heroe-vida,
+.ficha-vida {
+    display: grid;
+    gap: 2px;
+}
+
+.ficha-vida {
+    width: min(320px, 100%);
+    text-align: left;
+}
+
+.vida-linea {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 8px;
+}
+
+.vida-numero {
+    font-family: var(--letra-titulo);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.vida-estado {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-salud);
+}
+
+.vida-menos {
+    color: var(--rojo);
+}
+
+.aviso-descanso {
+    margin-top: 12px;
+    background: rgba(34, 211, 238, 0.08);
+    border-color: rgba(34, 211, 238, 0.35);
+}
+
+.aviso-caido {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    background: rgba(107, 100, 136, 0.16);
+    border: 1px solid rgba(251, 113, 133, 0.45);
+    border-radius: var(--esquina);
+}
+
+.aviso-caido > b {
+    color: var(--rojo);
+}
+
+.pocion-icono {
+    flex-shrink: 0;
+    width: 48px;
+    font-size: 1.8rem;
+    text-align: center;
+}
+
+.celda.descanso {
+    box-shadow: inset 0 0 0 2px rgba(34, 211, 238, 0.6);
+}
+
+.campo-fecha {
+    display: grid;
+    flex: 1;
+    gap: 4px;
+}
+
+
+/* ===== Atributos propios (v17) ===== */
+.titulo-propios {
+    margin-top: 18px;
+}
+
+.atributo-propio {
+    display: grid;
+    gap: 2px;
+    cursor: pointer;
+}
+
+/* Los nombres propios pueden ser largos: que bajen de línea dentro de su píldora,
+   cortando con guion («Programa-ción») donde el navegador sabe hacerlo. */
+.pildora small {
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    overflow-wrap: break-word;
+}
+
+/* Elegir color: círculos de muestra (el primero, «Auto», usa el color de su atributo base). */
+.opciones-colores {
+    grid-template-columns: repeat(9, 1fr);
+    gap: 6px;
+}
+
+.pildora-color span {
+    display: grid;
+    place-items: center;
+    height: 34px;
+    padding: 0;
+    font-size: 0.66rem;
+    background: var(--muestra, var(--hundido));
+    border-radius: var(--esquina);
+}
+
+.pildora-color input:checked + span {
+    border: 2px solid #fff;
+    background: var(--muestra, rgba(139, 92, 246, 0.14));
+}
+
+
+/* ===== Diario (v18) ===== */
+/* 5 ánimos en una fila. */
+.opciones-5 {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.diario textarea {
+    min-height: 84px;
+}
+
+/* El mes de ánimo: 7 columnas (L a D); cada día con el color de cómo te fue. */
+.mes-navegar {
+    justify-content: space-between;
+}
+
+.mes-navegar .titulo-juego {
+    text-transform: capitalize;
+}
+
+.mes-navegar .boton-icono {
+    font-size: 1.7rem;
+    line-height: 1;
+    color: var(--texto);
+}
+
+.mes-navegar .boton-icono:disabled {
+    opacity: 0.25;
+}
+
+.mes-animo {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.mes-letra {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+.dia-animo {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    min-height: 36px;
+    padding: 0;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--texto-suave);
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+    cursor: pointer;
+}
+
+.dia-animo.hueco {
+    visibility: hidden;
+}
+
+.dia-animo.futuro {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.dia-animo.escrito {
+    color: var(--texto);
+    border-color: rgba(139, 92, 246, 0.6);
+}
+
+.dia-animo.con-animo {
+    color: #120d22;
+    background: var(--color-animo);
+    border-color: var(--color-animo);
+}
+
+.dia-animo.hoy {
+    outline: 1px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 1px;
+}
+
+.dia-animo.elegido {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+}
+
+#diario-detalle {
+    margin-top: 12px;
+}
+
+/* Una entrada del diario, con una franja del color de su ánimo. */
+.entrada {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-left: 4px solid var(--color-animo, var(--borde));
+    border-radius: var(--esquina);
+}
+
+.entrada-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.entrada-animo {
+    font-size: 1.3rem;
+}
+
+.entrada-pregunta {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.entrada-texto {
+    margin: 0;
+    white-space: pre-wrap;   /* respeta los saltos de línea que escribiste */
+    overflow-wrap: anywhere;
+}
+
+.entrada-gratitud {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #fde68a;
+}
+
+.recuerdo-titulo {
+    margin: 14px 0 0;
+}
+
+.diario-buscar {
+    margin-top: 10px;
+}
+
+.filtros-animo {
+    margin: 10px 0 4px;
+}
+
+.filtros-animo .chip {
+    min-width: 44px;
+    min-height: 36px;
+    cursor: pointer;
+}
+
+.chip-activo {
+    color: var(--texto);
+    background: rgba(139, 92, 246, 0.25);
+    border-color: var(--violeta);
+}
+
+
+/* ===== El Tratado de la Voluntad (v19) ===== */
+/* En Hoy: el día de tu pacto (o la invitación a sellarlo). */
+.pacto-linea {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px 14px;
+    font: inherit;
+    text-align: left;
+    color: var(--texto);
+    background: linear-gradient(135deg, rgba(122, 20, 20, 0.22), rgba(21, 16, 42, 0.9));
+    border: 1px solid rgba(200, 50, 58, 0.45);
+    border-radius: var(--esquina);
+    cursor: pointer;
+}
+
+.pacto-linea > span:last-child {
+    display: grid;
+    gap: 2px;
+}
+
+.pacto-linea-icono {
+    font-size: 1.6rem;
+}
+
+.pacto-cita {
+    font-style: italic;
+    color: #e9d8b4;
+}
+
+.pacto-autor {
+    font-style: normal;
+    color: var(--texto-suave);
+}
+
+.pacto-linea.alerta {
+    border-color: var(--rojo);
+    box-shadow: 0 0 14px rgba(251, 113, 133, 0.35);
+}
+
+.pacto-linea.alerta .pacto-cita {
+    font-style: normal;
+    color: #fecdd3;
+}
+
+.alerta-pacto {
+    color: #fecdd3;
+}
+
+/* El pergamino: papel viejo, tinta oscura y letra con serifa (las del iPhone, sin descargar nada). */
+.pergamino {
+    color-scheme: light;   /* la casilla y los campos, en claro (combinan con el papel) */
+    --tinta: #2b1d14;
+    --tinta-suave: #5f4a38;
+    --sangre: #7a1414;
+    position: relative;
+    margin-top: 12px;
+    padding: 30px 22px 26px;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.02rem;
+    line-height: 1.65;
+    color: var(--tinta);
+    background:
+        radial-gradient(ellipse at 50% 20%, rgba(255, 252, 240, 0.55), transparent 60%),
+        radial-gradient(ellipse at 50% 50%, #efe2c4 0%, #e3cfa6 65%, #cdb486 100%);
+    border: 1px solid #b89b6a;
+    border-radius: 6px;
+    box-shadow: inset 0 0 50px rgba(110, 72, 28, 0.35), 0 14px 34px rgba(0, 0, 0, 0.5);
+}
+
+.pergamino p {
+    margin: 0 0 12px;
+}
+
+.pergamino-cabecera {
+    text-align: center;
+}
+
+.pergamino-sobre {
+    margin: 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--sangre);
+}
+
+.pergamino h2 {
+    margin: 4px 0;
+    font-family: inherit;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tinta);
+}
+
+.pergamino-entre {
+    font-style: italic;
+    color: var(--tinta-suave);
+}
+
+.pergamino .epigrafe,
+.pergamino .cita-final {
+    margin: 18px 0;
+    font-style: italic;
+    text-align: center;
+    color: var(--tinta-suave);
+}
+
+.pergamino .epigrafe span,
+.pergamino .cita-final span,
+.cita-pacto span {
+    font-style: normal;
+    font-size: 0.85rem;
+}
+
+/* La primera letra del preámbulo, grande y roja, como en los libros antiguos. */
+.preambulo p:first-child::first-letter {
+    float: left;
+    margin: 4px 8px 0 0;
+    font-size: 3.2em;
+    line-height: 0.8;
+    font-weight: 700;
+    color: var(--sangre);
+}
+
+.articulo {
+    margin-top: 18px;
+}
+
+.articulo h3 {
+    margin: 0 0 6px;
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+    color: var(--tinta);
+}
+
+.articulo h3 span {
+    display: block;
+    font-size: 0.75rem;
+    font-variant: normal;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--sangre);
+}
+
+.cita-pacto {
+    padding-left: 12px;
+    font-style: italic;
+    color: var(--tinta-suave);
+    border-left: 2px solid rgba(122, 20, 20, 0.45);
+}
+
+.pergamino .razon {
+    color: var(--sangre);
+    overflow-wrap: anywhere;
+}
+
+.pergamino .cierre {
+    margin-top: 22px;
+    font-style: italic;
+}
+
+/* La firma ya sellada. */
+.firma-y-sello {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.firma-bloque {
+    flex: 1;
+    min-width: 0;
+}
+
+.firma-dibujo {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.linea-firma {
+    margin: 0;
+    padding-top: 4px;
+    font-style: italic;
+    text-align: center;
+    border-top: 1px solid var(--tinta-suave);
+}
+
+.sello-lacre {
+    flex: 0 0 88px;
+    width: 88px;
+    height: 88px;
+    filter: drop-shadow(0 3px 4px rgba(60, 20, 10, 0.45));
+}
+
+.fecha-pacto {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    text-align: center;
+    color: var(--tinta-suave);
+}
+
+/* Firmar: los campos se ven como escritos sobre el papel. */
+.firmar-pacto {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(95, 74, 56, 0.5);
+}
+
+.firmar-pacto label {
+    display: grid;
+    gap: 6px;
+    font-weight: 700;
+}
+
+.firmar-pacto .opcional {
+    font-weight: 400;
+    font-style: italic;
+    color: var(--tinta-suave);
+}
+
+.firmar-pacto input[type="text"],
+.firmar-pacto textarea {
+    font-family: inherit;
+    color: var(--tinta);
+    background: rgba(255, 250, 235, 0.55);
+    border-color: rgba(95, 74, 56, 0.5);
+}
+
+.firmar-pacto ::placeholder {
+    color: #8c7660;
+}
+
+.firmar-instruccion {
+    margin: 0 !important;
+    font-weight: 700;
+}
+
+.lienzo-firma {
+    display: block;
+    width: 100%;
+    height: 150px;
+    background: rgba(255, 250, 235, 0.45);
+    border: 1px dashed var(--tinta-suave);
+    border-radius: 8px;
+    touch-action: none;   /* que el dedo firme en vez de mover la pantalla */
+    cursor: crosshair;
+}
+
+.boton-texto {
+    justify-self: center;
+    min-height: 44px;
+    padding: 0 12px;
+    font: inherit;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    color: var(--tinta-suave);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.jurar {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 10px;
+    font-weight: 400 !important;
+    font-style: italic;
+}
+
+.jurar input {
+    width: 22px;
+    height: 22px;
+    margin-top: 3px;
+    accent-color: var(--sangre);
+}
+
+.boton-sangre {
+    color: #fff5f5;
+    background: linear-gradient(180deg, #a3242b, #6e0f14);
+    border: 1px solid #4a080c;
+    box-shadow: 0 6px 18px rgba(110, 15, 20, 0.45);
+}
+
+
+/* ===== «Fallé» (v20) ===== */
+.boton-fallar {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f19aa8;
+}
+
+.mision.fallada {
+    background: rgba(251, 113, 133, 0.06);
+    border-color: rgba(251, 113, 133, 0.4);
+    border-left-color: var(--color-dificultad);
+}
+
+.mision.fallada .mision-nombre {
+    color: var(--texto-suave);
+}
+
+.boton-check.boton-fallada {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #fff;
+    background: #be4b5c;
+    border-color: #be4b5c;
+}
+
+.falla-motivo {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #f19aa8;
+}
+
+.ficha-fallas {
+    color: #f19aa8;
+}
+
+.falla-pacto {
+    font-style: italic;
+}
+
+
+/* ===== Tu libro (v20) ===== */
+.boton-libro {
+    margin: 12px 0;
+}
+
+.boton-libro:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.libro-pagina {
+    min-height: 60vh;
+    touch-action: pan-y;   /* deslizar de lado pasa la página; de arriba abajo, el scroll normal */
+}
+
+.portada {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding-top: 8vh;
+    text-align: center;
+}
+
+.portada h2 {
+    font-size: 1.7rem;
+    line-height: 1.25;
+}
+
+.portada-datos {
+    color: var(--tinta-suave);
+}
+
+.portada-botones {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 18px;
+}
+
+.capitulo-titulo {
+    text-transform: none !important;
+    letter-spacing: 0.02em !important;
+}
+
+.capitulo-texto {
+    margin-top: 18px;
+}
+
+.capitulo-texto > p:first-child::first-letter {
+    float: left;
+    margin: 4px 8px 0 0;
+    font-size: 3.2em;
+    line-height: 0.8;
+    font-weight: 700;
+    color: var(--sangre);
+}
+
+.capitulo-cita {
+    margin: 0 0 14px;
+    padding: 6px 0 6px 14px;
+    font-style: italic;
+    white-space: pre-wrap;   /* respeta los saltos de línea de tu diario */
+    overflow-wrap: anywhere;
+    color: var(--sangre);
+    border-left: 2px solid rgba(122, 20, 20, 0.45);
+}
+
+.numero-pagina {
+    margin-top: 22px !important;
+    font-size: 0.85rem;
+    text-align: center;
+    color: var(--tinta-suave);
+}
+
+.libro-navegar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.libro-fin {
+    font-style: italic;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+.indice-mes {
+    margin: 18px 0 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sangre);
+}
+
+.indice {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.indice button {
+    display: grid;
+    grid-template-columns: 3.2em 1fr auto;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 2px;
+    font: inherit;
+    text-align: left;
+    color: var(--tinta);
+    background: none;
+    border: none;
+    border-bottom: 1px dotted rgba(95, 74, 56, 0.45);
+    cursor: pointer;
+}
+
+.indice-numero {
+    font-weight: 700;
+    color: var(--sangre);
+}
+
+.indice-fecha {
+    font-size: 0.85rem;
+    color: var(--tinta-suave);
+}
+
+
+/* ===== Notificaciones (v21) ===== */
+.aviso-alerta {
+    margin-top: 12px;
+    background: rgba(251, 113, 133, 0.08);
+    border-color: rgba(251, 113, 133, 0.45);
+}
+
+.guia-avisos ol {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0;
+    padding-left: 20px;
+    font-size: 0.88rem;
+}
+
+
+/* ===== Más interactiva (v22) ===== */
+
+/* El Maestro en Hoy */
+.maestro-tarjeta {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(109, 40, 217, 0.18), rgba(21, 16, 42, 0.95));
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    border-radius: var(--radio);
+}
+
+.maestro-retrato {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    overflow: hidden;
+    border: 2px solid rgba(192, 132, 252, 0.6);
+    border-radius: 50%;
+}
+
+.maestro-retrato svg {
+    width: 100%;
+    height: 100%;
+}
+
+.maestro-habla {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.maestro-texto {
+    margin: 0;
+    font-style: italic;
+    line-height: 1.45;
+}
+
+.maestro-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Las ventanas a pantalla completa (Maestro, ritual, golpe) */
+.capa-oscura {
+    position: fixed;
+    inset: 0;
+    z-index: 14;   /* debajo de las celebraciones (20) y del PIN (30) */
+    display: grid;
+    place-items: center;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
+    overflow-y: auto;
+    background: rgba(6, 4, 14, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.capa-oscura[hidden] {
+    display: none;
+}
+
+.maestro-dialogo,
+.ritual-caja {
+    display: grid;
+    gap: 10px;
+    width: min(460px, 100%);
+    padding: 18px;
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.maestro-dialogo-retrato {
+    justify-self: center;
+    width: 130px;
+}
+
+.maestro-burbuja {
+    margin: 0;
+    padding: 14px;
+    font-size: 1.02rem;
+    font-style: italic;
+    line-height: 1.5;
+    background: var(--hundido);
+    border: 1px solid rgba(192, 132, 252, 0.4);
+    border-radius: var(--esquina);
+}
+
+.maestro-opciones {
+    display: grid;
+    gap: 8px;
+}
+
+.maestro-opcion {
+    text-align: left;
+}
+
+.maestro-cerrar {
+    justify-self: center;
+    color: var(--texto-suave);
+}
+
+/* Evento del día */
+.evento-dia {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    background: rgba(251, 191, 36, 0.07);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: var(--esquina);
+}
+
+.evento-dia .etiqueta {
+    display: block;
+}
+
+.evento-icono {
+    font-size: 1.6rem;
+}
+
+/* El cofre del día */
+.cofre-linea {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.cofre-cerrado {
+    color: var(--texto-suave);
+}
+
+.cofre-tarjeta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px 14px;
+    font: inherit;
+    text-align: left;
+    color: var(--texto);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.16), rgba(21, 16, 42, 0.95));
+    border: 1px solid rgba(251, 191, 36, 0.55);
+    border-radius: var(--radio);
+    cursor: pointer;
+}
+
+.cofre-tarjeta > span {
+    display: grid;
+    gap: 2px;
+}
+
+.cofre-svg {
+    flex: 0 0 76px;
+    width: 76px;
+    overflow: visible;
+}
+
+.cofre-brillo {
+    opacity: 0;
+}
+
+.cofre-tapa {
+    transform-origin: 14px 50px;
+    transform-box: view-box;
+    transition: transform 0.4s ease-out 0.55s;
+}
+
+.cofre-tarjeta:not(.abriendo) .cofre-svg {
+    animation: cofre-espera 2.4s ease-in-out infinite;
+}
+
+.cofre-tarjeta.abriendo .cofre-svg {
+    animation: cofre-tiembla 0.55s ease-in-out;
+}
+
+.cofre-tarjeta.abriendo .cofre-tapa {
+    transform: rotate(-38deg);
+}
+
+.cofre-tarjeta.abriendo .cofre-brillo {
+    opacity: 1;
+    transition: opacity 0.3s 0.6s;
+}
+
+@keyframes cofre-espera {
+    0%, 85%, 100% { transform: none; }
+    90% { transform: rotate(-4deg); }
+    95% { transform: rotate(4deg); }
+}
+
+@keyframes cofre-tiembla {
+    20% { transform: translateX(-4px) rotate(-3deg); }
+    40% { transform: translateX(4px) rotate(3deg); }
+    60% { transform: translateX(-3px) rotate(-2deg); }
+    80% { transform: translateX(3px) rotate(2deg); }
+}
+
+/* Desafío relámpago */
+.relampago {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    background: rgba(34, 211, 238, 0.07);
+    border: 1px solid rgba(34, 211, 238, 0.45);
+    border-radius: var(--radio);
+}
+
+.relampago p {
+    margin: 0;
+}
+
+.relampago-reloj {
+    font-family: var(--letra-titulo);
+    font-weight: 700;
+    color: var(--cian);
+    font-variant-numeric: tabular-nums;
+}
+
+/* La misión clave */
+.mision.clave {
+    border-color: rgba(251, 191, 36, 0.65);
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.18);
+}
+
+.clave-insignia {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--oro);
+}
+
+/* El ritual de la noche */
+.ritual-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ritual-contador {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+    text-align: center;
+}
+
+.ritual-carta {
+    display: grid;
+    gap: 6px;
+    min-height: 150px;
+    align-content: center;
+    padding: 20px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--panel-claro), var(--hundido));
+    border: 1px solid var(--borde);
+    border-top: 4px solid var(--color-dificultad);
+    border-radius: var(--esquina);
+    touch-action: pan-y;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: grab;
+}
+
+.ritual-carta h3 {
+    margin: 0;
+    font-size: 1.35rem;
+}
+
+.ritual-carta.hacia-si {
+    border-color: var(--verde);
+}
+
+.ritual-carta.hacia-no {
+    border-color: var(--rojo);
+}
+
+.ritual-botones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.ritual-motivos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.ritual-nota {
+    text-align: center;
+}
+
+.ritual-resumen {
+    margin: 0;
+    text-align: center;
+}
+
+.ritual-capitulo {
+    max-height: 46vh;
+    overflow-y: auto;
+    padding: 18px 16px;
+}
+
+/* El golpe con timing */
+.golpe-caja {
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+    width: min(380px, 100%);
+    text-align: center;
+}
+
+.golpe-retrato {
+    width: 150px;
+    margin: 0;
+}
+
+.golpe-barra {
+    position: relative;
+    width: 100%;
+    height: 22px;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.golpe-zona {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 42%;
+    width: 16%;
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.7), rgba(251, 191, 36, 0.2));
+    border-radius: 6px;
+}
+
+.golpe-marca {
+    position: absolute;
+    top: -5px;
+    left: 0;
+    width: 6px;
+    height: 30px;
+    background: #fff;
+    border-radius: 3px;
+    box-shadow: 0 0 10px #fff;
+    animation: golpe-vaiven 1.3s ease-in-out infinite alternate;
+}
+
+.golpe-barra.detenida .golpe-marca {
+    animation-play-state: paused;
+}
+
+@keyframes golpe-vaiven {
+    from { left: 0; }
+    to { left: calc(100% - 6px); }
+}
+
+.golpe-resultado {
+    margin: 0;
+    font-family: var(--letra-titulo);
+    font-weight: 800;
+    color: var(--texto-suave);
+}
+
+.golpe-resultado.critico {
+    font-size: 1.15rem;
+    color: var(--oro);
+    text-shadow: 0 0 14px rgba(251, 191, 36, 0.7);
+}
+
+/* El mapa del reino (v26) */
+.mapa-navegar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-align: center;
+}
+
+.mapa-navegar .boton-icono {
+    font-size: 1.7rem;
+    color: var(--texto);
+}
+
+.mapa-navegar .boton-icono:disabled {
+    opacity: 0.25;
+}
+
+.mapa-region {
+    margin: 2px 0 0;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.2rem;
+}
+
+.mapa-lema {
+    margin-top: 2px;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 0.86rem;
+    font-style: italic;
+    color: var(--texto-suave);
+}
+
+/* La franja con las 6 regiones: ✓ libre, el número de señores vencidos o 🔒. */
+.reino-franja {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.reino-region {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+    min-height: 54px;
+    padding: 6px 2px 4px;
+    font-size: 1.15rem;
+    line-height: 1.1;
+    background: var(--hundido);
+    border: 1.5px solid var(--borde);
+    border-radius: var(--esquina);
+    cursor: pointer;
+}
+
+.reino-region small {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 0.72rem;
+    color: var(--texto-suave);
+}
+
+.reino-region i {
+    font-size: 0.62rem;
+    font-style: normal;
+    font-weight: 700;
+    color: var(--texto-suave);
+}
+
+.reino-region:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.reino-region.libre {
+    border-color: rgba(251, 191, 36, 0.7);
+}
+
+.reino-region.libre i {
+    color: var(--oro);
+}
+
+.reino-region.actual {
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.8), 0 0 14px rgba(139, 92, 246, 0.45);
+}
+
+.reino-region.vista {
+    background: var(--panel-claro);
+    border-color: var(--violeta);
+}
+
+/* El mapa en pixel art, con tu héroe, tu mascota y las guaridas encima. */
+.mapa-pixel {
+    position: relative;
+    margin: 12px 0;
+    aspect-ratio: 192 / 416;
+    overflow: hidden;
+    background: #14101e;
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    box-shadow: 0 0 0 1px #060a3a, 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.mapa-imagen {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    opacity: 0;
+    transition: opacity 0.25s steps(3);
+}
+
+.mapa-pixel.listo .mapa-imagen {
+    opacity: 1;
+}
+
+.mapa-heroe,
+.mapa-mascota {
+    position: absolute;
+    z-index: 2;
+    image-rendering: pixelated;
+    pointer-events: none;
+    transform: translate(-50%, -92%);
+    animation: mapa-paso 0.9s steps(1) infinite;
+}
+
+.mapa-heroe {
+    width: calc(100% * 21 / 192);
+}
+
+.mapa-mascota {
+    width: calc(100% * 20 / 192);
+    animation-delay: -0.45s;
+}
+
+/* Sin imagen todavía: que no se vea el ícono de imagen rota. */
+.mapa-heroe:not([src]),
+.mapa-mascota:not([src]) {
+    visibility: hidden;
+}
+
+@keyframes mapa-paso {
+    50% { transform: translate(-50%, calc(-92% - 2px)); }
+}
+
+/* Un botón invisible sobre cada guarida: al tocarlo, se ve la ficha de su señor. */
+.mapa-guarida {
+    position: absolute;
+    z-index: 3;
+    width: 14%;
+    aspect-ratio: 1;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 50%;
+    transform: translate(-50%, -70%);
+    cursor: pointer;
+}
+
+.mapa-guarida:active {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+/* Las fichas de los señores de la región. */
+.senor {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+    scroll-margin-top: calc(var(--alto-cabecera, 0px) + 12px);
+}
+
+.senor.actual {
+    border-color: rgba(251, 113, 133, 0.6);
+}
+
+.senor.libre {
+    border-color: rgba(251, 191, 36, 0.45);
+}
+
+.senor.resaltado {
+    animation: senor-resaltado 1.2s ease-out;
+}
+
+@keyframes senor-resaltado {
+    0%, 40% { box-shadow: 0 0 0 2px var(--oro), 0 0 18px rgba(251, 191, 36, 0.5); }
+    100% { box-shadow: none; }
+}
+
+.senor-retrato.retrato.mini {
+    flex: 0 0 52px;
+    width: 52px;
+}
+
+.senor.lejano .senor-retrato img {
+    filter: brightness(0.55) saturate(0.6);
+}
+
+.senor-memorial {
+    flex: 0 0 52px;
+    display: grid;
+    place-items: center;
+    height: 52px;
+    font-size: 1.8rem;
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+/* La Crónica: un pergamino con letra de libro. */
+.cronica {
+    margin: 14px 0;
+    padding: 18px 16px 10px;
+    color: #2b1d10;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    background:
+        radial-gradient(ellipse at 50% 20%, rgba(255, 252, 240, 0.55), transparent 60%),
+        linear-gradient(180deg, #efe2c4, #e2cda2);
+    border: 1px solid #b89b6a;
+    border-radius: var(--esquina);
+    box-shadow: inset 0 0 40px rgba(110, 72, 28, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+    color-scheme: light;
+}
+
+.cronica-titulo {
+    margin: 0;
+    font-size: 1.35rem;
+    text-align: center;
+    letter-spacing: 0.04em;
+    color: #6a1a14;
+}
+
+.cronica-sub {
+    margin: 2px 0 10px;
+    font-size: 0.82rem;
+    font-style: italic;
+    text-align: center;
+    color: #6b5236;
+}
+
+.capitulo {
+    padding: 8px 0;
+    border-top: 1px solid rgba(107, 79, 46, 0.35);
+}
+
+.capitulo summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    min-height: 44px;
+    padding: 6px 0;
+    cursor: pointer;
+    list-style: none;
+}
+
+.capitulo summary::-webkit-details-marker {
+    display: none;
+}
+
+.capitulo summary::after {
+    content: "▾";
+    margin-left: auto;
+    color: #8f1d1d;
+}
+
+.capitulo[open] summary::after {
+    content: "▴";
+}
+
+.capitulo-numero {
+    font-size: 0.74rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #8f1d1d;
+}
+
+.capitulo b {
+    font-size: 1.02rem;
+}
+
+.capitulo p {
+    margin: 0 0 9px;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    text-align: justify;
+    hyphens: auto;
+}
+
+/* El párrafo de cada señor que cae, y el de los que todavía gobiernan. */
+.capitulo .parrafo-caida {
+    padding-left: 10px;
+    border-left: 3px solid #8f1d1d;
+}
+
+.capitulo .parrafo-pendiente {
+    font-size: 0.86rem;
+    font-style: italic;
+    color: #6b5236;
+}
+
+.capitulo.bloqueado {
+    display: grid;
+    gap: 1px;
+    padding: 10px 0;
+    opacity: 0.6;
+}
+
+.capitulo.bloqueado small {
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* El dragón */
+.mascota-acciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.mascota-frase {
+    min-height: 2.6em;
+    font-style: italic;
+}
+
+.mascota-dibujo.acariciado {
+    animation: acariciado 0.7s ease-out;
+}
+
+@keyframes acariciado {
+    30% { transform: scale(1.08) rotate(-3deg); }
+    60% { transform: scale(0.97) rotate(2deg); }
+}
+
+
+/* Si el iPhone tiene activado "Reducir movimiento", apagamos animaciones */
+/* ===== Armadura y poder del equipo (v24) ===== */
+/* La barra entera son 100 puntos: en gris, tu máximo (tus objetos de protección); en azul acero, lo que te queda. */
+.barra-armadura {
+    position: relative;
+    display: block;
+    height: 6px;
+    margin: 3px 0 2px;
+}
+
+.barra-armadura .barra-capacidad {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: rgba(148, 163, 184, 0.28);
+    border-radius: inherit;
+}
+
+.barra-armadura .barra-relleno {
+    display: block;
+    background: linear-gradient(90deg, #64748b, #a5b4fc);
+    box-shadow: 0 0 8px rgba(165, 180, 252, 0.55);
+}
+
+.armadura-numero {
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    color: #c7d2fe;
+}
+
+.armadura-efecto {
+    font-size: 0.74rem;
+    font-weight: 600;
+}
+
+.armadura-efecto.mejor { color: var(--verde); }
+.armadura-efecto.peor  { color: var(--rojo); }
+
+/* Personaje → Equipamiento: los 4 números de tu equipo */
+.poder-equipo {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.poder-equipo span {
+    display: grid;
+    gap: 2px;
+    padding: 8px 4px;
+    text-align: center;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.poder-equipo small {
+    font-size: 0.66rem;
+    line-height: 1.25;
+    color: var(--texto-suave);
+}
+
+.poder-objeto {
+    font-weight: 700;
+    color: #c7d2fe;
+    white-space: nowrap;
+}
+
+.equipo-ventaja {
+    color: #c7d2fe;
+}
+
+.robado {
+    color: var(--rojo);
+}
+
+/* ===== El robo de vida: el jefe te golpea y se cura con lo que te quita ===== */
+.robo-caja {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    width: min(380px, 100%);
+    padding: 16px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(76, 5, 25, 0.55), var(--panel) 55%);
+    border: 1px solid rgba(251, 113, 133, 0.45);
+    border-radius: var(--radio);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 40px -10px rgba(225, 29, 72, 0.5);
+    animation: aparecer 0.25s ease-out;
+}
+
+.robo-escena {
+    --robo-distancia: 150px;   /* lo que suben las gotas: del pecho del héroe al retrato del jefe */
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 26px;
+    width: 100%;
+    padding: 4px 0;
+}
+
+.robo-jefes {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.robo-jefe {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+    width: 118px;
+}
+
+.robo-de-2 .robo-jefe { width: 104px; }
+.robo-de-3 .robo-jefe { width: 92px; }
+.robo-de-4 .robo-jefe { width: 76px; }
+
+.robo-jefe .retrato {
+    width: 100%;
+    /* Embiste hacia abajo (hacia tu héroe) y, cuando le llega tu vida, brilla. */
+    animation: robo-embestir 0.7s cubic-bezier(0.3, 0, 0.3, 1) 0.15s, robo-brillar 0.9s ease-out 1.6s;
+}
+
+.robo-jefe .barra {
+    width: 100%;
+    margin-top: 2px;
+}
+
+/* La vida del jefe sube de lo que tenía a lo que tiene ahora. */
+.robo-vida {
+    width: var(--despues);
+    transition: none;
+    animation: robo-llenar 0.9s ease-out 1.6s backwards;
+}
+
+.robo-heroe {
+    position: relative;
+    width: 124px;
+}
+
+.robo-avatar {
+    animation: robo-herida 0.6s ease-out 0.45s;
+}
+
+.robo-avatar svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* El zarpazo: una línea de luz que cruza al héroe. */
+.robo-tajo {
+    position: absolute;
+    top: 42%;
+    left: -12%;
+    width: 124%;
+    height: 5px;
+    background: linear-gradient(90deg, transparent, #fff 35%, #fb7185 65%, transparent);
+    border-radius: var(--esquina);
+    box-shadow: 0 0 14px #e11d48;
+    transform: rotate(-28deg) scaleX(0);
+    opacity: 0;
+    animation: robo-zarpazo 0.4s ease-out 0.4s;
+}
+
+/* Las gotas de vida: nacen en el pecho del héroe y suben hasta el jefe. */
+.robo-rio {
+    position: absolute;
+    bottom: 84px;
+    left: 50%;
+    width: 0;
+    height: 0;
+}
+
+.robo-gota {
+    position: absolute;
+    left: -6px;
+    top: -6px;
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle at 35% 35%, #fff, #fb7185 45%, #9f1239);
+    border-radius: 50%;
+    box-shadow: 0 0 10px 2px rgba(244, 63, 94, 0.8);
+    opacity: 0;
+    animation: robo-subir 1s cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+
+.robo-numero {
+    position: absolute;
+    left: 50%;
+    z-index: 3;
+    font-family: var(--letra-titulo);
+    font-size: 1.3rem;
+    font-weight: 800;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.robo-menos {
+    top: 6%;
+    color: #fff;
+    text-shadow: 0 0 8px #e11d48, 0 2px 0 #7f1d1d;
+    animation: subir-dano 1.3s ease-out 0.5s;
+}
+
+.robo-mas {
+    top: 22%;
+    color: #bbf7d0;
+    text-shadow: 0 0 8px #16a34a, 0 2px 0 #14532d;
+    animation: subir-dano 1.4s ease-out 1.6s;
+}
+
+.robo-titulo {
+    font-size: 1.05rem;
+    line-height: 1.3;
+}
+
+.robo-armadura {
+    display: grid;
+    gap: 2px;
+    width: min(260px, 100%);
+    text-align: left;
+}
+
+@keyframes robo-embestir {
+    0%, 100% { transform: translateY(0) scale(1); }
+    45% { transform: translateY(26px) scale(1.07); }
+}
+
+@keyframes robo-brillar {
+    0%, 100% { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.65), 0 0 0 0 rgba(74, 222, 128, 0); }
+    35% { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.65), 0 0 26px 6px rgba(74, 222, 128, 0.75); }
+}
+
+@keyframes robo-llenar {
+    from { width: var(--antes); }
+}
+
+@keyframes robo-herida {
+    0%, 100% { transform: translateX(0); opacity: 1; }
+    15% { transform: translateX(-8px); opacity: 0.45; }
+    35% { transform: translateX(7px); opacity: 1; }
+    55% { transform: translateX(-5px); opacity: 0.6; }
+    75% { transform: translateX(3px); opacity: 1; }
+}
+
+@keyframes robo-zarpazo {
+    0% { transform: rotate(-28deg) scaleX(0); opacity: 1; }
+    60% { transform: rotate(-28deg) scaleX(1); opacity: 1; }
+    100% { transform: rotate(-28deg) scaleX(1); opacity: 0; }
+}
+
+@keyframes robo-subir {
+    0% { transform: translate(var(--x0), 0) scale(0.4); opacity: 0; }
+    15% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translate(var(--x1), calc(-1 * var(--robo-distancia))) scale(1.1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* (v88) La pantalla de carga se queda fuera: dura 4 s y su escena es lo que se quiere ver (ver «.carga» más abajo).
+       (v89) Y las cinemáticas del reino (#cine): sin movimiento serían fotos fijas (el héroe no camina, la cámara no se mueve). */
+    :not(.carga):not(.carga *):not(#cine):not(#cine *), :not(.carga):not(.carga *):not(#cine):not(#cine *)::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* La marca del golpe con timing es parte del juego: se mueve aunque se reduzca el movimiento.
+   (v89) También tu héroe y tu mascota paseando por el mapa del reino. */
+@media (prefers-reduced-motion: reduce) {
+    .mapa-heroe,
+    .mapa-mascota {
+        animation-duration: 0.9s !important;
+        animation-iteration-count: infinite !important;
+    }
+
+    .golpe-marca {
+        animation-duration: 1.3s !important;
+        animation-iteration-count: infinite !important;
+    }
+}
+
+

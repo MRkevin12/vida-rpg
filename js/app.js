@@ -185,7 +185,7 @@ function iniciar() {
 }
 
 // La pantalla de carga (está en index.html) dura CARGA_DURACION milisegundos, con su escena animada (ver .carga en
-// estilos.css, que dura lo mismo). `alTerminar` se llama cuando empieza a desvanecerse, para que lo de abajo ya esté listo.
+// los estilos de css/, que dura lo mismo). `alTerminar` se llama cuando empieza a desvanecerse, para que lo de abajo ya esté listo.
 // Sin PIN, la cuenta empieza al abrir la app; con PIN, empieza después de la clave (completa: true).
 const CARGA_DURACION = 5000;
 const CARGA_SALIDA = 550;   // lo que dura el desvanecido (ver .carga.saliendo)

@@ -1,0 +1,823 @@
+/* css/14-gym-foco.css — Gym: meta, cuerpo, IMC (v74) y el modo foco a pantalla completa (v158).
+   (Trozo de los estilos: se cargan EN ORDEN desde index.html; lo de abajo le gana a lo de arriba.) */
+
+/* ===== v74: la meta que se marca, el cuerpo sin ropa, el IMC y la armadura por constancia ===== */
+.gym-avatar { flex: 0 0 132px; width: 132px; border-radius: var(--esquina); overflow: hidden; border: 1px solid var(--borde); background: #150f2a; }
+.gym-avatar svg { width: 100%; height: auto; display: block; }
+.gym-fisico { margin: 0 0 4px; }
+.gym-marcar { margin: 10px 0 6px; min-height: 48px; }
+.gym-hoy-botones { display: grid; gap: 6px; }
+.gym-rutina-botones { display: flex; gap: 6px; }
+
+.gym-imc { margin: 8px 0 10px; }
+.gym-imc-numero { margin: 0 0 6px; font-size: 1rem; }
+.gym-imc-numero b { font-family: var(--letra-titulo); font-size: 1.6rem; }
+.gym-imc-numero span { color: var(--texto-suave); }
+.gym-imc-escala { position: relative; display: flex; height: 12px; border-radius: var(--esquina); overflow: visible; margin: 8px 0 10px; }
+.gym-imc-escala i { display: block; height: 100%; }
+.gym-imc-escala i:first-child { border-radius: 999px 0 0 999px; }
+.gym-imc-escala i:nth-child(4) { border-radius: 0 999px 999px 0; }
+.gym-imc-escala b { position: absolute; top: -4px; width: 4px; height: 20px; background: #fff; border-radius: 2px; box-shadow: 0 0 6px rgba(255, 255, 255, 0.9); transform: translateX(-50%); }
+.form-linea + .form-linea { margin-top: 8px; }
+
+.gym-piezas { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.gym-pieza { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--hundido); opacity: 0.7; }
+.gym-pieza.ganada { opacity: 1; border-color: var(--gym-2); background: rgba(251, 191, 36, 0.08); }
+.gym-pieza > span:last-child { display: grid; }
+.gym-pieza small { color: var(--texto-suave); font-size: 0.8rem; }
+.gym-pieza-icono { font-size: 1.5rem; }
+
+/* v75: vista previa del cuerpo en el gimnasio */
+.gym-heroe-grande .gym-avatar { flex: 0 0 150px; width: 150px; }
+.gym-vista { margin: 0 0 10px; }
+.gym-vista-botones { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.gym-vista-aviso { margin: 0 0 4px; font-size: 0.78rem; font-weight: 700; color: var(--gym-2); }
+
+/* v76: el avatar del gimnasio, grande y con el gimnasio de fondo */
+.gym-heroe-grande { display: grid; grid-template-columns: 1fr; gap: 10px; justify-items: center; text-align: center; padding-top: 14px; }
+.gym-heroe-grande .gym-avatar { flex: none; width: min(100%, 340px); border-radius: var(--esquina); border-color: rgba(251, 191, 36, 0.35); box-shadow: 0 0 24px rgba(122, 98, 200, 0.35); }
+.gym-heroe-grande .gym-nivel { width: 100%; }
+.gym-heroe-grande .gym-nivel-numero { font-size: 1.3rem; }
+.gym-heroe-grande .barra { margin-left: auto; margin-right: auto; }
+
+/* v76: el entrenamiento se siente como estar en el gym */
+.gym-chips { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.gym-chips li { padding: 6px 12px; border-radius: var(--esquina); background: var(--hundido); border: 1px solid var(--borde); font-size: 0.9rem; }
+.gym-chips b { font-family: var(--letra-titulo); color: var(--gym-2); }
+.gym-calentar { margin: 2px 0 6px; }
+.gym-tecnica { color: #a5f3fc; }
+.gym-aurelio {
+    display: flex; gap: 10px; align-items: center; margin: 8px 0; padding: 10px 12px; border-radius: var(--esquina);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(34, 211, 238, 0.08)); border: 1px solid rgba(167, 139, 250, 0.5);
+    animation: gym-aurelio-entra 0.4s ease-out;
+}
+.gym-aurelio p { margin: 0; line-height: 1.4; }
+.gym-aurelio p b { display: block; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; color: #c4b5fd; }
+.gym-aurelio-retrato { flex: 0 0 54px; width: 54px; border-radius: 50%; overflow: hidden; border: 2px solid #8b5cf6; background: #1c1536; }
+.gym-aurelio-retrato svg { width: 100%; height: auto; display: block; }
+@keyframes gym-aurelio-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.gym-resumen { border-color: var(--gym-2); background: linear-gradient(180deg, rgba(251, 191, 36, 0.1), var(--panel)); }
+.gym-sesion .gym-heroe { margin-bottom: 8px; }
+@media (prefers-reduced-motion: reduce) { .gym-aurelio { animation: none; } }
+
+.gym-heroe:not(.gym-heroe-grande) .gym-avatar { flex: 0 0 96px; width: 96px; }
+
+/* v77: las figuras que hacen cada ejercicio */
+.gym-demo { float: right; width: 120px; margin: 0 0 6px 10px; border-radius: var(--esquina); overflow: hidden; }
+.gym-demo-svg { display: block; width: 100%; height: auto; }
+.gym-ejercicio.actual { border-color: var(--gym-2); box-shadow: 0 0 14px rgba(251, 191, 36, 0.25); }
+.gym-ejercicio::after { content: ""; display: block; clear: both; }
+.gym-ejercicio .gym-serie { clear: both; }
+
+/* v77 (arreglo): la figura va a la derecha del encabezado del ejercicio, en una rejilla de dos columnas */
+.gym-ejercicio { grid-template-columns: 1fr 120px; }
+.gym-ejercicio > * { grid-column: 1 / -1; }
+.gym-ejercicio > h3, .gym-ejercicio > .gym-meta-ej, .gym-ejercicio > .gym-antes, .gym-ejercicio > .gym-pista, .gym-ejercicio > .gym-tecnica { grid-column: 1; }
+.gym-ejercicio > .gym-demo { grid-column: 2; grid-row: 1 / span 5; float: none; margin: 0; align-self: start; }
+
+/* ===== (v158) El modo foco del gym: a pantalla completa, como la pantalla de un juego =====
+   (Reemplaza a los bloques v78 y v156.) app.js le pone al <body> la clase gym-pantalla-completa mientras entrenas en
+   el modo foco: se esconden la cabecera y las pestañas, y el panel ocupa todo el alto (100dvh). Arriba la rutina,
+   el tiempo y las series; en el medio el ESCENARIO (crece con el espacio que sobra); abajo los contadores y el botón
+   grande, a la altura del pulgar. Los marcos son de píxel: sombras sin desenfoque, una por lado y una por esquina. */
+.gym-pantalla-completa .cabecera,
+.gym-pantalla-completa .pestanas,
+.gym-pantalla-completa .run-flotante {
+    display: none;
+}
+
+.gym-pantalla-completa {
+    overscroll-behavior: none;
+}
+
+.gym-pantalla-completa .contenido {
+    padding: 0;
+}
+
+/* .panel.gym-foco: pesa más que .panel de estilos-pixel.css (que pone los remaches y su fondo). */
+.panel.gym-foco {
+    --gf-tinta: #07050f;
+    --gf-marco: #cfc6f5;
+    --gf-oro: #f2c14e;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px 12px;
+    text-align: left;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(242, 193, 78, 0.1), transparent 55%),
+        linear-gradient(180deg, #171130, #0b0816 70%);
+}
+
+.gym-pantalla-completa .gym-foco {
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0;
+    padding: calc(env(safe-area-inset-top) + 8px) 14px calc(env(safe-area-inset-bottom) + 12px);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.gym-foco p,
+.gym-foco h2,
+.gym-foco h3 {
+    margin: 0;
+}
+
+/* Un marco de píxel (borde claro de 2 px con esquinas en escalón y contorno de tinta) que va POR FUERA de la caja. */
+.gym-foco-escenario,
+.gym-foco .gym-stepper {
+    box-shadow:
+        0 -2px 0 var(--gf-marco), 0 2px 0 var(--gf-marco), -2px 0 0 var(--gf-marco), 2px 0 0 var(--gf-marco),
+        -2px -2px 0 var(--gf-tinta), 2px -2px 0 var(--gf-tinta), -2px 2px 0 var(--gf-tinta), 2px 2px 0 var(--gf-tinta),
+        0 -4px 0 var(--gf-tinta), 0 4px 0 var(--gf-tinta), -4px 0 0 var(--gf-tinta), 4px 0 0 var(--gf-tinta);
+}
+
+/* --- Arriba: salir, la rutina, el tiempo y los kilos --- */
+.gym-foco-cabeza {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.gym-foco-salir {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    padding: 0 0 4px;
+    font-family: var(--letra-titulo);
+    font-size: 1.7rem;
+    line-height: 1;
+    color: var(--texto);
+    background: #241d45;
+    border: 0;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -3px 0 rgba(0, 0, 0, 0.45), 0 0 0 2px var(--gf-tinta);
+    cursor: pointer;
+}
+
+.gym-foco-salir:active {
+    transform: translateY(2px);
+    box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.45), 0 0 0 2px var(--gf-tinta);
+}
+
+.gym-foco-cabeza h2 {
+    flex: 1;
+    min-width: 0;
+    font-size: 1.05rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 2px 0 var(--gf-tinta);
+}
+
+.gym-foco-cabeza h2 small {
+    font-size: 0.7rem;
+    color: var(--texto-suave);
+}
+
+.gym-foco-dato {
+    color: var(--texto-suave);
+}
+
+.gym-foco-dato b {
+    font-family: var(--letra-titulo);
+    font-size: 1rem;
+    color: var(--gym-2);
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- Las series en cuadritos (agrupadas por ejercicio) y el contador --- */
+.gym-foco-avance {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.gym-foco-mapa {
+    flex: 1;
+    display: flex;
+    gap: 5px;
+    margin: 0;
+    padding: 3px;
+    list-style: none;
+    background: var(--gf-tinta);
+}
+
+.gym-foco-mapa li {
+    display: flex;
+    gap: 2px;
+    min-width: 0;
+}
+
+.gym-foco-mapa i {
+    flex: 1;
+    position: relative;
+    height: 10px;
+    min-width: 3px;
+    background: #2a2346;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.gym-foco-mapa i.hecha {
+    background: var(--gym);
+    box-shadow: inset 0 2px 0 rgba(255, 240, 190, 0.6), inset 0 -2px 0 rgba(120, 53, 15, 0.5);
+}
+
+.gym-foco-mapa i.ahora,
+.gym-pips i.ahora {
+    background: #d9d4f2;
+    animation: gym-foco-ahora 1s steps(1) infinite;
+}
+
+@keyframes gym-foco-ahora {
+    50% { background: #5b5384; }
+}
+
+.gym-foco-avance .contador {
+    font-size: 1.15rem;
+    line-height: 1;
+    text-shadow: 0 2px 0 var(--gf-tinta);
+}
+
+/* --- El escenario: la figura en pixel art sobre el gimnasio (o el reloj del descanso) --- */
+.gym-foco-escenario {
+    position: relative;
+    flex: 1 1 0;
+    min-height: 150px;
+    margin: 4px;
+    overflow: hidden;
+    background: #1b1534;   /* el color del muro, por si la pantalla es aún más ancha que la sala */
+}
+
+/* Las orillas un poco más oscuras (como una luz que cae en el centro). */
+.gym-foco-escenario::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.55);
+}
+
+.gym-foco-demo {
+    position: absolute;
+    inset: 0;
+}
+
+.gym-foco-demo .escena-ejercicio {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Las fichas de arriba del escenario: el músculo y lo de la última vez. */
+.gym-foco-chip {
+    position: absolute;
+    z-index: 1;
+    top: 8px;
+    left: 8px;
+    max-width: calc(50% - 12px);
+    padding: 3px 7px;
+    font-size: 0.72rem;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #e6e1ff;
+    background: rgba(7, 5, 15, 0.78);
+    box-shadow: inset 0 0 0 1px #3d3470;
+}
+
+.gym-foco-chip.gym-antes {
+    left: auto;
+    right: 8px;
+    color: var(--gym-2);
+}
+
+/* El descanso: la figura queda quieta y oscura, el reloj grande en el medio y Aurelio abajo. */
+.gym-foco-descansando .gym-foco-demo {
+    filter: brightness(0.38) saturate(0.6);
+}
+
+.gym-foco-descanso {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+}
+
+.gym-foco-reloj {
+    position: relative;
+    flex: 1 1 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 290px;
+    aspect-ratio: 1;
+}
+
+.gym-foco-reloj svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.gym-anillo-fondo { fill: rgba(7, 5, 15, 0.72); }
+.gym-anillo-pista { fill: none; stroke: #2a2346; stroke-width: 10; }
+.gym-anillo { fill: none; stroke: var(--gf-oro); stroke-width: 10; }
+.gym-foco-descansando .gym-anillo-pista { stroke: #3a3166; }
+
+.gym-foco-descanso-texto {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    text-align: center;
+}
+
+.gym-foco-descanso-texto small {
+    font-family: var(--letra-titulo);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+}
+
+.gym-foco-descanso-texto b {
+    font-family: var(--letra-titulo);
+    font-size: clamp(1.8rem, 9vw, 3rem);
+    line-height: 1.1;
+    color: var(--gym-2);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 3px 0 var(--gf-tinta);
+}
+
+.gym-foco-descanso .gym-aurelio {
+    flex: none;
+    align-self: stretch;
+    margin: 0;
+    padding: 6px 8px;
+    gap: 8px;
+    border-radius: 0;
+    background: rgba(7, 5, 15, 0.85);
+    border: 0;
+    box-shadow: inset 0 0 0 1px #4c3f8f;
+}
+
+.gym-foco .gym-aurelio-retrato {
+    border-radius: 0;
+    aspect-ratio: 1;
+}
+
+.gym-foco-descanso .gym-aurelio-retrato {
+    flex-basis: 36px;
+    width: 36px;
+    border-width: 1px;
+}
+
+.gym-foco-descanso .gym-aurelio p {
+    font-size: 0.78rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.gym-foco-descanso .gym-aurelio p b {
+    display: inline;
+    margin-right: 4px;
+}
+
+/* «¡Todo hecho!» encima del escenario. */
+.gym-foco-listo {
+    position: absolute;
+    z-index: 1;
+    top: 10px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: var(--letra-titulo);
+    font-size: 1.6rem;
+    color: var(--gym-2);
+    text-shadow: 0 3px 0 var(--gf-tinta);
+}
+
+.gym-foco-fin > .gym-aurelio {
+    margin: 0;
+}
+
+/* --- El nombre del ejercicio, la serie y sus cuadritos --- */
+.gym-foco-titulo {
+    display: grid;
+    gap: 2px;
+}
+
+.gym-foco-nombre,
+.gym-foco-siguiente {
+    font-size: 1.08rem;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.gym-foco-siguiente {
+    color: var(--texto-suave);
+}
+
+.gym-foco-siguiente b {
+    color: var(--texto);
+}
+
+.gym-foco-serie-fila {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.gym-foco-serie {
+    font-size: 0.9rem;
+    color: var(--texto-suave);
+    white-space: nowrap;
+}
+
+.gym-foco-serie b {
+    font-family: var(--letra-titulo);
+    font-size: 1.25rem;
+    color: var(--gym-2);
+}
+
+.gym-pips {
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    background: var(--gf-tinta);
+}
+
+.gym-pips i {
+    width: 12px;
+    height: 12px;
+    background: #2a2346;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.gym-pips i.hecha {
+    background: var(--gym);
+    box-shadow: inset 0 2px 0 rgba(255, 240, 190, 0.6), inset 0 -2px 0 rgba(120, 53, 15, 0.5);
+}
+
+.gym-foco .gym-pista {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gym-foco .gym-subir {
+    margin: 0;
+}
+
+/* --- Los contadores de peso y repeticiones: cajas de juego con botones gruesos --- */
+.gym-steppers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 4px;
+}
+
+.gym-stepper {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) 46px;
+    align-items: center;
+    gap: 2px 4px;
+    padding: 4px 5px 6px;
+    background:
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 4px),
+        linear-gradient(180deg, #221a4b, #0d0a22);
+}
+
+.gym-stepper-nombre {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-family: var(--letra-titulo);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+}
+
+.gym-mas-menos {
+    min-height: 46px;
+    padding: 0 0 3px;
+    font-family: var(--letra-titulo);
+    font-size: 1.7rem;
+    line-height: 1;
+    color: #fff;
+    background: #2f2760;
+    border: 0;
+    border-radius: 0;
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.16), inset 0 -4px 0 rgba(0, 0, 0, 0.45), 0 0 0 2px var(--gf-tinta);
+    cursor: pointer;
+}
+
+.gym-mas-menos:active {
+    color: #1b0b10;
+    background: var(--gym);
+    transform: translateY(2px);
+    box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.3), 0 0 0 2px var(--gf-tinta);
+}
+
+.gym-stepper-valor {
+    min-width: 0;
+    text-align: center;
+    font-family: var(--letra-titulo);
+    font-size: 1.65rem;
+    line-height: 1.1;
+    color: var(--gym-2);
+    white-space: nowrap;
+    text-shadow: 0 3px 0 var(--gf-tinta);
+    font-variant-numeric: tabular-nums;
+}
+
+.gym-stepper-valor small {
+    margin-left: 2px;
+    font-size: 0.7rem;
+    color: var(--texto-suave);
+    text-shadow: none;
+}
+
+/* --- El botón grande (dorado, como el gym) y los de al lado --- */
+.gym-foco-accion {
+    display: grid;
+    grid-template-columns: 66px 1fr 66px;
+    gap: 8px;
+}
+
+.gym-foco-accion-serie {
+    grid-template-columns: 100px 1fr;
+}
+
+.gym-foco .gym-foco-accion > .boton,
+.gym-foco .gym-foco-grande {
+    min-height: 58px;
+    margin: 0;
+    padding: 6px 6px 9px;
+    border: 0;
+    border-radius: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.gym-foco .gym-foco-accion > .boton-secundario {
+    color: var(--texto);
+    background: #241d45;
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.12), inset 0 -4px 0 rgba(0, 0, 0, 0.45), 0 0 0 2px var(--gf-tinta);
+}
+
+.gym-foco .gym-foco-grande {
+    color: #2a1500;
+    background: linear-gradient(180deg, #fde68a, var(--gf-oro) 55%, #e0a020);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.55), inset 0 -5px 0 rgba(146, 64, 14, 0.6), 0 0 0 2px var(--gf-tinta), 0 0 18px rgba(242, 193, 78, 0.28);
+}
+
+.gym-foco .gym-foco-accion > .boton:active,
+.gym-foco .gym-foco-grande:active {
+    transform: translateY(2px);
+}
+
+.gym-foco .gym-foco-grande:active {
+    box-shadow: inset 0 4px 0 rgba(146, 64, 14, 0.5), 0 0 0 2px var(--gf-tinta);
+}
+
+.gym-foco-pie-fila {
+    display: flex;
+    gap: 6px;
+}
+
+.gym-foco-pie-fila .boton {
+    flex: 1;
+    min-width: 0;
+    min-height: 38px;
+    margin: 0;
+    padding: 4px 2px;
+    border-radius: 0;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    background: rgba(36, 29, 69, 0.55);
+    border: 1px solid #3d3470;
+}
+
+.gym-foco-pie-fila .boton-principal {
+    color: #1b1300;
+    background: var(--gym-2);
+    border-color: var(--gym);
+    box-shadow: none;
+}
+
+.gym-foco > .gym-extras,
+.gym-foco > .plegable {
+    margin: 0;
+}
+
+/* En una pantalla bajita (iPhone SE) todo un poco más apretado para que quepa sin deslizar. */
+@media (max-height: 700px) {
+    .gym-foco { gap: 8px; }
+    .gym-foco-escenario { min-height: 130px; }
+    .gym-mas-menos { min-height: 42px; }
+    .gym-foco .gym-foco-accion > .boton,
+    .gym-foco .gym-foco-grande { min-height: 52px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gym-foco-mapa i.ahora,
+    .gym-pips i.ahora { animation: none; }
+}
+
+/* (v158) En la lista, la figura de cada ejercicio va en una caja del tamaño exacto del dibujo (120 × 110). */
+.gym-demo {
+    aspect-ratio: 12 / 11;
+    background: #1b1534;
+}
+
+.gym-demo .escena-ejercicio {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* v79: consejo del día, reto de la semana y evolución */
+.gym-consejo { margin: 0 0 12px; }
+.gym-reto { margin: 12px 0 4px; padding: 10px 12px; border-radius: var(--esquina); border: 1px solid rgba(167, 139, 250, 0.5); background: rgba(139, 92, 246, 0.1); }
+.gym-reto.cobrado { border-color: var(--verde); background: rgba(52, 211, 153, 0.08); }
+.gym-reto-texto { margin: 2px 0 4px; font-weight: 600; }
+
+/* (v166) Calentar, cambiar y saltar ejercicios; calculadora de discos; corregir sesión; gráfica grande */
+.gym-foco-titulo-fila { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.gym-foco-titulo-fila > :first-child { min-width: 0; flex: 1 1 auto; }
+.gym-ej-botones { display: inline-flex; flex-wrap: wrap; gap: 4px; flex: 0 0 auto; }
+.gym-foco .gym-boton-icono { min-width: 40px; min-height: 40px; padding: 0; font-size: 1.05rem; }
+.gym-mas { flex-wrap: wrap; }
+.gym-serie-cal { opacity: 0.8; }
+.gym-serie-cal .gym-n { font-size: 1rem; }
+.gym-foco-mapa i.cal, .gym-pips i.cal { opacity: 0.45; }
+.gym-stepper { position: relative; }
+.gym-stepper-corporal { font-size: 0.95rem; white-space: normal; }
+/* v176: el ejercicio de una rutina es un botón (abre «Elegir ejercicio» con su figura) y el selector con la animación */
+.gym-editar-nombre { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 44px; padding: 4px 0; text-align: left; background: transparent; border: 0; color: inherit; font: inherit; cursor: pointer; }
+.gym-editar-nombre b { font-size: 1.02rem; }
+.gym-editar-ver { font-size: 0.74rem; color: var(--gym-2, #fbbf24); }
+.gym-elegir-demo { width: min(100%, 300px); aspect-ratio: 12 / 11; margin: 8px auto 6px; border-radius: var(--esquina); overflow: hidden; background: #1b1534; }
+.gym-elegir-demo .escena-ejercicio { display: block; width: 100%; height: 100%; }
+.gym-elegir-nombre { margin: 4px 0 0; text-align: center; font-size: 1.1rem; }
+.gym-elegir .mini { text-align: center; margin: 0 0 8px; }
+.gym-elegir-musculos { display: flex; gap: 6px; margin: 12px 0 6px; padding-bottom: 6px; overflow-x: auto; }
+.gym-elegir-musculos .boton { flex: none; }
+.gym-elegir-lista { max-height: 26vh; overflow-y: auto; }
+.gym-rutinas-plantilla { margin: 8px 0 4px; }
+.gym-plantilla-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.gym-plantilla-rutinas { list-style: none; margin: 4px 0 10px; padding: 0; display: grid; gap: 8px; max-height: 30vh; overflow-y: auto; }
+.gym-plantilla-rutina { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--borde); border-radius: var(--esquina); background: var(--hundido); }
+.gym-plantilla-lista { line-height: 1.35; }
+.gym-rutinas-nota { margin: 4px 4px 2px; }
+.gym-rutinas-ayuda { margin: 0 4px; }
+.gym-rutinas-titulo { margin: 14px 4px 6px; font-size: 0.95rem; color: var(--texto-suave); letter-spacing: 0.04em; }
+.gym-rutinas-titulo small { font-size: 0.75rem; margin-left: 4px; }
+.gym-rutina-resumen { display: block; margin-top: 2px; font-size: 0.78rem; font-weight: normal; }
+.gym-foco-despues { margin: 6px 0 0; text-align: center; font-size: 0.85rem; color: var(--texto-suave); }
+.gym-foco-despues b { color: var(--texto); }
+.gym-dialogo-lista { max-height: 52vh; overflow-y: auto; display: grid; gap: 6px; }
+.gym-corregir-nombre { margin: 8px 0 2px; font-size: 0.95rem; }
+.gym-corregir-fila { display: grid; grid-template-columns: 24px 1fr 1fr; gap: 8px; align-items: end; }
+.gym-corregir-fila label { display: grid; gap: 2px; }
+.gym-corregir-fila label span { font-size: 0.7rem; color: var(--texto-suave); }
+.gym-corregir-fila input { width: 100%; min-height: 44px; font-size: 16px; text-align: center; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+.gym-discos-total { margin: 0; font-size: 1.1rem; text-align: center; }
+.gym-discos-total b { font-family: var(--letra-titulo); font-size: 1.8rem; color: var(--gym-2); }
+.gym-discos-lista { text-align: center; margin: 4px 0; }
+.gym-barra { display: flex; align-items: center; gap: 3px; min-height: 84px; padding: 6px 10px; margin: 6px 0; background: #1b1534; box-shadow: inset 0 0 0 1px #3d3470; }
+.gym-barra-tubo { flex: 0 0 38px; height: 12px; background: linear-gradient(#cbd5e1, #64748b); }
+.gym-disco { flex: 0 0 auto; width: 11px; border: 1px solid rgba(0, 0, 0, 0.55); box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.28); }
+.gym-grafica { display: block; width: 100%; height: auto; margin: 8px 0; background: #0d0a1c; box-shadow: inset 0 0 0 1px #3d3470; }
+.gym-grafica text { fill: var(--texto-suave); font-size: 9px; font-family: inherit; }
+.gym-grafica .gym-grafica-titulo { fill: var(--gym-2); font-size: 10px; }
+
+/* (v165) Aurelio con vida: retrato que rebota, símbolo sobre la cabeza, texto que se escribe y figura en la escena del foco */
+.gym-aurelio-cabeza { position: relative; flex: 0 0 54px; width: 54px; animation: gym-aurelio-rebote 3.6s steps(1) infinite; }
+.gym-aurelio-cabeza .gym-aurelio-retrato { display: block; width: 100%; }
+@keyframes gym-aurelio-rebote {
+    0%, 82%, 100% { transform: translateY(0); }
+    86%, 94% { transform: translateY(-3px); }
+    90% { transform: translateY(-1px); }
+}
+.gym-aurelio-emote { position: absolute; top: -10px; right: -8px; z-index: 2; font-size: 1.1rem; line-height: 1; text-shadow: 0 2px 0 var(--gf-tinta, #06040d); pointer-events: none; }
+.gym-aurelio-emote.nuevo { animation: gym-aurelio-emote 0.5s steps(5) both; }
+@keyframes gym-aurelio-emote { from { transform: translateY(10px) scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.gym-aurelio-texto .falta { color: transparent; }
+
+.gym-foco-aurelio { position: absolute; z-index: 2; left: 8px; bottom: 8px; width: 48px; pointer-events: none; }
+.gym-foco-aurelio .figura-pixel { display: block; width: 100%; height: auto; }
+.gym-aurelio-cuerpo { position: relative; }
+.gym-aurelio-pose { position: absolute; inset: 0; opacity: 0; }
+/* Un momento al ganar algo (récord o ejercicio terminado): el dibujo de la victoria, y después vuelve a estar de pie. */
+.gym-foco-aurelio.reacciona-record .gym-aurelio-pose,
+.gym-foco-aurelio.reacciona-ejercicio .gym-aurelio-pose { animation: gym-aurelio-pose 1.8s linear both; }
+@keyframes gym-aurelio-pose { 0%, 85% { opacity: 1; } 85.1%, 100% { opacity: 0; } }
+.gym-foco-aurelio .gym-aurelio-emote { top: -14px; right: -6px; }
+/* Mientras descansa, su globo queda a su lado y su retrato redondo sobra (ya está él mismo). */
+.gym-foco-descansando .gym-foco-descanso .gym-aurelio { margin-left: 54px; }
+.gym-foco-descansando .gym-foco-descanso .gym-aurelio-cabeza { display: none; }
+
+/* Llega caminando desde la izquierda (pasitos de dos cuadros) y se queda. */
+.gym-foco-aurelio.entra { animation: gym-aurelio-camina 1.4s linear both; }
+.gym-foco-aurelio.entra .gym-aurelio-cuerpo { animation: gym-aurelio-paso 0.35s steps(1) 4; }
+@keyframes gym-aurelio-camina { from { transform: translateX(-90px); } to { transform: translateX(0); } }
+@keyframes gym-aurelio-paso { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* Reacciona: un salto al terminar un ejercicio, dos y un destello dorado en un récord. */
+.gym-foco-aurelio.reacciona-serie .gym-aurelio-cuerpo { animation: gym-aurelio-salta 0.5s steps(4) 1; }
+.gym-foco-aurelio.reacciona-ejercicio .gym-aurelio-cuerpo { animation: gym-aurelio-salta 0.55s steps(5) 2; }
+.gym-foco-aurelio.reacciona-record .gym-aurelio-cuerpo { animation: gym-aurelio-salta 0.5s steps(4) 3; filter: drop-shadow(0 0 5px #fcd34d); }
+.gym-foco-aurelio.reacciona-record::before {
+    content: ""; position: absolute; left: 50%; top: 4px; width: 4px; height: 4px; background: #fcd34d;
+    box-shadow: -18px 10px 0 #fcd34d, 18px 8px 0 #fff3b0, -12px -8px 0 #fff3b0, 14px -10px 0 #fcd34d, 0 -14px 0 #fff3b0;
+    animation: gym-aurelio-destello 1.1s steps(6) both;
+}
+@keyframes gym-aurelio-salta { 0%, 100% { transform: translateY(0); } 40%, 60% { transform: translateY(-10px); } }
+@keyframes gym-aurelio-destello { 0% { opacity: 0; transform: scale(0.3); } 30% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.7) translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) {
+    .gym-aurelio-cabeza, .gym-aurelio-emote.nuevo, .gym-foco-aurelio, .gym-aurelio-cuerpo, .gym-aurelio-pose, .gym-foco-aurelio .figura-pixel, .gym-foco-aurelio::before { animation: none !important; }
+    .gym-aurelio-pose { display: none; }
+}
+
+/* (v164) RIR por serie en la lista: una columna más (n.º · kg · reps · RIR · ✓) */
+.gym-serie { grid-template-columns: 24px 1fr 1fr 58px 52px; }
+.gym-serie select { width: 100%; min-height: 44px; font-size: 16px; text-align: center; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+.gym-serie.hecha select { opacity: 0.65; }
+
+/* (v164) En el descanso del modo foco: «¿Cuántas más podías?» con 5 botones */
+.gym-rir { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; font-size: 0.78rem; color: var(--texto-suave); }
+.gym-rir small { opacity: 0.8; }
+.gym-rir-botones { display: flex; gap: 6px; }
+.gym-rir-boton { min-width: 44px; min-height: 44px; font: inherit; font-weight: 700; font-size: 0.95rem; color: var(--texto); background: #2a2346; border: 0; box-shadow: inset 0 0 0 1px #4c3f8f; cursor: pointer; }
+.gym-rir-boton[aria-pressed="true"] { background: var(--gym); color: #1a1003; box-shadow: inset 0 0 0 1px var(--gym-2); }
+
+/* (v164) Las pistas: bajar el peso y ejercicio estancado */
+.gym-pista-bajar { color: var(--rojo); font-weight: 600; }
+.gym-pista-estancado { color: var(--gym-2); }
+
+/* (v164) Aurelio te avisa: descarga, estancados y músculos olvidados */
+.gym-avisos-lista { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.gym-aviso { display: grid; gap: 4px; padding: 10px 12px; border-radius: var(--esquina); border: 1px solid rgba(252, 211, 77, 0.45); background: rgba(245, 158, 11, 0.08); }
+.gym-aviso > small { color: var(--texto-suave); line-height: 1.4; }
+.gym-aviso .boton { justify-self: start; }
+.gym-aviso-descarga { border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.08); }
+.gym-propuestas { margin: 2px 0 0; padding-left: 0; list-style: none; display: grid; gap: 3px; font-size: 0.85rem; line-height: 1.4; }
+
+/* (v164) El Salón de récords: un plegable por músculo con su medalla */
+.gym-salon > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.gym-medalla { font-weight: 700; color: var(--gym-2); }
+
+/* (v164) La nota de la sesión en el resumen */
+.gym-nota { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--borde); }
+.gym-nota-fila { display: grid; gap: 2px; }
+.gym-evolucion { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; }
+.gym-foto { flex: 0 0 150px; margin: 0; scroll-snap-align: start; text-align: center; }
+.gym-foto-cuerpo { border-radius: var(--esquina); overflow: hidden; border: 1px solid var(--borde); background: #150f2a; }
+.gym-foto.ahora .gym-foto-cuerpo { border-color: var(--gym-2); box-shadow: 0 0 14px rgba(251, 191, 36, 0.35); }
+.gym-foto-cuerpo svg { display: block; width: 100%; height: auto; }
+.gym-foto figcaption { margin-top: 4px; display: grid; }
+.gym-foto small { color: var(--texto-suave); font-size: 0.74rem; }
+
+/* v80: contar repeticiones tocando */
+.gym-contar { min-height: 52px; margin: 4px 0; font-size: 1.05rem; }
+
+/* v82: tu cuerpo cambió (antes y ahora), peso objetivo y medidas */
+.cel-cuerpos { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.cel-cuerpos figure { margin: 0; width: 132px; }
+.cel-cuerpos figure svg { display: block; width: 100%; height: auto; border-radius: var(--esquina); border: 1px solid rgba(251, 191, 36, 0.4); }
+.cel-cuerpos figure:last-child svg { box-shadow: 0 0 16px rgba(251, 191, 36, 0.55); }
+.cel-cuerpos figcaption { font-size: 0.8rem; margin-top: 3px; opacity: 0.85; }
+.cel-cuerpos > span { font-size: 1.6rem; color: var(--gym-2); }
+.gym-metapeso { margin: 8px 0; }
+.gym-medidas { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
+.gym-medida { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: var(--esquina); background: var(--hundido); border: 1px solid var(--borde); }
+.gym-medida > span:nth-child(2) { flex: 1; text-align: right; }
+.gym-campos-medida { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.gym-campo-medida { display: grid; gap: 3px; font-size: 0.8rem; color: var(--texto-suave); }
+.gym-campo-medida input { min-height: 44px; font-size: 16px; text-align: center; border-radius: var(--esquina); border: 1px solid var(--borde); background: var(--panel); color: var(--texto); }
+
+/* v84: el contador de la meta del gym en dorado (como el resto del gym), y el «Toca hoy» sin estirarse */
+#pantalla-gym .contador { color: var(--gym-2); }
+#pantalla-gym .contador.completo { color: var(--verde); text-shadow: 0 0 14px rgba(52, 211, 153, 0.5); }
+.gym-rutina-texto b .gym-toca { margin-left: 4px; }
+
+

@@ -62,7 +62,7 @@ const CUANTAS = 12;
 // Partículas que flotan (luciérnagas, polvo, brasas, nieve o estrellas) y, salvo de noche (galaxia y aurora),
 // rayos de luz que bajan desde arriba a la izquierda (de donde viene la luz de todo el dibujo).
 // Las posiciones salen de una cuenta fija (no al azar): así el dibujo es igual cada vez.
-// Solo se anima transform y opacity (ver .particula en estilos.css).
+// Solo se anima transform y opacity (ver .particula en los estilos de css/).
 export function ambiente(d, p) {
     const fondoActual = d.equipado.fondo || FONDO_DE_ETAPA[p.etapa] || "aldea";
     const tipo = AMBIENTE[fondoActual] || "polvo";

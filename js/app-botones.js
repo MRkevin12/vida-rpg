@@ -355,7 +355,7 @@ export const ACCIONES_GENERALES = {
     // El cofre, el desafío relámpago y tu mascota.
     "abrir-cofre": (boton) => {
         if (boton.classList.contains("abriendo")) return;
-        boton.classList.add("abriendo");   // tiembla y se abre (estilos.css)
+        boton.classList.add("abriendo");   // tiembla y se abre (los estilos de css/)
         sonar("cofre");
         setTimeout(() => {
             const resultado = ejecutar(() => acciones.abrirCofre(estado));

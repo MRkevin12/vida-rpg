@@ -1,0 +1,136 @@
+/* css/19-temporadas.css — Temporadas, secretos (v149) y pase de temporada (v150).
+   (Trozo de los estilos: se cargan EN ORDEN desde index.html; lo de abajo le gana a lo de arriba.) */
+
+/* ===== Temporadas, sugerencia de la revisión y secretos (v149) ===== */
+.temporada {
+    display: grid;
+    gap: 10px;
+    border-color: rgba(96, 165, 250, 0.45);
+}
+
+/* (v181) Tu año: 12 columnas, una por mes. El mes más fuerte va en el violeta de los datos. */
+.anual-meses {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 4px;
+    align-items: end;
+    height: 110px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.anual-meses li {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    gap: 4px;
+}
+.anual-meses li i {
+    display: block;
+    width: 100%;
+    min-height: 2px;
+    background: #4a4468;
+    border-radius: 3px 3px 0 0;
+}
+.anual-meses li.mejor i { background: #8b5cf6; }
+.anual-meses small { font-size: 0.7rem; opacity: 0.8; }
+
+.temporada-lista {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.temporada-meta {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    font-size: 0.92rem;
+}
+
+.temporada-meta .barra,
+.temporada-meta small {
+    grid-column: 1 / -1;
+}
+
+.temporada-meta.cumplida b {
+    color: #86efac;
+}
+
+.barra-lograda .barra-relleno {
+    background: #86efac;
+}
+
+.sugerencia {
+    display: grid;
+    gap: 8px;
+}
+
+.secreto {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0.75;
+}
+
+.secreto.abierto {
+    opacity: 1;
+    border-color: rgba(251, 191, 36, 0.5);
+}
+
+.secreto-icono {
+    flex: none;
+    font-size: 1.7rem;
+}
+
+
+/* ===== Pase de temporada (v150) ===== */
+.pase {
+    display: grid;
+    gap: 6px;
+}
+
+.pase-niveles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pase-nivel {
+    display: grid;
+    gap: 2px;
+    padding: 6px 4px;
+    text-align: center;
+    font-size: 0.75rem;
+    opacity: 0.55;
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.pase-nivel.listo {
+    opacity: 1;
+    border-color: rgba(251, 191, 36, 0.7);
+}
+
+.pase-nivel.cobrado {
+    opacity: 1;
+    border-color: #86efac;
+    color: #86efac;
+}
+
+/* (v161) Editar tus rutinas del gym */
+.gym-editar { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 12px; }
+.gym-editar-fila { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+.gym-editar-fila .campo-gym { margin: 0; }
+.gym-editar-botones { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.gym-editar-botones b { min-width: 70px; text-align: center; }
+.gym-editar-botones .boton { min-width: 44px; }
+
+

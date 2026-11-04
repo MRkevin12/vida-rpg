@@ -11,7 +11,7 @@
 //   dibujo-mascota.js  el dragón
 //
 // Las clases CSS (pj, capa, brazo-arma, ojos, llama, orbe…) son las que se animan
-// en estilos.css. Aquí solo se dibuja; nada se mueve desde JavaScript.
+// en los estilos de css/. Aquí solo se dibuja; nada se mueve desde JavaScript.
 
 import { APARIENCIA, APARIENCIA_INICIAL, CLASES, OBJETOS } from "./avatar.js";
 import { nuevoId, mate, metal, piel as materialPiel, tejido, grano, halo, aclarar, oscurecer, mezclar, pivote, SOMBRA } from "./dibujo-base.js";

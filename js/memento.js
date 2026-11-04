@@ -115,7 +115,7 @@ export function casillasDeFila(fila, edad, semana) {
 }
 
 // ===== (v147) Las etapas de la vida =====
-// Cada fila (un año de edad) es de una etapa; la rejilla pinta cada etapa de otro color (los colores están en estilos.css:
+// Cada fila (un año de edad) es de una etapa; la rejilla pinta cada etapa de otro color (los colores están en css/17-memento.css:
 // van del amanecer —la infancia— al atardecer —la vejez—). hasta: la última edad de la etapa.
 export const ETAPAS = [
     { id: "infancia", nombre: "Infancia", desde: 0, hasta: 12 },

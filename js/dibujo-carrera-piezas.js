@@ -117,7 +117,7 @@ export function momentoDelDia(hora) {
     return "noche";
 }
 
-// (v144) Las animaciones del mapa (ver estilos.css, bloque v144) duran un divisor de 24 s y van en pasos de 1/8 s.
+// (v144) Las animaciones del mapa (ver css/16-running.css, bloque v144) duran un divisor de 24 s y van en pasos de 1/8 s.
 // Sus fases salen del reloj: así, aunque el mapa se vuelva a dibujar cada segundo, siguen donde iban en vez de empezar de cero.
 // Hay 4 grupos (--f0 … --f3) desfasados 5/8 s, para que no se mueva todo a la vez. (v147: aquí, para la calle y la pista.)
 export const CICLO = 24;

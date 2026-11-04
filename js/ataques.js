@@ -2,7 +2,7 @@
 //
 // Antes la criatura solo embestía y a tu héroe le salía un número. Ahora cada una ataca a su manera:
 // garras, tajos, mordidas, escupitajos, bolas de fuego, rayos de sus ojos… Este archivo solo decide el
-// ESTILO de cada criatura y calcula por dónde viaja el ataque; el dibujo está en estilos.css (clases `ff-atq-*`)
+// ESTILO de cada criatura y calcula por dónde viaja el ataque; el dibujo está en css/13-ataques.css (clases `ff-atq-*`)
 // y vistas.js pone el HTML dentro de la escena de batalla.
 //
 // Los estilos de «cuerpo a cuerpo» pasan encima de tu héroe; los demás (proyectiles y rayos) viajan desde la criatura.

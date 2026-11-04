@@ -1,0 +1,723 @@
+/* css/09-cine-voces.css — La Torre despierta (v38), cinemáticas (v43) y Las Voces del Valle (v44).
+   (Trozo de los estilos: se cargan EN ORDEN desde index.html; lo de abajo le gana a lo de arriba.) */
+
+/* ===== La Torre despierta (v38): Voluntad, técnicas y efectos nuevos ===== */
+
+/* La barra de Voluntad, bajo la vida de tu héroe: dorada; llena, brilla. */
+.ff-voluntad-barra {
+    grid-column: 1 / -1;
+    height: 5px;
+    overflow: hidden;
+    background: #05072a;
+    border: 1px solid #060a3a;
+    border-radius: 3px;
+}
+
+.ff-voluntad-barra i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(180deg, #fff3a0, #e6a800);
+    transition: width 0.3s steps(6) 0.9s;
+}
+
+.ff-voluntad-barra.llena {
+    box-shadow: 0 0 6px #ffd23c;
+    animation: ff-voluntad-lista 1s steps(2) infinite;
+}
+
+@keyframes ff-voluntad-lista {
+    50% { box-shadow: 0 0 2px #ffd23c; }
+}
+
+/* Las técnicas explican qué hacen: ese texto puede ocupar dos renglones. */
+.ff-comando.ff-tecnica small {
+    line-height: 1.25;
+    white-space: normal;
+}
+
+/* El comando de Voluntad, cuando está lista: en dorado. */
+.ff-comando.ff-voluntad {
+    color: #ffe45a;
+    font-weight: 800;
+}
+
+.ff-comando.ff-voluntad small {
+    color: #fff3a0;
+}
+
+/* El Golpe de Voluntad: un destello dorado que cruza a la criatura. */
+.ff-voluntad {
+    inset: -6% 0;
+}
+
+.ff-efecto.ff-voluntad {
+    background: radial-gradient(circle at 50% 55%, #fffbe0 0 9%, #ffd23c 10% 22%, rgba(255, 170, 0, 0.45) 23% 40%, transparent 41%);
+    animation: ff-golpe-voluntad 0.6s steps(5) 0.15s;
+}
+
+@keyframes ff-golpe-voluntad {
+    0% { opacity: 1; transform: scale(0.2); }
+    60% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0; transform: scale(1.3); }
+}
+
+/* Tu héroe al soltar la Voluntad: brilla un instante. */
+.ff-heroe.voluntad .ff-figura {
+    filter: drop-shadow(0 0 4px #ffd23c);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ff-voluntad-barra.llena,
+    .ff-efecto.ff-voluntad {
+        animation: none;
+    }
+}
+
+
+/* ===== Cinemáticas de la Torre (v43) =====
+   cine.js arma cada toma dentro de #cine-escena. Las cámaras (camara-…) mueven .cine-mundo (el fondo y los actores
+   juntos); los efectos (efecto-…) y los destellos van por encima. --px es cuánto mide en pantalla un punto del pixel art. */
+.cine {
+    position: fixed;
+    inset: 0;
+    z-index: 18;   /* encima de la Torre (12), debajo de las celebraciones (20) y del PIN (30) */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #000;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cine[hidden] {
+    display: none;
+}
+
+/* La escena es cuadrada (en el iPhone ocupa todo el ancho): el fondo se recorta por los lados con object-fit: cover. */
+.cine-escena,
+.cine-barra {
+    width: min(100vw, calc(100dvh - 9rem));
+}
+
+.cine-escena {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    container-type: inline-size;
+    background: #0b0816;
+}
+
+.cine-barra {
+    min-height: 6.5rem;
+    padding: 16px 20px 0;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.cine-texto {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: #f1f3ff;
+    text-shadow: 0 1px 0 #000;
+}
+
+.cine-saltar {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: 14px;
+    min-height: 44px;
+    padding: 0 16px;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: var(--esquina);
+    cursor: pointer;
+}
+
+.cine-toma {
+    --px: calc(100cqw / 160);   /* los sprites, un poco más chicos que el fondo para que quepan los dos */
+    position: absolute;
+    inset: 0;
+    animation: cine-aparece 0.45s ease-out;
+}
+
+@keyframes cine-aparece {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.cine-mundo {
+    position: absolute;
+    inset: 0;
+    transform-origin: var(--foco, 50% 60%);
+}
+
+.cine-fondo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.cine-actor {
+    position: absolute;
+    left: var(--x);
+    bottom: 12%;
+    transform: translateX(-50%);
+}
+
+.cine-sprite {
+    display: block;
+    width: calc(var(--px) * var(--talla));
+    height: auto;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.cine-sombra {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: calc(var(--px) * -2);
+    height: calc(var(--px) * 5);
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+}
+
+/* --- Las cámaras --- */
+/* Sube desde el suelo hasta lo más alto de la sala. */
+.camara-arriba .cine-mundo {
+    transform-origin: 50% 100%;
+    animation: cine-sube var(--ms) ease-in-out forwards;
+}
+
+@keyframes cine-sube {
+    from { transform: translateY(0) scale(1.5); }
+    to { transform: translateY(50%) scale(1.5); }
+}
+
+/* Se acerca despacio hacia --foco. */
+.camara-zoom .cine-mundo {
+    animation: cine-acerca var(--ms) ease-in forwards;
+}
+
+@keyframes cine-acerca {
+    from { transform: scale(1); }
+    to { transform: scale(1.7); }
+}
+
+.camara-izquierda .cine-mundo {
+    transform-origin: 70% 70%;
+    animation: cine-izquierda var(--ms) ease-in-out forwards;
+}
+
+@keyframes cine-izquierda {
+    from { transform: scale(1.35) translateX(5%); }
+    to { transform: scale(1.35) translateX(-5%); }
+}
+
+.camara-derecha .cine-mundo {
+    transform-origin: 70% 70%;
+    animation: cine-derecha var(--ms) ease-in-out forwards;
+}
+
+@keyframes cine-derecha {
+    from { transform: scale(1.35) translateX(-5%); }
+    to { transform: scale(1.35) translateX(5%); }
+}
+
+/* Casi quieta: respira un poco. */
+.camara-quieto .cine-mundo {
+    animation: cine-respira var(--ms) ease-in-out forwards;
+}
+
+@keyframes cine-respira {
+    from { transform: scale(1); }
+    to { transform: scale(1.06); }
+}
+
+/* --- Los efectos --- */
+.cine-destello {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.efecto-destello .cine-destello {
+    animation: cine-flash 1s ease-out;
+}
+
+@keyframes cine-flash {
+    0% { opacity: 0; }
+    10% { opacity: 0.95; }
+    100% { opacity: 0; }
+}
+
+.efecto-oscuro .cine-mundo {
+    filter: brightness(0.62) saturate(0.85);
+}
+
+.efecto-oscuro::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 55%, transparent 32%, rgba(0, 0, 0, 0.78));
+    pointer-events: none;
+}
+
+.cine-toma.efecto-temblor {
+    animation: cine-aparece 0.45s ease-out, cine-tiembla 0.4s steps(8) 0.5s 4;
+}
+
+@keyframes cine-tiembla {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(calc(var(--px) * -2), calc(var(--px) * 1)); }
+    50% { transform: translate(calc(var(--px) * 2), calc(var(--px) * -1)); }
+    75% { transform: translate(calc(var(--px) * -1), calc(var(--px) * 2)); }
+}
+
+/* --- Los actores --- */
+.cine-late .cine-sprite {
+    transform-origin: 50% 100%;
+    animation: cine-late 1.5s ease-in-out infinite;
+}
+
+@keyframes cine-late {
+    0%, 100% { transform: scale(1); filter: none; }
+    50% { transform: scale(1.04); filter: brightness(1.25); }
+}
+
+/* Cae: parpadea por el golpe y se deshace (los mismos pasos que en la batalla). */
+.cine-cae .cine-sprite {
+    animation: ff-parpadeo 0.42s steps(1) 0.5s, ff-deshacer 1.1s steps(11) 1.1s forwards;
+}
+
+.cine-cae .cine-sombra {
+    animation: ff-desaparecer 0.3s steps(3) 2.1s forwards;
+}
+
+/* Tu héroe entra caminando por la izquierda. */
+.cine-camina .cine-sprite {
+    animation: cine-camina 1.8s steps(9) both;
+}
+
+@keyframes cine-camina {
+    from { transform: translateX(calc(var(--px) * -40)); opacity: 0; }
+    15% { opacity: 1; }
+    to { transform: translateX(0); }
+}
+
+/* --- El cartel (nombre del guardián o de la zona) --- */
+.cine-titulo {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 8%;
+    margin: 0;
+    padding: 0 6%;
+    font-family: var(--letra-titulo);
+    font-size: clamp(1rem, 5.2cqw, 1.9rem);
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: center;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 14px rgba(251, 191, 36, 0.75), 0 2px 0 #000;
+    animation: cine-titulo var(--ms) ease-out both;
+}
+
+@keyframes cine-titulo {
+    0% { opacity: 0; letter-spacing: 0.3em; }
+    18% { opacity: 1; letter-spacing: 0.08em; }
+    86% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* (v89) Quien prefiere menos movimiento: antes se apagaban la cámara, el temblor y el caminar del héroe, y la escena quedaba
+   como una foto fija. Ahora solo se apaga el destello de pantalla completa; lo demás se mueve. */
+@media (prefers-reduced-motion: reduce) {
+    .cine-destello {
+        display: none;
+    }
+}
+
+
+/* ===== Las Voces del Valle (v44) =====
+   La aldea es una pantalla normal; cada conversación se juega en la capa #voces, a pantalla completa (como la Torre).
+   --pintura es el fondo de cada lugar (una pintura de fondos/). */
+.acceso-voces {
+    grid-column: 1 / -1;
+    min-height: 0;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(244, 114, 182, 0.26), transparent 60%),
+        linear-gradient(180deg, var(--panel-claro), var(--panel));
+    border-color: rgba(244, 114, 182, 0.45);
+}
+
+.voces-intro,
+.voces-poder,
+.voces-encurso {
+    display: grid;
+    gap: 8px;
+}
+
+.voces-tecnicas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.voces-tecnica {
+    padding: 5px 10px;
+    font-size: 0.84rem;
+    color: var(--texto-suave);
+    border: 1px dashed var(--borde);
+    border-radius: var(--esquina);
+}
+
+.voces-tecnica small {
+    font-size: 0.78rem;
+}
+
+.voces-tecnica.sabida {
+    color: var(--texto);
+    background: rgba(244, 114, 182, 0.1);
+    border: 1px solid rgba(244, 114, 182, 0.55);
+}
+
+.voces-valor {
+    display: grid;
+    gap: 4px;
+}
+
+.voces-valor small {
+    font-size: 0.78rem;
+    color: var(--texto-suave);
+}
+
+.voces-pips {
+    display: inline-flex;
+    gap: 5px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.voces-pip {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--oro);
+    border-radius: 50%;
+}
+
+.voces-pip.lleno {
+    background: var(--oro);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+}
+
+.voces-lugar {
+    display: grid;
+    gap: 10px;
+    overflow: hidden;
+    background-image: linear-gradient(rgba(10, 6, 22, 0.78), rgba(10, 6, 22, 0.92)), var(--pintura);
+    background-position: center;
+    background-size: cover;
+}
+
+.voces-lugar-nombre {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.voces-persona {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.38);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.voces-busto {
+    flex: none;
+    width: 72px;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--esquina);
+    image-rendering: pixelated;
+}
+
+.voces-persona-datos {
+    display: grid;
+    flex: 1;
+    gap: 4px;
+    min-width: 0;
+}
+
+.voces-persona-datos .nota {
+    margin: 0;
+}
+
+.voces-persona-datos .boton {
+    margin-top: 4px;
+}
+
+.voces-vacio {
+    margin: 0;
+}
+
+.voces-vividas {
+    gap: 0;
+}
+
+.voces-vivida {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--borde);
+}
+
+.voces-vivida > span:nth-child(2) {
+    flex: 1;
+}
+
+.voces-final-icono {
+    font-size: 1.5rem;
+}
+
+/* --- La conversación --- */
+.voces {
+    overflow-y: auto;
+    place-items: start center;
+}
+
+.voces-caja {
+    width: min(560px, 100%);
+}
+
+.voces-escena {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    min-height: calc(100dvh - 16px);
+    padding: 12px;
+    background-image: linear-gradient(rgba(10, 6, 22, 0.72), rgba(10, 6, 22, 0.94)), var(--pintura);
+    background-position: center;
+    background-size: cover;
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.voces-barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.voces-donde {
+    font-size: 0.86rem;
+    color: var(--texto-suave);
+}
+
+.voces-donde b {
+    color: var(--texto);
+}
+
+.voces-retrato-caja {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding-top: 6px;
+}
+
+.voces-retrato {
+    width: 162px;   /* el sprite mide 54 puntos de ancho: 3 pantalla por punto */
+    height: auto;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6));
+    animation: voces-aparece 0.4s ease-out;
+}
+
+.voces-reaccion {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    background: rgba(0, 0, 0, 0.62);
+    border-radius: var(--esquina);
+    animation: voces-aparece 0.4s ease-out;
+}
+
+.voces-reaccion.sube {
+    color: #f9a8d4;
+    border: 1px solid rgba(244, 114, 182, 0.5);
+}
+
+.voces-reaccion.baja {
+    color: #fca5a5;
+    border: 1px solid rgba(248, 113, 113, 0.5);
+}
+
+.voces-dialogo {
+    display: grid;
+    gap: 8px;
+}
+
+.voces-antes,
+.voces-yo {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    opacity: 0.78;
+}
+
+.voces-antes {
+    color: var(--texto-suave);
+}
+
+.voces-yo {
+    font-style: italic;
+    text-align: right;
+    color: #a5f3fc;
+}
+
+.voces-ahora {
+    padding: 14px 16px;
+    background: rgba(15, 10, 40, 0.92);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: var(--esquina);
+    animation: voces-aparece 0.35s ease-out;
+}
+
+.voces-nombre {
+    margin: 0 0 4px;
+    font-family: var(--letra-titulo);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--oro);
+}
+
+.voces-texto {
+    margin: 0;
+    font-size: 1.02rem;
+    line-height: 1.55;
+}
+
+.voces-gesto {
+    font-style: italic;
+    color: #a5f3fc;
+}
+
+.voces-opciones {
+    display: grid;
+    gap: 8px;
+}
+
+.voces-opcion {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    font: inherit;
+    color: var(--texto);
+    text-align: left;
+    background: rgba(139, 92, 246, 0.18);
+    border: 1px solid rgba(139, 92, 246, 0.55);
+    border-radius: var(--esquina);
+    cursor: pointer;
+}
+
+.voces-opcion:active {
+    transform: scale(0.99);
+}
+
+.voces-opcion.bloqueada {
+    cursor: default;
+    border-style: dashed;
+    opacity: 0.55;
+}
+
+.voces-etiqueta {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #f9a8d4;
+}
+
+.voces-bloqueo {
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.voces-abandonar {
+    justify-self: center;
+    margin-top: 6px;
+    font-size: 0.8rem;
+}
+
+.voces-final-titulo {
+    margin: 0;
+    font-family: var(--letra-titulo);
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.voces-leccion {
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    background: rgba(251, 191, 36, 0.08);
+    border-left: 3px solid var(--oro);
+    border-radius: 6px;
+}
+
+.voces-premio {
+    margin: 0;
+    font-weight: 700;
+    text-align: center;
+    color: var(--oro);
+}
+
+.voces-volver {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--borde);
+}
+
+@keyframes voces-aparece {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .voces-retrato,
+    .voces-ahora,
+    .voces-reaccion {
+        animation: none;
+    }
+}
+
+

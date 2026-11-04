@@ -549,7 +549,7 @@ export function avisoEvento(ctx) {
 }
 
 
-// El cofre de madera (se abre con una animación: ver estilos.css).
+// El cofre de madera (se abre con una animación: ver los estilos de css/).
 function dibujoCofre() {
     return pixelarEnVivo(`
         <svg class="cofre-svg" viewBox="0 0 120 100" aria-hidden="true">

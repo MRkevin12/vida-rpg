@@ -1,0 +1,419 @@
+/* css/18-finanzas.css — Finanzas (v135–v138).
+   (Trozo de los estilos: se cargan EN ORDEN desde index.html; lo de abajo le gana a lo de arriba.) */
+
+/* ===== (v135–v136) Finanzas: resumen, plan 50/30/20, anotar, historial, metas y fuentes ===== */
+/* Colores de cada sobre: necesidades celeste, gustos violeta, ahorro verde. Lo que entra en verde y lo que sale en rojo. */
+.fin-entra { color: #34d399; }
+.fin-sale { color: #fb7185; }
+.fin-monto { white-space: nowrap; }
+
+/* Lo grande de arriba: cuánto puedes gastar hoy. */
+.fin-heroe {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    text-align: center;
+    border-color: rgba(52, 211, 153, 0.55);
+    background-image: linear-gradient(180deg, rgba(52, 211, 153, 0.16), transparent 75%);
+}
+
+.fin-heroe-cifra {
+    font-family: var(--letra-titulo);
+    font-size: 2.1rem;
+    line-height: 1.1;
+    color: #34d399;
+}
+
+.fin-heroe small { color: var(--texto-suave); }
+
+/* Lo demás que ve Aurelio (debajo de su globo). */
+.fin-aurelio.fin-alerta { border-color: rgba(251, 113, 133, 0.6); }
+.fin-aurelio.fin-bien { border-color: rgba(52, 211, 153, 0.6); }
+
+.fin-notas {
+    display: grid;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+}
+
+.fin-notas li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.04);
+    border-left: 3px solid #fbbf24;
+    border-radius: var(--esquina, 4px);
+}
+
+.fin-notas li.fin-alerta { border-left-color: #fb7185; }
+.fin-notas li.fin-bien { border-left-color: #34d399; }
+
+/* Entró · Gastaste · Te queda */
+.fin-cifras {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 8px 0;
+    text-align: center;
+}
+
+.fin-cifras small { display: block; color: var(--texto-suave); }
+.fin-cifras b { font-size: 1.05rem; }
+
+/* La barra con los tres sobres y su leyenda. */
+.fin-barra-plan {
+    display: flex;
+    height: 12px;
+    margin-top: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--esquina, 4px);
+}
+
+.fin-barra-plan .fin-tramo-necesidad, .fin-punto.fin-tramo-necesidad { background: #22d3ee; }
+.fin-barra-plan .fin-tramo-gusto, .fin-punto.fin-tramo-gusto { background: #c084fc; }
+.fin-barra-plan .fin-tramo-ahorro, .fin-punto.fin-tramo-ahorro { background: #34d399; }
+
+.fin-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    opacity: 0.92;
+}
+
+.fin-punto {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 4px;
+    border-radius: 2px;
+}
+
+/* (v147) La dona pixelada del plan 50/30/20: la dona a la izquierda y su leyenda a la derecha (una debajo de otra si no cabe). */
+.fin-dona-caja {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 16px;
+    margin: 10px 0 4px;
+}
+
+.fin-dona {
+    flex: none;
+    width: 144px;
+    height: 144px;
+    font-family: var(--letra-titulo);
+}
+
+.fin-dona-cifra { font-size: 6.4px; font-weight: 700; fill: #fff; }
+.fin-dona-texto { font-size: 3.2px; fill: var(--texto-suave); }
+
+.fin-dona-leyenda {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.85rem;
+}
+
+.fin-dona-leyenda li {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-items: center;
+    justify-content: start;
+    column-gap: 6px;
+}
+
+.fin-dona-leyenda b { font-family: var(--letra-titulo); }
+.fin-dona-leyenda small { grid-column: 2 / -1; font-size: 0.76rem; color: var(--texto-suave); }
+.fin-dona-leyenda .fin-punto { width: 10px; height: 10px; margin: 0; border-radius: 0; box-shadow: 0 0 0 1px var(--tinta, #0b0816); }
+.fin-punto.fin-dona-necesidad { background: #22d3ee; }
+.fin-punto.fin-dona-gusto { background: #c084fc; }
+.fin-punto.fin-dona-ahorro { background: #34d399; }
+.fin-punto.fin-dona-libre { background: #2b2748; box-shadow: 0 0 0 1px #4a4570; }
+
+/* Cada sobre del plan */
+.fin-sobre {
+    display: grid;
+    gap: 4px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fin-sobre-cab {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.fin-barra-necesidad .barra-relleno { background: #22d3ee; }
+.fin-barra-gusto .barra-relleno { background: #c084fc; }
+.fin-barra-ahorro .barra-relleno { background: #34d399; }
+.fin-barra-mala .barra-relleno { background: #fb7185; }
+
+/* Cómo repartir el último ingreso */
+.fin-reparto {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    text-align: center;
+}
+
+.fin-reparto > div {
+    display: grid;
+    gap: 2px;
+    padding: 8px 4px;
+    border-top: 3px solid;
+    border-radius: var(--esquina, 4px);
+}
+
+.fin-reparto small { font-size: 0.78rem; opacity: 0.9; }
+.fin-reparto .fin-tramo-necesidad { border-color: #22d3ee; background: rgba(34, 211, 238, 0.1); }
+.fin-reparto .fin-tramo-gusto { border-color: #c084fc; background: rgba(192, 132, 252, 0.1); }
+.fin-reparto .fin-tramo-ahorro { border-color: #34d399; background: rgba(52, 211, 153, 0.1); }
+
+/* Listas: historial, mayores gastos, metas, deudas y fuentes */
+.fin-lista {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fin-dia {
+    padding-top: 8px;
+    opacity: 0.7;
+}
+
+.fin-fila {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.fin-fila-texto {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+}
+
+.fin-fila-texto b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fin-fila-texto small { color: var(--texto-suave); }
+.fin-borrar { min-width: 44px; }
+
+.fin-mayor {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 4px 8px;
+}
+
+.fin-mayor .barra { grid-column: 1 / -1; }
+
+.fin-mes {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.fin-mes .titulo-juego { margin: 0; }
+
+.fin-tarjeta {
+    display: grid;
+    gap: 6px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--esquina, 4px);
+}
+
+.fin-tarjeta-cab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.fin-lista-cumplida { border-color: rgba(52, 211, 153, 0.6); }
+.fin-valor { font-size: 1.2rem; color: #fbbf24; }
+
+.fin-patrimonio {
+    display: grid;
+    margin: 4px 0 10px;
+    text-align: center;
+}
+
+.fin-patrimonio b { font-size: 1.6rem; color: #fbbf24; }
+
+/* Formularios: el monto grande, los sobres como fichas y dos campos lado a lado */
+.fin-modo { margin-bottom: 12px; }
+
+.fin-grande input {
+    font-size: 1.4rem;
+    text-align: center;
+}
+
+.fin-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.fin-chips legend {
+    margin-bottom: 6px;
+    padding: 0;
+    font-size: 0.85rem;
+}
+
+.fin-chip { position: relative; }
+
+.fin-chip input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fin-chip span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 44px;
+    padding: 0 12px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--esquina, 4px);
+}
+
+.fin-chip input:checked + span {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: #fbbf24;
+}
+
+.fin-chip input:focus-visible + span { outline: 2px solid #fbbf24; }
+
+.fin-par {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.fin-par input { min-width: 0; }
+.fin-neutro { color: #c4bfe0; }
+
+/* ===== (v138) Finanzas: meses, medios, fijos, límites, próximos ingresos y corrección de movimientos ===== */
+.fin-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 8px;
+    font-size: 0.74rem;
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.6);
+    border-radius: var(--esquina, 4px);
+    vertical-align: middle;
+}
+
+.fin-ok { color: #34d399; }
+.fin-atrasado { border-color: rgba(251, 113, 133, 0.6); }
+.fin-atrasado .fin-ok, .fin-atrasado small.fin-sale { color: #fb7185; }
+
+/* Los últimos 6 meses: dos barras por mes (entró y gastaste) */
+.fin-meses {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    align-items: end;
+    height: 120px;
+    margin-top: 8px;
+}
+
+.fin-mes-col {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    justify-items: center;
+    height: 100%;
+    min-width: 0;
+    text-align: center;
+}
+
+.fin-mes-barras {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    width: 100%;
+    height: 100%;
+}
+
+.fin-mes-barras span {
+    width: 40%;
+    max-width: 16px;
+    min-height: 2px;
+    border-radius: 2px 2px 0 0;
+}
+
+.fin-mes-ing, .fin-punto.fin-mes-ing { background: #34d399; }
+.fin-mes-gas, .fin-punto.fin-mes-gas { background: #fb7185; }
+.fin-mes-col small { font-size: 0.74rem; color: var(--texto-suave); }
+
+/* Medios de pago */
+.fin-medios {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fin-medio {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--esquina, 4px);
+}
+
+.fin-medio-malo { border-left: 3px solid #fb7185; }
+
+/* Corregir un movimiento: el formulario ocupa la fila */
+.fin-editando { padding: 8px 0; }
+.fin-editar {
+    padding: 10px;
+    background: rgba(251, 191, 36, 0.06);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: var(--esquina, 4px);
+}
+
+.fin-editar .fin-par button { flex: 1; }
+
+/* Tarjetas de fijos, límites y pagos esperados: el botón de acción ocupa el ancho */
+.fin-tarjeta > .boton-chico:not(.fin-borrar) {
+    justify-self: start;
+    margin-top: 4px;
+}
+
+

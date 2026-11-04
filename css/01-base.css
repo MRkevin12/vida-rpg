@@ -1,0 +1,709 @@
+/* estilos.css — Aspecto visual de Vida RPG.
+ *
+ * Pensado para iPhone: respeta el "notch" y la barra de abajo con
+ * env(safe-area-inset-...), usa botones de al menos 44px para el dedo
+ * y textos de 16px en los campos (si son más pequeños, el iPhone hace zoom).
+ */
+
+/* Fuente de videojuego incluida en la app (funciona sin internet).
+   Un archivo por grosor: 700 (negrita) y 800 (extra negrita). */
+/* (v91) DotGothic16 (licencia OFL, fuentes/OFL-dotgothic16.txt): la letra de los títulos y los números,
+   hecha de cuadritos como en los RPG clásicos. El archivo trae solo las letras latinas (con ñ y tildes). */
+@font-face {
+    font-family: "DotGothic16";
+    src: url("../fuentes/dotgothic16.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Orbitron";
+    src: url("../fuentes/orbitron-700.woff2") format("woff2");
+    font-weight: 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Orbitron";
+    src: url("../fuentes/orbitron-800.woff2") format("woff2");
+    font-weight: 800;
+    font-display: swap;
+}
+
+/* ===== Colores y medidas (variables CSS) ===== */
+:root {
+    color-scheme: dark;
+
+    --fondo: #0b0816;
+    --panel: #15102a;
+    --panel-claro: #1c1536;
+    --hundido: #0d0a1c;
+    --borde: #2c2352;
+    --texto: #ece9fb;
+    --texto-suave: #aea8d2;   /* (v147) un poco más claro: los textos de ayuda se leían mal sobre el fondo oscuro */
+
+    --violeta: #8b5cf6;
+    --cian: #22d3ee;
+    --oro: #fbbf24;
+    --verde: #34d399;
+    --rojo: #fb7185;
+
+    --radio: 6px;            /* (v91) esquinas casi rectas, como en pixel art */
+    --esquina: 4px;          /* (v91) la de casi todo lo demás (antes 10–22 px y las píldoras 999 px) */
+    --letra-titulo: "DotGothic16", "Orbitron", sans-serif;   /* (v91) letra de pixel para títulos y números */
+    --celda: 15px;           /* tamaño de cada cuadrito del calendario */
+    --alto-pestanas: 64px;
+}
+
+/* Cada dificultad tiene su color; los elementos usan var(--color-dificultad). */
+.dificultad-facil   { --color-dificultad: var(--verde); }
+.dificultad-normal  { --color-dificultad: var(--cian); }
+.dificultad-dificil { --color-dificultad: var(--rojo); }
+
+
+/* ===== Base ===== */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--texto);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+    background:
+        radial-gradient(circle at 15% 0%, rgba(139, 92, 246, 0.2), transparent 45%),
+        radial-gradient(circle at 100% 40%, rgba(34, 211, 238, 0.08), transparent 40%),
+        var(--fondo);
+    background-attachment: fixed;
+    -webkit-tap-highlight-color: transparent; /* sin flash gris al tocar */
+    overscroll-behavior-y: none;
+    overflow-x: clip;                 /* (v52) la pantalla no se mueve de lado */
+    /* (v188) Es una app, no una página web: nada se selecciona al mantener el dedo o tocar muy seguido
+       (si no, iOS pinta el texto de azul y saca «Copiar · Consultar · Traducir»). */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* …excepto donde se escribe: ahí sí hay que poder poner el cursor, seleccionar, copiar y pegar. */
+input, textarea, select, [contenteditable="true"], .seleccionable {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+}
+
+/* (v52) Pantalla fija: un dedo solo hace scroll (sin zoom con doble toque).
+   (v190) Tampoco con dos dedos: al alejar, iOS achicaba la app y la descuadraba. Ver también app.js › sinZoom. */
+html {
+    touch-action: pan-x pan-y;
+    -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3, p, dl, dd {
+    margin: 0;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+    touch-action: manipulation;       /* toques rápidos sin zoom */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.panel {
+    background: linear-gradient(180deg, var(--panel-claro), var(--panel));
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.etiqueta {
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+}
+
+.titulo-juego {
+    font-family: var(--letra-titulo);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.titulo-grande {
+    margin: 6px 0 10px;
+    font-size: 1.5rem;
+}
+
+.texto-suave { color: var(--texto-suave); }
+.oro { color: var(--oro); }
+.mini { font-size: 0.8rem; }
+
+.nota {
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+}
+
+.vacio {
+    padding: 22px;
+    text-align: center;
+    color: var(--texto-suave);
+    border: 1px dashed var(--borde);
+    border-radius: var(--esquina);
+}
+
+.titulo-seccion {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.titulo-seccion .etiqueta::first-letter {
+    text-transform: uppercase;
+}
+
+
+/* ===== Crear personaje ===== */
+.crear-personaje {
+    max-width: 440px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 12vh) 16px 32px;
+}
+
+
+.separador-o {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 12px;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.separador-o::before,
+.separador-o::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--borde);
+}
+
+
+/* ===== Pantalla de bloqueo (PIN) ===== */
+.bloqueo {
+    position: fixed;
+    inset: 0;
+    z-index: 30; /* por encima de todo, incluidas las celebraciones */
+    display: grid;
+    place-items: center;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
+    overflow-y: auto;
+    background:
+        radial-gradient(circle at 50% 10%, rgba(139, 92, 246, 0.25), transparent 50%),
+        var(--fondo);
+}
+
+.bloqueo-caja {
+    width: min(320px, 100%);
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+.bloqueo-icono {
+    border-radius: var(--esquina);
+    box-shadow: 0 0 26px rgba(139, 92, 246, 0.5);
+}
+
+.bloqueo-mensaje {
+    min-height: 1.5em;
+    color: var(--texto-suave);
+}
+
+.bloqueo-mensaje.error {
+    color: var(--rojo);
+}
+
+.puntos {
+    display: flex;
+    gap: 18px;
+    margin: 6px 0 16px;
+}
+
+.puntos span {
+    width: 15px;
+    height: 15px;
+    border: 2px solid var(--texto-suave);
+    border-radius: 50%;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.puntos span.lleno {
+    background: var(--cian);
+    border-color: var(--cian);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.7);
+}
+
+.puntos.error {
+    animation: sacudir 0.4s ease-in-out;
+}
+
+.teclado {
+    display: grid;
+    grid-template-columns: repeat(3, 72px);
+    gap: 16px 26px;
+}
+
+.teclado button {
+    width: 72px;
+    height: 72px;
+    padding: 0;
+    font-family: var(--letra-titulo);
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--borde);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.teclado button:active {
+    background: rgba(139, 92, 246, 0.4);
+}
+
+.bloqueo .enlace {
+    justify-self: center;
+    margin-top: 8px;
+}
+
+
+/* ===== Cabecera fija ===== */
+.cabecera {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 10px) 16px 12px;
+    /* (v190) Fondo casi sólido y SIN desenfoque (backdrop-filter): en el iPhone, la cabecera pegada con desenfoque
+       a veces dejaba de pintar su contenido (se veía solo lo de abajo, borroso, sin tu nombre ni tu retrato).
+       translateZ(0) le da su propia capa, así se repinta bien al hacer scroll. */
+    background: rgba(11, 8, 22, 0.97);
+    transform: translateZ(0);
+    border-bottom: 1px solid rgba(44, 35, 82, 0.6);
+}
+
+.avatar {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    overflow: hidden;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--esquina);
+    font-family: var(--letra-titulo);
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, var(--violeta), var(--cian));
+    box-shadow: 0 0 18px rgba(139, 92, 246, 0.45);
+}
+
+.cabecera-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cabecera-linea {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.cab-nombre {
+    overflow: hidden;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.cab-nivel {
+    flex-shrink: 0;
+    font-family: var(--letra-titulo);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+}
+
+#cab-nivel {
+    display: inline-block;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--cian);
+}
+
+#cab-nivel.pulso {
+    animation: pulso 0.7s ease-out;
+}
+
+.cab-xp {
+    min-width: 0;             /* si no cabe (vida + armadura al lado), se recorta con «…» */
+    overflow: hidden;
+    font-size: 0.72rem;
+    color: var(--texto-suave);
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cab-monedas {
+    display: grid;
+    justify-items: end;
+    flex-shrink: 0;
+    font-family: var(--letra-titulo);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--oro);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Las gemas (v31): la moneda del arcade, más pequeña debajo de las monedas. */
+.cab-gemas {
+    font-size: 0.74rem;
+    color: #a5f3fc;
+}
+
+
+/* ===== Barras de progreso ===== */
+.barra {
+    height: 12px;
+    margin-top: 8px;
+    overflow: hidden;
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.barra-relleno {
+    position: relative;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--violeta), var(--cian));
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+    transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Brillo que recorre la barra */
+.barra-relleno::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    transform: translateX(-100%);
+    animation: brillo 2.8s ease-in-out infinite;
+}
+
+.barra-xp {
+    height: 8px;
+    margin: 4px 0 2px;
+}
+
+.barra-mini {
+    height: 7px;
+    margin: 6px 0 2px;
+}
+
+.barra-atributo .barra-relleno {
+    background: var(--color-atributo);
+    box-shadow: 0 0 8px var(--color-atributo);
+}
+
+.barra-oro .barra-relleno {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+/* Reto del día del arcade (v40) */
+.reto-dia {
+    display: grid;
+    gap: 6px;
+    border-color: rgba(34, 211, 238, 0.4);
+}
+
+.reto-dia.cumplido {
+    border-color: rgba(251, 191, 36, 0.55);
+}
+
+.reto-texto {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.barra-vida {
+    height: 14px;
+}
+
+.barra-vida .barra-relleno {
+    background: linear-gradient(90deg, #e11d48, var(--rojo), #fb923c);
+    box-shadow: 0 0 12px rgba(251, 113, 133, 0.55);
+}
+
+
+/* ===== Contenido y pestañas ===== */
+.contenido {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px 16px calc(var(--alto-pestanas) + env(safe-area-inset-bottom) + 24px);
+}
+
+.pantalla {
+    display: grid;
+    /* minmax(0, 1fr): la columna nunca se estira más que la pantalla.
+       Sin esto, el calendario (que es ancho) empujaría toda la página. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+}
+
+/* Al cambiar de pantalla, la nueva entra subiendo un poco (v23). La animación vuelve a
+   empezar cada vez que la pantalla deja de estar oculta; al redibujar la misma, no. */
+.pantalla:not([hidden]) {
+    animation: entrar-pantalla 0.32s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes entrar-pantalla {
+    from { opacity: 0; transform: translateY(10px); }
+}
+
+.pestanas {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);   /* (v112) 5 pestañas: Hoy, Progreso, Aventuras, Héroe, Tienda (Running se abre desde Hoy) */
+    max-width: 640px;
+    margin: 0 auto;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: rgba(11, 8, 22, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(44, 35, 82, 0.8);
+}
+
+.pestana {
+    height: var(--alto-pestanas);
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--texto-suave);
+    font-size: 0.68rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.pestana svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pestana[aria-current="page"] {
+    color: var(--cian);
+}
+
+.pestana[aria-current="page"] svg {
+    filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.7));
+}
+
+
+/* ===== Botones ===== */
+.boton {
+    min-height: 44px;
+    padding: 12px 18px;
+    border: none;
+    border-radius: var(--esquina);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.boton:active {
+    transform: scale(0.97);
+}
+
+.boton:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.boton-principal {
+    color: #fff;
+    background: linear-gradient(90deg, var(--violeta), #6d5cf6 50%, #3b82f6);
+    box-shadow: 0 0 18px rgba(139, 92, 246, 0.4);
+}
+
+.boton-secundario {
+    color: var(--texto);
+    background: var(--hundido);
+    border: 1px solid var(--borde);
+}
+
+.boton-chico {
+    min-height: 36px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    color: var(--texto);
+    background: rgba(139, 92, 246, 0.18);
+    border: 1px solid rgba(139, 92, 246, 0.45);
+}
+
+.boton-ancho {
+    width: 100%;
+}
+
+.boton-oro {
+    color: #2a1d00;
+    background: linear-gradient(180deg, #fde68a, var(--oro));
+    border-color: var(--oro);
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.35);
+}
+
+.boton-peligro {
+    color: #fff;
+    background: linear-gradient(90deg, #e11d48, #f43f5e);
+    box-shadow: 0 0 14px rgba(244, 63, 94, 0.35);
+}
+
+.boton-icono {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: none;
+    border-radius: var(--esquina);
+    background: transparent;
+    color: var(--texto-suave);
+    cursor: pointer;
+}
+
+.boton-icono svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.boton-icono:active {
+    color: var(--rojo);
+    background: rgba(251, 113, 133, 0.1);
+}
+
+.boton-icono.chico {
+    width: 32px;
+    height: 32px;
+}
+
+.boton-icono.chico svg {
+    width: 15px;
+    height: 15px;
+}
+
+.enlace {
+    justify-self: start;
+    padding: 6px 0;
+    border: none;
+    background: none;
+    color: var(--texto-suave);
+    font-size: 0.82rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+
+/* ===== Chips (etiquetas pequeñas) ===== */
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.chip {
+    padding: 5px 11px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.chip-racha {
+    color: #fdba74;
+    border-color: rgba(251, 146, 60, 0.45);
+}
+
+.chip-oro {
+    color: var(--oro);
+    border-color: rgba(251, 191, 36, 0.5);
+}
+
+.chip-atributo {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-atributo);
+    border: 1px solid var(--color-atributo);
+    border-radius: var(--esquina);
+}
+
+.contador {
+    font-family: var(--letra-titulo);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--cian);
+    font-variant-numeric: tabular-nums;
+}
+
+.contador.completo {
+    color: var(--oro);
+    text-shadow: 0 0 14px rgba(251, 191, 36, 0.6);
+}
+
+

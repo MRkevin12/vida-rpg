@@ -31,7 +31,7 @@ export function tarjetaMementoHoy(estado, ctx) {
 export const CASILLA = 6;        // lo que mide cada casilla en el dibujo (5 de color + 1 de separación)
 export const MARGEN = 28;        // a la izquierda: los números de edad
 
-// (v147) Cada etapa de la vida tiene su color (estilos.css: .e-infancia, .e-juventud…): sus semanas vividas, fuertes, y las
+// (v147) Cada etapa de la vida tiene su color (css/17-memento.css: .e-infancia, .e-juventud…): sus semanas vividas, fuertes, y las
 // que quedan, apagadas. Por eso hay dos patrones por etapa (10 en total: siguen siendo pocos elementos).
 // (v152) marcas = { km, gym, misiones } (memento.semanasMarcadas): las semanas vividas en que corriste, cumpliste tu meta de gym o
 // hiciste misiones los 7 días se pintan encima, cada tipo de su color y todas en TRES <path> (uno por color). Si en una semana

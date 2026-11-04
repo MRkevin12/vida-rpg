@@ -110,7 +110,7 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 
 | Archivo | Para qué sirve |
 |---|---|
-| `index.html`, `estilos.css` | La estructura de la página y su aspecto |
+| `index.html`, `css/` | La estructura de la página y su aspecto |
 | `js/app.js` | Conecta todo: escucha los toques, ejecuta acciones y redibuja |
 | `js/acciones.js` | Lo que cambia la partida: crear, completar, editar, canjear |
 | `js/juego.js` | Las reglas: XP, niveles, rachas, logros |

@@ -116,6 +116,14 @@ function prueba(nombre, funcion) {
     pruebas.push({ nombre, funcion });
 }
 
+// Todos los estilos juntos, en el MISMO orden en que index.html carga las hojas de css/ (así se lee como un solo archivo).
+async function leerCSS() {
+    const html = await (await fetch("../index.html", { cache: "no-store" })).text();
+    const hojas = [...html.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map((m) => m[1]);
+    const textos = await Promise.all(hojas.map(async (h) => (await fetch("../" + h, { cache: "no-store" })).text()));
+    return textos.join("\n");
+}
+
 // Compara dos valores (los pasa a texto JSON para poder comparar listas y objetos).
 function igual(real, esperado, que = "el resultado") {
     const a = JSON.stringify(real);
@@ -2632,7 +2640,7 @@ prueba("Pantalla de carga (v85): dura 4 segundos con su escena, y con PIN va des
     const app = await (await fetch("../js/app.js", { cache: "no-store" })).text();
     cierto(app.includes("const CARGA_DURACION = 5000;"), "dura 5 segundos");
     cierto(/pedirPinParaEntrar\(entrarConCarga\)/.test(app) && /correrCarga\(entrarAlJuego, \{ completa: true \}\)/.test(app), "primero la clave y después la carga");
-    const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
+    const css = await leerCSS();
     cierto(css.includes(".carga.espera { display: none; }"), "la espera la esconde");
     // (v88) Con «Reducir movimiento» (común en iPhone) la escena debe seguir animándose: la regla global que lo apaga todo se salta la carga.
     cierto(css.includes(":not(#cine):not(#cine *)"), "las cinemáticas del reino tampoco se congelan con «Reducir movimiento»");
@@ -6269,7 +6277,7 @@ prueba("Escena de batalla: la vida de los dos a la vista (con lo que se perdió)
 // ===== En horizontal (v61) =====
 
 prueba("Horizontal: la batalla, las cinemáticas, el mapa y los minijuegos tienen su diseño para el teléfono girado", async () => {
-    const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
+    const css = await leerCSS();
     const inicio = css.indexOf("@media (orientation: landscape) and (max-height: 540px)");
     cierto(inicio > 0, "hay un bloque para pantallas horizontales bajitas (no tabletas ni la compu)");
     const bloque = css.slice(inicio);
@@ -7898,7 +7906,7 @@ prueba("Íconos: los emojis se cambian por su dibujo (con y sin el «️» invis
 prueba("Service worker: guarda todos los archivos de la app (y existen), incluidos los del tema pixel", async () => {
     const texto = await (await fetch("../sw.js", { cache: "no-store" })).text();
     const archivos = [...texto.match(/const ARCHIVOS = \[([\s\S]*?)\];/)[1].matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]);
-    for (const nombre of ["js/iconos.js", "estilos-pixel.css", "fuentes/dotgothic16.woff2"]) cierto(archivos.includes(nombre), `falta ${nombre} en ARCHIVOS`);
+    for (const nombre of ["js/iconos.js", "css/01-base.css", "css/99-pixel.css", "fuentes/dotgothic16.woff2"]) cierto(archivos.includes(nombre), `falta ${nombre} en ARCHIVOS`);
     const faltan = [];
     for (const nombre of archivos.filter(Boolean)) if (!(await fetch("../" + nombre, { method: "HEAD", cache: "no-store" })).ok) faltan.push(nombre);
     igual(faltan, [], "archivos que no existen");
@@ -9723,7 +9731,7 @@ prueba("La Senda del Reino: archivos en el service worker y en la ayuda", async 
     const html = await (await fetch("../index.html", { cache: "no-store" })).text();
     for (const id of ["senda", "senda-mapa", "senda-lienzo", "senda-controles", "senda-capa", "senda-hud"]) cierto(html.includes(`id="${id}"`), `index.html tiene #${id}`);
     for (const boton of ["izquierda", "derecha", "saltar", "fuego"]) cierto(html.includes(`data-senda="${boton}"`), `botón ${boton}`);
-    const css = await (await fetch("../estilos.css", { cache: "no-store" })).text();
+    const css = await leerCSS();
     cierto(/\.senda\.jugando \.senda-pantalla\s*\{[^}]*inset:\s*0/.test(css), "en horizontal, el lienzo a pantalla completa");
     cierto(/\.senda-controles\s*\{[^}]*touch-action:\s*none/.test(css), "los botones no mueven la página");
 });

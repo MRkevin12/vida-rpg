@@ -1,0 +1,1690 @@
+/* css/16-running.css — Running (v109–v146): mapa, criaturas, concentración, HUD y la pelea sobre el mapa.
+   (Trozo de los estilos: se cargan EN ORDEN desde index.html; lo de abajo le gana a lo de arriba.) */
+
+/* ===== El running (v109): la pestaña Running (js/vistas-running.js) ===== */
+.run-vivo.pausada .run-tiempo { opacity: 0.55; }
+
+.run-tiempo {
+    margin: 4px 0;
+    font-family: var(--letra-titulo, inherit);
+    font-size: 3.2rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.run-tiempo-chico { font-size: 1.05rem; margin: 6px 0; }
+
+.run-datos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.run-datos > div {
+    padding: 10px;
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+    background: var(--hundido);
+}
+
+.run-datos small,
+.run-fila-texto small,
+.run-lista small { display: block; color: var(--texto-suave); }
+
+.run-datos b {
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.run-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.run-botones .boton { flex: 1 1 140px; }
+
+.run-tipos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.run-tipo {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 999px;
+    background: var(--hundido);
+    color: var(--texto);
+    font: inherit;
+    cursor: pointer;
+}
+
+.run-tipo[aria-pressed="true"] {
+    border-color: var(--cian);
+    background: rgba(34, 211, 238, 0.14);
+}
+
+.run-campos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+/* Las barras de las 12 semanas: cada columna tiene la barra y el número del día; la línea punteada es la meta. */
+.run-barras {
+    position: relative;
+    display: flex;
+    gap: 6px;
+    margin: 12px 0 4px;
+}
+
+.run-barras::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(18px + 100px * var(--meta, 0));
+    border-top: 2px dashed rgba(251, 191, 36, 0.7);
+    pointer-events: none;
+}
+
+.run-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+}
+
+.run-barra {
+    width: 100%;
+    height: 100px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.run-barra i {
+    display: block;
+    width: 100%;
+    min-height: 2px;
+    border-radius: 3px 3px 0 0;
+    background: var(--violeta);
+}
+
+.run-col.actual .run-barra i { background: var(--cian); }
+
+.run-col small {
+    height: 18px;
+    line-height: 18px;
+    font-size: 0.74rem;
+    color: var(--texto-suave);
+}
+
+.run-ritmos {
+    width: 100%;
+    height: auto;
+    margin-top: 8px;
+}
+
+.run-lista {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.run-lista li {
+    display: grid;
+    grid-template-columns: 2rem 1fr auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.run-valor { font-variant-numeric: tabular-nums; }
+
+.run-hito:not(.cobrado) { opacity: 0.6; }
+
+.run-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.run-meta-botones {
+    display: flex;
+    gap: 8px;
+}
+
+.run-historial {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.run-fila {
+    display: grid;
+    grid-template-columns: 2rem 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--borde);
+}
+
+
+/* ===== (v116) Running: recorrido, parciales por kilómetro y predicciones ===== */
+.run-detalle {
+    margin-top: 6px;
+}
+
+.run-detalle summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--cian);
+}
+
+.run-trazo {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin: 8px 0 2px;
+    background: rgba(8, 6, 20, 0.7);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.run-parciales {
+    display: grid;
+    gap: 3px;
+    margin: 8px 0 4px;
+    padding: 0;
+    list-style: none;
+}
+
+.run-parcial {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr 3rem;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+}
+
+.run-parcial b {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.run-parcial-barra {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.run-parcial-barra i {
+    display: block;
+    height: 100%;
+    background: var(--cian);
+}
+
+.run-parcial.mejor .run-parcial-barra i { background: #4ade80; }
+.run-parcial.peor .run-parcial-barra i { background: #fbbf24; }
+
+.run-parciales-vivo:empty {
+    display: none;
+}
+
+.run-prediccion {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.run-prediccion li {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.run-prediccion small {
+    min-width: 4.2rem;
+    text-align: right;
+    color: var(--texto-suave);
+}
+
+
+/* ===== (v117) La barra de la carrera en curso (visible en todas las pantallas) ===== */
+.run-flotante {
+    position: fixed;
+    right: 12px;
+    bottom: calc(var(--alto-pestanas) + env(safe-area-inset-bottom) + 8px);
+    left: 12px;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    max-width: 616px;
+    margin: 0 auto;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    color: #fff;
+    background: linear-gradient(180deg, #3350c8, #1c2e96);
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+    font-variant-numeric: tabular-nums;
+}
+
+.run-flotante[hidden] {
+    display: none;
+}
+
+
+/* ===== (v118) El mapa de tu carrera en tiempo real ===== */
+.run-mapa-vivo {
+    position: relative;
+    margin: 10px 0 4px;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #2a6a38;
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    box-shadow: 0 0 0 1px #060a3a;
+}
+
+.run-mapa-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    font-family: var(--letra-titulo);
+}
+
+.run-mapa-heroe {
+    position: absolute;
+    width: 9%;
+    image-rendering: pixelated;
+    transform: translate(-50%, -88%);
+    pointer-events: none;
+    animation: mapa-paso 0.9s steps(1) infinite;
+}
+
+.run-mapa-heroe:not([src]) {
+    visibility: hidden;
+}
+
+/* ===== (v144) El mapa de la carrera se mueve (árboles, pasto, agua, fuego, nieve, brasas, niebla, pájaros) =====
+   Todo va en pasos (steps): el dibujo cambia pocas veces por segundo, como el pixel art, y el teléfono trabaja poco.
+   Cada animación dura un divisor de 24 s. Las fases (--f0 … --f3) las escribe dibujo-carrera.js en el <svg> según la hora:
+   así, aunque el mapa se vuelva a dibujar cada segundo, cada animación sigue donde iba en vez de empezar de cero. */
+.run-mapa-svg .cr-mece { animation: cr-mece 2.4s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-brillo { animation: cr-brillo 1.6s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-copo { animation: cr-copo 3s steps(12) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-brasa { animation: cr-brasa 2.4s steps(12) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-niebla { animation: cr-niebla 6s steps(6) var(--f0, 0s) infinite alternate; }
+.run-mapa-svg .cr-luciernaga { animation: cr-luciernaga 3s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-mariposa { animation: cr-mariposa 2s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-corriente { animation: cr-corriente 3s steps(12) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-lava { animation: cr-lava 1.6s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-fuegoA, .run-mapa-svg .cr-alaA { animation: cr-cuadro-a 0.5s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-fuegoB, .run-mapa-svg .cr-alaB { animation: cr-cuadro-b 0.5s steps(1) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-humo { animation: cr-humo 2s steps(8) var(--f0, 0s) infinite; }
+.run-mapa-svg .cr-vuelo { animation: cr-vuelo 24s steps(96) var(--f0, 0s) infinite; }
+
+/* Las fases de cada grupo (van después, para ganarle al animation-delay de arriba). */
+.run-mapa-svg .f1 { animation-delay: var(--f1, 0s); }
+.run-mapa-svg .f2 { animation-delay: var(--f2, 0s); }
+.run-mapa-svg .f3 { animation-delay: var(--f3, 0s); }
+
+@keyframes cr-mece { 0%, 55% { transform: translateX(0); } 60%, 80% { transform: translateX(1px); } 85%, 100% { transform: translateX(0); } }
+@keyframes cr-brillo { 0%, 60% { opacity: 0; } 65%, 85% { opacity: 1; } 90%, 100% { opacity: 0; } }
+@keyframes cr-copo { from { transform: translate(0, -6px); } to { transform: translate(2px, 6px); } }
+@keyframes cr-brasa { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(1px, -12px); opacity: 0; } }
+@keyframes cr-niebla { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
+@keyframes cr-luciernaga { 0%, 30% { opacity: 0; } 35%, 60% { opacity: 1; } 65%, 100% { opacity: 0; } }
+@keyframes cr-mariposa { 0% { transform: translate(0, 0); } 25% { transform: translate(1px, -1px); } 50% { transform: translate(2px, 0); } 75% { transform: translate(1px, 1px); } 100% { transform: translate(0, 0); } }
+@keyframes cr-corriente { to { stroke-dashoffset: -12; } }
+@keyframes cr-lava { 0%, 50% { opacity: 1; } 55%, 100% { opacity: 0.7; } }
+@keyframes cr-cuadro-a { 0%, 45% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes cr-cuadro-b { 0%, 45% { opacity: 0; } 50%, 100% { opacity: 1; } }
+@keyframes cr-humo { from { transform: translate(0, 0); opacity: 0.9; } to { transform: translate(1px, -8px); opacity: 0; } }
+@keyframes cr-vuelo { 0% { transform: translate(0, 0); } 50%, 100% { transform: translate(380px, -24px); } }
+
+/* Sin movimiento (Ajustes del teléfono › Accesibilidad): el mapa queda quieto y los pájaros no aparecen. */
+@media (prefers-reduced-motion: reduce) {
+    .run-mapa-svg * {
+        animation: none !important;
+    }
+}
+
+
+/* ===== (v119) Criaturas en la carrera y el mapa por zonas ===== */
+.run-mapa-zona {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 3;   /* (v146) encima de la pelea */
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    color: #fff;
+    background: rgba(11, 8, 22, 0.75);
+    border: 1px solid rgba(241, 243, 255, 0.6);
+    border-radius: var(--esquina);
+    pointer-events: none;
+}
+
+.run-pelea {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);   /* (v139) la imagen de la criatura pelea arriba (v146: sobre el mapa) */
+    gap: 10px;
+    align-items: center;
+    margin: 8px 0;
+    padding: 8px;
+    background: linear-gradient(180deg, #3350c8 0%, #1c2e96 38%, #0a1258 100%);
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+}
+
+.run-pelea-texto {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.run-pelea-texto b small {
+    font-weight: 500;
+    color: #b9c6ff;
+}
+
+.run-pelea-texto small {
+    font-size: 0.78rem;
+    color: #dfe5ff;
+}
+
+.run-pelea-vida .barra-relleno { background: #f87171; }
+.run-pelea-vida.bien .barra-relleno { background: #4ade80; }
+.run-pelea-vida.justo .barra-relleno { background: #fbbf24; }
+
+.run-pelea-aviso {
+    color: #fbbf24 !important;
+}
+
+.run-criaturas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 4px 0 8px;
+    padding: 0;
+    list-style: none;
+}
+
+.run-criaturas li {
+    padding: 2px 6px;
+    font-size: 0.76rem;
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.run-criaturas li.vencida { color: #4ade80; border-color: rgba(74, 222, 128, 0.5); }
+.run-criaturas li.escapo { color: var(--texto-suave); }
+
+
+/* ===== (v127) Diagnóstico de voces ===== */
+.run-voces-lista {
+    max-height: 220px;
+    margin: 6px 0;
+    padding: 6px 10px;
+    overflow-y: auto;
+    list-style: none;
+    font-size: 0.78rem;
+    background: rgba(8, 6, 20, 0.6);
+    border: 1px solid var(--borde);
+    border-radius: var(--esquina);
+}
+
+.run-voces-lista small {
+    color: var(--texto-suave);
+}
+
+/* ===== (v120) Modo concentración: la carrera sin distracciones ===== */
+.run-concentracion .cabecera,
+.run-concentracion .pestanas,
+.run-concentracion .run-flotante,
+.run-concentracion #pantalla-running .encabezado,
+.run-concentracion #pantalla-running .run-vivo > .etiqueta,
+.run-concentracion #pantalla-running [data-run-ruta],
+.run-concentracion #pantalla-running .run-pelea + .mini {
+    display: none;
+}
+
+.run-concentracion .contenido {
+    padding-top: calc(env(safe-area-inset-top) + 12px);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+}
+
+.run-concentracion .run-tiempo {
+    font-size: clamp(4rem, 22vw, 6.5rem);
+    text-align: center;
+}
+
+.run-concentracion .run-datos b {
+    font-size: 1.9rem;
+}
+
+.run-concentracion .run-botones .boton {
+    min-height: 56px;
+    font-size: 1.05rem;
+}
+
+.run-concentracion-boton {
+    opacity: 0.8;   /* (v141) sin margen arriba: así queda a la misma altura que «Cancelar» */
+}
+
+
+/* ===== (v128) Frases de ánimo ===== */
+.run-frase {
+    font-style: italic;
+    color: #ffe58a !important;
+}
+
+
+/* ===== (v129) Modo concentración en UNA pantalla: todo cabe sin deslizar ===== */
+.run-concentracion:not(.run-terminando) {
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+.run-concentracion:not(.run-terminando) .contenido {
+    padding: calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px);
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
+    margin: 0;
+    padding: 10px 12px;
+    overflow: hidden;
+}
+
+.run-concentracion:not(.run-terminando) .run-tiempo {
+    margin: 0;
+    font-size: clamp(2.6rem, 15vw, 4.4rem);
+    line-height: 1;
+}
+
+.run-concentracion:not(.run-terminando) .run-datos {
+    gap: 8px;
+    margin: 0;
+}
+
+.run-concentracion:not(.run-terminando) .run-datos > div {
+    padding: 6px 10px;
+}
+
+.run-concentracion:not(.run-terminando) .run-datos b {
+    font-size: 1.3rem;
+}
+
+.run-concentracion:not(.run-terminando) .run-dividida .run-mapa-vivo {
+    flex: 1 1 auto;   /* se queda con el espacio que sobra (sin criaturas el dibujo se estira un poco: nunca más de ~90 % del ancho de alto) */
+    min-height: 110px;
+    max-height: calc((100vw - 24px) * 0.9);
+    margin: 0;
+    aspect-ratio: auto;
+}
+
+/* (v146) Con criaturas la pelea va sobre el mapa: el mapa se queda con TODO lo que sobra (el dibujo no se estira: se recorta). */
+.run-concentracion:not(.run-terminando) .run-dividida.con-pelea .run-mapa-vivo {
+    max-height: none;
+}
+
+/* La caja «dividida» (v139: el mapa y la batalla) ahora solo envuelve al mapa y a sus capas. */
+.run-concentracion:not(.run-terminando) .run-dividida {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 110px;
+    margin: 0;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea {
+    margin: 0;
+    padding: 6px 8px;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea-texto small {
+    font-size: 0.66rem;
+}
+
+.run-concentracion .run-objetivo,
+.run-concentracion .run-parciales-vivo {
+    display: none;
+}
+
+.run-concentracion:not(.run-terminando) [data-run-gps] {
+    margin: 0;
+    font-size: 0.7rem;
+}
+
+.run-botones-chicos {
+    margin-top: 6px;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones {
+    margin-top: auto;   /* los botones se pegan al fondo y el mapa se queda con lo que sobra */
+}
+
+.run-concentracion:not(.run-terminando) .run-botones .boton {
+    min-height: 50px;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones-chicos {
+    margin-top: 0;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones-chicos .boton {
+    min-height: 40px;
+    font-size: 0.8rem;
+}
+
+.run-terminar .run-datos {
+    margin-bottom: 8px;
+}
+
+
+/* ===== (v131) Botón de la vista del mapa ===== */
+.run-mapa-vista {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 3;
+    min-height: 32px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    color: #fff;
+    background: rgba(11, 8, 22, 0.8);
+    border: 1px solid rgba(241, 243, 255, 0.7);
+    border-radius: var(--esquina);
+}
+
+/* ===== (v139) La caja del mapa mientras corres =====
+   (v139–v145 tenía el mapa y, al lado, la batalla. Desde la v146 la pelea va sobre el mapa: ver el bloque v146 más abajo.) */
+.run-dividida {
+    display: grid;
+    gap: 6px;
+    margin: 10px 0 4px;
+}
+
+.run-dividida > * {
+    min-width: 0;
+    min-height: 0;
+}
+
+.run-dividida .run-mapa-vivo {
+    margin: 0;
+}
+
+/* container-type: size → dentro de la caja, cqw y cqh son el 1 % de su ancho y de su alto. Sirven para ubicar a tu héroe
+   y la pelea sobre el mapa recortado, y para que la escena del golpe final quepa entera. Por eso la caja necesita un alto
+   propio (su aspect-ratio o el espacio que le da el modo concentración): con «size» el contenido ya no la estira. */
+.run-dividida.con-pelea .run-mapa-vivo {
+    container-type: size;
+}
+
+/* (v146) La escena de la Torre: solo en el golpe final, encima del mapa (.run-final-escena). */
+.run-batalla {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+    container-type: size;
+    background: #0b0816;
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    box-shadow: 0 0 0 1px #060a3a;
+}
+
+/* Si la caja es más ancha que la escena, a los lados se ve la misma sala, oscura y borrosa. */
+.run-batalla-fondo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
+    filter: blur(3px) brightness(0.45);
+    transform: scale(1.1);
+}
+
+/* La escena de la Torre, del tamaño que quepa entera: mide 192 × 128 puntos (1,5 veces más ancha que alta). */
+.run-batalla .ff-escena {
+    width: 100%;
+    width: min(100cqw, 150cqh);   /* los teléfonos que no entienden cq se quedan con la línea de arriba */
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.run-batalla .ff-sprite[src=""] {
+    visibility: hidden;   /* la imagen todavía se está pixelando */
+}
+
+/* Las dos barras de vida: la criatura a la izquierda y tú a la derecha. */
+.run-bat-hud {
+    width: 40%;
+}
+
+.run-bat-hud-heroe {
+    top: 4%;
+    right: 3%;
+    text-align: right;
+}
+
+/* El nombre del poder (o del ataque, o del golpe final): se ve 2 segundos. */
+.run-bat-cartel {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    z-index: 6;
+    padding: 3px 10px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-50%);
+    animation: run-cartel 2.2s steps(1) both;
+}
+
+@keyframes run-cartel {
+    0%, 85% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Cómo terminó la pelea del km. */
+.run-bat-fin {
+    position: absolute;
+    left: 50%;
+    bottom: 5%;
+    z-index: 6;
+    margin: 0;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    white-space: nowrap;
+    background: rgba(11, 8, 22, 0.85);
+    border: 1px solid currentColor;
+    border-radius: var(--esquina);
+    transform: translateX(-50%);
+    animation: run-fin-entra 0.4s steps(4) 1.2s both;
+}
+
+.run-bat-fin.vencida { color: #86ffb0; }
+.run-bat-fin.escapo { color: #cfd3e6; }
+
+@keyframes run-fin-entra {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+}
+
+/* Los 10 tramos de 100 m del km: verde = tajo, dorado = rayo, rojo = lento; el que corres ahora parpadea. */
+.run-tramos {
+    position: absolute;
+    left: 50%;
+    bottom: 4%;
+    z-index: 6;
+    display: flex;
+    gap: calc(var(--px) * 1);
+    margin: 0;
+    padding: calc(var(--px) * 1.5);
+    list-style: none;
+    background: rgba(11, 8, 22, 0.7);
+    border-radius: 3px;
+    transform: translateX(-50%);
+}
+
+.run-tramos li {
+    width: calc(var(--px) * 7);
+    height: calc(var(--px) * 4);
+    background: #3a3550;
+}
+
+.run-tramos li.tajo { background: #4ade80; }
+.run-tramos li.rayo { background: #fde047; }
+.run-tramos li.lento { background: #f87171; }
+
+.run-tramos li.ahora {
+    animation: run-tramo 1s steps(1) infinite;
+}
+
+@keyframes run-tramo {
+    50% { background: #eef2ff; }
+}
+
+/* La criatura entra a la sala… */
+.ff-enemigo.aparece .ff-paso {
+    animation: run-aparece 0.7s steps(6) both;
+}
+
+@keyframes run-aparece {
+    from { opacity: 0; filter: brightness(0); transform: translateX(calc(var(--px) * -40)); }
+}
+
+/* …o se escapa corriendo si no la venciste. */
+.ff-enemigo.huye .ff-paso {
+    animation: run-huye 0.9s steps(6) 0.4s forwards;
+}
+
+@keyframes run-huye {
+    0% { opacity: 1; transform: translateX(0); }
+    25% { transform: translateX(calc(var(--px) * 6)); }
+    100% { opacity: 0; transform: translateX(calc(var(--px) * -90)); }
+}
+
+.run-poderes {
+    color: #b9c6ff !important;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea .texto-suave {
+    display: none;   /* lo que pasó en el km anterior ya lo cuenta la batalla */
+}
+
+/* ===== (v140) El consejo de ritmo grande ===== */
+.run-consejo {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    font-family: var(--letra-titulo);
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-align: center;
+    color: #fff;
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    background: #3a3550;
+}
+
+.run-consejo.bien { background: #1d7a3e; }
+.run-consejo.casi { background: #a87a0c; }
+.run-consejo.lento { background: #b3262e; }
+.run-consejo.rapido { background: #1f5fb8; }
+
+.run-concentracion:not(.run-terminando) .run-consejo {
+    margin: 0;
+    padding: 5px 8px;
+    font-size: 0.95rem;
+}
+
+/* ===== (v141) La carrera en vivo con más píxeles: HUD de juego, barra del km y marcos en escalón =====
+   Casi todo es solo para el modo concentración (body.run-concentracion). En el modo normal solo se nota la barra del km. */
+
+/* --- La barra del km en curso: «KM 2 · criatura · 470 / 1000 m» y sus 10 tramos de 100 m --- */
+.run-km {
+    margin: 8px 0 0;
+    padding: 6px 8px 8px;
+    background: linear-gradient(180deg, #1d1747, #0c0920);
+    border: 2px solid #f1f3ff;
+    border-radius: var(--esquina);
+    box-shadow: 0 0 0 1px #060a3a;
+}
+
+.run-km-cab {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 5px;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.run-km-num {
+    font-family: var(--letra-titulo);
+    font-size: 0.95rem;
+    color: var(--oro);
+    text-shadow: 0 2px 0 var(--tinta);
+}
+
+/* El nombre de la criatura: en el modo normal ya sale en su tarjeta; aquí solo en concentración. */
+.run-km-criatura {
+    display: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #dfe5ff;
+}
+
+.run-km-metros {
+    margin-left: auto;
+    color: var(--texto-suave);
+    font-variant-numeric: tabular-nums;
+}
+
+.run-km-metros b {
+    font-family: var(--letra-titulo);
+    font-size: 0.95rem;
+    color: #fff;
+}
+
+/* Los 10 tramos: cuadros con luz arriba y sombra abajo sobre una franja de tinta, como un medidor de 16 bits. */
+.run-km-tramos {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 3px;
+    margin: 0;
+    padding: 3px;
+    list-style: none;
+    background: var(--tinta);
+}
+
+.run-km-tramos li {
+    position: relative;
+    height: 12px;
+    overflow: hidden;
+    background: #2a2346;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.run-km-tramos li.hecho { background: #5b6bc4; }   /* corrido, en una carrera sin criaturas */
+.run-km-tramos li.tajo { background: #4ade80; }
+.run-km-tramos li.rayo { background: #fde047; }
+.run-km-tramos li.lento { background: #f87171; }
+
+/* La llamarada (3 tramos seguidos a tu ritmo): una franja de fuego abajo. */
+.run-km-tramos li.combo::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 4px;
+    background: #ff8a24;
+}
+
+/* El tramo que corres ahora se va llenando, y un borde blanco parpadea encima. */
+.run-km-tramos li.ahora i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: #cfd3e6;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6);
+}
+
+.run-km-tramos li.ahora::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    box-shadow: inset 0 0 0 2px #fff;
+    opacity: 0;
+    animation: run-km-ahora 1s steps(1) infinite;
+}
+
+@keyframes run-km-ahora {
+    50% { opacity: 1; }
+}
+
+/* --- El GPS en corto (en el HUD de concentración): 4 rayitas de cuadritos y dos o tres palabras --- */
+.run-hud-estado {
+    display: none;   /* en el modo normal ya están la etiqueta de arriba y el aviso largo del GPS */
+}
+
+.run-gps-corto {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.run-gps-corto > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 11 × 8 puntos: cada punto mide 4/3 px, que en el iPhone (3 píxeles por px) son 4 píxeles exactos. */
+.run-senal {
+    flex: none;
+    width: calc(44px / 3);
+    height: calc(32px / 3);
+}
+
+.run-senal .si { fill: currentColor; }
+.run-senal .no { fill: #3a3550; }
+
+.run-gps-corto.buena { color: #86ffb0; }
+.run-gps-corto.regular,
+.run-gps-corto.pausa { color: #fde047; }
+.run-gps-corto.mala { color: #ff8f8f; }
+.run-gps-corto.busca,
+.run-gps-corto.crono { color: #b9c6ff; }
+
+.run-gps-corto.busca .run-senal {
+    animation: run-busca 1.2s steps(1) infinite;
+}
+
+@keyframes run-busca {
+    50% { opacity: 0.3; }
+}
+
+/* --- Modo concentración --- */
+
+/* Un marco de píxel: borde claro de 2 px con las esquinas en escalón y contorno de tinta, como las ventanas de los
+   juegos de 16 bits. Va POR FUERA de la caja (sombras sin desenfoque: una por lado y una por esquina), así no cambia
+   su tamaño. Por eso entre caja y caja hay 12 px: 4 de cada marco y 4 de aire. */
+.run-concentracion:not(.run-terminando) #pantalla-running :is(.run-hud, .run-consejo, .run-km, .run-pelea, .run-mapa-vivo) {
+    --marco: #f1f3ff;
+    border: 0;
+    border-radius: 0;
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+        0 -2px 0 var(--marco), 0 2px 0 var(--marco), -2px 0 0 var(--marco), 2px 0 0 var(--marco),
+        -2px -2px 0 var(--tinta), 2px -2px 0 var(--tinta), -2px 2px 0 var(--tinta), 2px 2px 0 var(--tinta),
+        0 -4px 0 var(--tinta), 0 4px 0 var(--tinta), -4px 0 0 var(--tinta), 4px 0 0 var(--tinta);
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo {
+    gap: 12px;
+}
+
+/* El HUD: marco dorado, fondo con líneas de pantalla vieja, el estado arriba, el cronómetro y los dos datos. */
+.run-concentracion:not(.run-terminando) #pantalla-running .run-hud {
+    --marco: #e9b949;
+    display: grid;
+    gap: 6px;
+    padding: 6px 10px 10px;
+    background:
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 4px),
+        linear-gradient(180deg, #241b55, #0c0920);
+}
+
+.run-concentracion:not(.run-terminando) .run-hud-estado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: var(--texto-suave);
+    white-space: nowrap;
+}
+
+.run-hud-tipo {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.run-concentracion:not(.run-terminando) .run-hud .run-tiempo {
+    text-shadow: 0 3px 0 var(--tinta);
+}
+
+.run-concentracion:not(.run-terminando) .run-datos > div {
+    padding: 5px 8px 6px;
+    background: rgba(6, 4, 13, 0.55);
+    border: 0;
+    border-radius: 0;
+    box-shadow: inset 0 0 0 2px #2e2560, inset 0 -4px 0 rgba(0, 0, 0, 0.25);
+}
+
+.run-concentracion:not(.run-terminando) .run-datos small {
+    font-size: 0.68rem;
+}
+
+.run-concentracion:not(.run-terminando) .run-datos b {
+    font-family: var(--letra-titulo);
+    font-size: 1.45rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    text-shadow: 0 2px 0 var(--tinta);
+}
+
+/* La barra del km, con la criatura en la misma línea. */
+.run-concentracion:not(.run-terminando) #pantalla-running .run-km {
+    margin: 0;
+    padding: 5px 8px 7px;
+}
+
+.run-concentracion:not(.run-terminando) .run-km-criatura {
+    display: block;
+}
+
+.run-concentracion:not(.run-terminando) .run-km-tramos li {
+    height: 14px;
+}
+
+/* Los tramitos pequeños de la batalla ya no hacen falta: la barra del km los muestra más grandes (en los dos modos). */
+.run-km ~ .run-dividida .run-tramos {
+    display: none;
+}
+
+/* Lo que ya se ve en otro lado no se repite: el nombre de la criatura (barra del km), su vida (batalla), el «vas
+   ganando» (consejo de ritmo), la leyenda de los poderes y el aviso largo del GPS (HUD). */
+.run-concentracion:not(.run-terminando) :is(.run-pelea-nombre, .run-pelea-vida, .run-pelea-estado, .run-poderes, [data-run-gps]) {
+    display: none;
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-pelea {
+    padding: 6px 10px 7px;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea:has(> [data-run-encuentro]:empty) {
+    display: none;   /* entre una criatura y la siguiente no queda una caja vacía */
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea-texto {
+    gap: 2px;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea-texto small {
+    font-size: 0.7rem;
+    line-height: 1.3;
+}
+
+.run-concentracion:not(.run-terminando) .run-pelea-pista {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    color: #fff !important;
+}
+
+.run-concentracion:not(.run-terminando) :is(.run-pelea-va, .run-frase, .run-pelea-aviso) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.run-pelea-va b {
+    color: #fff;
+}
+
+/* Los rótulos del mapa, también con marco de píxel. */
+.run-concentracion:not(.run-terminando) :is(.run-mapa-zona, .run-mapa-vista) {
+    border: 0;
+    border-radius: 0;
+    box-shadow: inset 0 0 0 2px rgba(241, 243, 255, 0.75), 0 0 0 2px var(--tinta);
+}
+
+/* Los botones: grandes los de siempre y de 44 px los chicos (para el dedo, aunque vayas corriendo). */
+.run-concentracion:not(.run-terminando) .run-botones {
+    gap: 10px;
+    margin-bottom: 0;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones .boton {
+    min-height: 52px;
+}
+
+.run-concentracion:not(.run-terminando) .run-botones-chicos .boton {
+    min-height: 44px;
+    font-size: 0.85rem;
+}
+
+/* Pantalla baja (iPhone pequeño) o acostado: el HUD en dos columnas, el cronómetro a la izquierda y los dos datos
+   a la derecha, uno sobre otro y en una sola línea (solo el ícono, sin el rótulo). */
+@media (max-height: 740px), (orientation: landscape) {
+    .run-concentracion:not(.run-terminando) #pantalla-running .run-hud {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        column-gap: 12px;
+        row-gap: 4px;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-hud-estado {
+        grid-column: 1 / -1;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-hud .run-tiempo {
+        padding: 0 4px;
+        font-size: clamp(2.3rem, 12vw, 3.3rem);
+    }
+
+    .run-concentracion:not(.run-terminando) .run-hud .run-datos {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-datos > div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 3px 8px 4px;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-datos small span {
+        display: none;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-datos b {
+        font-size: 1.2rem;
+    }
+}
+
+/* Solo cronómetro (sin GPS no hay mapa ni batalla): el HUD se queda con todo el espacio y el reloj se ve enorme. */
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo.solo-crono {
+    display: flex;
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo.solo-crono .run-hud {
+    flex: 1 1 auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo.solo-crono .run-tiempo {
+    font-size: clamp(3.4rem, 24vw, 7.5rem);
+}
+
+.run-concentracion:not(.run-terminando) #pantalla-running .run-vivo.solo-crono .run-datos {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+/* Teléfono acostado (pantalla muy baja): dos columnas. A la izquierda el HUD, el consejo, el km, la criatura y los
+   botones; a la derecha el mapa (v146: con la pelea encima). */
+@media (orientation: landscape) and (max-height: 500px) {
+    .run-concentracion:not(.run-terminando) .contenido {
+        max-width: none;
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-left: max(12px, env(safe-area-inset-left));
+    }
+
+    .run-concentracion:not(.run-terminando) #pantalla-running .run-vivo {
+        display: grid;
+        grid-template-areas:
+            "hud vista"
+            "consejo vista"
+            "km vista"
+            "pelea vista"
+            "botones vista"
+            "chicos vista";
+        grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+        gap: 10px 16px;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-hud { grid-area: hud; }
+    .run-concentracion:not(.run-terminando) .run-consejo { grid-area: consejo; }
+    .run-concentracion:not(.run-terminando) .run-km { grid-area: km; }
+    .run-concentracion:not(.run-terminando) .run-pelea { grid-area: pelea; align-self: start; max-height: 100%; overflow: hidden; }
+    .run-concentracion:not(.run-terminando) .run-dividida { grid-area: vista; min-height: 0; }
+    .run-concentracion:not(.run-terminando) .run-botones { grid-area: botones; margin: 0; }
+    .run-concentracion:not(.run-terminando) .run-botones-chicos { grid-area: chicos; }
+
+    .run-concentracion:not(.run-terminando) .run-hud .run-tiempo {
+        font-size: 2.3rem;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-botones .boton {
+        min-height: 44px;
+        font-size: 0.9rem;
+    }
+
+    .run-concentracion:not(.run-terminando) .run-pelea-pista {
+        -webkit-line-clamp: 1;
+    }
+}
+
+/* ===== (v146) La pelea sobre el mapa =====
+   La caja de la batalla de al lado ya no está: el mapa se queda con todo el espacio y la pelea pasa encima de él.
+   Dentro de la caja del mapa (.run-mapa-vivo) hay tres capas, una encima de otra:
+     .run-mapa-dibujo — el mapa (se vuelve a escribir con cada punto del GPS);
+     .run-pm          — la pelea: tu héroe, la criatura, sus vidas, los poderes que vuelan y el cartel;
+     .run-final       — la escena grande de la Torre, solo en el golpe final (unos segundos).
+   La capa de la pelea mide lo mismo que el dibujo del mapa (320 × 240 puntos agrandados hasta llenar la caja, con los
+   bordes recortados): así cada cosa se ubica con un porcentaje del dibujo, y --px es lo que mide un punto del dibujo.
+   app-running.js escribe en su style --hx, --hy (tu héroe) y --cx, --cy (la criatura). */
+.run-mapa-dibujo {
+    position: absolute;
+    inset: 0;
+}
+
+/* De pie (modo normal): el mapa cuadrado (antes era 4:3 con la batalla debajo). Acostado o en pantalla ancha: a lo ancho. */
+.run-dividida.con-pelea .run-mapa-vivo {
+    aspect-ratio: 1 / 1;
+}
+
+@media (orientation: landscape), (min-width: 700px) {
+    .run-dividida.con-pelea .run-mapa-vivo {
+        aspect-ratio: 2 / 1;
+    }
+}
+
+.run-pm {
+    --px: 1.4px;   /* los teléfonos que no entienden cqw se quedan con esto (y con la capa del tamaño de la caja) */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+@supports (width: 1cqw) {
+    .run-pm {
+        --px: calc(max(100cqw, 100cqh * 4 / 3) / 320);
+        width: max(100cqw, 100cqh * 4 / 3);
+        height: max(100cqh, 100cqw * 3 / 4);
+    }
+}
+
+.run-pm.sin-lugar {
+    visibility: hidden;   /* todavía no hay GPS: no se sabe dónde estás */
+}
+
+/* Cada uno (tu héroe y la criatura) se ubica por sus pies y mide --lado puntos de ancho. */
+.run-pm-bando {
+    position: absolute;
+    z-index: 1;
+    width: calc(var(--px) * var(--lado));
+    transform: translate(-50%, -94%);
+}
+
+.run-pm-heroe {
+    top: var(--hy);
+    left: var(--hx);
+    transform: translate(-50%, -88%);
+}
+
+/* La criatura corre a su nuevo lugar cuando cambias de dirección (en pasos, como el pixel art). */
+.run-pm-criatura {
+    top: var(--cy);
+    left: var(--cx);
+    transition: left 0.6s steps(3), top 0.6s steps(3);
+}
+
+.run-pm-criatura.vuela {
+    margin-top: calc(var(--px) * -8);   /* flota sobre el suelo */
+}
+
+.run-pm-giro,
+.run-pm-cuerpo {
+    display: block;
+}
+
+.run-pm.mira-izq .run-pm-giro {
+    transform: scaleX(-1);   /* está a tu derecha: se da vuelta para mirarte */
+}
+
+.run-pm-sprite {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+    animation: run-pm-paso 0.9s steps(1) infinite;
+}
+
+.run-pm-sprite[src=""] {
+    visibility: hidden;   /* la imagen todavía se está pixelando */
+}
+
+/* Un contorno de luz: la criatura se ve también de noche (roja; los jefes, morados). */
+.run-pm-criatura .run-pm-sprite {
+    animation-duration: 0.7s;
+    filter: drop-shadow(0 0 calc(var(--px) * 1.5) rgba(248, 113, 113, 0.85));
+}
+
+.run-pm-criatura.jefe .run-pm-sprite {
+    filter: drop-shadow(0 0 calc(var(--px) * 2) rgba(192, 132, 252, 0.95));
+}
+
+@keyframes run-pm-paso {
+    50% { transform: translateY(calc(var(--px) * -1.5)); }
+}
+
+.run-pm-sombra {
+    position: absolute;
+    right: 18%;
+    bottom: calc(var(--px) * -1.5);
+    left: 18%;
+    height: calc(var(--px) * 4);
+    background: rgba(5, 3, 12, 0.45);
+    border-radius: 50%;
+}
+
+.run-pm-criatura.vuela .run-pm-sombra {
+    right: 28%;
+    bottom: calc(var(--px) * -9);
+    left: 28%;
+}
+
+/* (v147) De noche tu héroe lleva su propia luz: queda un poco en penumbra, como el mapa, pero con un contorno tibio (como
+   el de las criaturas, en dorado) y, a sus pies, en vez de sombra, el charco de luz de su antorcha. Así se distingue bien.
+   :has() mira el momento del día que dejó escrito el dibujo del mapa (data-momento). */
+.run-mapa-vivo:has(.run-mapa-svg[data-momento="noche"]) :is(.run-pm-heroe .run-pm-sprite, .run-mapa-heroe) {
+    filter: brightness(0.85) drop-shadow(0 0 calc(var(--px, 1.4px) * 1.5) rgba(255, 196, 120, 0.85));
+}
+
+.run-mapa-vivo:has(.run-mapa-svg[data-momento="noche"]) .run-pm-heroe .run-pm-sombra {
+    right: 4%;
+    left: 4%;
+    height: calc(var(--px) * 6);
+    bottom: calc(var(--px) * -2.5);
+    background: radial-gradient(closest-side, rgba(255, 210, 140, 0.5), rgba(255, 160, 60, 0.2) 65%, transparent);
+}
+
+/* El nombre y la barrita de vida, sobre la cabeza. */
+.run-pm-cabeza {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    margin-bottom: calc(var(--px) * 2);
+    transform: translateX(-50%);
+}
+
+.run-pm-nombre {
+    font-size: 0.6rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #fff;
+    white-space: nowrap;
+    text-shadow: -1px 0 #05030c, 1px 0 #05030c, 0 -1px #05030c, 0 1px #05030c, 0 2px 0 #05030c;
+}
+
+.run-pm-vida {
+    position: relative;
+    display: block;
+    width: calc(var(--px) * 24);
+    min-width: 30px;
+    height: 5px;
+    background: #1a0d22;
+    box-shadow: 0 0 0 1px #05030c, 0 0 0 2px rgba(241, 243, 255, 0.55);
+}
+
+.run-pm-vida.de-heroe {
+    width: calc(var(--px) * 20);
+}
+
+/* La vida de ahora; si acaba de haber un golpe, empieza en la de antes y baja cuando pega (--pega). */
+.run-pm-vida i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--ahora);
+    background: linear-gradient(180deg, #7dff9a 0 50%, #22a34a 50%);
+    animation: run-pm-baja 0.3s steps(3) backwards;
+}
+
+.run-pm-vida.de-enemigo i { background: linear-gradient(180deg, #ff8a8a 0 50%, #d0283a 50%); }
+.run-pm-vida.grave i { background: linear-gradient(180deg, #ffd27a 0 50%, #e07a10 50%); }
+
+@keyframes run-pm-baja {
+    from { width: var(--antes); }
+}
+
+/* --- Lo que vuela: de tu héroe a la criatura (o al revés). Su duración y su momento los pone vistas-pelea-mapa.js. --- */
+.run-pm-tiro {
+    position: absolute;
+    z-index: 3;
+    top: calc(var(--ty, var(--hy)) - var(--hm));
+    left: var(--tx, var(--hx));
+    width: calc(var(--px) * 13);
+    height: calc(var(--px) * 13);
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    animation: run-pm-vuela 0.42s steps(7);
+}
+
+.run-pm-tiro::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+/* (v147) --tx, --ty: de dónde sale lo tuyo (tu héroe, o el borde de la vista si tu héroe quedó fuera; ver puntoDeTiro). */
+@keyframes run-pm-vuela {
+    0% { opacity: 1; top: calc(var(--ty, var(--hy)) - var(--hm)); left: var(--tx, var(--hx)); }
+    99% { opacity: 1; top: calc(var(--cy) - var(--cm)); left: var(--cx); }
+    100% { opacity: 0; top: calc(var(--cy) - var(--cm)); left: var(--cx); }
+}
+
+.run-pm-tiro.de-criatura {
+    animation-name: run-pm-vuelve;
+}
+
+@keyframes run-pm-vuelve {
+    0% { opacity: 1; top: calc(var(--cy) - var(--cm)); left: var(--cx); }
+    99% { opacity: 1; top: calc(var(--ty, var(--hy)) - var(--hm)); left: var(--tx, var(--hx)); }
+    100% { opacity: 0; top: calc(var(--ty, var(--hy)) - var(--hm)); left: var(--tx, var(--hx)); }
+}
+
+/* Tajo: una media luna verde y blanca que gira. */
+.run-pm-tiro.tajo {
+    filter: drop-shadow(0 0 calc(var(--px) * 2) #4ade80);
+}
+
+.run-pm-tiro.tajo::before {
+    border: calc(var(--px) * 3) solid transparent;
+    border-top-color: #f4fff6;
+    border-right-color: #86ffb0;
+    border-radius: 50%;
+    animation: run-pm-gira 0.16s steps(4) infinite;
+}
+
+@keyframes run-pm-gira {
+    to { transform: rotate(360deg); }
+}
+
+/* Rayo: un relámpago dorado, más rápido. */
+.run-pm-tiro.rayo {
+    width: calc(var(--px) * 12);
+    height: calc(var(--px) * 18);
+    filter: drop-shadow(0 0 calc(var(--px) * 2) #ffe45a);
+}
+
+.run-pm-tiro.rayo::before {
+    background: linear-gradient(180deg, #fff, #fff7a0 55%, #ffd23c);
+    clip-path: polygon(55% 0, 100% 0, 62% 40%, 92% 40%, 18% 100%, 40% 54%, 8% 54%);
+}
+
+/* Llamarada: una bola de fuego que parpadea. */
+.run-pm-tiro.llamarada {
+    width: calc(var(--px) * 15);
+    height: calc(var(--px) * 15);
+}
+
+.run-pm-tiro.llamarada::before,
+.run-pm-tiro.de-criatura::before {
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff9c4 0 22%, #ffd23c 23% 44%, #ff7a1a 45% 66%, transparent 67%);
+    box-shadow: 0 0 calc(var(--px) * 4) rgba(255, 110, 20, 0.85);
+    animation: run-pm-late 0.2s steps(2) infinite;
+}
+
+/* Lo que te lanza la criatura: una bola oscura con brillo rojo. */
+.run-pm-tiro.de-criatura::before {
+    background: radial-gradient(circle, #ffd0dc 0 20%, #e0306a 21% 46%, #3a0a2a 47% 66%, transparent 67%);
+    box-shadow: 0 0 calc(var(--px) * 4) rgba(255, 60, 110, 0.85);
+}
+
+@keyframes run-pm-late {
+    50% { transform: scale(0.8); }
+}
+
+/* --- Lo que le pasa a cada uno --- */
+/* Tu héroe da un saltito al lanzar su poder. */
+.run-pm-heroe.lanza .run-pm-cuerpo {
+    animation: run-pm-salto 0.32s steps(3);
+}
+
+@keyframes run-pm-salto {
+    50% { transform: translateY(calc(var(--px) * -3)); }
+}
+
+/* Le pegan a tu héroe: parpadea en rojo. */
+.run-pm-heroe.herido .run-pm-cuerpo {
+    animation: run-pm-rojo 0.7s steps(1) var(--pega);
+}
+
+@keyframes run-pm-rojo {
+    0%, 34%, 68% { filter: brightness(0.75) sepia(1) saturate(9) hue-rotate(-45deg); transform: translateX(calc(var(--px) * 1.5)); }
+    17%, 51%, 85% { filter: none; transform: translateX(calc(var(--px) * -1)); }
+}
+
+/* Le pegan a la criatura: destella en blanco y retrocede. */
+.run-pm-criatura.golpeada .run-pm-cuerpo {
+    animation: run-pm-golpe 0.5s steps(1) var(--pega);
+}
+
+@keyframes run-pm-golpe {
+    0%, 40% { filter: brightness(3) saturate(0); transform: translateX(calc(var(--px) * -2.5)); }
+    20%, 60% { filter: none; transform: translateX(calc(var(--px) * -1.5)); }
+}
+
+/* La criatura te embiste (vas lento): se lanza hasta casi tocarte y vuelve. */
+.run-pm-criatura.embiste {
+    z-index: 2;
+    animation: run-pm-embiste 0.5s steps(5) var(--sale);
+}
+
+@keyframes run-pm-embiste {
+    55% {
+        top: calc(var(--cy) + (var(--ty, var(--hy)) - var(--cy)) * 0.7);
+        left: calc(var(--cx) + (var(--tx, var(--hx)) - var(--cx)) * 0.7);
+    }
+}
+
+/* …o aprovecha tu pausa y te lanza algo: se echa para atrás al lanzar. */
+.run-pm-criatura.dispara .run-pm-cuerpo {
+    animation: run-pm-dispara 0.3s steps(3);
+}
+
+@keyframes run-pm-dispara {
+    50% { transform: translateX(calc(var(--px) * -3)) scale(1.1); }
+}
+
+/* Una criatura nueva entra al mapa: aparece de la oscuridad. */
+.run-pm-criatura.llega .run-pm-cuerpo {
+    animation: run-pm-aparece 0.8s steps(8) backwards;
+}
+
+@keyframes run-pm-aparece {
+    0% { opacity: 0; filter: brightness(0); transform: translateY(calc(var(--px) * -18)) scale(0.4); }
+    60% { opacity: 1; filter: brightness(2.6); transform: none; }
+    100% { filter: none; }
+}
+
+/* Su nombre y su vida se ven cuando ya llegó. */
+.run-pm-criatura.llega .run-pm-cabeza {
+    animation: run-pm-nombre-entra 0.8s steps(1) backwards;
+}
+
+@keyframes run-pm-nombre-entra {
+    0%, 60% { opacity: 0; }
+}
+
+/* Los números y destellos de la Torre, a la medida del mapa. */
+.run-pm .ff-numero {
+    top: 12%;
+    font-size: 1rem;
+}
+
+.run-pm .ff-numero.critico {
+    font-size: 1.15rem;
+}
+
+.run-pm .ff-numero.herida {
+    color: #ff9a9a;
+}
+
+.run-pm .ff-efecto {
+    inset: 0;
+}
+
+.run-pm .ff-rayo {
+    inset: -70% 18% 30%;
+}
+
+/* El cartel de lo que acaba de pasar: abajo, en el centro de la caja (no tapa los rótulos de arriba). */
+.run-pm-cartel {
+    position: absolute;
+    bottom: 8px;
+    bottom: calc(50% - 50cqh + 8px);
+    left: 50%;
+    z-index: 4;
+    max-width: calc(100cqw - 16px);
+    padding: 2px 10px;
+    overflow: hidden;
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-50%);
+    animation: run-cartel 2.2s steps(1) both;
+}
+
+.run-pm-cartel.aparece {
+    background: linear-gradient(180deg, #8a3fd0 0%, #5a1f9a 45%, #2e0a5a 100%);
+    animation-duration: 2.4s;   /* todo dura menos de 2,5 s: después la capa se vuelve a escribir sin el cartel */
+}
+
+.run-pm-cartel.ataque {
+    background: linear-gradient(180deg, #d04a4a 0%, #9a1f2a 45%, #4a0a12 100%);
+}
+
+/* --- El golpe final: la escena de la Torre tapa el mapa unos segundos y se va sola --- */
+.run-final {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.run-final:empty {
+    display: none;
+}
+
+.run-final-escena {
+    position: absolute;
+    inset: 0;
+    aspect-ratio: auto;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    animation: run-final-entra 0.35s steps(5) both, run-final-sale 0.4s steps(4) forwards;
+}
+
+@keyframes run-final-entra {
+    from { opacity: 0; filter: brightness(3); transform: scale(1.15); }
+}
+
+@keyframes run-final-sale {
+    to { opacity: 0; }
+}
+
+/* Sin movimiento (Ajustes del teléfono › Accesibilidad): la regla general de la app ya deja todas las animaciones en
+   casi 0 s (nada parpadea ni se mueve). Además, aquí no vuela nada, y el cartel (como los números, ver .ff-numero) se ve
+   quieto hasta que el golpe deja de ser reciente: ahí la capa se vuelve a escribir sin él. La escena del golpe final
+   aparece y se va sin animarse. */
+@media (prefers-reduced-motion: reduce) {
+    .run-pm-tiro,
+    .run-pm .ff-chispas,
+    .run-pm .ff-efecto {
+        display: none;
+    }
+
+    .run-pm-cartel {
+        opacity: 1;
+        animation: none;
+    }
+
+    .run-pm .ff-numero {
+        transform: translateX(-50%);
+    }
+}
+
