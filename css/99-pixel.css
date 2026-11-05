@@ -1675,7 +1675,10 @@ body {
     border-radius: 0;
     box-shadow: none;
 }
-.galeria-dialogo[open] { animation: none; }
+.galeria-dialogo[open] { animation: none; overscroll-behavior: contain; }
+/* Con la galería abierta, la pantalla de atrás no se mueve (si no, iOS le dibuja su barra de desplazamiento encima). */
+html:has(.galeria-dialogo[open]),
+body:has(.galeria-dialogo[open]) { overflow: hidden; }
 .galeria-dialogo::backdrop { background: #05030c; backdrop-filter: none; -webkit-backdrop-filter: none; }
 .galeria-dialogo > * { height: 100%; margin: 0; padding: 0; }
 
@@ -1703,38 +1706,33 @@ body {
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    padding: 10px 10px 120px;
+    padding: 10px 10px 16px;
     scrollbar-width: none;   /* sin la barra de desplazamiento: se desliza con el dedo igual */
 }
 .galeria-cuerpo::-webkit-scrollbar { display: none; }
+/* Solo en Fotos hay botón flotante y barra de selección abajo: ahí se deja espacio para que no tapen nada. */
+.galeria-cuerpo-fotos { padding-bottom: 120px; }
 
-/* Filtros: se quedan arriba mientras bajas por las fotos */
+/* Filtros: arriba de la lista (se van al bajar, para dejar más lugar a las fotos) */
 .galeria-filtros-caja {
-    position: sticky;
-    top: -10px;
-    z-index: 2;
-    margin: -10px -10px 8px;
-    padding: 8px 10px 2px;
-    background: #0b0820;
+    margin: 0 0 6px;
+    padding-bottom: 2px;
     border-bottom: 1px solid var(--borde);
 }
-.galeria-chips,
 .galeria-filtros {
     display: flex;
+    flex-wrap: wrap;   /* todos los filtros a la vista: si no caben en una fila, pasan a la siguiente */
     gap: 6px;
     padding: 0 0 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
 }
-.galeria-chips::-webkit-scrollbar,
-.galeria-filtros::-webkit-scrollbar { display: none; }
+.chip-album { width: 100%; margin-bottom: 6px; text-align: left; font-size: 0.95rem; }
 .chip-foto {
     flex: 0 0 auto;
-    min-height: 36px;
-    padding: 6px 12px;
+    min-height: 34px;
+    padding: 4px 10px;
     color: var(--texto);
     font: inherit;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     white-space: nowrap;
     background: #1b1540;
     border: 2px solid var(--borde);

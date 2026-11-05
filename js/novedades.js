@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 200;
+export const VERSION_APP = 201;
 
 export const NOVEDADES = [
+    {
+        version: 201,
+        titulo: "Galería más ordenada",
+        cambios: [
+            "🗂️ El álbum se elige con un botón que abre la lista (ya no hay botoncitos que se cortan hacia un lado). Los demás filtros —fecha, orden, favoritas y «Quitar»— se acomodan en filas y se ven todos.",
+            "📏 Los filtros ahora son más pequeños y se van al bajar, para que quepan más fotos en pantalla.",
+            "🚫 Con la galería abierta, la pantalla de atrás ya no se mueve: se acabó la barra de desplazamiento que se veía a la derecha.",
+            "✅ «Seleccionar» se ve siempre que tengas fotos.",
+        ],
+    },
     {
         version: 200,
         titulo: "Galería sin barra de desplazamiento",

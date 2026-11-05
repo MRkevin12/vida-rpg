@@ -122,6 +122,23 @@ function franjaDeAlbum(album, hoy) {
 }
 
 // La pestaña «Fotos»: filtros arriba y todas las fotos en cuadrícula, día por día.
+// La hoja «Elegir álbum»: «Todas las fotos» y cada álbum con su cantidad.
+function hojaDeAlbumes(albumes, actual, total) {
+    const opcion = (id, icono, nombre, cuenta, estilo = "") => `
+        <button type="button" class="boton boton-secundario galeria-hoja-album" ${estilo} data-accion="fotos-filtro-album" data-album="${esc(id)}"
+                aria-pressed="${actual === id}"><span aria-hidden="true">${esc(icono)}</span> ${esc(nombre)} <small>${cuenta}</small></button>`;
+    return `
+        <div class="galeria-hoja-fondo" data-accion="fotos-hoja-cerrar"></div>
+        <section class="galeria-hoja" aria-label="Elegir álbum">
+            <h3 class="subtitulo">🗂️ Ver fotos de…</h3>
+            <div class="galeria-hoja-lista">
+                ${opcion("todas", "🖼️", "Todas las fotos", total)}
+                ${albumes.map((a) => opcion(a.id, a.tema.icono, a.tema.nombre, a.cuenta, estiloTema(a.tema))).join("")}
+            </div>
+            <button type="button" class="boton-texto" data-accion="fotos-hoja-cerrar">Cerrar</button>
+        </section>`;
+}
+
 function pestanaFotos(d) {
     const { albumes, fotos, filtro, seleccion, hoy, total } = d;
     const periodo = PERIODOS.find((p) => p.id === filtro.periodo) || PERIODOS[0];
@@ -129,13 +146,10 @@ function pestanaFotos(d) {
     const hayFiltros = filtro.album !== "todas" || filtro.periodo !== "todo" || filtro.favoritas;
     const album = albumes.find((a) => a.id === filtro.album);
 
-    // Los álbumes con fotos (y el que tengas elegido) como chips que se deslizan hacia los lados.
-    const chips = [
-        `<button type="button" class="chip-foto" data-accion="fotos-filtro-album" data-album="todas" aria-pressed="${filtro.album === "todas"}">Todas <small>${total}</small></button>`,
-        ...albumes.filter((a) => a.cuenta || a.id === filtro.album).map((a) => `
-            <button type="button" class="chip-foto" ${estiloTema(a.tema)} data-accion="fotos-filtro-album" data-album="${esc(a.id)}"
-                    aria-pressed="${filtro.album === a.id}"><span aria-hidden="true">${esc(a.tema.icono)}</span> ${esc(a.tema.nombre)} <small>${a.cuenta}</small></button>`),
-    ].join("");
+    // El álbum que estás viendo, en un solo botón que abre la lista de álbumes (así no se esconde ninguno).
+    const botonAlbum = album
+        ? `<button type="button" class="chip-foto chip-album" ${estiloTema(album.tema)} data-accion="fotos-album-elegir" aria-pressed="true"><span aria-hidden="true">${esc(album.tema.icono)}</span> ${esc(album.tema.nombre)} <small>${album.cuenta}</small> <span aria-hidden="true">▾</span></button>`
+        : `<button type="button" class="chip-foto chip-album" data-accion="fotos-album-elegir" aria-pressed="false">🖼️ Todas las fotos <small>${total}</small> <span aria-hidden="true">▾</span></button>`;
 
     let cuerpo;
     if (!total && filtro.album === "todas") {
@@ -152,10 +166,10 @@ function pestanaFotos(d) {
 
     return `
         <div class="galeria-filtros-caja">
-            <div class="galeria-chips" role="group" aria-label="Álbum">${chips}</div>
+            ${botonAlbum}
             <div class="galeria-filtros" role="group" aria-label="Filtros">
-                <button type="button" class="chip-foto" data-accion="fotos-filtro-periodo">🗓️ ${esc(periodo.nombre)}</button>
-                <button type="button" class="chip-foto" data-accion="fotos-filtro-orden">↕ ${esc(orden.nombre)}</button>
+                <button type="button" class="chip-foto" data-accion="fotos-filtro-periodo" title="${esc(periodo.nombre)}">🗓️ ${esc(periodo.corto)}</button>
+                <button type="button" class="chip-foto" data-accion="fotos-filtro-orden" title="${esc(orden.nombre)}">↕ ${esc(orden.corto)}</button>
                 <button type="button" class="chip-foto" data-accion="fotos-filtro-favoritas" aria-pressed="${filtro.favoritas}">⭐ Favoritas</button>
                 ${hayFiltros ? `<button type="button" class="chip-foto chip-quitar" data-accion="fotos-quitar-filtros">✕ Quitar</button>` : ""}
             </div>
@@ -240,11 +254,11 @@ export function contenidoGaleria(d) {
                 <h2 class="titulo-juego" tabindex="-1" autofocus>${esc(titulo)}</h2>
                 <div class="galeria-cab-botones">
                     ${d.picker ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="fotos-picker-cancelar">Cancelar</button>` : ""}
-                    ${verFotos && !d.picker && d.fotos.length ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="fotos-seleccionar">${d.seleccion.activa ? "Cancelar" : "Seleccionar"}</button>` : ""}
+                    ${verFotos && !d.picker && d.total ? `<button type="button" class="boton boton-chico boton-secundario" data-accion="fotos-seleccionar">${d.seleccion.activa ? "Cancelar" : "Seleccionar"}</button>` : ""}
                     <button type="button" class="boton-icono" data-accion="cerrar" aria-label="Cerrar la galería">✕</button>
                 </div>
             </header>
-            <div class="galeria-cuerpo" data-galeria-cuerpo>${cuerpo}</div>
+            <div class="galeria-cuerpo ${verFotos ? "galeria-cuerpo-fotos" : ""}" data-galeria-cuerpo>${cuerpo}</div>
             ${verFotos && !d.seleccion.activa && !d.picker ? `<button type="button" class="galeria-fab" data-accion="fotos-nueva" aria-label="Tomar foto de progreso">📷</button>` : ""}
             ${barra}
             <nav class="galeria-pestanas" aria-label="Secciones de la galería">${PESTANAS.map((p) => `
@@ -252,6 +266,7 @@ export function contenidoGaleria(d) {
                     <span class="galeria-pestana-icono" aria-hidden="true">${p.icono}</span><span>${p.nombre}</span></button>`).join("")}
             </nav>
             ${d.moviendo ? hojaMover(d.albumes) : ""}
+            ${d.eligiendoAlbum && verFotos ? hojaDeAlbumes(d.albumes, d.filtro.album, d.total) : ""}
         </div>`;
 }
 

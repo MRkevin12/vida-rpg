@@ -113,14 +113,14 @@ export async function borrarTodas() {
 
 // Los periodos del filtro de fechas y los dos órdenes. La galería los va cambiando al tocar el botón.
 export const PERIODOS = [
-    { id: "todo", nombre: "Todo el tiempo" },
-    { id: "mes", nombre: "Este mes" },
-    { id: "3m", nombre: "Últimos 3 meses" },
-    { id: "anio", nombre: "Este año" },
+    { id: "todo", nombre: "Todo el tiempo", corto: "Todo" },
+    { id: "mes", nombre: "Este mes", corto: "Este mes" },
+    { id: "3m", nombre: "Últimos 3 meses", corto: "3 meses" },
+    { id: "anio", nombre: "Este año", corto: "Este año" },
 ];
 export const ORDENES = [
-    { id: "recientes", nombre: "Más recientes" },
-    { id: "antiguas", nombre: "Más antiguas" },
+    { id: "recientes", nombre: "Más recientes", corto: "Recientes" },
+    { id: "antiguas", nombre: "Más antiguas", corto: "Antiguas" },
 ];
 
 // De todas las fotos [{ album, fecha, favorita }], las que cumplen el filtro, ya ordenadas.

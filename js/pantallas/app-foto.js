@@ -180,7 +180,7 @@ function dibujar(conservarScroll = true) {
     const y = $("#fotos-contenido [data-galeria-cuerpo]")?.scrollTop || 0;
     $("#fotos-contenido").innerHTML = vistasFotos.contenidoGaleria({
         pestana: g.pestana, hoy: hoy(), semanal: estado.fotos.semanal, total: g.lista.length, albumes, fotos: visibles(),
-        filtro: g.filtro, seleccion: g.seleccion, moviendo: g.moviendo === "seleccion", picker: g.picker,
+        filtro: g.filtro, seleccion: g.seleccion, moviendo: g.moviendo === "seleccion", picker: g.picker, eligiendoAlbum: g.eligiendoAlbum,
         comparar: { a: porClave(g.comparar.a), b: porClave(g.comparar.b) },
     });
     const cuerpo = $("#fotos-contenido [data-galeria-cuerpo]");
@@ -212,7 +212,7 @@ async function cargar() {
 
 function abrirGaleria() {
     g = { pestana: "fotos", filtro: { ...SIN_FILTROS }, seleccion: { activa: false, marcadas: [] }, moviendo: null, picker: null,
-          comparar: { a: null, b: null }, lista: [], visor: null };
+          eligiendoAlbum: false, comparar: { a: null, b: null }, lista: [], visor: null };
     const dialogo = $("#dialogo-fotos");
     $("#fotos-contenido").innerHTML = `<div class="galeria"><p class="nota galeria-cargando">Cargando tus fotos…</p></div>`;
     dialogo.addEventListener("close", () => {
@@ -335,13 +335,16 @@ export const ACCIONES_FOTO = {
     // Las pestañas de adentro.
     "fotos-pestana": (boton) => {
         g.pestana = boton.dataset.pestana;
+        g.eligiendoAlbum = false;
         g.seleccion = { activa: false, marcadas: [] };
         g.picker = null;
         dibujar(false);
     },
 
     // Filtros y orden.
-    "fotos-filtro-album": (boton) => { g.filtro.album = boton.dataset.album; dibujar(false); },
+    "fotos-album-elegir": () => { g.eligiendoAlbum = true; dibujar(); },
+    "fotos-hoja-cerrar": () => { g.eligiendoAlbum = false; dibujar(); },
+    "fotos-filtro-album": (boton) => { g.filtro.album = boton.dataset.album; g.eligiendoAlbum = false; dibujar(false); },
     "fotos-filtro-periodo": () => { g.filtro.periodo = siguiente(fotos.PERIODOS, g.filtro.periodo); dibujar(false); },
     "fotos-filtro-orden": () => { g.filtro.orden = siguiente(fotos.ORDENES, g.filtro.orden); dibujar(false); },
     "fotos-filtro-favoritas": () => { g.filtro.favoritas = !g.filtro.favoritas; dibujar(false); },

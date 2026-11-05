@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v201 — Galería más ordenada
+
+- **Álbum en un botón + lista** (`hojaDeAlbumes`, estado `eligiendoAlbum`): se acabaron los chips que se cortaban a la derecha. Periodo, orden, favoritas y «Quitar» ahora se acomodan en filas (`flex-wrap`) con nombres cortos (`PERIODOS/ORDENES.corto`).
+- Filtros más pequeños y sin `position: sticky` (se van al bajar). «Seleccionar» sale siempre que haya fotos.
+- **La barra de la derecha era la de la página de atrás**: iOS la dibuja encima del diálogo. `html:has(.galeria-dialogo[open]) { overflow: hidden }` la congela; además el relleno de 120 px abajo solo va en la pestaña Fotos (`galeria-cuerpo-fotos`).
+- Sin cambios de datos. Pruebas: 487 de la app.
+
 ## v200 — Galería sin barra de desplazamiento
 
 - La barra lateral del desplazamiento de la galería se oculta (`css/99-pixel.css › .galeria-cuerpo`). Sin cambios de datos.

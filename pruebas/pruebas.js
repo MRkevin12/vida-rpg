@@ -10072,7 +10072,7 @@ prueba("Galería (v199): las pestañas, los filtros, el modo seleccionar y el co
     const base = {
         pestana: "fotos", hoy: "2026-11-20", semanal: true, total: 3, albumes, fotos: fotosLista,
         filtro: { album: "todas", periodo: "todo", favoritas: false, orden: "recientes" },
-        seleccion: { activa: false, marcadas: [] }, moviendo: false, picker: null, comparar: { a: null, b: null },
+        seleccion: { activa: false, marcadas: [] }, moviendo: false, picker: null, eligiendoAlbum: false, comparar: { a: null, b: null },
     };
     const dibujar = (cambios = {}) => vistasFotos.contenidoGaleria({ ...base, ...cambios });
 
@@ -10088,11 +10088,17 @@ prueba("Galería (v199): las pestañas, los filtros, el modo seleccionar y el co
     cierto(html.includes("galeria-foto-album") && html.includes("galeria-foto-estrella"), "con todas las fotos se ve de qué álbum es cada una, y la estrella");
     cierto(html.includes("galeria-fab") && !html.includes("galeria-barra"), "botón de cámara; sin barra de selección");
     cierto(!html.includes("fotos-quitar-filtros"), "sin filtros no sale «Quitar»");
-    cierto(!html.includes(">Gym <small>0<") && !html.includes("Estudiar"), "los álbumes vacíos no son chips");
+    cierto(html.includes("fotos-album-elegir") && html.includes("Todas las fotos") && !html.includes("Ver fotos de"), "un botón de álbum («Todas las fotos»); la lista no está abierta");
+    cierto(!html.includes("galeria-chips"), "ya no hay chips que se corten hacia un lado");
+    cierto(html.includes("fotos-seleccionar"), "«Seleccionar» a la vista");
+    html = dibujar({ eligiendoAlbum: true });
+    cierto(html.includes("Ver fotos de") && html.includes("galeria-hoja") && (html.match(/data-accion="fotos-filtro-album"/g) || []).length === 5, "la lista trae «Todas» y los 4 álbumes (también los vacíos)");
+    cierto(html.includes("Estudiar") && html.includes("Viaje") && html.includes("fotos-hoja-cerrar"), "con los álbumes vacíos y cómo cerrarla");
+    cierto(!dibujar({ pestana: "albumes", eligiendoAlbum: true }).includes("Ver fotos de"), "solo en la pestaña Fotos");
 
     // Con un álbum elegido: chip marcado, franja con el tema, sin la insignia en cada foto.
     html = dibujar({ filtro: { ...base.filtro, album: "7" }, fotos: fotosLista.slice(0, 2) });
-    cierto(html.includes('data-album="7"') && html.includes("aria-pressed=\"true\"") && html.includes("album-cabecera") && html.includes("2 fotos") && html.includes("fotos-quitar-filtros"), "franja del álbum y botón «Quitar»");
+    cierto(html.includes("chip-album") && html.includes("Gym <small>2</small>") && html.includes("album-cabecera") && html.includes("2 fotos") && html.includes("fotos-quitar-filtros"), "el botón muestra el álbum elegido; franja del álbum y botón «Quitar»");
     cierto(!html.includes("galeria-foto-album"), "dentro de un álbum no se repite la insignia");
     html = dibujar({ filtro: { ...base.filtro, album: "progreso" }, fotos: [fotosLista[2]] });
     cierto(html.includes("➕ Foto de hoy"), "el álbum de progreso trae «Foto de hoy»");
