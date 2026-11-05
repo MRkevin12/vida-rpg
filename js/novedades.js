@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 199;
+export const VERSION_APP = 200;
 
 export const NOVEDADES = [
+    {
+        version: 200,
+        titulo: "Galería sin barra de desplazamiento",
+        cambios: [
+            "🖼️ La galería de fotos ya no muestra la barra de desplazamiento a un lado: se desliza con el dedo igual.",
+        ],
+    },
     {
         version: 199,
         titulo: "Tu galería de fotos, como la del celular",

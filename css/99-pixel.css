@@ -1704,7 +1704,9 @@ body {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     padding: 10px 10px 120px;
+    scrollbar-width: none;   /* sin la barra de desplazamiento: se desliza con el dedo igual */
 }
+.galeria-cuerpo::-webkit-scrollbar { display: none; }
 
 /* Filtros: se quedan arriba mientras bajas por las fotos */
 .galeria-filtros-caja {

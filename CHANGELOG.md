@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v200 — Galería sin barra de desplazamiento
+
+- La barra lateral del desplazamiento de la galería se oculta (`css/99-pixel.css › .galeria-cuerpo`). Sin cambios de datos.
+
 ## v199 — La galería de fotos, como la de un celular
 
 - **Pantalla completa con pestañas internas** (`#dialogo-fotos`, `vistas-fotos.js › contenidoGaleria`): **Fotos** (todas juntas por día, cuadrícula de 3 columnas), **Álbumes** (portadas con el tema de la misión + «Álbum nuevo») y **Comparar** (dos huecos «Antes» / «Después»).
