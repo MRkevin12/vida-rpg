@@ -1661,13 +1661,6 @@ body {
 }
 .foto-estado.foto-mal { color: var(--rojo); }
 .foto-semanal { border-color: var(--oro); }
-.fotos-albumes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 10px 0;
-}
-.fotos-albumes small { opacity: 0.7; }
 .fotos-grilla {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1709,6 +1702,125 @@ body {
 }
 .foto-visor-figura figcaption { margin-top: 4px; font-size: 0.8rem; }
 .foto-visor-dias { text-align: center; }
+
+/* ===== (v198) Mis fotos: portadas de álbum con el tema de su misión y la subventana de cada álbum =====
+   Todo usa --tema: el color del atributo de la misión (rosa Fuerza, celeste Intelecto, violeta Carisma, dorado Riqueza). */
+.albumes-grilla {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 12px 0;
+}
+.album-tarjeta {
+    position: relative;
+    display: block;
+    padding: 0;
+    overflow: hidden;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    background: #151030;
+    border: 2px solid var(--tema);
+    box-shadow: 0 0 0 2px #0008, 0 0 14px -4px var(--tema);
+}
+.album-tarjeta:active { transform: translateY(2px); }
+.album-portada {
+    display: block;
+    aspect-ratio: 4 / 5;
+    background: #1b1540;
+    background: color-mix(in srgb, var(--tema) 20%, #151030);
+}
+.album-portada img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: auto;   /* la foto real NO se pixela */
+}
+.album-vacio {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    font-size: 3rem;
+    opacity: 0.5;
+}
+.album-vacio-tarjeta { border-style: dashed; box-shadow: none; }
+.album-insignia {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    font-size: 1.05rem;
+    background: var(--tema);
+    border: 2px solid #0009;
+}
+.album-info {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    gap: 2px;
+    padding: 26px 8px 8px;
+    background: linear-gradient(to bottom, transparent, #0b0820f2 62%);
+}
+.album-info b { overflow-wrap: anywhere; line-height: 1.15; }
+.album-info small { font-size: 0.72rem; opacity: 0.85; }
+
+/* La subventana del álbum */
+.dialogo-album { border-color: var(--oro); }
+.album-ventana { display: grid; gap: 10px; }
+.album-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 2px solid var(--tema);
+    background: #151030;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tema) 38%, #151030), #151030 75%);
+}
+.album-cabecera-icono { font-size: 2.3rem; line-height: 1; }
+.album-cabecera-texto { flex: 1; min-width: 0; }
+.album-cabecera-texto .etiqueta { margin: 0; color: var(--tema); }
+.album-cabecera h2 { margin: 2px 0 0; overflow-wrap: anywhere; }
+.album-datos { display: flex; flex-wrap: wrap; gap: 6px; }
+.album-dato {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    border: 1px solid var(--tema);
+    background: #0b0820;
+}
+.album-acciones { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.album-ayuda { margin: 0; text-align: center; }
+.album-mes { margin-top: 4px; }
+.album-mes-titulo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 6px 0 0;
+    padding-bottom: 4px;
+    font-size: 0.9rem;
+    text-transform: capitalize;
+    color: var(--tema);
+    border-bottom: 2px solid var(--tema);
+}
+.album-mes-titulo small { font-size: 0.72rem; color: inherit; opacity: 0.8; text-transform: none; }
+.album-ventana .foto-mini[aria-pressed="true"] { border-color: var(--tema); box-shadow: 0 0 10px -2px var(--tema); }
+.album-ventana .foto-visor { margin: 0; padding: 8px; border: 2px solid var(--tema); background: #0b0820; }
+/* La foto reserva su tamaño desde el principio: si no, al cargar empuja el contenido y la pantalla se corre. */
+.album-ventana .foto-visor-figura img {
+    aspect-ratio: 3 / 4;
+    height: auto;
+    background: #0b0820;
+}
+#dialogo-album { overflow-anchor: none; }
+.foto-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.foto-nav .boton { white-space: nowrap; }
+.foto-nav .boton[disabled] { opacity: 0.4; }
 
 /* ===== (v194) Premios listos: en Hoy y en el ritual de la noche ===== */
 .premios-listos {

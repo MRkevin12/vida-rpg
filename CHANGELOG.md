@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v198 — Tus fotos, en álbumes con tema
+
+- **«Mis fotos» = portadas**: `vistas-fotos.js › contenidoGaleria` dibuja una tarjeta por álbum (portada = su foto más reciente, número de fotos y «hace N días»). El álbum de progreso va primero, luego los que tienen fotos y al final los vacíos (borde punteado).
+- **Tema por misión**: `app-foto.js › temaDe` toma el ícono y el color del atributo de la misión (`juego.infoAtributo`, también atributos propios); el de progreso es dorado. Se aplica con la variable CSS `--tema` (el color se valida con una expresión antes de ponerlo en el estilo).
+- **Subventana de álbum** (`#dialogo-album`, encima de «Mis fotos»): cabecera con el tema, datos (fotos, rango de fechas, días de camino), fotos agrupadas por mes (lo nuevo arriba), visor de una foto con «‹ Antes» / «Después ›» y borrar, y comparador de dos. Botón «↔ Antes y después» (primera contra última).
+- `fotos.js › resumenPorAlbum` (cuenta, primera, última y portada de cada álbum) en una sola lectura de la base.
+- Al elegir una foto el visor sube solo (salto directo) y la foto reserva su tamaño antes de cargar (si no, la pantalla se corría). Pruebas: 484 de la app (+1).
+
 ## v197 — Fotos de progreso
 
 - **Fuera el OCR de la v193** (`ocr/` y `js/foto.js`, ~6 MB). `sw.js` borra la caché `ocr-vida-rpg-*` que ya estaba en el teléfono.

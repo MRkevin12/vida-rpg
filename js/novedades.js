@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 197;
+export const VERSION_APP = 198;
 
 export const NOVEDADES = [
+    {
+        version: 198,
+        titulo: "Tus fotos, en álbumes con tema",
+        cambios: [
+            "🖼️ «Mis fotos» ahora es una pared de portadas: un álbum por misión, con su última foto de portada, su ícono y el color de su atributo (rosa para Fuerza, celeste para Intelecto, violeta para Carisma, dorado para Riqueza).",
+            "📂 Al tocar un álbum se abre una subventana con sus fotos ordenadas por mes, cuántas hay, desde cuándo y cuántos días llevas.",
+            "↔️ Nuevo botón «Antes y después»: compara tu primera foto con la última. Y con una foto abierta puedes ir a la anterior o a la siguiente con «‹ Antes» y «Después ›».",
+        ],
+    },
     {
         version: 197,
         titulo: "Fotos de progreso",

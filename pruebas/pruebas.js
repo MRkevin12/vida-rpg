@@ -9979,6 +9979,8 @@ prueba("Fotos de progreso (v197): se guardan en IndexedDB, una por álbum y día
         igual([lista.length, lista[0].imagen.size], [2, 9], "otra foto el mismo día la reemplaza");
         const cuenta = await fotos.cuentaPorAlbum();
         igual([cuenta[album], cuenta[otro]], [2, 1], "cuenta por álbum");
+        const resumen = await fotos.resumenPorAlbum();
+        igual([resumen[album].cuenta, resumen[album].primera, resumen[album].ultima, resumen[album].portada.size], [2, "2026-11-03", "2026-11-10", 1], "resumen por álbum: la portada es la foto más reciente");
         await fotos.borrarFoto(album, "2026-11-10");
         igual((await fotos.fotosDeAlbum(album)).map((f) => f.fecha), ["2026-11-03"], "borra solo esa");
         igual((await fotos.fotosDeAlbum(otro)).length, 1, "y no toca otro álbum");
@@ -9989,23 +9991,47 @@ prueba("Fotos de progreso (v197): se guardan en IndexedDB, una por álbum y día
     }
 });
 
-prueba("Fotos de progreso (v197): la galería muestra miniaturas, una foto grande o dos para comparar", () => {
+prueba("Fotos de progreso (v198): «Mis fotos» muestra una portada con tema por álbum", () => {
+    const tema = (icono, color, nombre) => ({ icono, color, nombre, etiqueta: "Fuerza" });
+    const albumes = [
+        { id: "progreso", tema: tema("📈", "#fbbf24", "Progreso"), cuenta: 3, ultima: sumarDias(hoy(), -3), portada: "blob:p" },
+        { id: "7", tema: tema("💪", "#fb7185", "Gym"), cuenta: 1, ultima: hoy(), portada: "blob:g" },
+        { id: "9", tema: tema("🧠", "#22d3ee", "Estudiar"), cuenta: 0, ultima: null, portada: null },
+    ];
+    const html = vistasFotos.contenidoGaleria({ albumes, semanal: true, hoy: hoy() });
+    igual((html.match(/class="album-tarjeta/g) || []).length, 3, "una tarjeta por álbum");
+    cierto(html.includes("--tema: #fb7185") && html.includes("--tema: #22d3ee"), "cada álbum con el color de su misión");
+    cierto(html.includes("3 fotos · hace 3 días") && html.includes("1 foto · hoy"), "cuántas fotos y cuándo fue la última");
+    cierto(html.includes("Sin fotos aún") && html.includes("album-vacio-tarjeta"), "el álbum vacío se ve distinto");
+    cierto(html.includes('src="blob:p"') && !html.includes('src="null"'), "la portada es la foto más reciente");
+    cierto(html.includes("Recordarme la foto de progreso cada semana: sí") && html.includes("copia de seguridad no las incluye"), "recordatorio y aviso de la copia");
+    const malo = vistasFotos.contenidoGaleria({ albumes: [{ ...albumes[1], tema: tema("💪", "red;background:url(x)", "Gym") }], semanal: false, hoy: hoy() });
+    cierto(!malo.includes("url(x)"), "un color raro no se cuela en el estilo");
+});
+
+prueba("Fotos de progreso (v198): la subventana del álbum agrupa por mes, y muestra una foto o compara dos", () => {
     const f = (fecha) => ({ fecha, url: "blob:" + fecha });
-    const datos = (seleccion) => ({
-        albumes: [{ id: "progreso", nombre: "📈 Progreso", cuenta: 3 }, { id: "7", nombre: "Gym", cuenta: 1 }],
-        album: "progreso", fotos: [f("2026-11-03"), f("2026-11-10"), f("2026-11-17")], seleccion, semanal: true,
-    });
-    let html = vistasFotos.contenidoGaleria(datos([]));
-    igual((html.match(/class="foto-mini"/g) || []).length, 3, "una miniatura por foto");
-    cierto(html.includes("Toca una foto para verla") && html.includes("➕ Foto de hoy"), "sin elegir: la ayuda y el botón de foto de hoy");
-    html = vistasFotos.contenidoGaleria(datos(["2026-11-10"]));
-    cierto(html.includes("fotos-borrar") && !html.includes("foto-visor-doble"), "una elegida: grande, con borrar");
-    html = vistasFotos.contenidoGaleria(datos(["2026-11-17", "2026-11-03"]));
-    cierto(html.includes("foto-visor-doble") && html.includes("pasaron 14 días"), "dos elegidas: juntas y con los días entre las dos");
-    cierto(html.indexOf("blob:2026-11-03") < html.indexOf("blob:2026-11-17", html.indexOf("foto-visor-doble")), "la más vieja va a la izquierda");
-    html = vistasFotos.contenidoGaleria({ ...datos([]), album: "7", fotos: [] });
-    cierto(html.includes("Aún no hay fotos") && !html.includes("➕ Foto de hoy"), "álbum vacío; la foto de hoy solo en «progreso»");
-    cierto(html.includes("Recordarme cada semana: sí") && html.includes("copia de seguridad no las incluye"), "recordatorio y aviso de la copia");
+    const album = { id: "7", tema: { icono: "💪", color: "#fb7185", nombre: "Gym", etiqueta: "Fuerza" } };
+    const lista = [f("2026-10-22"), f("2026-11-03"), f("2026-11-10"), f("2026-11-17")];
+    const dibujar = (seleccion, extra = {}) => vistasFotos.contenidoAlbum({ album, fotos: lista, seleccion, hoy: "2026-11-20", ...extra });
+    let html = dibujar([]);
+    cierto(html.includes("--tema: #fb7185") && html.includes("Álbum · Fuerza") && html.includes("💪"), "cabecera con el tema de la misión");
+    cierto(html.includes("4 fotos") && html.includes("29 días de camino"), "resumen del álbum");
+    igual((html.match(/class="album-mes"/g) || []).length, 2, "dos meses");
+    cierto(html.indexOf("noviembre 2026") < html.indexOf("octubre 2026"), "el mes más nuevo va primero");
+    cierto(html.indexOf("blob:2026-11-17") < html.indexOf("blob:2026-11-03"), "y dentro del mes, la más nueva primero");
+    cierto(html.includes("Antes y después") && !html.includes("➕ Foto de hoy"), "«Antes y después»; la foto de hoy solo en «progreso»");
+    cierto(html.includes("Toca una foto para verla"), "sin elegir: la ayuda");
+    html = dibujar(["2026-11-03"]);
+    cierto(html.includes("fotos-borrar") && html.includes("data-visor") && !html.includes("foto-visor-doble"), "una elegida: grande, con borrar");
+    cierto(!html.includes('data-paso="-1" disabled') && !html.includes('data-paso="1" disabled'), "en el medio se puede ir a las dos vecinas");
+    cierto(dibujar(["2026-10-22"]).includes('data-paso="-1" disabled'), "la primera no tiene «más antigua»");
+    cierto(dibujar(["2026-11-17"]).includes('data-paso="1" disabled'), "la última no tiene «más reciente»");
+    html = dibujar(["2026-11-17", "2026-10-22"]);
+    cierto(html.includes("foto-visor-doble") && html.includes("pasaron 26 días"), "dos elegidas: juntas y con los días entre las dos");
+    cierto(html.indexOf("blob:2026-10-22") < html.indexOf("blob:2026-11-17", html.indexOf("foto-visor-doble")), "la más vieja a la izquierda");
+    html = vistasFotos.contenidoAlbum({ album: { ...album, id: "progreso" }, fotos: [], seleccion: [], hoy: "2026-11-20" });
+    cierto(html.includes("➕ Foto de hoy") && html.includes("Aún no hay fotos aquí") && !html.includes("Antes y después"), "álbum de progreso vacío");
     const estado = partidaNueva();
     cierto(vistasFotos.tarjetaFotoSemanal(estado, { hoy: hoy() }).includes("fotos-semanal"), "Hoy pide la foto de la semana");
     acciones.registrarFotoProgreso(estado, hoy());

@@ -86,6 +86,20 @@ export async function cuentaPorAlbum() {
     return cuenta;
 }
 
+// (v198) Para las portadas de los álbumes: de cada uno, cuántas fotos tiene, la primera y la última fecha,
+// y la imagen más reciente (la portada): { "7": { cuenta, primera, ultima, portada }, … }.
+export async function resumenPorAlbum() {
+    const todas = await esperar((await tienda("readonly")).getAll());
+    const resumen = {};
+    for (const f of todas) {
+        const a = (resumen[f.album] ||= { cuenta: 0, primera: f.fecha, ultima: f.fecha, portada: f.imagen });
+        a.cuenta += 1;
+        if (f.fecha < a.primera) a.primera = f.fecha;
+        if (f.fecha >= a.ultima) { a.ultima = f.fecha; a.portada = f.imagen; }
+    }
+    return resumen;
+}
+
 export async function borrarFoto(album, fecha) {
     await esperar((await tienda("readwrite")).delete(claveDe(album, fecha)));
 }
