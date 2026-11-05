@@ -2038,3 +2038,18 @@ body:has(.galeria-dialogo[open]) { overflow: hidden; }
     display: block;
     color: var(--texto-suave);
 }
+
+/* ===== (v202) Sin barras de desplazamiento en ninguna pantalla: se desliza con el dedo igual ===== */
+html,
+body,
+* {
+    scrollbar-width: none;      /* Firefox y navegadores nuevos */
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+    display: none;              /* Chrome, Safari y el iPhone */
+    width: 0;
+    height: 0;
+}

@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v202 — Sin barras de desplazamiento
+
+- Se ocultan las barras de desplazamiento en toda la app (`css/99-pixel.css`, al final): `scrollbar-width: none` y `::-webkit-scrollbar` en `html`, `body` y el resto. Antes solo se ocultaban dentro de la galería.
+- Sin cambios de datos. Pruebas: 487 de la app.
+
 ## v201 — Galería más ordenada
 
 - **Álbum en un botón + lista** (`hojaDeAlbumes`, estado `eligiendoAlbum`): se acabaron los chips que se cortaban a la derecha. Periodo, orden, favoritas y «Quitar» ahora se acomodan en filas (`flex-wrap`) con nombres cortos (`PERIODOS/ORDENES.corto`).
