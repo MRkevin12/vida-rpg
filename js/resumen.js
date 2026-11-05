@@ -5,7 +5,9 @@
 // Los días de descanso (sin misiones) no cuentan ni a favor ni en contra.
 
 import { sumarDias, diaDeSemana, lunesDe } from "./fechas.js";
-import { ATRIBUTOS, ANIMOS_DIARIO, MOTIVOS_FALLA, hechasPorFecha, misionesDelDia, estaActiva, vecesEnSemana } from "./juego.js";
+import { ATRIBUTOS, ANIMOS_DIARIO, MOTIVOS_FALLA, hechasPorFecha, misionesDelDia, estaActiva, vecesEnSemana, calcularRacha } from "./juego.js";
+import { diasDeLaSemana as diasDeGym, ejercicioPorId } from "./gym/gym.js";   // (v195) para el texto de la IA
+import { kmDeLaSemana } from "./running/running.js";
 import { DESAFIOS, progresoDesafio, textoDesafio } from "./desafios.js";
 
 function porcentaje(hechas, total) {
@@ -205,6 +207,69 @@ export function resumenSemana(estado, lunes) {
             ? { texto: textoDesafio(desafio), progreso: progresoDesafio(estado, desafio), meta: desafio.meta, cobrado: Boolean(desafio.cobradoEn) }
             : null,
     };
+}
+
+// (v195) El texto que se copia para pegarlo en una IA: solo los números de la semana y una petición.
+// Es texto plano (sin HTML) y no se manda a ningún lado: lo copias tú.
+export function textoSemanaParaIA(estado, lunes) {
+    const s = resumenSemana(estado, lunes);
+    const lineas = [
+        `Mi semana (${s.lunes} a ${s.domingo}) en mi app de hábitos:`,
+        `- Cumplimiento: ${s.cumplimiento.pct === null ? "sin dato" : s.cumplimiento.pct + " %"}`,
+        `- Misiones hechas: ${s.completadas} (+${s.xp} XP)`,
+        `- Días perfectos: ${s.perfectos} de ${s.diasConMisiones}`,
+    ];
+    if (s.mejorDia) lineas.push(`- Mi mejor día: ${s.mejorDia.dia} (${s.mejorDia.pct} %)`);
+    if (s.semanales.length) {
+        lineas.push("- Metas semanales: " + s.semanales.map((m) => `${m.nombre} ${m.hechas}/${m.meta}`).join(", "));
+    }
+    lineas.push(`- Tareas hechas: ${s.tareas}`);
+    lineas.push(`- Sesiones de enfoque: ${s.enfoque.sesiones} (${s.enfoque.minutos} min)`);
+    const animos = Object.entries(s.animos).filter(([, n]) => n > 0).map(([clave, n]) => `${clave} ${n}`);
+    if (animos.length) lineas.push(`- Ánimo en mi diario: ${animos.join(", ")}`);
+    if (s.descuidado) lineas.push(`- Atributo más descuidado: ${ATRIBUTOS[s.descuidado].nombre}`);
+
+    // Racha y escudos tal como quedaron al terminar esa semana.
+    const racha = calcularRacha(estado, s.domingo);
+    lineas.push(`- Racha: ${racha.actual} días (mejor: ${racha.mejor}) · escudos: ${racha.escudos}`);
+
+    // Por qué fallé: la misión más fallada, el motivo más repetido y cuándo suelo cumplirla.
+    const pista = pistaDeFallas(estado, lunes);
+    if (pista) {
+        let falla = `- Fallas: ${pista.total}`;
+        if (pista.mision) falla += `. La que más: «${pista.mision}» (${pista.veces} ${pista.veces === 1 ? "vez" : "veces"})`;
+        if (pista.motivo) falla += `. Motivo más común: ${pista.motivo.nombre}`;
+        if (pista.horaTipica !== null) falla += `. Cuando la cumplo suele ser hacia las ${pista.horaTipica} h`;
+        lineas.push(falla);
+    }
+
+    // Gimnasio: días entrenados frente a la meta y récords batidos esa semana (cada sesión guarda los suyos).
+    const sesionesGym = estado.gym.sesiones;
+    const diasGym = diasDeGym(sesionesGym, lunes);
+    if (diasGym || sesionesGym.length) {
+        lineas.push(`- Gimnasio: ${diasGym} de ${estado.gym.metaSemanal} días`);
+        const records = sesionesGym.filter((x) => x.fecha >= lunes && x.fecha <= s.domingo).flatMap((x) => x.records || []);
+        if (records.length) {
+            const nombres = [...new Set(records.map((r) => ejercicioPorId(r.id)?.nombre || "un ejercicio"))];
+            lineas.push(`- Récords de gym esta semana: ${records.length} (${nombres.join(", ")})`);
+        }
+    }
+
+    // Carrera: km y número de carreras de la semana.
+    const carreras = estado.running.carreras.filter((c) => c.fecha >= lunes && c.fecha <= s.domingo);
+    if (carreras.length) {
+        lineas.push(`- Carrera: ${Math.round(kmDeLaSemana(estado.running.carreras, lunes) * 10) / 10} km en ${carreras.length} ${carreras.length === 1 ? "carrera" : "carreras"}`);
+    }
+
+    // Mi revisión semanal, con mis propias palabras (si la hice).
+    const revision = estado.revisiones[lunes];
+    if (revision && (revision.bien || revision.mejorar)) {
+        if (revision.bien) lineas.push(`- Lo que yo creo que hice bien: ${revision.bien}`);
+        if (revision.mejorar) lineas.push(`- Lo que yo quiero mejorar: ${revision.mejorar}`);
+    }
+    lineas.push("");
+    lineas.push("Con estos datos, dime en 3 puntos cortos qué hice bien, qué me falló y un solo cambio concreto para la semana que viene. Sé directo, en español.");
+    return lineas.join("\n");
 }
 
 

@@ -23,7 +23,7 @@ import * as vistasVoces from "../js/voces/vistas-voces.js";
 import * as anual from "../js/anual.js";   // (v181)
 import * as foto from "../js/foto.js";     // (v193)
 import { existeSonido } from "../js/sonido.js";
-import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso, ajusteDeDificultad, ajustesDeDificultad } from "../js/resumen.js";
+import { calcularResumen, semanaPorMostrar, resumenSemana, textoSemanaParaIA, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso, ajusteDeDificultad, ajustesDeDificultad } from "../js/resumen.js";
 import * as hallazgos from "../js/running/hallazgos.js";   // (v148)
 import * as temporadas from "../js/temporadas.js";   // (v149)
 import * as secretos from "../js/secretos.js";       // (v149)
@@ -603,6 +603,30 @@ prueba("Tu semana: resume la semana pasada de lunes a domingo y se muestra hasta
     igual([s.completadas, s.perfectos, s.cumplimiento.pct, s.animos.bien], [4, 4, 57, 1]);
     acciones.cerrarResumenSemanal(estado);
     igual(semanaPorMostrar(estado, hoy()), null, "después de cerrarla");
+});
+
+prueba("(v195) El resumen para la IA: texto plano con los números de la semana y la petición", () => {
+    const estado = partidaNueva();
+    const mision = crearMision(estado, { nombre: "Skin care" });
+    const lunesPasado = sumarDias(lunesDe(hoy()), -7);
+    estado.personaje.creadoEn = lunesPasado;
+    mision.creadaEn = lunesPasado;
+    for (const n of [0, 2]) marcarEn(estado, mision, sumarDias(lunesPasado, n));
+    // Datos de los demás bloques: una falla, un entrenamiento con récord, una carrera y la revisión escrita.
+    estado.fallas.push({ misionId: mision.id, fecha: sumarDias(lunesPasado, 1), motivo: "olvido" });
+    estado.gym.sesiones.push({ fecha: sumarDias(lunesPasado, 3), ejercicios: [], records: [{ id: "inexistente" }] });
+    estado.running.carreras.push({ fecha: sumarDias(lunesPasado, 4), km: 5, minutos: 30 });
+    estado.revisiones[lunesPasado] = { bien: "fui al gym", mejorar: "dormir más", foco: [] };
+    const texto = textoSemanaParaIA(estado, lunesPasado);
+    igual(texto.includes("Misiones hechas: 2"), true, "cuenta las misiones de esa semana");
+    igual(texto.includes("- Racha: "), true, "lleva la racha");
+    igual(texto.includes("Se me olvidó"), true, "lleva el motivo de la falla");
+    igual(texto.includes("Gimnasio: 1 de"), true, "lleva los días de gym");
+    igual(texto.includes("Récords de gym esta semana: 1"), true, "lleva los récords");
+    igual(texto.includes("Carrera: 5 km en 1 carrera"), true, "lleva la carrera");
+    igual(texto.includes("fui al gym") && texto.includes("dormir más"), true, "lleva mi revisión");
+    igual(texto.includes("<") || texto.includes("class="), false, "no lleva HTML");
+    igual(texto.endsWith("en español."), true, "termina con la petición");
 });
 
 prueba("Revisión semanal: se guarda por semana, cierra la tarjeta y deja hasta 3 misiones de foco", () => {

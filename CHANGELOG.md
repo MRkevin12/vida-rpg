@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v195 — Tu semana, lista para la IA
+
+- **Botón «🤖 Copiar resumen para la IA»** en la tarjeta «Tu semana pasada» (`copiar-semana-ia` en `app-botones.js`). Copia un texto plano al portapapeles; no se envía nada a ningún servidor.
+- **`resumen.js › textoSemanaParaIA(estado, lunes)`** arma el texto: cumplimiento, misiones y XP, días perfectos, mejor día, metas semanales, tareas, enfoque, ánimo, atributo descuidado, **racha y escudos** al terminar esa semana, **fallas** (la misión más fallada, el motivo y la hora típica), **gimnasio** (días frente a la meta y récords), **carrera** (km y carreras) y **tu revisión semanal**. Termina con una petición en español.
+- No lleva finanzas ni el texto del diario (son privados). Datos: sin cambios. Pruebas: 479 de 479 (+1).
+
 ## v194 — Premios que se cobran al hacer tu misión
 
 - **Premio ligado a una misión** (`recompensa.misionId`, opcional, en el formulario de la Tienda). Se canjea si la misión se hizo **hoy o ayer**, y una sola vez por cada vez que la hiciste (`recompensa.ultimoCanjeFecha`).

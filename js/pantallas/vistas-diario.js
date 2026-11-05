@@ -7,7 +7,7 @@ import * as juego from "../juego.js";
 import * as diario from "../diario.js";
 import * as libro from "../historias/libro.js";
 import * as saga from "../historias/saga.js";
-import { resumenSemana } from "../resumen.js";
+import { resumenSemana, textoSemanaParaIA } from "../resumen.js";
 import * as resumen from "../resumen.js";
 import * as gymReglas from "../gym/gym.js";
 import { fechaLegible, fechaCorta, DIAS_LETRAS, diasEntre, sumarDias, MESES } from "../fechas.js";
@@ -418,6 +418,7 @@ export function tarjetaSemana(estado, ctx) {
                         `<span class="ficha-nota">${s.mejorDia ? `${s.mejorDia.pct} % cumplido` : "Sin misiones hechas"}</span>`)}
             </div>
             ${lineas.length ? `<ul class="semana-lista">${lineas.map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="copiar-semana-ia" data-lunes="${ctx.semanaPendiente}">🤖 Copiar resumen para la IA</button>
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="revisar-semana">📝 Hacer mi revisión de la semana</button>
             <button type="button" class="boton boton-principal boton-ancho" data-accion="cerrar-semana">¡A por esta semana!</button>
         </section>`;

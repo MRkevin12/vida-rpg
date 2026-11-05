@@ -13,7 +13,7 @@ import * as rituales from "../rituales.js";
 import * as mascota from "../mascota.js";
 import * as avisos from "../avisos.js";
 import * as nube from "../nube.js";
-import { calcularResumen, semanaPorMostrar } from "../resumen.js";
+import { calcularResumen, semanaPorMostrar, textoSemanaParaIA } from "../resumen.js";
 import { hoy } from "../fechas.js";
 import { estado, pantallaActual, ui, subvista, $, avatarActual, preguntarAnimo, elegirAnimo, ejecutar,
          dibujarPantalla, fechaVista, cambiarPantalla, exportar, borrarTodo } from "../app.js";
@@ -213,6 +213,16 @@ export const ACCIONES_GENERALES = {
     "revisar-semana": () => {
         const lunes = semanaPorMostrar(estado, hoy());
         if (lunes) abrirDialogo("revision", lunes);
+    },
+    // (v195) Copia al portapapeles el resumen de la semana, listo para pegarlo en una IA. No sale nada del teléfono.
+    "copiar-semana-ia": async (boton) => {
+        const texto = textoSemanaParaIA(estado, boton.dataset.lunes);
+        try {
+            await navigator.clipboard.writeText(texto);
+            avisar("📋 Copiado: pégalo en tu IA");
+        } catch {
+            avisar("⚠️ Tu teléfono no dejó copiar. Intenta de nuevo");
+        }
     },
 
     "alternar-submision": (boton) => {

@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 194;
+export const VERSION_APP = 195;
 
 export const NOVEDADES = [
+    {
+        version: 195,
+        titulo: "Tu semana, lista para la IA",
+        cambios: [
+            "🤖 En la tarjeta «Tu semana pasada» hay un botón nuevo: «Copiar resumen para la IA».",
+            "📋 Copia un texto con tus números de la semana (misiones, racha y escudos, por qué fallaste, gimnasio, carrera y tu revisión) y una petición. Tú lo pegas donde quieras: la app no manda nada sola.",
+        ],
+    },
     {
         version: 194,
         titulo: "Premios que se cobran al hacer tu misión",
