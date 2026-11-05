@@ -223,7 +223,8 @@ function detalleMision(estado, mision, conFrecuencia = Boolean(mision.dias || mi
     const a = juego.infoAtributo(estado, mision.atributo, mision.atributoPropio);
     const aviso = mision.aviso ? ` · ⏰ ${mision.aviso}` : "";
     const momento = mision.momento && conMomento ? ` · ${juego.MOMENTOS[mision.momento].icono}` : "";
-    return `${esc(a.icono)} ${esc(a.nombre)} · ${d.nombre} · +${d.xp} XP${conFrecuencia ? ` · ${textoFrecuencia(mision)}` : ""}${momento}${aviso}`;
+    const foto = mision.foto ? " · 📷 con foto" : "";   // (v193)
+    return `${esc(a.icono)} ${esc(a.nombre)} · ${d.nombre} · +${d.xp} XP${conFrecuencia ? ` · ${textoFrecuencia(mision)}` : ""}${momento}${aviso}${foto}`;
 }
 
 

@@ -21,6 +21,7 @@ import { sonar, flotarXp, reproducirAnimacion, celebrar, avisar, ofrecerDeshacer
 import { pintarDescanso, pintarNube, idEnEdicion, abrirDialogo, pintarAvisos, pintarRetratoFondos, sincronizarAvisos, probarAvisos } from "./app-dialogos.js";
 import { gestoReciente, iniciarGolpe } from "./app-gestos.js";
 import { registroSW } from "./app-version.js";
+import { pedirFoto } from "./app-foto.js";   // (v193) misiones que piden foto
 
 // Cambia cuánto llevas de una misión con cantidad. Si así llega a la meta,
 // se completa (con su animación); si baja de la meta, se desmarca.
@@ -45,13 +46,16 @@ export const ACCIONES_GENERALES = {
     // (v181) Tu año: cambiar de año sin cerrar la ventana.
     "anio-anual": (boton) => { $("#anual-contenido").innerHTML = vistas.contenidoAnual(estado, hoy(), Number(boton.dataset.anio)); },
 
-    "alternar-mision": (boton) => {
+    "alternar-mision": async (boton) => {
         const id = Number(boton.dataset.id);
         const fecha = fechaVista();   // hoy, o ayer si estás corrigiendo el día anterior
         const estabaHecha = boton.getAttribute("aria-pressed") === "true";
+        // (v193) Si la misión pide foto, primero hay que pasar la prueba (si cancelas, no se marca).
+        const pideFoto = !estabaHecha && estado.misiones.find((m) => m.id === id)?.foto;
+        if (pideFoto && !(await pedirFoto(estado.misiones.find((m) => m.id === id), fecha))) return;
         const resultado = estabaHecha
             ? ejecutar(() => acciones.desmarcarMision(estado, id, fecha))
-            : ejecutar(() => acciones.completarMision(estado, id, fecha), { recienHecha: id });
+            : ejecutar(() => acciones.completarMision(estado, id, fecha, { conFoto: Boolean(pideFoto) }), { recienHecha: id });
         if (!resultado) return;
         sonar(estabaHecha ? "desmarcar" : "completar");
         flotarXp(`.mision[data-id="${id}"]`, resultado.xp);

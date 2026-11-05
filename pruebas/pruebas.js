@@ -21,6 +21,7 @@ import * as cinematicas from "../js/torre/cinematicas.js";
 import * as voces from "../js/voces/voces.js";
 import * as vistasVoces from "../js/voces/vistas-voces.js";
 import * as anual from "../js/anual.js";   // (v181)
+import * as foto from "../js/foto.js";     // (v193)
 import { existeSonido } from "../js/sonido.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso, ajusteDeDificultad, ajustesDeDificultad } from "../js/resumen.js";
 import * as hallazgos from "../js/running/hallazgos.js";   // (v148)
@@ -8032,7 +8033,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 41, "versión de los datos");
+    igual(base.version, 42, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -8234,7 +8235,7 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [41, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [42, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });
@@ -9673,7 +9674,7 @@ prueba("La Senda del Reino: tu equipo ayuda (armadura al empezar, vidas, fuego y
     delete estado.arcade.plataformas;
     estado.version = 40;
     const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
-    igual([copia.version, copia.arcade.plataformas], [41, { niveles: {} }], "versión 41 y la Senda vacía");
+    igual([copia.version, copia.arcade.plataformas], [42, { niveles: {} }], "versión 42 y la Senda vacía");
     estado.arcade.plataformas = { niveles: { "1-1": { mejor: 10, reliquias: [1], tiempo: 5, ganadoEn: dia(0), veces: 1 } } };
     igual(datos.desdeRespaldo(datos.textoRespaldo(estado)).arcade.plataformas.niveles["1-1"].reliquias, [1], "y se conserva lo que había");
 });
@@ -9876,6 +9877,43 @@ prueba("Fondo del retrato: cada fondo se dibuja distinto, se guarda y uno descon
     cierto(error && /no existe/.test(error.message), "un fondo inventado se rechaza");
     estado.ajustes.retratoFondo = "dañado";   // una copia vieja o rota
     igual(dibujarAvatar(base(), { mini: true }).replace(/av\d+/g, "av"), [...vistos][0], "un id raro se dibuja como el de siempre");
+});
+
+prueba("Misiones con foto (v193): el código del día es fijo, cambia cada día y se lee aunque el OCR se equivoque un poco", () => {
+    const a = foto.codigoDeMision(7, "2026-11-05");
+    igual(foto.codigoDeMision(7, "2026-11-05"), a, "el mismo día da el mismo código");
+    cierto(foto.PALABRAS.includes(a.palabra) && a.numero >= 10 && a.numero <= 99, "palabra de la lista y número de 10 a 99");
+    const otros = new Set(Array.from({ length: 30 }, (_, i) => foto.codigoDeMision(7, sumarDias("2026-11-05", i)).texto));
+    cierto(otros.size >= 20, "en 30 días casi no se repite");
+
+    const codigo = { texto: "LOBO 47" };
+    cierto(foto.verificarTexto("Tarea de matemáticas\nLOBO 47\nlista", codigo).ok, "tal cual, entre otro texto");
+    cierto(foto.verificarTexto("l0bo-47", codigo).ok, "minúsculas, ceros en vez de O y un guion");
+    cierto(foto.verificarTexto("LOBQ 4 7", codigo).ok, "una letra mal leída y un espacio de más");
+    cierto(foto.verificarTexto("LOB 47", codigo).ok, "le falta una letra (1 error perdonado)");
+    cierto(!foto.verificarTexto("LO 4", codigo).ok, "demasiados errores: no pasa");
+    cierto(!foto.verificarTexto("ROCA 47", codigo).ok, "otra palabra: no pasa");
+    cierto(!foto.verificarTexto("LOBO 12", codigo).ok, "otro número: no pasa");
+    cierto(!foto.verificarTexto("", codigo).ok, "sin texto: no pasa");
+    igual(foto.distanciaDentro("ABC", "XXABCXX"), 0, "aparece tal cual dentro");
+    igual(foto.distanciaDentro("ABC", "XXABXCX"), 1, "con una letra de más en medio");
+});
+
+prueba("Misiones con foto (v193): sin foto verificada no se completa; con foto sí, y queda anotado", () => {
+    const estado = partidaNueva();
+    const m = crearMision(estado, { foto: "on" });
+    igual(m.foto, true, "la casilla «on» la deja pidiendo foto");
+    debeFallar(() => acciones.completarMision(estado, m.id, hoy()), "pide una foto");
+    igual(estado.completadas.length, 0, "no se marcó");
+    acciones.completarMision(estado, m.id, hoy(), { conFoto: true });
+    igual(estado.completadas[0].foto, true, "el registro dice que fue con foto");
+
+    const conCantidad = crearMision(estado, { nombre: "Agua", foto: "on", cantidad: 8, unidad: "vasos" });
+    igual(conCantidad.foto, false, "con cantidad no pide foto (se completa sola)");
+    const normal = crearMision(estado, { nombre: "Correr" });
+    igual(normal.foto, false, "sin la casilla, no pide foto");
+    acciones.editarMision(estado, { ...normal, id: normal.id, frecuencia: "dias", dias: ["0", "1", "2", "3", "4", "5", "6"], foto: "on" });
+    igual(normal.foto, true, "al editar se puede encender");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

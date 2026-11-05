@@ -401,6 +401,13 @@
                 </label>
                 <p class="nota">Te llega una notificación solo de esta misión, los días que toca, y solo si todavía no la
                    hiciste. Necesita las notificaciones activadas (Ajustes → 🔔). Déjala vacía para no recibir aviso.</p>
+                <!-- (v193) Pedir foto: para completarla hay que fotografiar el código del día -->
+                <label class="interruptor">
+                    <span><b>📷 Pedir foto para completarla</b><br><span class="nota">Cada día te da un código (ej. «LOBO 47»):
+                        lo escribes en tu cuaderno y le tomas foto. La app lee la foto, sin internet, y solo la marca si
+                        encuentra el código. No sirve para misiones con cantidad.</span></span>
+                    <input type="checkbox" name="foto">
+                </label>
             </div>
             <div class="botones-dialogo">
                 <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
@@ -415,6 +422,23 @@
                 <button type="button" class="boton boton-peligro boton-ancho" data-accion="archivar-mision">Archivar misión</button>
             </div>
         </form>
+    </dialog>
+
+    <!-- (v193) Prueba con foto: el código del día, la cámara y lo que leyó el OCR (js/pantallas/app-foto.js) -->
+    <dialog id="dialogo-foto" class="dialogo">
+        <div class="formulario">
+            <h2 class="titulo-juego" tabindex="-1" autofocus>📷 Prueba con foto</h2>
+            <p class="foto-mision" id="foto-mision"></p>
+            <p class="nota">Escribe este código en tu cuaderno, <b>en mayúsculas y grande</b>, junto a lo que hiciste. Luego tómale una foto:</p>
+            <p class="foto-codigo" id="foto-codigo"></p>
+            <button type="button" class="boton boton-principal boton-ancho" id="foto-tomar">📷 Tomar la foto</button>
+            <input type="file" accept="image/*" capture="environment" id="foto-entrada" hidden>
+            <img class="foto-vista" id="foto-vista" alt="La foto que tomaste" hidden>
+            <p class="foto-estado" id="foto-estado" role="status" aria-live="polite"></p>
+            <div class="botones-dialogo">
+                <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
+            </div>
+        </div>
     </dialog>
 
     <dialog id="dialogo-tarea" class="dialogo">

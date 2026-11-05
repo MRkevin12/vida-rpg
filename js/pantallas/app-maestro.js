@@ -11,6 +11,7 @@ import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../plantillas.js";
 import { hoy } from "../fechas.js";
 import { estado, $, ejecutar, contextoActual, ACCIONES } from "../app.js";
 import { mostrarRobo, sonar, avisar } from "./app-efectos.js";
+import { pedirFoto } from "./app-foto.js";   // (v193)
 
 let maestroVista = { modo: "inicio", respuesta: "" };   // la conversación con el Maestro
 
@@ -84,10 +85,14 @@ function cerrarRitual() {
 }
 
 // La carta de la misión actual: hecha (true) o fallada con su motivo (false).
-function ritualMision(hecha, motivo) {
+async function ritualMision(hecha, motivo) {
     const id = ritual.cola[ritual.indice];
+    // (v193) Si pide foto, se toma aquí mismo. Si cancelas, la carta se queda donde estaba.
+    const mision = estado.misiones.find((m) => m.id === id);
+    if (hecha && mision?.foto && !(await pedirFoto(mision, hoy()))) { pintarRitual(); return; }
+    if (!ritual) return;   // cerraste el ritual mientras tanto
     const resultado = hecha
-        ? ejecutar(() => acciones.completarMision(estado, id, hoy()))
+        ? ejecutar(() => acciones.completarMision(estado, id, hoy(), { conFoto: Boolean(mision?.foto) }))
         : ejecutar(() => acciones.fallarMision(estado, id, hoy(), motivo));
     if (!resultado) return;
     if (hecha) sonar("completar");

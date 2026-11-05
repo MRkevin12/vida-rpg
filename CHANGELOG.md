@@ -2,6 +2,16 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v193 — Misiones con foto
+
+- **Casilla «📷 Pedir foto para completarla»** en el formulario de misión (`mision.foto`; las de cantidad no la llevan). Para completarla (botón, deslizar o el ritual de la noche) se abre la ventana «Prueba con foto».
+- **Código del día** (`js/foto.js › codigoDeMision`): palabra + número (ej. «LOBO 47»), fijo para cada misión y fecha.
+- **OCR sin internet**: Tesseract.js 7.0.0 + núcleo WebAssembly (SIMD + LSTM) + español `4.0.0_best_int` en `ocr/` (~6 MB, Apache 2.0). `js/pantallas/app-foto.js` achica la foto a 1600 px, la lee en modo página (3) y, si no aparece el código, en modo texto disperso (11).
+- **Comparación tolerante** (`verificarTexto`): mayúsculas, sin tildes, letras parecidas unificadas (0/O, 1/I/L, 5/S, 8/B…) y distancia de Levenshtein dentro del texto, con 1 error cada 5 letras.
+- `completarMision(estado, id, fecha, { conFoto })`: sin foto verificada lanza «Esta misión pide una foto…»; el registro guarda `foto: true`. La foto **no se guarda**.
+- `sw.js`: caché aparte `ocr-vida-rpg-1` que no se borra al actualizar (los 6 MB se bajan una sola vez, al instalar).
+- Datos: versión 42 (las misiones de antes quedan con `foto: false`). Pruebas: 475 de 475 (+2).
+
 ## v192 — La app, más ordenada por dentro
 
 Nada cambia por fuera (mismas reglas, mismas pantallas: comparadas píxel a píxel). Solo el orden de los archivos:

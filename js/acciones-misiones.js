@@ -106,16 +106,24 @@ function validarMomento(momento) {
     return momento;
 }
 
-export function crearMision(estado, { nombre, dificultad, atributo, dias, frecuencia, veces, diasMes, cantidad, unidad, aviso, momento }) {
+// (v193) «Pedir foto»: la casilla del formulario llega como "on" (o no llega). Las misiones con
+// cantidad no la llevan: se completan solas al llegar a la meta y no hay un momento para la foto.
+function validarFoto(foto, meta) {
+    return Boolean(foto) && foto !== "false" && !meta;
+}
+
+export function crearMision(estado, { nombre, dificultad, atributo, dias, frecuencia, veces, diasMes, cantidad, unidad, aviso, momento, foto }) {
+    const meta = validarMeta(cantidad, unidad);
     estado.misiones.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
         dificultad: validarDificultad(dificultad),
         ...elegirAtributo(estado, atributo),                 // agrega "atributo" y "atributoPropio"
         ...validarFrecuencia({ frecuencia, dias, veces, diasMes }),   // agrega "dias", "veces" y "diasMes"
-        meta: validarMeta(cantidad, unidad),
+        meta,
         aviso: validarAviso(aviso),
         momento: validarMomento(momento),
+        foto: validarFoto(foto, meta),   // (v193) para completarla hay que tomar una foto con el código del día
         creadaEn: hoy(),
         archivadaEn: null,
         pausas: [],
@@ -124,7 +132,7 @@ export function crearMision(estado, { nombre, dificultad, atributo, dias, frecue
 
 // Editar una misión. Lo que ya completaste no cambia: cada registro del
 // historial guardó su propia XP, dificultad y atributo.
-export function editarMision(estado, { id, nombre, dificultad, atributo, dias, frecuencia, veces, diasMes, cantidad, unidad, aviso, momento }) {
+export function editarMision(estado, { id, nombre, dificultad, atributo, dias, frecuencia, veces, diasMes, cantidad, unidad, aviso, momento, foto }) {
     const mision = buscar(estado.misiones, Number(id), "esa misión");
     mision.nombre = validarNombre(nombre, 60);
     mision.dificultad = validarDificultad(dificultad);
@@ -133,6 +141,7 @@ export function editarMision(estado, { id, nombre, dificultad, atributo, dias, f
     mision.meta = validarMeta(cantidad, unidad);
     mision.aviso = validarAviso(aviso);
     mision.momento = validarMomento(momento);
+    mision.foto = validarFoto(foto, mision.meta);
 }
 
 // Mover una misión un puesto arriba (-1) o abajo (+1) entre las que no están archivadas.
@@ -164,9 +173,11 @@ function validarFecha(fecha, mensaje = "Solo puedes marcar misiones de hoy o de 
     return fecha;
 }
 
-export function completarMision(estado, id, fecha = hoy()) {
+// opciones.conFoto (v193): true cuando la foto ya pasó la prueba del código (ver foto.js y app-foto.js).
+export function completarMision(estado, id, fecha = hoy(), opciones = {}) {
     const mision = buscar(estado.misiones, id, "esa misión");
     validarFecha(fecha);
+    if (mision.foto && !opciones.conFoto) throw new Error("Esta misión pide una foto con el código del día.");
     if (!juego.sePuedeMarcar(mision, fecha)) throw new Error("Esa misión no tocaba ese día.");
     if (estado.completadas.some((c) => c.misionId === id && c.fecha === fecha)) {
         throw new Error("Esa misión ya estaba completada ese día.");
@@ -182,6 +193,7 @@ export function completarMision(estado, id, fecha = hoy()) {
     // restarlo exacto si la desmarcas y para que editar la misión no cambie el pasado.
     estado.completadas.push({ misionId: id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad,
                               atributoPropio: mision.atributoPropio || null, ...(esClave ? { clave: true } : {}),
+                              ...(opciones.conFoto ? { foto: true } : {}),   // (v193) se completó con una foto verificada
                               // (v149) La hora en que la marcaste (solo si es de hoy): sirve para saber a qué hora la sueles cumplir.
                               ...(fecha === hoy() ? { hora: new Date().getHours() } : {}) });
     ganar(estado, { xp, monedas, atributo: mision.atributo });

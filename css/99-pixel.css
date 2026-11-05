@@ -1639,3 +1639,40 @@ body {
         animation: none;
     }
 }
+
+/* ===== (v193) Prueba con foto: el código del día, la foto y lo que leyó el OCR ===== */
+.foto-mision {
+    margin: 0;
+    font-weight: 700;
+    text-align: center;
+}
+.foto-codigo {
+    margin: 4px 0 12px;
+    padding: 14px 8px;
+    text-align: center;
+    font-family: var(--letra-titulo);
+    font-size: 2rem;
+    letter-spacing: 0.12em;
+    color: var(--oro);
+    border: 2px dashed var(--oro);
+    user-select: all;   /* se puede copiar */
+}
+.foto-vista {
+    display: block;
+    width: 100%;
+    max-height: 40vh;
+    object-fit: contain;
+    margin-top: 12px;
+    image-rendering: auto;   /* la foto real NO se pixela */
+}
+.foto-estado {
+    min-height: 1.4em;
+    margin: 10px 0 0;
+    text-align: center;
+}
+.foto-estado.foto-ok { color: var(--verde); font-weight: 700; }
+.foto-estado.foto-mal { color: var(--rojo); }
+#dialogo-foto.leyendo #foto-tomar {
+    opacity: 0.5;
+    pointer-events: none;
+}

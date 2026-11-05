@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 192;
+export const VERSION_APP = 193;
 
 export const NOVEDADES = [
+    {
+        version: 193,
+        titulo: "Misiones con foto",
+        cambios: [
+            "📷 Nueva casilla al crear o editar una misión: «Pedir foto para completarla».",
+            "🔑 Cada día esa misión te da un código (ej. «LOBO 47»). Lo escribes en tu cuaderno, junto a lo que hiciste, y le tomas una foto.",
+            "🔎 La app lee la foto ella sola, sin internet, y solo marca la misión si encuentra el código. Si no lo ve, te dice qué leyó para que pruebes otra vez.",
+            "✍️ Consejo: letras de molde grandes, bolígrafo oscuro, buena luz y el teléfono derecho.",
+            "📶 La primera vez, abre la app con internet: guarda el lector (unos 6 MB) para que funcione en modo avión.",
+        ],
+    },
     {
         version: 192,
         titulo: "La app, más ordenada por dentro",

@@ -255,6 +255,7 @@ export const PREPARAR = {
             formulario.elements.unidad.value = mision.meta ? mision.meta.unidad : "";
             formulario.elements.aviso.value = mision.aviso || "";
             formulario.elements.momento.value = mision.momento || "";
+            formulario.elements.foto.checked = Boolean(mision.foto);   // (v193)
         }
         mostrarCamposFrecuencia();
     },
