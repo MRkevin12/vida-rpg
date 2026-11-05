@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 191;
+export const VERSION_APP = 192;
 
 export const NOVEDADES = [
+    {
+        version: 192,
+        titulo: "La app, más ordenada por dentro",
+        cambios: [
+            "🗂️ Por dentro, los archivos de la app ahora están en carpetas por tema (gym, running, Torre, arcade…). Por fuera todo se ve y funciona igual.",
+            "📶 Al actualizar, abre la app una vez con internet para que guarde los archivos nuevos y siga funcionando sin conexión.",
+        ],
+    },
     {
         version: 191,
         titulo: "Avisos más claros",

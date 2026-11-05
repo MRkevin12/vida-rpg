@@ -2,6 +2,17 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v192 — La app, más ordenada por dentro
+
+Nada cambia por fuera (mismas reglas, mismas pantallas: comparadas píxel a píxel). Solo el orden de los archivos:
+
+- **`css/`**: `estilos.css` (15 634 líneas) se partió en 21 trozos seguidos, en el MISMO orden (la cascada no cambia); `estilos-pixel.css` es ahora `css/99-pixel.css`. `index.html` los carga en orden y las pruebas los leen juntos (`leerCSS()`).
+- **`js/` en carpetas por tema**: `pantallas/`, `dibujo/`, `gym/`, `running/`, `torre/`, `arcade/`, `historias/`, `voces/`, `finanzas/`, `memento/`. Lo general (juego, datos, fechas, acciones, app.js…) sigue en `js/`. `voces-valle-2.js` pasó a `voces/voces-personas.js`.
+- **Archivos gigantes divididos** (reexportados con `export *` o por nombre: el resto de la app no cambia): `acciones.js` → `acciones-misiones.js`, `acciones-aventuras.js`, `acciones-torre.js` (ayudantes compartidos en `acciones-comun.js`); `torre.js` → `torre-reglas.js`; `dibujo-monstruos.js` → `dibujo-salas.js`; `dibujo-ejercicios.js` → `-piezas.js` y `-movimientos.js`; `vistas-gym.js` → `vistas-gym-tarjetas.js` y `vistas-gym-dialogos.js`.
+- **Registro de cambios**: v1–v149 a `docs/CHANGELOG-v1-v149.md`.
+- Encontrado y sin tocar (para no cambiar cómo se ve): en `css/15-carga-reino.css` sobra una `}` tras el bloque v88, y por eso el navegador ignora la regla `.reino-franja` que sigue.
+- Pruebas: 473 de 473 (una ajustada a la ruta nueva de La Senda en `sw.js`).
+
 ## v191 — Avisos más claros
 - `sw.js › mostrar`: el cuerpo del aviso se junta en una sola línea (los renglones van separados por « · »), se acorta a 150 caracteres y lleva `timestamp`. iOS cortaba o mostraba mal los saltos de línea de los avisos de misiones y de recordatorio.
 - Sin cambios en los datos ni en el servidor. Pendiente: probar en el iPhone cómo se ve el aviso de «Te faltan N misiones» (el ícono de la barra de estado sigue siendo el de la app).
