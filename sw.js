@@ -96,6 +96,8 @@ const ARCHIVOS = [
     "./js/ataques.js",
     "./js/fragua.js",
     "./js/vistas-gym.js",
+    "./js/vistas-gym-tarjetas.js",   // (orden) tarjetas de progreso del gym
+    "./js/vistas-gym-dialogos.js",   // (orden) ventanas del gym
     "./js/running.js",
     "./js/ruta.js",
     "./js/encuentros.js",
