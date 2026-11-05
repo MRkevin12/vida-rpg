@@ -4537,6 +4537,46 @@ prueba("Golpe con timing: un crítico le pega 50 % más al jefe, una sola vez", 
     debeFallar(() => acciones.golpeCritico(estado, gym.id, hoy()), "ya fue crítico");
 });
 
+prueba("(v196) Aurelio se viste según la hora y se dibuja en cada atuendo", () => {
+    const momentos = [[3, "madrugada"], [8, "manana"], [15, "tarde"], [21, "noche"]];
+    for (const [hora, esperado] of momentos) igual(maestro.momentoDelDia(hora), esperado, `las ${hora} h`);
+    igual(maestro.momentoDelDia(5), "madrugada");
+    igual(maestro.momentoDelDia(6), "manana");
+    igual(maestro.momentoDelDia(12), "tarde");
+    igual(maestro.momentoDelDia(18), "noche");
+    const dibujos = new Set();
+    for (const [hora] of momentos) {
+        const d = maestro.describirMaestro(hora);
+        igual(d.apariencia.traje, maestro.ROPA_POR_MOMENTO[maestro.momentoDelDia(hora)].traje);
+        cierto(d.apariencia.traje in avatar.APARIENCIA.traje, `el traje de las ${hora} h existe`);
+        if (d.equipado.espalda) cierto(avatar.OBJETOS[d.equipado.espalda], `la capa de las ${hora} h existe`);
+        dibujos.add(dibujarAvatar(d, { sinEfectos: true }));
+    }
+    igual(dibujos.size, 4, "los cuatro atuendos se dibujan distinto");
+    igual(maestro.describirMaestro(15).apariencia.traje, "violeta", "en la tarde lleva su traje de siempre");
+});
+
+prueba("(v196) Aurelio: más temas, varias respuestas y «Dime más» sin repetir", () => {
+    const estado = partidaNueva();
+    crearMision(estado, { nombre: "Leer", dificultad: "facil" });
+    crearMision(estado, { nombre: "Gym", dificultad: "dificil" });
+    const c = maestro.contexto(estado, hoy());
+    // Todos los temas (los de siempre y los nuevos) responden algo.
+    for (const o of [...maestro.OPCIONES, ...maestro.TEMAS]) {
+        const texto = maestro.responder(estado, c, o.id);
+        cierto(typeof texto === "string" && texto.length > 20, `«${o.id}» responde`);
+    }
+    // Un tema con varias respuestas da distintas según el azar (0, 0.5 y 0.99 eligen la primera, la del medio y la última).
+    const respuestas = new Set([0, 0.5, 0.99].map((x) => maestro.responder(estado, c, "casio", () => x)));
+    cierto(respuestas.size >= 3, "Casio tiene varias historias");
+    // Cada versión de «sin ganas» sigue nombrando la misión más fácil.
+    for (const x of [0, 0.5, 0.99]) cierto(maestro.responder(estado, c, "sinGanas", () => x).includes("«Leer»"));
+    // De madrugada, lo primero que dice es que duerma.
+    const madrugada = maestro.contexto(estado, hoy(), new Date(new Date().setHours(3, 0, 0, 0)).getTime());
+    cierto(maestro.saludo(madrugada).includes("ve a dormir"), "de madrugada manda a dormir");
+    cierto(maestro.SIN_MAS.includes("comoVoy") && !maestro.SIN_MAS.includes("casio"), "«Dime más» solo donde hay varias");
+});
+
 prueba("El Maestro: su saludo depende de cómo vas, y responde a lo que le dices", () => {
     const estado = partidaNueva();
     const leer = crearMision(estado, { nombre: "Leer", dificultad: "facil" });

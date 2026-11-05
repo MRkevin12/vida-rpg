@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v196 — Aurelio se viste según la hora y habla más
+
+- **Ropa por hora**: `maestro.js › momentoDelDia(hora)` (madrugada 0–5, mañana 6–11, tarde 12–17, noche 18–23) y `ROPA_POR_MOMENTO` (traje y capa). `describirMaestro(hora = ahora)` ya devuelve el atuendo del momento: todas las pantallas donde sale Aurelio lo muestran sin cambiar. La tarde conserva su traje violeta de siempre.
+- **Más conversación**: `TEMAS` (8 temas nuevos) en la lista «💭 Hablar de otra cosa» (modo `temas` de `dialogoMaestro`). Los temas de siempre (fuerza, normal, sin ganas, abrumado) ahora tienen 2–3 respuestas cada uno, elegidas al azar. Botón «🔁 Dime más» (`SIN_MAS` lista los temas con una sola respuesta); `maestro-opcion` intenta no repetir la respuesta anterior.
+- De madrugada (antes de las 5) el saludo es «ve a dormir», antes que el «Buenos días».
+- **Resumen para la IA siempre disponible**: botón en Progreso (copia la semana pasada) y nota con dónde pegarlo, también en la tarjeta del lunes.
+- Datos: sin cambios. Pruebas: 481 de 481 (+2).
+
 ## v195 — Tu semana, lista para la IA
 
 - **Botón «🤖 Copiar resumen para la IA»** en la tarjeta «Tu semana pasada» (`copiar-semana-ia` en `app-botones.js`). Copia un texto plano al portapapeles; no se envía nada a ningún servidor.

@@ -419,6 +419,7 @@ export function tarjetaSemana(estado, ctx) {
             </div>
             ${lineas.length ? `<ul class="semana-lista">${lineas.map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="copiar-semana-ia" data-lunes="${ctx.semanaPendiente}">🤖 Copiar resumen para la IA</button>
+            <p class="ficha-nota">Se copia en la memoria de tu teléfono. Abre tu IA (Claude, ChatGPT…), escribe en el cuadro de mensaje, mantén presionado y toca «Pegar».</p>
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="revisar-semana">📝 Hacer mi revisión de la semana</button>
             <button type="button" class="boton boton-principal boton-ancho" data-accion="cerrar-semana">¡A por esta semana!</button>
         </section>`;

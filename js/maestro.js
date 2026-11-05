@@ -28,8 +28,27 @@ import { diasEntre, lunesDe } from "./fechas.js";
 
 export const NOMBRE = "Maestro Aurelio";
 
+// (v196) El momento del día según la hora (0 a 23).
+export function momentoDelDia(hora) {
+    if (hora < 6) return "madrugada";
+    if (hora < 12) return "manana";
+    if (hora < 18) return "tarde";
+    return "noche";
+}
+
+// (v196) Cómo va vestido Aurelio en cada momento del día: el color del traje y la capa.
+// En la tarde lleva su traje de siempre (violeta, sin capa).
+export const ROPA_POR_MOMENTO = {
+    madrugada: { traje: "negro",   espalda: "capa-gris" },   // de madrugada: ropa oscura y capa de lana
+    manana:    { traje: "cielo",   espalda: null },          // por la mañana: algo claro, ligero
+    tarde:     { traje: "violeta", espalda: null },          // su traje de siempre
+    noche:     { traje: "borgona", espalda: "capa-azul" },   // por la noche: borgoña y capa del alba
+};
+
 // Cómo se dibuja (lo mismo que describirAvatar() devuelve para tu héroe).
-export function describirMaestro() {
+// hora: por defecto, la de ahora; así Aurelio se viste distinto según la hora en que abras la app.
+export function describirMaestro(hora = new Date().getHours()) {
+    const ropa = ROPA_POR_MOMENTO[momentoDelDia(hora)];
     return {
         nivel: 60,
         etapa: ETAPAS[1],
@@ -39,9 +58,9 @@ export function describirMaestro() {
         rasgos: { fuerza: 0, intelecto: 0, carisma: 0, riqueza: 0 },
         animo: "normal",
         diasSinMision: 0,
-        equipado: { cabeza: "sombrero-mago", mano: "baston", espalda: null, fondo: null },
+        equipado: { cabeza: "sombrero-mago", mano: "baston", espalda: ropa.espalda, fondo: null },
         apariencia: { ...APARIENCIA_INICIAL, piel: "clara", rostro: "curtido", ojos: "gris", pelo: "cano",
-                      peinado: "largo", barba: "completa", traje: "violeta" },
+                      peinado: "largo", barba: "completa", traje: ropa.traje },
         mascota: { nombre: "", etapa: { clave: "huevo" }, total: 0, triste: false },
     };
 }
@@ -112,6 +131,8 @@ export function saludo(c) {
     if (c.cofre) return `Tu cofre del día te espera, ${n}. Ábrelo: te lo ganaste.`;
     if (c.vida.nivel === "herido") return `Te veo herido, ${n}. Cada misión que cumplas te cura${c.facil ? `; empieza por «${c.facil.nombre}»` : ""}.`;
     if (c.tocan && !c.pendientes.length) return "Todo hecho por hoy. Así, día tras día, se forja el carácter.";
+    // (v196) De madrugada (antes de las 5), lo que más ayuda es dormir, no un «buenos días».
+    if (c.hora < 5) return `Es muy tarde, ${n}. Lo que hoy no hiciste puede esperar. Lo que tu cuerpo necesita, no: ve a dormir.`;
     if (c.hora < 12 && !c.clave && c.pendientes.length) {
         return `Buenos días, ${n}. Hoy te esperan ${misiones(c.pendientes.length)}${c.evento ? `, y ${c.evento.nombre.toLowerCase()} anda cerca` : ""}. ¿Cuál será tu misión clave?`;
     }
@@ -146,6 +167,21 @@ export const OPCIONES = [
     { id: "comoVoy",  texto: "📊 ¿Cómo voy?" },
     { id: "consejo",  texto: "💡 Dame un consejo" },
     { id: "historia", texto: "📜 Háblame de ti" },
+];
+
+// Los temas que solo tienen UNA respuesta: ahí no sale el botón «Dime más».
+export const SIN_MAS = ["comoVoy", "historia"];
+
+// (v196) «Hablar de otra cosa»: más temas, en una segunda lista para que la primera no sea larguísima.
+export const TEMAS = [
+    { id: "hora",       texto: "🕰️ ¿Qué hago a esta hora?" },
+    { id: "cansado",    texto: "😴 Estoy cansado" },
+    { id: "procrastino", texto: "🐌 Estoy postergando algo" },
+    { id: "preocupado", texto: "😟 Estoy preocupado" },
+    { id: "celebrar",   texto: "🎉 Logré algo" },
+    { id: "gym",        texto: "🏋️ Hablemos del gimnasio" },
+    { id: "manana",     texto: "🌅 Prepararme para mañana" },
+    { id: "casio",      texto: "🐉 Cuéntame de Casio" },
 ];
 
 // Citas de clásicos (traducciones libres de obras de dominio público).
@@ -256,18 +292,106 @@ function jefeMasCercano(estado) {
 // Lo que responde a cada opción.
 export function responder(estado, c, opcion, azar = Math.random) {
     const mision = (m) => (m ? `«${m.nombre}»` : "lo que te falte");
+    // (v196) Casi cada tema tiene varias respuestas: con «Dime más» sale otra distinta.
+    const elegir = (lista) => lista[Math.floor(azar() * lista.length)];
     switch (opcion) {
         case "fuerza":
             return c.dificil
-                ? `Aprovéchala. Ataca primero la más difícil, ${mision(c.dificil)}: después todo será cuesta abajo.`
-                : "Aprovéchala en tu gran misión: da hoy un paso que venías postergando.";
+                ? elegir([
+                    `Aprovéchala. Ataca primero la más difícil, ${mision(c.dificil)}: después todo será cuesta abajo.`,
+                    `La fuerza no se guarda para mañana. Empieza por ${mision(c.dificil)}, la que más pesa, y el resto caerá solo.`,
+                    `Una buena racha de energía es un regalo raro. Gástala en ${mision(c.dificil)}, no en lo fácil.`,
+                ])
+                : elegir([
+                    "Aprovéchala en tu gran misión: da hoy un paso que venías postergando.",
+                    "Con fuerza y sin misiones pendientes, adelanta algo de mañana o entrena. La energía bien usada se acumula.",
+                ]);
         case "normal":
-            return `Un paso a la vez. Empieza por ${mision(c.pendientes[0])} y no pienses en el resto todavía.`;
+            return elegir([
+                `Un paso a la vez. Empieza por ${mision(c.pendientes[0])} y no pienses en el resto todavía.`,
+                `Un día normal es el mejor para avanzar sin ruido. Haz ${mision(c.pendientes[0])} y verás cómo lo demás se acomoda.`,
+                `Lo normal, repetido, es lo que forja el carácter. Empieza por ${mision(c.pendientes[0])}.`,
+            ]);
         case "sinGanas":
-            return `Las ganas llegan después del primer paso, no antes. Haz solo ${mision(c.facil)}. Solo esa. Después decides.`;
+            return elegir([
+                `Las ganas llegan después del primer paso, no antes. Haz solo ${mision(c.facil)}. Solo esa. Después decides.`,
+                `No te pido ganas, te pido cinco minutos. Dale cinco minutos a ${mision(c.facil)} y, si quieres, paras.`,
+                `Hasta Casio tenía días sin ganas. La diferencia es que igual daba el primer paso. Haz ${mision(c.facil)}.`,
+            ]);
         case "abrumado":
-            return "Respira. No tienes que ganar hoy la guerra entera: elige una misión clave y deja que el resto espere. " +
-                "Y si estás enfermo o sin fuerzas de verdad, usa el modo descanso: descansar con honor no es rendirse.";
+            return elegir([
+                "Respira. No tienes que ganar hoy la guerra entera: elige una misión clave y deja que el resto espere. " +
+                    "Y si estás enfermo o sin fuerzas de verdad, usa el modo descanso: descansar con honor no es rendirse.",
+                `Cuando todo parece demasiado, haz una sola cosa. Una. Que sea ${mision(c.facil)} y suelta lo demás por hoy.`,
+                "Lo que te abruma casi siempre es la lista entera mirada de golpe. Tápala con la mano y mira solo la primera línea.",
+            ]);
+        // ----- (v196) Los temas de «Hablar de otra cosa» -----
+        case "hora": {
+            const momento = momentoDelDia(c.hora);
+            return elegir({
+                madrugada: [
+                    "Es de madrugada. Lo único valiente que puedes hacer ahora es dormir. Mañana lo ves con otra cabeza.",
+                    "A estas horas todo parece más grande y más oscuro de lo que es. Descansa; el día arreglará la mitad.",
+                ],
+                manana: [
+                    `La mañana es tuya. ${c.clave ? `Empieza por tu misión clave, ${mision(c.clave)}.` : "Elige tu misión clave y empieza por ella."}`,
+                    "Lo primero que haces marca el resto del día. Cumple una misión antes de mirar nada más.",
+                    "Agua, luz y una misión. Así empieza un buen día, sin complicarlo.",
+                ],
+                tarde: [
+                    `La tarde es para sostener. ${c.pendientes.length ? `Te quedan ${juego.plural(c.pendientes.length, "misión", "misiones")}: no las dejes para la noche.` : "Ya cumpliste lo de hoy; usa el resto para lo que disfrutas."}`,
+                    "A media tarde cae la energía. Camina cinco minutos, bebe agua y vuelve a lo tuyo.",
+                ],
+                noche: [
+                    `Cae la noche. ${c.cerrado ? "Ya cerraste el día: descansa." : "Es buen momento para cerrar el día juntos."}`,
+                    "Por la noche se mira atrás sin juzgar. Anota una cosa que salió bien y apaga las pantallas.",
+                ],
+            }[momento]);
+        }
+        case "cansado":
+            return elegir([
+                "Dormir también es una misión. Si tu cuerpo pide descanso de verdad, dáselo; si es solo pereza, camina diez minutos y vuelve a preguntarte.",
+                `Lo que cansa casi nunca es la tarea, sino la cuenta de todo lo que falta. Haz ${mision(c.facil)} y deja de contar.`,
+                "Un día de poco es mejor que un día de nada. Baja la exigencia, no el compromiso.",
+            ]);
+        case "procrastino":
+            return elegir([
+                `Dos minutos. Pon un reloj y trabaja en ${mision(c.pendientes[0])} solo dos minutos. Casi siempre seguirás después.`,
+                "La Sombra de la mañana discute bien, pero habla poco. Levántate antes de que termine su argumento.",
+                "No esperes sentirte listo: nadie lo está. Haz primero la parte más pequeña y más fea.",
+            ]);
+        case "preocupado":
+            return elegir([
+                "Escribe lo que te preocupa en tu diario. Lo que está en el papel pesa menos que lo que da vueltas en la cabeza.",
+                "Separa lo que depende de ti de lo que no. Con lo primero haz algo hoy; lo segundo, suéltalo, como decía Epicteto.",
+                "Si la preocupación te quita el sueño muchos días seguidos, cuéntaselo a alguien de confianza. Pedir ayuda también es valentía.",
+            ]);
+        case "celebrar":
+            return elegir([
+                "Cuéntaselo a alguien además de a mí. Los logros que se dicen en voz alta pesan más.",
+                "Anótalo en tu diario. Dentro de un año será la prueba de lo que eres capaz.",
+                "Bien hecho. Disfrútalo un momento antes de pensar en lo que sigue. Te lo ganaste.",
+            ]);
+        case "gym": {
+            if (!c.gym?.sesiones) return "Aún no has pisado el gimnasio. Empieza con la primera serie, no con la rutina entera. Lo difícil es cruzar la puerta.";
+            const base = `Vas en el nivel ${c.gym.nivel}: ${c.gym.semana} de ${c.gym.meta} días esta semana. Hoy toca ${c.gym.toca}.`;
+            if (c.gym.hechoHoy) return `${base} Hoy ya entrenaste: come bien y duerme, que ahí es donde se crece.`;
+            if (c.gym.diasSin >= 3) return `${base} Llevas ${c.gym.diasSin} días sin ir. Basta con la primera serie.`;
+            return `${base} ${elegir(["Sube un poco el peso o una repetición: eso es progresar.", "La técnica primero, el peso después.", "Descansa entre series sin mirar el teléfono."])}`;
+        }
+        case "manana":
+            return elegir([
+                "Antes de dormir, elige las tres cosas que sí o sí harás mañana. Decidir de noche, sin prisa, cuesta mucho menos que decidir con sueño.",
+                "Deja lista la primera misión: la ropa, la botella, el libro a la vista. Quita hoy el primer obstáculo de mañana.",
+                `Mañana empieza esta noche. ${c.cerrado ? "Ya cerraste el día: ahora, a dormir." : "Cierra el día y deja escrito cómo te fue."}`,
+            ]);
+        case "casio":
+            return elegir([
+                "Casio nunca corría. Subía como quien camina hacia su casa. Decía: «El nivel no se gana: se acumula».",
+                "Una vez le dije que hablara más. Me contestó: «No hace falta hablar, Aurelio. Ya se dice todo subiendo».",
+                "Casio escribía cartas dentro de su cabeza a quienes echaba de menos. Nadie las leyó nunca, pero él las escribió todas.",
+                "Una mujer llegó con un hacha para derribar la Torre. Casio resistió todo el día, sin hacerle daño. Ella se fue sin querer derribar nada.",
+            ]);
         case "comoVoy": {
             const jefe = jefeMasCercano(estado);
             const partes = [

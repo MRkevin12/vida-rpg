@@ -14,7 +14,7 @@ import * as mascota from "../mascota.js";
 import * as avisos from "../avisos.js";
 import * as nube from "../nube.js";
 import { calcularResumen, semanaPorMostrar, textoSemanaParaIA } from "../resumen.js";
-import { hoy } from "../fechas.js";
+import { hoy, sumarDias, lunesDe } from "../fechas.js";
 import { estado, pantallaActual, ui, subvista, $, avatarActual, preguntarAnimo, elegirAnimo, ejecutar,
          dibujarPantalla, fechaVista, cambiarPantalla, exportar, borrarTodo } from "../app.js";
 import { sonar, flotarXp, reproducirAnimacion, celebrar, avisar, ofrecerDeshacer } from "./app-efectos.js";
@@ -216,10 +216,11 @@ export const ACCIONES_GENERALES = {
     },
     // (v195) Copia al portapapeles el resumen de la semana, listo para pegarlo en una IA. No sale nada del teléfono.
     "copiar-semana-ia": async (boton) => {
-        const texto = textoSemanaParaIA(estado, boton.dataset.lunes);
+        // Desde la tarjeta «Tu semana pasada» trae su lunes; desde Progreso se usa el lunes de la semana pasada.
+        const texto = textoSemanaParaIA(estado, boton.dataset.lunes || sumarDias(lunesDe(hoy()), -7));
         try {
             await navigator.clipboard.writeText(texto);
-            avisar("📋 Copiado: pégalo en tu IA");
+            avisar("📋 Copiado. Abre tu IA, mantén presionado el cuadro de mensaje y toca «Pegar»");
         } catch {
             avisar("⚠️ Tu teléfono no dejó copiar. Intenta de nuevo");
         }

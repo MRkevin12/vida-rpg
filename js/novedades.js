@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 195;
+export const VERSION_APP = 196;
 
 export const NOVEDADES = [
+    {
+        version: 196,
+        titulo: "Aurelio se viste según la hora y habla más",
+        cambios: [
+            "🧙 Aurelio cambia de ropa según la hora: de madrugada, traje oscuro y capa de lana; por la mañana, algo claro y ligero; en la tarde, su traje violeta de siempre; y por la noche, borgoña con capa azul.",
+            "💬 En «Hablar» ahora hay «💭 Hablar de otra cosa»: qué hacer a esta hora, estoy cansado, estoy postergando algo, estoy preocupado, logré algo, el gimnasio, prepararme para mañana y cuéntame de Casio.",
+            "🔁 Casi cada tema tiene varias respuestas: toca «Dime más» y te dice otra distinta.",
+            "🌙 De madrugada, Aurelio te manda a dormir en vez de darte los buenos días.",
+            "🤖 El resumen para la IA ya no depende de la tarjeta del lunes: en Progreso hay un botón para copiar la semana pasada cuando quieras. Y las instrucciones de dónde pegarlo están a la vista.",
+        ],
+    },
     {
         version: 195,
         titulo: "Tu semana, lista para la IA",

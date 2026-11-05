@@ -636,8 +636,15 @@ export function dialogoMaestro(ctx, m) {
         opciones = c.pendientes.map((mision) => opcion("maestro-clave",
             `${c.clave?.id === mision.id ? "🔑 " : ""}${esc(mision.nombre)}`, `data-id="${mision.id}"`)).join("");
         opciones += opcion("maestro-modo", "‹ Volver", 'data-modo="inicio"');
+    } else if (m.modo === "temas") {
+        // (v196) Más temas para conversar.
+        texto = "Pregunta lo que quieras, aprendiz. Lo que no sepa, lo pensamos juntos.";
+        opciones = maestro.TEMAS.map((o) => opcion("maestro-opcion", o.texto, `data-opcion="${o.id}"`)).join("");
+        opciones += opcion("maestro-modo", "‹ Volver", 'data-modo="inicio"');
     } else if (m.modo === "respuesta") {
         texto = m.respuesta;
+        // (v196) «Dime más»: otra respuesta del mismo tema (si el tema tiene varias).
+        if (m.opcion && !maestro.SIN_MAS.includes(m.opcion)) opciones += opcion("maestro-opcion", "🔁 Dime más", `data-opcion="${m.opcion}"`);
         if (m.opcion === "historia" && c.memorias.abiertas) opciones += opcion("memorias-abrir", "📜 Leer sus memorias");
         // Si no tienes ganas o estás abrumado, te ofrece leer «La primera piedra».
         if (m.opcion === "sinGanas" || m.opcion === "abrumado") opciones += opcion("pergamino-abrir", `📜 Leer «${pergamino.TITULO}»`);
@@ -648,6 +655,7 @@ export function dialogoMaestro(ctx, m) {
         texto = maestro.saludo(c);
         if (c.memorias.sinLeer) opciones += opcion("memorias-abrir", "📜 Escuchar su historia");
         opciones += maestro.OPCIONES.map((o) => opcion("maestro-opcion", o.texto, `data-opcion="${o.id}"`)).join("");
+        opciones += opcion("maestro-modo", "💭 Hablar de otra cosa", 'data-modo="temas"');
         if (puedeClave) opciones += opcion("maestro-modo", "🔑 Elegir mi misión clave", 'data-modo="clave"');
         if (!c.cerrado) opciones += opcion("ritual-abrir", "🌙 Cerrar el día");
     }

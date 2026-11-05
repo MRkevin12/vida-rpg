@@ -140,7 +140,10 @@ export const ACCIONES_MAESTRO = {
     "maestro-opcion": (boton) => {
         const c = maestro.contexto(estado, hoy());
         const opcion = boton.dataset.opcion;
-        maestroVista = { modo: "respuesta", respuesta: maestro.responder(estado, c, opcion), opcion };
+        // (v196) Si el tema tiene varias respuestas, intenta no repetir la que acabas de leer.
+        let respuesta = maestro.responder(estado, c, opcion);
+        for (let intento = 0; intento < 6 && respuesta === maestroVista.respuesta; intento += 1) respuesta = maestro.responder(estado, c, opcion);
+        maestroVista = { modo: "respuesta", respuesta, opcion };
         pintarMaestro();
     },
     "maestro-clave": (boton) => {
