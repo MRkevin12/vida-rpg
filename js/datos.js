@@ -8,9 +8,9 @@
 // para exportar e importar una copia de seguridad.
 
 import { hoy } from "./fechas.js";
-import * as gym from "./gym.js";
-import { gymInicial } from "./gym.js";
-import { runningInicial } from "./running.js";   // (v109)
+import * as gym from "./gym/gym.js";
+import { gymInicial } from "./gym/gym.js";
+import { runningInicial } from "./running/running.js";   // (v109)
 
 const CLAVE = "vida-rpg";
 

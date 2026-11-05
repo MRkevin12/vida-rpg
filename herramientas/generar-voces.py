@@ -7,7 +7,7 @@ Hace falta (fuera del repo):
 Uso:
     PYTHONPATH=<carpeta> python herramientas/generar-voces.py ald  <ruta/al/modelo.onnx>
     PYTHONPATH=<carpeta> python herramientas/generar-voces.py claude <ruta/al/modelo.onnx> [clave ...]   # solo esas claves
-La lista de audios sale de js/frases.js (herramientas/lista-de-clips.mjs). Si cambias un texto, vuelve a generar ese audio.
+La lista de audios sale de js/running/frases.js (herramientas/lista-de-clips.mjs). Si cambias un texto, vuelve a generar ese audio.
 """
 import json
 import subprocess

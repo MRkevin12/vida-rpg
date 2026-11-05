@@ -8,7 +8,7 @@
 // Este archivo solo tiene las reglas (qué insignias hay y cuánto llevas de cada una): no dibuja nada.
 
 import { calcularNivel, progresoLogro } from "./juego.js";
-import { nivelDeGym } from "./gym.js";
+import { nivelDeGym } from "./gym/gym.js";
 
 // Los grados: cuánto cuesta ganarlas. Cambian la forma y el color del dibujo (dibujo-insignias.js).
 export const GRADOS = {

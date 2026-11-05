@@ -117,26 +117,26 @@ La idea central es que casi todo **se calcula a partir del historial** en lugar 
 | `js/campana.js` | Los jefes: vida, daño, Partida+ y créditos de las pinturas |
 | `js/desafios.js` | El desafío de la semana: cuáles hay, cómo se eligen y cómo se mide el progreso |
 | `js/resumen.js` | Los números del resumen de 7 y 30 días y de «Tu semana» |
-| `js/vistas.js` | Convierte la partida en HTML |
+| `js/pantallas/vistas.js` | Convierte la partida en HTML |
 | `js/avatar.js` | Las reglas del avatar: etapas, clases, objetos y opciones de apariencia |
 | `js/equipo.js` | Lo que da tu equipo: la armadura y el ataque, la magia y la suerte de cada objeto |
-| `js/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
-| `js/arcade.js`, `js/minijuegos.js` | Las fichas y los tres minijuegos en `<canvas>` |
-| `js/torre.js`, `js/bestiario.js` | Las reglas de la Torre del héroe y de la Mazmorra del Abismo (batallas por turnos, magia, ataques especiales y mejoras) y sus 40 criaturas, con lo que recuerdas de ellas |
-| `js/leyendas.js` | La historia de la Torre y de la Mazmorra: prólogo, un capítulo por zona y epílogo |
-| `js/memorias.js` | Las memorias del Maestro Aurelio: 8 capítulos que se abren en orden según cómo avanzas |
-| `js/saga.js` | La Saga de la Llama: el hilo que une las historias, sus 7 actos y tu objetivo de ahora |
-| `js/pergamino.js` | «La primera piedra»: la historia motivacional larga que se lee como un pergamino |
-| `js/habilidades.js`, `js/mascota.js` | Las habilidades del equipo épico y legendario, y las mascotas: cuáles hay, cómo crecen y qué hacen en la Torre |
-| `js/mapa.js`, `js/cronica.js`, `js/dibujo-mapa.js` | El reino: regiones, guaridas de los jefes y premios; la Crónica; y el dibujo del mapa en pixel art |
-| `js/dibujo-monstruos.js`, `js/pixel.js`, `js/sprites.js` | Los dibujos de las criaturas y de las salas, y cómo se convierten en pixel art |
+| `js/dibujo/dibujo.js`, `js/dibujo-*.js` | El dibujo en SVG: cuerpo, ropa, objetos, escenarios y mascota |
+| `js/arcade/arcade.js`, `js/arcade/minijuegos.js` | Las fichas y los tres minijuegos en `<canvas>` |
+| `js/torre/torre.js`, `js/torre/bestiario.js` | Las reglas de la Torre del héroe y de la Mazmorra del Abismo (batallas por turnos, magia, ataques especiales y mejoras) y sus 40 criaturas, con lo que recuerdas de ellas |
+| `js/torre/leyendas.js` | La historia de la Torre y de la Mazmorra: prólogo, un capítulo por zona y epílogo |
+| `js/historias/memorias.js` | Las memorias del Maestro Aurelio: 8 capítulos que se abren en orden según cómo avanzas |
+| `js/historias/saga.js` | La Saga de la Llama: el hilo que une las historias, sus 7 actos y tu objetivo de ahora |
+| `js/historias/pergamino.js` | «La primera piedra»: la historia motivacional larga que se lee como un pergamino |
+| `js/torre/habilidades.js`, `js/mascota.js` | Las habilidades del equipo épico y legendario, y las mascotas: cuáles hay, cómo crecen y qué hacen en la Torre |
+| `js/mapa.js`, `js/historias/cronica.js`, `js/dibujo/dibujo-mapa.js` | El reino: regiones, guaridas de los jefes y premios; la Crónica; y el dibujo del mapa en pixel art |
+| `js/torre/dibujo-monstruos.js`, `js/dibujo/pixel.js`, `js/dibujo/sprites.js` | Los dibujos de las criaturas y de las salas, y cómo se convierten en pixel art |
 | `js/maestro.js`, `js/rituales.js`, `js/eventos.js` | El Maestro (saludos y conversación), la misión clave, el ritual de la noche, el desafío relámpago y los eventos del día |
 | `js/cofre.js`, `js/mapa.js`, `js/mascota.js` | El cofre del día, el mapa del viaje y lo que hace tu dragón |
-| `js/libro.js` | Tu diario contado como un libro: arma los capítulos con lo que pasó cada día |
+| `js/historias/libro.js` | Tu diario contado como un libro: arma los capítulos con lo que pasó cada día |
 | `js/pacto.js` | El Tratado de la Voluntad: su texto, la cita del día, la firma y los días honrados |
 | `js/diario.js` | El diario: pregunta del día, racha, calendario de ánimo, lo que dice tu diario, recuerdos y búsqueda |
 | `js/vida.js` | La vida del héroe: daño, curación, plena forma, caer en combate y pociones (se calcula día por día) |
-| `js/pinturas.js`, `fondos/` | Las pinturas de los fondos y escenarios, con sus créditos |
+| `js/dibujo/pinturas.js`, `fondos/` | Las pinturas de los fondos y escenarios, con sus créditos |
 | `js/datos.js` | Guardar, cargar y copias de seguridad |
 | `js/seguridad.js` | El PIN (se guarda su huella SHA-256, nunca el PIN) y Face ID con WebAuthn |
 | `js/nube.js` | La copia en la nube: cifrar y descifrar con tu contraseña, subir y recuperar |
@@ -180,7 +180,7 @@ Las pruebas crean partidas en memoria y nunca tocan la partida guardada. Están 
 ## Créditos
 
 - **Pinturas de los jefes:** 20 obras de dominio público tomadas de Wikimedia Commons (Doré, Caravaggio, Goya, Blake, Waterhouse, Redon y otros). El autor y la fuente de cada una están en la app, en Ajustes → Créditos de las imágenes, y en `js/campana.js`.
-- **Fondos y escenarios:** 13 pinturas y grabados de dominio público (Constable, Hobbema, Thomas Cole, Bierstadt, Shishkin, Christian Jank, Van Gogh, Panini, Turner, Hubert Robert, Pieter Neefs y Piranesi), con sus créditos en la app y en `js/pinturas.js`.
+- **Fondos y escenarios:** 13 pinturas y grabados de dominio público (Constable, Hobbema, Thomas Cole, Bierstadt, Shishkin, Christian Jank, Van Gogh, Panini, Turner, Hubert Robert, Pieter Neefs y Piranesi), con sus créditos en la app y en `js/dibujo/pinturas.js`.
 - **Música:** grabaciones de Wikimedia Commons, recortadas y comprimidas: Brahms, Sinfonía n.º 1 (introducción), por Musopen Symphony (dominio público); Holst, «Marte, el que trae la guerra», por la Skidmore College Orchestra (CC0); y Grieg, «En la gruta del rey de la montaña», por Musopen Symphony (dominio público). Las fuentes están en la app (Ajustes → Créditos) y en `js/musica.js`.
 - **Tipografía:** Orbitron, bajo la licencia SIL Open Font License (`fuentes/OFL.txt`).
 

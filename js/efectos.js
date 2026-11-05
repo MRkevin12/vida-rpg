@@ -7,7 +7,7 @@
 // Es como una animación de CSS, pero armada desde JavaScript (sirve cuando cada moneda
 // tiene que ir a un lugar distinto, que depende de dónde tocaste).
 
-import { icono } from "./iconos.js";
+import { icono } from "./dibujo/iconos.js";
 
 // Con «Reducir movimiento» activado en el teléfono no vuela nada (los números cambian igual).
 const quieto = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

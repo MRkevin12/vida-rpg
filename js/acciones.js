@@ -13,14 +13,14 @@
 import * as juego from "./juego.js";
 import * as insignias from "./insignias.js";   // (v101)
 import * as avatar from "./avatar.js";
-import { IDS_FONDO_RETRATO } from "./dibujo-retrato-fondos.js";   // (v189)
-import * as arcade from "./arcade.js";
+import { IDS_FONDO_RETRATO } from "./dibujo/dibujo-retrato-fondos.js";   // (v189)
+import * as arcade from "./arcade/arcade.js";
 import * as campana from "./campana.js";
-import * as memento from "./memento.js";   // (v142) el calendario de Memento Mori
+import * as memento from "./memento/memento.js";   // (v142) el calendario de Memento Mori
 import * as desafios from "./desafios.js";
 import * as maestro from "./maestro.js";
-import * as memorias from "./memorias.js";
-import * as saga from "./saga.js";
+import * as memorias from "./historias/memorias.js";
+import * as saga from "./historias/saga.js";
 import * as vida from "./vida.js";
 import * as pacto from "./pacto.js";
 import * as eventos from "./eventos.js";
@@ -33,7 +33,7 @@ import * as equipo from "./equipo.js";
 import * as resumen from "./resumen.js";
 import * as temporadas from "./temporadas.js";   // (v149) las metas del mes
 import * as secretos from "./secretos.js";         // (v149) los logros secretos
-import * as voces from "./voces.js";
+import * as voces from "./voces/voces.js";
 import { hoy, diasEntre, sumarDias, lunesDe, esFechaValida } from "./fechas.js";
 import { nuevoId, buscar, validarNombre, validarDificultad, ganar, validarDias, validarAviso, revisarQueNoEstesCaido, anotarArmadura, asegurarRetoDelDia, cobrarReto, nivelesDeAtributos } from "./acciones-comun.js";
 import { crearTarea } from "./acciones-misiones.js";
@@ -42,11 +42,11 @@ import { revisarLogros, sincronizarCampanas } from "./acciones-aventuras.js";
 export { ganar, asegurarRetoDelDia } from "./acciones-comun.js";
 export * from "./acciones-misiones.js";    // (orden) misiones, tareas, enfoque y diario
 export * from "./acciones-aventuras.js";   // (orden) principales, jefes, logros y tienda
-export * from "./acciones-torre.js";       // (orden) la Torre y la Mazmorra
-export * from "./acciones-gym.js";
-export * from "./acciones-running.js";
-export * from "./acciones-finanzas.js";
-export * from "./acciones-plataformas.js";   // (v185) La Senda del Reino
+export * from "./torre/acciones-torre.js";       // (orden) la Torre y la Mazmorra
+export * from "./gym/acciones-gym.js";
+export * from "./running/acciones-running.js";
+export * from "./finanzas/acciones-finanzas.js";
+export * from "./arcade/acciones-plataformas.js";   // (v185) La Senda del Reino
 
 
 

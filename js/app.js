@@ -31,54 +31,54 @@
 import * as datos from "./datos.js";
 import * as acciones from "./acciones.js";
 import * as juego from "./juego.js";
-import * as vistas from "./vistas.js";
+import * as vistas from "./pantallas/vistas.js";
 import * as seguridad from "./seguridad.js";
 import * as avatar from "./avatar.js";
 import * as campana from "./campana.js";
-import * as vistasVoces from "./vistas-voces.js";
-import * as vistasGym from "./vistas-gym.js";
-import * as vistasRunning from "./vistas-running.js";   // (v109) la pestaña Running
-import * as vistasFinanzas from "./vistas-finanzas.js";   // (v135) la pantalla Finanzas
-import * as vistasMemento from "./vistas-memento.js";   // (v142) el calendario de Memento Mori
-import * as running from "./running.js";
-import * as frases from "./frases.js";   // (v128) lo que dice la voz de la carrera
-import * as locutor from "./locutor.js";   // (v128) las voces grabadas
+import * as vistasVoces from "./voces/vistas-voces.js";
+import * as vistasGym from "./gym/vistas-gym.js";
+import * as vistasRunning from "./running/vistas-running.js";   // (v109) la pestaña Running
+import * as vistasFinanzas from "./finanzas/vistas-finanzas.js";   // (v135) la pantalla Finanzas
+import * as vistasMemento from "./memento/vistas-memento.js";   // (v142) el calendario de Memento Mori
+import * as running from "./running/running.js";
+import * as frases from "./running/frases.js";   // (v128) lo que dice la voz de la carrera
+import * as locutor from "./running/locutor.js";   // (v128) las voces grabadas
 import * as vida from "./vida.js";
 import * as maestro from "./maestro.js";
-import * as saga from "./saga.js";
+import * as saga from "./historias/saga.js";
 import { eventoDelDia } from "./eventos.js";
 import * as sonido from "./sonido.js";
 import * as musica from "./musica.js";
 import * as avisos from "./avisos.js";
 import * as nube from "./nube.js";
 import { semanaPorMostrar } from "./resumen.js";
-import { vigilarIconos } from "./iconos.js";
-import { retratoPixel } from "./retratos.js";
+import { vigilarIconos } from "./dibujo/iconos.js";
+import { retratoPixel } from "./dibujo/retratos.js";
 import * as fx from "./efectos.js";
 import { hoy, diasEntre, sumarDias, relojTexto, relojLargo } from "./fechas.js";
 import { runTipo, runPista, gpsProblema, runTerminando, runResumen, ponerHeroeEnMapaVivo, mostrarNotificacionCarrera,
          ponerCriaturasDeCarrera, ponerPeleaEnMapa, actualizarBarraRun, iniciarGps, hablar, poblarVocesRunning,
-         mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./app-running.js";
-import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM, ofrecerSeguirGym, animarAurelio, ajustarPantallaGym } from "./app-gym.js";
-import { entrenandoAhora, avisoDeSerie } from "./gym.js";
-import { ACCIONES_MEMENTO, FORMULARIOS_MEMENTO } from "./app-memento.js";   // (v142)
-import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS, conectarPesos } from "./app-finanzas.js";   // (v135, v137)
-import { GRACIA_MS, cerrarTeclado, teclaPulsada, pedirPinParaEntrar, entrarConFaceId, crearPin, ACCIONES_PIN } from "./app-pin.js";
-import { pintarMapa, juegoActual, jugarMinijuego, cerrarMinijuego, ACCIONES_TORRE } from "./app-torre.js";
-import { ACCIONES_SENDA, pintarPortadasSenda } from "./app-plataformas.js";   // (v185) La Senda del Reino
+         mantenerPantallaDespierta, ACCIONES_RUNNING, FORMULARIOS_RUNNING } from "./running/app-running.js";
+import { gymVista, ACCIONES_GYM, FORMULARIOS_GYM, ofrecerSeguirGym, animarAurelio, ajustarPantallaGym } from "./gym/app-gym.js";
+import { entrenandoAhora, avisoDeSerie } from "./gym/gym.js";
+import { ACCIONES_MEMENTO, FORMULARIOS_MEMENTO } from "./memento/app-memento.js";   // (v142)
+import { ACCIONES_FINANZAS, FORMULARIOS_FINANZAS, conectarPesos } from "./finanzas/app-finanzas.js";   // (v135, v137)
+import { GRACIA_MS, cerrarTeclado, teclaPulsada, pedirPinParaEntrar, entrarConFaceId, crearPin, ACCIONES_PIN } from "./pantallas/app-pin.js";
+import { pintarMapa, juegoActual, jugarMinijuego, cerrarMinijuego, ACCIONES_TORRE } from "./torre/app-torre.js";
+import { ACCIONES_SENDA, pintarPortadasSenda } from "./arcade/app-plataformas.js";   // (v185) La Senda del Reino
 import { revisarCines, capituloNovela, libroNovela, pergaminoActual, pintarRetratosVoces, pintarPortadas,
-         ACCIONES_HISTORIAS } from "./app-historias.js";
+         ACCIONES_HISTORIAS } from "./historias/app-historias.js";
 import { roboDesde, mostrarRobo, cerrarRobo, sonar, ponerMusica, arreglarVistaTrasTeclado, pinturasEnPixel,
          bolsa, recompensar, flotar, reproducirAnimacion, celebrar, siguienteCelebracion, avisar, alDeshacer,
-         ocultarDeshacer, ACCIONES_EFECTOS } from "./app-efectos.js";
-import { rellenarOpciones, PREPARAR, mostrarCamposFrecuencia, usarPlantilla, mostrarCamposLogro } from "./app-dialogos.js";
-import { conectarGestos, conectarArrastre, golpear, prepararLienzoFirma, conectarHojear } from "./app-gestos.js";
-import { abrirBienvenida, conectarCartaRitual, ACCIONES_MAESTRO, FORMULARIOS_MAESTRO } from "./app-maestro.js";
-import { pintarListaDiario, ACCIONES_DIARIO, FORMULARIOS_DIARIO } from "./app-diario.js";
+         ocultarDeshacer, ACCIONES_EFECTOS } from "./pantallas/app-efectos.js";
+import { rellenarOpciones, PREPARAR, mostrarCamposFrecuencia, usarPlantilla, mostrarCamposLogro } from "./pantallas/app-dialogos.js";
+import { conectarGestos, conectarArrastre, golpear, prepararLienzoFirma, conectarHojear } from "./pantallas/app-gestos.js";
+import { abrirBienvenida, conectarCartaRitual, ACCIONES_MAESTRO, FORMULARIOS_MAESTRO } from "./pantallas/app-maestro.js";
+import { pintarListaDiario, ACCIONES_DIARIO, FORMULARIOS_DIARIO } from "./pantallas/app-diario.js";
 import { registroSW, registrarServiceWorker, buscarActualizacion, marcarNovedadesVistas, mostrarNovedades,
-         ACCIONES_VERSION } from "./app-version.js";
-import { ACCIONES_GENERALES } from "./app-botones.js";
-import { FORMULARIOS_GENERALES } from "./app-formularios.js";
+         ACCIONES_VERSION } from "./pantallas/app-version.js";
+import { ACCIONES_GENERALES } from "./pantallas/app-botones.js";
+import { FORMULARIOS_GENERALES } from "./pantallas/app-formularios.js";
 
 // ===== Estado de la app =====
 export let estado = datos.cargar();     // la partida completa

@@ -9,7 +9,7 @@
 // Como juego.js, este archivo no dibuja ni guarda nada: solo calcula.
 
 import { OBJETOS, etapaDeNivel } from "./avatar.js";
-import { HABILIDADES } from "./habilidades.js";
+import { HABILIDADES } from "./torre/habilidades.js";
 import { calcularNivel } from "./juego.js";
 
 export const PODERES = {

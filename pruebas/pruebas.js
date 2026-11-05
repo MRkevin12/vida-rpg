@@ -11,101 +11,101 @@
 // siguen en verde, las reglas del juego siguen funcionando igual.
 
 import * as datos from "../js/datos.js";
-import * as finanzas from "../js/finanzas.js";   // (v135)
+import * as finanzas from "../js/finanzas/finanzas.js";   // (v135)
 import * as acciones from "../js/acciones.js";
 import * as juego from "../js/juego.js";
 import * as campana from "../js/campana.js";
 import * as desafios from "../js/desafios.js";
-import * as retos from "../js/retos.js";
-import * as cinematicas from "../js/cinematicas.js";
-import * as voces from "../js/voces.js";
-import * as vistasVoces from "../js/vistas-voces.js";
+import * as retos from "../js/arcade/retos.js";
+import * as cinematicas from "../js/torre/cinematicas.js";
+import * as voces from "../js/voces/voces.js";
+import * as vistasVoces from "../js/voces/vistas-voces.js";
 import * as anual from "../js/anual.js";   // (v181)
 import { existeSonido } from "../js/sonido.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso, ajusteDeDificultad, ajustesDeDificultad } from "../js/resumen.js";
-import * as hallazgos from "../js/hallazgos.js";   // (v148)
+import * as hallazgos from "../js/running/hallazgos.js";   // (v148)
 import * as temporadas from "../js/temporadas.js";   // (v149)
 import * as secretos from "../js/secretos.js";       // (v149)
 import { resumenParaAvisos, avisosDeMisiones, avisosDeTareas } from "../js/avisos.js";
-import * as torre from "../js/torre.js";
-import * as bestiario from "../js/bestiario.js";
-import * as leyendas from "../js/leyendas.js";
-import * as habilidades from "../js/habilidades.js";
-import * as cronica from "../js/cronica.js";
-import * as cinesReino from "../js/cinematicas-reino.js";
-import { dibujarMapa } from "../js/dibujo-mapa.js";
-import * as sprites from "../js/sprites.js";
-import { retocarPuntos, redondearColor, enSombras } from "../js/pixel.js";
-import { vacio, ESCENAS_VACIAS } from "../js/vistas-comun.js";   // (v180)
-import { dibujarMonstruo, dibujarSala, CON_DIBUJO } from "../js/dibujo-monstruos.js";
+import * as torre from "../js/torre/torre.js";
+import * as bestiario from "../js/torre/bestiario.js";
+import * as leyendas from "../js/torre/leyendas.js";
+import * as habilidades from "../js/torre/habilidades.js";
+import * as cronica from "../js/historias/cronica.js";
+import * as cinesReino from "../js/historias/cinematicas-reino.js";
+import { dibujarMapa } from "../js/dibujo/dibujo-mapa.js";
+import * as sprites from "../js/dibujo/sprites.js";
+import { retocarPuntos, redondearColor, enSombras } from "../js/dibujo/pixel.js";
+import { vacio, ESCENAS_VACIAS } from "../js/pantallas/vistas-comun.js";   // (v180)
+import { dibujarMonstruo, dibujarSala, CON_DIBUJO } from "../js/torre/dibujo-monstruos.js";
 import * as vida from "../js/vida.js";
 import * as diario from "../js/diario.js";
 import * as pacto from "../js/pacto.js";
-import * as libro from "../js/libro.js";
+import * as libro from "../js/historias/libro.js";
 import * as eventos from "../js/eventos.js";
 import * as rituales from "../js/rituales.js";
 import * as cofre from "../js/cofre.js";
 import * as mapa from "../js/mapa.js";
 import * as mascota from "../js/mascota.js";
 import * as maestro from "../js/maestro.js";
-import * as memorias from "../js/memorias.js";
-import * as pergamino from "../js/pergamino.js";
-import * as pergaminos from "../js/pergaminos.js";
-import * as libroCasio from "../js/libro-casio.js";
-import * as cinematicasModulo from "../js/cinematicas.js";
-import * as saga from "../js/saga.js";
-import * as vistas from "../js/vistas.js";
-import * as arcade from "../js/arcade.js";
+import * as memorias from "../js/historias/memorias.js";
+import * as pergamino from "../js/historias/pergamino.js";
+import * as pergaminos from "../js/historias/pergaminos.js";
+import * as libroCasio from "../js/historias/libro-casio.js";
+import * as cinematicasModulo from "../js/torre/cinematicas.js";
+import * as saga from "../js/historias/saga.js";
+import * as vistas from "../js/pantallas/vistas.js";
+import * as arcade from "../js/arcade/arcade.js";
 import * as nube from "../js/nube.js";
 import { VERSION_APP, NOVEDADES, novedadesPorVer } from "../js/novedades.js";
-import { ICONOS, EMOJIS, icono, iconizar } from "../js/iconos.js";
-import * as retratos from "../js/retratos.js";
+import { ICONOS, EMOJIS, icono, iconizar } from "../js/dibujo/iconos.js";
+import * as retratos from "../js/dibujo/retratos.js";
 import * as fx from "../js/efectos.js";
 import * as insigniasModulo from "../js/insignias.js";
 import * as mascotaModulo from "../js/mascota.js";
-import { dibujarInsignia } from "../js/dibujo-insignias.js";
+import { dibujarInsignia } from "../js/dibujo/dibujo-insignias.js";
 import { PLANTILLAS_MISIONES, PLANTILLAS_RECOMPENSAS } from "../js/plantillas.js";
 import { hoy, sumarDias, diasEntre, diaDeSemana, lunesDe } from "../js/fechas.js";
 import * as avatar from "../js/avatar.js";
-import * as gym from "../js/gym.js";
-import * as rutinasPlantillas from "../js/rutinas-plantillas.js";
+import * as gym from "../js/gym/gym.js";
+import * as rutinasPlantillas from "../js/gym/rutinas-plantillas.js";
 import * as accionesComun from "../js/acciones-comun.js";       // (v178) acciones.js dividido por área
-import * as accionesGym from "../js/acciones-gym.js";
-import * as accionesRunning from "../js/acciones-running.js";
-import * as accionesFinanzas from "../js/acciones-finanzas.js";
-import * as ataques from "../js/ataques.js";
-import * as fragua from "../js/fragua.js";
-import * as libroOrrin from "../js/libro-orrin.js";
-import * as libros from "../js/libros.js";
-import * as ejercicios from "../js/dibujo-ejercicios.js";
+import * as accionesGym from "../js/gym/acciones-gym.js";
+import * as accionesRunning from "../js/running/acciones-running.js";
+import * as accionesFinanzas from "../js/finanzas/acciones-finanzas.js";
+import * as ataques from "../js/torre/ataques.js";
+import * as fragua from "../js/gym/fragua.js";
+import * as libroOrrin from "../js/historias/libro-orrin.js";
+import * as libros from "../js/historias/libros.js";
+import * as ejercicios from "../js/gym/dibujo-ejercicios.js";
 const { LISTA_DE_MOVIMIENTOS } = ejercicios;
-import * as gymAurelio from "../js/gym-aurelio.js";
-import { esqueleto } from "../js/dibujo-cuerpo.js";
-import * as vistasGym from "../js/vistas-gym.js";
-import * as running from "../js/running.js";
-import * as ruta from "../js/ruta.js";
-import * as encuentros from "../js/encuentros.js";
-import * as frases from "../js/frases.js";
-import * as locutor from "../js/locutor.js";
-import { mapaDeCarrera, mapaDePista, puntoEnPista, momentoDelDia, VENTANA_SEGUIR } from "../js/dibujo-carrera.js";
-import * as vistasRunning from "../js/vistas-running.js";
-import * as peleaMapa from "../js/vistas-pelea-mapa.js";   // (v146)
-import * as memento from "../js/memento.js";
-import * as vistasMemento from "../js/vistas-memento.js";
-import * as vistasFinanzas from "../js/vistas-finanzas.js";   // (v147)
+import * as gymAurelio from "../js/gym/gym-aurelio.js";
+import { esqueleto } from "../js/dibujo/dibujo-cuerpo.js";
+import * as vistasGym from "../js/gym/vistas-gym.js";
+import * as running from "../js/running/running.js";
+import * as ruta from "../js/running/ruta.js";
+import * as encuentros from "../js/running/encuentros.js";
+import * as frases from "../js/running/frases.js";
+import * as locutor from "../js/running/locutor.js";
+import { mapaDeCarrera, mapaDePista, puntoEnPista, momentoDelDia, VENTANA_SEGUIR } from "../js/running/dibujo-carrera.js";
+import * as vistasRunning from "../js/running/vistas-running.js";
+import * as peleaMapa from "../js/running/vistas-pelea-mapa.js";   // (v146)
+import * as memento from "../js/memento/memento.js";
+import * as vistasMemento from "../js/memento/vistas-memento.js";
+import * as vistasFinanzas from "../js/finanzas/vistas-finanzas.js";   // (v147)
 import * as equipo from "../js/equipo.js";
-import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo.js";
+import { dibujarAvatar, dibujarAvatarGym, dibujarMascota, dibujarObjeto, dibujarEscenario } from "../js/dibujo/dibujo.js";
 import { PISTAS } from "../js/musica.js";
 import * as musicaModulo from "../js/musica.js";
 import * as sonidoModulo from "../js/sonido.js";
-import { PINTURAS as PINTURAS_DE_FONDO, rutaPintura, ponerPinturaPixel } from "../js/pinturas.js";
-import { pixelarPintura } from "../js/pixel-pintura.js";
+import { PINTURAS as PINTURAS_DE_FONDO, rutaPintura, ponerPinturaPixel } from "../js/dibujo/pinturas.js";
+import { pixelarPintura } from "../js/dibujo/pixel-pintura.js";
 import { partidaDemo } from "./demo.js";
-import { FONDOS_RETRATO } from "../js/dibujo-retrato-fondos.js";   // (v189)
-import * as plataformas from "../js/plataformas.js";            // (v185) La Senda del Reino
-import * as motorSenda from "../js/plataformas-motor.js";
-import * as dibujoSenda from "../js/dibujo-plataformas.js";
-import * as vistasSenda from "../js/vistas-plataformas.js";
+import { FONDOS_RETRATO } from "../js/dibujo/dibujo-retrato-fondos.js";   // (v189)
+import * as plataformas from "../js/arcade/plataformas.js";            // (v185) La Senda del Reino
+import * as motorSenda from "../js/arcade/plataformas-motor.js";
+import * as dibujoSenda from "../js/arcade/dibujo-plataformas.js";
+import * as vistasSenda from "../js/arcade/vistas-plataformas.js";
 
 
 // ===== Herramientas para escribir pruebas =====
@@ -4656,7 +4656,7 @@ prueba("Saga en la partida: se ve en Hoy y en Héroe › Historia, y cada acto c
 
 prueba("Historias conectadas: Aurelio no está en la cima antes de tiempo y cada historia nombra a las otras", async () => {
     const leer = async (ruta) => (await fetch(ruta, { cache: "no-store" })).text();
-    const [cronicaJs, leyendasJs] = await Promise.all([leer("../js/cronica.js"), leer("../js/leyendas.js")]);
+    const [cronicaJs, leyendasJs] = await Promise.all([leer("../js/historias/cronica.js"), leer("../js/torre/leyendas.js")]);
     cierto(!cronicaJs.includes("Desde lo alto de la Torre, el Maestro Aurelio"), "la Crónica: Aurelio espera al pie de la Torre");
     cierto(!leyendasJs.includes("En la cima, Aurelio aviva la Llama"), "la Mazmorra: Aurelio sube recién al final");
     cierto(cronicaJs.includes("la Llama de la Torre se apagó. Entonces volvieron las Cuatro Sombras"), "las Sombras volvieron por la Llama");
@@ -4883,7 +4883,7 @@ prueba("La Torre en el valle (v37): el mapa la dibuja al principio del camino y 
 
 prueba("La Torre en el valle (v37): ninguna historia la pone en la Ciudadela", async () => {
     const leer = async (ruta) => (await fetch(ruta, { cache: "no-store" })).text();
-    const [cronicaJs, pergaminoJs, leyendasJs] = await Promise.all([leer("../js/cronica.js"), leer("../js/pergamino.js"), leer("../js/leyendas.js")]);
+    const [cronicaJs, pergaminoJs, leyendasJs] = await Promise.all([leer("../js/historias/cronica.js"), leer("../js/historias/pergamino.js"), leer("../js/torre/leyendas.js")]);
     cierto(cronicaJs.includes("vive en el Valle del Comienzo, al pie de la Torre"), "Aurelio vive al pie de la Torre, en el valle");
     cierto(!cronicaJs.includes("en la Ciudadela del Carácter, se alza la Torre"), "la Crónica ya no la pone al final");
     cierto(!pergaminoJs.includes("Dicen en la Ciudadela") && !leyendasJs.includes("En la Ciudadela dicen"), "lo de la primera piedra se dice en el valle");
@@ -7906,7 +7906,7 @@ prueba("Íconos: los emojis se cambian por su dibujo (con y sin el «️» invis
 prueba("Service worker: guarda todos los archivos de la app (y existen), incluidos los del tema pixel", async () => {
     const texto = await (await fetch("../sw.js", { cache: "no-store" })).text();
     const archivos = [...texto.match(/const ARCHIVOS = \[([\s\S]*?)\];/)[1].matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]);
-    for (const nombre of ["js/iconos.js", "css/01-base.css", "css/99-pixel.css", "fuentes/dotgothic16.woff2"]) cierto(archivos.includes(nombre), `falta ${nombre} en ARCHIVOS`);
+    for (const nombre of ["js/dibujo/iconos.js", "css/01-base.css", "css/99-pixel.css", "fuentes/dotgothic16.woff2"]) cierto(archivos.includes(nombre), `falta ${nombre} en ARCHIVOS`);
     const faltan = [];
     for (const nombre of archivos.filter(Boolean)) if (!(await fetch("../" + nombre, { method: "HEAD", cache: "no-store" })).ok) faltan.push(nombre);
     igual(faltan, [], "archivos que no existen");
@@ -9726,7 +9726,7 @@ prueba("La Senda del Reino: archivos en el service worker y en la ayuda", async 
     const sw = await (await fetch("../sw.js", { cache: "no-store" })).text();
     for (const archivo of ["plataformas.js", "plataformas-niveles.js", "plataformas-motor.js", "dibujo-plataformas.js", "vistas-plataformas.js",
                            "app-plataformas.js", "acciones-plataformas.js", "dibujo-plataformas-escena.js"]) {
-        cierto(sw.includes(`"./js/${archivo}"`), `sw.js guarda ${archivo} (para jugar sin internet)`);
+        cierto(sw.includes(`"./js/arcade/${archivo}"`), `sw.js guarda ${archivo} (para jugar sin internet)`);
     }
     const html = await (await fetch("../index.html", { cache: "no-store" })).text();
     for (const id of ["senda", "senda-mapa", "senda-lienzo", "senda-controles", "senda-capa", "senda-hud"]) cierto(html.includes(`id="${id}"`), `index.html tiene #${id}`);
@@ -9778,7 +9778,7 @@ prueba("La Senda del Reino (v187): el «jugo» — polvo, estrellas, aros, deste
 });
 
 prueba("La Senda del Reino (v187): el escenario — capas con paralaje, lo que brilla, el ambiente y la luz", async () => {
-    const escena = await import("../js/dibujo-plataformas-escena.js");
+    const escena = await import("../js/arcade/dibujo-plataformas-escena.js");
     const lienzo = document.createElement("canvas");
     lienzo.width = 300;
     lienzo.height = 240;

@@ -7,7 +7,7 @@
 import { calcularNivel, ATRIBUTOS, BASE_ATRIBUTO } from "./juego.js";
 import { diasEntre, hoy as hoyDeHoy } from "./fechas.js";
 import { calcularVida } from "./vida.js";
-import { fisicoDe, nivelDeGym, mejorRachaSemanal } from "./gym.js";
+import { fisicoDe, nivelDeGym, mejorRachaSemanal } from "./gym/gym.js";
 import { especieActiva, nombreDe, totalDe } from "./mascota.js";
 
 

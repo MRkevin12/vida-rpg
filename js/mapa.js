@@ -27,7 +27,7 @@
 
 import { ATRIBUTOS } from "./juego.js";
 import { CAMPANAS, VIDAS, estadoCampanas, factorDeViaje } from "./campana.js";
-import * as saga from "./saga.js";
+import * as saga from "./historias/saga.js";
 
 export const PASOS_POR_LUGAR = 4;
 export const LUGARES_POR_REGION = 25;

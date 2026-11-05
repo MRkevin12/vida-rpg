@@ -6,7 +6,7 @@
 import * as juego from "./juego.js";
 import * as vida from "./vida.js";
 import * as equipo from "./equipo.js";
-import * as retos from "./retos.js";
+import * as retos from "./arcade/retos.js";
 import { hoy } from "./fechas.js";
 
 

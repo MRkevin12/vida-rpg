@@ -7,8 +7,8 @@
 import { sumarDias } from "./fechas.js";
 import { hechasPorFecha, esDiaPerfecto } from "./juego.js";
 import { jefesVencidos } from "./campana.js";
-import { totales as totalesGym } from "./gym.js";
-import { kmTotales } from "./running.js";
+import { totales as totalesGym } from "./gym/gym.js";
+import { kmTotales } from "./running/running.js";
 
 // Años que tienen algo que contar: desde el año en que creaste el personaje hasta el actual (el más nuevo primero).
 export function aniosConDatos(estado, hoy) {

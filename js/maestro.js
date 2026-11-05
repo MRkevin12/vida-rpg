@@ -14,8 +14,8 @@
 // Se dibuja con el mismo sistema del avatar (dibujo.js): un anciano de barba blanca.
 
 import * as juego from "./juego.js";
-import * as memorias from "./memorias.js";
-import * as saga from "./saga.js";
+import * as memorias from "./historias/memorias.js";
+import * as saga from "./historias/saga.js";
 import * as campana from "./campana.js";
 import { ETAPAS, CLASES, APARIENCIA_INICIAL } from "./avatar.js";
 import { calcularVida } from "./vida.js";
@@ -23,7 +23,7 @@ import { cumplimientoDelPacto, citaDelDia } from "./pacto.js";
 import { cofreDisponible } from "./cofre.js";
 import { eventoDelDia } from "./eventos.js";
 import * as rituales from "./rituales.js";
-import * as gymReglas from "./gym.js";
+import * as gymReglas from "./gym/gym.js";
 import { diasEntre, lunesDe } from "./fechas.js";
 
 export const NOMBRE = "Maestro Aurelio";

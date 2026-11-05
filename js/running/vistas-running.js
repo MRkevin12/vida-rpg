@@ -1,0 +1,870 @@
+// vistas-running.js — La pantalla del Running (v109): correr en vivo, anotar carreras, tu progreso y tu historial.
+//
+// Como las demás vistas, solo convierte la partida en HTML (texto). Las reglas están en running.js.
+// El cronómetro, la distancia y el ritmo en vivo tienen data-run-* : app.js los actualiza cada segundo sin redibujar
+// la pantalla (así no se cierra el teclado ni se pierde la posición).
+
+import * as running from "./running.js";
+import * as ruta from "./ruta.js";
+import * as encuentros from "./encuentros.js";
+import { mapaDeCarrera, mapaDePista, LIENZO } from "./dibujo-carrera.js";
+import { esc, selectorSecciones, vacio } from "../pantallas/vistas-comun.js";
+import { spriteFF, salaFF, ambienteFF, frenteFF, chispasFF, numeroFF } from "../torre/vistas-torre.js";   // (v139) la escena de batalla de la Torre
+import * as bestiario from "../torre/bestiario.js";
+import { plural } from "../juego.js";
+import { fechaCorta, lunesDe } from "../fechas.js";
+
+const barra = (porcentaje, clase = "") => `<div class="barra ${clase}"><div class="barra-relleno" style="width: ${Math.min(100, porcentaje)}%"></div></div>`;
+
+// Las secciones de la pantalla (como en el Gimnasio).
+export const SECCIONES_RUNNING = [["correr", "🏃 Correr"], ["progreso", "📈 Progreso"], ["historial", "📜 Historial"]];
+
+// ctx = { hoy, ahora, subvista, tipo, gps: bool (la carrera usa GPS), gpsProblema: null | "permiso" | "senal", terminando: bool (tocaste «Ya terminé») }
+export function pantallaRunning(estado, ctx) {
+    const r = estado.running;
+    const kmSemana = running.kmDeLaSemana(r.carreras, lunesDe(ctx.hoy));
+    const encabezado = `
+        <div class="titulo-seccion encabezado">
+            <h2 class="titulo-juego">🏃 Running</h2>
+            <p class="contador ${kmSemana >= r.metaKm ? "completo" : ""}">${running.textoKm(kmSemana)}</p>
+        </div>`;
+    if (r.encurso) return `${encabezado}${vistaEnVivo(estado, ctx)}`;
+
+    const pedida = ctx.subvista?.running;
+    const seccion = SECCIONES_RUNNING.some(([clave]) => clave === pedida) ? pedida : "correr";
+    const contenido = {
+        correr: () => `
+            ${tarjetaResumenCarrera(estado, ctx)}
+            ${tarjetaSemana(estado, ctx)}
+            ${tarjetaSugerencia(estado, ctx)}
+            ${panelEmpezar(ctx, estado)}
+            ${formularioManual(ctx)}`,
+        progreso: () => `
+            ${tarjetaRango(estado)}
+            ${tarjetaSemanas(estado, ctx)}
+            ${tarjetaRecords(estado)}
+            ${tarjetaRitmos(estado)}
+            ${tarjetaPredicciones(estado)}
+            ${tarjetaHitos(estado)}
+            ${tarjetaAjustes(estado)}`,
+        historial: () => tarjetaHistorial(estado),
+    }[seccion];
+    return `${encabezado}${selectorSecciones("running", SECCIONES_RUNNING, seccion)}${contenido()}`;
+}
+
+// Lo que dice el aviso del GPS. app.js lo vuelve a escribir cada segundo (data-run-gps), sin redibujar la pantalla.
+export function textoGps(en, problema) {
+    if (!en.gps) return "⏱ Solo cronómetro: anota la distancia al terminar.";
+    if (problema === "permiso") return "⚠️ Sin permiso de ubicación: actívalo en Ajustes del iPhone → Privacidad → Localización (para el navegador y la app).";
+    if (problema === "senal") return "📡 Señal GPS perdida: se reanuda sola cuando vuelva.";
+    if (en.autopausa) return "⏸ Pausa automática: te quedaste quieto. Sigue corriendo y el reloj vuelve solo.";
+    const calidad = running.calidadGps(en.precision);   // (v131)
+    if (calidad && (en.ultimo || en.distancia)) return `${calidad.icono} Señal GPS ${calidad.texto}.`;
+    if (en.ultimo || en.distancia) return "📡 GPS activo: se miden los metros mientras la app esté abierta.";
+    return "📡 Buscando señal GPS… (sal a un lugar abierto si tarda)";
+}
+
+// (v141) El mismo aviso, en corto, para el HUD del modo concentración: un medidor de 4 rayitas y dos o tres palabras.
+// clave: el color (buena, regular, mala, busca, pausa, crono). barras: cuántas rayitas se encienden (0 a 4).
+export function gpsCorto(en, problema) {
+    if (!en.gps) return { clave: "crono", barras: 0, texto: "Solo cronómetro" };
+    if (problema === "permiso") return { clave: "mala", barras: 0, texto: "Sin permiso de GPS" };
+    if (problema === "senal") return { clave: "mala", barras: 0, texto: "Señal perdida" };
+    if (en.autopausa) return { clave: "pausa", barras: 3, texto: "Pausa automática" };
+    const calidad = running.calidadGps(en.precision);
+    if (calidad && (en.ultimo || en.distancia)) {
+        return { clave: calidad.nivel, barras: { buena: 4, regular: 2, mala: 1 }[calidad.nivel], texto: `GPS ±${Math.round(en.precision)} m` };
+    }
+    if (en.ultimo || en.distancia) return { clave: "buena", barras: 3, texto: "GPS activo" };
+    return { clave: "busca", barras: 0, texto: "Buscando GPS…" };
+}
+
+// app.js solo lo vuelve a escribir cuando esto cambia.
+export const firmaGps = (g) => `${g.clave}:${g.barras}:${g.texto}`;
+
+// Las 4 rayitas de la señal, dibujadas con cuadritos (SVG con bordes duros, como el resto del pixel art).
+// Cada rayita mide 2 puntos de ancho y es más alta que la anterior; las encendidas toman el color del texto.
+export function htmlGpsCorto(g) {
+    if (g.clave === "crono") return `⏱ <span>${g.texto}</span>`;
+    const rayitas = [0, 1, 2, 3].map((i) => `<rect x="${i * 3}" y="${6 - i * 2}" width="2" height="${i * 2 + 2}" class="${i < g.barras ? "si" : "no"}"/>`).join("");
+    return `<svg class="run-senal" viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true">${rayitas}</svg><span>${g.texto}</span>`;
+}
+
+// ===== Correr en vivo =====
+// Mientras corres no hay menú: el cronómetro grande, la distancia, el ritmo y el formulario para terminar.
+function vistaEnVivo(estado, ctx) {
+    const en = estado.running.encurso;
+    const tipo = running.TIPOS[en.tipo];
+    const pausada = Boolean(en.pausadoDesde);
+    const tiempo = running.tiempoDeEncurso(en, ctx.ahora);
+    const ritmo = running.ritmoActual(en, ctx.ahora);   // (v131) el de los últimos ~30 s
+    // (v129) «Terminar y guardar» solo aparece cuando tocas «Ya terminé».
+    if (ctx.terminando) return vistaTerminar(estado, ctx, tiempo);
+    const concentrado = estado.running.concentracion !== false;
+    const gps = gpsCorto(en, ctx.gpsProblema);
+    // (v141) El HUD de arriba: el estado (tipo de carrera y GPS en corto, solo en concentración), el cronómetro y los dos datos.
+    // (v146) El mapa lleva encima dos capas que llena app-running.js (ponerPeleaEnMapa): la pelea (data-run-pm: tu héroe, la
+    // criatura, sus vidas y los poderes) y el golpe final (data-run-final: la escena de la Torre, solo unos segundos).
+    return `
+        <section class="panel run-vivo ${pausada ? "pausada" : ""} ${en.gps ? "" : "solo-crono"}">
+            <p class="etiqueta">${tipo.icono} ${esc(tipo.nombre)}${en.pista ? " · 🏟️ pista" : ""}${en.autopausa ? " · ⏸ pausa automática" : pausada ? " · en pausa" : ""}</p>
+            <div class="run-hud">
+                <p class="run-hud-estado">
+                    <span class="run-hud-tipo">${tipo.icono} ${esc(tipo.nombre)}${en.pista ? " · 🏟️" : ""}</span>
+                    <span class="run-gps-corto ${gps.clave}" data-run-gps-corto data-n="${firmaGps(gps)}">${htmlGpsCorto(gps)}</span>
+                </p>
+                <p class="run-tiempo" data-run-tiempo>${running.textoTiempo(tiempo)}</p>
+                <div class="run-datos">
+                    <div><small>🐾 <span>Distancia</span></small><b data-run-km>${running.textoKm(en.distancia / 1000)}</b></div>
+                    <div><small>⏱ <span>Ritmo (ahora)</span></small><b data-run-ritmo>${running.textoRitmo(ritmo)}</b></div>
+                </div>
+            </div>
+            ${en.gps && en.encuentros ? `<p class="run-consejo ${consejoEnVivo(en, ctx.ahora).clave}" data-run-consejo data-n="${esc(textoConsejo(consejoEnVivo(en, ctx.ahora)))}">${textoConsejo(consejoEnVivo(en, ctx.ahora))}</p>` : ""}
+            ${en.gps ? `<div class="run-km" data-run-kmbar data-n="${firmaDelKm(en)}">${htmlKmEnCurso(en)}</div>` : ""}
+            ${en.gps ? `<div class="run-dividida ${en.encuentros ? "con-pelea" : ""}">
+                <div class="run-mapa-vivo">
+                    <div class="run-mapa-dibujo" data-run-mapa data-n="">${htmlMapaVivo(en.traza, en.puntosKm, opcionesDelMapa(en, estado.running))}</div>
+                    ${en.encuentros ? `<div class="run-pm" data-run-pm data-n="" aria-hidden="true"></div>
+                    <div class="run-final" data-run-final data-n="" aria-hidden="true"></div>` : ""}
+                </div>
+            </div>
+            ${en.encuentros ? `<div class="run-pelea">
+                <div data-run-encuentro>${htmlEncuentro(en, ctx.ahora)}</div>
+            </div>
+            <p class="mini texto-suave run-objetivo">🎯 Objetivo: ${running.textoSegundos(en.objetivo)} /km ${en.objetivoPropio ? "(el tuyo)" : "(tu promedio)"} · las criaturas son un extra: el premio por km no cambia.</p>` : ""}
+            <p class="nota" data-run-ruta>${textoRutaEnVivo(estado, en)}</p>` : ""}
+            <p class="nota" data-run-gps>${textoGps(en, ctx.gpsProblema)}</p>
+            <div class="run-parciales-vivo" data-run-parciales data-n="${(en.marcas || []).length}">${htmlParciales(running.parcialesDe(en.marcas))}</div>
+            <div class="run-botones">
+                <button type="button" class="boton ${pausada ? "boton-principal" : "boton-secundario"}" data-accion="run-pausa">${en.autopausa ? "▶ Seguir ya" : pausada ? "▶ Seguir" : "⏸ Pausar"}</button>
+                <button type="button" class="boton boton-principal" data-accion="run-terminar-abrir">🏁 Ya terminé</button>
+            </div>
+            <div class="run-botones run-botones-chicos">
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="run-cancelar">✖ Cancelar</button>
+                <button type="button" class="boton boton-chico boton-secundario run-concentracion-boton" data-accion="run-concentracion" aria-pressed="${concentrado}">
+                    🎯 ${concentrado ? "Salir" : "Concentrar"}</button>
+            </div>
+        </section>`;
+}
+
+// (v129) Lo que sale al tocar «Ya terminé»: la carrera queda en pausa (el reloj se detiene) y se guarda con una nota opcional.
+function vistaTerminar(estado, ctx, tiempo) {
+    const en = estado.running.encurso;
+    return `
+        <form data-form="running-terminar" class="panel formulario run-terminar">
+            <h2 class="titulo-juego">🏁 Terminar y guardar</h2>
+            <div class="run-datos">
+                <div><small>Tiempo</small><b>${running.textoTiempo(tiempo)}</b></div>
+                <div><small>Distancia</small><b>${running.textoKm(en.distancia / 1000)}</b></div>
+            </div>
+            ${en.gps
+                ? '<p class="nota">🔒 Se guarda <b>exactamente</b> lo que midió el GPS y el cronómetro: la distancia y el tiempo no se pueden cambiar, para que todas tus carreras sean justas. Solo puedes agregar una nota.</p>'
+                : `<p class="nota">Si dejas un campo vacío, se usa lo que marcó el cronómetro.</p>
+            <label class="formulario-grupo"><span>Kilómetros</span>
+                <input type="text" name="km" inputmode="decimal" placeholder="Ej: 5,2" autocomplete="off"></label>
+            <label class="formulario-grupo"><span>Minutos</span>
+                <input type="text" name="minutos" inputmode="numeric" placeholder="Lo que marcó el cronómetro" autocomplete="off"></label>`}
+            <label class="formulario-grupo"><span>Nota (opcional)</span>
+                <input type="text" name="nota" maxlength="60" placeholder="Ej: con el perro" autocomplete="off"></label>
+            <button type="submit" class="boton boton-principal boton-ancho">✅ Guardar carrera</button>
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="run-terminar-cerrar">▶ Todavía no: seguir corriendo</button>
+        </form>`;
+}
+
+// ===== Recorrido y parciales (v116) =====
+// Cada kilómetro, con una barra: más larga = más rápido. El más rápido va en verde y el más lento en ámbar.
+// Se usa en la carrera en vivo y en el detalle del historial. app.js lo vuelve a escribir al cumplir un kilómetro.
+export function htmlParciales(parciales) {
+    if (!parciales || !parciales.length) return "";
+    const mejor = Math.min(...parciales);
+    const peor = Math.max(...parciales);
+    const filas = parciales.slice(-12).map((s, i, lista) => {
+        const numero = parciales.length - lista.length + i + 1;
+        const ancho = peor === mejor ? 100 : Math.round(45 + ((peor - s) / (peor - mejor)) * 55);
+        const clase = parciales.length > 1 && s === mejor ? "mejor" : parciales.length > 1 && s === peor ? "peor" : "";
+        return `<li class="run-parcial ${clase}"><span>km ${numero}</span><span class="run-parcial-barra"><i style="width: ${ancho}%"></i></span><b>${running.textoSegundos(s)}</b></li>`;
+    }).join("");
+    return `<ul class="run-parciales">${filas}</ul>`;
+}
+
+// El detalle de una carrera con GPS: su recorrido, sus parciales y cómo repartiste el esfuerzo.
+function detalleDeCarrera(c) {
+    if (!c.traza && !c.parciales && !c.encuentros) return "";
+    const analisis = running.analisisDeParciales(c.parciales);
+    const reparto = !analisis ? "" : Math.abs(analisis.diferencia) < 5
+        ? "Ritmo muy parejo de principio a fin. 👌"
+        : analisis.diferencia < 0
+            ? `Acabaste ${running.textoSegundos(-analisis.diferencia)} /km más rápido de lo que empezaste. 🔥`
+            : `Acabaste ${running.textoSegundos(analisis.diferencia)} /km más lento de lo que empezaste: la próxima, sal un poco más suave.`;
+    return `
+        <details class="run-detalle">
+            <summary>🗺️ Ver recorrido${c.parciales?.length ? ` y ${plural(c.parciales.length, "parcial", "parciales")}` : ""}</summary>
+            ${c.traza ? `<div class="run-mapa-vivo">${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km, porZona: c.kmPorZona || 3, pista: c.pista ? { metros: c.km * 1000, largo: c.pista } : null,
+                hora: horaDeCarrera(c), parciales: c.parciales || [] })}</div>
+            <p class="mini texto-suave">Cuadro verde: salida · rojo: llegada · mojones: cada km (verde: criatura vencida, morado: jefe vencido, gris: escapó) · dorado: tu km más rápido</p>` : ""}
+            ${criaturasDeCarrera(c)}
+            ${htmlParciales(c.parciales)}
+            ${analisis ? `<p class="mini texto-suave">Mejor: km ${analisis.mejorKm} (${running.textoSegundos(analisis.mejor)}) · Más lento: km ${analisis.peorKm} (${running.textoSegundos(analisis.peor)}).<br>${reparto}</p>` : ""}
+        </details>`;
+}
+
+// ===== (v148) El resumen de la carrera que acabas de guardar =====
+// Sale arriba de «Correr» al terminar (ctx.resumenRun = el índice de la carrera). Tiene el mapa grande, los números,
+// las criaturas, los cofres y fogatas, los parciales y dos botones: compartir el texto o guardar la imagen del mapa.
+export function textoDeCarrera(c) {
+    const tipo = running.TIPOS[c.tipo] || running.TIPOS.suave;
+    const vencidas = (c.encuentros || []).filter((e) => e.resultado === "vencida").length;
+    return [
+        `${tipo.icono} ${tipo.nombre}: ${running.textoKm(c.km)} en ${running.textoDuracion(c.minutos)} (${running.textoRitmo(running.ritmoDeCarrera(c))})`,
+        c.encuentros?.length ? `⚔️ Criaturas vencidas: ${vencidas} de ${c.encuentros.length}` : "",
+        c.cofres ? `🎁 Cofres abiertos: ${c.cofres}` : "",
+        c.parciales?.length ? `⏱️ Parciales: ${c.parciales.map((s) => running.textoSegundos(s)).join(" · ")}` : "",
+        "— Vida RPG",
+    ].filter(Boolean).join("\n");
+}
+
+// (v179) «Tú contra tú»: cómo te fue frente a tu yo de hace 30 días (la carrera de ±10 días de esa fecha). Sin carrera de entonces, no sale.
+export function htmlRival(estado, c) {
+    if (c.pista) return "";
+    const rival = running.rivalDeHace(estado.running.carreras.filter((x) => x !== c), c.fecha);
+    const cmp = running.contraRival(c, rival);
+    if (!cmp) return "";
+    const km = cmp.km === 0 ? "la misma distancia" : `${cmp.km > 0 ? "+" : "−"}${Math.abs(cmp.km)} km`;
+    return `<p class="nota">${cmp.ganaste ? "🏆" : "👻"} <b>Tú contra tú</b> (${fechaCorta(rival.fecha)}: ${running.textoKm(rival.km)} a ${running.textoRitmo(running.ritmoDeCarrera(rival))}). ${cmp.frase} Hoy: ${km}.</p>`;
+}
+
+function tarjetaResumenCarrera(estado, ctx) {
+    const c = Number.isInteger(ctx.resumenRun) ? estado.running.carreras[ctx.resumenRun] : null;
+    if (!c) return "";
+    const tipo = running.TIPOS[c.tipo] || running.TIPOS.suave;
+    const vencidas = (c.encuentros || []).filter((e) => e.resultado === "vencida");
+    const dato = (titulo, valor) => `<div><small>${titulo}</small><b>${valor}</b></div>`;
+    const mapa = c.traza
+        ? `<div class="run-mapa-vivo run-resumen-mapa" data-run-resumen-mapa>${htmlMapaVivo(c.traza, c.puntosKm, { heroe: false, encuentros: c.encuentros || [], km: c.km, porZona: c.kmPorZona || 3,
+            pista: c.pista ? { metros: c.km * 1000, largo: c.pista } : null, hora: horaDeCarrera(c), parciales: c.parciales || [] })}</div>` : "";
+    return `
+        <section class="panel run-resumen">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">🏁 ¡Carrera guardada!</h2>
+                <button type="button" class="boton-icono" data-accion="run-resumen-cerrar" aria-label="Cerrar el resumen">✕</button>
+            </div>
+            <p class="etiqueta">${tipo.icono} ${esc(tipo.nombre)} · ${fechaCorta(c.fecha)}</p>
+            ${mapa}
+            <div class="run-datos run-resumen-datos">
+                ${dato("Distancia", running.textoKm(c.km))}
+                ${dato("Tiempo", running.textoDuracion(c.minutos))}
+                ${dato("Ritmo", running.textoRitmo(running.ritmoDeCarrera(c)))}
+                ${dato("Premio", `+${c.xp} XP`)}
+            </div>
+            ${c.encuentros?.length ? `<p class="nota">⚔️ Venciste ${vencidas.length} de ${c.encuentros.length}${vencidas.some((e) => e.jefe) ? " (¡con jefe!)" : ""}${vencidas.length ? `: ${vencidas.slice(0, 4).map((e) => esc(encuentros.nombreDe(e))).join(", ")}${vencidas.length > 4 ? "…" : ""}` : "."}</p>` : ""}
+            ${c.cofres || c.fogatas ? `<p class="nota">${c.cofres ? `🎁 ${plural(c.cofres, "cofre abierto", "cofres abiertos")}` : ""}${c.cofres && c.fogatas ? " · " : ""}${c.fogatas ? `🔥 ${plural(c.fogatas, "fogata", "fogatas")}` : ""}</p>` : ""}
+            ${htmlRival(estado, c)}
+            ${htmlParciales(c.parciales)}
+            <div class="run-botones">
+                <button type="button" class="boton boton-secundario" data-accion="run-compartir" data-indice="${ctx.resumenRun}">📤 Compartir</button>
+                ${c.traza ? `<button type="button" class="boton boton-secundario" data-accion="run-guardar-imagen" data-indice="${ctx.resumenRun}">🖼️ Guardar imagen</button>` : ""}
+            </div>
+        </section>`;
+}
+
+// ===== El mapa de tu carrera (v118; zonas, ríos, lagos y criaturas en la v119) =====
+// El dibujo está en dibujo-carrera.js. Encima van tu héroe (su imagen la pone app.js: es pixel art y tarda un instante)
+// y el nombre de la zona donde vas.
+// (v144) hora: la hora del día (0–24) para la luz del mapa; reloj: la hora en ms (las animaciones siguen donde iban al
+// redibujar); parciales: los segundos de cada km (el más rápido brilla en dorado).
+// (v146) heroeEnCapa: con criaturas, tu héroe no va aquí sino en la capa de la pelea (vistas-pelea-mapa.js), que no se
+// vuelve a escribir cada segundo. Para ubicarlo, el <svg> lleva data-aqui (dónde vas, en %) y data-rumbo (hacia dónde corres).
+export function htmlMapaVivo(traza, banderas, { heroe = true, encuentros: peleas = [], km = 0, seguir = false, pista = null, porZona = 3, recorte = false,
+                                                hora, reloj = 0, parciales = [], heroeEnCapa = false, fantasma = null, clima = null } = {}) {
+    // (v131) En pista se dibuja la pista de atletismo; en la calle, el mapa te sigue de cerca o muestra todo el recorrido.
+    // (v147) La pista también lleva la luz de la hora, las fases de sus animaciones, el marcador (parciales) y el rastro (vivo).
+    const dibujo = pista
+        ? mapaDePista({ metros: pista.metros, largo: pista.largo, hora, reloj, parciales, vivo: heroe })
+        : mapaDeCarrera({ traza, banderas, encuentros: peleas, km, seguir, flecha: heroe, porZona, hora, reloj, parciales, fantasma });
+    const { aqui, rumbo, zona } = dibujo;
+    // (v139) recorte: en la carrera en vivo la caja del mapa no siempre mide 4:3. En vez de estirar el dibujo (los cuadritos se
+    // deformarían), se agranda hasta llenarla y se recortan los bordes («slice»). Entonces tu héroe se ubica con la misma cuenta:
+    // desde el centro de la caja, cada punto del dibujo mide max(ancho/320, alto/240) (cqw y cqh = 1 % del ancho y del alto de la caja).
+    let svg = recorte ? dibujo.svg.replace('preserveAspectRatio="none"', 'preserveAspectRatio="xMidYMid slice"') : dibujo.svg;
+    if (heroe && aqui) {
+        const datos = ` data-aqui="${aqui.x.toFixed(2)},${aqui.y.toFixed(2)}"${rumbo ? ` data-rumbo="${rumbo.x.toFixed(3)},${rumbo.y.toFixed(3)}"` : ""}`;
+        svg = svg.replace("<svg ", `<svg${datos} `);
+    }
+    const escala = `max(100cqw / ${LIENZO.ancho}, 100cqh / ${LIENZO.alto})`;
+    const enMapa = (x, y) => {
+        const normal = `left: ${Math.min(96, Math.max(4, x)).toFixed(2)}%; top: ${Math.min(96, Math.max(10, y)).toFixed(2)}%`;
+        if (!recorte) return normal;
+        const [px, py] = [(x / 100) * LIENZO.ancho - LIENZO.ancho / 2, (y / 100) * LIENZO.alto - LIENZO.alto / 2];   // puntos del dibujo desde el centro
+        // La primera línea es para los teléfonos viejos que no entienden cqw (la ignoran la segunda y se quedan con la primera).
+        return `${normal}; left: calc(50% + ${px.toFixed(1)} * ${escala}); top: calc(50% + ${py.toFixed(1)} * ${escala})`;
+    };
+    // (v148) El clima del día: una capa de lluvia, niebla, nieve, arena o ceniza encima del dibujo. Su animación empieza
+    // «atrasada» según el reloj (animation-delay negativo), así sigue donde iba aunque el mapa se vuelva a escribir cada segundo.
+    const infoClima = clima && clima !== "despejado" ? running.CLIMAS[clima] : null;
+    const capaClima = infoClima ? `<div class="run-clima ${clima}" style="animation-delay: -${Math.round(reloj % 6000)}ms" aria-hidden="true"></div>` : "";
+    return `${svg}${capaClima}
+        <span class="run-mapa-zona">${esc(zona.nombre)}${infoClima ? ` · ${infoClima.icono}` : ""}${fantasma?.mes ? " · 👻 tú hace 1 mes" : ""}</span>
+        ${heroe && !pista ? `<button type="button" class="run-mapa-vista" data-accion="run-vista-mapa">${seguir ? "🗺️ Ver todo" : "🎯 Seguirme"}</button>` : ""}
+        ${heroe && aqui && !heroeEnCapa ? `<img class="run-mapa-heroe" alt="" style="${enMapa(aqui.x, aqui.y)}">` : ""}`;
+}
+
+// Lo que el mapa en vivo necesita de la carrera en curso. (v146) Con criaturas, tu héroe y la criatura pelean en una capa
+// encima del mapa (vistas-pelea-mapa.js).
+export const opcionesDelMapa = (en, r = {}, ahora = Date.now()) => ({
+    encuentros: en.encuentros || [], km: en.distancia / 1000,
+    seguir: r.vistaMapa !== "todo",                                          // (v131)
+    porZona: en.kmPorZona || 3,                                              // (v132)
+    pista: en.pista ? { metros: en.distancia, largo: en.pista } : null,      // (v131)
+    recorte: Boolean(en.encuentros),                                         // (v139) la caja no mide 4:3: se recortan los bordes
+    heroeEnCapa: Boolean(en.encuentros),                                     // (v146) tu héroe va en la capa de la pelea
+    hora: luzDelDia(ahora, en.traza), reloj: ahora,                          // (v144) la luz de ahora (v151: según el sol del lugar) y las fases de las animaciones
+    parciales: running.parcialesDe(en.marcas),                               // (v144) tu km más rápido brilla
+    fantasma: en.pista ? null : fantasmaDe(en, r, ahora),                    // (v148) la última vez que saliste de aquí
+    clima: running.climaDelDia(fechaDeCarrera(en), encuentros.zonaDelKm(Math.floor(en.distancia / 1000) + 1, en.kmPorZona || 3).id),   // (v148)
+});
+
+// (v148) La carrera fantasma de la carrera en curso. Se busca una sola vez por carrera (cuando ya hay un primer punto del GPS)
+// y se recuerda aquí. avance: qué parte del tiempo de esa carrera llevas (0 a 1): ahí va el fantasma.
+const fantasmas = new Map();   // inicio de la carrera en curso → la carrera fantasma (o null)
+const fechaDeCarrera = (en) => { const d = new Date(en.inicio); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+export function fantasmaDe(en, r = {}, ahora = Date.now()) {
+    if (!en.traza?.length) return null;
+    // (v179) Primero tu yo de hace 30 días (si corriste por aquí ese mes); si no, la última vez que saliste de este lugar.
+    if (!fantasmas.has(en.inicio)) {
+        const rival = running.rivalDeHace(r.carreras, fechaDeCarrera(en), { salida: en.traza[0] });
+        fantasmas.set(en.inicio, rival ? { c: rival, mes: true } : { c: running.carreraFantasma(r.carreras, en.traza[0]), mes: false });
+    }
+    const { c, mes } = fantasmas.get(en.inicio);
+    if (!c) return null;
+    const minutos = running.tiempoDeEncurso(en, ahora) / 60000;
+    return { traza: c.traza, avance: Math.min(1, minutos / c.minutos), fecha: c.fecha, mes };
+}
+
+// (v144) La hora del día de un momento (en ms), como número: 18.5 = 18:30. En el historial se usa la mitad de la carrera
+// (creada es cuando se guardó, al final); las carreras sin ese dato se dibujan de día.
+export const horaDelDia = (ms) => { const d = new Date(ms); return d.getHours() + d.getMinutes() / 60; };
+const horaDeCarrera = (c) => (Number.isFinite(c.creada) ? luzDelDia(c.creada - (Number(c.minutos) || 0) * 30000, c.traza) : undefined);
+
+// (v151) La hora que se le da a los dibujos del mapa: la hora del día, pero cambiada según la salida y la puesta del sol del
+// lugar de la carrera (el primer punto del GPS). Sin GPS, la luz sigue las horas fijas de siempre.
+export function luzDelDia(ms, traza) {
+    const punto = traza?.[0];
+    return running.horaDeLuz(horaDelDia(ms), punto ? running.horasDelSol(punto[0], punto[1], ms) : null);
+}
+
+// ===== La pelea del km (v119) =====
+// La criatura del km en curso: qué pide, cuánta vida le queda (baja a medida que avanzas en el km) y cómo vas con tu ritmo.
+// app.js lo reescribe cada segundo (data-run-encuentro). La imagen va aparte (data-run-criatura) para que no parpadee.
+export function htmlEncuentro(en, ahora = Date.now()) {
+    const pelea = en.encuentros?.find((e) => !e.resultado);
+    if (!pelea) return "";
+    const marcas = en.marcas || [];
+    const segundosEnKm = (running.tiempoDeEncurso(en, ahora) - (marcas.at(-1) || 0)) / 1000;
+    const metrosEnKm = en.distancia - marcas.length * 1000;
+    const va = encuentros.comoVa(pelea, segundosEnKm, metrosEnKm, en.objetivo);
+    const clase = encuentros.CLASES[pelea.clase];
+    const etiqueta = pelea.jefe ? "👑 Jefe" : pelea.emboscada ? "⚠️ Emboscada" : `${clase.icono} ${clase.nombre}`;
+    const estado = { bien: "✅ vas ganando", justo: "⚖️ muy parejo", lento: "🐢 se te escapa: acelera un poco" }[va.vas];
+    const anterior = en.encuentros.filter((e) => e.resultado).at(-1);
+    // (v141) Cada parte lleva su clase: en el modo concentración se esconden las que ya se ven arriba (el nombre está en la
+    // barra del km, la vida en la batalla y el «vas ganando» en el consejo de ritmo).
+    return `
+        <div class="run-pelea-texto">
+            <b class="run-pelea-nombre">${esc(encuentros.nombreDe(pelea))} <small>${etiqueta} · km ${pelea.km}</small></b>
+            <small class="run-pelea-pista">${esc(encuentros.pistaDe(pelea))}</small>
+            <div class="barra barra-mini run-pelea-vida ${va.vas}"><div class="barra-relleno" style="width: ${Math.round(va.vida * 100)}%"></div></div>
+            <small class="run-pelea-va">${va.proyeccion ? `Vas a <b>${running.textoSegundos(va.proyeccion)}</b> /km · objetivo ${running.textoSegundos(pelea.emboscada ? en.objetivo * encuentros.EMBOSCADA_RITMO : en.objetivo)}<span class="run-pelea-estado"> · ${estado}</span>` : "Empieza a correr: la pelea dura este kilómetro."}</small>
+            ${encuentros.demasiadoRapido(va.proyeccion, en.objetivo) ? '<small class="run-pelea-aviso">Tranquilo: vas mucho más rápido que tu objetivo. Cuida tus piernas.</small>' : ""}
+            ${en.frase ? `<small class="run-frase">“${esc(en.frase)}”</small>` : ""}
+            ${anterior ? `<small class="texto-suave">Km ${anterior.km}: ${anterior.resultado === "vencida" ? `venciste a ${esc(encuentros.nombreDe(anterior))} ✓` : `${esc(encuentros.nombreDe(anterior))} escapó`}</small>` : ""}
+            <small class="run-poderes">${Object.values(encuentros.PODERES).map((p) => `${p.icono} ${p.nombre}: ${p.texto}`).join(" · ")}</small>
+        </div>`;
+}
+
+// (v140) El consejo grande de ritmo (verde / amarillo / rojo / azul) que se lee de reojo corriendo. app.js lo actualiza cada segundo.
+export const consejoEnVivo = (en, ahora = Date.now()) => {
+    const pelea = en.encuentros?.find((e) => !e.resultado);
+    const quieto = en.pausadoDesde;
+    return quieto ? { clave: "espera", icono: "⏸", texto: "En pausa" }
+        : encuentros.consejoDeRitmo(running.ritmoActual(en, ahora) * 60, en.objetivo, Boolean(pelea?.emboscada));
+};
+export const textoConsejo = (c) => `${c.icono} ${c.texto}`;
+
+// ===== (v141) La barra del km que estás corriendo =====
+// «KM 2 · la criatura · 470 / 1000 m» y abajo los 10 tramos de 100 m de ese km. Cada tramo ya corrido se pinta con el
+// poder que lanzó (verde = tajo, dorado = rayo, rojo = lento; con una franja de fuego si hubo llamarada) y el que corres
+// ahora se va llenando. Sin criaturas, los tramos corridos van en azul. app.js la vuelve a escribir cuando cambia su firma.
+export function datosDelKm(en) {
+    const marcas = en.marcas || [];
+    const metros = Math.min(999, Math.max(0, en.distancia - marcas.length * 1000));   // lo que llevas del km en curso
+    return {
+        km: marcas.length + 1,
+        metros,
+        golpes: en.kmActual?.golpes || [],
+        pelea: en.encuentros?.find((e) => !e.resultado) || null,
+    };
+}
+
+// Cambia cada 10 m, con cada golpe y con cada criatura nueva.
+export function firmaDelKm(en) {
+    const { km, metros, golpes, pelea } = datosDelKm(en);
+    return `${km}:${Math.floor(metros / 10)}:${golpes.length}:${pelea?.id || ""}`;
+}
+
+export function htmlKmEnCurso(en) {
+    const { km, metros, golpes, pelea } = datosDelKm(en);
+    const enCurso = Math.floor(metros / encuentros.TRAMO);   // el tramo que estás corriendo (0 a 9)
+    const tramos = Array.from({ length: 10 }, (_, i) => {
+        const golpe = golpes.find((g) => g.tramo && (g.tramo - 1) % 10 === i);
+        if (golpe) return `<li class="${golpe.tipo}${golpe.combo ? " combo" : ""}"></li>`;
+        if (i < enCurso) return '<li class="hecho"></li>';
+        if (i === enCurso) return `<li class="ahora"><i style="width: ${Math.round(((metros % encuentros.TRAMO) / encuentros.TRAMO) * 100)}%"></i></li>`;
+        return "<li></li>";
+    }).join("");
+    const icono = !pelea ? "" : pelea.jefe ? "👑" : pelea.emboscada ? "⚠️" : encuentros.CLASES[pelea.clase]?.icono || "⚔️";
+    return `
+        <p class="run-km-cab">
+            <b class="run-km-num">KM ${km}</b>
+            ${pelea ? `<span class="run-km-criatura">${icono} ${esc(encuentros.nombreDe(pelea))}</span>` : ""}
+            <span class="run-km-metros"><b>${Math.floor(metros / 10) * 10}</b> / 1000 m</span>
+        </p>
+        <ol class="run-km-tramos" aria-label="Los 10 tramos de 100 m de este kilómetro">${tramos}</ol>`;
+}
+
+// ===== (v139) La batalla mientras corres =====
+// Tu héroe contra la criatura del km, con la escena de la Torre (sala, partículas, golpes).
+// Cada 100 m lanzas un poder según cómo corriste ese tramo (encuentros.poderDelTramo); al cumplir el km llega el golpe
+// final o la criatura escapa. Lo que se dibuja se vuelve a escribir SOLO cuando pasa algo (firmaDeBatalla): así cada
+// animación se ve una vez y no se reinicia cada segundo.
+// (v146) Mientras dura el km, la pelea va sobre el mapa (vistas-pelea-mapa.js); esta escena grande (htmlBatalla) solo
+// aparece encima del mapa en el golpe final, durante DURACION_FINAL.
+export const DURACION_FINAL = 4000;   // ms que se ve el golpe final antes de que aparezca la criatura siguiente
+export const RECIENTE = 2500;         // un golpe más viejo que esto ya no se anima (si se redibuja la pantalla, no se repite)
+
+// Qué se ve ahora: la pelea en curso o, los primeros segundos después de cumplir el km, el final de la anterior.
+// llega: la criatura acaba de aparecer (al empezar la carrera o justo después del final de la anterior).
+export function escenaDeBatalla(en, ahora = Date.now()) {
+    const ultima = (en.encuentros || []).filter((e) => e.resultado).at(-1);
+    if (ultima?.finEn && ahora - ultima.finEn < DURACION_FINAL) return { pelea: ultima, final: true, golpes: [], llega: false };
+    const golpes = en.kmActual?.golpes || [];
+    const desde = ultima?.finEn ? ultima.finEn + DURACION_FINAL : en.inicio;
+    return { pelea: en.encuentros?.find((e) => !e.resultado) || null, final: false, golpes, llega: !golpes.length && ahora - desde < RECIENTE };
+}
+
+// La sala de la batalla: la de la zona del bestiario de esa criatura (cripta, raíces, cisterna…).
+export const zonaDeBatalla = (pelea) => bestiario.CRIATURAS[pelea?.id]?.zona || "cripta";
+
+// Cambia cada vez que hay que volver a dibujar la batalla. sprites = { heroe, criaturas: { id: imagen }, salas: { zona: imagen } }.
+export function firmaDeBatalla(en, ahora = Date.now(), sprites = {}) {
+    const { pelea, final, golpes } = escenaDeBatalla(en, ahora);
+    if (!pelea) return "";
+    const listas = [sprites.heroe, sprites.criaturas?.[pelea.id], sprites.salas?.[zonaDeBatalla(pelea)]].map(Boolean).join("");
+    return `${pelea.km}:${final}:${golpes.length}:${listas}`;
+}
+
+// Una barra de vida (de 0 a encuentros.VIDA) como las de la Torre.
+const vidaFF = (vida, clase) => `<span class="ff-hp ${clase} ${vida < 30 ? "grave" : ""}" aria-hidden="true">
+        <i class="ff-hp-relleno" style="width: ${vida}%"></i><b>${vida}/${encuentros.VIDA}</b></span>`;
+
+export function htmlBatalla(en, ahora = Date.now(), sprites = {}) {
+    const { pelea, final, golpes, llega } = escenaDeBatalla(en, ahora);
+    if (!pelea) return "";
+    const criatura = bestiario.CRIATURAS[pelea.id] || {};
+    const zona = zonaDeBatalla(pelea);
+    const sala = sprites.salas?.[zona];
+    const vidas = final ? { criatura: pelea.vida ?? 0, heroe: pelea.vidaHeroe ?? encuentros.VIDA } : encuentros.vidasDeLaBatalla(golpes);
+
+    // Lo que se anima: el último golpe (si es reciente) o el final de la pelea.
+    const ultimo = golpes.at(-1);
+    const fresco = !final && ultimo && ahora - ultimo.t < RECIENTE ? ultimo : null;
+    const poder = fresco ? encuentros.PODERES[fresco.tipo] : null;              // tu héroe lanzó un poder
+    const ataque = fresco ? encuentros.ATAQUES_CRIATURA[fresco.tipo] : null;    // o la criatura te atacó
+    const vencida = final && pelea.resultado === "vencida";
+    const escapa = final && !vencida;
+    const golpeFinal = vencida ? encuentros.golpeFinalDe(pelea) : null;
+    const efectoFinal = vencida ? (pelea.jefe ? "fuego" : pelea.clase === "rapida" ? "rayo" : "tajo") : "";
+
+    // El cartel de arriba: el nombre de lo que acaba de pasar.
+    const cartel = poder ? `${poder.icono} ${poder.nombre}${fresco.combo ? ` + ${encuentros.PODERES.llamarada.icono} ${encuentros.PODERES.llamarada.nombre}` : ""}`
+        : ataque ? `${ataque.icono} ${ataque.nombre}`
+        : golpeFinal ? `${golpeFinal.icono} ${golpeFinal.nombre}`
+        : escapa ? "💨 ¡Escapó!" : "";
+
+    // Si acaba de llegar (llega), entra a la sala.
+    const clasesEnemigo = [
+        criatura.vuela ? "vuela" : "",
+        llega ? "aparece" : "",
+        poder ? "golpeado" : "",
+        ataque ? "ataca" : "",
+        vencida ? "cae" : escapa ? "huye" : "",
+    ].join(" ");
+    const efectos = poder ? `<span class="ff-efecto ff-${poder.efecto}" aria-hidden="true"></span>${fresco.combo ? '<span class="ff-efecto ff-fuego" aria-hidden="true"></span>' : ""}`
+        : vencida ? `<span class="ff-efecto ff-${efectoFinal}" aria-hidden="true"></span>` : "";
+    const enemigo = `
+        <div class="ff-bando ff-enemigo ${clasesEnemigo}">
+            <span class="ff-sombra"></span>
+            ${spriteFF(sprites.criaturas?.[pelea.id], encuentros.nombreDe(pelea), criatura.talla || 96)}
+            ${efectos}
+            ${poder ? chispasFF(fresco.combo ? "critico" : fresco.tipo === "rayo" ? "rayo" : "golpe", 280) + numeroFF(fresco.dano, fresco.combo ? "critico" : "", 300) : ""}
+            ${vencida ? chispasFF("muerte", 750, 14) : ""}
+        </div>`;
+
+    const clasesHeroe = [
+        poder ? (fresco.tipo === "rayo" ? "lanza" : "ataca") : "",
+        ataque ? "herido" : "",
+        vencida ? "victoria" : "",
+    ].join(" ");
+    const heroe = `
+        <div class="ff-bando ff-heroe ${clasesHeroe}">
+            <span class="ff-sombra"></span>
+            ${spriteFF(sprites.heroe, "Tu héroe", 54)}
+            ${ataque ? chispasFF("herida", 880) + numeroFF(`−${fresco.herida}`, "", 900) : ""}
+        </div>`;
+
+    // Abajo: los 10 tramos de este km. Verde = tajo, dorado = rayo, rojo = lento; el que estás corriendo parpadea.
+    const marcas = en.marcas || [];
+    const enCurso = Math.min(9, Math.floor((en.distancia - marcas.length * 1000) / encuentros.TRAMO));
+    const tramos = final ? "" : `<ol class="run-tramos" aria-label="Tramos de 100 m de este kilómetro">${Array.from({ length: 10 }, (_, i) => {
+        const g = golpes.find((x) => x.tramo && (x.tramo - 1) % 10 === i && Math.ceil(x.tramo / 10) === pelea.km);
+        return `<li class="${g ? g.tipo : i === enCurso ? "ahora" : ""}"></li>`;
+    }).join("")}</ol>`;
+
+    return `${sala ? `<img class="run-batalla-fondo" src="${sala}" alt="" draggable="false">` : ""}
+        <div class="ff-escena run-ff ${poder && fresco.tipo === "rayo" ? "relampago" : ""} ${vencida && pelea.jefe ? "ff-sacude" : ""}">
+            ${salaFF(sala)}${ambienteFF(zona)}${enemigo}${heroe}${frenteFF(zona)}
+            ${cartel ? `<p class="ff-ventana run-bat-cartel">${esc(cartel)}</p>` : ""}
+            <div class="ff-hud ff-hud-enemigo run-bat-hud">
+                <b>${pelea.jefe ? "👑 " : ""}${esc(encuentros.nombreDe(pelea))}</b>
+                ${vidaFF(vidas.criatura, "de-enemigo")}
+            </div>
+            <div class="ff-hud run-bat-hud run-bat-hud-heroe"><b>Tú</b>${vidaFF(vidas.heroe, "de-heroe")}</div>
+            ${final ? `<p class="run-bat-fin ${vencida ? "vencida" : "escapo"}">${vencida ? `¡Vencida! +${encuentros.botinDe(pelea).gemas} 💎` : "Se escapó: la próxima, a tu ritmo"}</p>` : ""}
+            ${tramos}
+        </div>`;
+}
+
+// Las criaturas de una carrera guardada, para el historial.
+function criaturasDeCarrera(c) {
+    if (!c.encuentros?.length) return "";
+    const vencidas = c.encuentros.filter((e) => e.resultado === "vencida").length;
+    return `<p class="mini">⚔️ Criaturas: ${vencidas} de ${c.encuentros.length} vencidas${c.objetivo ? ` · objetivo ${running.textoSegundos(c.objetivo)} /km` : ""}</p>
+        <ul class="run-criaturas">${c.encuentros.map((e) => `<li class="${e.resultado}">${e.jefe ? "👑 " : ""}km ${e.km} · ${esc(encuentros.nombreDe(e))} ${e.resultado === "vencida" ? "✓" : "✗"}</li>`).join("")}</ul>`;
+}
+
+// Lo que dice debajo del mapa: en qué kilómetro de tu ruta vas y cuál es el próximo botín grande.
+export function textoRutaEnVivo(estado, en) {
+    const total = running.kmTotales(estado.running.carreras) + en.distancia / 1000;
+    const pos = ruta.posicion(total);
+    const siguiente = ruta.proximoEspecial(total);
+    const donde = `📍 Vas en el km ${pos.km + 1} de tu ruta: el siguiente (+${ruta.premioDeKm(pos.km + 1).gemas || 0} 💎) está a ${running.textoKm(pos.faltaKm)}.`;
+    if (!siguiente || siguiente.km === pos.km + 1) return donde;
+    const info = ruta.premioDeKm(siguiente.km);
+    return `${donde} Botín grande en el km ${siguiente.km} (${ruta.textoDePremio(info)}), a ${running.textoKm(siguiente.faltaKm)}.`;
+}
+
+// ===== Empezar una carrera =====
+function panelEmpezar(ctx, estado) {
+    const promedio = encuentros.objetivoPromedio(estado.running.carreras);
+    const tipo = running.TIPOS[ctx.tipo] || running.TIPOS.suave;
+    const chips = Object.entries(running.TIPOS).map(([clave, t]) => `
+        <button type="button" class="run-tipo ${clave === ctx.tipo ? "elegido" : ""}" data-accion="run-tipo" data-tipo="${clave}" aria-pressed="${clave === ctx.tipo}">
+            <span aria-hidden="true">${t.icono}</span> ${esc(t.nombre)}</button>`).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">▶ Empezar una carrera</h2>
+            <div class="run-tipos" role="group" aria-label="Tipo de carrera">${chips}</div>
+            <p class="nota">${esc(tipo.texto)}${tipo.bono ? ` Suma +${tipo.bono} XP de bono.` : ""}</p>
+            <div class="selector" role="group" aria-label="Dónde corres">
+                <button type="button" data-accion="run-lugar" data-lugar="calle" aria-pressed="${!ctx.pista}">🛣️ Calle</button>
+                <button type="button" data-accion="run-lugar" data-lugar="pista" aria-pressed="${Boolean(ctx.pista)}">🏟️ Pista 400 m</button>
+            </div>
+            ${ctx.pista ? '<p class="mini texto-suave">En pista se dibuja la pista de atletismo (no los círculos del GPS) y se cuentan tus vueltas. La distancia la sigue midiendo el GPS.</p>' : ""}
+            <label class="formulario-grupo"><span>🎯 Ritmo objetivo (opcional, min:seg por km)</span>
+                <input type="text" id="run-objetivo" inputmode="decimal" placeholder="Tu promedio: ${running.textoSegundos(promedio)}" autocomplete="off"></label>
+            <p class="mini texto-suave">Con GPS, cada kilómetro aparece una criatura: la vences si corres ese km a tu ritmo objetivo (cada 5 km, un jefe).
+               Si lo dejas vacío, se usa tu promedio. Es un extra: el premio por km no cambia.</p>
+            <div class="run-botones">
+                <button type="button" class="boton boton-principal" data-accion="run-empezar" data-gps="1">📡 Empezar con GPS</button>
+                <button type="button" class="boton boton-secundario" data-accion="run-empezar" data-gps="0">⏱ Solo cronómetro</button>
+            </div>
+            <p class="mini texto-suave">Con GPS, el teléfono mide los metros mientras la app esté abierta y con la pantalla encendida. Si la cierras, el cronómetro sigue, pero esos metros no se cuentan.</p>
+        </section>`;
+}
+
+// ===== Tu semana y tu sugerencia =====
+function tarjetaSemana(estado, ctx) {
+    const r = estado.running;
+    const lunes = lunesDe(ctx.hoy);
+    const km = running.kmDeLaSemana(r.carreras, lunes);
+    const racha = running.rachaSemanal(r.carreras, r.metaKm, ctx.hoy);
+    const porcentaje = Math.round((km / r.metaKm) * 100);
+    return `
+        <section class="panel">
+            <div class="titulo-seccion">
+                <h2 class="titulo-juego">🎯 Tu meta de la semana</h2>
+                <p class="contador ${km >= r.metaKm ? "completo" : ""}">${km >= r.metaKm ? "✨" : ""}${running.textoKm(km)}</p>
+            </div>
+            ${barra(porcentaje, "barra-gym")}
+            <p class="nota">Tu meta: ${r.metaKm} km esta semana. ${racha ? `🔥 <b>${plural(racha, "semana seguida", "semanas seguidas")}</b> cumpliendo.`
+                : "Cumple tu meta para empezar una racha."}</p>
+        </section>`;
+}
+
+function tarjetaSugerencia(estado, ctx) {
+    const r = estado.running;
+    const s = running.sugerencia(r.carreras, r.metaKm, ctx.hoy);
+    const tipo = running.TIPOS[s.tipo];
+    return `
+        <section class="panel run-sugerencia">
+            <p class="etiqueta">🧭 Para hoy</p>
+            <p><b>${tipo.icono} ${esc(tipo.nombre)} · ${running.textoKm(s.km)}</b></p>
+            <p class="nota">${esc(s.texto)}</p>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="run-tipo" data-tipo="${s.tipo}">Elegir este tipo</button>
+        </section>`;
+}
+
+// Anotar una carrera que ya hiciste (hoy o ayer).
+function formularioManual(ctx) {
+    const opciones = Object.entries(running.TIPOS).map(([clave, t]) => `<option value="${clave}" ${clave === ctx.tipo ? "selected" : ""}>${t.nombre}</option>`).join("");
+    return `
+        <details class="plegable">
+            <summary>✍️ Anotar una carrera que ya hiciste</summary>
+            <form data-form="running-manual" class="formulario">
+                <div class="run-campos">
+                    <label class="formulario-grupo"><span>Kilómetros</span>
+                        <input type="text" name="km" inputmode="decimal" required placeholder="Ej: 5,2" autocomplete="off"></label>
+                    <label class="formulario-grupo"><span>Minutos</span>
+                        <input type="text" name="minutos" inputmode="numeric" required placeholder="Ej: 32" autocomplete="off"></label>
+                </div>
+                <label class="formulario-grupo"><span>Tipo</span><select name="tipo">${opciones}</select></label>
+                <label class="formulario-grupo"><span>Día</span>
+                    <select name="fecha"><option value="hoy">Hoy</option><option value="ayer">Ayer</option></select></label>
+                <label class="formulario-grupo"><span>Nota (opcional)</span>
+                    <input type="text" name="nota" maxlength="60" autocomplete="off"></label>
+                <button type="submit" class="boton boton-principal boton-ancho">Guardar carrera</button>
+            </form>
+        </details>`;
+}
+
+// ===== Progreso =====
+function tarjetaRango(estado) {
+    const total = running.kmTotales(estado.running.carreras);
+    const rango = running.rangoDe(total);
+    const siguiente = running.RANGOS.find((x) => x.desde > total);
+    const porcentaje = siguiente ? Math.round(((total - rango.desde) / (siguiente.desde - rango.desde)) * 100) : 100;
+    const tiempo = estado.running.carreras.reduce((suma, c) => suma + c.minutos, 0);
+    return `
+        <section class="panel">
+            <p class="etiqueta">${rango.icono} ${esc(rango.nombre)}</p>
+            <p class="run-tiempo-chico"><b>${running.textoKm(total)}</b> corridos en tu vida</p>
+            ${barra(porcentaje, "barra-gym")}
+            <p class="mini texto-suave">${siguiente
+                ? `${siguiente.nombre} al llegar a ${siguiente.desde} km (te faltan ${running.textoKm(siguiente.desde - total)})`
+                : "Ya llegaste al rango más alto."}</p>
+            <p class="mini texto-suave">${estado.running.carreras.length ? `${plural(estado.running.carreras.length, "carrera", "carreras")} · ${running.textoDuracion(tiempo)} en total` : "Aún no hay carreras."}</p>
+        </section>`;
+}
+
+// Las últimas 12 semanas: una barra por semana (la de hoy, resaltada). La línea punteada es tu meta.
+function tarjetaSemanas(estado, ctx) {
+    const r = estado.running;
+    const semanas = running.kmPorSemana(r.carreras, ctx.hoy, 12);
+    const maximo = Math.max(r.metaKm, ...semanas.map((s) => s.km));
+    const actual = lunesDe(ctx.hoy);
+    const barras = semanas.map((s) => `
+        <div class="run-col ${s.lunes === actual ? "actual" : ""}" title="${fechaCorta(s.lunes)}: ${running.textoKm(s.km)}">
+            <div class="run-barra"><i style="height: ${Math.round((s.km / maximo) * 100)}%"></i></div>
+            <small>${Number(s.lunes.slice(8))}</small>
+        </div>`).join("");
+    const total = semanas.reduce((suma, s) => suma + s.km, 0);
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">Tus km por semana <span class="texto-suave">12 semanas</span></h2>
+            <div class="run-barras" style="--meta: ${(r.metaKm / maximo).toFixed(3)}" role="img"
+                 aria-label="${running.textoKm(total)} en las últimas 12 semanas. Tu meta: ${r.metaKm} km por semana.">${barras}</div>
+            <p class="mini texto-suave">Cada barra es una semana (el número es el día en que empieza). La línea es tu meta de ${r.metaKm} km. En 12 semanas llevas ${running.textoKm(total)}.</p>
+        </section>`;
+}
+
+function tarjetaRecords(estado) {
+    const rec = running.records(estado.running.carreras);
+    if (!rec.masKm) return "";
+    const fila = (icono, nombre, valor, detalle) => `
+        <li><span aria-hidden="true">${icono}</span><span><b>${nombre}</b><small>${detalle}</small></span><b class="run-valor">${valor}</b></li>`;
+    const lista = [
+        fila("🏃", "Carrera más larga", running.textoKm(rec.masKm.km), fechaCorta(rec.masKm.fecha)),
+        rec.mejorRitmo ? fila("⚡", "Mejor ritmo", running.textoRitmo(running.ritmoDeCarrera(rec.mejorRitmo)), `en ${running.textoKm(rec.mejorRitmo.km)} · ${fechaCorta(rec.mejorRitmo.fecha)}`) : "",
+        fila("⏱", "Más tiempo seguido", running.textoDuracion(rec.masMinutos.minutos), `${running.textoKm(rec.masMinutos.km)} · ${fechaCorta(rec.masMinutos.fecha)}`),
+        rec.semanaMasKm ? fila("📅", "Semana con más km", running.textoKm(rec.semanaMasKm.km), `desde el ${fechaCorta(rec.semanaMasKm.lunes)}`) : "",
+    ].join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">📈 Tus récords</h2>
+            <ul class="run-lista">${lista}</ul>
+        </section>`;
+}
+
+// El ritmo de las últimas carreras (más arriba = más rápido). Solo cuentan las carreras de 3 km o más.
+function tarjetaRitmos(estado) {
+    const ultimas = running.ordenar(estado.running.carreras.filter((c) => c.km >= running.DISTANCIA_RITMO)).slice(-20);
+    if (ultimas.length < 2) return "";
+    const ritmos = ultimas.map((c) => running.ritmoDeCarrera(c));
+    const min = Math.min(...ritmos);
+    const max = Math.max(...ritmos);
+    const rango = max - min || 1;
+    const ancho = 300;
+    const alto = 70;
+    const puntos = ritmos.map((x, i) => `${(i / (ritmos.length - 1)) * (ancho - 8) + 4},${alto - 6 - ((max - x) / rango) * (alto - 12)}`);
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">⚡ Tu ritmo <span class="texto-suave">últimas ${ultimas.length}</span></h2>
+            <svg class="run-ritmos" viewBox="0 0 ${ancho} ${alto}" role="img" aria-label="Tu ritmo en las últimas carreras: más arriba es más rápido">
+                <polyline points="${puntos.join(" ")}" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+            <p class="mini texto-suave">Más arriba = más rápido. Mejor: ${running.textoRitmo(min)} · Último: ${running.textoRitmo(ritmos[ritmos.length - 1])}.</p>
+        </section>`;
+}
+
+// (v116) Lo que podrías correr en distancias que quizá nunca has probado, según tu mejor carrera reciente.
+function tarjetaPredicciones(estado) {
+    const p = running.prediccionesDe(estado.running.carreras);
+    if (!p) return "";
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">🔮 Lo que podrías correr</h2>
+            <ul class="run-prediccion">
+                ${p.tiempos.map((t) => `<li><span>${t.nombre}</span><b>${running.textoDuracion(t.minutos)}</b><small>${running.textoRitmo(t.minutos / t.km)}</small></li>`).join("")}
+            </ul>
+            <p class="mini texto-suave">Estimado a partir de tu carrera del ${fechaCorta(p.base.fecha)} (${running.textoKm(p.base.km)} en ${running.textoDuracion(p.base.minutos)}).
+               Es una guía: las distancias largas hay que entrenarlas.</p>
+        </section>`;
+}
+
+function tarjetaHitos(estado) {
+    const total = running.kmTotales(estado.running.carreras);
+    const filas = running.HITOS.map((h) => {
+        const cobrado = estado.running.hitos.includes(h.id);
+        const falta = Math.max(0, h.km - total);
+        return `<li class="run-hito ${cobrado ? "cobrado" : ""}"><span aria-hidden="true">${h.icono}</span>
+            <span><b>${esc(h.titulo)}</b><small>${cobrado ? `✓ Cobrado · +${h.gemas} 💎`
+                : falta > 0 ? `Te faltan ${running.textoKm(falta)} · +${h.gemas} 💎`
+                : `¡Lo alcanzaste! Se cobra con tu próxima carrera · +${h.gemas} 💎`}</small></span></li>`;
+    }).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">🏁 Hitos de kilómetros</h2>
+            <ul class="run-lista">${filas}</ul>
+        </section>`;
+}
+
+// Tu meta semanal y la misión que se marca sola.
+function tarjetaAjustes(estado) {
+    const r = estado.running;
+    const misiones = estado.misiones.filter((m) => !m.archivadaEn);
+    const opciones = misiones.map((m) => `<option value="${m.id}" ${r.mision === m.id ? "selected" : ""}>${esc(m.nombre)}</option>`).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">⚙️ Tus metas</h2>
+            <div class="run-meta">
+                <span>Km por semana: <b>${r.metaKm}</b></span>
+                <span class="run-meta-botones">
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="run-meta" data-delta="-1" aria-label="Quitar un km">−</button>
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="run-meta" data-delta="1" aria-label="Sumar un km">+</button>
+                </span>
+            </div>
+            <label class="formulario-grupo"><span>Misión que se marca sola al guardar una carrera</span>
+                <select data-running-mision>
+                    <option value="">Ninguna</option>${opciones}
+                </select></label>
+            <div class="run-meta">
+                <span>🗺️ El paisaje cambia cada <b>${r.kmPorZona || 2}</b> km</span>
+                <span class="run-meta-botones">
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="run-km-zona" data-delta="-1" aria-label="Menos km por zona">−</button>
+                    <button type="button" class="boton boton-chico boton-secundario" data-accion="run-km-zona" data-delta="1" aria-label="Más km por zona">+</button>
+                </span>
+            </div>
+            <p class="mini texto-suave">Con 1 km, cada kilómetro es un paisaje (y una criatura de otra zona) distinto. Vale para las carreras que empieces desde ahora.</p>
+            <div class="run-meta">
+                <span>⏸ Pausa automática (si te quedas quieto)</span>
+                <button type="button" class="boton boton-chico ${r.autopausa !== false ? "boton-principal" : "boton-secundario"}" data-accion="run-autopausa"
+                        aria-pressed="${r.autopausa !== false}">${r.autopausa !== false ? "Sí" : "No"}</button>
+            </div>
+            <div class="run-meta">
+                <span>🔊 Voz cada kilómetro (con GPS)</span>
+                <button type="button" class="boton boton-chico ${r.avisoKm !== false ? "boton-principal" : "boton-secundario"}" data-accion="run-aviso-km"
+                        aria-pressed="${r.avisoKm !== false}">${r.avisoKm !== false ? "Sí" : "No"}</button>
+            </div>
+            <label class="formulario-grupo"><span>🗣️ Voz de la carrera</span>
+                <select data-running-voz data-actual="${esc(r.voz || "")}"><option value="">Automática (la del teléfono)</option></select></label>
+            <div class="run-botones">
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="run-probar-voz">🔊 Probar la voz</button>
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="run-buscar-voces">🔄 Buscar voces nuevas</button>
+            </div>
+            <button type="button" class="boton boton-chico boton-secundario boton-ancho" data-accion="run-descargar-voz">⬇ Descargar la voz grabada (para usarla sin internet)</button>
+            <button type="button" class="boton boton-chico boton-secundario boton-ancho" data-accion="run-ver-voces">🔍 Ver todas las voces que ve la app</button>
+            <div class="run-voces-todas" data-run-voces-todas></div>
+            <p class="mini texto-suave" data-run-voces-nota></p>
+            ${misiones.length ? "" : '<p class="mini texto-suave">Crea una misión (ej: «Correr») en Hoy para que se marque sola.</p>'}
+        </section>`;
+}
+
+// ===== Historial =====
+function tarjetaHistorial(estado) {
+    const carreras = estado.running.carreras;
+    if (!carreras.length) return vacio("Aún no hay carreras. Empieza en la pestaña Correr: con GPS o anotando una que ya hiciste.", "carreras");
+    const filas = carreras.map((c, indice) => ({ c, indice })).reverse().slice(0, 60).map(({ c, indice }) => {
+        const tipo = running.TIPOS[c.tipo] || running.TIPOS.suave;
+        const comparacion = running.comparacionDe(carreras, c);
+        return `
+            <li class="run-fila">
+                <span class="run-fila-icono" aria-hidden="true">${tipo.icono}</span>
+                <span class="run-fila-texto"><b>${running.textoKm(c.km)} · ${esc(tipo.nombre)}</b>
+                    <small>${fechaCorta(c.fecha)} · ${running.textoDuracion(c.minutos)} · ${running.textoRitmo(running.ritmoDeCarrera(c))} · ${c.origen === "gps" ? "📡 GPS" : "✍️ a mano"}</small>
+                    ${comparacion ? `<small class="run-comp">${running.textoComparacion(comparacion)}</small>` : ""}
+                    ${c.nota ? `<small>“${esc(c.nota)}”</small>` : ""}
+                    ${detalleDeCarrera(c)}
+                </span>
+                <button type="button" class="boton boton-chico boton-secundario" data-accion="run-borrar" data-indice="${indice}" aria-label="Borrar esta carrera">🗑</button>
+            </li>`;
+    }).join("");
+    return `
+        <section class="panel">
+            <h2 class="titulo-juego">Tus carreras <span class="texto-suave">${plural(carreras.length, "carrera", "carreras")}</span></h2>
+            <ul class="run-historial">${filas}</ul>
+            ${carreras.length > 60 ? '<p class="mini texto-suave">Se muestran las 60 más recientes.</p>' : ""}
+        </section>`;
+}
+
+// ===== La tarjeta de Hoy =====
+// Qué te toca correr hoy, lo que ya corriste, o la carrera que llevas en curso. Usa las mismas clases que la del gimnasio.
+export function tarjetaRunningHoy(estado, ctx) {
+    const r = estado.running;
+    if (r.encurso) {
+        const tipo = running.TIPOS[r.encurso.tipo] || running.TIPOS.suave;
+        return `
+        <div class="gym-hoy gym-hoy-activo">
+            <span class="gym-hoy-icono" aria-hidden="true">${tipo.icono}</span>
+            <span class="gym-hoy-texto"><b>Corriendo: ${esc(tipo.nombre)}</b><small>Tu carrera sigue en marcha.</small></span>
+            <button type="button" class="boton boton-chico boton-principal" data-accion="ir" data-pantalla="running">Seguir</button>
+        </div>`;
+    }
+    const km = running.kmDeLaSemana(r.carreras, lunesDe(ctx.hoy));
+    const hechasHoy = r.carreras.filter((c) => c.fecha === ctx.hoy);
+    if (hechasHoy.length) {
+        const total = hechasHoy.reduce((suma, c) => suma + c.km, 0);
+        return `
+        <div class="gym-hoy gym-hoy-hecho">
+            <span class="gym-hoy-icono" aria-hidden="true">✅</span>
+            <span class="gym-hoy-texto"><b>Hoy corriste ${running.textoKm(total)}</b><small>Semana: ${running.textoKm(km)} de ${r.metaKm} km.</small></span>
+            <button type="button" class="boton boton-chico boton-secundario" data-accion="ir" data-pantalla="running">Ver</button>
+        </div>`;
+    }
+    const sugerida = running.sugerencia(r.carreras, r.metaKm, ctx.hoy);
+    const tipo = running.TIPOS[sugerida.tipo];
+    return `
+        <div class="gym-hoy">
+            <span class="gym-hoy-icono" aria-hidden="true">${tipo.icono}</span>
+            <span class="gym-hoy-texto"><b>Running: hoy toca ${esc(tipo.nombre)} · ${running.textoKm(sugerida.km)}</b><small>Semana: ${running.textoKm(km)} de ${r.metaKm} km</small></span>
+            <button type="button" class="boton boton-chico boton-principal" data-accion="ir" data-pantalla="running">Correr</button>
+        </div>`;
+}
