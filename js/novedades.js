@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 193;
+export const VERSION_APP = 194;
 
 export const NOVEDADES = [
+    {
+        version: 194,
+        titulo: "Premios que se cobran al hacer tu misión",
+        cambios: [
+            "🔒 Un premio de la Tienda puede estar ligado a una misión (ej. «Ver mi serie» + «Skin care»). Solo se canjea si la hiciste hoy o ayer.",
+            "🎁 Cuando un premio ya se puede canjear, aparece arriba en Hoy y en el último paso del ritual de la noche.",
+            "🌙 El aviso de la noche te lo recuerda: «Premio listo».",
+            "♻️ Cada vez que haces la misión se puede canjear una vez. Si deshaces el canje, el premio vuelve a estar listo.",
+        ],
+    },
     {
         version: 193,
         titulo: "Misiones con foto",

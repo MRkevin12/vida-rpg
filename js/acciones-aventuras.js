@@ -294,18 +294,30 @@ export function revisarLogros(estado, info) {
 
 // ===== Tienda =====
 
-export function crearRecompensa(estado, { nombre, costo }) {
+// (v194) Premio ligado a una misión: vacío = sin misión. Solo misiones que no estén archivadas.
+function validarMisionDePremio(estado, misionId) {
+    if (misionId === undefined || misionId === null || String(misionId).trim() === "") return null;
+    const mision = estado.misiones.find((m) => m.id === Number(misionId) && !m.archivadaEn);
+    if (!mision) throw new Error("Elige una misión de tu lista, o ninguna.");
+    return mision.id;
+}
+
+export function crearRecompensa(estado, { nombre, costo, misionId }) {
     estado.recompensas.push({
         id: nuevoId(estado),
         nombre: validarNombre(nombre, 60),
         costo: validarEntero(costo, 1, 1000000, "El precio"),
+        misionId: validarMisionDePremio(estado, misionId),
+        ultimoCanjeFecha: null,   // la fecha de la última vez que se cobró por una misión (ver juego.vueltaPendiente)
     });
 }
 
-export function editarRecompensa(estado, { id, nombre, costo }) {
+export function editarRecompensa(estado, { id, nombre, costo, misionId }) {
     const recompensa = buscar(estado.recompensas, Number(id), "esa recompensa");
     recompensa.nombre = validarNombre(nombre, 60);
     recompensa.costo = validarEntero(costo, 1, 1000000, "El precio");
+    // Si la misión ya no está en la lista (la archivaste), se conserva para no pedirte cambiarla.
+    if (Number(misionId) !== recompensa.misionId) recompensa.misionId = validarMisionDePremio(estado, misionId);
 }
 
 export function borrarRecompensa(estado, id) {
@@ -315,12 +327,28 @@ export function borrarRecompensa(estado, id) {
 export function canjear(estado, id) {
     revisarQueNoEstesCaido(estado, "la tienda");
     const recompensa = buscar(estado.recompensas, id, "esa recompensa");
+    // (v194) Si está ligada a una misión, primero hay que haberla hecho hoy o ayer.
+    let vuelta = null;
+    if (recompensa.misionId) {
+        vuelta = juego.vueltaPendiente(estado, recompensa, hoy());
+        if (!vuelta) {
+            const mision = estado.misiones.find((m) => m.id === recompensa.misionId);
+            throw new Error(`Primero haz «${mision ? mision.nombre : "la misión"}» (hoy o ayer) para canjear este premio.`);
+        }
+    }
     const costo = eventos.precioConEvento(recompensa.costo, eventos.eventoDelDia(hoy(), estado));   // con el mercader, más barato
     const faltan = costo - estado.personaje.monedas;
     if (faltan > 0) throw new Error(`Te faltan ${faltan} monedas.`);
 
     estado.personaje.monedas -= costo;
-    estado.canjes.push({ nombre: recompensa.nombre, costo, fecha: hoy() });
+    const canje = { nombre: recompensa.nombre, costo, fecha: hoy() };
+    if (vuelta) {
+        // Guardamos lo anterior para poder deshacerlo exacto.
+        canje.recompensaId = recompensa.id;
+        canje.anteriorCanje = recompensa.ultimoCanjeFecha ?? null;
+        recompensa.ultimoCanjeFecha = vuelta.fecha;
+    }
+    estado.canjes.push(canje);
     return {
         celebraciones: [{
             icono: "🎁",
@@ -337,6 +365,9 @@ export function deshacerCanje(estado) {
     const canje = estado.canjes.pop();
     if (!canje) throw new Error("No hay ningún canje para deshacer.");
     estado.personaje.monedas += canje.costo;
+    // (v194) Si ese canje gastó una misión, el premio vuelve a estar listo.
+    const recompensa = canje.recompensaId && estado.recompensas.find((r) => r.id === canje.recompensaId);
+    if (recompensa) recompensa.ultimoCanjeFecha = canje.anteriorCanje ?? null;
 }
 
 

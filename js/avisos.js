@@ -267,6 +267,11 @@ export function resumenParaAvisos(estado, hoy) {
                 ? `❤️ ${salud.puntos}/${salud.maxima}: si no terminas hoy pierdes ${enJuego} de vida`
                 : `❤️ Si no lo haces pierdes ${enJuego} de vida`);
         }
+        // (v194) Un premio que ya puedes canjear (de una misión que hiciste hoy o ayer).
+        if (i === 0) {
+            const listos = juego.premiosListos(estado, hoy).map((r) => r.nombre);
+            if (listos.length) noche.push(`🎁 Premio listo: ${lista(listos)}`);
+        }
         if (i === 0 && salud.caido) noche.push(`☠️ Estás caído: llega a ${salud.levantarse} ❤️ para abrir la tienda`);
         if (!estado.diario[fecha]) noche.push(`📓 Diario: ${preguntaDelDia(fecha)}`);
         dias[fecha] = {

@@ -168,6 +168,15 @@ export const ACCIONES_MAESTRO = {
         pintarRitual();
     },
     "ritual-motivo": (boton) => ritualMision(false, boton.dataset.motivo),
+    // (v194) Canjear un premio desde el ritual: pregunta, canjea y vuelve a dibujar la carta.
+    "ritual-canjear": (boton) => {
+        const recompensa = estado.recompensas.find((r) => r.id === Number(boton.dataset.id));
+        if (recompensa && confirm(`¿Canjear «${recompensa.nombre}» por ${recompensa.costo} monedas?`) &&
+            ejecutar(() => acciones.canjear(estado, recompensa.id))) {
+            sonar("moneda");
+        }
+        pintarRitual();
+    },
     "ritual-seguir": () => {
         ritual.paso = ritual.paso === "misiones" ? "diario" : "final";
         pintarRitual();

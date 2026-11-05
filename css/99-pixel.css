@@ -1676,3 +1676,22 @@ body {
     opacity: 0.5;
     pointer-events: none;
 }
+
+/* ===== (v194) Premios listos: en Hoy y en el ritual de la noche ===== */
+.premios-listos {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0;
+}
+.premio-listo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 2px solid var(--oro);
+}
+.premio-listo small {
+    display: block;
+    color: var(--texto-suave);
+}

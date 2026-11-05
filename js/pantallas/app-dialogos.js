@@ -273,6 +273,11 @@ export const PREPARAR = {
     recompensa(recompensa) {
         const formulario = $("#dialogo-recompensa form");
         modoEdicion(formulario, recompensa, { crear: ["Nueva recompensa", "Agregar a la tienda"], editar: ["Editar recompensa", "Guardar cambios"] });
+        // (v194) Las misiones de la lista (no archivadas) para ligar el premio a una de ellas.
+        const elegir = formulario.elements.misionId;
+        const opciones = estado.misiones.filter((m) => !m.archivadaEn).map((m) => `<option value="${m.id}">${vistas.esc(m.nombre)}</option>`);
+        elegir.innerHTML = `<option value="">Sin misión: canjeable cuando quiera</option>${opciones.join("")}`;
+        elegir.value = recompensa?.misionId ? String(recompensa.misionId) : "";
         if (recompensa) {
             formulario.elements.nombre.value = recompensa.nombre;
             formulario.elements.costo.value = recompensa.costo;

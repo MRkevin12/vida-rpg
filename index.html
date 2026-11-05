@@ -637,6 +637,11 @@
             <label>Precio en monedas 🪙
                 <input type="number" name="costo" min="1" max="1000000" step="1" required inputmode="numeric" placeholder="Ej: 300">
             </label>
+            <!-- (v194) Premio ligado a una misión: solo se canjea si la hiciste hoy o ayer -->
+            <label>Solo si hago esta misión (opcional)
+                <select name="misionId" id="premio-mision"><option value="">Sin misión: canjeable cuando quiera</option></select>
+            </label>
+            <p class="nota">Ej: «Ver mi serie» ligado a «Skin care». Así solo lo puedes canjear después de hacerla hoy o ayer.</p>
             <div class="botones-dialogo">
                 <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
                 <button type="submit" class="boton boton-principal" data-enviar>Agregar a la tienda</button>

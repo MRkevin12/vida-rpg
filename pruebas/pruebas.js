@@ -9916,6 +9916,52 @@ prueba("Misiones con foto (v193): sin foto verificada no se completa; con foto s
     igual(normal.foto, true, "al editar se puede encender");
 });
 
+prueba("Premios ligados a una misión (v194): se canjean solo si hiciste la misión hoy o ayer, una vez por cada vez", () => {
+    const estado = partidaNueva();
+    estado.personaje.monedas = 500;
+    const skin = crearMision(estado, { nombre: "Skin care" });
+    acciones.crearRecompensa(estado, { nombre: "Ver mi serie", costo: 5, misionId: String(skin.id) });
+    const premio = estado.recompensas[0];
+    igual(premio.misionId, skin.id, "queda ligado a la misión");
+    debeFallar(() => acciones.canjear(estado, premio.id), "Primero haz «Skin care»");
+    igual(estado.canjes.length, 0, "sin hacer la misión no se canjea");
+
+    acciones.completarMision(estado, skin.id, hoy());
+    igual(juego.premiosListos(estado, hoy()).map((r) => r.nombre), ["Ver mi serie"], "ya aparece como listo");
+    acciones.canjear(estado, premio.id);
+    igual(estado.personaje.monedas, 500 - 5 + estado.completadas[0].monedas, "cobra el precio");
+    debeFallar(() => acciones.canjear(estado, premio.id), "Primero haz");
+    igual(juego.premiosListos(estado, hoy()).length, 0, "ya no está listo: ya se cobró por esa vez");
+
+    acciones.deshacerCanje(estado);
+    igual(juego.premiosListos(estado, hoy()).length, 1, "al deshacer vuelve a estar listo");
+});
+
+prueba("Premios ligados a una misión (v194): la misión de ayer sirve, la de hace dos días no", () => {
+    const estado = partidaNueva();
+    estado.personaje.monedas = 500;
+    const skin = crearMision(estado, { nombre: "Skin care" });
+    acciones.crearRecompensa(estado, { nombre: "Ver mi serie", costo: 5, misionId: String(skin.id) });
+    const premio = estado.recompensas[0];
+    skin.creadaEn = dia(-5);   // para que ayer y hace dos días ya existiera la misión
+    // La app no deja marcar de hace dos días: lo ponemos directo en el historial.
+    estado.completadas.push({ misionId: skin.id, fecha: dia(-2), xp: 0, monedas: 0, atributo: "intelecto", dificultad: "normal" });
+    debeFallar(() => acciones.canjear(estado, premio.id), "Primero haz");
+    acciones.completarMision(estado, skin.id, dia(-1));
+    acciones.canjear(estado, premio.id);
+    igual(estado.canjes.length, 1, "con la de ayer sí se canjea");
+});
+
+prueba("Premios ligados a una misión (v194): sin misión no cambia nada; misión inventada se rechaza", () => {
+    const estado = partidaNueva();
+    estado.personaje.monedas = 500;
+    acciones.crearRecompensa(estado, { nombre: "Helado", costo: 5 });
+    igual(estado.recompensas[0].misionId, null, "sin misión queda null");
+    acciones.canjear(estado, estado.recompensas[0].id);
+    igual(estado.canjes.length, 1, "se canjea cuando quieras");
+    debeFallar(() => acciones.crearRecompensa(estado, { nombre: "X", costo: 5, misionId: "999" }), "Elige una misión");
+});
+
 // ===== Ejecutar todo y mostrar el resultado =====
 
 const lista = document.querySelector("#lista");

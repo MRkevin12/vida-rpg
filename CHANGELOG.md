@@ -2,6 +2,14 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v194 — Premios que se cobran al hacer tu misión
+
+- **Premio ligado a una misión** (`recompensa.misionId`, opcional, en el formulario de la Tienda). Se canjea si la misión se hizo **hoy o ayer**, y una sola vez por cada vez que la hiciste (`recompensa.ultimoCanjeFecha`).
+- **Reglas** en `js/juego.js › vueltaPendiente` y `premiosListos`. `canjear` las aplica; el canje guarda `recompensaId` y `anteriorCanje` para que `deshacerCanje` las restaure.
+- **Dónde se ve**: la tarjeta de la Tienda (candado 🔒 y botón activo solo si está listo), un bloque 🎁 arriba en Hoy, y el último paso del ritual (`ritual-canjear`).
+- **Aviso de la noche**: una línea «🎁 Premio listo» en `resumenParaAvisos` (el texto va en la caché del teléfono; el servidor no cambia).
+- Datos: sin subir la versión (los campos nuevos son opcionales: las recompensas de antes quedan sin misión). Pruebas: 478 de 478 (+3).
+
 ## v193 — Misiones con foto
 
 - **Casilla «📷 Pedir foto para completarla»** en el formulario de misión (`mision.foto`; las de cantidad no la llevan). Para completarla (botón, deslizar o el ritual de la noche) se abre la ventana «Prueba con foto».

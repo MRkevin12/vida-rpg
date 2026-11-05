@@ -172,6 +172,7 @@ export function pantallaHoy(estado, ctx) {
     // (v52) El héroe, los rivales, «Tu día», tu semana y el foco ahora viven en la pestaña Aurelio.
     return `
         ${botonAnimo}
+        ${esAyer ? "" : bloquePremios(estado, ctx.hoy)}
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
         ${esencial ? "" : `${avisoNotificaciones(ctx)}
         ${avisoDescanso(estado, ctx)}`}
@@ -663,6 +664,21 @@ export function dialogoMaestro(ctx, m) {
 // ===== El ritual de la noche =====
 // r = { paso: "misiones" | "diario" | "final", cola: [ids], indice, motivo (true mientras eliges el motivo) }
 
+// (v194) Premios que ya puedes canjear: los de una misión que hiciste hoy o ayer. En el ritual, el botón
+// vuelve a dibujar la carta (ritual-canjear); en Hoy usa el canje normal.
+export function bloquePremios(estado, hoy, { ritual = false } = {}) {
+    const listos = juego.premiosListos(estado, hoy);
+    if (!listos.length) return "";
+    const accion = ritual ? "ritual-canjear" : "canjear";
+    return `<section class="premios-listos" aria-label="Premios listos">${listos.map((r) => {
+        const mision = estado.misiones.find((m) => m.id === r.misionId);
+        return `<div class="premio-listo">
+            <span>🎁 <b>${esc(r.nombre)}</b> <small>por «${esc(mision ? mision.nombre : "tu misión")}»</small></span>
+            <button type="button" class="boton boton-chico boton-oro" data-accion="${accion}" data-id="${r.id}">Canjear</button>
+        </div>`;
+    }).join("")}</section>`;
+}
+
 export function pantallaRitual(estado, ctx, r) {
     const cabecera = (numero, titulo) => `
         <div class="ritual-cabecera">
@@ -739,6 +755,7 @@ export function pantallaRitual(estado, ctx, r) {
            ❤️ ${ctx.vida.puntos}/${ctx.vida.maxima} · 🔥 ${juego.plural(ctx.info.racha.actual, "día", "días")}</p>
         ${lectura}
         ${palabrasDelMaestro(despedida)}
+        ${bloquePremios(estado, ctx.hoy, { ritual: true })}
         <button type="button" class="boton boton-sangre boton-ancho" data-accion="ritual-terminar">🌙 Cerrar el día</button>`;
 }
 

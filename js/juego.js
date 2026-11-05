@@ -573,3 +573,22 @@ export function describirLogro(logro, estado) {
         default:            return "";
     }
 }
+
+// ===== Premios ligados a una misión (v194) =====
+// Una recompensa de la Tienda puede pedir que hayas hecho una misión (ej. «Skin care»).
+// Se puede canjear si la hiciste HOY o AYER, y solo una vez por cada vez que la hiciste
+// (ultimoCanjeFecha guarda la fecha de la vez que ya se cobró). Sin misión, no cambia nada.
+// Devuelve el registro de la misión que sirve para canjear, o null.
+export function vueltaPendiente(estado, recompensa, hoy) {
+    if (!recompensa.misionId) return null;
+    const ayer = sumarDias(hoy, -1);
+    const validas = estado.completadas.filter((c) =>
+        c.misionId === recompensa.misionId && (c.fecha === hoy || c.fecha === ayer) && c.fecha !== recompensa.ultimoCanjeFecha);
+    // Si la hiciste hoy y ayer, cuenta la de hoy.
+    return validas.sort((a, b) => (a.fecha < b.fecha ? 1 : -1))[0] || null;
+}
+
+// Las recompensas que ya puedes canjear hoy (para Hoy, el ritual y el aviso de la noche).
+export function premiosListos(estado, hoy) {
+    return estado.recompensas.filter((r) => vueltaPendiente(estado, r, hoy));
+}

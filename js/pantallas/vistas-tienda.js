@@ -124,12 +124,16 @@ export function pantallaTienda(estado, ctx) {
 
     const lista = recompensas.map((r) => {
         const alcanza = monedas >= precio(r.costo);
-        const puede = alcanza && !cerrada;
+        // (v194) Si está ligada a una misión, también hay que haberla hecho hoy o ayer.
+        const mision = r.misionId ? estado.misiones.find((m) => m.id === r.misionId) : null;
+        const listo = !r.misionId || Boolean(juego.vueltaPendiente(estado, r, ctx.hoy));
+        const puede = alcanza && listo && !cerrada;
+        const candado = r.misionId && !listo ? ` · 🔒 haz «${mision ? esc(mision.nombre) : "la misión"}» hoy o ayer` : "";
         return `
             <li class="recompensa ${puede ? "alcanzable" : ""}">
                 <div class="recompensa-info">
                     <h3>${esc(r.nombre)}</h3>
-                    <span class="mini ${alcanza ? "oro" : "texto-suave"}">🪙 ${mostrarPrecio(r.costo)}${alcanza ? "" : ` · te faltan ${precio(r.costo) - monedas}`}</span>
+                    <span class="mini ${alcanza ? "oro" : "texto-suave"}">🪙 ${mostrarPrecio(r.costo)}${alcanza ? "" : ` · te faltan ${precio(r.costo) - monedas}`}${candado}</span>
                 </div>
                 <button type="button" class="boton boton-chico ${puede ? "boton-oro" : ""}" data-accion="canjear" data-id="${r.id}" ${puede ? "" : "disabled"}>Canjear</button>
                 ${botonEditar("editar-recompensa", r.id, `Editar ${r.nombre}`)}
