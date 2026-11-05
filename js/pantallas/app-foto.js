@@ -1,4 +1,4 @@
-// app-foto.js — Las fotos de progreso (v197): tomar la foto, guardarla y la galería con su comparador.
+// app-foto.js — Las fotos de progreso (v197): tomar la foto, guardarla y (v199) la galería estilo celular.
 //
 // Reemplaza al lector de código (OCR) de la v193: ya no se «verifica» el contenido de la foto, solo se toma y se guarda.
 // Sirve para ver tu avance semana a semana (por ejemplo en el gym) y para tener un recuerdo de cada misión.
@@ -124,176 +124,342 @@ async function tomarFotoDeProgreso() {
     if (!ok) return;
     ejecutar(() => acciones.registrarFotoProgreso(estado, fecha));
     avisar("📷 Foto guardada");
-    refrescarGaleria();
+    if (g) cargar();   // si la galería está abierta, que muestre la foto nueva
 }
 
 
-// ===== La galería: «Mis fotos» (portadas) y la subventana de cada álbum =====
+// ===== La galería (v199): como la de un celular, con pestañas internas =====
+// Pestañas: Fotos (todas juntas, con filtros y modo «seleccionar») · Álbumes (una portada por álbum) · Comparar (dos fotos lado a lado).
+// Tocar una foto abre el visor (otra ventana, a pantalla completa) donde se desliza entre fotos.
 
-let galeriaAbierta = false;    // ¿está abierta la ventana de portadas?
-let albumVista = null;         // el álbum abierto en su subventana: { id, lista: [{ fecha, url }], seleccion: [fechas] }
-let urlsPortadas = [];         // direcciones temporales de las portadas (se sueltan al redibujar y al cerrar)
-let urlsAlbum = [];            // y las de las fotos del álbum abierto
-let datosPortadas = null;      // lo último que se leyó para dibujar las portadas
-let cargaPortadas = 0;         // contadores para ignorar una carga vieja que terminó tarde
-let cargaAlbum = 0;
+const PALETA_ALBUMES = ["#34d399", "#60a5fa", "#f472b6", "#fb923c", "#a78bfa", "#2dd4bf"];   // colores de tus álbumes propios
+const SIN_FILTROS = { album: "todas", periodo: "todo", favoritas: false, orden: "recientes" };
 
-function soltar(urls) {
-    for (const url of urls) URL.revokeObjectURL(url);
-    return [];
-}
+// La galería abierta (o null). Todo lo que necesita para dibujarse vive aquí:
+//   pestana, filtro, seleccion { activa, marcadas: [claves] }, moviendo ("seleccion" | "visor" | null), picker ("a" | "b" | null),
+//   comparar { a, b } (claves), lista (todas las fotos ya leídas), visor { claves, i } mientras el visor está abierto.
+let g = null;
+let cargaActual = 0;      // para ignorar una lectura vieja que terminó tarde
+let visorConectado = false;
 
-// El tema de un álbum: el ícono y el color del atributo de su misión. El de progreso es dorado.
+// El tema de un álbum: el ícono y el color del atributo de su misión. El de progreso es dorado; los tuyos, de la paleta.
 function temaDe(id) {
     if (id === fotos.ALBUM_LIBRE) return { icono: "📈", color: "#fbbf24", nombre: "Progreso", etiqueta: "Tu evolución" };
+    const propio = estado.fotos.albumes.findIndex((a) => a.id === id);
+    if (propio >= 0) return { icono: "📁", color: PALETA_ALBUMES[propio % PALETA_ALBUMES.length], nombre: estado.fotos.albumes[propio].nombre, etiqueta: "Álbum tuyo" };
     const mision = estado.misiones.find((m) => String(m.id) === id);
     if (!mision) return { icono: "🖼️", color: "#94a3b8", nombre: "Misión borrada", etiqueta: "Sin misión" };
     const atributo = juego.infoAtributo(estado, mision.atributo, mision.atributoPropio);
     return { icono: atributo.icono, color: atributo.color, nombre: mision.nombre, etiqueta: atributo.nombre };
 }
 
-// Los álbumes: el de progreso primero; luego los que tienen fotos (el más reciente arriba) y al final los vacíos.
-function listarAlbumes(resumen) {
+// Los álbumes con lo que se ve en su portada: el de progreso primero, luego los que tienen fotos (el más reciente arriba) y al final los vacíos.
+function listarAlbumes() {
     const ids = new Set([fotos.ALBUM_LIBRE]);
     for (const m of estado.misiones) if (m.foto && !m.archivadaEn) ids.add(String(m.id));
-    for (const id of Object.keys(resumen)) ids.add(id);   // incluso de misiones ya archivadas o borradas
-    const albumes = [...ids].map((id) => ({
-        id, tema: temaDe(id), cuenta: resumen[id]?.cuenta || 0, ultima: resumen[id]?.ultima || null, imagen: resumen[id]?.portada || null,
-    }));
-    const orden = (a) => (a.id === fotos.ALBUM_LIBRE ? 0 : a.cuenta ? 1 : 2);
-    return albumes.sort((a, b) => orden(a) - orden(b) || (b.ultima || "").localeCompare(a.ultima || ""));
-}
-
-// Dibuja las portadas con lo último leído (sin volver a leer la base).
-function dibujarPortadas() {
-    if (!galeriaAbierta || !datosPortadas) return;
-    $("#fotos-contenido").innerHTML = vistasFotos.contenidoGaleria({ ...datosPortadas, semanal: estado.fotos.semanal, hoy: hoy() });
-}
-
-// Lee los álbumes de la base y dibuja las portadas.
-async function cargarPortadas() {
-    if (!galeriaAbierta) return;
-    const version = ++cargaPortadas;
-    try {
-        const albumes = listarAlbumes(await fotos.resumenPorAlbum());
-        if (version !== cargaPortadas || !galeriaAbierta) return;   // llegó tarde: ya hay una carga más nueva
-        urlsPortadas = soltar(urlsPortadas);
-        datosPortadas = {
-            albumes: albumes.map((a) => {
-                const url = a.imagen ? URL.createObjectURL(a.imagen) : null;
-                if (url) urlsPortadas.push(url);
-                return { id: a.id, tema: a.tema, cuenta: a.cuenta, ultima: a.ultima, portada: url };
-            }),
-        };
-        dibujarPortadas();
-    } catch (error) {
-        console.error(error);
-        $("#fotos-contenido").innerHTML = `<p class="nota">⚠️ No se pudieron leer las fotos de este teléfono.</p>
-            <div class="botones-dialogo"><button type="button" class="boton boton-secundario" data-accion="cerrar">Cerrar</button></div>`;
-    }
-}
-
-// Dibuja la subventana del álbum con las fotos ya leídas. «ver» sube hasta la foto que elegiste.
-function dibujarAlbum(ver = false) {
-    if (!albumVista) return;
-    $("#album-contenido").innerHTML = vistasFotos.contenidoAlbum({
-        album: { id: albumVista.id, tema: temaDe(albumVista.id) },
-        fotos: albumVista.lista, seleccion: albumVista.seleccion, hoy: hoy(),
+    for (const a of estado.fotos.albumes) ids.add(a.id);
+    for (const f of g.lista) ids.add(f.album);   // incluso de misiones ya archivadas o borradas
+    const albumes = [...ids].map((id) => {
+        const suyas = g.lista.filter((f) => f.album === id);
+        const nueva = suyas.reduce((m, f) => (!m || f.fecha >= m.fecha ? f : m), null);
+        const vieja = suyas.reduce((m, f) => (!m || f.fecha < m.fecha ? f : m), null);
+        return { id, tema: temaDe(id), cuenta: suyas.length, primera: vieja?.fecha || null, ultima: nueva?.fecha || null, portada: nueva?.url || null };
     });
-    if (ver) $("#album-contenido [data-visor]")?.scrollIntoView({ block: "start" });
+    const grupo = (a) => (a.id === fotos.ALBUM_LIBRE ? 0 : a.cuenta ? 1 : 2);
+    return albumes.sort((a, b) => grupo(a) - grupo(b) || (b.ultima || "").localeCompare(a.ultima || ""));
 }
 
-// Lee las fotos del álbum de la base y lo dibuja.
-async function cargarAlbum() {
-    if (!albumVista) return;
-    const version = ++cargaAlbum;
+const visibles = () => fotos.filtrarFotos(g.lista, g.filtro, hoy());
+const porClave = (clave) => g.lista.find((f) => f.clave === clave) || null;
+
+// Dibuja la galería con lo que ya se leyó (no vuelve a leer la base). conservarScroll: seguir donde estabas.
+function dibujar(conservarScroll = true) {
+    if (!g) return;
+    const albumes = listarAlbumes();
+    if (g.filtro.album !== "todas" && !albumes.some((a) => a.id === g.filtro.album)) g.filtro.album = "todas";
+    const y = $("#fotos-contenido [data-galeria-cuerpo]")?.scrollTop || 0;
+    $("#fotos-contenido").innerHTML = vistasFotos.contenidoGaleria({
+        pestana: g.pestana, hoy: hoy(), semanal: estado.fotos.semanal, total: g.lista.length, albumes, fotos: visibles(),
+        filtro: g.filtro, seleccion: g.seleccion, moviendo: g.moviendo === "seleccion", picker: g.picker,
+        comparar: { a: porClave(g.comparar.a), b: porClave(g.comparar.b) },
+    });
+    const cuerpo = $("#fotos-contenido [data-galeria-cuerpo]");
+    if (cuerpo && conservarScroll) cuerpo.scrollTop = y;
+}
+
+// Lee todas las fotos de la base y dibuja.
+async function cargar() {
+    if (!g) return;
+    const version = ++cargaActual;
     try {
-        const registros = await fotos.fotosDeAlbum(albumVista.id);
-        if (version !== cargaAlbum || !albumVista) return;
-        urlsAlbum = soltar(urlsAlbum);
-        albumVista.lista = registros.map((r) => {
-            const url = URL.createObjectURL(r.imagen);
-            urlsAlbum.push(url);
-            return { fecha: r.fecha, url };
-        });
-        albumVista.seleccion = albumVista.seleccion.filter((f) => albumVista.lista.some((x) => x.fecha === f));
-        dibujarAlbum();
+        const registros = await fotos.todasLasFotos();
+        if (version !== cargaActual || !g) return;   // llegó tarde: ya hay una lectura más nueva
+        for (const f of g.lista) URL.revokeObjectURL(f.url);
+        g.lista = registros.map((r) => ({
+            clave: r.clave, album: r.album, fecha: r.fecha, favorita: Boolean(r.favorita), url: URL.createObjectURL(r.imagen), tema: temaDe(r.album),
+        }));
+        // Lo que ya no existe (borrada o movida) sale de la selección y del comparador.
+        g.seleccion.marcadas = g.seleccion.marcadas.filter(porClave);
+        for (const hueco of ["a", "b"]) if (g.comparar[hueco] && !porClave(g.comparar[hueco])) g.comparar[hueco] = null;
+        dibujar();
+        if (g.visor) dibujarVisor();
     } catch (error) {
         console.error(error);
-        $("#album-contenido").innerHTML = `<p class="nota">⚠️ No se pudieron leer las fotos de este álbum.</p>
-            <div class="botones-dialogo"><button type="button" class="boton boton-secundario" data-accion="cerrar">Cerrar</button></div>`;
+        $("#fotos-contenido").innerHTML = `<div class="galeria"><p class="nota">⚠️ No se pudieron leer las fotos de este teléfono.</p>
+            <div class="botones-dialogo"><button type="button" class="boton boton-secundario" data-accion="cerrar">Cerrar</button></div></div>`;
     }
-}
-
-// Después de guardar o borrar una foto: poner al día lo que esté abierto.
-function refrescarGaleria() {
-    cargarPortadas();
-    cargarAlbum();
 }
 
 function abrirGaleria() {
-    galeriaAbierta = true;
-    datosPortadas = null;
+    g = { pestana: "fotos", filtro: { ...SIN_FILTROS }, seleccion: { activa: false, marcadas: [] }, moviendo: null, picker: null,
+          comparar: { a: null, b: null }, lista: [], visor: null };
     const dialogo = $("#dialogo-fotos");
-    $("#fotos-contenido").innerHTML = `<p class="nota">Cargando tus fotos…</p>`;
-    dialogo.addEventListener("close", () => { galeriaAbierta = false; datosPortadas = null; urlsPortadas = soltar(urlsPortadas); }, { once: true });
-    dialogo.showModal();
-    cargarPortadas();
-}
-
-// La subventana de un álbum, encima de «Mis fotos».
-function abrirAlbum(id) {
-    albumVista = { id, lista: [], seleccion: [] };
-    const dialogo = $("#dialogo-album");
-    $("#album-contenido").innerHTML = `<p class="nota">Abriendo el álbum…</p>`;
+    $("#fotos-contenido").innerHTML = `<div class="galeria"><p class="nota galeria-cargando">Cargando tus fotos…</p></div>`;
     dialogo.addEventListener("close", () => {
-        albumVista = null;
-        urlsAlbum = soltar(urlsAlbum);
-        cargarPortadas();   // por si cambió algo (una foto nueva o borrada)
+        if (g) for (const f of g.lista) URL.revokeObjectURL(f.url);
+        g = null;
     }, { once: true });
     dialogo.showModal();
-    cargarAlbum();
+    cargar();
+}
+
+
+// ===== El visor de una foto =====
+
+function dibujarVisor() {
+    if (!g?.visor) return;
+    const foto = porClave(g.visor.claves[g.visor.i]);
+    if (!foto) { $("#dialogo-visor").close(); return; }
+    $("#visor-contenido").innerHTML = vistasFotos.contenidoVisor({
+        foto, indice: g.visor.i, total: g.visor.claves.length, albumes: listarAlbumes(), moviendo: g.moviendo === "visor",
+    });
+}
+
+function abrirVisor(clave) {
+    const claves = visibles().map((f) => f.clave);
+    g.visor = { claves, i: Math.max(0, claves.indexOf(clave)) };
+    const dialogo = $("#dialogo-visor");
+    // Deslizar con el dedo a los lados pasa a la foto siguiente o a la anterior (se conecta una sola vez).
+    if (!visorConectado) {
+        visorConectado = true;
+        const caja = $("#visor-contenido");
+        let inicio = null;
+        caja.addEventListener("pointerdown", (evento) => { inicio = evento.target.closest("[data-visor-lienzo]") ? evento.clientX : null; });
+        caja.addEventListener("pointerup", (evento) => {
+            if (inicio === null) return;
+            const dx = evento.clientX - inicio;
+            inicio = null;
+            if (Math.abs(dx) > 50) moverVisor(dx < 0 ? 1 : -1);
+        });
+        caja.addEventListener("pointercancel", () => { inicio = null; });
+    }
+    dialogo.addEventListener("close", () => {
+        if (!g) return;
+        g.visor = null;
+        if (g.moviendo === "visor") g.moviendo = null;
+        dibujar();   // por si marcaste favoritas o cambió algo
+    }, { once: true });
+    dibujarVisor();
+    dialogo.showModal();
+}
+
+function moverVisor(paso) {
+    if (!g?.visor) return;
+    const i = g.visor.i + paso;
+    if (i < 0 || i >= g.visor.claves.length) return;
+    g.visor.i = i;
+    dibujarVisor();
+}
+
+
+// ===== Organizar: favoritas, mover y borrar =====
+
+// Marca o quita la estrella de varias fotos (se actualiza en pantalla sin volver a leer la base).
+async function ponerFavorita(lista, valor) {
+    for (const f of lista) {
+        f.favorita = valor;
+        await fotos.marcarFavorita(f.album, f.fecha, valor);
+    }
+}
+
+// Pasa las fotos a otro álbum. Si en el álbum de destino ya hay una foto de ese día, esa no se mueve.
+async function moverA(lista, destino) {
+    let movidas = 0;
+    for (const f of lista) if (await fotos.moverFoto(f.album, f.fecha, destino)) movidas += 1;
+    const falto = lista.length - movidas;
+    avisar(movidas
+        ? `📁 ${movidas === 1 ? "1 foto movida" : `${movidas} fotos movidas`}${falto ? `. ${falto} no: ya hay una foto de ese día en el álbum` : ""}`
+        : "📁 No se movió: ya hay una foto de ese día en ese álbum");
+}
+
+// Las fotos a las que se aplica la acción: las elegidas en la galería, o la que se ve en el visor.
+function objetivo(origen) {
+    if (origen === "visor") return g.visor ? [porClave(g.visor.claves[g.visor.i])].filter(Boolean) : [];
+    return g.seleccion.marcadas.map(porClave).filter(Boolean);
+}
+
+async function cambiarDeAlbum(destino) {
+    const origen = g.moviendo;
+    const lista = objetivo(origen);
+    g.moviendo = null;
+    g.seleccion = { activa: false, marcadas: [] };
+    await moverA(lista, destino);
+    if (origen === "visor") $("#dialogo-visor").close();
+    await cargar();
+}
+
+async function borrar(lista) {
+    for (const f of lista) await fotos.borrarFoto(f.album, f.fecha);
+}
+
+// «Álbum nuevo»: pide el nombre. Si venías de «Mover a…», mueve las fotos al álbum recién creado.
+async function albumNuevo() {
+    const nombre = prompt("¿Cómo se llama el álbum nuevo?");
+    if (nombre === null) return;
+    const album = ejecutar(() => acciones.crearAlbumDeFotos(estado, nombre));
+    if (!album) return;
+    if (g.moviendo) await cambiarDeAlbum(album.id);
+    else dibujar();
 }
 
 
 // ===== Los botones =====
 
+const siguiente = (lista, actual) => lista[(lista.findIndex((x) => x.id === actual) + 1) % lista.length].id;
+
 export const ACCIONES_FOTO = {
     "fotos-abrir": () => abrirGaleria(),
     "fotos-semanal": () => tomarFotoDeProgreso(),
     "fotos-nueva": () => tomarFotoDeProgreso(),
-    "fotos-album": (boton) => abrirAlbum(boton.dataset.album),
-    // Tocar una miniatura la elige; con dos elegidas se comparan; una tercera reemplaza a la más vieja de las dos.
-    "fotos-elegir": (boton) => {
-        const fecha = boton.dataset.fecha;
-        if (albumVista.seleccion.includes(fecha)) albumVista.seleccion = albumVista.seleccion.filter((f) => f !== fecha);
-        else albumVista.seleccion = [...albumVista.seleccion, fecha].slice(-2);
-        dibujarAlbum(albumVista.seleccion.length > 0);
+
+    // Las pestañas de adentro.
+    "fotos-pestana": (boton) => {
+        g.pestana = boton.dataset.pestana;
+        g.seleccion = { activa: false, marcadas: [] };
+        g.picker = null;
+        dibujar(false);
     },
-    // «Antes y después»: la primera foto del álbum contra la última.
-    "fotos-antes-despues": () => {
-        const lista = albumVista.lista;
+
+    // Filtros y orden.
+    "fotos-filtro-album": (boton) => { g.filtro.album = boton.dataset.album; dibujar(false); },
+    "fotos-filtro-periodo": () => { g.filtro.periodo = siguiente(fotos.PERIODOS, g.filtro.periodo); dibujar(false); },
+    "fotos-filtro-orden": () => { g.filtro.orden = siguiente(fotos.ORDENES, g.filtro.orden); dibujar(false); },
+    "fotos-filtro-favoritas": () => { g.filtro.favoritas = !g.filtro.favoritas; dibujar(false); },
+    "fotos-quitar-filtros": () => { g.filtro = { ...SIN_FILTROS }; dibujar(false); },
+    "fotos-ver-album": (boton) => {   // desde la pestaña Álbumes: ver sus fotos
+        g.filtro = { ...SIN_FILTROS, album: boton.dataset.album };
+        g.pestana = "fotos";
+        dibujar(false);
+    },
+
+    // Seleccionar varias fotos.
+    "fotos-seleccionar": () => {
+        g.seleccion = { activa: !g.seleccion.activa, marcadas: [] };
+        dibujar();
+    },
+
+    // Tocar una foto: según el momento, la elige para un hueco del comparador, la marca o la abre.
+    "fotos-tocar": (boton) => {
+        const clave = boton.dataset.clave;
+        if (g.picker) {
+            g.comparar[g.picker] = clave;
+            g.picker = null;
+            g.pestana = "comparar";
+            dibujar(false);
+        } else if (g.seleccion.activa) {
+            const marcadas = g.seleccion.marcadas;
+            g.seleccion.marcadas = marcadas.includes(clave) ? marcadas.filter((c) => c !== clave) : [...marcadas, clave];
+            dibujar();
+        } else {
+            abrirVisor(clave);
+        }
+    },
+
+    // Comparar.
+    "fotos-comparar-hueco": (boton) => { g.picker = boton.dataset.hueco; g.pestana = "fotos"; dibujar(false); },
+    "fotos-picker-cancelar": () => { g.picker = null; g.pestana = "comparar"; dibujar(false); },
+    "fotos-comparar-extremos": () => {
+        const lista = visibles().sort((x, y) => (x.fecha < y.fecha ? -1 : x.fecha > y.fecha ? 1 : 0));
         if (lista.length < 2) return;
-        albumVista.seleccion = [lista[0].fecha, lista[lista.length - 1].fecha];
-        dibujarAlbum(true);
+        g.comparar = { a: lista[0].clave, b: lista[lista.length - 1].clave };
+        dibujar(false);
     },
-    // Con UNA foto elegida: pasar a la más antigua (-1) o a la más reciente (+1).
-    "fotos-mover": (boton) => {
-        if (albumVista.seleccion.length !== 1) return;
-        const i = albumVista.lista.findIndex((f) => f.fecha === albumVista.seleccion[0]);
-        const vecina = albumVista.lista[i + Number(boton.dataset.paso)];
-        if (!vecina) return;
-        albumVista.seleccion = [vecina.fecha];
-        dibujarAlbum(true);
+    "fotos-comparar-cambiar": () => { g.comparar = { a: g.comparar.b, b: g.comparar.a }; dibujar(false); },
+    "fotos-comparar-marcadas": () => {
+        const dos = g.seleccion.marcadas.map(porClave).filter(Boolean).sort((x, y) => (x.fecha < y.fecha ? -1 : 1));
+        if (dos.length !== 2) return;
+        g.comparar = { a: dos[0].clave, b: dos[1].clave };
+        g.seleccion = { activa: false, marcadas: [] };
+        g.pestana = "comparar";
+        dibujar(false);
     },
-    "fotos-borrar": async (boton) => {
-        if (!confirm("¿Borrar esta foto? No se puede recuperar.")) return;
-        await fotos.borrarFoto(albumVista.id, boton.dataset.fecha);
-        albumVista.seleccion = [];
-        cargarAlbum();
+    // Desde el visor: la foto que ves pasa a «Antes» (si está libre) o a «Después».
+    "fotos-comparar-visor": () => {
+        const clave = g.visor.claves[g.visor.i];
+        if (!g.comparar.a || g.comparar.b) g.comparar.a = clave;
+        else g.comparar.b = clave;
+        g.pestana = "comparar";
+        $("#dialogo-visor").close();   // al cerrarse, la galería se vuelve a dibujar
+        avisar("↔️ Foto puesta en el comparador");
     },
+
+    // Favoritas.
+    "fotos-favorita-visor": async () => {
+        const f = porClave(g.visor.claves[g.visor.i]);
+        if (!f) return;
+        await ponerFavorita([f], !f.favorita);
+        dibujarVisor();
+    },
+    "fotos-favorita-marcadas": async () => {
+        const lista = g.seleccion.marcadas.map(porClave).filter(Boolean);
+        await ponerFavorita(lista, !lista.every((f) => f.favorita));   // si todas ya lo eran, se quitan
+        g.seleccion = { activa: false, marcadas: [] };
+        dibujar();
+    },
+
+    // Mover a otro álbum.
+    "fotos-mover-abrir": (boton) => {
+        g.moviendo = boton.dataset.origen;
+        if (g.moviendo === "visor") dibujarVisor(); else dibujar();
+    },
+    "fotos-mover-cancelar": () => {
+        const origen = g.moviendo;
+        g.moviendo = null;
+        if (origen === "visor") dibujarVisor(); else dibujar();
+    },
+    "fotos-mover-a": (boton) => cambiarDeAlbum(boton.dataset.album),
+
+    // Álbumes propios.
+    "fotos-album-nuevo": () => albumNuevo(),
+    "fotos-album-borrar": (boton) => {
+        if (!confirm("¿Borrar este álbum vacío?")) return;
+        if (ejecutar(() => acciones.borrarAlbumDeFotos(estado, boton.dataset.album))) {
+            g.filtro = { ...SIN_FILTROS };
+            dibujar(false);
+        }
+    },
+
+    // Borrar.
+    "fotos-borrar-marcadas": async () => {
+        const lista = g.seleccion.marcadas.map(porClave).filter(Boolean);
+        if (!lista.length || !confirm(`¿Borrar ${lista.length === 1 ? "esta foto" : `estas ${lista.length} fotos`}? No se puede recuperar.`)) return;
+        await borrar(lista);
+        g.seleccion = { activa: false, marcadas: [] };
+        await cargar();
+    },
+    "fotos-borrar-visor": async () => {
+        const f = porClave(g.visor.claves[g.visor.i]);
+        if (!f || !confirm("¿Borrar esta foto? No se puede recuperar.")) return;
+        await borrar([f]);
+        g.visor.claves.splice(g.visor.i, 1);
+        g.visor.i = Math.min(g.visor.i, g.visor.claves.length - 1);
+        if (!g.visor.claves.length) { $("#dialogo-visor").close(); await cargar(); return; }
+        await cargar();   // vuelve a leer y, al terminar, redibuja el visor con la foto que quedó
+    },
+
+    "fotos-visor-mover": (boton) => moverVisor(Number(boton.dataset.paso)),
     "fotos-recordatorio": () => {
         ejecutar(() => acciones.configurarFotos(estado, { semanal: !estado.fotos.semanal }));
-        dibujarPortadas();
+        dibujar();
     },
 };

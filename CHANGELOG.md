@@ -2,6 +2,15 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v199 — La galería de fotos, como la de un celular
+
+- **Pantalla completa con pestañas internas** (`#dialogo-fotos`, `vistas-fotos.js › contenidoGaleria`): **Fotos** (todas juntas por día, cuadrícula de 3 columnas), **Álbumes** (portadas con el tema de la misión + «Álbum nuevo») y **Comparar** (dos huecos «Antes» / «Después»).
+- **Filtros y orden** (`fotos.js › filtrarFotos`, puro y probado): álbum (chips), periodo (todo, este mes, 3 meses, este año), favoritas y más recientes/antiguas. Los filtros se quedan arriba al bajar.
+- **Organizar**: modo «Seleccionar» (elegir varias → comparar, ⭐ favorita, 📁 mover, 🗑️ borrar), `marcarFavorita`, `moverFoto` (no pisa si el destino ya tiene una foto de ese día) y **álbumes propios** (`estado.fotos.albumes`, `crearAlbumDeFotos` / `borrarAlbumDeFotos`).
+- **Visor** (`#dialogo-visor`): pantalla completa, se desliza a los lados, con ⭐, comparar, mover y borrar. Con el comparador: elegir la foto de un hueco, o «Primera y última».
+- Se quita la subventana de álbum de la v198 (ahora un álbum es un filtro de la pestaña Fotos, con su franja temática).
+- Datos: `estado.fotos.albumes` es nuevo y opcional (las copias viejas lo reciben vacío; sin subir la versión). Pruebas: 487 de la app.
+
 ## v198 — Tus fotos, en álbumes con tema
 
 - **«Mis fotos» = portadas**: `vistas-fotos.js › contenidoGaleria` dibuja una tarjeta por álbum (portada = su foto más reciente, número de fotos y «hace N días»). El álbum de progreso va primero, luego los que tienen fotos y al final los vacíos (borde punteado).

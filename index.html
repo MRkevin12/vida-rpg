@@ -441,14 +441,14 @@
         </div>
     </dialog>
 
-    <!-- (v197, v198) «Mis fotos»: una portada por álbum (se llena desde js/pantallas/app-foto.js) -->
-    <dialog id="dialogo-fotos" class="dialogo">
-        <div class="formulario" id="fotos-contenido"></div>
+    <!-- (v199) La galería de fotos, a pantalla completa como la de un celular: pestañas Fotos · Álbumes · Comparar (js/pantallas/app-foto.js) -->
+    <dialog id="dialogo-fotos" class="dialogo galeria-dialogo" aria-label="Mis fotos">
+        <div id="fotos-contenido"></div>
     </dialog>
 
-    <!-- (v198) La subventana de un álbum: sus fotos por mes, el visor y el comparador. Se abre ENCIMA de «Mis fotos». -->
-    <dialog id="dialogo-album" class="dialogo dialogo-album">
-        <div class="formulario" id="album-contenido"></div>
+    <!-- (v199) El visor de una foto: pantalla completa, se desliza a los lados para cambiar de foto. Se abre ENCIMA de la galería. -->
+    <dialog id="dialogo-visor" class="dialogo galeria-dialogo visor-dialogo" aria-label="Foto">
+        <div id="visor-contenido"></div>
     </dialog>
 
     <dialog id="dialogo-tarea" class="dialogo">

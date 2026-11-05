@@ -4,9 +4,21 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 198;
+export const VERSION_APP = 199;
 
 export const NOVEDADES = [
+    {
+        version: 199,
+        titulo: "Tu galería de fotos, como la del celular",
+        cambios: [
+            "🖼️ La galería ahora ocupa toda la pantalla y tiene tres pestañas de adentro: Fotos, Álbumes y Comparar.",
+            "📅 En Fotos ves todas juntas, día por día (Hoy, Ayer…), con la insignia del álbum de cada una. Arriba filtras por álbum, por fechas (este mes, 3 meses, este año), por favoritas y cambias el orden.",
+            "✅ «Seleccionar»: elige varias fotos para ponerles estrella, moverlas a otro álbum, borrarlas o compararlas.",
+            "🔍 Al tocar una foto se abre a pantalla completa: desliza a los lados para ver las demás, márcala favorita ⭐, muévela o bórrala.",
+            "📁 Puedes crear tus propios álbumes («Gym frente», «Viaje»…) y pasar fotos entre ellos.",
+            "↔️ En Comparar eliges una foto «Antes» y otra «Después», o usas «Primera y última».",
+        ],
+    },
     {
         version: 198,
         titulo: "Tus fotos, en álbumes con tema",

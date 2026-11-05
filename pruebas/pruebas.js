@@ -9991,51 +9991,156 @@ prueba("Fotos de progreso (v197): se guardan en IndexedDB, una por álbum y día
     }
 });
 
-prueba("Fotos de progreso (v198): «Mis fotos» muestra una portada con tema por álbum", () => {
-    const tema = (icono, color, nombre) => ({ icono, color, nombre, etiqueta: "Fuerza" });
-    const albumes = [
-        { id: "progreso", tema: tema("📈", "#fbbf24", "Progreso"), cuenta: 3, ultima: sumarDias(hoy(), -3), portada: "blob:p" },
-        { id: "7", tema: tema("💪", "#fb7185", "Gym"), cuenta: 1, ultima: hoy(), portada: "blob:g" },
-        { id: "9", tema: tema("🧠", "#22d3ee", "Estudiar"), cuenta: 0, ultima: null, portada: null },
-    ];
-    const html = vistasFotos.contenidoGaleria({ albumes, semanal: true, hoy: hoy() });
-    igual((html.match(/class="album-tarjeta/g) || []).length, 3, "una tarjeta por álbum");
-    cierto(html.includes("--tema: #fb7185") && html.includes("--tema: #22d3ee"), "cada álbum con el color de su misión");
-    cierto(html.includes("3 fotos · hace 3 días") && html.includes("1 foto · hoy"), "cuántas fotos y cuándo fue la última");
-    cierto(html.includes("Sin fotos aún") && html.includes("album-vacio-tarjeta"), "el álbum vacío se ve distinto");
-    cierto(html.includes('src="blob:p"') && !html.includes('src="null"'), "la portada es la foto más reciente");
-    cierto(html.includes("Recordarme la foto de progreso cada semana: sí") && html.includes("copia de seguridad no las incluye"), "recordatorio y aviso de la copia");
-    const malo = vistasFotos.contenidoGaleria({ albumes: [{ ...albumes[1], tema: tema("💪", "red;background:url(x)", "Gym") }], semanal: false, hoy: hoy() });
-    cierto(!malo.includes("url(x)"), "un color raro no se cuela en el estilo");
+prueba("Galería (v199): los filtros por álbum, fechas y favoritas, y el orden", () => {
+    const hoyF = "2026-11-20";
+    const f = (album, fecha, favorita = false) => ({ album, fecha, favorita });
+    const lista = [f("7", "2026-11-18"), f("7", "2026-11-02", true), f("9", "2026-10-05"), f("progreso", "2026-07-01"), f("progreso", "2025-12-30"), f("7", "2026-11-18")];
+    const filtrar = (cambios) => fotos.filtrarFotos(lista, { album: "todas", periodo: "todo", favoritas: false, orden: "recientes", ...cambios }, hoyF);
+    igual(filtrar({}).length, 6, "sin filtros salen todas");
+    igual(filtrar({}).map((x) => x.fecha), ["2026-11-18", "2026-11-18", "2026-11-02", "2026-10-05", "2026-07-01", "2025-12-30"], "de la más reciente a la más vieja");
+    igual(filtrar({ orden: "antiguas" })[0].fecha, "2025-12-30", "orden: más antiguas primero");
+    igual(filtrar({ album: "7" }).length, 3, "solo un álbum");
+    igual(filtrar({ album: "no-existe" }).length, 0, "un álbum sin fotos");
+    igual(filtrar({ periodo: "mes" }).length, 3, "este mes");
+    igual(filtrar({ periodo: "3m" }).map((x) => x.fecha).length, 4, "últimos 3 meses (90 días)");
+    igual(filtrar({ periodo: "anio" }).length, 5, "este año");
+    igual(filtrar({ favoritas: true }).map((x) => x.fecha), ["2026-11-02"], "solo favoritas");
+    igual(filtrar({ album: "7", periodo: "mes", favoritas: true }).length, 1, "los filtros se combinan");
+    igual(fotos.PERIODOS.map((p) => p.id), ["todo", "mes", "3m", "anio"]);
+    igual(fotos.ORDENES.map((o) => o.id), ["recientes", "antiguas"]);
 });
 
-prueba("Fotos de progreso (v198): la subventana del álbum agrupa por mes, y muestra una foto o compara dos", () => {
-    const f = (fecha) => ({ fecha, url: "blob:" + fecha });
-    const album = { id: "7", tema: { icono: "💪", color: "#fb7185", nombre: "Gym", etiqueta: "Fuerza" } };
-    const lista = [f("2026-10-22"), f("2026-11-03"), f("2026-11-10"), f("2026-11-17")];
-    const dibujar = (seleccion, extra = {}) => vistasFotos.contenidoAlbum({ album, fotos: lista, seleccion, hoy: "2026-11-20", ...extra });
-    let html = dibujar([]);
-    cierto(html.includes("--tema: #fb7185") && html.includes("Álbum · Fuerza") && html.includes("💪"), "cabecera con el tema de la misión");
-    cierto(html.includes("4 fotos") && html.includes("29 días de camino"), "resumen del álbum");
-    igual((html.match(/class="album-mes"/g) || []).length, 2, "dos meses");
-    cierto(html.indexOf("noviembre 2026") < html.indexOf("octubre 2026"), "el mes más nuevo va primero");
-    cierto(html.indexOf("blob:2026-11-17") < html.indexOf("blob:2026-11-03"), "y dentro del mes, la más nueva primero");
-    cierto(html.includes("Antes y después") && !html.includes("➕ Foto de hoy"), "«Antes y después»; la foto de hoy solo en «progreso»");
-    cierto(html.includes("Toca una foto para verla"), "sin elegir: la ayuda");
-    html = dibujar(["2026-11-03"]);
-    cierto(html.includes("fotos-borrar") && html.includes("data-visor") && !html.includes("foto-visor-doble"), "una elegida: grande, con borrar");
-    cierto(!html.includes('data-paso="-1" disabled') && !html.includes('data-paso="1" disabled'), "en el medio se puede ir a las dos vecinas");
-    cierto(dibujar(["2026-10-22"]).includes('data-paso="-1" disabled'), "la primera no tiene «más antigua»");
-    cierto(dibujar(["2026-11-17"]).includes('data-paso="1" disabled'), "la última no tiene «más reciente»");
-    html = dibujar(["2026-11-17", "2026-10-22"]);
-    cierto(html.includes("foto-visor-doble") && html.includes("pasaron 26 días"), "dos elegidas: juntas y con los días entre las dos");
-    cierto(html.indexOf("blob:2026-10-22") < html.indexOf("blob:2026-11-17", html.indexOf("foto-visor-doble")), "la más vieja a la izquierda");
-    html = vistasFotos.contenidoAlbum({ album: { ...album, id: "progreso" }, fotos: [], seleccion: [], hoy: "2026-11-20" });
-    cierto(html.includes("➕ Foto de hoy") && html.includes("Aún no hay fotos aquí") && !html.includes("Antes y después"), "álbum de progreso vacío");
+prueba("Galería (v199): álbumes propios (crear, repetidos y borrar)", () => {
     const estado = partidaNueva();
-    cierto(vistasFotos.tarjetaFotoSemanal(estado, { hoy: hoy() }).includes("fotos-semanal"), "Hoy pide la foto de la semana");
-    acciones.registrarFotoProgreso(estado, hoy());
-    igual(vistasFotos.tarjetaFotoSemanal(estado, { hoy: hoy() }), "", "ya tomada: no sale la tarjeta");
+    igual(estado.fotos.albumes, [], "al empezar no hay álbumes propios");
+    const a = acciones.crearAlbumDeFotos(estado, "  Gym frente  ");
+    igual([a.id, a.nombre], ["a1", "Gym frente"], "se limpian los espacios y el id es a1");
+    igual(acciones.crearAlbumDeFotos(estado, "Viaje").id, "a2", "el siguiente es a2");
+    debeFallar(() => acciones.crearAlbumDeFotos(estado, "gym FRENTE"), "Ya tienes");
+    debeFallar(() => acciones.crearAlbumDeFotos(estado, "Progreso"), "Ya tienes");
+    debeFallar(() => acciones.crearAlbumDeFotos(estado, "   "), "Escribe un nombre");
+    acciones.borrarAlbumDeFotos(estado, "a1");
+    igual(estado.fotos.albumes.map((x) => x.id), ["a2"], "se borra solo ese");
+    igual(acciones.crearAlbumDeFotos(estado, "Otro").id, "a3", "el id nunca se repite aunque borres uno del medio");
+    debeFallar(() => acciones.borrarAlbumDeFotos(estado, "a99"), "no existe");
+    // Una copia guardada con la v197 (sin «albumes») recibe la lista vacía y conserva lo que tenía.
+    const vieja = JSON.stringify({ version: 43, personaje: { nombre: "Antigua", xp: 0, monedas: 0, creadoEn: hoy() }, misiones: [], fotos: { semanal: false, ultima: "2026-01-05" } });
+    const migrada = datos.desdeRespaldo(vieja);
+    igual([migrada.fotos.semanal, migrada.fotos.ultima, migrada.fotos.albumes], [false, "2026-01-05", []], "migra sin perder lo que había");
+});
+
+prueba("Galería (v199): favoritas y mover fotos de álbum en IndexedDB", async () => {
+    const origen = "prueba-" + Date.now();
+    const destino = origen + "-destino";
+    const blob = (texto) => new Blob([texto], { type: "image/jpeg" });
+    try {
+        await fotos.guardarFoto(origen, "2026-11-03", blob("a"));
+        await fotos.guardarFoto(origen, "2026-11-10", blob("bb"));
+        await fotos.guardarFoto(destino, "2026-11-10", blob("ya hay una"));
+        igual((await fotos.fotosDeAlbum(origen)).map((f) => Boolean(f.favorita)), [false, false], "nacen sin estrella");
+        await fotos.marcarFavorita(origen, "2026-11-03", true);
+        igual((await fotos.fotosDeAlbum(origen)).map((f) => f.favorita), [true, false], "se marca una");
+        await fotos.marcarFavorita(origen, "2026-11-03", false);
+        igual((await fotos.fotosDeAlbum(origen))[0].favorita, false, "y se quita");
+        // Mover: la del 3 pasa; la del 10 no, porque el destino ya tiene una de ese día.
+        igual(await fotos.moverFoto(origen, "2026-11-03", destino), true, "la del 3 se mueve");
+        igual(await fotos.moverFoto(origen, "2026-11-10", destino), false, "la del 10 no: ya hay una de ese día");
+        igual(await fotos.moverFoto(origen, "2026-11-03", destino), false, "ya no está en el origen");
+        igual(await fotos.moverFoto(destino, "2026-11-03", destino), false, "al mismo álbum no");
+        igual((await fotos.fotosDeAlbum(origen)).map((f) => f.fecha), ["2026-11-10"], "en el origen queda la del 10");
+        const enDestino = await fotos.fotosDeAlbum(destino);
+        igual(enDestino.map((f) => f.fecha), ["2026-11-03", "2026-11-10"], "en el destino están las dos");
+        igual(enDestino[0].imagen.size, 1, "la foto movida conserva su imagen");
+        const todas = await fotos.todasLasFotos();
+        cierto(todas.filter((f) => f.album === origen || f.album === destino).length === 3, "todasLasFotos las incluye");
+    } finally {
+        for (const [a, f] of [[origen, "2026-11-03"], [origen, "2026-11-10"], [destino, "2026-11-03"], [destino, "2026-11-10"]]) await fotos.borrarFoto(a, f);
+    }
+});
+
+prueba("Galería (v199): las pestañas, los filtros, el modo seleccionar y el comparador se dibujan", () => {
+    const tema = (icono, color, nombre) => ({ icono, color, nombre, etiqueta: "Fuerza" });
+    const gym = tema("💪", "#fb7185", "Gym");
+    const f = (clave, album, fecha, favorita = false, t = gym) => ({ clave, album, fecha, url: "blob:" + clave, favorita, tema: t });
+    const fotosLista = [f("7|2026-11-18", "7", "2026-11-18", true), f("7|2026-11-17", "7", "2026-11-17"), f("p|2026-10-02", "progreso", "2026-10-02", false, tema("📈", "#fbbf24", "Progreso"))];
+    const albumes = [
+        { id: "progreso", tema: tema("📈", "#fbbf24", "Progreso"), cuenta: 1, primera: "2026-10-02", ultima: "2026-10-02", portada: "blob:p" },
+        { id: "7", tema: gym, cuenta: 2, primera: "2026-11-17", ultima: "2026-11-18", portada: "blob:7" },
+        { id: "9", tema: tema("🧠", "#22d3ee", "Estudiar"), cuenta: 0, primera: null, ultima: null, portada: null },
+        { id: "a1", tema: tema("📁", "#34d399", "Viaje"), cuenta: 0, primera: null, ultima: null, portada: null },
+    ];
+    const base = {
+        pestana: "fotos", hoy: "2026-11-20", semanal: true, total: 3, albumes, fotos: fotosLista,
+        filtro: { album: "todas", periodo: "todo", favoritas: false, orden: "recientes" },
+        seleccion: { activa: false, marcadas: [] }, moviendo: false, picker: null, comparar: { a: null, b: null },
+    };
+    const dibujar = (cambios = {}) => vistasFotos.contenidoGaleria({ ...base, ...cambios });
+
+    // Pestañas de adentro.
+    let html = dibujar();
+    igual((html.match(/class="galeria-pestana"/g) || []).length, 3, "tres pestañas");
+    cierto(html.includes('data-pestana="fotos" aria-current="page"') && html.includes('data-pestana="albumes"') && html.includes('data-pestana="comparar"'), "Fotos · Álbumes · Comparar, con la actual marcada");
+
+    // Pestaña Fotos: filtros, días y miniaturas.
+    cierto(html.includes("fotos-filtro-periodo") && html.includes("fotos-filtro-orden") && html.includes("fotos-filtro-favoritas"), "botones de periodo, orden y favoritas");
+    igual((html.match(/class="galeria-foto /g) || []).length, 3, "una miniatura por foto");
+    cierto(html.includes("18 de noviembre") && html.includes("17 de noviembre") && html.includes("2 de octubre"), "los días llevan título");
+    cierto(html.includes("galeria-foto-album") && html.includes("galeria-foto-estrella"), "con todas las fotos se ve de qué álbum es cada una, y la estrella");
+    cierto(html.includes("galeria-fab") && !html.includes("galeria-barra"), "botón de cámara; sin barra de selección");
+    cierto(!html.includes("fotos-quitar-filtros"), "sin filtros no sale «Quitar»");
+    cierto(!html.includes(">Gym <small>0<") && !html.includes("Estudiar"), "los álbumes vacíos no son chips");
+
+    // Con un álbum elegido: chip marcado, franja con el tema, sin la insignia en cada foto.
+    html = dibujar({ filtro: { ...base.filtro, album: "7" }, fotos: fotosLista.slice(0, 2) });
+    cierto(html.includes('data-album="7"') && html.includes("aria-pressed=\"true\"") && html.includes("album-cabecera") && html.includes("2 fotos") && html.includes("fotos-quitar-filtros"), "franja del álbum y botón «Quitar»");
+    cierto(!html.includes("galeria-foto-album"), "dentro de un álbum no se repite la insignia");
+    html = dibujar({ filtro: { ...base.filtro, album: "progreso" }, fotos: [fotosLista[2]] });
+    cierto(html.includes("➕ Foto de hoy"), "el álbum de progreso trae «Foto de hoy»");
+    html = dibujar({ filtro: { ...base.filtro, album: "a1" }, fotos: [] });
+    cierto(html.includes("fotos-album-borrar") && html.includes("Ninguna foto con estos filtros"), "un álbum propio vacío se puede borrar");
+
+    // Vacíos.
+    cierto(dibujar({ total: 0, fotos: [], albumes: albumes.map((a) => ({ ...a, cuenta: 0 })) }).includes("Aún no tienes fotos"), "galería sin ninguna foto");
+    cierto(dibujar({ fotos: [], filtro: { ...base.filtro, favoritas: true } }).includes("Ninguna foto con estos filtros"), "filtros sin resultados");
+
+    // Modo seleccionar.
+    html = dibujar({ seleccion: { activa: true, marcadas: ["7|2026-11-18", "7|2026-11-17"] } });
+    cierto(html.includes("galeria-barra") && html.includes("2 elegidas") && html.includes("galeria-foto-marca") && !html.includes("galeria-fab"), "barra de acciones y círculos");
+    cierto(!/fotos-comparar-marcadas"\s+disabled/.test(html), "con dos elegidas se puede comparar");
+    cierto(/fotos-comparar-marcadas"\s+disabled/.test(dibujar({ seleccion: { activa: true, marcadas: ["7|2026-11-18"] } })), "con una sola no");
+    cierto(dibujar({ seleccion: { activa: true, marcadas: ["7|2026-11-18"] }, moviendo: true }).includes("Mover a…"), "la hoja «Mover a…»");
+    cierto(dibujar({ moviendo: true }).includes("fotos-album-nuevo") && dibujar({ moviendo: true }).includes("Viaje"), "con tus álbumes y «Álbum nuevo»");
+
+    // Pestaña Álbumes.
+    html = dibujar({ pestana: "albumes" });
+    igual((html.match(/class="album-tarjeta/g) || []).length, 5, "una portada por álbum y «Álbum nuevo»");
+    cierto(html.includes("--tema: #fb7185") && html.includes("2 fotos · hace 2 días") && html.includes("Sin fotos aún") && html.includes("fotos-album-nuevo"), "tema, cuenta, vacío y crear");
+    cierto(html.includes("Recordarme la foto de progreso cada semana: sí") && html.includes("copia de seguridad no las incluye"), "recordatorio y aviso de la copia");
+    cierto(!html.includes("--tema: red;"), "ningún color raro");
+    cierto(!vistasFotos.contenidoGaleria({ ...base, pestana: "albumes", albumes: [{ ...albumes[1], tema: tema("💪", "red;background:url(x)", "Gym") }] }).includes("url(x)"), "un color raro no se cuela en el estilo");
+
+    // Pestaña Comparar.
+    html = dibujar({ pestana: "comparar" });
+    cierto(html.includes("comparar-hueco-vacio") && html.includes("Elige las dos fotos") && html.includes("fotos-comparar-extremos"), "huecos vacíos y atajo «Primera y última»");
+    html = dibujar({ pestana: "comparar", comparar: { a: fotosLista[2], b: fotosLista[0] } });
+    cierto(html.includes("pasaron 47 días") && html.includes("Antes · ") && html.includes("Después · ") && !/fotos-comparar-cambiar"\s+disabled/.test(html), "dos elegidas: días entre ellas e intercambiar");
+    cierto(dibujar({ pestana: "comparar", picker: null, fotos: [fotosLista[0]] }).includes("fotos-comparar-extremos\" disabled"), "con una sola foto no hay «Primera y última»");
+
+    // Eligiendo la foto de un hueco.
+    html = dibujar({ picker: "b" });
+    cierto(html.includes("Elige la foto «Después»") && html.includes("fotos-picker-cancelar") && !html.includes("galeria-fab"), "se pide la foto del hueco");
+});
+
+prueba("Galería (v199): el visor muestra la foto, su álbum, la estrella y los botones", () => {
+    const foto = { clave: "7|2026-11-18", album: "7", fecha: "2026-11-18", url: "blob:x", favorita: true, tema: { icono: "💪", color: "#fb7185", nombre: "Gym", etiqueta: "Fuerza" } };
+    const albumes = [{ id: "7", tema: foto.tema }, { id: "progreso", tema: { icono: "📈", color: "#fbbf24", nombre: "Progreso", etiqueta: "x" } }];
+    let html = vistasFotos.contenidoVisor({ foto, indice: 0, total: 3, albumes, moviendo: false });
+    cierto(html.includes("--tema: #fb7185") && html.includes("Gym") && html.includes("1 de 3") && html.includes("⭐") && html.includes('src="blob:x"'), "tema, posición, estrella y foto");
+    cierto(/data-paso="-1"[^>]*disabled/.test(html) && !/data-paso="1"[^>]*disabled/.test(html), "la primera no tiene «anterior»");
+    html = vistasFotos.contenidoVisor({ foto: { ...foto, favorita: false }, indice: 2, total: 3, albumes, moviendo: true });
+    cierto(html.includes("☆") && /data-paso="1"[^>]*disabled/.test(html), "sin estrella y sin «siguiente» en la última");
+    cierto(html.includes("Mover a…") && html.includes('data-album="progreso"') && !html.includes('data-album="7"'), "«Mover a…» no ofrece el álbum donde ya está");
+    cierto(html.includes("fotos-comparar-visor") && html.includes("fotos-borrar-visor"), "comparar y borrar");
 });
 
 prueba("Misiones con foto (v193, v197): sin foto no se completa; con foto sí, y queda anotado", () => {

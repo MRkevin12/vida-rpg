@@ -1661,56 +1661,229 @@ body {
 }
 .foto-estado.foto-mal { color: var(--rojo); }
 .foto-semanal { border-color: var(--oro); }
-.fotos-grilla {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    margin: 12px 0;
+/* ===== (v199) La galería de fotos: como la de un celular, a pantalla completa y con pestañas ===== */
+.galeria-dialogo {
+    inset: 0;
+    width: min(100%, 640px);
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #0b0820;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
 }
-.foto-mini {
-    display: block;
-    padding: 0;
-    background: none;
-    border: 2px solid transparent;
-    color: inherit;
+.galeria-dialogo[open] { animation: none; }
+.galeria-dialogo::backdrop { background: #05030c; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.galeria-dialogo > * { height: 100%; margin: 0; padding: 0; }
+
+.galeria {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.galeria-cargando { margin: auto; }
+.galeria-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: calc(env(safe-area-inset-top) + 10px) 14px 10px;
+    background: rgba(9, 6, 19, 0.97);
+    border-bottom: 2px solid var(--borde);
+}
+.galeria-cabecera h2 { margin: 0; font-size: 1.1rem; min-width: 0; overflow-wrap: anywhere; }
+.galeria-cab-botones { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.galeria-cuerpo {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 10px 120px;
+}
+
+/* Filtros: se quedan arriba mientras bajas por las fotos */
+.galeria-filtros-caja {
+    position: sticky;
+    top: -10px;
+    z-index: 2;
+    margin: -10px -10px 8px;
+    padding: 8px 10px 2px;
+    background: #0b0820;
+    border-bottom: 1px solid var(--borde);
+}
+.galeria-chips,
+.galeria-filtros {
+    display: flex;
+    gap: 6px;
+    padding: 0 0 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.galeria-chips::-webkit-scrollbar,
+.galeria-filtros::-webkit-scrollbar { display: none; }
+.chip-foto {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 6px 12px;
+    color: var(--texto);
     font: inherit;
-    font-size: 0.75rem;
-    text-align: center;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    background: #1b1540;
+    border: 2px solid var(--borde);
+    border-radius: var(--esquina);
     cursor: pointer;
 }
-.foto-mini img {
-    display: block;
-    width: 100%;
-    aspect-ratio: 3 / 4;
-    object-fit: cover;
-    image-rendering: auto;
+.chip-foto small { opacity: 0.7; }
+.chip-foto[aria-pressed="true"] {
+    color: #fff;
+    border-color: var(--tema, var(--oro));
+    background: #2d2350;
+    background: color-mix(in srgb, var(--tema, var(--oro)) 28%, #1b1540);
 }
-.foto-mini[aria-pressed="true"] { border-color: var(--oro); }
-.foto-visor { margin: 12px 0; }
-.foto-visor-doble {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-.foto-visor-figura { margin: 0; text-align: center; }
-.foto-visor-figura img {
-    display: block;
-    width: 100%;
-    max-height: 60vh;
-    object-fit: contain;
-    image-rendering: auto;
-}
-.foto-visor-figura figcaption { margin-top: 4px; font-size: 0.8rem; }
-.foto-visor-dias { text-align: center; }
+.chip-quitar { color: var(--rojo); }
 
-/* ===== (v198) Mis fotos: portadas de álbum con el tema de su misión y la subventana de cada álbum =====
-   Todo usa --tema: el color del atributo de la misión (rosa Fuerza, celeste Intelecto, violeta Carisma, dorado Riqueza). */
-.albumes-grilla {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin: 12px 0;
+.galeria-cuenta { margin: 6px 2px 0; font-size: 0.78rem; opacity: 0.75; }
+.galeria-dia-titulo { margin: 14px 2px 6px; font-size: 0.9rem; }
+.galeria-dia-titulo::first-letter,
+.visor-titulo small::first-letter { text-transform: uppercase; }
+.galeria-grilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+@media (min-width: 520px) { .galeria-grilla { grid-template-columns: repeat(4, 1fr); } }
+.galeria-foto {
+    position: relative;
+    aspect-ratio: 1;
+    padding: 0;
+    overflow: hidden;
+    background: #1b1540;
+    border: 0;
+    cursor: pointer;
 }
+.galeria-foto img { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: auto; }
+.galeria-foto-album {
+    position: absolute;
+    left: 3px;
+    bottom: 3px;
+    display: grid;
+    place-items: center;
+    width: 21px;
+    height: 21px;
+    font-size: 0.72rem;
+    background: var(--tema);
+    border: 1px solid #0009;
+}
+.galeria-foto-estrella { position: absolute; top: 3px; right: 3px; font-size: 0.85rem; filter: drop-shadow(0 1px 1px #000); }
+.galeria-foto-marca {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    color: #0b0820;
+    font-weight: 700;
+    background: #0007;
+    border: 2px solid #fff;
+    border-radius: 50%;
+}
+.galeria-foto.marcada { outline: 3px solid var(--oro); outline-offset: -3px; }
+.galeria-foto.marcada img { opacity: 0.55; }
+.galeria-foto.marcada .galeria-foto-marca { background: var(--oro); border-color: var(--oro); }
+.galeria-vacio { padding: 36px 16px; text-align: center; }
+.galeria-vacio-icono { margin: 0 0 6px; font-size: 3rem; opacity: 0.6; }
+
+/* El botón de la cámara, flotando abajo a la derecha */
+.galeria-fab {
+    position: absolute;
+    right: 16px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    z-index: 3;
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
+    color: #0b0820;
+    background: var(--oro);
+    border: 2px solid var(--tinta);
+    border-radius: var(--esquina);
+    box-shadow: 0 0 0 2px var(--oro), 0 6px 0 rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+}
+.galeria-fab:active { transform: translateY(2px); }
+
+/* La barra de acciones del modo «seleccionar» */
+.galeria-barra {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    z-index: 3;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 8px;
+    background: rgba(9, 6, 19, 0.98);
+    border-top: 2px solid var(--borde);
+}
+.galeria-barra .boton { min-height: 44px; padding: 6px 2px; font-size: 0.74rem; }
+.galeria-barra .boton[disabled] { opacity: 0.4; }
+
+/* Las pestañas de adentro: parecidas a las de la app */
+.galeria-pestanas {
+    z-index: 4;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
+    background: rgba(9, 6, 19, 0.98);
+    border-top: 2px solid var(--borde);
+    box-shadow: 0 -2px 0 var(--tinta);
+}
+.galeria-pestana {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 2px;
+    height: 64px;
+    padding: 0;
+    color: var(--texto-suave);
+    font-family: var(--letra-titulo);
+    font-size: 0.74rem;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+.galeria-pestana-icono { display: grid; place-items: center; width: 52px; height: 30px; font-size: 20px; border-radius: var(--esquina); }
+.galeria-pestana[aria-current="page"] { color: var(--oro); }
+.galeria-pestana[aria-current="page"] .galeria-pestana-icono {
+    background: linear-gradient(180deg, #2d2350 0 50%, #251c44 50% 100%);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), 0 0 0 2px var(--tinta), 0 0 0 4px rgba(251, 191, 36, 0.35);
+}
+
+/* La franja del álbum que estás mirando (con el tema de su misión) */
+.album-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+    padding: 10px 12px;
+    border: 2px solid var(--tema);
+    background: #151030;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tema) 38%, #151030), #151030 75%);
+}
+.album-cabecera-icono { font-size: 2rem; line-height: 1; }
+.album-cabecera-texto { min-width: 0; }
+.album-cabecera-texto .etiqueta { margin: 0; color: var(--tema); }
+.album-cabecera h3 { margin: 2px 0 0; overflow-wrap: anywhere; }
+.album-datos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.album-dato { padding: 3px 8px; font-size: 0.75rem; background: #0b0820; border: 1px solid var(--tema); }
+.album-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+/* La pestaña Álbumes: portadas con el tema de cada misión */
+.albumes-grilla { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 12px 0; }
 .album-tarjeta {
     position: relative;
     display: block;
@@ -1725,26 +1898,9 @@ body {
     box-shadow: 0 0 0 2px #0008, 0 0 14px -4px var(--tema);
 }
 .album-tarjeta:active { transform: translateY(2px); }
-.album-portada {
-    display: block;
-    aspect-ratio: 4 / 5;
-    background: #1b1540;
-    background: color-mix(in srgb, var(--tema) 20%, #151030);
-}
-.album-portada img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    image-rendering: auto;   /* la foto real NO se pixela */
-}
-.album-vacio {
-    display: grid;
-    place-items: center;
-    height: 100%;
-    font-size: 3rem;
-    opacity: 0.5;
-}
+.album-portada { display: block; aspect-ratio: 4 / 5; background: #1b1540; background: color-mix(in srgb, var(--tema) 20%, #151030); }
+.album-portada img { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: auto; }
+.album-vacio { display: grid; place-items: center; height: 100%; font-size: 3rem; opacity: 0.5; }
 .album-vacio-tarjeta { border-style: dashed; box-shadow: none; }
 .album-insignia {
     position: absolute;
@@ -1770,57 +1926,99 @@ body {
 }
 .album-info b { overflow-wrap: anywhere; line-height: 1.15; }
 .album-info small { font-size: 0.72rem; opacity: 0.85; }
+.album-nuevo {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    aspect-ratio: 4 / 5;
+    --tema: #8b5cf6;
+    border-style: dashed;
+    box-shadow: none;
+}
+.album-nuevo .album-vacio { height: auto; }
+.album-nuevo .album-info { position: static; padding: 0; text-align: center; background: none; }
 
-/* La subventana del álbum */
-.dialogo-album { border-color: var(--oro); }
-.album-ventana { display: grid; gap: 10px; }
-.album-cabecera {
+/* La pestaña Comparar */
+.comparar-huecos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 8px; }
+.comparar-hueco {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 4;
+    padding: 0;
+    overflow: hidden;
+    color: inherit;
+    background: #151030;
+    border: 2px solid var(--tema, var(--oro));
+    cursor: pointer;
+}
+.comparar-hueco-vacio { border-style: dashed; --tema: #8b5cf6; }
+.comparar-hueco img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: auto; }
+.comparar-mas { font-size: 2.4rem; opacity: 0.6; }
+.comparar-etiqueta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 20px 6px 6px;
+    font-size: 0.8rem;
+    text-align: center;
+    background: linear-gradient(to bottom, transparent, #0b0820f2 70%);
+}
+.comparar-dias { text-align: center; }
+.comparar-acciones { display: grid; gap: 8px; }
+.comparar-acciones .boton[disabled] { opacity: 0.4; }
+
+/* La hoja «Mover a…» que sube desde abajo */
+.galeria-hoja-fondo { position: absolute; inset: 0; z-index: 6; background: rgba(0, 0, 0, 0.65); }
+.galeria-hoja {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 7;
+    max-height: 70%;
+    padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    background: linear-gradient(180deg, var(--panel-claro), var(--panel));
+    border-top: 3px solid var(--oro);
+}
+.galeria-hoja-lista { display: grid; gap: 8px; margin: 8px 0; }
+.galeria-hoja-album { justify-content: flex-start; text-align: left; border-color: var(--tema, var(--borde)); }
+
+/* El visor de una foto: pantalla completa y negro, con el color del álbum en los bordes */
+.visor-dialogo { background: #000; }
+.visor-foto { position: relative; display: flex; flex-direction: column; height: 100%; background: #000; }
+.visor-cab {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border: 2px solid var(--tema);
-    background: #151030;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--tema) 38%, #151030), #151030 75%);
-}
-.album-cabecera-icono { font-size: 2.3rem; line-height: 1; }
-.album-cabecera-texto { flex: 1; min-width: 0; }
-.album-cabecera-texto .etiqueta { margin: 0; color: var(--tema); }
-.album-cabecera h2 { margin: 2px 0 0; overflow-wrap: anywhere; }
-.album-datos { display: flex; flex-wrap: wrap; gap: 6px; }
-.album-dato {
-    padding: 3px 8px;
-    font-size: 0.75rem;
-    border: 1px solid var(--tema);
-    background: #0b0820;
-}
-.album-acciones { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
-.album-ayuda { margin: 0; text-align: center; }
-.album-mes { margin-top: 4px; }
-.album-mes-titulo {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin: 6px 0 0;
-    padding-bottom: 4px;
-    font-size: 0.9rem;
-    text-transform: capitalize;
-    color: var(--tema);
+    gap: 8px;
+    padding: calc(env(safe-area-inset-top) + 8px) 10px 8px;
+    background: rgba(0, 0, 0, 0.7);
     border-bottom: 2px solid var(--tema);
 }
-.album-mes-titulo small { font-size: 0.72rem; color: inherit; opacity: 0.8; text-transform: none; }
-.album-ventana .foto-mini[aria-pressed="true"] { border-color: var(--tema); box-shadow: 0 0 10px -2px var(--tema); }
-.album-ventana .foto-visor { margin: 0; padding: 8px; border: 2px solid var(--tema); background: #0b0820; }
-/* La foto reserva su tamaño desde el principio: si no, al cargar empuja el contenido y la pantalla se corre. */
-.album-ventana .foto-visor-figura img {
-    aspect-ratio: 3 / 4;
-    height: auto;
-    background: #0b0820;
+.visor-titulo { display: grid; flex: 1; min-width: 0; text-align: center; }
+.visor-titulo small { opacity: 0.75; }
+.visor-lienzo { display: grid; flex: 1; min-height: 0; place-items: center; touch-action: pan-y; }
+.visor-lienzo img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    image-rendering: auto;
+    user-select: none;
+    -webkit-user-drag: none;
 }
-#dialogo-album { overflow-anchor: none; }
-.foto-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.foto-nav .boton { white-space: nowrap; }
-.foto-nav .boton[disabled] { opacity: 0.4; }
+.visor-contador { margin: 0; padding: 6px; font-size: 0.75rem; text-align: center; opacity: 0.7; }
+.visor-pie {
+    display: grid;
+    grid-template-columns: 52px 1fr 1fr 52px 52px;
+    gap: 6px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    background: rgba(0, 0, 0, 0.8);
+    border-top: 2px solid var(--tema);
+}
+.visor-pie .boton { min-height: 46px; padding: 6px 2px; font-size: 0.82rem; }
+.visor-pie .boton[disabled] { opacity: 0.35; }
 
 /* ===== (v194) Premios listos: en Hoy y en el ritual de la noche ===== */
 .premios-listos {

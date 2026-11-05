@@ -9,7 +9,7 @@
 //   · el álbum libre es "progreso"                    → tus fotos semanales de progreso
 // Las fotos NO van en la copia de seguridad (.json): pesarían demasiado. Viven solo en este teléfono.
 
-import { lunesDe } from "./fechas.js";
+import { lunesDe, sumarDias } from "./fechas.js";
 
 const NOMBRE_BD = "vida-rpg-fotos";
 const TIENDA = "fotos";
@@ -65,7 +65,7 @@ async function tienda(modo) {
 
 // Guarda (o reemplaza) la foto de ese álbum en esa fecha. `imagen` es un Blob (la foto ya reducida).
 export async function guardarFoto(album, fecha, imagen) {
-    const registro = { clave: claveDe(album, fecha), album: String(album), fecha, imagen, guardada: Date.now() };
+    const registro = { clave: claveDe(album, fecha), album: String(album), fecha, imagen, favorita: false, guardada: Date.now() };
     await esperar((await tienda("readwrite")).put(registro));
     // Pide al navegador que NO borre estas fotos si el teléfono se queda sin espacio (si no lo permite, no pasa nada).
     try { await navigator.storage?.persist?.(); } catch { /* da igual */ }
@@ -107,6 +107,61 @@ export async function borrarFoto(album, fecha) {
 // Para «Borrar todo»: que no quede ninguna foto en el teléfono.
 export async function borrarTodas() {
     try { await esperar((await tienda("readwrite")).clear()); } catch { /* si no hay base, no hay nada que borrar */ }
+}
+
+// ===== (v199) Filtrar y ordenar (reglas puras) =====
+
+// Los periodos del filtro de fechas y los dos órdenes. La galería los va cambiando al tocar el botón.
+export const PERIODOS = [
+    { id: "todo", nombre: "Todo el tiempo" },
+    { id: "mes", nombre: "Este mes" },
+    { id: "3m", nombre: "Últimos 3 meses" },
+    { id: "anio", nombre: "Este año" },
+];
+export const ORDENES = [
+    { id: "recientes", nombre: "Más recientes" },
+    { id: "antiguas", nombre: "Más antiguas" },
+];
+
+// De todas las fotos [{ album, fecha, favorita }], las que cumplen el filtro, ya ordenadas.
+//   filtro = { album: "todas" | id, periodo: "todo" | "mes" | "3m" | "anio", favoritas: true/false, orden: "recientes" | "antiguas" }
+export function filtrarFotos(lista, filtro, hoy) {
+    const desde = {
+        todo: "",
+        mes: hoy.slice(0, 7) + "-01",
+        "3m": sumarDias(hoy, -90),
+        anio: hoy.slice(0, 4) + "-01-01",
+    }[filtro.periodo] ?? "";
+    const sentido = filtro.orden === "antiguas" ? 1 : -1;
+    return lista
+        .filter((f) => (filtro.album === "todas" || f.album === filtro.album) && (!filtro.favoritas || f.favorita) && f.fecha >= desde)
+        .sort((a, b) => sentido * (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a.album < b.album ? -1 : a.album > b.album ? 1 : 0));
+}
+
+// ===== (v199) Organizar: todas las fotos, favoritas y mover de álbum =====
+
+export async function todasLasFotos() {
+    return esperar((await tienda("readonly")).getAll());
+}
+
+// Marca o quita la estrella de una foto.
+export async function marcarFavorita(album, fecha, valor) {
+    const t = await tienda("readwrite");
+    const registro = await esperar(t.get(claveDe(album, fecha)));
+    if (registro) await esperar(t.put({ ...registro, favorita: Boolean(valor) }));
+}
+
+// Pasa una foto a otro álbum. Devuelve false si no se pudo: es el mismo álbum, o el de destino ya
+// tiene una foto de ese día (solo hay una por álbum y día, así que no se pisa).
+export async function moverFoto(album, fecha, destino) {
+    const t = await tienda("readwrite");
+    const registro = await esperar(t.get(claveDe(album, fecha)));
+    if (!registro || String(destino) === registro.album) return false;
+    const claveNueva = claveDe(destino, fecha);
+    if (await esperar(t.get(claveNueva))) return false;
+    await esperar(t.put({ ...registro, clave: claveNueva, album: String(destino) }));
+    await esperar(t.delete(registro.clave));
+    return true;
 }
 
 // ===== Reducir la foto =====

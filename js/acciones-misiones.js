@@ -498,3 +498,26 @@ export function configurarFotos(estado, { semanal }) {
     estado.fotos.semanal = semanal === true || semanal === "on";
     return { semanal: estado.fotos.semanal };
 }
+
+
+// ===== Álbumes propios de fotos (v199) =====
+// Además del álbum de cada misión y el de «progreso», puedes crear los tuyos («Gym frente», «Viaje»…) y pasar fotos a ellos.
+// Aquí solo se anota su nombre; las fotos viven en IndexedDB (fotos.js). Su id es «a1», «a2»… (no choca con el id de una misión).
+
+export function crearAlbumDeFotos(estado, nombre) {
+    const limpio = validarNombre(nombre, 24);
+    if (limpio.toLowerCase() === "progreso" || estado.fotos.albumes.some((a) => a.nombre.toLowerCase() === limpio.toLowerCase())) {
+        throw new Error("Ya tienes un álbum con ese nombre.");
+    }
+    const numero = estado.fotos.albumes.reduce((mayor, a) => Math.max(mayor, Number(a.id.slice(1))), 0) + 1;
+    const album = { id: `a${numero}`, nombre: limpio };
+    estado.fotos.albumes.push(album);
+    return album;
+}
+
+// Quita un álbum propio de la lista. (La pantalla solo deja borrarlo si está vacío: aquí no se tocan las fotos.)
+export function borrarAlbumDeFotos(estado, id) {
+    const posicion = estado.fotos.albumes.findIndex((a) => a.id === id);
+    if (posicion < 0) throw new Error("Ese álbum no existe.");
+    return estado.fotos.albumes.splice(posicion, 1)[0];
+}

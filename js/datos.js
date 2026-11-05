@@ -86,7 +86,7 @@ export function estadoInicial() {
         },
         // (v142) El calendario de Memento Mori (ver memento.js): tu fecha de nacimiento (null = sin configurar) y hasta qué edad cuentas vivir.
         memento: { nacimiento: null, esperanza: 80 },
-        fotos: { semanal: true, ultima: null },   // (v197) recordatorio de la foto de progreso de la semana; «ultima» = fecha de la última (las fotos mismas van en IndexedDB: ver fotos.js)
+        fotos: { semanal: true, ultima: null, albumes: [] },   // (v197, v199) «albumes»: tus álbumes propios [{ id: "a1", nombre }];  recordatorio de la foto de progreso de la semana; «ultima» = fecha de la última (las fotos mismas van en IndexedDB: ver fotos.js)
         libros: { casio: { marca: 0, leidos: 0, fin: null }, orrin: { marca: 0, leidos: 0, fin: null } },   // (v62) el libro largo de Historia: por dónde vas y cuándo lo terminaste
         pergaminos: { leidos: {} },   // (v57) los pergaminos de la Biblioteca prohibida que ya leíste: { id: fecha }
         // (v101) Las insignias (ver insignias.js). vistas = las que ya se celebraron (null = todavía no se miró nunca:
