@@ -21,7 +21,8 @@ import * as cinematicas from "../js/torre/cinematicas.js";
 import * as voces from "../js/voces/voces.js";
 import * as vistasVoces from "../js/voces/vistas-voces.js";
 import * as anual from "../js/anual.js";   // (v181)
-import * as foto from "../js/foto.js";     // (v193)
+import * as fotos from "../js/fotos.js";     // (v197)
+import * as vistasFotos from "../js/pantallas/vistas-fotos.js";   // (v197)
 import { existeSonido } from "../js/sonido.js";
 import { calcularResumen, semanaPorMostrar, resumenSemana, textoSemanaParaIA, pistaDeFallas, focoDeLaSemana, MAX_FOCO, semanaEnCurso, ajusteDeDificultad, ajustesDeDificultad } from "../js/resumen.js";
 import * as hallazgos from "../js/running/hallazgos.js";   // (v148)
@@ -8097,7 +8098,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 42, "versión de los datos");
+    igual(base.version, 43, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -8299,7 +8300,7 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [42, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [43, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });
@@ -9738,7 +9739,7 @@ prueba("La Senda del Reino: tu equipo ayuda (armadura al empezar, vidas, fuego y
     delete estado.arcade.plataformas;
     estado.version = 40;
     const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
-    igual([copia.version, copia.arcade.plataformas], [42, { niveles: {} }], "versión 42 y la Senda vacía");
+    igual([copia.version, copia.arcade.plataformas], [43, { niveles: {} }], "versión 43 y la Senda vacía");
     estado.arcade.plataformas = { niveles: { "1-1": { mejor: 10, reliquias: [1], tiempo: 5, ganadoEn: dia(0), veces: 1 } } };
     igual(datos.desdeRespaldo(datos.textoRespaldo(estado)).arcade.plataformas.niveles["1-1"].reliquias, [1], "y se conserva lo que había");
 });
@@ -9943,27 +9944,75 @@ prueba("Fondo del retrato: cada fondo se dibuja distinto, se guarda y uno descon
     igual(dibujarAvatar(base(), { mini: true }).replace(/av\d+/g, "av"), [...vistos][0], "un id raro se dibuja como el de siempre");
 });
 
-prueba("Misiones con foto (v193): el código del día es fijo, cambia cada día y se lee aunque el OCR se equivoque un poco", () => {
-    const a = foto.codigoDeMision(7, "2026-11-05");
-    igual(foto.codigoDeMision(7, "2026-11-05"), a, "el mismo día da el mismo código");
-    cierto(foto.PALABRAS.includes(a.palabra) && a.numero >= 10 && a.numero <= 99, "palabra de la lista y número de 10 a 99");
-    const otros = new Set(Array.from({ length: 30 }, (_, i) => foto.codigoDeMision(7, sumarDias("2026-11-05", i)).texto));
-    cierto(otros.size >= 20, "en 30 días casi no se repite");
-
-    const codigo = { texto: "LOBO 47" };
-    cierto(foto.verificarTexto("Tarea de matemáticas\nLOBO 47\nlista", codigo).ok, "tal cual, entre otro texto");
-    cierto(foto.verificarTexto("l0bo-47", codigo).ok, "minúsculas, ceros en vez de O y un guion");
-    cierto(foto.verificarTexto("LOBQ 4 7", codigo).ok, "una letra mal leída y un espacio de más");
-    cierto(foto.verificarTexto("LOB 47", codigo).ok, "le falta una letra (1 error perdonado)");
-    cierto(!foto.verificarTexto("LO 4", codigo).ok, "demasiados errores: no pasa");
-    cierto(!foto.verificarTexto("ROCA 47", codigo).ok, "otra palabra: no pasa");
-    cierto(!foto.verificarTexto("LOBO 12", codigo).ok, "otro número: no pasa");
-    cierto(!foto.verificarTexto("", codigo).ok, "sin texto: no pasa");
-    igual(foto.distanciaDentro("ABC", "XXABCXX"), 0, "aparece tal cual dentro");
-    igual(foto.distanciaDentro("ABC", "XXABXCX"), 1, "con una letra de más en medio");
+prueba("Fotos de progreso (v197): el recordatorio semanal pide la foto una vez por semana", () => {
+    const estado = partidaNueva();
+    const lunes = lunesDe(hoy());
+    cierto(estado.fotos.semanal && estado.fotos.ultima === null, "partida nueva: recordatorio encendido y sin fotos");
+    cierto(fotos.faltaFotoSemanal(estado, hoy()), "sin ninguna foto, toca pedirla");
+    acciones.registrarFotoProgreso(estado, hoy());
+    igual(estado.fotos.ultima, hoy());
+    cierto(!fotos.faltaFotoSemanal(estado, hoy()), "ya la tomaste esta semana");
+    cierto(!fotos.faltaFotoSemanal(estado, sumarDias(lunes, 6)), "el domingo de esa semana todavía cuenta");
+    cierto(fotos.faltaFotoSemanal(estado, sumarDias(lunes, 7)), "el lunes siguiente vuelve a tocar");
+    acciones.registrarFotoProgreso(estado, sumarDias(hoy(), -30));
+    igual(estado.fotos.ultima, hoy(), "una foto vieja no atrasa el recordatorio");
+    debeFallar(() => acciones.registrarFotoProgreso(estado, "mañana"), "no es válida");
+    acciones.configurarFotos(estado, { semanal: false });
+    cierto(!fotos.faltaFotoSemanal(estado, sumarDias(lunes, 7)), "apagado: nunca pide");
+    acciones.configurarFotos(estado, { semanal: "on" });
+    igual(estado.fotos.semanal, true, "la casilla «on» lo enciende");
 });
 
-prueba("Misiones con foto (v193): sin foto verificada no se completa; con foto sí, y queda anotado", () => {
+prueba("Fotos de progreso (v197): se guardan en IndexedDB, una por álbum y día, y se pueden borrar", async () => {
+    const album = "prueba-" + Date.now();
+    const otro = album + "-otro";
+    const blob = (texto) => new Blob([texto], { type: "image/jpeg" });
+    try {
+        await fotos.guardarFoto(album, "2026-11-10", blob("b"));
+        await fotos.guardarFoto(album, "2026-11-03", blob("a"));
+        await fotos.guardarFoto(otro, "2026-11-03", blob("z"));
+        let lista = await fotos.fotosDeAlbum(album);
+        igual(lista.map((f) => f.fecha), ["2026-11-03", "2026-11-10"], "salen de la más vieja a la más nueva");
+        igual(lista[0].imagen.size, 1, "guarda la imagen tal cual");
+        await fotos.guardarFoto(album, "2026-11-03", blob("reemplazo"));
+        lista = await fotos.fotosDeAlbum(album);
+        igual([lista.length, lista[0].imagen.size], [2, 9], "otra foto el mismo día la reemplaza");
+        const cuenta = await fotos.cuentaPorAlbum();
+        igual([cuenta[album], cuenta[otro]], [2, 1], "cuenta por álbum");
+        await fotos.borrarFoto(album, "2026-11-10");
+        igual((await fotos.fotosDeAlbum(album)).map((f) => f.fecha), ["2026-11-03"], "borra solo esa");
+        igual((await fotos.fotosDeAlbum(otro)).length, 1, "y no toca otro álbum");
+    } finally {
+        await fotos.borrarFoto(album, "2026-11-03");
+        await fotos.borrarFoto(album, "2026-11-10");
+        await fotos.borrarFoto(otro, "2026-11-03");
+    }
+});
+
+prueba("Fotos de progreso (v197): la galería muestra miniaturas, una foto grande o dos para comparar", () => {
+    const f = (fecha) => ({ fecha, url: "blob:" + fecha });
+    const datos = (seleccion) => ({
+        albumes: [{ id: "progreso", nombre: "📈 Progreso", cuenta: 3 }, { id: "7", nombre: "Gym", cuenta: 1 }],
+        album: "progreso", fotos: [f("2026-11-03"), f("2026-11-10"), f("2026-11-17")], seleccion, semanal: true,
+    });
+    let html = vistasFotos.contenidoGaleria(datos([]));
+    igual((html.match(/class="foto-mini"/g) || []).length, 3, "una miniatura por foto");
+    cierto(html.includes("Toca una foto para verla") && html.includes("➕ Foto de hoy"), "sin elegir: la ayuda y el botón de foto de hoy");
+    html = vistasFotos.contenidoGaleria(datos(["2026-11-10"]));
+    cierto(html.includes("fotos-borrar") && !html.includes("foto-visor-doble"), "una elegida: grande, con borrar");
+    html = vistasFotos.contenidoGaleria(datos(["2026-11-17", "2026-11-03"]));
+    cierto(html.includes("foto-visor-doble") && html.includes("pasaron 14 días"), "dos elegidas: juntas y con los días entre las dos");
+    cierto(html.indexOf("blob:2026-11-03") < html.indexOf("blob:2026-11-17", html.indexOf("foto-visor-doble")), "la más vieja va a la izquierda");
+    html = vistasFotos.contenidoGaleria({ ...datos([]), album: "7", fotos: [] });
+    cierto(html.includes("Aún no hay fotos") && !html.includes("➕ Foto de hoy"), "álbum vacío; la foto de hoy solo en «progreso»");
+    cierto(html.includes("Recordarme cada semana: sí") && html.includes("copia de seguridad no las incluye"), "recordatorio y aviso de la copia");
+    const estado = partidaNueva();
+    cierto(vistasFotos.tarjetaFotoSemanal(estado, { hoy: hoy() }).includes("fotos-semanal"), "Hoy pide la foto de la semana");
+    acciones.registrarFotoProgreso(estado, hoy());
+    igual(vistasFotos.tarjetaFotoSemanal(estado, { hoy: hoy() }), "", "ya tomada: no sale la tarjeta");
+});
+
+prueba("Misiones con foto (v193, v197): sin foto no se completa; con foto sí, y queda anotado", () => {
     const estado = partidaNueva();
     const m = crearMision(estado, { foto: "on" });
     igual(m.foto, true, "la casilla «on» la deja pidiendo foto");

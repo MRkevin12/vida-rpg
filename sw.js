@@ -17,19 +17,9 @@
 // (Cache-Control: max-age=600). Para no copiar archivos viejos, aquí siempre
 // los pedimos frescos con cache: "reload" / "no-cache".
 
-const VERSION = "vida-rpg-v196";
+const VERSION = "vida-rpg-v197";
 const CACHE_VOCES = "locutor-vida-rpg";   // (v128) las voces grabadas de la carrera: tampoco se borran al actualizar
 const CACHE_MUSICA = "musica-vida-rpg";   // no empieza con "vida-rpg-v": al actualizar no se borra
-// (v193) El lector de fotos (Tesseract, ~6 MB): caché aparte que NO se borra al actualizar, para no volver a
-// bajar 6 MB en cada versión. Se descarga al instalar, así funciona sin internet. Si cambias algo en ocr/,
-// cambia este nombre (ocr-vida-rpg-1 → -2) y borra el viejo abajo, en "activate".
-const CACHE_OCR = "ocr-vida-rpg-1";
-const ARCHIVOS_OCR = [
-    "./ocr/tesseract.esm.min.js",
-    "./ocr/worker.min.js",
-    "./ocr/tesseract-core-simd-lstm.wasm.js",
-    "./ocr/spa.traineddata.gz",
-];
 
 const ARCHIVOS = [
     "./",
@@ -70,6 +60,7 @@ const ARCHIVOS = [
     "./js/pantallas/app-maestro.js",
     "./js/pantallas/app-diario.js",
     "./js/pantallas/app-foto.js",
+    "./js/pantallas/vistas-fotos.js",
     "./js/pantallas/app-version.js",
     "./js/pantallas/app-botones.js",
     "./js/pantallas/app-formularios.js",
@@ -133,7 +124,7 @@ const ARCHIVOS = [
     "./js/dibujo/dibujo-objetos.js",
     "./js/dibujo/dibujo-ropa.js",
     "./js/fechas.js",
-    "./js/foto.js",
+    "./js/fotos.js",
     "./js/juego.js",
     "./js/eventos.js",
     "./js/rituales.js",
@@ -256,15 +247,10 @@ const ARCHIVOS = [
 // Instalación: guardar todos los archivos.
 self.addEventListener("install", (evento) => {
     // cache: "reload" = ir siempre a internet, sin usar la caché del navegador.
-    evento.waitUntil(Promise.all([
+    evento.waitUntil(
         caches.open(VERSION).then((cache) =>
-            cache.addAll(ARCHIVOS.map((url) => new Request(url, { cache: "reload" })))),
-        // (v193) El lector de fotos: solo baja lo que falte. Si falla (poca señal), no impide instalar
-        // la app: se vuelve a intentar en la próxima versión o la primera vez que tomes una foto.
-        caches.open(CACHE_OCR).then((cache) => Promise.all(ARCHIVOS_OCR.map(async (url) => {
-            if (!(await cache.match(url))) await cache.add(new Request(url, { cache: "reload" }));
-        }))).catch(() => {}),
-    ]));
+            cache.addAll(ARCHIVOS.map((url) => new Request(url, { cache: "reload" }))))
+    );
     self.skipWaiting(); // activarse sin esperar a que se cierre la app
 });
 
@@ -275,7 +261,7 @@ self.addEventListener("activate", (evento) => {
         caches.keys()
             .then((nombres) => Promise.all(
                 nombres.filter((nombre) => (nombre.startsWith("vida-rpg-v") && nombre !== VERSION) ||
-                                           (nombre.startsWith("ocr-vida-rpg") && nombre !== CACHE_OCR))
+                                           nombre.startsWith("ocr-vida-rpg"))   // (v197) el OCR de la v193 ya no existe
                     .map((nombre) => caches.delete(nombre))
             ))
             .then(() => self.clients.claim())
@@ -295,18 +281,6 @@ self.addEventListener("fetch", (evento) => {
     // y se guardan en una caché aparte (CACHE_MUSICA), que no se borra al actualizar la app.
     if (direccion.pathname.includes("/musica/")) {
         evento.respondWith(caches.open(CACHE_MUSICA).then(async (cache) => {
-            const guardada = await cache.match(peticion, { ignoreSearch: true });
-            if (guardada) return guardada;
-            const respuesta = await fetch(peticion);
-            if (respuesta.ok) await cache.put(peticion, respuesta.clone());
-            return respuesta;
-        }));
-        return;
-    }
-
-    // (v193) El lector de fotos: primero la copia guardada; si no está, se baja y se guarda.
-    if (direccion.pathname.includes("/ocr/")) {
-        evento.respondWith(caches.open(CACHE_OCR).then(async (cache) => {
             const guardada = await cache.match(peticion, { ignoreSearch: true });
             if (guardada) return guardada;
             const respuesta = await fetch(peticion);

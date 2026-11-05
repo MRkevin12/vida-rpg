@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 196;
+export const VERSION_APP = 197;
 
 export const NOVEDADES = [
+    {
+        version: 197,
+        titulo: "Fotos de progreso",
+        cambios: [
+            "📷 Las misiones con foto ya no leen un código: solo tomas la foto de lo que hiciste y se guarda en tu teléfono (reducida, sin internet).",
+            "🖼️ Nueva galería en Progreso → «Mis fotos de progreso»: un álbum por misión y otro de progreso. Toca una foto para verla grande; toca dos para compararlas lado a lado.",
+            "📈 Cada semana, en Hoy, te pide la foto de progreso (por ejemplo del gym). Se puede apagar en la galería.",
+            "💾 Las fotos viven solo en este teléfono: la copia de seguridad no las incluye. Y la app pesa ~6 MB menos: ya no lleva el lector de texto.",
+        ],
+    },
     {
         version: 196,
         titulo: "Aurelio se viste según la hora y habla más",

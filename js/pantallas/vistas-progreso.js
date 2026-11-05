@@ -290,6 +290,9 @@ function seccionResumen(estado, ctx) {
             <ul class="barras-atributo">${atributos}</ul>
             <p class="nota">${consejo}</p>
 
+            <!-- (v197) Las fotos de progreso: álbumes por misión y comparador de dos fechas -->
+            <button type="button" class="boton boton-secundario boton-ancho" data-accion="fotos-abrir">📷 Mis fotos de progreso</button>
+
             <!-- (v196) Siempre disponible: copia la semana pasada (de lunes a domingo) para pegarla en una IA -->
             <button type="button" class="boton boton-secundario boton-ancho" data-accion="copiar-semana-ia">🤖 Copiar la semana pasada para la IA</button>
             <p class="ficha-nota">Se copia en la memoria de tu teléfono. Abre tu IA (Claude, ChatGPT…), mantén presionado el cuadro de mensaje y toca «Pegar».</p>

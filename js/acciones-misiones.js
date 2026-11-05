@@ -123,7 +123,7 @@ export function crearMision(estado, { nombre, dificultad, atributo, dias, frecue
         meta,
         aviso: validarAviso(aviso),
         momento: validarMomento(momento),
-        foto: validarFoto(foto, meta),   // (v193) para completarla hay que tomar una foto con el código del día
+        foto: validarFoto(foto, meta),   // (v193) para completarla hay que tomar una foto (v197: se guarda en el teléfono)
         creadaEn: hoy(),
         archivadaEn: null,
         pausas: [],
@@ -173,11 +173,11 @@ function validarFecha(fecha, mensaje = "Solo puedes marcar misiones de hoy o de 
     return fecha;
 }
 
-// opciones.conFoto (v193): true cuando la foto ya pasó la prueba del código (ver foto.js y app-foto.js).
+// opciones.conFoto (v193): true cuando ya tomaste y guardaste la foto (ver fotos.js y app-foto.js).
 export function completarMision(estado, id, fecha = hoy(), opciones = {}) {
     const mision = buscar(estado.misiones, id, "esa misión");
     validarFecha(fecha);
-    if (mision.foto && !opciones.conFoto) throw new Error("Esta misión pide una foto con el código del día.");
+    if (mision.foto && !opciones.conFoto) throw new Error("Esta misión pide una foto de lo que hiciste.");
     if (!juego.sePuedeMarcar(mision, fecha)) throw new Error("Esa misión no tocaba ese día.");
     if (estado.completadas.some((c) => c.misionId === id && c.fecha === fecha)) {
         throw new Error("Esa misión ya estaba completada ese día.");
@@ -193,7 +193,7 @@ export function completarMision(estado, id, fecha = hoy(), opciones = {}) {
     // restarlo exacto si la desmarcas y para que editar la misión no cambie el pasado.
     estado.completadas.push({ misionId: id, fecha, xp, monedas, atributo: mision.atributo, dificultad: mision.dificultad,
                               atributoPropio: mision.atributoPropio || null, ...(esClave ? { clave: true } : {}),
-                              ...(opciones.conFoto ? { foto: true } : {}),   // (v193) se completó con una foto verificada
+                              ...(opciones.conFoto ? { foto: true } : {}),   // (v193) se completó con una foto
                               // (v149) La hora en que la marcaste (solo si es de hoy): sirve para saber a qué hora la sueles cumplir.
                               ...(fecha === hoy() ? { hora: new Date().getHours() } : {}) });
     ganar(estado, { xp, monedas, atributo: mision.atributo });
@@ -479,4 +479,22 @@ export function abrirCarta(estado, id) {
     if (carta.abrir > hoy()) throw new Error("Todavía está sellada.");
     if (!carta.abiertaEn) carta.abiertaEn = hoy();
     return { carta };
+}
+
+
+// ===== Fotos de progreso (v197) =====
+// Las fotos mismas viven en IndexedDB (ver fotos.js). Aquí solo se anota LO QUE NECESITAN las reglas:
+// cuándo fue la última foto de progreso (para el recordatorio de la semana) y si el recordatorio está encendido.
+
+// Anota que tomaste la foto de progreso de esa fecha (solo avanza: una foto vieja no atrasa el recordatorio).
+export function registrarFotoProgreso(estado, fecha = hoy()) {
+    if (!esFechaValida(fecha)) throw new Error("La fecha de la foto no es válida.");
+    if (!estado.fotos.ultima || fecha > estado.fotos.ultima) estado.fotos.ultima = fecha;
+    return estado.fotos.ultima;
+}
+
+// Enciende o apaga el recordatorio semanal de la foto de progreso.
+export function configurarFotos(estado, { semanal }) {
+    estado.fotos.semanal = semanal === true || semanal === "on";
+    return { semanal: estado.fotos.semanal };
 }

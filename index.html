@@ -401,11 +401,11 @@
                 </label>
                 <p class="nota">Te llega una notificación solo de esta misión, los días que toca, y solo si todavía no la
                    hiciste. Necesita las notificaciones activadas (Ajustes → 🔔). Déjala vacía para no recibir aviso.</p>
-                <!-- (v193) Pedir foto: para completarla hay que fotografiar el código del día -->
+                <!-- (v193, v197) Pedir foto: para completarla hay que tomar una foto de lo que hiciste; se guarda en la galería -->
                 <label class="interruptor">
-                    <span><b>📷 Pedir foto para completarla</b><br><span class="nota">Cada día te da un código (ej. «LOBO 47»):
-                        lo escribes en tu cuaderno y le tomas foto. La app lee la foto, sin internet, y solo la marca si
-                        encuentra el código. No sirve para misiones con cantidad.</span></span>
+                    <span><b>📷 Pedir foto para completarla</b><br><span class="nota">Al marcarla te abre la cámara y la foto se
+                        guarda en tu galería (Progreso → Fotos), para ver tu avance con los días. Se queda solo en este teléfono.
+                        No sirve para misiones con cantidad.</span></span>
                     <input type="checkbox" name="foto">
                 </label>
             </div>
@@ -424,21 +424,26 @@
         </form>
     </dialog>
 
-    <!-- (v193) Prueba con foto: el código del día, la cámara y lo que leyó el OCR (js/pantallas/app-foto.js) -->
+    <!-- (v197) Tomar una foto: la cámara, la vista previa y guardar (js/pantallas/app-foto.js) -->
     <dialog id="dialogo-foto" class="dialogo">
         <div class="formulario">
-            <h2 class="titulo-juego" tabindex="-1" autofocus>📷 Prueba con foto</h2>
+            <h2 class="titulo-juego" tabindex="-1" autofocus>📷 Tu foto</h2>
             <p class="foto-mision" id="foto-mision"></p>
-            <p class="nota">Escribe este código en tu cuaderno, <b>en mayúsculas y grande</b>, junto a lo que hiciste. Luego tómale una foto:</p>
-            <p class="foto-codigo" id="foto-codigo"></p>
+            <p class="nota" id="foto-detalle"></p>
             <button type="button" class="boton boton-principal boton-ancho" id="foto-tomar">📷 Tomar la foto</button>
             <input type="file" accept="image/*" capture="environment" id="foto-entrada" hidden>
             <img class="foto-vista" id="foto-vista" alt="La foto que tomaste" hidden>
             <p class="foto-estado" id="foto-estado" role="status" aria-live="polite"></p>
+            <button type="button" class="boton boton-principal boton-ancho" id="foto-guardar" hidden>✅ Guardar la foto</button>
             <div class="botones-dialogo">
                 <button type="button" class="boton boton-secundario" data-accion="cerrar">Cancelar</button>
             </div>
         </div>
+    </dialog>
+
+    <!-- (v197) Galería de fotos: álbumes, miniaturas y comparador (se llena desde js/pantallas/app-foto.js) -->
+    <dialog id="dialogo-fotos" class="dialogo">
+        <div class="formulario" id="fotos-contenido"></div>
     </dialog>
 
     <dialog id="dialogo-tarea" class="dialogo">

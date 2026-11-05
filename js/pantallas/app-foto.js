@@ -1,171 +1,216 @@
-// app-foto.js — La ventana «📷 Prueba con foto» (v193): muestra el código del día, abre la cámara,
-// lee la foto con OCR (Tesseract, SIN internet: sus archivos están en ocr/) y dice si el código aparece.
+// app-foto.js — Las fotos de progreso (v197): tomar la foto, guardarla y la galería con su comparador.
 //
-// Uso: const ok = await pedirFoto(mision, fecha);  → true solo si la foto pasó la prueba.
-// La foto NO se guarda: solo se lee y se olvida (pesa mucho y el localStorage es chico).
+// Reemplaza al lector de código (OCR) de la v193: ya no se «verifica» el contenido de la foto, solo se toma y se guarda.
+// Sirve para ver tu avance semana a semana (por ejemplo en el gym) y para tener un recuerdo de cada misión.
+//
+//   const ok = await pedirFoto(mision, fecha);   → true si la foto quedó guardada (la usa «alternar-mision» y el ritual)
+//   La foto se reduce (~1000 px) y se guarda en el teléfono (IndexedDB, ver fotos.js). No sale de ahí.
+//
+// Los botones (data-accion="fotos-…") están al final en ACCIONES_FOTO; app.js los suma a los demás.
 
-import { codigoDeMision, verificarTexto } from "../foto.js";
-import { $ } from "../app.js";
+import * as acciones from "../acciones.js";
+import * as fotos from "../fotos.js";
+import * as vistasFotos from "./vistas-fotos.js";
+import { hoy } from "../fechas.js";
+import { estado, $, ejecutar } from "../app.js";
+import { avisar } from "./app-efectos.js";
 
-// Dónde están los archivos de Tesseract (rutas completas: el "worker" las necesita así).
-const CARPETA_OCR = new URL("../../ocr/", import.meta.url).href;
-const LADO_MAXIMO = 1600;   // achicamos la foto (12 megapíxeles → ~2): lee igual de bien y mucho más rápido
+// ===== Tomar una foto y guardarla =====
 
-let lector = null;          // promesa del lector de Tesseract (se crea la primera vez y se reutiliza)
-let alAvanzar = null;       // a quién avisar del progreso mientras lee
-
-// Crea el lector una sola vez. import() dinámico: los ~6 MB solo se cargan cuando de verdad tomas una foto.
-function obtenerLector() {
-    if (!lector) {
-        lector = (async () => {
-            const { default: Tesseract } = await import("../../ocr/tesseract.esm.min.js");
-            const trabajador = await Tesseract.createWorker("spa", 1, {   // 1 = el motor LSTM (red neuronal)
-                workerPath: CARPETA_OCR + "worker.min.js",
-                corePath: CARPETA_OCR + "tesseract-core-simd-lstm.wasm.js",
-                langPath: CARPETA_OCR,          // ahí está spa.traineddata.gz
-                cacheMethod: "none",            // ya lo guarda el service worker: no duplicarlo en IndexedDB
-                workerBlobURL: false,
-                logger: (m) => alAvanzar?.(m),
-            });
-            // Solo letras y números: así no "inventa" signos raros donde hay manchas.
-            await trabajador.setParameters({
-                tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ",
-            });
-            return trabajador;
-        })();
-        lector.catch(() => { lector = null; });   // si falló, la próxima vez se vuelve a intentar
-    }
-    return lector;
-}
-
-// Cerrar el lector al terminar: en el iPhone ocupa bastante memoria.
-async function soltarLector() {
-    const anterior = lector;
-    lector = null;
-    try { (await anterior)?.terminate(); } catch { /* ya estaba cerrado */ }
-}
-
-// La foto → un canvas más chico (createImageBitmap ya la gira según cómo tenías el teléfono).
-async function prepararImagen(archivo) {
-    const imagen = await createImageBitmap(archivo);
-    const escala = Math.min(1, LADO_MAXIMO / Math.max(imagen.width, imagen.height));
-    const lienzo = document.createElement("canvas");
-    lienzo.width = Math.round(imagen.width * escala);
-    lienzo.height = Math.round(imagen.height * escala);
-    lienzo.getContext("2d").drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
-    imagen.close?.();
-    return lienzo;
-}
-
-// Cómo busca el texto en la hoja (tessedit_pageseg_mode):
-//   "3"  = como una página normal (párrafos y líneas). Es el de siempre.
-//   "11" = texto disperso: palabras sueltas en cualquier parte. Encuentra mejor un código escrito
-//          en medio de una hoja con otras cosas (lo probamos con varias letras "a mano").
-export const MODOS = ["3", "11"];
-
-// Lee el texto de la foto (puede ser el archivo o un canvas ya preparado).
-// avance recibe el porcentaje (0–100) mientras reconoce.
-export async function leerTexto(imagen, avance = () => {}, modo = "3") {
-    alAvanzar = (m) => {
-        if (m.status === "recognizing text") avance(Math.round(m.progress * 100));
-    };
-    const [trabajador, lienzo] = await Promise.all([
-        obtenerLector(),
-        imagen instanceof HTMLCanvasElement ? imagen : prepararImagen(imagen),
-    ]);
-    await trabajador.setParameters({ tessedit_pageseg_mode: modo });
-    const { data } = await trabajador.recognize(lienzo);
-    alAvanzar = null;
-    return data.text || "";
-}
-
-// Lee la foto con cada modo hasta encontrar el código. Devuelve el resultado de verificarTexto
-// (y el texto leído, para mostrarlo si no lo encontró).
-async function buscarCodigo(archivo, codigo, avance) {
-    const lienzo = await prepararImagen(archivo);   // se prepara una sola vez para las dos lecturas
-    let ultimo = null;
-    for (const [i, modo] of MODOS.entries()) {
-        const texto = await leerTexto(lienzo, (p) => avance(p, i + 1), modo);
-        ultimo = { ...verificarTexto(texto, codigo), texto };
-        if (ultimo.ok) break;
-    }
-    return ultimo;
-}
-
-// Abre la ventana y espera. Devuelve una promesa que termina en true (foto válida) o false (cancelaste).
-export function pedirFoto(mision, fecha) {
+// Abre la ventana, espera a que tomes y guardes la foto. Devuelve una promesa: true si se guardó, false si cancelaste.
+//   album: dónde se guarda (id de la misión como texto, o "progreso")   fecha: el día al que pertenece
+function capturar({ titulo, detalle, album, fecha }) {
     const dialogo = $("#dialogo-foto");
     const entrada = $("#foto-entrada");
     const vista = $("#foto-vista");
     const estadoTexto = $("#foto-estado");
-    const codigo = codigoDeMision(mision.id, fecha);
+    const guardar = $("#foto-guardar");
+    const tomar = $("#foto-tomar");
 
-    $("#foto-mision").textContent = mision.nombre;
-    $("#foto-codigo").textContent = codigo.texto;
+    $("#foto-mision").textContent = titulo;
+    $("#foto-detalle").textContent = detalle;
     estadoTexto.textContent = "";
     estadoTexto.className = "foto-estado";
     vista.hidden = true;
+    guardar.hidden = true;
+    guardar.disabled = false;
     entrada.value = "";
 
     return new Promise((terminar) => {
-        let aprobada = false;
-        let leyendo = false;
+        let guardada = false;
+        let lista = null;        // la foto ya reducida (Blob), esperando que toques «Guardar»
         let urlVista = null;
 
+        // Elegiste o tomaste una foto: se reduce y se muestra para que la revises antes de guardar.
         const elegir = async () => {
             const archivo = entrada.files[0];
-            if (!archivo || leyendo) return;
-            leyendo = true;
-            dialogo.classList.add("leyendo");
-            if (urlVista) URL.revokeObjectURL(urlVista);
-            urlVista = URL.createObjectURL(archivo);
-            vista.src = urlVista;
-            vista.hidden = false;
+            if (!archivo) return;
+            guardar.hidden = true;
             estadoTexto.className = "foto-estado";
-            estadoTexto.textContent = "🔎 Preparando el lector… (la primera vez tarda un poco más)";
+            estadoTexto.textContent = "⏳ Preparando la foto…";
             try {
-                const resultado = await buscarCodigo(archivo, codigo, (p, vuelta) => {
-                    estadoTexto.textContent = `🔎 Leyendo la foto${vuelta > 1 ? " otra vez, con más cuidado" : ""}… ${p} %`;
-                });
-                const texto = resultado.texto;
-                if (resultado.ok) {
-                    aprobada = true;
-                    estadoTexto.className = "foto-estado foto-ok";
-                    estadoTexto.textContent = `✅ ¡Código «${codigo.texto}» encontrado!`;
-                    setTimeout(() => dialogo.close(), 900);
-                } else {
-                    estadoTexto.className = "foto-estado foto-mal";
-                    const leido = texto.replace(/\s+/g, " ").trim().slice(0, 60);
-                    estadoTexto.textContent = `❌ No encontré «${codigo.texto}». ` +
-                        (leido ? `Leí: «${leido}». ` : "No pude leer ningún texto. ") +
-                        "Prueba con más luz, letras grandes y el teléfono derecho.";
-                }
+                lista = await fotos.reducirImagen(archivo);
+                if (urlVista) URL.revokeObjectURL(urlVista);
+                urlVista = URL.createObjectURL(lista);
+                vista.src = urlVista;
+                vista.hidden = false;
+                guardar.hidden = false;
+                estadoTexto.textContent = "Revisa la foto. Si no te gusta, toma otra.";
             } catch (error) {
                 console.error(error);
+                lista = null;
                 estadoTexto.className = "foto-estado foto-mal";
-                estadoTexto.textContent = "⚠️ No se pudo leer la foto en este teléfono. Vuelve a intentarlo.";
+                estadoTexto.textContent = "⚠️ No se pudo preparar esa foto. Prueba con otra.";
             } finally {
-                leyendo = false;
-                dialogo.classList.remove("leyendo");
-                entrada.value = "";   // para poder elegir otra foto igual
+                entrada.value = "";   // para poder elegir otra igual
             }
         };
 
-        const tomar = () => entrada.click();
+        const alGuardar = async () => {
+            if (!lista || guardar.disabled) return;
+            guardar.disabled = true;
+            try {
+                await fotos.guardarFoto(album, fecha, lista);
+                guardada = true;
+                dialogo.close();
+            } catch (error) {
+                console.error(error);
+                estadoTexto.className = "foto-estado foto-mal";
+                estadoTexto.textContent = "⚠️ No se pudo guardar la foto en este teléfono. ¿Poco espacio? Libera un poco y vuelve a intentar.";
+                guardar.disabled = false;
+            }
+        };
+
+        const alTomar = () => entrada.click();
 
         const alCerrar = () => {
             entrada.removeEventListener("change", elegir);
-            $("#foto-tomar").removeEventListener("click", tomar);
+            tomar.removeEventListener("click", alTomar);
+            guardar.removeEventListener("click", alGuardar);
             dialogo.removeEventListener("close", alCerrar);
             if (urlVista) URL.revokeObjectURL(urlVista);
             vista.removeAttribute("src");
-            soltarLector();
-            terminar(aprobada);
+            terminar(guardada);
         };
 
         entrada.addEventListener("change", elegir);
-        $("#foto-tomar").addEventListener("click", tomar);
+        tomar.addEventListener("click", alTomar);
+        guardar.addEventListener("click", alGuardar);
         dialogo.addEventListener("close", alCerrar);
         dialogo.showModal();
     });
 }
+
+// La foto de una misión que la pide (al completarla). true = quedó guardada.
+export function pedirFoto(mision, fecha) {
+    return capturar({
+        titulo: mision.nombre,
+        detalle: "Toma una foto de lo que hiciste. Se guarda en tu galería, en el álbum de esta misión.",
+        album: String(mision.id),
+        fecha,
+    });
+}
+
+// La foto de progreso (la semanal): queda en el álbum «progreso» y se anota para el recordatorio.
+async function tomarFotoDeProgreso() {
+    const fecha = hoy();
+    const ok = await capturar({
+        titulo: "Foto de progreso",
+        detalle: "Mismo lugar, misma luz y mismo ángulo que la vez anterior: así se nota el cambio.",
+        album: fotos.ALBUM_LIBRE,
+        fecha,
+    });
+    if (!ok) return;
+    ejecutar(() => acciones.registrarFotoProgreso(estado, fecha));
+    avisar("📷 Foto guardada");
+    if (galeria) pintarGaleria();
+}
+
+
+// ===== La galería =====
+
+let galeria = null;            // { album, seleccion: [fechas] } mientras la ventana está abierta
+let urlsGaleria = [];          // direcciones temporales de las miniaturas (se sueltan al redibujar y al cerrar)
+let versionDeDibujo = 0;       // para ignorar un dibujo viejo que terminó tarde
+
+function soltarUrls() {
+    for (const url of urlsGaleria) URL.revokeObjectURL(url);
+    urlsGaleria = [];
+}
+
+// Los álbumes: el de progreso, y uno por cada misión que pide foto o ya tiene fotos.
+function listarAlbumes(cuenta) {
+    const lista = [{ id: fotos.ALBUM_LIBRE, nombre: "📈 Progreso", cuenta: cuenta[fotos.ALBUM_LIBRE] || 0 }];
+    for (const m of estado.misiones) {
+        const id = String(m.id);
+        if ((m.foto && !m.archivadaEn) || cuenta[id]) lista.push({ id, nombre: m.nombre, cuenta: cuenta[id] || 0 });
+    }
+    // Fotos de una misión que ya no existe: se siguen viendo (y se pueden borrar).
+    for (const id of Object.keys(cuenta)) {
+        if (!lista.some((a) => a.id === id)) lista.push({ id, nombre: "Misión borrada", cuenta: cuenta[id] });
+    }
+    return lista;
+}
+
+async function pintarGaleria() {
+    if (!galeria) return;
+    const version = ++versionDeDibujo;
+    try {
+        const cuenta = await fotos.cuentaPorAlbum();
+        const albumes = listarAlbumes(cuenta);
+        if (!albumes.some((a) => a.id === galeria.album)) galeria.album = fotos.ALBUM_LIBRE;
+        const registros = await fotos.fotosDeAlbum(galeria.album);
+        if (version !== versionDeDibujo || !galeria) return;   // llegó tarde: ya hay un dibujo más nuevo
+        soltarUrls();
+        const lista = registros.map((r) => ({ fecha: r.fecha, url: URL.createObjectURL(r.imagen) }));
+        urlsGaleria = lista.map((f) => f.url);
+        galeria.seleccion = galeria.seleccion.filter((f) => lista.some((x) => x.fecha === f));
+        $("#fotos-contenido").innerHTML = vistasFotos.contenidoGaleria({
+            albumes, album: galeria.album, fotos: lista, seleccion: galeria.seleccion, semanal: estado.fotos.semanal,
+        });
+    } catch (error) {
+        console.error(error);
+        $("#fotos-contenido").innerHTML = `<p class="nota">⚠️ No se pudieron leer las fotos de este teléfono.</p>
+            <div class="botones-dialogo"><button type="button" class="boton boton-secundario" data-accion="cerrar">Cerrar</button></div>`;
+    }
+}
+
+function abrirGaleria(album = fotos.ALBUM_LIBRE) {
+    galeria = { album, seleccion: [] };
+    const dialogo = $("#dialogo-fotos");
+    $("#fotos-contenido").innerHTML = `<p class="nota">Cargando tus fotos…</p>`;
+    dialogo.addEventListener("close", () => { galeria = null; soltarUrls(); }, { once: true });
+    dialogo.showModal();
+    pintarGaleria();
+}
+
+
+// ===== Los botones =====
+
+export const ACCIONES_FOTO = {
+    "fotos-abrir": () => abrirGaleria(),
+    "fotos-semanal": () => tomarFotoDeProgreso(),
+    "fotos-nueva": () => tomarFotoDeProgreso(),
+    "fotos-album": (boton) => {
+        galeria.album = boton.dataset.album;
+        galeria.seleccion = [];
+        pintarGaleria();
+    },
+    // Tocar una miniatura la elige; con dos elegidas se comparan; una tercera reemplaza a la más vieja de las dos.
+    "fotos-elegir": (boton) => {
+        const fecha = boton.dataset.fecha;
+        if (galeria.seleccion.includes(fecha)) galeria.seleccion = galeria.seleccion.filter((f) => f !== fecha);
+        else galeria.seleccion = [...galeria.seleccion, fecha].slice(-2);
+        pintarGaleria();
+    },
+    "fotos-borrar": async (boton) => {
+        if (!confirm("¿Borrar esta foto? No se puede recuperar.")) return;
+        await fotos.borrarFoto(galeria.album, boton.dataset.fecha);
+        galeria.seleccion = [];
+        pintarGaleria();
+    },
+    "fotos-recordatorio": () => {
+        ejecutar(() => acciones.configurarFotos(estado, { semanal: !estado.fotos.semanal }));
+        pintarGaleria();
+    },
+};

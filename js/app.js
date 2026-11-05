@@ -74,6 +74,8 @@ import { roboDesde, mostrarRobo, cerrarRobo, sonar, ponerMusica, arreglarVistaTr
 import { rellenarOpciones, PREPARAR, mostrarCamposFrecuencia, usarPlantilla, mostrarCamposLogro } from "./pantallas/app-dialogos.js";
 import { conectarGestos, conectarArrastre, golpear, prepararLienzoFirma, conectarHojear } from "./pantallas/app-gestos.js";
 import { abrirBienvenida, conectarCartaRitual, ACCIONES_MAESTRO, FORMULARIOS_MAESTRO } from "./pantallas/app-maestro.js";
+import { ACCIONES_FOTO } from "./pantallas/app-foto.js";   // (v197) fotos de progreso
+import * as fotosGuardadas from "./fotos.js";
 import { pintarListaDiario, ACCIONES_DIARIO, FORMULARIOS_DIARIO } from "./pantallas/app-diario.js";
 import { registroSW, registrarServiceWorker, buscarActualizacion, marcarNovedadesVistas, mostrarNovedades,
          ACCIONES_VERSION } from "./pantallas/app-version.js";
@@ -761,6 +763,7 @@ export function borrarTodo() {
 // Borra la partida y el PIN, y vuelve a la pantalla de crear personaje.
 export function reiniciarPartida() {
     datos.borrarTodo();
+    fotosGuardadas.borrarTodas();   // (v197) las fotos viven aparte (IndexedDB): también se borran
     seguridad.quitar();
     estado = datos.estadoInicial();
     ui.diaSeleccionado = null;
@@ -788,6 +791,7 @@ export const ACCIONES = {
     ...ACCIONES_HISTORIAS,
     ...ACCIONES_EFECTOS,
     ...ACCIONES_MAESTRO,
+    ...ACCIONES_FOTO,       // (v197)
     ...ACCIONES_DIARIO,
     ...ACCIONES_VERSION,
     ...ACCIONES_GENERALES,

@@ -2,6 +2,15 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v197 — Fotos de progreso
+
+- **Fuera el OCR de la v193** (`ocr/` y `js/foto.js`, ~6 MB). `sw.js` borra la caché `ocr-vida-rpg-*` que ya estaba en el teléfono.
+- **`js/fotos.js` (nuevo)**: guarda las fotos en **IndexedDB** (`vida-rpg-fotos`), reducidas a ~1000 px (JPEG, ~150 KB). Una foto por álbum y día (la misma clave la reemplaza). Álbum de una misión = su id; álbum libre = `"progreso"`. Reglas puras: `faltaFotoSemanal`.
+- **Misiones con foto**: `pedirFoto(mision, fecha)` abre la cámara, muestra la vista previa y guarda; `completarMision` sigue pidiendo `conFoto`. Desmarcar una misión NO borra su foto.
+- **Galería** (`vistas-fotos.js` + `app-foto.js`, botón en Progreso): álbumes, miniaturas, foto grande (con borrar) y comparador de dos fechas (la más vieja a la izquierda y los días entre las dos).
+- **Foto de progreso semanal**: `estado.fotos = { semanal, ultima }` (datos v43; las copias viejas la reciben encendida). Tarjeta en Hoy hasta que tomas la foto de la semana. Acciones `registrarFotoProgreso` y `configurarFotos`.
+- Las fotos NO van en la copia .json; «Borrar todo» sí las borra. Pruebas: 480 de la app (−1 de OCR, +3 de fotos).
+
 ## v196 — Aurelio se viste según la hora y habla más
 
 - **Ropa por hora**: `maestro.js › momentoDelDia(hora)` (madrugada 0–5, mañana 6–11, tarde 12–17, noche 18–23) y `ROPA_POR_MOMENTO` (traje y capa). `describirMaestro(hora = ahora)` ya devuelve el atuendo del momento: todas las pantallas donde sale Aurelio lo muestran sin cambiar. La tarde conserva su traje violeta de siempre.

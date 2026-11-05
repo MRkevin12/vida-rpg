@@ -27,6 +27,7 @@ import { fechaLegible, fechaCorta, DIAS_LETRAS, DIAS_CORTOS, diaDeSemana, diasEn
 import { agruparPorAtributo, vacio, plegable, esc, ICONOS, barra, botonEditar, ficha, cabeceraSeccion,
          textoAnimo, notaJefeEsperando } from "./vistas-comun.js";
 import { tarjetaSemana, tarjetaFoco } from "./vistas-diario.js";
+import { tarjetaFotoSemanal } from "./vistas-fotos.js";   // (v197)
 import { tarjetaTemporada } from "./vistas-temporada.js";
 import { seccionPrincipales, retratoJefe } from "./vistas-aventuras.js";
 import { sagaDe, lineaDeSaga, lineaDelPacto, lineaDeVoces } from "../historias/vistas-historia.js";
@@ -173,6 +174,7 @@ export function pantallaHoy(estado, ctx) {
     return `
         ${botonAnimo}
         ${esAyer ? "" : bloquePremios(estado, ctx.hoy)}
+        ${esAyer || esencial ? "" : tarjetaFotoSemanal(estado, ctx)}
         ${ctx.recordarRespaldo ? avisoRespaldo() : ""}
         ${esencial ? "" : `${avisoNotificaciones(ctx)}
         ${avisoDescanso(estado, ctx)}`}
