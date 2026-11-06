@@ -2,6 +2,16 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v208 — Horizontal: la app y los juegos
+
+- **La Senda del Reino** (`css/20-senda.css`, bloque de horizontal): el lienzo va entre dos columnas propias del mando (`--senda-lado-izq/-der`); antes ocupaba toda la pantalla y la cruceta y el botón de saltar tapaban al héroe (al empezar el nivel la cámara está topada a la izquierda) y el suelo. Los botones pueden meterse un poco en la zona del notch (`--senda-borde-*`). La barra del recorrido vuelve a verse (arriba a la izquierda); pausa y ✖ arriba a la derecha. Botones de la cruceta más altos (56 × 76). `ajustarLienzo()` no cambia: mide la caja y el ancho del mundo sale solo (~300 puntos en un iPhone de 852 × 393).
+- **Pausa y resultado de la Senda** en horizontal: botones en 2 columnas; el resultado con la tabla a la izquierda y el premio a la derecha.
+- **Toda la app** (`css/99-pixel.css`, bloque v208): con `orientation: landscape` y `max-height: 540px`, las pestañas son una columna fija a la izquierda (`--ancho-riel`), `--alto-pestanas: 0px` (avisos, «Deshacer» y la barra de la carrera bajan al borde) y la cabecera más baja (retrato 38 px). `#juego` deja libre la columna y el notch de la derecha.
+- **PIN, «¿Cómo te sientes hoy?» y carga** en dos columnas. Las capas centradas (`.capa-oscura`, `.bloqueo`) usan `margin-block: auto`: si no caben, se puede bajar hasta arriba (con `place-items: center` lo de arriba quedaba fuera de alcance).
+- **Minijuegos**: título, marcador y ✖ en una fila (`.minijuego-barra { display: contents }`); el lienzo usa el resto del alto. Todos los `.minijuego` respetan el notch de los lados.
+- `app.js › medirCabecera()`: `--alto-cabecera` se vuelve a medir al girar (evento `resize`).
+- Probado: 495 pruebas de la app; capturas en 844 × 390, 667 × 375 y 390 × 844 (vertical sin cambios).
+
 ## v207 — Tu propio plan de Finanzas
 
 - **Porcentajes configurables** en Ajustes («💰 Plan de Finanzas», `index.html` + `app-dialogos.js › ajustes()`). Se guardan en `estado.finanzas.plan` (`{ necesidad, gusto, ahorro }`, enteros de 0 a 100 que sumen 100). Por defecto 50/30/20 (`finanzas.PLAN_POR_DEFECTO`).

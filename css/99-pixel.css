@@ -2125,3 +2125,251 @@ body::-webkit-scrollbar,
         letter-spacing: 0;
     }
 }
+
+/* ===== (v208) En horizontal (el teléfono girado), TODA la app aprovecha la pantalla =====
+   En horizontal el iPhone mide ~390 px de alto: la cabecera y la barra de pestañas de abajo se comían más de la mitad
+   y al contenido le quedaban ~150 px. Ahora las pestañas pasan a una COLUMNA a la izquierda (como en las apps de iPad),
+   la cabecera se achica y las pantallas que se cortaban (PIN, carga, «¿Cómo te sientes hoy?») se ponen en dos columnas.
+   «max-height: 540px» deja fuera a las tabletas y a la compu (igual que las reglas de la v61). */
+@media (orientation: landscape) and (max-height: 540px) {
+    :root {
+        --ancho-riel: calc(env(safe-area-inset-left) + 78px);   /* la columna de las pestañas (más el «notch») */
+        --alto-pestanas: 0px;   /* ya no hay barra abajo: los avisos y la barra de la carrera bajan hasta el borde */
+    }
+
+    /* El juego deja libre la columna de la izquierda y la zona del «notch» de la derecha. */
+    #juego {
+        padding-left: var(--ancho-riel);
+        padding-right: env(safe-area-inset-right);
+    }
+
+    .gym-pantalla-completa #juego,
+    .run-concentracion #juego {
+        padding-left: env(safe-area-inset-left);   /* en esos modos no hay pestañas: no se guarda su lugar */
+    }
+
+    /* --- Las pestañas: una columna fija a la izquierda, centradas de arriba abajo --- */
+    .pestanas,
+    .modo-esencial .pestanas,
+    .modo-normal:not(.modo-esencial) .pestanas {
+        top: 0;
+        right: auto;
+        bottom: 0;
+        left: 0;
+        width: var(--ancho-riel);
+        max-width: none;
+        margin: 0;
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-rows: minmax(0, 76px);
+        align-content: center;
+        padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) env(safe-area-inset-left);
+        border-top: 0;
+        border-right: 2px solid var(--borde);
+        box-shadow: 2px 0 0 var(--tinta);
+    }
+
+    .pestana {
+        height: auto;
+        min-height: 0;
+        gap: 2px;
+        font-size: 0.64rem;
+        letter-spacing: 0;
+    }
+
+    .pestana-icono {
+        width: 48px;
+        height: 30px;
+    }
+
+    /* --- La cabecera, más baja: el retrato más chico y menos relleno --- */
+    .cabecera {
+        gap: 10px;
+        padding: calc(env(safe-area-inset-top) + 5px) 14px 5px;
+    }
+
+    .cabecera .avatar {
+        width: 38px;
+        height: 38px;
+    }
+
+    /* Lo que flota abajo (deshacer, avisos, la barra de la carrera) no se mete debajo de la columna de pestañas. */
+    .deshacer,
+    .aviso,
+    .run-flotante {
+        left: calc(var(--ancho-riel) + 12px);
+        right: calc(env(safe-area-inset-right) + 12px);
+    }
+
+    /* --- Capas que se centran (PIN, «Mientras no estabas», el maestro…): si no caben, se puede bajar hasta arriba.
+           Con «place-items: center», lo que sobra se salía por arriba y no se podía ver; con margin auto se centra
+           cuando cabe y empieza arriba cuando no. --- */
+    .capa-oscura,
+    .bloqueo {
+        align-items: start;
+    }
+
+    .capa-oscura > *,
+    .bloqueo > * {
+        margin-block: auto;
+    }
+
+    /* --- El PIN: el ícono y los puntos a la izquierda, el teclado a la derecha --- */
+    .bloqueo {
+        padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 10px) calc(env(safe-area-inset-left) + 16px);
+    }
+
+    /* Filas: un hueco elástico arriba y otro abajo (1fr) y en medio lo de la izquierda; el teclado ocupa todo el alto.
+       Así la columna de la izquierda queda centrada junto al teclado. */
+    .bloqueo-caja {
+        width: min(600px, 100%);
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: 1fr repeat(6, auto) 1fr;
+        align-items: center;
+        column-gap: 36px;
+        row-gap: 6px;
+    }
+
+    .bloqueo-caja > * { grid-column: 1; }
+    .bloqueo-caja > .bloqueo-icono { grid-row: 2; }
+    .bloqueo-caja > .titulo-juego { grid-row: 3; }
+    .bloqueo-caja > .bloqueo-mensaje { grid-row: 4; }
+    .bloqueo-caja > .puntos { grid-row: 5; }
+    .bloqueo-caja > #bloqueo-faceid { grid-row: 6; }
+    .bloqueo-caja > .enlace { grid-row: 7; }
+
+    .bloqueo-caja > .teclado {
+        grid-column: 2;
+        grid-row: 1 / -1;
+    }
+
+    .bloqueo-icono {
+        width: 56px;
+        height: 56px;
+    }
+
+    .puntos {
+        margin: 2px 0 6px;
+    }
+
+    .teclado {
+        grid-template-columns: repeat(3, 62px);
+        gap: 10px 18px;
+    }
+
+    .teclado button {
+        width: 62px;
+        height: 62px;
+        font-size: 1.4rem;
+    }
+
+    /* --- La pantalla de carga: el emblema a la izquierda y los textos a su lado, todo ARRIBA. La escena de abajo crece
+           con el ancho de la pantalla: en horizontal el héroe que camina cruzaba justo por el texto y por el consejo. --- */
+    .carga {
+        place-items: start center;
+        padding-top: calc(env(safe-area-inset-top) + 7vh + 10px);   /* debajo de la franja negra de arriba */
+    }
+
+    .carga-caja {
+        grid-template-columns: auto auto;
+        align-items: center;
+        justify-items: start;
+        column-gap: 22px;
+        row-gap: 6px;
+        text-align: left;
+    }
+
+    .carga-caja > * { grid-column: 2; }
+
+    .carga-caja > .carga-emblema {
+        grid-column: 1;
+        grid-row: 1 / span 4;
+        width: 112px;
+        height: 112px;
+        margin: 0;
+    }
+
+    .carga-icono {
+        width: 80px;
+        height: 80px;
+    }
+
+    .carga-texto { justify-content: flex-start; }
+
+    .carga-consejo {
+        max-width: 620px;
+        bottom: calc(env(safe-area-inset-bottom) + 6px);   /* sobre la franja negra de abajo, debajo de los pies del héroe */
+    }
+
+    /* --- «¿Cómo te sientes hoy?»: Aurelio a la izquierda, la pregunta y las 3 opciones a la derecha --- */
+    .animo-caja {
+        max-width: 900px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+        column-gap: 22px;
+        row-gap: 10px;
+        align-items: center;
+        padding: calc(env(safe-area-inset-top) + 14px) calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 14px) calc(env(safe-area-inset-left) + 20px);
+    }
+
+    .animo-caja > * {
+        grid-column: 2;
+    }
+
+    .animo-caja > .animo-marca,
+    .animo-caja > .animo-maestro {
+        grid-column: 1;
+    }
+
+    .animo-caja > .animo-maestro {
+        grid-row: 2 / span 2;
+    }
+
+    .animo-retrato {
+        width: 84px;
+    }
+
+    .animo-pregunta {
+        grid-row: 1;
+        margin: 0;
+        font-size: 1.15rem;
+    }
+
+    .animo-opciones {
+        grid-row: 2 / span 2;
+        gap: 8px;
+    }
+
+    .animo-opcion {
+        min-height: 54px;
+        padding: 8px 14px;
+    }
+
+    /* --- Los minijuegos del arcade: título, marcador y ✖ en UNA fila; el lienzo se queda con el resto del alto --- */
+    .minijuego {
+        padding-left: calc(env(safe-area-inset-left) + 12px);
+        padding-right: calc(env(safe-area-inset-right) + 12px);
+    }
+
+    .minijuego:not(.torre):not(.voces) .minijuego-caja {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: center;
+        column-gap: 14px;
+        row-gap: 6px;
+    }
+
+    .minijuego:not(.torre):not(.voces) .minijuego-barra {
+        display: contents;   /* sus dos hijos (el título y la ✖) pasan a ser celdas de la fila de arriba */
+    }
+
+    #mj-titulo { grid-column: 1; grid-row: 1; }
+    #mj-marcador { grid-column: 2; grid-row: 1; }
+    #mj-salir { grid-column: 3; grid-row: 1; }
+
+    #mj-lienzo,
+    #mj-ayuda {
+        grid-column: 1 / -1;
+    }
+
+    .minijuego:not(.torre):not(.voces) .minijuego-lienzo {
+        height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 5.4rem);
+    }
+}

@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 207;
+export const VERSION_APP = 208;
 
 export const NOVEDADES = [
+    {
+        version: 208,
+        titulo: "La app y los juegos, cómodos en horizontal",
+        cambios: [
+            "🎮 La Senda del Reino en horizontal es como una consola de mano: el juego va en el medio y los botones en dos columnas a los lados. Ya no tapan a tu héroe ni el suelo por donde llegan las criaturas. La barra del recorrido se ve arriba a la izquierda.",
+            "⏸️ La pausa y el resultado de la Senda caben enteros sin bajar la pantalla.",
+            "📱 En toda la app, al girar el teléfono las pestañas pasan a una columna a la izquierda y la cabecera se achica: el contenido tiene el doble de alto.",
+            "🔢 El PIN, «¿Cómo te sientes hoy?» y la pantalla de carga se acomodan en dos columnas; nada se corta ni se encima.",
+            "🕹️ Los minijuegos del arcade ponen título y marcador en una sola fila: el juego queda más grande.",
+        ],
+    },
     {
         version: 207,
         titulo: "Tu propio plan de Finanzas",

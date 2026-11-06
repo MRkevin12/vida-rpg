@@ -480,12 +480,19 @@ export function ejecutar(accion, efectos = {}) {
 
 export function refrescar(efectos = {}) {
     actualizarCabecera(efectos.subioNivel);
-    // El CSS necesita saber cuánto mide la cabecera (para pegar cosas justo debajo).
-    // (v158) Si está escondida (gym a pantalla completa, carrera en concentración) mide 0: se deja la medida de antes.
-    const altoCabecera = $(".cabecera").offsetHeight;
-    if (altoCabecera) document.documentElement.style.setProperty("--alto-cabecera", `${altoCabecera}px`);
+    medirCabecera();
     dibujarPantalla(efectos);
 }
+
+// El CSS necesita saber cuánto mide la cabecera (para pegar cosas justo debajo).
+// (v158) Si está escondida (gym a pantalla completa, carrera en concentración) mide 0: se deja la medida de antes.
+function medirCabecera() {
+    const altoCabecera = $(".cabecera").offsetHeight;
+    if (altoCabecera) document.documentElement.style.setProperty("--alto-cabecera", `${altoCabecera}px`);
+}
+
+// (v208) Al girar el teléfono la cabecera cambia de alto (en horizontal es más baja): se vuelve a medir.
+window.addEventListener("resize", medirCabecera);
 
 function actualizarCabecera(subioNivel) {
     const personaje = estado.personaje;

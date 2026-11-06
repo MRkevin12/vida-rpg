@@ -729,14 +729,28 @@
 
 .senda-tarjeta { border-color: rgba(251, 191, 36, 0.45); }
 
-/* --- En horizontal: el lienzo a pantalla completa y los botones encima, en las esquinas --- */
+/* --- En horizontal (v208): como una consola de mano. El lienzo va en el MEDIO y el mando en dos columnas propias,
+       una a cada lado. Antes (v186) el lienzo ocupaba todo y los botones flotaban encima: tapaban al héroe al empezar
+       el nivel y, con el botón de saltar, el suelo por donde llegan las criaturas. Ahora no tapan nada.
+       Los botones pueden meterse un poco en la zona del «notch» (--senda-borde-*): van abajo, y el notch está en el medio. --- */
 @media (orientation: landscape) and (max-height: 540px) {
-    .senda.jugando { padding: 0; }
+    .senda.jugando {
+        --senda-borde-izq: max(10px, env(safe-area-inset-left) - 18px);
+        --senda-borde-der: max(10px, env(safe-area-inset-right) - 18px);
+        --senda-columna: 142px;   /* lo que mide el mando de cada lado (la cruceta o A + B) */
+        --senda-lado-izq: calc(var(--senda-borde-izq) + var(--senda-columna) + 10px);
+        --senda-lado-der: calc(var(--senda-borde-der) + var(--senda-columna) + 10px);
+        padding: 0;
+        background:   /* las columnas del mando: el «plástico» de la consola, con su rejilla */
+            repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 6px),
+            linear-gradient(180deg, #1a1434, #0c0818);
+    }
 
+    /* Pausa y salir: arriba en la columna de la derecha. */
     .senda.jugando .senda-barra {
         position: absolute;
-        top: calc(env(safe-area-inset-top) + 4px);
-        right: calc(env(safe-area-inset-right) + 8px);
+        top: calc(env(safe-area-inset-top) + 8px);
+        right: var(--senda-borde-der);
         z-index: 3;
         width: auto;
         min-height: 0;
@@ -748,37 +762,72 @@
 
     .senda.jugando .senda-pantalla {
         position: absolute;
-        inset: 0;
+        top: 0;
+        bottom: 0;
+        left: var(--senda-lado-izq);
+        right: var(--senda-lado-der);
+        width: auto;   /* con el «width: 100%» de vertical, el navegador no haría caso de «right» */
         aspect-ratio: auto;
         max-height: none;
         border: 0;
-        box-shadow: none;
+        border-inline: 2px solid #3a2e68;
+        box-shadow: -2px 0 0 var(--senda-tinta), 2px 0 0 var(--senda-tinta);
     }
 
     .senda.jugando .senda-hud {
-        padding: calc(env(safe-area-inset-top) + 8px) 112px 0 calc(env(safe-area-inset-left) + 12px);
+        padding: calc(env(safe-area-inset-top) + 6px) 8px 0;
     }
 
+    /* El mando ocupa toda la pantalla pero no recibe toques (los reciben sus botones): la cruceta abajo a la izquierda y
+       A + B abajo a la derecha, cada uno en su columna. */
     .senda.jugando .senda-controles {
         position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        inset: 0;
         z-index: 2;
         flex: none;
         min-height: 0;
-        padding: 0 calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 16px);
-        background: none;       /* (v186) en horizontal no hay panel: los botones flotan sobre el juego */
+        padding: 0 var(--senda-borde-der) calc(env(safe-area-inset-bottom) + 14px) var(--senda-borde-izq);
+        background: none;
         border: 0;
         box-shadow: none;
-        pointer-events: none;   /* entre los botones se ve el juego */
+        pointer-events: none;
     }
 
-    .senda.jugando .senda-recorrido-caja { display: none; }
-    .senda.jugando .senda-cruz { pointer-events: auto; background: rgba(5, 3, 10, 0.35); border-color: rgba(120, 100, 190, 0.35); }
-    .senda.jugando .senda-boton { width: 64px; pointer-events: auto; opacity: 0.82; }
-    .senda.jugando .senda-saltar { width: 76px; }
-    .senda.jugando .senda-fuego { width: 58px; }
+    /* La barra del recorrido (cuánto del nivel llevas): arriba en la columna de la izquierda. */
+    .senda.jugando .senda-recorrido-caja {
+        top: calc(env(safe-area-inset-top) + 22px);
+        left: var(--senda-borde-izq);
+        right: auto;
+        width: var(--senda-columna);
+    }
+
+    .senda.jugando .senda-cruz { gap: 4px; padding: 5px; pointer-events: auto; }
+    .senda.jugando .senda-cruz-centro { width: 6px; }
+    .senda.jugando .senda-boton { width: 56px; height: 76px; aspect-ratio: auto; pointer-events: auto; }   /* más altos: más fácil de atinar con el pulgar */
+    .senda.jugando .senda-acciones { gap: 10px; }
+    .senda.jugando .senda-saltar { width: 74px; height: 74px; }
+    .senda.jugando .senda-fuego { width: 58px; height: 58px; margin-bottom: 30px; }
+
+    /* La pausa y el resultado, más anchos y bajos: así caben sin bajar la pantalla. */
+    .senda.jugando .senda-menu { width: min(460px, 100%); padding: 12px 14px; gap: 4px; }
+    .senda.jugando .senda-menu-titulo { font-size: 1.2rem; }
+    .senda.jugando .senda-menu-botones { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .senda.jugando .senda-menu-botones > .principal { grid-column: 1 / -1; }
+    .senda.jugando .senda-menu-boton { min-height: 42px; }
+
+    .senda.jugando .senda-final {
+        width: min(560px, 100%);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+        column-gap: 14px;
+        padding: 12px 14px;
+    }
+
+    .senda.jugando .senda-final > * { grid-column: 2; }
+    .senda.jugando .senda-final > .senda-final-titulo,
+    .senda.jugando .senda-final > h3 { grid-column: 1 / -1; }
+    .senda.jugando .senda-final > .senda-final-tabla { grid-column: 1; grid-row: 3 / span 8; }
+    .senda.jugando .senda-final-titulo { font-size: 1.2rem; }
 
     .senda-mapa { max-width: 900px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .senda-mapa > .senda-detalle,

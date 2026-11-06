@@ -9802,7 +9802,9 @@ prueba("La Senda del Reino: archivos en el service worker y en la ayuda", async 
     for (const id of ["senda", "senda-mapa", "senda-lienzo", "senda-controles", "senda-capa", "senda-hud"]) cierto(html.includes(`id="${id}"`), `index.html tiene #${id}`);
     for (const boton of ["izquierda", "derecha", "saltar", "fuego"]) cierto(html.includes(`data-senda="${boton}"`), `botón ${boton}`);
     const css = await leerCSS();
-    cierto(/\.senda\.jugando \.senda-pantalla\s*\{[^}]*inset:\s*0/.test(css), "en horizontal, el lienzo a pantalla completa");
+    // (v208) En horizontal el lienzo va entre las dos columnas del mando (antes, a pantalla completa con los botones encima).
+    cierto(/\.senda\.jugando \.senda-pantalla\s*\{[^}]*left:\s*var\(--senda-lado-izq\)[^}]*right:\s*var\(--senda-lado-der\)/.test(css),
+        "en horizontal, el lienzo entre las columnas del mando (los botones no tapan al héroe)");
     cierto(/\.senda-controles\s*\{[^}]*touch-action:\s*none/.test(css), "los botones no mueven la página");
 });
 
