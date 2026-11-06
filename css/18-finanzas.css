@@ -417,3 +417,34 @@
 }
 
 
+
+/* ===== (v206) Lo que sobró del mes pasado y pagar con dos medios ===== */
+/* Las cifras se acomodan solas: 3 o 4 columnas (con «Del mes pasado»), sin salirse en pantallas angostas. */
+.fin-cifras {
+    grid-template-columns: none;
+    grid-auto-flow: column;              /* una columna por cifra, todas del mismo ancho */
+    grid-auto-columns: minmax(0, 1fr);
+}
+
+.fin-cifras > div {
+    min-width: 0;
+}
+
+/* Con «Del mes pasado» son 4 cifras: en 2 × 2, para que los números no se partan («$350.0 / 00»). */
+.fin-cifras:has(> :nth-child(4)) {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fin-dos-medios {
+    margin: 2px 0 6px;
+}
+
+.fin-dos-medios summary {
+    cursor: pointer;
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}

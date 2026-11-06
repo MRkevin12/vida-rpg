@@ -18,7 +18,7 @@ const CLAVE = "vida-rpg";
 // Cómo es una partida nueva. Aquí puedes ver TODOS los datos que guarda la app.
 export function estadoInicial() {
     return {
-        version: 43,   // 43 (v197): fotos de progreso · 42 (v193): misiones con foto · 41 (v185): La Senda del Reino (arcade.plataformas) · 40 (v179): días malos · 39 (v174): copias de rutinas y aviso de serie del gym · 38 (v166): barra del gym · 37 (v164): gym con descargas, RIR y notas · 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
+        version: 44,   // 44 (v206): gastos con dos medios (gasto.pagos, opcional; no necesita migrar) · 43 (v197): fotos de progreso · 42 (v193): misiones con foto · 41 (v185): La Senda del Reino (arcade.plataformas) · 40 (v179): días malos · 39 (v174): copias de rutinas y aviso de serie del gym · 38 (v166): barra del gym · 37 (v164): gym con descargas, RIR y notas · 36 (v149): temporadas y secretos · 35 (v142): memento mori · 28 (v100): piernas y pies · 29 (v101): insignias · 30 (v103): vínculo con la mascota · 31 (v106): cartas al futuro · 32 (v109): running · 33 (v135): finanzas · 34 (v138): medios, fijos, límites, esperados, apartado
         personaje: null,      // { nombre, xp, monedas, gemas, creadoEn }
                               //   monedas 🪙: de lo que haces en la vida real, para tus premios reales
                               //   gemas 💎 (v31): del arcade y los premios extra, para el arcade y las mascotas

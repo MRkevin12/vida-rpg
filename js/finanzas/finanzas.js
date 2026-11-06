@@ -143,7 +143,18 @@ export function resumenDelMes(estado, mes) {
     const porSobre = {};
     for (const clave of Object.keys(SOBRES)) porSobre[clave] = sumar(gastos.filter((gasto) => gasto.categoria === clave));
     const gastado = sumar(gastos);
-    return { ingresos, gastado, sobrante: ingresos - gastado, porSobre };
+    const arrastre = sobranteDeMesesAnteriores(estado, mes);
+    // sobrante = solo de este mes; disponible = lo de este mes + lo que te sobró de los meses anteriores.
+    return { ingresos, gastado, sobrante: ingresos - gastado, arrastre, disponible: arrastre + ingresos - gastado, porSobre };
+}
+
+// (v206) Lo que te sobró en los meses anteriores y pasa a este mes. Lo que ahorraste NO sobra: los abonos a metas y deudas
+// ya cuentan como gasto, así que solo pasa lo que dejaste sin gastar. Nunca es negativo (un mes malo no hunde al siguiente).
+export function sobranteDeMesesAnteriores(estado, mes) {
+    const inicio = `${mes}-01`;
+    const entro = sumar(ingresosQueCuentan(estado, estado.finanzas.ingresos.filter((ingreso) => ingreso.fecha < inicio)));
+    const salio = sumar(estado.finanzas.gastos.filter((gasto) => gasto.fecha < inicio));
+    return Math.max(0, entro - salio);
 }
 
 // El plan 50/30/20 del mes: cuánto le toca a cada sobre y cuánto llevas.
@@ -174,7 +185,12 @@ export function ritmoDelMes(estado, mes, fecha = hoy()) {
     const dia = actual ? Number(fecha.slice(8, 10)) : dias;
     const restantes = actual ? dias - dia + 1 : 0;   // contando hoy
     const proyeccion = actual ? Math.round((resumen.gastado / dia) * dias) : resumen.gastado;
-    const libre = Math.max(0, plan.necesidad.restante) + Math.max(0, plan.gusto.restante);
+    // (v206) Lo que sobró de meses anteriores también se puede gastar este mes (cuenta como «libre»).
+    // Y nunca más de lo que de verdad te queda (si no, «puedes gastar al día» prometería plata que no hay).
+    const libre = Math.min(
+        Math.max(0, plan.necesidad.restante) + Math.max(0, plan.gusto.restante) + resumen.arrastre,
+        Math.max(0, resumen.disponible),
+    );
     const porDia = restantes > 0 ? Math.floor(libre / restantes) : 0;
     return { ...resumen, dias, dia, restantes, proyeccion, libre, porDia, actual };
 }
@@ -230,14 +246,20 @@ export function conceptosSugeridos(estado) {
 
 // Cuánto hay en cada medio: lo que entró, menos lo que salió, más o menos las transferencias.
 // Las transferencias entre medios no cambian el total de tu plata.
-export function saldosPorMedio(estado) {
+// (v206) excluirGastoId: al EDITAR un gasto, se calcula como si ese gasto todavía no existiera.
+export function saldosPorMedio(estado, excluirGastoId = null) {
     const mapa = new Map();
     const sumarA = (medio, monto) => {
         const clave = medio || "sin";
         mapa.set(clave, (mapa.get(clave) || 0) + monto);
     };
     for (const ingreso of ingresosQueCuentan(estado, estado.finanzas.ingresos)) sumarA(ingreso.medio, ingreso.monto);
-    for (const gasto of estado.finanzas.gastos) sumarA(gasto.medio, -gasto.monto);
+    for (const gasto of estado.finanzas.gastos) {
+        if (excluirGastoId !== null && String(gasto.id) === String(excluirGastoId)) continue;
+        // (v206) Un gasto pagado con dos medios (banco + efectivo) guarda sus partes en «pagos»; cada medio paga lo suyo.
+        if (gasto.pagos?.length) for (const parte of gasto.pagos) sumarA(parte.medio, -parte.monto);
+        else sumarA(gasto.medio, -gasto.monto);
+    }
     for (const movimiento of estado.finanzas.transferencias) {
         sumarA(movimiento.desde, -movimiento.monto);
         sumarA(movimiento.hacia, movimiento.monto);
@@ -250,6 +272,13 @@ export function saldosPorMedio(estado) {
             saldo,
         }))
         .sort((a, b) => b.saldo - a.saldo);
+}
+
+// (v206) Cuánta plata hay disponible para gastar: en un medio, o el total de todos si no elegiste medio.
+export function saldoDisponible(estado, medio, excluirGastoId = null) {
+    const lista = saldosPorMedio(estado, excluirGastoId);
+    if (!medio) return lista.reduce((total, s) => total + s.saldo, 0);
+    return lista.find((s) => s.medio === medio)?.saldo ?? 0;
 }
 
 // ===== (v138) Gastos fijos del mes =====
@@ -397,6 +426,7 @@ export function analisisDeAurelio(estado, fecha = hoy()) {
     const nota = (prioridad, tipo, texto) => notas.push({ prioridad, tipo, texto });
 
     if (!ritmo.ingresos) nota(2, "idea", "Todavía no entra dinero este mes. Anótalo cuando llegue: sin números no hay plan.");
+    if (ritmo.actual && ritmo.arrastre > 0) nota(35, "bien", `Te sobraron ${pesos(ritmo.arrastre)} de los meses anteriores y se suman a este mes. ¡Bien guardado!`);
     if (ritmo.ingresos && plan.necesidad.pasado) {
         nota(10, "alerta", `Tus necesidades ya pasaron el 50 % (${pesos(plan.necesidad.gastado)}). Mira qué gasto fijo puedes bajar.`);
     }
@@ -404,8 +434,10 @@ export function analisisDeAurelio(estado, fecha = hoy()) {
         nota(11, "alerta", `Tus gustos ya se comieron el 30 % (te pasaste ${pesos(-plan.gusto.restante)}). Un gusto menos esta semana y vuelves al plan.`);
     }
     // A este ritmo, ¿alcanza? (desde el día 5, para que unos pocos gastos no asusten)
-    if (ritmo.ingresos && ritmo.dia >= 5 && ritmo.proyeccion > ritmo.ingresos) {
-        nota(20, "alerta", `A este ritmo terminas el mes gastando ${pesos(ritmo.proyeccion)}, ${pesos(ritmo.proyeccion - ritmo.ingresos)} más de lo que entró.`);
+    // (v206) Se compara con lo que tienes este mes: lo que entró + lo que te sobró de antes.
+    const tienes = ritmo.ingresos + ritmo.arrastre;
+    if (ritmo.ingresos && ritmo.dia >= 5 && ritmo.proyeccion > tienes) {
+        nota(20, "alerta", `A este ritmo terminas el mes gastando ${pesos(ritmo.proyeccion)}, ${pesos(ritmo.proyeccion - tienes)} más de lo que tienes.`);
     }
     // (v138) Saldos negativos en un medio: casi siempre falta anotar un ingreso o una transferencia.
     for (const saldo of saldosPorMedio(estado)) {

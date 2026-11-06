@@ -4,9 +4,20 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 205;
+export const VERSION_APP = 206;
 
 export const NOVEDADES = [
+    {
+        version: 206,
+        titulo: "Finanzas: solo gastas lo que tienes",
+        cambios: [
+            "🚫 Ya no puedes anotar un gasto, un pago fijo ni una transferencia por más plata de la que hay en ese medio (o en total, si no eliges medio). Te dice cuánto te queda.",
+            "💳 Puedes pagar un gasto con dos medios: en «Anotar», abre «Pagar con dos medios» (ej. banco + efectivo). Cada medio descuenta su parte.",
+            "📅 Lo que te sobra de un mes (después de ahorrar) se suma al siguiente: lo ves como «Del mes pasado» y cuenta en «Hoy puedes gastar».",
+            "🛡️ Corregir o borrar un ingreso o una transferencia ya no puede dejar un medio en negativo.",
+            "📱 En pantallas angostas, las barras de secciones (Finanzas, Héroe…) ya no se enciman.",
+        ],
+    },
     {
         version: 205,
         titulo: "Barra de abajo en su sitio",

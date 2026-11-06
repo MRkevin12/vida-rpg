@@ -27,6 +27,35 @@ function fechaDeFinanzas(texto) {
 }
 
 // Un medio de pago (efectivo, Nequi…). Vacío = sin medio (no es obligatorio).
+// (v206) No se puede gastar más de lo que hay: en el medio elegido (o en el total, si no elegiste medio).
+// excluirGastoId: al editar un gasto, su monto anterior no cuenta.
+function exigirSaldo(estado, medio, monto, excluirGastoId = null) {
+    const disponible = finanzas.saldoDisponible(estado, medio, excluirGastoId);
+    if (monto <= disponible) return;
+    const lugar = medio ? ` en ${finanzas.MEDIOS[medio].nombre}` : "";
+    throw new Error(`No te alcanza${lugar}: te quedan ${finanzas.pesos(Math.max(0, disponible))}. Anota primero el ingreso que falta o baja el monto.`);
+}
+
+// (v206) Un gasto se puede pagar con dos medios (banco + efectivo): «medio» paga lo que falta y «medio2» paga «monto2».
+// Devuelve el medio principal y, si hay dos, las partes [{ medio, monto }] (suman el total).
+function repartirPago(cantidad, medio, medio2 = "", monto2 = "") {
+    const principal = medioValido(medio);
+    if (!medio2 && !String(monto2 || "").trim()) return { medio: principal, pagos: null };
+    const segundo = medioValido(medio2);
+    const parte2 = finanzas.dineroDeTexto(monto2);
+    if (!segundo || parte2 === null) throw new Error("Para pagar con dos medios elige el segundo y cuánto pagaste con él.");
+    if (!principal) throw new Error("Elige el primer medio de pago.");
+    if (segundo === principal) throw new Error("Elige dos medios distintos.");
+    if (parte2 >= cantidad) throw new Error("Lo que pagaste con el segundo medio debe ser menos que el total.");
+    return { medio: principal, pagos: [{ medio: principal, monto: cantidad - parte2 }, { medio: segundo, monto: parte2 }] };
+}
+
+// Revisa el saldo de cada medio que paga una parte (o del único medio, o del total si no hay medio).
+function exigirSaldoDelPago(estado, pago, cantidad, excluirGastoId = null) {
+    if (pago.pagos) for (const parte of pago.pagos) exigirSaldo(estado, parte.medio, parte.monto, excluirGastoId);
+    else exigirSaldo(estado, pago.medio, cantidad, excluirGastoId);
+}
+
 function medioValido(medio) {
     if (!medio) return null;
     if (!finanzas.MEDIOS[medio]) throw new Error("Ese medio de pago no existe.");
@@ -116,12 +145,14 @@ export function registrarIngresoFinanzas(estado, { monto, fecha = "", fuente = "
 }
 
 // Un gasto. Si va a una meta o a una deuda, cuenta en «Ahorro y deudas» (el 20 %).
-export function registrarGastoFinanzas(estado, { monto, fecha = "", concepto, categoria = "necesidad", destino = "", medio = "" }) {
+export function registrarGastoFinanzas(estado, { monto, fecha = "", concepto, categoria = "necesidad", destino = "", medio = "", medio2 = "", monto2 = "" }) {
     const cantidad = finanzas.dineroDeTexto(monto);
     if (cantidad === null) throw new Error("Escribe cuánto gastaste (en pesos).");
     const texto = String(concepto || "").trim();
     if (!texto) throw new Error("Escribe en qué lo gastaste.");
     if (!finanzas.SOBRES[categoria]) throw new Error("Elige a qué sobre va el gasto.");
+    const pago = repartirPago(cantidad, medio, medio2, monto2);
+    exigirSaldoDelPago(estado, pago, cantidad);
 
     let meta = null;
     let deuda = null;
@@ -136,7 +167,8 @@ export function registrarGastoFinanzas(estado, { monto, fecha = "", concepto, ca
         id: nuevoId(estado), fecha: fechaDeFinanzas(fecha), monto: cantidad, concepto: texto.slice(0, 60),
         categoria: meta || deuda ? "ahorro" : categoria,
         destino: meta ? `meta:${meta.id}` : deuda ? `deuda:${deuda.id}` : null,
-        medio: medioValido(medio), fijo: null,
+        medio: pago.medio, fijo: null,
+        ...(pago.pagos ? { pagos: pago.pagos } : {}),
     });
     const premio = meta ? premiarMetaFinanzas(estado, meta) : null;
     return { xp: darXpPorRegistro(estado), meta: premio, meses: cierreDeMes(estado) };
@@ -151,10 +183,18 @@ export function editarMovimientoFinanzas(estado, lista, id, valores) {
         if (cantidad === null) throw new Error("Escribe cuánto entró (en pesos).");
         const origen = buscarFinanza(f.fuentes, valores.fuente, "Elige de dónde entró el dinero.");
         if (!finanzas.TIPOS_FUENTE[origen.tipo].tocable) throw new Error("Esa fuente no se toca: su plata no entra al plan.");
+        // (v206) Si el cambio deja un medio en negativo que antes no lo estaba, se deshace y se avisa.
+        const negativosAntes = finanzas.saldosPorMedio(estado).filter((s) => s.saldo < 0).map((s) => s.medio);
+        const antes = { ...ingreso };
         Object.assign(ingreso, {
             monto: cantidad, fecha: fechaDeFinanzas(valores.fecha), fuente: origen.id,
             nota: String(valores.nota || "").trim().slice(0, 60), medio: medioValido(valores.medio),
         });
+        const nuevoNegativo = finanzas.saldosPorMedio(estado).find((s) => s.saldo < 0 && !negativosAntes.includes(s.medio));
+        if (nuevoNegativo) {
+            Object.assign(ingreso, antes);
+            throw new Error(`Con ese monto ${nuevoNegativo.nombre} quedaría en ${finanzas.pesos(nuevoNegativo.saldo)}. Revisa el monto o el medio.`);
+        }
     } else if (lista === "gastos") {
         const gasto = buscarFinanza(f.gastos, id, "Ese gasto ya no existe.");
         const cantidad = finanzas.dineroDeTexto(valores.monto);
@@ -166,10 +206,14 @@ export function editarMovimientoFinanzas(estado, lista, id, valores) {
         else if (tipo === "deuda") destino = `deuda:${buscarFinanza(f.deudas, destinoId, "Esa deuda ya no existe.").id}`;
         else if (valores.destino) throw new Error("Ese destino no existe.");
         if (!destino && !finanzas.SOBRES[valores.categoria]) throw new Error("Elige a qué sobre va el gasto.");
+        const pago = repartirPago(cantidad, valores.medio, valores.medio2, valores.monto2);
+        exigirSaldoDelPago(estado, pago, cantidad, gasto.id);   // (v206) su monto anterior no cuenta
         Object.assign(gasto, {
             monto: cantidad, fecha: fechaDeFinanzas(valores.fecha), concepto: concepto.slice(0, 60),
-            destino, categoria: destino ? "ahorro" : valores.categoria, medio: medioValido(valores.medio),
+            destino, categoria: destino ? "ahorro" : valores.categoria, medio: pago.medio,
         });
+        if (pago.pagos) gasto.pagos = pago.pagos;
+        else delete gasto.pagos;
     } else {
         throw new Error("No sé qué quieres editar.");
     }
@@ -210,6 +254,7 @@ export function registrarTransferenciaFinanzas(estado, { monto, fecha = "", desd
     const destino = medioValido(hacia);
     if (!origen || !destino) throw new Error("Elige de dónde a dónde pasaste la plata.");
     if (origen === destino) throw new Error("Elige dos medios distintos.");
+    exigirSaldo(estado, origen, cantidad);
     estado.finanzas.transferencias.push({ id: nuevoId(estado), fecha: fechaDeFinanzas(fecha), monto: cantidad, desde: origen, hacia: destino });
 }
 
@@ -237,9 +282,11 @@ export function pagarFijoFinanzas(estado, id, { fecha = "", monto = "", medio = 
     }
     const cantidad = monto ? finanzas.dineroDeTexto(monto) : fijo.monto;
     if (cantidad === null) throw new Error("Escribe cuánto pagaste (en pesos).");
+    const medioPago = medioValido(medio) ?? fijo.medio ?? null;
+    exigirSaldo(estado, medioPago, cantidad);
     estado.finanzas.gastos.push({
         id: nuevoId(estado), fecha: dia, monto: cantidad, concepto: fijo.nombre, categoria: fijo.categoria,
-        destino: null, medio: medioValido(medio) ?? fijo.medio ?? null, fijo: fijo.id,
+        destino: null, medio: medioPago, fijo: fijo.id,
     });
     return { xp: darXpPorRegistro(estado), meses: cierreDeMes(estado) };
 }
@@ -305,8 +352,18 @@ export function borrarRegistroFinanzas(estado, lista, id) {
                 : "Ya tiene pagos anotados: no se puede borrar.");
     }
     const antes = f[lista].length;
+    // (v206) Borrar un ingreso o una transferencia no puede dejar un medio en negativo (la plata ya se gastó).
+    const negativosAntes = finanzas.saldosPorMedio(estado).filter((s) => s.saldo < 0).map((s) => s.medio);
+    const listaAntes = f[lista];
+    const gastosAntes = f.gastos;
     f[lista] = f[lista].filter((x) => String(x.id) !== String(id));
     if (f[lista].length === antes) throw new Error("Ese registro ya no existe.");
     if (lista === "ingresos") f.gastos = f.gastos.filter((g) => String(g.origen) !== String(id));
+    const nuevoNegativo = finanzas.saldosPorMedio(estado).find((s) => s.saldo < 0 && !negativosAntes.includes(s.medio));
+    if (nuevoNegativo) {
+        f[lista] = listaAntes;
+        f.gastos = gastosAntes;
+        throw new Error(`Si lo borras, ${nuevoNegativo.nombre} quedaría en ${finanzas.pesos(nuevoNegativo.saldo)}: esa plata ya se gastó. Corrige o borra antes esos gastos.`);
+    }
     if (lista === "metas" && String(f.apartado.metaId) === String(id)) f.apartado = { ...f.apartado, metaId: null };
 }

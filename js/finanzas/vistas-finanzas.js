@@ -29,7 +29,7 @@ export function tarjetaFinanzasHoy(estado, ctx) {
     const f = estado.finanzas;
     const ritmo = finanzas.ritmoDelMes(estado, finanzas.mesDe(ctx.hoy), ctx.hoy);
     let texto = "Anota tu plata y arma tu plan 50/30/20.";
-    if (ritmo.ingresos) texto = `Hoy puedes gastar ${finanzas.pesos(ritmo.porDia)} · te quedan ${finanzas.pesos(Math.max(0, ritmo.sobrante))}`;
+    if (ritmo.ingresos || ritmo.arrastre) texto = `Hoy puedes gastar ${finanzas.pesos(ritmo.porDia)} · te quedan ${finanzas.pesos(Math.max(0, ritmo.disponible))}`;
     else if (f.ingresos.length || f.gastos.length) texto = "Todavía no anotas ingresos este mes.";
     return `
         <div class="gym-hoy">
@@ -94,14 +94,33 @@ function aurelio(notas, cuantasMas = 2) {
         </ul>` : ""}`;
 }
 
-// Las tres cifras del mes: entró, gastaste, te queda.
+// (v206) «Pagar con dos medios» (banco + efectivo): plegado; se abre solo si el gasto ya tenía dos medios.
+// segunda = la segunda parte del pago { medio, monto } al corregir un gasto.
+function camposDosMedios(segunda = null) {
+    return `
+        <details class="fin-dos-medios" ${segunda ? "open" : ""}>
+            <summary>Pagar con dos medios (ej. banco + efectivo)</summary>
+            <div class="fin-par">
+                <label class="formulario-grupo"><span>También con</span>
+                    <select name="medio2">${opcionesMedios(segunda?.medio || "", "—")}</select></label>
+                <label class="formulario-grupo"><span>¿Cuánto con ese?</span>
+                    <input type="text" name="monto2" data-pesos inputmode="numeric" placeholder="$ 0" autocomplete="off"
+                        value="${segunda ? finanzas.agruparPesos(String(segunda.monto)) : ""}"></label>
+            </div>
+            <p class="mini texto-suave">El resto sale del medio de arriba.</p>
+        </details>`;
+}
+
+// Las cifras del mes: entró, gastaste, (lo que sobró de antes) y te queda.
+// (v206) «Te queda» suma lo que te sobró de los meses anteriores (r.disponible).
 function cifras(r) {
-    const quedo = r.sobrante >= 0;
+    const quedo = r.disponible >= 0;
     return `
         <div class="fin-cifras">
             <div><small>Entró</small><b class="fin-entra">${finanzas.pesos(r.ingresos)}</b></div>
             <div><small>Gastaste</small><b class="fin-sale">${finanzas.pesos(r.gastado)}</b></div>
-            <div><small>${quedo ? "Te queda" : "Te pasaste"}</small><b class="${quedo ? "" : "fin-sale"}">${finanzas.pesos(Math.abs(r.sobrante))}</b></div>
+            ${r.arrastre > 0 ? `<div><small>Del mes pasado</small><b class="fin-entra">+${finanzas.pesos(r.arrastre)}</b></div>` : ""}
+            <div><small>${quedo ? "Te queda" : "Te pasaste"}</small><b class="${quedo ? "" : "fin-sale"}">${finanzas.pesos(Math.abs(r.disponible))}</b></div>
         </div>`;
 }
 
@@ -320,6 +339,7 @@ function formularioGasto(estado, fecha) {
                 <fieldset class="fin-chips"><legend>¿De qué sobre sale?</legend>${sobres}</fieldset>
                 <label class="formulario-grupo"><span>¿Con qué pagaste?</span>
                     <select name="medio">${opcionesMedios("", "No lo anoto")}</select></label>
+                ${camposDosMedios()}
                 ${destinos ? `<label class="formulario-grupo"><span>¿Es un abono a una meta o una deuda?</span>
                     <select name="destino"><option value="">No, es un gasto</option>${destinos}</select></label>` : ""}
                 <label class="formulario-grupo"><span>Fecha</span>
@@ -398,7 +418,10 @@ function seccionHistorial(estado, ctx) {
         <li class="fin-dia"><small>${DIAS_CORTOS[diaDeSemana(dia)]} ${fechaCorta(dia)}</small></li>
         ${movimientos.filter((m) => m.fecha === dia).map((m) => {
             if (editando === `${m.lista}:${m.id}`) return `<li class="fin-editando">${formularioEditar(estado, m)}</li>`;
-            const medio = m.medio ? `${finanzas.MEDIOS[m.medio]?.icono || ""} ${finanzas.MEDIOS[m.medio]?.nombre || ""}`.trim() : "";
+            const nombreMedio = (clave) => `${finanzas.MEDIOS[clave]?.icono || ""} ${finanzas.MEDIOS[clave]?.nombre || ""}`.trim();
+            // (v206) Pagado con dos medios: «Banco $60.000 + Efectivo $40.000».
+            const medio = m.pagos?.length ? m.pagos.map((p) => `${nombreMedio(p.medio)} ${finanzas.pesos(p.monto)}`).join(" + ")
+                : m.medio ? nombreMedio(m.medio) : "";
             return `
         <li class="fin-fila">
             <span class="fin-fila-icono" aria-hidden="true">${m.icono}</span>
@@ -467,6 +490,7 @@ function formularioEditar(estado, m) {
                 <select name="destino"><option value="">No</option>${opcionesDestino}</select></label>
             <label class="formulario-grupo"><span>¿Con qué pagaste?</span>
                 <select name="medio">${opcionesMedios(m.medio || "", "No lo anoto")}</select></label>
+            ${camposDosMedios(m.pagos?.[1])}
             <div class="fin-par">
                 <button type="submit" class="boton boton-principal">Guardar</button>${cancelar}
             </div>

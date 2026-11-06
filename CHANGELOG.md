@@ -2,6 +2,15 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v206 — Finanzas: solo gastas lo que tienes
+
+- **No se gasta plata que no hay** (`acciones-finanzas.js › exigirSaldo`): gasto, pago de fijo, transferencia y corrección de gasto se comparan con `finanzas.saldoDisponible` (del medio elegido, o el total sin medio). Al corregir un gasto no cuenta su monto anterior (`saldosPorMedio(estado, excluirGastoId)`).
+- **Corregir o borrar un ingreso / borrar una transferencia** se deshace si deja un medio en negativo que antes no lo estaba.
+- **Pagar con dos medios** (`repartirPago`): `medio2` + `monto2` en el formulario (plegable «Pagar con dos medios»); el gasto guarda `pagos: [{ medio, monto }, …]` y `saldosPorMedio` descuenta cada parte. El historial muestra «Banco $X + Efectivo $Y». Datos: versión 44 (campo opcional, sin migración).
+- **Lo que sobra pasa al mes siguiente** (`sobranteDeMesesAnteriores`): `resumenDelMes` da `arrastre` y `disponible`; «Te queda» y la tarjeta de Hoy usan `disponible`; `ritmoDelMes.libre` suma el arrastre y nunca pasa de lo disponible. Aurelio lo cuenta y su alerta de ritmo compara con lo que tienes (entró + arrastre).
+- **Pantallas angostas**: `.selector-secciones` con 6 secciones en 2 filas (≤420 px; con 5, ≤340 px); palabras largas en botones de opción se parten con guion; las 4 cifras de Finanzas en 2 × 2.
+- Probado: 494 pruebas de la app, recorrido de Finanzas en la app (rechazos, dos medios, historial, corregir, borrar), fechas difíciles, robot de 3 min y búsqueda de textos encimados a 320/375/393 px.
+
 ## v205 — Barra de abajo en su sitio
 
 - La corrección de la v203 para la barra de pestañas restaba `clientHeight` (`app-efectos.js › medir`); en el iPhone instalado ese valor no coincide con la pantalla visible y la barra bajaba ~34 pt, cortando las etiquetas. Ahora cabecera y barras se corrigen solo con `visualViewport.offsetTop`.

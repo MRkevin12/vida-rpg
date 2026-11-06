@@ -8024,7 +8024,8 @@ prueba("Finanzas: la inversión y el CDT no entran al plan ni se pueden usar com
 
 prueba("Finanzas: un abono a una meta cuenta como ahorro y, al llegar al monto, da el premio una sola vez", () => {
     const estado = partidaNueva();
-    finanzasConTrabajo(estado);
+    const fuente = finanzasConTrabajo(estado);
+    acciones.registrarIngresoFinanzas(estado, { monto: "1.000.000", fuente, fecha: hoy() });   // (v206) sin plata no se abona
     acciones.agregarMetaFinanzas(estado, { nombre: "Emergencia", objetivo: "300.000" });
     const meta = estado.finanzas.metas[0];
     const xpAntes = estado.atributos.riqueza;
@@ -8041,7 +8042,8 @@ prueba("Finanzas: un abono a una meta cuenta como ahorro y, al llegar al monto, 
 
 prueba("Finanzas: una deuda baja con cada pago y no deja pagar de más", () => {
     const estado = partidaNueva();
-    finanzasConTrabajo(estado);
+    const fuente = finanzasConTrabajo(estado);
+    acciones.registrarIngresoFinanzas(estado, { monto: "1.000.000", fuente, fecha: hoy() });   // (v206) sin plata no se paga
     acciones.agregarDeudaFinanzas(estado, { nombre: "Tarjeta", saldo: "200.000", cuota: "50.000" });
     const deuda = estado.finanzas.deudas[0];
     acciones.registrarGastoFinanzas(estado, { monto: "50.000", concepto: "Cuota", categoria: "necesidad", destino: `deuda:${deuda.id}`, fecha: hoy() });
@@ -8098,7 +8100,7 @@ prueba("Finanzas: Aurelio habla de tus números y, sin fuente, te pide una", () 
 
 prueba("Finanzas: la partida nueva trae finanzas vacías y la versión 33", () => {
     const base = datos.estadoInicial();
-    igual(base.version, 43, "versión de los datos");
+    igual(base.version, 44, "versión de los datos");
     igual(base.finanzas.ingresos, [], "sin ingresos al empezar");
     igual(base.finanzas.xpHoy, { fecha: null, n: 0 }, "el contador de XP empieza en cero");
 });
@@ -8219,6 +8221,7 @@ prueba("Finanzas (v138): al cambiar la meta del ahorro automático, el apartado 
 
 prueba("Finanzas (v138): corregir un gasto cambia monto, sobre y destino; una meta lo pasa a Ahorro y deudas", () => {
     const estado = finanzasFijas();
+    estado.finanzas.ingresos.push({ id: 3, fecha: "2026-10-01", monto: 200000, fuente: 1, nota: "", medio: "nequi" });   // (v206) hay plata en Nequi
     gastoFijo(estado, 60, "2026-10-03", 50000, "Cine", "gusto");
     acciones.agregarMetaFinanzas(estado, { nombre: "Viaje", objetivo: "900.000" });
     const meta = estado.finanzas.metas[0];
@@ -8233,6 +8236,7 @@ prueba("Finanzas (v138): corregir un gasto cambia monto, sobre y destino; una me
 
 prueba("Finanzas (v138): un gasto fijo se anota una vez al mes y se ve como pagado", () => {
     const estado = partidaConTrabajo();
+    acciones.registrarIngresoFinanzas(estado, { monto: "2.000.000", fuente: estado.finanzas.fuentes[0].id, fecha: "2026-09-01", medio: "banco" });   // (v206) plata en el banco
     acciones.agregarFijoFinanzas(estado, { nombre: "Arriendo", monto: "600.000", categoria: "necesidad", dia: "5", medio: "banco" });
     const fijo = estado.finanzas.fijos[0];
     igual([fijo.monto, fijo.dia, fijo.medio], [600000, 5, "banco"], "los datos del fijo");
@@ -8300,7 +8304,7 @@ prueba("Finanzas (v138): la gráfica de los últimos 6 meses termina en el mes d
 
 prueba("Finanzas (v138): los datos viejos se completan con las listas nuevas vacías", () => {
     const base = datos.estadoInicial();
-    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [43, [], [], [], []], "partida nueva");
+    igual([base.version, base.finanzas.fijos, base.finanzas.limites, base.finanzas.esperados, base.finanzas.transferencias], [44, [], [], [], []], "partida nueva");
     igual(base.finanzas.apartado, { metaId: null, porcentaje: 20 }, "ahorro automático apagado al empezar");
     igual(base.finanzas.premiosMes, {}, "sin meses premiados");
 });
@@ -9739,7 +9743,7 @@ prueba("La Senda del Reino: tu equipo ayuda (armadura al empezar, vidas, fuego y
     delete estado.arcade.plataformas;
     estado.version = 40;
     const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
-    igual([copia.version, copia.arcade.plataformas], [43, { niveles: {} }], "versión 43 y la Senda vacía");
+    igual([copia.version, copia.arcade.plataformas], [44, { niveles: {} }], "versión 44 y la Senda vacía");
     estado.arcade.plataformas = { niveles: { "1-1": { mejor: 10, reliquias: [1], tiempo: 5, ganadoEn: dia(0), veces: 1 } } };
     igual(datos.desdeRespaldo(datos.textoRespaldo(estado)).arcade.plataformas.niveles["1-1"].reliquias, [1], "y se conserva lo que había");
 });
@@ -10223,6 +10227,121 @@ prueba("Pantalla quieta (v203): nada corre la página de lado y las barras vuelv
     cierto(css.includes(".vista-corrida .pestanas") && css.includes("var(--vv-abajo, 0px)"), "la barra de pestañas se recoloca si iOS deja la vista corrida");
     const efectos = await (await fetch("../js/pantallas/app-efectos.js", { cache: "no-store" })).text();
     cierto(efectos.includes("[80, 400, 900]") && efectos.includes("\"vista-corrida\""), "el empujón se repite y la clase se pone solo cuando hace falta");
+});
+
+// ===== (v206) Finanzas: no gastar lo que no tienes, pagar con dos medios y lo que sobra pasa al mes siguiente =====
+
+prueba("Finanzas (v206): no se puede gastar más de lo que hay (por medio o en total)", () => {
+    const estado = partidaConTrabajo();
+    const fuente = estado.finanzas.fuentes[0].id;
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "1.000", concepto: "Pan", fecha: hoy() }), "No te alcanza");
+    acciones.registrarIngresoFinanzas(estado, { monto: "100.000", fuente, fecha: hoy(), medio: "banco" });
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "1.000", concepto: "Pan", fecha: hoy(), medio: "efectivo" }), "No te alcanza en Efectivo");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "100.001", concepto: "Pan", fecha: hoy(), medio: "banco" }), "te quedan $100.000");
+    acciones.registrarGastoFinanzas(estado, { monto: "100.000", concepto: "Todo", fecha: hoy(), medio: "banco" });
+    igual(finanzas.saldoDisponible(estado, "banco"), 0, "se puede gastar justo lo que hay");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "1", concepto: "Más", fecha: hoy() }), "No te alcanza");
+    igual(estado.finanzas.gastos.length, 1, "los gastos rechazados no quedan anotados");
+});
+
+prueba("Finanzas (v206): las transferencias y los gastos fijos tampoco gastan plata que no hay", () => {
+    const estado = partidaConTrabajo();
+    const fuente = estado.finanzas.fuentes[0].id;
+    acciones.registrarIngresoFinanzas(estado, { monto: "50.000", fuente, fecha: hoy(), medio: "banco" });
+    debeFallar(() => acciones.registrarTransferenciaFinanzas(estado, { monto: "60.000", fecha: hoy(), desde: "banco", hacia: "nequi" }), "No te alcanza en Banco");
+    acciones.registrarTransferenciaFinanzas(estado, { monto: "20.000", fecha: hoy(), desde: "banco", hacia: "nequi" });
+    igual([finanzas.saldoDisponible(estado, "banco"), finanzas.saldoDisponible(estado, "nequi")], [30000, 20000], "pasó la plata");
+    acciones.agregarFijoFinanzas(estado, { nombre: "Celular", monto: "40.000", medio: "banco" });
+    debeFallar(() => acciones.pagarFijoFinanzas(estado, estado.finanzas.fijos[0].id, { fecha: hoy() }), "No te alcanza en Banco");
+    acciones.pagarFijoFinanzas(estado, estado.finanzas.fijos[0].id, { fecha: hoy(), monto: "30.000" });
+    igual(finanzas.saldoDisponible(estado, "banco"), 0, "con el monto que sí alcanza, se paga");
+});
+
+prueba("Finanzas (v206): un gasto se puede pagar con dos medios (banco + efectivo)", () => {
+    const estado = partidaConTrabajo();
+    const fuente = estado.finanzas.fuentes[0].id;
+    acciones.registrarIngresoFinanzas(estado, { monto: "60.000", fuente, fecha: hoy(), medio: "banco" });
+    acciones.registrarIngresoFinanzas(estado, { monto: "50.000", fuente, fecha: hoy(), medio: "efectivo" });
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "100.000", concepto: "Zapatos", fecha: hoy(), medio: "banco" }), "No te alcanza en Banco");
+    acciones.registrarGastoFinanzas(estado, { monto: "100.000", concepto: "Zapatos", fecha: hoy(), medio: "banco", medio2: "efectivo", monto2: "40.000" });
+    const g = estado.finanzas.gastos[0];
+    igual(g.pagos, [{ medio: "banco", monto: 60000 }, { medio: "efectivo", monto: 40000 }], "se guardan las dos partes");
+    igual([finanzas.saldoDisponible(estado, "banco"), finanzas.saldoDisponible(estado, "efectivo")], [0, 10000], "cada medio paga lo suyo");
+    igual(finanzas.resumenDelMes(estado, hoy().slice(0, 7)).gastado, 100000, "en el mes cuenta como UN gasto de 100.000");
+    const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
+    igual(copia.finanzas.gastos[0].pagos, g.pagos, "las dos partes sobreviven a la copia de seguridad");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "5.000", concepto: "X", fecha: hoy(), medio: "efectivo", medio2: "efectivo", monto2: "1.000" }), "dos medios distintos");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "5.000", concepto: "X", fecha: hoy(), medio: "banco", medio2: "efectivo", monto2: "5.000" }), "menos que el total");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "5.000", concepto: "X", fecha: hoy(), medio2: "efectivo", monto2: "1.000" }), "primer medio");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "5.000", concepto: "X", fecha: hoy(), medio: "banco", medio2: "efectivo" }), "cuánto pagaste con él");
+    debeFallar(() => acciones.registrarGastoFinanzas(estado, { monto: "20.000", concepto: "X", fecha: hoy(), medio: "efectivo", medio2: "banco", monto2: "1.000" }), "No te alcanza");
+});
+
+prueba("Finanzas (v206): corregir un gasto o un ingreso no deja el saldo en negativo", () => {
+    const estado = partidaConTrabajo();
+    const fuente = estado.finanzas.fuentes[0].id;
+    acciones.registrarIngresoFinanzas(estado, { monto: "100.000", fuente, fecha: hoy(), medio: "banco" });
+    acciones.registrarGastoFinanzas(estado, { monto: "80.000", concepto: "Mercado", fecha: hoy(), medio: "banco" });
+    const gasto = estado.finanzas.gastos[0];
+    const ingreso = estado.finanzas.ingresos[0];
+    // Subir el gasto a 100.000: su monto anterior (80.000) no cuenta, así que sí alcanza.
+    acciones.editarMovimientoFinanzas(estado, "gastos", gasto.id, { monto: "100.000", fecha: hoy(), concepto: "Mercado", categoria: "necesidad", medio: "banco" });
+    igual(gasto.monto, 100000, "se puede corregir hasta lo que hay");
+    debeFallar(() => acciones.editarMovimientoFinanzas(estado, "gastos", gasto.id, { monto: "100.001", fecha: hoy(), concepto: "Mercado", categoria: "necesidad", medio: "banco" }), "No te alcanza");
+    igual(gasto.monto, 100000, "el gasto rechazado no cambió");
+    // Partirlo en dos medios al corregirlo, y quitar la partición después.
+    acciones.registrarIngresoFinanzas(estado, { monto: "30.000", fuente, fecha: hoy(), medio: "efectivo" });
+    acciones.editarMovimientoFinanzas(estado, "gastos", gasto.id, { monto: "100.000", fecha: hoy(), concepto: "Mercado", categoria: "necesidad", medio: "banco", medio2: "efectivo", monto2: "30.000" });
+    igual(gasto.pagos.length, 2, "ahora tiene dos partes");
+    acciones.editarMovimientoFinanzas(estado, "gastos", gasto.id, { monto: "90.000", fecha: hoy(), concepto: "Mercado", categoria: "necesidad", medio: "banco" });
+    igual(gasto.pagos, undefined, "sin segundo medio, se quitan las partes");
+    // Bajar el ingreso por debajo de lo gastado dejaría el banco en negativo: se rechaza y no cambia nada.
+    debeFallar(() => acciones.editarMovimientoFinanzas(estado, "ingresos", ingreso.id, { monto: "50.000", fecha: hoy(), fuente, medio: "banco" }), "quedaría en");
+    igual(ingreso.monto, 100000, "el ingreso rechazado quedó igual");
+    acciones.editarMovimientoFinanzas(estado, "ingresos", ingreso.id, { monto: "95.000", fecha: hoy(), fuente, nota: "ok", medio: "banco" });
+    igual(ingreso.monto, 95000, "bajarlo sin quedar en negativo sí se puede");
+});
+
+prueba("Finanzas (v206): borrar un ingreso o una transferencia ya gastados no deja el saldo en negativo", () => {
+    const estado = partidaConTrabajo();
+    const fuente = estado.finanzas.fuentes[0].id;
+    acciones.registrarIngresoFinanzas(estado, { monto: "100.000", fuente, fecha: hoy(), medio: "banco" });
+    acciones.registrarTransferenciaFinanzas(estado, { monto: "40.000", fecha: hoy(), desde: "banco", hacia: "nequi" });
+    acciones.registrarGastoFinanzas(estado, { monto: "30.000", concepto: "Almuerzo", fecha: hoy(), medio: "nequi" });
+    const ingreso = estado.finanzas.ingresos[0];
+    const transferencia = estado.finanzas.transferencias[0];
+    debeFallar(() => acciones.borrarRegistroFinanzas(estado, "ingresos", ingreso.id), "quedaría en");
+    debeFallar(() => acciones.borrarRegistroFinanzas(estado, "transferencias", transferencia.id), "Nequi quedaría en");
+    igual([estado.finanzas.ingresos.length, estado.finanzas.transferencias.length, estado.finanzas.gastos.length], [1, 1, 1], "nada se borró");
+    acciones.borrarRegistroFinanzas(estado, "gastos", estado.finanzas.gastos[0].id);
+    acciones.borrarRegistroFinanzas(estado, "transferencias", transferencia.id);
+    acciones.borrarRegistroFinanzas(estado, "ingresos", ingreso.id);
+    igual(finanzas.saldoDisponible(estado, null), 0, "borrando en orden (gasto → transferencia → ingreso) sí se puede");
+});
+
+prueba("Finanzas (v206): lo que sobra de un mes (después de ahorrar) se suma al siguiente", () => {
+    const estado = partidaConTrabajo();
+    const fuente = estado.finanzas.fuentes[0].id;
+    const mes = hoy().slice(0, 7);
+    const pasado = finanzas.mesAnterior(mes);
+    acciones.agregarMetaFinanzas(estado, { nombre: "Viaje", objetivo: "5.000.000" });
+    const meta = estado.finanzas.metas[0];
+    acciones.registrarIngresoFinanzas(estado, { monto: "1.000.000", fuente, fecha: `${pasado}-10` });
+    acciones.registrarGastoFinanzas(estado, { monto: "300.000", concepto: "Arriendo", fecha: `${pasado}-12` });
+    acciones.registrarGastoFinanzas(estado, { monto: "200.000", concepto: "Ahorro", categoria: "ahorro", destino: `meta:${meta.id}`, fecha: `${pasado}-12` });
+    igual(finanzas.sobranteDeMesesAnteriores(estado, mes), 500000, "sobró 500.000 (el ahorro no cuenta como sobrante)");
+    const r = finanzas.resumenDelMes(estado, mes);
+    igual([r.ingresos, r.arrastre, r.disponible], [0, 500000, 500000], "este mes empieza con lo que sobró");
+    igual(finanzas.resumenDelMes(estado, pasado).arrastre, 0, "el mes pasado no trae nada de antes");
+    const ritmo = finanzas.ritmoDelMes(estado, mes, hoy());
+    cierto(ritmo.libre >= 500000 && ritmo.porDia > 0, "lo que sobró se puede gastar este mes (cuenta en «libre» y en el día)");
+    acciones.registrarIngresoFinanzas(estado, { monto: "200.000", fuente, fecha: hoy() });
+    acciones.registrarGastoFinanzas(estado, { monto: "600.000", concepto: "Moto", fecha: hoy() });
+    const ahora = finanzas.resumenDelMes(estado, mes);
+    igual([ahora.sobrante, ahora.disponible], [-400000, 100000], "gastaste más de lo que entró este mes, pero te alcanzó con lo de antes");
+    const despues = finanzas.ritmoDelMes(estado, mes, hoy());
+    cierto(despues.libre <= 100000 && despues.porDia * despues.restantes <= 100000, "«puedes gastar al día» nunca promete más de lo que te queda");
+    cierto(finanzas.analisisDeAurelio(estado, hoy()).some((n) => n.texto.includes("Te sobraron")), "Aurelio te cuenta lo que pasó al mes");
 });
 
 // ===== Ejecutar todo y mostrar el resultado =====

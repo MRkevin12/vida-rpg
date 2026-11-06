@@ -2089,3 +2089,39 @@ body::-webkit-scrollbar,
     .mes-animo { gap: 3px; }
     .dia-animo { min-height: 0; }   /* con 36 px fijos, 7 días + huecos no caben en 320 px */
 }
+
+/* ===== (v206) Las barras de secciones no se enciman en pantallas angostas =====
+   Una palabra larga («Historial») no cabe en un sexto de la pantalla y se montaba sobre la vecina. */
+@media (max-width: 420px) {
+    .selector-secciones:has(> :nth-child(6)) {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(3, minmax(0, 1fr));   /* 6 secciones → 2 filas de 3 */
+    }
+}
+
+@media (max-width: 340px) {
+    .selector-secciones:has(> :nth-child(5)) {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .pestana-icono {
+        width: 44px;   /* 5 pestañas en 320 px: el ícono de 52 px se salía de su columna */
+    }
+}
+
+/* (v206) Una palabra que no cabe en su botón («Sorprendido», «Acariciar») se parte con guion en vez de montarse
+   sobre el vecino. El html tiene lang="es": iOS sabe dónde cortar en español. */
+.selector button,
+.cuidado {
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    overflow-wrap: break-word;
+}
+
+@media (max-width: 340px) {
+    .pestana {
+        font-size: 0.64rem;   /* «Aventuras» y «Progreso» caben en un quinto de 320 px */
+        letter-spacing: 0;
+    }
+}
