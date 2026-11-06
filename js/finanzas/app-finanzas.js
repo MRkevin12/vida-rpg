@@ -99,7 +99,7 @@ export const FORMULARIOS_FINANZAS = {
         const resultado = ejecutar(() => acciones.registrarIngresoFinanzas(estado, valores), { mantenerScroll: true });
         if (resultado) {
             // Aurelio te dice al instante cómo repartir lo que entró.
-            const r = finanzas.repartoDe(finanzas.dineroDeTexto(valores.monto));
+            const r = finanzas.repartoDe(finanzas.dineroDeTexto(valores.monto), finanzas.porcentajesDelPlan(estado));
             avisar(`🪙 Reparte así: ${finanzas.pesos(r.necesidad)} necesidades · ${finanzas.pesos(r.gusto)} gustos · ${finanzas.pesos(r.ahorro)} ahorro`);
             avisarResultado(resultado);
             formulario.reset();
@@ -124,6 +124,12 @@ export const FORMULARIOS_FINANZAS = {
             avisarResultado(resultado);
         }
         return Boolean(resultado);
+    },
+    // (v207) Tus porcentajes del plan (Ajustes): tienen que sumar 100.
+    "finanzas-plan"(valores) {
+        const ok = ejecutar(() => acciones.configurarPlanFinanzas(estado, valores), { mantenerScroll: true });
+        if (ok) avisar(`✅ Plan guardado: ${finanzas.textoDelPlan(estado)}`);
+        return Boolean(ok);
     },
     // (v138) Pasar plata de un medio a otro.
     "finanzas-transferencia"(valores, formulario) {

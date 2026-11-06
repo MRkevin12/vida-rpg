@@ -2,6 +2,15 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v207 — Tu propio plan de Finanzas
+
+- **Porcentajes configurables** en Ajustes («💰 Plan de Finanzas», `index.html` + `app-dialogos.js › ajustes()`). Se guardan en `estado.finanzas.plan` (`{ necesidad, gusto, ahorro }`, enteros de 0 a 100 que sumen 100). Por defecto 50/30/20 (`finanzas.PLAN_POR_DEFECTO`).
+- **Reglas** (`finanzas.js`): `porcentajesDelPlan`, `textoDelPlan`; `planDelMes` usa tu plan (y devuelve `porcentaje`); `repartoDe(monto, pct)`; los consejos de Aurelio ya no dicen números fijos.
+- **Acción** `configurarPlanFinanzas`: rechaza texto vacío, decimales, negativos, más de 100 y sumas distintas de 100 (sin cambiar nada).
+- **Vistas**: título «Tu plan 10/20/70», la línea de porcentajes, el reparto del último ingreso y los textos de Anotar/No entran al plan usan tu plan.
+- **Datos**: `estadoInicial` y `completar` traen `plan`; las partidas viejas salen con 50/30/20. Sin cambio de versión de datos (sigue en 44). Ojo: `estadoInicial` y `completar` deben poner las claves en el mismo orden, porque la prueba de la copia compara como texto.
+- Probado: 495 pruebas de la app; en la app: guardar 10/20/70, rechazar 40/40/40 con su aviso, la dona y los límites con los nuevos porcentajes, y ninguna pantalla se sale a 320 y 375 px.
+
 ## v206 — Finanzas: solo gastas lo que tienes
 
 - **No se gasta plata que no hay** (`acciones-finanzas.js › exigirSaldo`): gasto, pago de fijo, transferencia y corrección de gasto se comparan con `finanzas.saldoDisponible` (del medio elegido, o el total sin medio). Al corregir un gasto no cuenta su monto anterior (`saldosPorMedio(estado, excluirGastoId)`).

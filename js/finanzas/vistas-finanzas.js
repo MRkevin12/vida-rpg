@@ -28,7 +28,7 @@ const ICONO_NOTA = { alerta: "⚠", bien: "✨", idea: "💡" };
 export function tarjetaFinanzasHoy(estado, ctx) {
     const f = estado.finanzas;
     const ritmo = finanzas.ritmoDelMes(estado, finanzas.mesDe(ctx.hoy), ctx.hoy);
-    let texto = "Anota tu plata y arma tu plan 50/30/20.";
+    let texto = `Anota tu plata y arma tu plan ${finanzas.textoDelPlan(estado)}.`;   // (v207) tu plan
     if (ritmo.ingresos || ritmo.arrastre) texto = `Hoy puedes gastar ${finanzas.pesos(ritmo.porDia)} · te quedan ${finanzas.pesos(Math.max(0, ritmo.disponible))}`;
     else if (f.ingresos.length || f.gastos.length) texto = "Todavía no anotas ingresos este mes.";
     return `
@@ -236,8 +236,8 @@ function seccionResumen(estado, ctx) {
             ${comparacion.cambio !== null ? `<p class="mini texto-suave">Frente al mes pasado (hasta hoy): ${comparacion.cambio > 0 ? "+" : ""}${comparacion.cambio} % de gasto.</p>` : ""}
         </section>
         <section class="panel">
-            <h2 class="titulo-juego">🎯 Tu plan 50/30/20</h2>
-            <p class="mini texto-suave">De lo que entra: 50 % necesidades, 30 % gustos y 20 % ahorro y deudas.</p>
+            <h2 class="titulo-juego">🎯 Tu plan ${esc(finanzas.textoDelPlan(estado))}</h2>
+            <p class="mini texto-suave">De lo que entra: ${plan.map((sobre) => `${sobre.porcentaje} % ${sobre.nombre.toLowerCase()}`).join(", ")}.</p>
             ${ritmo.ingresos ? bloqueDona(plan, ritmo.ingresos) : ""}
             ${plan.map((sobre) => `
                 <div class="fin-sobre${sobre.pasado ? " fin-pasado" : ""}">
@@ -253,7 +253,7 @@ function seccionResumen(estado, ctx) {
             ${ritmo.ingresos ? "" : vacio("Cuando anotes un ingreso verás cuánto le toca a cada sobre.")}
         </section>
         ${seccionUltimosMeses(estado, ctx.hoy)}
-        ${ultimo ? seccionReparto(ultimo) : ""}
+        ${ultimo ? seccionReparto(estado, ultimo) : ""}
         ${mayores.length ? `
         <section class="panel">
             <h2 class="titulo-juego">🔥 En qué se te va</h2>
@@ -291,8 +291,8 @@ function seccionUltimosMeses(estado, fecha) {
 }
 
 // Cómo repartir el último ingreso con el 50/30/20.
-function seccionReparto(ingreso) {
-    const r = finanzas.repartoDe(ingreso.monto);
+function seccionReparto(estado, ingreso) {
+    const r = finanzas.repartoDe(ingreso.monto, finanzas.porcentajesDelPlan(estado));
     return `
         <section class="panel">
             <h2 class="titulo-juego">🪙 Último ingreso: ${finanzas.pesos(ingreso.monto)}</h2>
@@ -374,7 +374,7 @@ function formularioIngreso(estado, fecha) {
                     <input type="text" name="nota" maxlength="60" placeholder="Ej: turno del sábado"></label>
                 <button type="submit" class="boton boton-principal boton-ancho">Anotar ingreso</button>
             </form>
-            <p class="mini texto-suave">Al anotarlo, Aurelio te dice cómo repartirlo con el 50/30/20.</p>
+            <p class="mini texto-suave">Al anotarlo, Aurelio te dice cómo repartirlo con tu plan (${esc(finanzas.textoDelPlan(estado))}).</p>
         </section>`;
 }
 
@@ -805,7 +805,7 @@ function seccionFuentes(estado, ctx) {
             <h2 class="titulo-juego">🔒 Lo que no tocas</h2>
             <p class="fin-patrimonio"><small>Patrimonio guardado</small><b>${finanzas.pesos(finanzas.patrimonioIntocable(estado))}</b></p>
             ${guardadas.length ? `<ul class="fin-lista">${guardadas.map(tarjeta).join("")}</ul>` : vacio("Agrega tu inversión y tu CDT con lo que tienes ahí.")}
-            <p class="mini texto-suave">No entran al plan 50/30/20: son para crecer.</p>
+            <p class="mini texto-suave">No entran al plan ${esc(finanzas.textoDelPlan(estado))}: son para crecer.</p>
         </section>
         <section class="panel">
             <h2 class="titulo-juego">➕ Agregar fuente</h2>

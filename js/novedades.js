@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 206;
+export const VERSION_APP = 207;
 
 export const NOVEDADES = [
+    {
+        version: 207,
+        titulo: "Tu propio plan de Finanzas",
+        cambios: [
+            "🎛️ En Ajustes → «💰 Plan de Finanzas» eliges cómo repartir lo que entra: necesidades, gustos y ahorro. Tienen que sumar 100. Si no lo cambias, sigue el 50/30/20.",
+            "🧮 Todo se ajusta a tu plan: los límites de cada sobre, el reparto de cada ingreso, lo que dice Aurelio y el título de tu plan.",
+        ],
+    },
     {
         version: 206,
         titulo: "Finanzas: solo gastas lo que tienes",

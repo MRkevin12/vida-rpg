@@ -26,6 +26,7 @@ import * as musica from "../musica.js";
 import * as equipo from "../equipo.js";
 import * as avisos from "../avisos.js";
 import * as nube from "../nube.js";
+import * as finanzas from "../finanzas/finanzas.js";   // (v207) el plan de porcentajes en Ajustes
 import { hoy, fechaLegible, DIAS_LETRAS, DIAS_CORTOS } from "../fechas.js";
 import { estado, pantallaActual, $, fechaVista, avatarActual } from "../app.js";
 import { retratoPixel } from "../dibujo/retratos.js";
@@ -334,6 +335,10 @@ export const PREPARAR = {
         pintarAvisos();
         pintarRetratoFondos();
         $("#ajustes-nombre").value = estado.personaje.nombre;
+        const plan = finanzas.porcentajesDelPlan(estado);   // (v207) los porcentajes que tienes ahora
+        $("#plan-necesidad").value = plan.necesidad;
+        $("#plan-gusto").value = plan.gusto;
+        $("#plan-ahorro").value = plan.ahorro;
         $("#ajustes-sonido").checked = estado.ajustes.sonido;
         $("#ajustes-golpe").checked = estado.ajustes.golpe;
         $("#ajustes-eventos").checked = estado.ajustes.eventos;

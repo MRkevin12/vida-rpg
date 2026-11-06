@@ -674,6 +674,21 @@
                 <button type="submit" class="boton boton-chico">Renombrar</button>
             </form>
 
+            <!-- (v207) El plan de Finanzas: cómo repartes lo que entra. Lo llena app-dialogos.js › ajustes(). -->
+            <form data-form="finanzas-plan" class="ajustes-bloque">
+                <b>💰 Plan de Finanzas</b>
+                <span class="nota">Cómo repartes lo que entra: necesidades, gustos y ahorro. Los tres tienen que sumar 100.</span>
+                <div class="fin-par">
+                    <label class="formulario-grupo"><span>🛒 Necesidades %</span>
+                        <input type="text" name="necesidad" id="plan-necesidad" inputmode="numeric" maxlength="3" required autocomplete="off"></label>
+                    <label class="formulario-grupo"><span>🎁 Gustos %</span>
+                        <input type="text" name="gusto" id="plan-gusto" inputmode="numeric" maxlength="3" required autocomplete="off"></label>
+                    <label class="formulario-grupo"><span>🌱 Ahorro %</span>
+                        <input type="text" name="ahorro" id="plan-ahorro" inputmode="numeric" maxlength="3" required autocomplete="off"></label>
+                </div>
+                <button type="submit" class="boton boton-chico boton-principal">Guardar plan</button>
+            </form>
+
             <section class="ajustes-bloque">
                 <label class="interruptor">
                     <span><b>🔊 Sonidos</b><br><span class="nota">Al completar misiones, subir de nivel y derrotar jefes.</span></span>

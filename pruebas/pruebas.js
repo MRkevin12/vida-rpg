@@ -10344,6 +10344,32 @@ prueba("Finanzas (v206): lo que sobra de un mes (después de ahorrar) se suma al
     cierto(finanzas.analisisDeAurelio(estado, hoy()).some((n) => n.texto.includes("Te sobraron")), "Aurelio te cuenta lo que pasó al mes");
 });
 
+prueba("Finanzas (v207): tu plan de porcentajes (Ajustes) reemplaza al 50/30/20 y tiene que sumar 100", () => {
+    const estado = partidaConTrabajo();
+    const fuente = estado.finanzas.fuentes[0].id;
+    const mes = hoy().slice(0, 7);
+    igual(finanzas.textoDelPlan(estado), "50/30/20", "sin cambios sale el 50/30/20");
+    acciones.registrarIngresoFinanzas(estado, { monto: "1.000.000", fuente, fecha: hoy() });
+    igual(finanzas.planDelMes(estado, mes).map((s) => s.limite), [500000, 300000, 200000], "el plan de fábrica sigue igual");
+    acciones.configurarPlanFinanzas(estado, { necesidad: "10", gusto: "20", ahorro: "70" });
+    igual(finanzas.textoDelPlan(estado), "10/20/70", "se guarda tu plan");
+    igual(finanzas.planDelMes(estado, mes).map((s) => [s.clave, s.porcentaje, s.limite]), [["necesidad", 10, 100000], ["gusto", 20, 200000], ["ahorro", 70, 700000]], "los límites salen de tu plan");
+    igual(finanzas.repartoDe(1000000, finanzas.porcentajesDelPlan(estado)), { necesidad: 100000, gusto: 200000, ahorro: 700000 }, "el reparto del ingreso usa tu plan");
+    igual(finanzas.repartoDe(1000000), { necesidad: 500000, gusto: 300000, ahorro: 200000 }, "sin plan, el reparto es 50/30/20");
+    debeFallar(() => acciones.configurarPlanFinanzas(estado, { necesidad: "10", gusto: "20", ahorro: "60" }), "sumar 100 (ahora suman 90)");
+    debeFallar(() => acciones.configurarPlanFinanzas(estado, { necesidad: "50", gusto: "60", ahorro: "-10" }), "entero entre 0 y 100");
+    debeFallar(() => acciones.configurarPlanFinanzas(estado, { necesidad: "", gusto: "50", ahorro: "50" }), "entero entre 0 y 100");
+    debeFallar(() => acciones.configurarPlanFinanzas(estado, { necesidad: "33,5", gusto: "33", ahorro: "33" }), "entero entre 0 y 100");
+    igual(finanzas.textoDelPlan(estado), "10/20/70", "un plan rechazado no cambia el que tienes");
+    acciones.configurarPlanFinanzas(estado, { necesidad: "0", gusto: "30", ahorro: "70" });
+    igual(finanzas.porcentajesDelPlan(estado).necesidad, 0, "se puede poner 0 en un sobre");
+    const copia = datos.desdeRespaldo(datos.textoRespaldo(estado));
+    igual(finanzas.textoDelPlan(copia), "0/30/70", "el plan sobrevive a la copia de seguridad");
+    const vieja = partidaConTrabajo();
+    delete vieja.finanzas.plan;
+    igual(finanzas.textoDelPlan(vieja), "50/30/20", "una partida sin plan guardado sale con el 50/30/20");
+});
+
 // ===== Ejecutar todo y mostrar el resultado =====
 
 const lista = document.querySelector("#lista");

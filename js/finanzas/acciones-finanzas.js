@@ -326,6 +326,22 @@ export function cobrarEsperadoFinanzas(estado, id, { medio = "" } = {}) {
     return resultado;
 }
 
+// (v207) Tu plan de porcentajes (Ajustes): necesidades, gustos y ahorro. Enteros de 0 a 100 que sumen 100.
+export function configurarPlanFinanzas(estado, { necesidad, gusto, ahorro }) {
+    const valores = { necesidad, gusto, ahorro };
+    for (const clave of Object.keys(valores)) {
+        const texto = String(valores[clave] ?? "").trim();
+        const numero = Number(texto.replace(",", "."));
+        if (!texto || !Number.isInteger(numero) || numero < 0 || numero > 100) {
+            throw new Error("Cada porcentaje debe ser un número entero entre 0 y 100.");
+        }
+        valores[clave] = numero;
+    }
+    const suma = valores.necesidad + valores.gusto + valores.ahorro;
+    if (suma !== 100) throw new Error(`Los tres porcentajes tienen que sumar 100 (ahora suman ${suma}).`);
+    estado.finanzas.plan = { ...valores };
+}
+
 // (v138) El ahorro automático: qué meta recibe el porcentaje de cada ingreso (vacío = apagado).
 export function configurarApartadoFinanzas(estado, { metaId = "", porcentaje = "20" }) {
     const p = Math.round(Number(String(porcentaje || "20").replace(",", ".")));

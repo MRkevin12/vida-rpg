@@ -17,6 +17,20 @@ export const SOBRES = {
     ahorro: { nombre: "Ahorro y deudas", porcentaje: 20, icono: "🌱", texto: "metas de ahorro y pagos a deudas" },
 };
 
+// (v207) El plan de porcentajes que tú eliges en Ajustes (deben sumar 100). Si nunca lo cambias, es el 50/30/20.
+export const PLAN_POR_DEFECTO = { necesidad: 50, gusto: 30, ahorro: 20 };
+
+// Los porcentajes del plan que están en uso (los guardados, o los de fábrica si no hay).
+export function porcentajesDelPlan(estado) {
+    return { ...PLAN_POR_DEFECTO, ...(estado.finanzas.plan || {}) };
+}
+
+// Texto corto del plan: «50/30/20».
+export function textoDelPlan(estado) {
+    const p = porcentajesDelPlan(estado);
+    return `${p.necesidad}/${p.gusto}/${p.ahorro}`;
+}
+
 // Qué tipo de fuente es. Solo el trabajo se toca: lo demás se anota con su valor y no entra al plan.
 export const TIPOS_FUENTE = {
     trabajo: { nombre: "Trabajo (el ingreso que sí usas)", icono: "🪙", tocable: true },
@@ -160,18 +174,20 @@ export function sobranteDeMesesAnteriores(estado, mes) {
 // El plan 50/30/20 del mes: cuánto le toca a cada sobre y cuánto llevas.
 export function planDelMes(estado, mes) {
     const resumen = resumenDelMes(estado, mes);
+    const porcentajes = porcentajesDelPlan(estado);   // (v207) los que elegiste en Ajustes
     return Object.entries(SOBRES).map(([clave, sobre]) => {
-        const limite = Math.round((resumen.ingresos * sobre.porcentaje) / 100);
+        const porcentaje = porcentajes[clave];
+        const limite = Math.round((resumen.ingresos * porcentaje) / 100);
         const gastado = resumen.porSobre[clave];
         const restante = limite - gastado;
-        return { clave, ...sobre, limite, gastado, restante, pasado: restante < 0 };
+        return { clave, ...sobre, porcentaje, limite, gastado, restante, pasado: restante < 0 };
     });
 }
 
-// (v136) Cómo se reparte un monto con el 50/30/20 (por ejemplo, el ingreso que acaba de entrar).
-export function repartoDe(monto) {
-    const necesidad = Math.round(monto * 0.5);
-    const gusto = Math.round(monto * 0.3);
+// (v136) Cómo se reparte un monto con el plan (por ejemplo, el ingreso que acaba de entrar). (v207) pct = tu plan.
+export function repartoDe(monto, pct = PLAN_POR_DEFECTO) {
+    const necesidad = Math.round((monto * pct.necesidad) / 100);
+    const gusto = Math.round((monto * pct.gusto) / 100);
     return { necesidad, gusto, ahorro: monto - necesidad - gusto };
 }
 
@@ -361,7 +377,7 @@ export function mesesParaDeuda(estado, deuda) {
 
 // ===== (v138) Meses en plan =====
 
-// Un mes está «en plan» si entró dinero, ningún sobre se pasó, ahorraste el 20 % y ningún límite se pasó.
+// Un mes está «en plan» si entró dinero, ningún sobre se pasó, ahorraste lo que dice tu plan y ningún límite se pasó.
 export function mesEnPlan(estado, mes) {
     if (!resumenDelMes(estado, mes).ingresos) return false;
     if (planDelMes(estado, mes).some((sobre) => sobre.pasado)) return false;
@@ -400,7 +416,7 @@ export function ultimosMeses(estado, fecha = hoy(), cuantos = 6) {
 
 // Los consejos de Aurelio que no dependen de tus números: uno por día.
 export const CONSEJOS_DEL_DIA = [
-    "Págate primero: aparta tu 20 % el mismo día que entra el dinero, antes de gastar.",
+    "Págate primero: aparta tu parte de ahorro el mismo día que entra el dinero, antes de gastar.",
     "Con ingresos por día, vive con el promedio del mes, no con tu mejor día.",
     "Anota cada gasto el mismo día. A los tres días ya no te acuerdas de la mitad.",
     "El CDT y la inversión son para crecer: no los cuentes como plata para gastar.",
@@ -408,7 +424,7 @@ export const CONSEJOS_DEL_DIA = [
     "Antes de una compra grande, espera 48 horas. Si todavía la quieres, cómprala sin culpa.",
     "Una meta con nombre y monto se cumple más que un «ahorrar algo».",
     "Con varias deudas, paga la cuota mínima de todas y el resto a la más cara.",
-    "No necesitas ser perfecto: un mes con el 20 % a medias ya es un avance.",
+    "No necesitas ser perfecto: un mes con tu parte de ahorro a medias ya es un avance.",
     "Un mes bueno de trabajo no es un mes para gastar más: es un mes para adelantar tu ahorro.",
 ];
 
@@ -428,10 +444,10 @@ export function analisisDeAurelio(estado, fecha = hoy()) {
     if (!ritmo.ingresos) nota(2, "idea", "Todavía no entra dinero este mes. Anótalo cuando llegue: sin números no hay plan.");
     if (ritmo.actual && ritmo.arrastre > 0) nota(35, "bien", `Te sobraron ${pesos(ritmo.arrastre)} de los meses anteriores y se suman a este mes. ¡Bien guardado!`);
     if (ritmo.ingresos && plan.necesidad.pasado) {
-        nota(10, "alerta", `Tus necesidades ya pasaron el 50 % (${pesos(plan.necesidad.gastado)}). Mira qué gasto fijo puedes bajar.`);
+        nota(10, "alerta", `Tus necesidades ya pasaron el ${plan.necesidad.porcentaje} % (${pesos(plan.necesidad.gastado)}). Mira qué gasto fijo puedes bajar.`);
     }
     if (ritmo.ingresos && plan.gusto.pasado) {
-        nota(11, "alerta", `Tus gustos ya se comieron el 30 % (te pasaste ${pesos(-plan.gusto.restante)}). Un gusto menos esta semana y vuelves al plan.`);
+        nota(11, "alerta", `Tus gustos ya se comieron el ${plan.gusto.porcentaje} % (te pasaste ${pesos(-plan.gusto.restante)}). Un gusto menos esta semana y vuelves al plan.`);
     }
     // A este ritmo, ¿alcanza? (desde el día 5, para que unos pocos gastos no asusten)
     // (v206) Se compara con lo que tienes este mes: lo que entró + lo que te sobró de antes.

@@ -82,7 +82,9 @@ export function estadoInicial() {
         //   apartado ({ metaId, porcentaje }: ahorro automático) y premiosMes ({ "AAAA-MM": true } meses ya premiados).
         finanzas: {
             fuentes: [], ingresos: [], gastos: [], metas: [], deudas: [], xpHoy: { fecha: null, n: 0 },
-            transferencias: [], fijos: [], limites: [], esperados: [], apartado: { metaId: null, porcentaje: 20 }, premiosMes: {},
+            transferencias: [], fijos: [], limites: [], esperados: [], apartado: { metaId: null, porcentaje: 20 },
+            plan: { necesidad: 50, gusto: 30, ahorro: 20 },   // (v207) tu plan de porcentajes (suma 100); se cambia en Ajustes
+            premiosMes: {},
         },
         // (v142) El calendario de Memento Mori (ver memento.js): tu fecha de nacimiento (null = sin configurar) y hasta qué edad cuentas vivir.
         memento: { nacimiento: null, esperanza: 80 },
@@ -214,6 +216,7 @@ function completar(guardado) {
             limites: guardado.finanzas?.limites || [],
             esperados: guardado.finanzas?.esperados || [],
             apartado: { ...base.finanzas.apartado, ...guardado.finanzas?.apartado },
+            plan: { ...base.finanzas.plan, ...guardado.finanzas?.plan },   // (v207) si no lo tienes guardado, sale el 50/30/20
             premiosMes: { ...guardado.finanzas?.premiosMes },
         },   // (v135, v138)
         memento: { ...base.memento, ...guardado.memento },   // (v142)
