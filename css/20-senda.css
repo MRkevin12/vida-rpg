@@ -737,7 +737,7 @@
     .senda.jugando {
         --senda-borde-izq: max(10px, env(safe-area-inset-left) - 18px);
         --senda-borde-der: max(10px, env(safe-area-inset-right) - 18px);
-        --senda-columna: 142px;   /* lo que mide el mando de cada lado (la cruceta o A + B) */
+        --senda-columna: 166px;   /* lo que mide el mando de cada lado (la cruceta o A + B) */
         --senda-lado-izq: calc(var(--senda-borde-izq) + var(--senda-columna) + 10px);
         --senda-lado-der: calc(var(--senda-borde-der) + var(--senda-columna) + 10px);
         padding: 0;
@@ -803,10 +803,10 @@
 
     .senda.jugando .senda-cruz { gap: 4px; padding: 5px; pointer-events: auto; }
     .senda.jugando .senda-cruz-centro { width: 6px; }
-    .senda.jugando .senda-boton { width: 56px; height: 76px; aspect-ratio: auto; pointer-events: auto; }   /* más altos: más fácil de atinar con el pulgar */
+    .senda.jugando .senda-boton { width: 66px; height: 92px; aspect-ratio: auto; pointer-events: auto; }   /* más altos: más fácil de atinar con el pulgar */
     .senda.jugando .senda-acciones { gap: 10px; }
-    .senda.jugando .senda-saltar { width: 74px; height: 74px; }
-    .senda.jugando .senda-fuego { width: 58px; height: 58px; margin-bottom: 30px; }
+    .senda.jugando .senda-saltar { width: 90px; height: 90px; }
+    .senda.jugando .senda-fuego { width: 66px; height: 66px; margin-bottom: 34px; }
 
     /* La pausa y el resultado, más anchos y bajos: así caben sin bajar la pantalla. */
     .senda.jugando .senda-menu { width: min(460px, 100%); padding: 12px 14px; gap: 4px; }

@@ -2,6 +2,10 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v209 — Botones más grandes en horizontal
+
+- Senda en horizontal: columnas del mando de 142 a 166 px; cruceta 66 × 92, saltar 90, fuego 66 (antes 56 × 76, 74 y 58). El lienzo cede ~48 px de ancho en total.
+
 ## v208 — Horizontal: la app y los juegos
 
 - **La Senda del Reino** (`css/20-senda.css`, bloque de horizontal): el lienzo va entre dos columnas propias del mando (`--senda-lado-izq/-der`); antes ocupaba toda la pantalla y la cruceta y el botón de saltar tapaban al héroe (al empezar el nivel la cámara está topada a la izquierda) y el suelo. Los botones pueden meterse un poco en la zona del notch (`--senda-borde-*`). La barra del recorrido vuelve a verse (arriba a la izquierda); pausa y ✖ arriba a la derecha. Botones de la cruceta más altos (56 × 76). `ajustarLienzo()` no cambia: mide la caja y el ancho del mundo sale solo (~300 puntos en un iPhone de 852 × 393).

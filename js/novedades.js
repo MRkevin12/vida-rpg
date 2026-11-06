@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 208;
+export const VERSION_APP = 209;
 
 export const NOVEDADES = [
+    {
+        version: 209,
+        titulo: "Botones más grandes en horizontal",
+        cambios: [
+            "👆 En La Senda del Reino en horizontal, la cruceta, el botón de saltar y el de fuego son más grandes: más fáciles de pulsar con el pulgar.",
+        ],
+    },
     {
         version: 208,
         titulo: "La app y los juegos, cómodos en horizontal",
