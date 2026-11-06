@@ -104,6 +104,10 @@ html {
        «hidden», que no deja deslizar de lado con el dedo pero SÍ deja que iOS corra la página al tocar un campo
        (pasó en el gym: la pantalla quedaba movida a la izquierda). Con el html recortando, el body recorta de verdad. */
     overflow-x: clip;
+    /* (v204) Sin rebote al pasarte del final o del inicio. El navegador toma el overscroll de la ventana del «html»,
+       no del «body»: como el html ya no es «visible» (por el clip de arriba), el «none» del body dejó de valer y iOS
+       rebotaba la página; al rebotar corre la cabecera, la sub-barra del gym y las pestañas a media pantalla. */
+    overscroll-behavior: none;
 }
 
 h1, h2, h3, p, dl, dd {

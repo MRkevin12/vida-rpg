@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v204 — Sin rebote al deslizar
+
+- **Al pasarte del final o del inicio, la cabecera, la sub-barra del gym y las pestañas se corrían a media pantalla.** Causa: desde la v203 el `html` tiene `overflow-x: clip`, así que el navegador toma el `overscroll` de la ventana del `html` y el `overscroll-behavior-y: none` del `body` dejó de valer. Ahora el `html` también lleva `overscroll-behavior: none` (`css/01-base.css`). Prueba nueva en `pruebas/pruebas.js`.
+- Sin cambios de datos. Pruebas: 488 de la app.
+
 ## v203 — La pantalla ya no se descuadra
 
 - **La página se corría de lado** (gym en «Lista»): el `overflow-x: clip` del `body` pasaba a la ventana como `hidden`, que no deja deslizar con el dedo pero sí deja que iOS corra la página al enfocar un campo. Ahora `html` también lleva `overflow-x: clip` (`css/01-base.css`) y el body recorta de verdad.

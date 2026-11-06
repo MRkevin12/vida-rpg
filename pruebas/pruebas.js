@@ -10216,6 +10216,8 @@ prueba("Pantalla quieta (v203): nada corre la página de lado y las barras vuelv
     const css = await leerCSS();
     // El clip del body solo recorta de verdad si el html también lo tiene (si no, pasa a la ventana como «hidden»).
     cierto(/html \{[^}]*overflow-x: clip;/.test(css), "el html recorta de lado");
+    // (v204) El rebote lo decide el html (no el body) cuando el html recorta: el overscroll va también en el html.
+    cierto(/html \{[^}]*overscroll-behavior: none;/.test(css), "sin rebote al pasarte del final o del inicio (el html lo decide)");
     cierto(css.includes(".gym-mas .gym-ej-botones { flex: 1 1 100%; min-width: 0; }"), "los botones del ejercicio bajan de renglón en la lista");
     cierto(css.includes("repeat(2, minmax(0, 1fr))") && css.includes("repeat(7, minmax(0, 1fr))"), "atributos y calendario de ánimo caben en 320 px");
     cierto(css.includes(".vista-corrida .pestanas") && css.includes("var(--vv-abajo, 0px)"), "la barra de pestañas se recoloca si iOS deja la vista corrida");

@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 203;
+export const VERSION_APP = 204;
 
 export const NOVEDADES = [
+    {
+        version: 204,
+        titulo: "Sin rebote al deslizar",
+        cambios: [
+            "🧱 Al bajar o subir mucho, la página ya no rebota: la cabecera, la barra de abajo y la sub-barra del gym se quedan en su sitio (antes se corrían a media pantalla).",
+        ],
+    },
     {
         version: 203,
         titulo: "La pantalla ya no se descuadra",
