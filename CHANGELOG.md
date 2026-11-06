@@ -2,6 +2,11 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v205 — Barra de abajo en su sitio
+
+- La corrección de la v203 para la barra de pestañas restaba `clientHeight` (`app-efectos.js › medir`); en el iPhone instalado ese valor no coincide con la pantalla visible y la barra bajaba ~34 pt, cortando las etiquetas. Ahora cabecera y barras se corrigen solo con `visualViewport.offsetTop`.
+- Sin cambios de datos. Pruebas: 488 de la app.
+
 ## v204 — Sin rebote al deslizar
 
 - **Al pasarte del final o del inicio, la cabecera, la sub-barra del gym y las pestañas se corrían a media pantalla.** Causa: desde la v203 el `html` tiene `overflow-x: clip`, así que el navegador toma el `overscroll` de la ventana del `html` y el `overscroll-behavior-y: none` del `body` dejó de valer. Ahora el `html` también lleva `overscroll-behavior: none` (`css/01-base.css`). Prueba nueva en `pruebas/pruebas.js`.

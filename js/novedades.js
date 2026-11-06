@@ -4,9 +4,16 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 204;
+export const VERSION_APP = 205;
 
 export const NOVEDADES = [
+    {
+        version: 205,
+        titulo: "Barra de abajo en su sitio",
+        cambios: [
+            "📱 Arreglado: la barra de pestañas (Hoy, Progreso, Aventuras…) quedaba un poco más abajo y se cortaba con el borde de la pantalla. Ya se lee completa.",
+        ],
+    },
     {
         version: 204,
         titulo: "Sin rebote al deslizar",

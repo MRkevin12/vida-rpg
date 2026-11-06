@@ -126,8 +126,10 @@ export function arreglarVistaTrasTeclado() {
             const alto = raiz.clientHeight;   // el alto de la "ventana" a la que van pegadas las barras
             // Solo se cree si es razonable: más de 2 puntos (no temblores) y menos del 80 % de la pantalla.
             const razonable = (n) => (Math.abs(n) > 2 && Math.abs(n) < alto * 0.8 ? Math.round(n) : 0);
-            arriba = razonable(vista.offsetTop);                       // la cabecera baja lo que bajó la parte visible
-            abajo = razonable(vista.offsetTop + vista.height - alto);  // las barras de abajo, a su borde de abajo
+            // (v205) Las dos usan SOLO offsetTop (cuánto bajó la parte visible). En la v203 la de abajo restaba también
+            // clientHeight, que en el iPhone instalado no coincide con la pantalla y bajaba la barra ~34 pt (se cortaba).
+            arriba = razonable(vista.offsetTop);
+            abajo = arriba;
         }
         if (arriba === arribaAntes && abajo === abajoAntes) return;   // sin cambios: no se toca el estilo
         arribaAntes = arriba; abajoAntes = abajo;
