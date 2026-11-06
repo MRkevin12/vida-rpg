@@ -95,20 +95,65 @@ export function ponerMusica() {
 
 // (v99) Un fallo conocido de iOS (Safari y Chrome): al cerrar el teclado, a veces la parte visible de la página
 // queda "corrida" y lo que va fijo a la pantalla (la cabecera y la barra de pestañas) aparece a media pantalla.
-// Remedio: cuando el teclado se cierra (o la parte visible vuelve a medir lo mismo que la ventana), se mueve el
-// scroll 1 punto y se regresa: eso obliga a iOS a recolocar todo.
+// (v203) Rehecho: el remedio de la v99 no siempre bastaba (en el gym la barra se quedaba a media pantalla). Ahora son dos:
+//   1) El empujón: mover el scroll 1 punto y regresar, que obliga a iOS a recolocar todo. Se repite a los 0,08 s, 0,4 s
+//      y 0,9 s, porque el teclado tarda ~0,3 s en cerrarse y el empujón de los 80 ms a veces llegaba antes de tiempo.
+//   2) Si aun así queda corrida, se corrige a mano. window.visualViewport dice qué parte de la página se ve de verdad:
+//      offsetTop = cuánto bajó la parte visible. La cabecera y las barras de abajo se mueven esa misma distancia
+//      (variables --vv-arriba y --vv-abajo; las usa css/99-pixel.css). Normalmente valen 0 y no se nota nada.
+//      Mientras escribes no se toca nada: con el teclado abierto iOS acomoda la página a su manera.
 export function arreglarVistaTrasTeclado() {
-    const reacomodar = () => setTimeout(() => {
-        window.scrollBy(0, 1);
-        window.scrollBy(0, -1);
-    }, 80);
-    document.addEventListener("focusout", (evento) => {
-        if (evento.target.matches?.("input, textarea, select")) reacomodar();
-    });
     const vista = window.visualViewport;
-    if (vista) vista.addEventListener("resize", () => {
-        if (vista.height >= window.innerHeight - 2 && (vista.offsetTop || vista.pageTop !== window.scrollY)) reacomodar();
+    const raiz = document.documentElement;
+    const escribiendo = () => !!document.activeElement?.matches?.("input, textarea, select, [contenteditable='true']");
+
+    // 1) El empujón. Se guarda dónde estabas para volver exacto (al fondo de la página, +1 no se movería: se usa -1).
+    const empujar = () => {
+        if (escribiendo()) return;
+        const y = window.scrollY;
+        window.scrollTo(0, y > 0 ? y - 1 : y + 1);
+        window.scrollTo(0, y);   // la x en 0: si la página se había corrido de lado, vuelve a su sitio
+        pedirMedida();
+    };
+    const reacomodar = () => { for (const espera of [80, 400, 900]) setTimeout(empujar, espera); };
+
+    // 2) La corrección a mano. Se mide una vez por cuadro de animación (requestAnimationFrame) como mucho.
+    let arribaAntes = 0, abajoAntes = 0, pendiente = false;
+    const medir = () => {
+        pendiente = false;
+        let arriba = 0, abajo = 0;
+        if (vista && !escribiendo()) {
+            const alto = raiz.clientHeight;   // el alto de la "ventana" a la que van pegadas las barras
+            // Solo se cree si es razonable: más de 2 puntos (no temblores) y menos del 80 % de la pantalla.
+            const razonable = (n) => (Math.abs(n) > 2 && Math.abs(n) < alto * 0.8 ? Math.round(n) : 0);
+            arriba = razonable(vista.offsetTop);                       // la cabecera baja lo que bajó la parte visible
+            abajo = razonable(vista.offsetTop + vista.height - alto);  // las barras de abajo, a su borde de abajo
+        }
+        if (arriba === arribaAntes && abajo === abajoAntes) return;   // sin cambios: no se toca el estilo
+        arribaAntes = arriba; abajoAntes = abajo;
+        raiz.style.setProperty("--vv-arriba", `${arriba}px`);
+        raiz.style.setProperty("--vv-abajo", `${abajo}px`);
+        raiz.classList.toggle("vista-corrida", Boolean(arriba || abajo));   // el CSS solo mueve las barras con esta clase
+    };
+    function pedirMedida() {
+        if (pendiente) return;
+        pendiente = true;
+        requestAnimationFrame(medir);
+    }
+
+    document.addEventListener("focusout", (evento) => {
+        if (evento.target.matches?.("input, textarea, select, [contenteditable='true']")) reacomodar();
     });
+    document.addEventListener("focusin", pedirMedida);   // al empezar a escribir, las barras vuelven a lo normal
+    window.addEventListener("scroll", pedirMedida, { passive: true });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) reacomodar(); });   // al volver a la app
+    if (vista) {
+        vista.addEventListener("scroll", pedirMedida);
+        vista.addEventListener("resize", () => {
+            pedirMedida();
+            if (vista.height >= window.innerHeight - 2 && (vista.offsetTop || vista.pageTop !== window.scrollY)) reacomodar();
+        });
+    }
 }
 
 // (v95) Todas las pinturas (los 20 jefes y los fondos) pasan a pixel art, en segundo plano y una por una.

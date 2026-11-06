@@ -100,6 +100,10 @@ input, textarea, select, [contenteditable="true"], .seleccionable {
 html {
     touch-action: pan-x pan-y;
     -webkit-text-size-adjust: 100%;
+    /* (v203) Sin esto, el «overflow-x: clip» del body no servía: el navegador se lo pasa a la ventana y ahí se vuelve
+       «hidden», que no deja deslizar de lado con el dedo pero SÍ deja que iOS corra la página al tocar un campo
+       (pasó en el gym: la pantalla quedaba movida a la izquierda). Con el html recortando, el body recorta de verdad. */
+    overflow-x: clip;
 }
 
 h1, h2, h3, p, dl, dd {

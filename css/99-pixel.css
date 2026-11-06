@@ -2053,3 +2053,39 @@ body::-webkit-scrollbar,
     width: 0;
     height: 0;
 }
+
+/* ===== (v203) La cabecera y las barras de abajo no se quedan a media pantalla tras cerrar el teclado =====
+   app-efectos.js › arreglarVistaTrasTeclado mide cuánto quedó corrida la parte visible y lo pone en --vv-arriba y
+   --vv-abajo, y le pone al <html> la clase «vista-corrida» solo mientras hace falta (casi nunca).
+   Se usa «translate» (no «transform») para no chocar con sus animaciones. */
+.vista-corrida .cabecera,
+.vista-corrida .actualizacion {
+    translate: 0 var(--vv-arriba, 0px);
+}
+
+.vista-corrida .pestanas,
+.vista-corrida .run-flotante,
+.vista-corrida .aviso,
+.vista-corrida .deshacer {
+    translate: 0 var(--vv-abajo, 0px);
+}
+
+/* ===== (v203) Pantallas angostas: nada se sale por el lado =====
+   «1fr» no deja que una columna sea más angosta que su contenido; «minmax(0, 1fr)» sí, y el texto baja de renglón. */
+.atributos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.atributo {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.mes-animo {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+@media (max-width: 360px) {
+    .mes-animo { gap: 3px; }
+    .dia-animo { min-height: 0; }   /* con 36 px fijos, 7 días + huecos no caben en 320 px */
+}

@@ -4,9 +4,18 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 202;
+export const VERSION_APP = 203;
 
 export const NOVEDADES = [
+    {
+        version: 203,
+        titulo: "La pantalla ya no se descuadra",
+        cambios: [
+            "🧭 Al escribir en el gym (kg, reps) y cerrar el teclado, la barra de pestañas ya no se queda a media pantalla: vuelve sola abajo, y la cabecera arriba.",
+            "↔️ La pantalla ya no se corre hacia un lado al tocar un campo. En la lista del gym, «+ calentamiento», «cambiar» y «saltar» ahora caben en el panel.",
+            "📱 En pantallas angostas, los atributos de Progreso y el calendario de ánimo del Diario ya no se salen por la derecha.",
+        ],
+    },
     {
         version: 202,
         titulo: "Sin barras de desplazamiento",

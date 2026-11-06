@@ -10212,6 +10212,17 @@ prueba("Premios ligados a una misión (v194): sin misión no cambia nada; misió
     debeFallar(() => acciones.crearRecompensa(estado, { nombre: "X", costo: 5, misionId: "999" }), "Elige una misión");
 });
 
+prueba("Pantalla quieta (v203): nada corre la página de lado y las barras vuelven tras el teclado", async () => {
+    const css = await leerCSS();
+    // El clip del body solo recorta de verdad si el html también lo tiene (si no, pasa a la ventana como «hidden»).
+    cierto(/html \{[^}]*overflow-x: clip;/.test(css), "el html recorta de lado");
+    cierto(css.includes(".gym-mas .gym-ej-botones { flex: 1 1 100%; min-width: 0; }"), "los botones del ejercicio bajan de renglón en la lista");
+    cierto(css.includes("repeat(2, minmax(0, 1fr))") && css.includes("repeat(7, minmax(0, 1fr))"), "atributos y calendario de ánimo caben en 320 px");
+    cierto(css.includes(".vista-corrida .pestanas") && css.includes("var(--vv-abajo, 0px)"), "la barra de pestañas se recoloca si iOS deja la vista corrida");
+    const efectos = await (await fetch("../js/pantallas/app-efectos.js", { cache: "no-store" })).text();
+    cierto(efectos.includes("[80, 400, 900]") && efectos.includes("\"vista-corrida\""), "el empujón se repite y la clase se pone solo cuando hace falta");
+});
+
 // ===== Ejecutar todo y mostrar el resultado =====
 
 const lista = document.querySelector("#lista");

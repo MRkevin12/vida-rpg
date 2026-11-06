@@ -666,6 +666,9 @@
 .gym-ej-botones { display: inline-flex; flex-wrap: wrap; gap: 4px; flex: 0 0 auto; }
 .gym-foco .gym-boton-icono { min-width: 40px; min-height: 40px; padding: 0; font-size: 1.05rem; }
 .gym-mas { flex-wrap: wrap; }
+/* (v203) En la lista, «+ calentamiento · cambiar · saltar» van en su propia línea y bajan de renglón si no caben
+   (con flex: 0 0 auto medían 430 px y se salían del panel). En el modo foco siguen siendo solo íconos. */
+.gym-mas .gym-ej-botones { flex: 1 1 100%; min-width: 0; }
 .gym-serie-cal { opacity: 0.8; }
 .gym-serie-cal .gym-n { font-size: 1rem; }
 .gym-foco-mapa i.cal, .gym-pips i.cal { opacity: 0.45; }

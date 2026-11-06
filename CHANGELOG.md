@@ -2,6 +2,15 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v203 — La pantalla ya no se descuadra
+
+- **La página se corría de lado** (gym en «Lista»): el `overflow-x: clip` del `body` pasaba a la ventana como `hidden`, que no deja deslizar con el dedo pero sí deja que iOS corra la página al enfocar un campo. Ahora `html` también lleva `overflow-x: clip` (`css/01-base.css`) y el body recorta de verdad.
+- **La fila «+ calentamiento · cambiar · saltar»** medía ~430 px (`flex: 0 0 auto`): en la lista va en su línea y baja de renglón (`.gym-mas .gym-ej-botones`, `css/14-gym-foco.css`).
+- **La barra de pestañas a media pantalla tras cerrar el teclado** (`app-efectos.js › arreglarVistaTrasTeclado`, rehecho): el empujón de scroll se repite a 80/400/900 ms, y si iOS deja la vista corrida se mide con `visualViewport` y se recolocan cabecera, pestañas, aviso, deshacer y barra de carrera (`--vv-arriba`/`--vv-abajo` + clase `vista-corrida` en `<html>`, solo mientras hace falta). Mientras escribes no se toca nada.
+- **320 px**: `.atributos` y `.mes-animo` con `minmax(0, 1fr)`; los días del calendario sin alto mínimo en pantallas ≤360 px.
+- Revisado con un recorrido automático de las 20 pantallas, sus subvistas y las 21 ventanas a 320, 375 y 430 px: nada se sale por los lados.
+- Sin cambios de datos. Pruebas: 488 de la app.
+
 ## v202 — Sin barras de desplazamiento
 
 - Se ocultan las barras de desplazamiento en toda la app (`css/99-pixel.css`, al final): `scrollbar-width: none` y `::-webkit-scrollbar` en `html`, `body` y el resto. Antes solo se ocultaban dentro de la galería.
