@@ -204,6 +204,7 @@ export function paso(partida, entrada, dt = P.PASO) {
         for (const e of partida.enemigos) moverEnemigo(partida, e, dt);
         if (partida.jefe) moverJefe(partida, partida.jefe, dt);
         moverObjetos(partida, dt);
+        ambiente(partida, dt);
         moverDisparos(partida, dt);
         moverProyectiles(partida, dt);
         for (const k of partida.cadenas) k.angulo += k.velocidad * dt;
@@ -548,6 +549,38 @@ function moverPlataformas(partida, dt) {
 
 
 // ===== Los enemigos =====
+// (v210) La voz de una criatura: se anota como «voz:esqueleto:cae» y app-plataformas.js la hace sonar (sonarVoz).
+// Solo suena lo que está en pantalla.
+function voz(partida, c, momento) {
+    if (enVista(partida, c, 8)) partida.sonidos.push(`voz:${c.def.id}:${momento}`);
+}
+
+// (v210) El ambiente: de vez en cuando la criatura que ves murmura y cada mundo tiene sus ruidos (el trueno de las Cumbres sale
+// junto al destello del cielo, que se pinta con el mismo reloj). Usa Math.random: no toca el azar del juego (los niveles siguen repetibles).
+function ambiente(partida, dt) {
+    const a = (partida.ambiente ||= { voz: 3, cosa: 4 });
+    a.voz -= dt;
+    if (a.voz <= 0) {
+        a.voz = 2.5 + Math.random() * 3;
+        const vistas = partida.enemigos.filter((e) => e.vivo && e.activo && e.conducta !== "mazo" && enVista(partida, e, 0));
+        if (vistas.length) voz(partida, vistas[Math.floor(Math.random() * vistas.length)], "aparece");
+    }
+    if (partida.mundo === 3) {   // el rayo lejano: crujido con el destello y trueno poco después
+        const CADA = 8.5;
+        const t = (partida.reloj - 3) % CADA;
+        if (partida.reloj >= 3 && t < dt) partida.sonidos.push("crujido");
+        if (partida.reloj >= 3 && t >= 1.4 && t - dt < 1.4) partida.sonidos.push("trueno");
+    }
+    a.cosa -= dt;
+    if (a.cosa <= 0) {
+        const cada = { 1: [11, 8, "ulular"], 2: [2.5, 4, "gota"], 3: [7, 6, "ventisca"], 4: [2, 3, "brasa"] }[partida.mundo];
+        if (cada) {
+            partida.sonidos.push(cada[2]);
+            a.cosa = cada[0] + Math.random() * cada[1];
+        } else a.cosa = 10;
+    }
+}
+
 function enVista(partida, a, margen = 40) {
     const cam = partida.camara.x;
     return a.x + a.ancho > cam - margen && a.x < cam + partida.vista.ancho + margen;
@@ -568,6 +601,7 @@ function moverEnemigo(partida, e, dt) {
         if (!enVista(partida, e, 24)) return;
         e.activo = true;
         e.mira = centroX(partida.heroe) < centroX(e) ? -1 : 1;
+        voz(partida, e, "aparece");
     }
     e.t += dt;
     const h = partida.heroe;
@@ -634,6 +668,7 @@ function moverEnemigo(partida, e, dt) {
                     e.estado = "baja";
                     e.t = 0;
                     partida.sonidos.push("graznido");
+                    voz(partida, e, "ataque");
                 }
             } else if (e.estado === "baja") {
                 e.x += e.vx * dt;
@@ -655,6 +690,7 @@ function moverEnemigo(partida, e, dt) {
                 e.vx = 0;
                 e.espera -= dt;
                 if (e.espera <= 0) {
+                    voz(partida, e, "ataque");
                     e.vy = -300;
                     e.vx = haciaHeroe * d.velocidad;
                     e.mira = haciaHeroe;
@@ -675,6 +711,7 @@ function moverEnemigo(partida, e, dt) {
             if (e.espera <= 0 && dx < 180 && dy < 110 && enVista(partida, e, 0)) {
                 e.espera = 2.6;
                 e.t = 0;   // para el dibujo: el destello de disparo
+                voz(partida, e, "ataque");
                 disparar(partida, e, h);
             }
             break;
@@ -685,7 +722,7 @@ function moverEnemigo(partida, e, dt) {
             const ciclo = { dentro: 2.0, sube: 0.45, fuera: 1.3, baja: 0.45 };
             if (e.t >= ciclo[e.estado]) {
                 const siguiente = { dentro: "sube", sube: "fuera", fuera: "baja", baja: "dentro" }[e.estado];
-                if (!(e.estado === "dentro" && cerca)) { e.estado = siguiente; e.t = 0; }
+                if (!(e.estado === "dentro" && cerca)) { e.estado = siguiente; e.t = 0; if (siguiente === "sube") voz(partida, e, "ataque"); }
             }
             e.salida = e.estado === "dentro" ? 0 : e.estado === "fuera" ? 1 : e.estado === "sube" ? e.t / ciclo.sube : 1 - e.t / ciclo.baja;
             break;
@@ -693,7 +730,7 @@ function moverEnemigo(partida, e, dt) {
         case "ascua": {
             if (e.estado === "espera") {
                 e.espera -= dt;
-                if (e.espera <= 0) { e.estado = "salta"; e.vy = -390; }
+                if (e.espera <= 0) { e.estado = "salta"; e.vy = -390; voz(partida, e, "ataque"); }
             } else {
                 e.vy += 900 * dt;
                 e.y += e.vy * dt;
@@ -705,7 +742,7 @@ function moverEnemigo(partida, e, dt) {
             const dx = Math.abs(centroX(h) - centroX(e));
             if (e.estado === "arriba") {
                 e.espera -= dt;
-                if (e.espera <= 0 && dx < 40 && h.y > e.y) { e.estado = "baja"; e.t = 0; }
+                if (e.espera <= 0 && dx < 40 && h.y > e.y) { e.estado = "baja"; e.t = 0; voz(partida, e, "ataque"); }
             } else if (e.estado === "baja") {
                 e.y += d.velocidad * dt;
                 const tope = P.esSolida(P.celda(n, Math.floor(centroX(e) / CELDA), Math.floor((e.y + e.alto + 1) / CELDA)));
@@ -815,6 +852,7 @@ function vencer(partida, e, como) {
         }
     }
     partida.sonidos.push(como === "pisado" ? "pisar" : "impacto");
+    voz(partida, e, "cae");
 }
 
 
@@ -886,7 +924,7 @@ function moverDisparos(partida, dt) {
             if (!e.def.fuego) { partida.sonidos.push("bloque"); continue; }
             e.golpesFuego += 1;
             if (e.golpesFuego >= e.def.fuego) vencer(partida, e, "fuego");
-            else { partida.sonidos.push("impacto"); e.golpeEn = partida.reloj; }   // (el dibujo lo hace destellar)
+            else { partida.sonidos.push("impacto"); e.golpeEn = partida.reloj; voz(partida, e, "herido"); }   // (el dibujo lo hace destellar)
         }
         const j = partida.jefe;
         if (b.vida > 0 && j && j.activo && !j.vencido && P.seTocan(b, j)) {
@@ -1175,6 +1213,7 @@ function golpearJefe(partida, j) {
     j.inmune = 1.1;
     partida.temblor = 0.3;
     partida.sonidos.push("critico");
+    voz(partida, j, j.vida <= 0 ? "cae" : "herido");
     chispa(partida, centroX(j), j.y + 6, "#fde68a");
     estrella(partida, centroX(j), j.y + 4, true);
     partida.congelar = 0.12;
@@ -1217,10 +1256,17 @@ function cambiarEstado(j, estado) {
     j.t = 0;
 }
 
+// (v210) Los estados en los que el jefe ataca: al entrar en uno, ruge.
+const ESTADOS_DE_ATAQUE = new Set(["carga", "lanza", "tajo", "salta", "salto", "pilares", "bolas", "rayos", "picado", "despega"]);
+
 function moverJefe(partida, j, dt) {
     const h = partida.heroe;
     j.inmune = Math.max(0, j.inmune - dt);
     j.t += dt;
+    if (j.activo && !j.vencido && j.estado !== j.estadoVoz) {
+        j.estadoVoz = j.estado;
+        if (ESTADOS_DE_ATAQUE.has(j.estado)) voz(partida, j, "ataque");
+    }
     if (j.vencido) {
         // Cae, se apaga y a los 1,6 s se abre la puerta y el Arco de la Llama.
         if (j.especie === "dragon") j.y += 60 * dt;
@@ -1238,6 +1284,7 @@ function moverJefe(partida, j, dt) {
             j.activo = true;
             cerrarPuerta(partida);
             partida.sonidos.push("retumbo");
+            voz(partida, j, "aparece");
             partida.temblor = 0.4;
             partida.avisos.push({ texto: j.nombre, tipo: "jefe" });
             cambiarEstado(j, j.especie === "dragon" ? "vuela" : "anda");

@@ -17,7 +17,7 @@ import * as sprites from "../dibujo/sprites.js";
 import { calcularVida } from "../vida.js";
 import { hoy } from "../fechas.js";
 import { estado, $, avatarActual, ejecutar, dibujarPantalla } from "../app.js";
-import { sonar, ponerMusica } from "../pantallas/app-efectos.js";
+import { sonar, voz as sonarVoz, ponerMusica } from "../pantallas/app-efectos.js";
 
 let elegido = null;        // el nivel que estás mirando en el mapa
 let juego = null;          // la partida en curso: { nivelId, partida, pintor, terminado }
@@ -244,7 +244,13 @@ function cuadro(ahora) {
     juego.pintor.dibujar(g);
 
     // Los sonidos de este cuadro (sin repetir: diez monedas juntas suenan como una).
-    for (const nombre of new Set(motor.sacarSonidos(partida))) sonar(nombre);
+    for (const nombre of new Set(motor.sacarSonidos(partida))) {
+        // (v210) «voz:esqueleto:cae» = la voz de esa criatura en ese momento; lo demás son sonidos de siempre.
+        if (nombre.startsWith("voz:")) {
+            const [, criatura, momento] = nombre.split(":");
+            sonarVoz(criatura, momento);
+        } else sonar(nombre);
+    }
     const avisos = motor.sacarAvisos(partida);
     if (avisos.length) {
         const ultimo = avisos[avisos.length - 1];

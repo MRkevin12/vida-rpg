@@ -2,6 +2,13 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v210 — La Senda suena viva
+
+- **Voces de las criaturas**: el motor anota `voz:<id>:<momento>` en `partida.sonidos` (helper `voz()`, solo si la criatura está en pantalla) y `app-plataformas.js` lo pasa a `sonarVoz` (familias de `FAMILIA_DE_CRIATURA`, ya existían). Momentos: `aparece` (al despertar y, de vez en cuando, un murmullo de una criatura a la vista), `ataque` (salto del cieno, disparo de gárgola/cristal, picado de la arpía, bajada de la araña, raíz que sube, ascua que salta; jefes al entrar en un estado de ataque, `ESTADOS_DE_ATAQUE`), `herido` (bola de fuego sin matar; golpe al jefe) y `cae`.
+- **Ambiente** (`ambiente()` en el motor, con `Math.random`: no toca `partida.azar`): Campos «ulular», Minas «gota», Cumbres «ventisca» y brasas «brasa» en la Fortaleza. En las Cumbres el rayo lejano del fondo (cada 8,5 s desde el segundo 3, mismo reloj que `pintarRelampago`) suena «crujido» y 1,4 s después «trueno».
+- Sonidos nuevos en `sonido.js`: trueno, crujido, gota, ventisca, brasa. El mazo de piedra sigue con «retumbo».
+- Probado: 496 pruebas de la app (nueva: voces, ambiente y trueno).
+
 ## v209 — Botones más grandes en horizontal
 
 - Senda en horizontal: columnas del mando de 142 a 166 px; cruceta 66 × 92, saltar 90, fuego 66 (antes 56 × 76, 74 y 58). El lienzo cede ~48 px de ancho en total.

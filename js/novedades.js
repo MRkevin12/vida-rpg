@@ -4,9 +4,19 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 209;
+export const VERSION_APP = 210;
 
 export const NOVEDADES = [
+    {
+        version: 210,
+        titulo: "La Senda del Reino ahora suena viva",
+        cambios: [
+            "👹 Las criaturas tienen voz: gruñen al aparecer, rugen al atacar, se quejan si las quemas y suenan al caer. Cada una a su manera (huesos, chillidos, babas, metal…). Los jefes también rugen al atacar.",
+            "⚡ Las Cumbres: se oye el crujido del rayo lejano junto al destello del cielo y, un momento después, el trueno.",
+            "🌲 Cada mundo tiene su ambiente: un búho en los Campos, gotas en las Minas, ráfagas de viento en las Cumbres y brasas que crepitan en la Fortaleza.",
+            "🔇 Todo respeta el interruptor de Sonido de la pausa.",
+        ],
+    },
     {
         version: 209,
         titulo: "Botones más grandes en horizontal",

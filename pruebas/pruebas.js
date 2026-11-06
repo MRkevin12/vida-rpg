@@ -9783,13 +9783,39 @@ prueba("La Senda del Reino: las pantallas (Arcade, mapa, resultado y marcador)",
 prueba("La Senda del Reino: los sonidos existen y cada mundo tiene su música (con el jefe, «Batalla»)", () => {
     for (const nombre of ["salto", "moneda", "impacto", "fallo", "aviso", "poder", "ladrillo", "bloque", "vidaExtra", "coraza", "fuego",
                           "habilidad", "bola", "retumbo", "graznido", "hielo", "pisar", "patada", "campana", "cofre", "victoria", "critico",
-                          "descarga", "logro", "tajo", "carga", "chillido", "rayo", "secreto"]) {
+                          "descarga", "logro", "tajo", "carga", "chillido", "rayo", "secreto",
+                          "trueno", "crujido", "gota", "ventisca", "brasa"]) {
         cierto(existeSonido(nombre), `existe el sonido «${nombre}»`);
     }
     igual(musicaModulo.pistaDeEscena({ pantalla: "arcade", senda: "misterio" }), "misterio", "en las minas suena «Misterio»");
     igual(musicaModulo.pistaDeEscena({ pantalla: "arcade", senda: "batalla" }), "batalla");
     igual(musicaModulo.pistaDeEscena({ pantalla: "arcade", senda: "misterio", auto: false, elegida: "nocturno" }), "nocturno", "sin música por escena, la tuya");
     igual(plataformas.MUNDOS.map((m) => m.musica), ["alba", "misterio", "epica", "abismo"]);
+});
+
+prueba("La Senda del Reino (v210): las criaturas tienen voz y cada mundo su ambiente", () => {
+    // Todo enemigo y jefe de la Senda tiene una familia de voz (menos el mazo de piedra, que es una trampa y suena con «retumbo»).
+    for (const e of Object.values(plataformas.ENEMIGOS).filter((x) => x.id !== "mazo")) cierto(sonidoModulo.FAMILIA_DE_CRIATURA[e.id], `«${e.id}» tiene voz`);
+    for (const j of Object.values(plataformas.JEFES)) cierto(sonidoModulo.FAMILIA_DE_CRIATURA[j.id], `el jefe «${j.id}» tiene voz`);
+    // El ambiente del mundo 1 y los sonidos del 3 se anotan solos con el paso del tiempo.
+    const q = partidaDePrueba({}, { mundo: 1 });
+    avanzar(q, 20);
+    cierto(motorSenda.sacarSonidos(q).some((s) => s === "ulular" || s.startsWith("voz:")), "en 20 s suena el ambiente o una voz");
+    const c = partidaDePrueba({}, { mundo: 3 });
+    avanzar(c, 14);
+    const sonidosC = motorSenda.sacarSonidos(c);
+    cierto(sonidosC.includes("crujido") && sonidosC.includes("trueno"), "en las Cumbres, el rayo lejano suena (crujido y trueno)");
+    // Un esqueleto que se pisa suena al caer.
+    const v = partidaDePrueba({ 12: { 8: "e" } });
+    avanzar(v, 0.2);
+    const esq = v.enemigos[0];
+    cierto(esq, "hay un esqueleto");
+    motorSenda.sacarSonidos(v);
+    esq.activo = true;
+    v.camara.x = 0;
+    v.heroe.x = esq.x - 4; v.heroe.y = esq.y - v.heroe.alto - 1; v.heroe.vy = 200;
+    avanzar(v, 0.3);
+    cierto(motorSenda.sacarSonidos(v).includes("voz:esqueleto:cae"), "el esqueleto vencido suena «cae»");
 });
 
 prueba("La Senda del Reino: archivos en el service worker y en la ayuda", async () => {
