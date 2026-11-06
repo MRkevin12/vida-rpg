@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 210;
+export const VERSION_APP = 211;
 
 export const NOVEDADES = [
+    {
+        version: 211,
+        titulo: "La Fortaleza ya no suena a cascabel",
+        cambios: [
+            "🔥 El crepitar de las brasas es suave y aparece de vez en cuando (antes eran chasquidos agudos casi seguidos).",
+            "👂 Los murmullos de las criaturas se espacian más: de 4 a 8 segundos.",
+        ],
+    },
     {
         version: 210,
         titulo: "La Senda del Reino ahora suena viva",

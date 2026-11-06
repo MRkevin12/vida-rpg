@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v211 — La Fortaleza sin cascabel
+
+- `sonido.js › brasa`: ahora un solo crepitar grave y suave (antes tres `highpass` de 3–3,6 kHz seguidos, que sonaban a cascabel).
+- `ambiente()` (motor): la brasa de la Fortaleza cada 7–12 s (antes 2–5 s); los murmullos de las criaturas cada 4–8 s (antes 2,5–5,5 s).
+- Probado: 496 pruebas de la app.
+
 ## v210 — La Senda suena viva
 
 - **Voces de las criaturas**: el motor anota `voz:<id>:<momento>` en `partida.sonidos` (helper `voz()`, solo si la criatura está en pantalla) y `app-plataformas.js` lo pasa a `sonarVoz` (familias de `FAMILIA_DE_CRIATURA`, ya existían). Momentos: `aparece` (al despertar y, de vez en cuando, un murmullo de una criatura a la vista), `ataque` (salto del cieno, disparo de gárgola/cristal, picado de la arpía, bajada de la araña, raíz que sube, ascua que salta; jefes al entrar en un estado de ataque, `ESTADOS_DE_ATAQUE`), `herido` (bola de fuego sin matar; golpe al jefe) y `cae`.

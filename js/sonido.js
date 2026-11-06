@@ -94,7 +94,7 @@ const SONIDOS = {
     crujido:   { onda: "square",   volumen: 0.05, notas: [[2400, 0, 0.04, 300]], ruido: [[0, 0.14, 7000, 0.28, 1800, "highpass"], [0.09, 0.08, 6000, 0.15, 2000, "highpass"]] },
     gota:      { onda: "sine",     volumen: 0.07, notas: [[1500, 0, 0.07, 650], [1100, 0.16, 0.06, 520]] },
     ventisca:  { onda: "sine",     volumen: 0.02, notas: [[190, 0, 1.4, 270]], ruido: [[0, 1.5, 350, 0.2, 1700, "bandpass"]] },
-    brasa:     { onda: "triangle", volumen: 0.02, notas: [[110, 0, 0.3, 80]], ruido: [[0, 0.04, 3200, 0.2, 3200, "highpass"], [0.1, 0.03, 2800, 0.16, 2800, "highpass"], [0.19, 0.05, 3600, 0.22, 3600, "highpass"]] },
+    brasa:     { onda: "triangle", volumen: 0.02, notas: [[90, 0, 0.5, 70]], ruido: [[0, 0.4, 1200, 0.12, 600, "lowpass"]] },   // (v211) un crepitar bajo y suave, una sola vez (antes eran 3 chasquidos agudos: sonaban a cascabel)
     bola:      { onda: "sawtooth", volumen: 0.05, notas: [[880, 0, 0.08, 330]], ruido: [[0, 0.08, 3000, 0.12, 900, "bandpass"]] },
 };
 

@@ -561,7 +561,7 @@ function ambiente(partida, dt) {
     const a = (partida.ambiente ||= { voz: 3, cosa: 4 });
     a.voz -= dt;
     if (a.voz <= 0) {
-        a.voz = 2.5 + Math.random() * 3;
+        a.voz = 4 + Math.random() * 4;
         const vistas = partida.enemigos.filter((e) => e.vivo && e.activo && e.conducta !== "mazo" && enVista(partida, e, 0));
         if (vistas.length) voz(partida, vistas[Math.floor(Math.random() * vistas.length)], "aparece");
     }
@@ -573,7 +573,7 @@ function ambiente(partida, dt) {
     }
     a.cosa -= dt;
     if (a.cosa <= 0) {
-        const cada = { 1: [11, 8, "ulular"], 2: [2.5, 4, "gota"], 3: [7, 6, "ventisca"], 4: [2, 3, "brasa"] }[partida.mundo];
+        const cada = { 1: [11, 8, "ulular"], 2: [2.5, 4, "gota"], 3: [7, 6, "ventisca"], 4: [7, 5, "brasa"] }[partida.mundo];
         if (cada) {
             partida.sonidos.push(cada[2]);
             a.cosa = cada[0] + Math.random() * cada[1];
