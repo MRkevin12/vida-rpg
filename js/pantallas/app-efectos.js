@@ -108,8 +108,19 @@ export function arreglarVistaTrasTeclado() {
     const escribiendo = () => !!document.activeElement?.matches?.("input, textarea, select, [contenteditable='true']");
 
     // 1) El empujón. Se guarda dónde estabas para volver exacto (al fondo de la página, +1 no se movería: se usa -1).
+    // (v212) Además del empujón, se obliga a iOS a volver a pintar la cabecera y las pestañas (quitarlas y ponerlas en el mismo
+    // instante): después de girar el teléfono o de cerrar un juego a pantalla completa, iOS a veces las dejaba a media pantalla,
+    // con una franja negra y la cabecera invisible.
+    const repintar = () => {
+        for (const el of document.querySelectorAll(".cabecera, .pestanas")) {
+            el.style.display = "none";
+            void el.offsetHeight;   // leer la medida obliga al navegador a recalcular ya
+            el.style.display = "";
+        }
+    };
     const empujar = () => {
         if (escribiendo()) return;
+        repintar();
         const y = window.scrollY;
         window.scrollTo(0, y > 0 ? y - 1 : y + 1);
         window.scrollTo(0, y);   // la x en 0: si la página se había corrido de lado, vuelve a su sitio
@@ -149,6 +160,20 @@ export function arreglarVistaTrasTeclado() {
     document.addEventListener("focusin", pedirMedida);   // al empezar a escribir, las barras vuelven a lo normal
     window.addEventListener("scroll", pedirMedida, { passive: true });
     document.addEventListener("visibilitychange", () => { if (!document.hidden) reacomodar(); });   // al volver a la app
+    // (v212) Al girar el teléfono (la Senda se juega en horizontal) y al volver a vertical.
+    window.addEventListener("orientationchange", reacomodar);
+    let anchoAntes = window.innerWidth;
+    window.addEventListener("resize", () => {
+        if (window.innerWidth !== anchoAntes) { anchoAntes = window.innerWidth; reacomodar(); }
+    });
+    window.addEventListener("pageshow", reacomodar);
+    // (v212) Al cerrarse un juego o escena a pantalla completa (Senda, minijuegos, Torre, Voces, cinemáticas): su capa se oculta
+    // con el atributo «hidden», y justo ahí la pantalla de abajo quedaba mal pintada.
+    const capas = document.querySelectorAll("#senda, #minijuego, #torre, #voces, #cine");
+    const vigilante = new MutationObserver((cambios) => {
+        if (cambios.some((c) => c.target.hidden)) reacomodar();
+    });
+    for (const capa of capas) vigilante.observe(capa, { attributes: true, attributeFilter: ["hidden"] });
     if (vista) {
         vista.addEventListener("scroll", pedirMedida);
         vista.addEventListener("resize", () => {

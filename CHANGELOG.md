@@ -2,6 +2,12 @@
 
 Todas las versiones de Vida RPG. La versión instalada se ve en la app, en Ajustes.
 
+## v212 — La pantalla no se descuadra al girar ni al salir de un juego
+
+- Capturas del iPhone: barra de pestañas a media pantalla, franja negra y cabecera invisible tras jugar (Senda en horizontal, volver a vertical). `app-efectos.js › arreglarVistaTrasTeclado`: ahora también corre `reacomodar()` en `orientationchange`, cambio de ancho, `pageshow` y cuando se oculta `#senda`, `#minijuego`, `#torre`, `#voces` o `#cine` (MutationObserver sobre `hidden`). El empujón además llama a `repintar()` (quita y pone `display` de `.cabecera` y `.pestanas`) para obligar a iOS a repintarlas.
+- `css/99-pixel.css`: cabecera y pestañas con fondo opaco y sin `backdrop-filter` (con 0,92 se transparentaba el texto que pasaba por debajo).
+- NO reproducible en Chromium (es un fallo de iOS): verificar en el iPhone girando y saliendo de la Senda.
+
 ## v211 — La Fortaleza sin cascabel
 
 - `sonido.js › brasa`: ahora un solo crepitar grave y suave (antes tres `highpass` de 3–3,6 kHz seguidos, que sonaban a cascabel).

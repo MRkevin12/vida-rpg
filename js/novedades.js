@@ -4,9 +4,17 @@
 // Al publicar una versión: sube VERSION_APP (igual que VERSION en sw.js) y agrega
 // sus cambios arriba de la lista.
 
-export const VERSION_APP = 211;
+export const VERSION_APP = 212;
 
 export const NOVEDADES = [
+    {
+        version: 212,
+        titulo: "Pantalla bien puesta al girar y al salir de un juego",
+        cambios: [
+            "📱 Al girar el teléfono o cerrar la Senda, un minijuego, la Torre o una escena, la cabecera y la barra de pestañas se vuelven a poner solas en su lugar (antes a veces quedaban a media pantalla, con una franja negra).",
+            "🎨 La cabecera y la barra de pestañas son opacas: ya no se transparenta el texto de atrás.",
+        ],
+    },
     {
         version: 211,
         titulo: "La Fortaleza ya no suena a cascabel",

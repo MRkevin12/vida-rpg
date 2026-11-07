@@ -183,7 +183,7 @@ body {
 
 /* ===== Cabecera ===== */
 .cabecera {
-    background: rgba(9, 6, 19, 0.92);
+    background: #090613;   /* (v212) opaca: con 0,92 se transparentaba el texto de la pantalla que pasaba por debajo */
     border-bottom: 2px solid var(--borde);
     box-shadow: 0 2px 0 var(--tinta);
 }
@@ -205,7 +205,9 @@ body {
 
 /* ===== Barra de pestañas ===== */
 .pestanas {
-    background: rgba(9, 6, 19, 0.96);
+    background: #090613;   /* (v212) opaca, igual que la cabecera */
+    backdrop-filter: none;   /* (v212) sin desenfoque: en iOS el desenfoque de una barra fija deja franjas sin pintar */
+    -webkit-backdrop-filter: none;
     border-top: 2px solid var(--borde);
     box-shadow: 0 -2px 0 var(--tinta);
 }
